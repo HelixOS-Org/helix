@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -82,7 +83,7 @@ pub struct CapacityDataPoint {
 #[derive(Debug)]
 pub struct CapacityTimeSeries {
     /// Data points
-    points: Vec<CapacityDataPoint>,
+    points: VecDeque<CapacityDataPoint>,
     /// Max points
     max_points: usize,
 }
@@ -90,27 +91,30 @@ pub struct CapacityTimeSeries {
 impl CapacityTimeSeries {
     pub fn new(max_points: usize) -> Self {
         Self {
-            points: Vec::new(),
+            points: VecDeque::new(),
             max_points,
         }
     }
 
     /// Add point
+    #[inline]
     pub fn add(&mut self, point: CapacityDataPoint) {
         if self.points.len() >= self.max_points {
-            self.points.remove(0);
+            self.points.pop_front();
         }
-        self.points.push(point);
+        self.points.push_back(point);
     }
 
     /// Current utilization
+    #[inline]
     pub fn current_utilization(&self) -> f64 {
-        self.points.last().map(|p| {
+        self.points.back().map(|p| {
             if p.capacity <= 0.0 { 0.0 } else { p.usage / p.capacity }
         }).unwrap_or(0.0)
     }
 
     /// Average utilization over last N points
+    #[inline]
     pub fn avg_utilization(&self, n: usize) -> f64 {
         let start = self.points.len().saturating_sub(n);
         let recent = &self.points[start..];
@@ -129,7 +133,7 @@ impl CapacityTimeSeries {
             return 0.0;
         }
         let first = &self.points[0];
-        let last = self.points.last().unwrap();
+        let last = self.points.back().unwrap();
         let time_delta = (last.timestamp - first.timestamp) as f64;
         if time_delta <= 0.0 {
             return 0.0;
@@ -162,7 +166,7 @@ impl CapacityTimeSeries {
         if rate <= 0.0 {
             return None; // not growing
         }
-        let last = self.points.last()?;
+        let last = self.points.back()?;
         let headroom = last.capacity - last.usage;
         if headroom <= 0.0 {
             return Some(0); // already exhausted
@@ -171,6 +175,7 @@ impl CapacityTimeSeries {
     }
 
     /// Points count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.points.len()
     }
@@ -201,6 +206,7 @@ impl CapacityScenario {
     }
 
     /// Add resource change (multiplier, e.g. 2.0 = double)
+    #[inline(always)]
     pub fn add_change(&mut self, resource: CapacityResource, multiplier: f64) {
         self.changes.insert(resource as u8, multiplier);
     }
@@ -231,6 +237,7 @@ pub struct SizingRecommendation {
 
 /// Capacity planner stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticCapacityStats {
     /// Tracked resources
     pub tracked_resources: usize,
@@ -262,6 +269,7 @@ impl HolisticCapacityEngine {
     }
 
     /// Register resource
+    #[inline]
     pub fn register_resource(&mut self, resource: CapacityResource, capacity: f64) {
         self.series.insert(resource as u8, CapacityTimeSeries::new(1440)); // 24h at 1min intervals
         self.capacities.insert(resource as u8, capacity);
@@ -302,6 +310,7 @@ impl HolisticCapacityEngine {
     }
 
     /// Get trend
+    #[inline]
     pub fn trend(&self, resource: CapacityResource) -> CapacityTrend {
         let key = resource as u8;
         self.series.get(&key)
@@ -310,6 +319,7 @@ impl HolisticCapacityEngine {
     }
 
     /// Time to exhaustion
+    #[inline(always)]
     pub fn time_to_exhaustion(&self, resource: CapacityResource) -> Option<u64> {
         let key = resource as u8;
         self.series.get(&key)?.time_to_exhaustion()
@@ -396,6 +406,7 @@ impl HolisticCapacityEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCapacityStats {
         &self.stats
     }

@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -127,6 +128,7 @@ pub struct PerformanceReport {
 
 /// A single section of a performance report.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReportSection {
     pub heading: String,
     pub body: String,
@@ -153,6 +155,7 @@ pub struct Recommendation {
 
 /// Aggregate statistics for the interface engine.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct InterfaceStats {
     pub explanations_generated: u64,
     pub traces_generated: u64,
@@ -183,6 +186,7 @@ impl ClarityEvaluator {
 
     /// Heuristic clarity score based on text length, structure, and
     /// vocabulary density (approximated via byte-level entropy proxy).
+    #[inline]
     fn evaluate(&mut self, text: &str) -> f32 {
         self.total_evaluated += 1;
         let len = text.len() as f32;
@@ -221,10 +225,11 @@ impl ClarityEvaluator {
 /// Advanced human-kernel communication engine. Generates reasoning traces,
 /// decision explanations, performance narratives, and recommendations.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeInterface {
     explanations: BTreeMap<u64, DecisionExplanation>,
     traces: BTreeMap<u64, ReasoningTrace>,
-    recommendations: Vec<Recommendation>,
+    recommendations: VecDeque<Recommendation>,
     clarity_eval: ClarityEvaluator,
     tick: u64,
     rng_state: u64,
@@ -236,7 +241,7 @@ impl BridgeInterface {
         Self {
             explanations: BTreeMap::new(),
             traces: BTreeMap::new(),
-            recommendations: Vec::new(),
+            recommendations: VecDeque::new(),
             clarity_eval: ClarityEvaluator::new(),
             tick: 0,
             rng_state: seed | 1,
@@ -245,6 +250,7 @@ impl BridgeInterface {
     }
 
     /// Generate a human-readable explanation for a bridge decision.
+    #[inline]
     pub fn explain_decision(
         &mut self,
         decision_name: String,
@@ -315,6 +321,7 @@ impl BridgeInterface {
     }
 
     /// Generate a complete reasoning trace for a decision.
+    #[inline]
     pub fn reasoning_trace(
         &mut self,
         decision_name: String,
@@ -431,14 +438,15 @@ impl BridgeInterface {
             {
                 self.recommendations.remove(pos);
             } else {
-                self.recommendations.remove(0);
+                self.recommendations.pop_front();
             }
         }
-        self.recommendations.push(rec.clone());
+        self.recommendations.push_back(rec.clone());
         rec
     }
 
     /// Retrieve all pending recommendations sorted by urgency.
+    #[inline]
     pub fn pending_recommendations(&self) -> Vec<&Recommendation> {
         let mut recs: Vec<&Recommendation> = self.recommendations.iter().collect();
         recs.sort_by(|a, b| b.urgency.cmp(&a.urgency));
@@ -446,6 +454,7 @@ impl BridgeInterface {
     }
 
     /// Aggregate statistics.
+    #[inline(always)]
     pub fn stats(&self) -> InterfaceStats {
         self.stats
     }

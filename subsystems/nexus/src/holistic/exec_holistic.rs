@@ -2,6 +2,7 @@
 //! NEXUS Holistic — Exec (holistic execution analysis)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -29,6 +30,7 @@ pub struct HolisticExecRecord {
 
 /// Exec holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticExecStats {
     pub total_analyzed: u64,
     pub fork_exec_count: u64,
@@ -41,8 +43,8 @@ pub struct HolisticExecStats {
 /// Manager for holistic exec analysis
 pub struct HolisticExecManager {
     records: Vec<HolisticExecRecord>,
-    binary_frequency: BTreeMap<u64, u64>,
-    last_exec_pid: BTreeMap<u64, u64>,
+    binary_frequency: LinearMap<u64, 64>,
+    last_exec_pid: LinearMap<u64, 64>,
     stats: HolisticExecStats,
 }
 
@@ -50,8 +52,8 @@ impl HolisticExecManager {
     pub fn new() -> Self {
         Self {
             records: Vec::new(),
-            binary_frequency: BTreeMap::new(),
-            last_exec_pid: BTreeMap::new(),
+            binary_frequency: LinearMap::new(),
+            last_exec_pid: LinearMap::new(),
             stats: HolisticExecStats {
                 total_analyzed: 0,
                 fork_exec_count: 0,
@@ -83,7 +85,7 @@ impl HolisticExecManager {
         let pattern = if after_fork {
             self.stats.fork_exec_count += 1;
             HolisticExecPattern::ForkExec
-        } else if self.last_exec_pid.get(&pid).is_some() {
+        } else if self.last_exec_pid.get(pid).is_some() {
             self.stats.chain_exec_count += 1;
             HolisticExecPattern::ChainExec
         } else {
@@ -103,6 +105,7 @@ impl HolisticExecManager {
         pattern
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticExecStats {
         &self.stats
     }

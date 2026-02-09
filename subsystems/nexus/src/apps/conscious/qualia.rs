@@ -68,6 +68,7 @@ fn xorshift64(state: &mut u64) -> u64 {
 
 /// The subjective experiential state of the apps engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QualiaState {
     /// How harmoniously apps coexist (0.0 = chaotic, 1.0 = perfect harmony)
     pub workload_harmony: f32,
@@ -153,6 +154,7 @@ impl ExperientialDimension {
         }
     }
 
+    #[inline]
     fn update(&mut self, raw: f32) {
         self.value = EMA_ALPHA * raw + (1.0 - EMA_ALPHA) * self.value;
 
@@ -200,6 +202,7 @@ pub struct QualiaReport {
 
 /// Aggregate qualia engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QualiaStats {
     pub total_evaluations: u64,
     pub current_quality: f32,
@@ -262,6 +265,7 @@ impl AppsQualiaEngine {
     }
 
     /// Evaluate the overall experience quality given raw signals
+    #[inline]
     pub fn experience_quality(
         &mut self,
         harmony: f32,
@@ -330,16 +334,19 @@ impl AppsQualiaEngine {
     }
 
     /// Get the current workload harmony
+    #[inline(always)]
     pub fn workload_harmony(&self) -> f32 {
         self.state.workload_harmony
     }
 
     /// Get the classification clarity index
+    #[inline(always)]
     pub fn clarity_index(&self) -> f32 {
         self.state.classification_clarity
     }
 
     /// Is the engine currently in a flow state?
+    #[inline(always)]
     pub fn app_management_flow(&self) -> bool {
         self.state.is_in_flow()
     }
@@ -380,11 +387,13 @@ impl AppsQualiaEngine {
     }
 
     /// Get the current subjective state
+    #[inline(always)]
     pub fn subjective_state(&self) -> &QualiaState {
         &self.state
     }
 
     /// Add a custom experiential dimension
+    #[inline]
     pub fn add_dimension(&mut self, name: &str) {
         if self.dimensions.len() >= MAX_DIMENSION_ENTRIES {
             return;
@@ -394,6 +403,7 @@ impl AppsQualiaEngine {
     }
 
     /// Update a custom dimension
+    #[inline]
     pub fn update_custom_dimension(&mut self, name: &str, value: f32) {
         let id = fnv1a_hash(name.as_bytes());
         if let Some(dim) = self.dimensions.get_mut(&id) {
@@ -402,6 +412,7 @@ impl AppsQualiaEngine {
     }
 
     /// Quality trend over time
+    #[inline]
     pub fn quality_trend(&self) -> f32 {
         if self.quality_history.len() < 4 {
             return 0.0;
@@ -435,12 +446,14 @@ impl AppsQualiaEngine {
     }
 
     /// Get a specific dimension's current value and trend
+    #[inline(always)]
     pub fn dimension_state(&self, name: &str) -> Option<(f32, f32)> {
         let id = fnv1a_hash(name.as_bytes());
         self.dimensions.get(&id).map(|d| (d.value, d.trend))
     }
 
     /// Current tick
+    #[inline(always)]
     pub fn current_tick(&self) -> u64 {
         self.tick
     }

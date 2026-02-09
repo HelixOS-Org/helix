@@ -44,6 +44,7 @@ impl RcuCpuData {
         Self { cpu, gp_seq: 0, qs_reported: false, callbacks_pending: 0, callbacks_invoked: 0, online: true }
     }
 
+    #[inline(always)]
     pub fn report_qs(&mut self, seq: u64) { self.qs_reported = true; self.gp_seq = seq; }
 }
 
@@ -71,12 +72,15 @@ impl GracePeriod {
         Self { seq, state: GpState::Started, started_at: now, completed_at: 0, fqs_count: 0 }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, now: u64) { self.state = GpState::Completed; self.completed_at = now; }
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 { if self.completed_at > 0 { self.completed_at - self.started_at } else { 0 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RcuSyncStats {
     pub total_cpus: u32,
     pub gp_completed: u64,
@@ -102,8 +106,10 @@ impl HolisticRcuSync {
         Self { flavor, cpu_data: BTreeMap::new(), grace_periods: Vec::new(), callbacks: Vec::new(), current_gp_seq: 0, next_cb_id: 1 }
     }
 
+    #[inline(always)]
     pub fn add_cpu(&mut self, cpu: u32) { self.cpu_data.insert(cpu, RcuCpuData::new(cpu)); }
 
+    #[inline]
     pub fn start_gp(&mut self, now: u64) -> u64 {
         self.current_gp_seq += 1;
         for data in self.cpu_data.values_mut() { data.qs_reported = false; }
@@ -111,11 +117,13 @@ impl HolisticRcuSync {
         self.current_gp_seq
     }
 
+    #[inline(always)]
     pub fn report_qs(&mut self, cpu: u32) {
         let seq = self.current_gp_seq;
         if let Some(data) = self.cpu_data.get_mut(&cpu) { data.report_qs(seq); }
     }
 
+    #[inline]
     pub fn check_gp_complete(&mut self, now: u64) -> bool {
         let all_reported = self.cpu_data.values().filter(|d| d.online).all(|d| d.qs_reported);
         if all_reported {
@@ -124,12 +132,14 @@ impl HolisticRcuSync {
         false
     }
 
+    #[inline]
     pub fn queue_callback(&mut self, now: u64) -> u64 {
         let id = self.next_cb_id; self.next_cb_id += 1;
         self.callbacks.push(RcuCallback { id, gp_seq: self.current_gp_seq, queued_at: now, invoked: false });
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> RcuSyncStats {
         let completed = self.grace_periods.iter().filter(|gp| gp.state == GpState::Completed).count() as u64;
         let pending: u32 = self.cpu_data.values().map(|d| d.callbacks_pending).sum();

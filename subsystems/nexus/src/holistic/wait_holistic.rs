@@ -2,6 +2,7 @@
 //! NEXUS Holistic — Wait (holistic wait/reap analysis)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -27,6 +28,7 @@ pub struct HolisticWaitEntry {
 
 /// Wait holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticWaitStats {
     pub total_analyzed: u64,
     pub busy_waits_detected: u64,
@@ -39,8 +41,8 @@ pub struct HolisticWaitStats {
 /// Manager for holistic wait analysis
 pub struct HolisticWaitManager {
     entries: Vec<HolisticWaitEntry>,
-    zombie_counts: BTreeMap<u64, u32>,
-    wait_counts: BTreeMap<u64, u64>,
+    zombie_counts: LinearMap<u32, 64>,
+    wait_counts: LinearMap<u64, 64>,
     stats: HolisticWaitStats,
 }
 
@@ -48,8 +50,8 @@ impl HolisticWaitManager {
     pub fn new() -> Self {
         Self {
             entries: Vec::new(),
-            zombie_counts: BTreeMap::new(),
-            wait_counts: BTreeMap::new(),
+            zombie_counts: LinearMap::new(),
+            wait_counts: LinearMap::new(),
             stats: HolisticWaitStats {
                 total_analyzed: 0,
                 busy_waits_detected: 0,
@@ -91,6 +93,7 @@ impl HolisticWaitManager {
         pattern
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticWaitStats {
         &self.stats
     }

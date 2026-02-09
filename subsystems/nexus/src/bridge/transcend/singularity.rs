@@ -68,6 +68,7 @@ pub enum SubsystemKind {
 
 /// A subsystem's contribution to a unified decision.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SubsystemInput {
     pub subsystem: SubsystemKind,
     pub recommendation: String,
@@ -90,6 +91,7 @@ pub struct UnifiedDecision {
 
 /// Intelligence convergence report.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConvergenceReport {
     pub subsystem_scores: Vec<(SubsystemKind, f32)>,
     pub overall_convergence: f32,
@@ -125,6 +127,7 @@ pub struct BeyondHumanReport {
 
 /// Aggregate statistics for the singularity engine.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SingularityStats {
     pub total_decisions: u64,
     pub avg_confidence_ema: f32,
@@ -159,6 +162,7 @@ impl SubsystemTracker {
         }
     }
 
+    #[inline]
     fn update(&mut self, confidence: f32, weight: f32, tick: u64) {
         self.decision_count += 1;
         self.last_tick = tick;
@@ -192,6 +196,7 @@ struct DecisionEntry {
 /// into a single decision engine that can demonstrably exceed human
 /// optimisation capabilities.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeSingularity {
     subsystems: BTreeMap<u8, SubsystemTracker>,
     history: Vec<DecisionEntry>,
@@ -236,6 +241,7 @@ impl BridgeSingularity {
 
     /// Produce a unified decision from multiple subsystem inputs.
     /// Weighted Bayesian fusion of all recommendations.
+    #[inline]
     pub fn unified_decision(
         &mut self,
         context_name: String,
@@ -414,6 +420,7 @@ impl BridgeSingularity {
     }
 
     /// Composite singularity metric [0, 1].
+    #[inline]
     pub fn singularity_metric(&self) -> f32 {
         let confidence = self.bridge_score_ema;
         let convergence = self.convergence_ema;
@@ -425,6 +432,7 @@ impl BridgeSingularity {
     }
 
     /// Aggregate statistics.
+    #[inline]
     pub fn stats(&self) -> SingularityStats {
         SingularityStats {
             singularity_metric: self.singularity_metric(),

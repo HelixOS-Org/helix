@@ -56,6 +56,7 @@ pub enum CapIssueType {
 
 impl CapIssueType {
     /// Get issue type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::ExcessivePrivileges => "excessive_privileges",
@@ -100,6 +101,7 @@ pub enum CapAction {
 
 impl CapAction {
     /// Get action name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::DropCap => "drop_cap",

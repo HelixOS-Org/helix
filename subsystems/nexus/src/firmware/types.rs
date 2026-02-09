@@ -25,16 +25,19 @@ pub enum FirmwareType {
 
 impl FirmwareType {
     /// Check if firmware supports runtime services
+    #[inline(always)]
     pub fn has_runtime_services(&self) -> bool {
         matches!(self, Self::Uefi)
     }
 
     /// Check if firmware supports ACPI
+    #[inline(always)]
     pub fn supports_acpi(&self) -> bool {
         matches!(self, Self::Uefi | Self::LegacyBios | Self::Coreboot)
     }
 
     /// Check if firmware supports device tree
+    #[inline(always)]
     pub fn supports_device_tree(&self) -> bool {
         matches!(self, Self::UBoot | Self::OpenFirmware | Self::ArmTrustedFirmware)
     }
@@ -73,11 +76,13 @@ impl AcpiSignature {
     pub const DMAR: Self = Self(*b"DMAR");
 
     /// Create from bytes
+    #[inline(always)]
     pub const fn from_bytes(bytes: [u8; 4]) -> Self {
         Self(bytes)
     }
 
     /// Get as string
+    #[inline(always)]
     pub fn as_str(&self) -> &str {
         core::str::from_utf8(&self.0).unwrap_or("????")
     }
@@ -107,6 +112,7 @@ impl AcpiRevision {
     pub const V6_0: Self = Self { major: 6, minor: 0 };
 
     /// Create new revision
+    #[inline(always)]
     pub const fn new(major: u8, minor: u8) -> Self {
         Self { major, minor }
     }

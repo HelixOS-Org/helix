@@ -3,6 +3,7 @@
 //! Central manager for subsystems, decisions, and events.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -25,7 +26,7 @@ pub struct OrchestratorManager {
     /// Completed decisions
     completed_decisions: Vec<Decision>,
     /// Events
-    events: Vec<OrchestratorEvent>,
+    events: VecDeque<OrchestratorEvent>,
     /// Max events
     max_events: usize,
     /// Current policy
@@ -47,7 +48,7 @@ impl OrchestratorManager {
             subsystems: BTreeMap::new(),
             pending_decisions: Vec::new(),
             completed_decisions: Vec::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 1000,
             policy: SystemPolicy::default(),
             decision_counter: AtomicU64::new(0),
@@ -58,21 +59,25 @@ impl OrchestratorManager {
     }
 
     /// Register subsystem
+    #[inline(always)]
     pub fn register_subsystem(&mut self, state: SubsystemState) {
         self.subsystems.insert(state.id, state);
     }
 
     /// Get subsystem
+    #[inline(always)]
     pub fn get_subsystem(&self, id: SubsystemId) -> Option<&SubsystemState> {
         self.subsystems.get(&id)
     }
 
     /// Get subsystem mutably
+    #[inline(always)]
     pub fn get_subsystem_mut(&mut self, id: SubsystemId) -> Option<&mut SubsystemState> {
         self.subsystems.get_mut(&id)
     }
 
     /// Create decision
+    #[inline]
     pub fn create_decision(
         &mut self,
         decision_type: DecisionType,
@@ -90,16 +95,19 @@ impl OrchestratorManager {
     }
 
     /// Get pending decision
+    #[inline(always)]
     pub fn get_pending_decision(&self, id: DecisionId) -> Option<&Decision> {
         self.pending_decisions.iter().find(|d| d.id == id)
     }
 
     /// Get pending decision mutably
+    #[inline(always)]
     pub fn get_pending_decision_mut(&mut self, id: DecisionId) -> Option<&mut Decision> {
         self.pending_decisions.iter_mut().find(|d| d.id == id)
     }
 
     /// Approve decision
+    #[inline]
     pub fn approve_decision(&mut self, id: DecisionId) -> bool {
         if let Some(decision) = self.get_pending_decision_mut(id) {
             decision.status = DecisionStatus::Approved;
@@ -109,6 +117,7 @@ impl OrchestratorManager {
     }
 
     /// Execute decision
+    #[inline]
     pub fn execute_decision(&mut self, id: DecisionId) -> bool {
         if let Some(decision) = self.get_pending_decision_mut(id) {
             if decision.status == DecisionStatus::Approved {
@@ -120,6 +129,7 @@ impl OrchestratorManager {
     }
 
     /// Complete decision
+    #[inline]
     pub fn complete_decision(&mut self, id: DecisionId) -> bool {
         if let Some(idx) = self.pending_decisions.iter().position(|d| d.id == id) {
             let mut decision = self.pending_decisions.remove(idx);
@@ -131,28 +141,32 @@ impl OrchestratorManager {
     }
 
     /// Record event
+    #[inline]
     pub fn record_event(&mut self, event_type: OrchestratorEventType, timestamp: u64) -> EventId {
         let id = EventId(self.event_counter.fetch_add(1, Ordering::Relaxed));
         let event = OrchestratorEvent::new(id, event_type, timestamp);
 
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event);
+        self.events.push_back(event);
         id
     }
 
     /// Set policy
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: SystemPolicy) {
         self.policy = policy;
     }
 
     /// Get policy
+    #[inline(always)]
     pub fn policy(&self) -> &SystemPolicy {
         &self.policy
     }
 
     /// High priority pending decisions
+    #[inline]
     pub fn high_priority_decisions(&self) -> Vec<&Decision> {
         self.pending_decisions
             .iter()
@@ -177,6 +191,7 @@ impl OrchestratorManager {
     }
 
     /// Critical subsystems
+    #[inline]
     pub fn critical_subsystems(&self) -> Vec<&SubsystemState> {
         self.subsystems
             .values()
@@ -185,36 +200,43 @@ impl OrchestratorManager {
     }
 
     /// Subsystem count
+    #[inline(always)]
     pub fn subsystem_count(&self) -> usize {
         self.subsystems.len()
     }
 
     /// Total decisions made
+    #[inline(always)]
     pub fn total_decisions(&self) -> u64 {
         self.total_decisions.load(Ordering::Relaxed)
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }
 
     /// Enable/disable
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }
 
     /// Pending decisions count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending_decisions.len()
     }
 
     /// Completed decisions count
+    #[inline(always)]
     pub fn completed_count(&self) -> usize {
         self.completed_decisions.len()
     }
 
     /// Events count
+    #[inline(always)]
     pub fn events_count(&self) -> usize {
         self.events.len()
     }

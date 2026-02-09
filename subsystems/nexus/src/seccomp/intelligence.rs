@@ -102,6 +102,7 @@ impl SeccompIntelligence {
     }
 
     /// Create filter
+    #[inline(always)]
     pub fn create_filter(
         &mut self,
         arch: Architecture,
@@ -112,11 +113,13 @@ impl SeccompIntelligence {
     }
 
     /// Start profiling
+    #[inline(always)]
     pub fn start_profiling(&mut self, pid: Pid, timestamp: u64) -> ProfileId {
         self.profiler.start_profile(pid, timestamp)
     }
 
     /// Stop profiling
+    #[inline(always)]
     pub fn stop_profiling(&mut self, pid: Pid, timestamp: u64) -> Option<SyscallProfile> {
         self.profiler.stop_profile(pid, timestamp)
     }
@@ -148,6 +151,7 @@ impl SeccompIntelligence {
     }
 
     /// Attach filter to process
+    #[inline(always)]
     pub fn attach_filter(&mut self, filter_id: FilterId, pid: Pid) -> bool {
         self.manager.attach(filter_id, pid)
     }
@@ -244,31 +248,37 @@ impl SeccompIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &SeccompManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut SeccompManager {
         &mut self.manager
     }
 
     /// Get profiler
+    #[inline(always)]
     pub fn profiler(&self) -> &SyscallProfiler {
         &self.profiler
     }
 
     /// Get profiler mutably
+    #[inline(always)]
     pub fn profiler_mut(&mut self) -> &mut SyscallProfiler {
         &mut self.profiler
     }
 
     /// Get analyzer
+    #[inline(always)]
     pub fn analyzer(&self) -> &AttackSurfaceAnalyzer {
         &self.analyzer
     }
 
     /// Get filter
+    #[inline(always)]
     pub fn get_filter(&self, id: FilterId) -> Option<&SeccompFilter> {
         self.manager.get_filter(id)
     }

@@ -26,6 +26,7 @@ pub struct HolisticPgidEntry {
 
 /// PGID holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticPgidStats {
     pub total_analyzed: u64,
     pub active_groups: u64,
@@ -79,6 +80,7 @@ impl HolisticPgidManager {
         health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticPgidStats {
         &self.stats
     }

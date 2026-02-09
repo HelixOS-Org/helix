@@ -75,6 +75,7 @@ impl QuorumMember {
         }
     }
 
+    #[inline]
     pub fn agreement_rate(&self) -> f64 {
         if self.votes_cast == 0 {
             1.0
@@ -83,6 +84,7 @@ impl QuorumMember {
         }
     }
 
+    #[inline(always)]
     pub fn is_stale(&self, now_ns: u64, timeout_ns: u64) -> bool {
         now_ns.saturating_sub(self.last_heartbeat_ns) > timeout_ns
     }
@@ -125,6 +127,7 @@ impl Proposal {
         }
     }
 
+    #[inline]
     pub fn add_vote(&mut self, vote: Vote) {
         // Only one vote per voter
         if !self.votes.iter().any(|v| v.voter_id == vote.voter_id) {
@@ -132,6 +135,7 @@ impl Proposal {
         }
     }
 
+    #[inline]
     pub fn agree_weight(&self) -> u32 {
         self.votes
             .iter()
@@ -140,6 +144,7 @@ impl Proposal {
             .sum()
     }
 
+    #[inline]
     pub fn disagree_weight(&self) -> u32 {
         self.votes
             .iter()
@@ -148,6 +153,7 @@ impl Proposal {
             .sum()
     }
 
+    #[inline]
     pub fn total_voted_weight(&self) -> u32 {
         self.votes
             .iter()
@@ -156,6 +162,7 @@ impl Proposal {
             .sum()
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         now_ns >= self.deadline_ns
     }
@@ -190,16 +197,19 @@ impl QuorumGroup {
         }
     }
 
+    #[inline(always)]
     pub fn add_member(&mut self, id: u64, weight: u32) {
         self.members.insert(id, QuorumMember::new(id, weight));
         self.recompute_state(0);
     }
 
+    #[inline(always)]
     pub fn remove_member(&mut self, id: u64) {
         self.members.remove(&id);
         self.recompute_state(0);
     }
 
+    #[inline]
     pub fn heartbeat(&mut self, member_id: u64, now_ns: u64) {
         if let Some(member) = self.members.get_mut(&member_id) {
             member.last_heartbeat_ns = now_ns;
@@ -259,6 +269,7 @@ impl QuorumGroup {
     }
 
     /// Submit a proposal
+    #[inline]
     pub fn propose(
         &mut self,
         proposer: u64,
@@ -321,14 +332,17 @@ impl QuorumGroup {
         None
     }
 
+    #[inline(always)]
     pub fn member_count(&self) -> usize {
         self.members.len()
     }
 
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.members.values().filter(|m| m.active).count()
     }
 
+    #[inline]
     pub fn acceptance_rate(&self) -> f64 {
         let decided = self.total_accepted + self.total_rejected;
         if decided == 0 {
@@ -341,6 +355,7 @@ impl QuorumGroup {
 
 /// Quorum protocol stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopQuorumStats {
     pub total_groups: usize,
     pub established_groups: usize,
@@ -366,6 +381,7 @@ impl CoopQuorumProtocol {
         }
     }
 
+    #[inline]
     pub fn create_group(&mut self, policy: QuorumPolicy) -> u64 {
         let id = self.next_group_id;
         self.next_group_id += 1;
@@ -374,10 +390,12 @@ impl CoopQuorumProtocol {
         id
     }
 
+    #[inline(always)]
     pub fn get_group(&mut self, id: u64) -> Option<&mut QuorumGroup> {
         self.groups.get_mut(&id)
     }
 
+    #[inline]
     pub fn tick(&mut self, now_ns: u64) {
         for group in self.groups.values_mut() {
             group.recompute_state(now_ns);
@@ -402,6 +420,7 @@ impl CoopQuorumProtocol {
         self.stats.total_rejected = self.groups.values().map(|g| g.total_rejected).sum();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopQuorumStats {
         &self.stats
     }

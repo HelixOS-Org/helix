@@ -182,6 +182,7 @@ pub struct ClassificationDimension {
 
 /// Dream engine aggregate statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DreamStats {
     pub total_cycles: u64,
     pub total_insights: usize,
@@ -313,6 +314,7 @@ impl AppsDreamEngine {
     }
 
     /// Replay behavioral history for a specific app
+    #[inline]
     pub fn replay_app_history(&mut self, app_id: u64) -> Option<f32> {
         let history = self.histories.get_mut(&app_id)?;
         history.replay_count += 1;
@@ -430,6 +432,7 @@ impl AppsDreamEngine {
     }
 
     /// Return all insights collected so far
+    #[inline(always)]
     pub fn dream_insights(&self) -> &[DreamInsight] {
         &self.insights
     }

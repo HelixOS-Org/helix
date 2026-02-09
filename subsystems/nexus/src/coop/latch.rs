@@ -30,6 +30,7 @@ impl Latch {
         Self { id, state: LatchState::Closed, waiters: 0, created_at: now, opened_at: 0, total_waits: 0, max_waiters: 0 }
     }
 
+    #[inline]
     pub fn open(&mut self, now: u64) -> u32 {
         self.state = LatchState::Open;
         self.opened_at = now;
@@ -38,6 +39,7 @@ impl Latch {
         released
     }
 
+    #[inline]
     pub fn wait(&mut self) -> bool {
         if self.state == LatchState::Open { return true; }
         self.waiters += 1;
@@ -46,8 +48,10 @@ impl Latch {
         false
     }
 
+    #[inline(always)]
     pub fn is_open(&self) -> bool { self.state == LatchState::Open }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
         if self.opened_at > self.created_at { self.opened_at - self.created_at } else { 0 }
     }
@@ -55,6 +59,7 @@ impl Latch {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LatchStats {
     pub total_latches: u32,
     pub open_count: u32,
@@ -72,24 +77,29 @@ pub struct CoopLatch {
 impl CoopLatch {
     pub fn new() -> Self { Self { latches: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.latches.insert(id, Latch::new(id, now));
         id
     }
 
+    #[inline(always)]
     pub fn open(&mut self, id: u64, now: u64) -> u32 {
         if let Some(l) = self.latches.get_mut(&id) { l.open(now) }
         else { 0 }
     }
 
+    #[inline(always)]
     pub fn wait(&mut self, id: u64) -> bool {
         if let Some(l) = self.latches.get_mut(&id) { l.wait() }
         else { false }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, id: u64) { self.latches.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> LatchStats {
         let open = self.latches.values().filter(|l| l.is_open()).count() as u32;
         let closed = self.latches.values().filter(|l| !l.is_open()).count() as u32;
@@ -148,12 +158,14 @@ impl LatchV2Instance {
         false
     }
 
+    #[inline]
     pub fn add_waiter(&mut self, tid: u64) {
         if self.state != LatchV2State::Released {
             self.waiters.push(tid);
         }
     }
 
+    #[inline]
     pub fn reset(&mut self) {
         self.current_count = self.initial_count;
         self.state = LatchV2State::Reset;
@@ -161,6 +173,7 @@ impl LatchV2Instance {
         self.reset_count += 1;
     }
 
+    #[inline(always)]
     pub fn is_released(&self) -> bool {
         self.state == LatchV2State::Released
     }
@@ -168,6 +181,7 @@ impl LatchV2Instance {
 
 /// Statistics for latch V2
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LatchV2Stats {
     pub latches_created: u64,
     pub countdowns: u64,
@@ -196,6 +210,7 @@ impl CoopLatchV2 {
         }
     }
 
+    #[inline]
     pub fn create(&mut self, count: u32) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -204,6 +219,7 @@ impl CoopLatchV2 {
         id
     }
 
+    #[inline]
     pub fn countdown(&mut self, latch_id: u64) -> bool {
         if let Some(latch) = self.latches.get_mut(&latch_id) {
             self.stats.countdowns += 1;
@@ -215,6 +231,7 @@ impl CoopLatchV2 {
         false
     }
 
+    #[inline]
     pub fn wait(&mut self, latch_id: u64, tid: u64) -> bool {
         if let Some(latch) = self.latches.get_mut(&latch_id) {
             if latch.is_released() { return true; }
@@ -224,6 +241,7 @@ impl CoopLatchV2 {
         } else { false }
     }
 
+    #[inline]
     pub fn reset(&mut self, latch_id: u64) -> bool {
         if let Some(latch) = self.latches.get_mut(&latch_id) {
             latch.reset();
@@ -232,6 +250,7 @@ impl CoopLatchV2 {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &LatchV2Stats {
         &self.stats
     }

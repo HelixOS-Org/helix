@@ -46,6 +46,7 @@ impl Default for ReflectConfig {
 
 impl ReflectConfig {
     /// Create minimal config
+    #[inline]
     pub fn minimal() -> Self {
         Self {
             introspection_interval: 50,
@@ -56,6 +57,7 @@ impl ReflectConfig {
     }
 
     /// Create detailed config
+    #[inline]
     pub fn detailed() -> Self {
         Self {
             introspection_interval: 10,
@@ -109,46 +111,55 @@ impl ReflectDomain {
     }
 
     /// Get domain ID
+    #[inline(always)]
     pub fn id(&self) -> DomainId {
         self.id
     }
 
     /// Is running?
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Acquire)
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &ReflectConfig {
         &self.config
     }
 
     /// Get introspector
+    #[inline(always)]
     pub fn introspector(&self) -> &Introspector {
         &self.introspector
     }
 
     /// Get calibrator
+    #[inline(always)]
     pub fn calibrator(&self) -> &Calibrator {
         &self.calibrator
     }
 
     /// Get mutable calibrator
+    #[inline(always)]
     pub fn calibrator_mut(&mut self) -> &mut Calibrator {
         &mut self.calibrator
     }
 
     /// Get diagnostician
+    #[inline(always)]
     pub fn diagnostician(&self) -> &Diagnostician {
         &self.diagnostician
     }
 
     /// Get evolver
+    #[inline(always)]
     pub fn evolver(&self) -> &Evolver {
         &self.evolver
     }
 
     /// Start the domain
+    #[inline]
     pub fn start(&mut self) -> Result<(), ReflectError> {
         if self.running.load(Ordering::Acquire) {
             return Err(ReflectError::AlreadyRunning);
@@ -158,6 +169,7 @@ impl ReflectDomain {
     }
 
     /// Stop the domain
+    #[inline]
     pub fn stop(&mut self) -> Result<(), ReflectError> {
         if !self.running.load(Ordering::Acquire) {
             return Err(ReflectError::NotRunning);
@@ -167,11 +179,13 @@ impl ReflectDomain {
     }
 
     /// Record domain metrics
+    #[inline(always)]
     pub fn record_metrics(&mut self, metrics: DomainMetrics) {
         self.introspector.record(metrics);
     }
 
     /// Record a cognitive failure
+    #[inline(always)]
     pub fn record_failure(&mut self, failure: CognitiveFailure) -> FailureId {
         self.diagnostician.record_failure(failure)
     }
@@ -308,6 +322,7 @@ impl Default for ReflectDomain {
 
 /// Reflect domain statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReflectStats {
     /// Domain ID
     pub domain_id: DomainId,
@@ -344,6 +359,7 @@ pub enum ReflectError {
 
 impl ReflectError {
     /// Get error message
+    #[inline]
     pub fn message(&self) -> &str {
         match self {
             Self::AlreadyRunning => "Domain already running",

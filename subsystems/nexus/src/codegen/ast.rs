@@ -24,6 +24,7 @@ pub struct NodeId(pub u64);
 static NODE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl NodeId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(NODE_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -96,11 +97,13 @@ impl AstNode {
         }
     }
 
+    #[inline(always)]
     pub fn with_span(mut self, span: Span) -> Self {
         self.span = span;
         self
     }
 
+    #[inline(always)]
     pub fn with_type(mut self, ty: TypeId) -> Self {
         self.ty = Some(ty);
         self
@@ -567,6 +570,7 @@ pub struct Path {
 }
 
 impl Path {
+    #[inline]
     pub fn simple(name: impl Into<String>) -> Self {
         Self {
             segments: vec![PathSegment {

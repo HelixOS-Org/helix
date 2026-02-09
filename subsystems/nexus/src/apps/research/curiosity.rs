@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -150,6 +151,7 @@ pub struct CuriosityReward {
 
 /// Engine stats for the curiosity engine.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct CuriosityStats {
     pub total_explorations: u64,
     pub frontiers_discovered: u64,
@@ -170,7 +172,7 @@ pub struct AppsCuriosityEngine {
     frontiers: BTreeMap<u64, ExplorationFrontier>,
     classifications: BTreeMap<u64, NovelClassification>,
     strategies: BTreeMap<u64, UntestedStrategy>,
-    reward_history: Vec<CuriosityReward>,
+    reward_history: VecDeque<CuriosityReward>,
     budget_total: u32,
     budget_spent: u32,
     stats: CuriosityStats,
@@ -186,7 +188,7 @@ impl AppsCuriosityEngine {
             frontiers: BTreeMap::new(),
             classifications: BTreeMap::new(),
             strategies: BTreeMap::new(),
-            reward_history: Vec::new(),
+            reward_history: VecDeque::new(),
             budget_total: DEFAULT_BUDGET,
             budget_spent: 0,
             stats: CuriosityStats {
@@ -208,6 +210,7 @@ impl AppsCuriosityEngine {
     // ── Primary API ────────────────────────────────────────────────────
 
     /// Explore the next most promising frontier using UCB1 selection.
+    #[inline]
     pub fn curiosity_explore(&mut self) -> Option<ExplorationFrontier> {
         self.tick += 1;
         if self.frontiers.is_empty() || self.budget_spent >= self.budget_total {
@@ -253,6 +256,7 @@ impl AppsCuriosityEngine {
     }
 
     /// Try a novel classification approach for the given app pattern.
+    #[inline]
     pub fn novel_classification(&mut self, description: &str) -> NovelClassification {
         self.tick += 1;
         let id = fnv1a_hash(description.as_bytes()) ^ self.tick;
@@ -342,6 +346,7 @@ impl AppsCuriosityEngine {
     }
 
     /// Record a curiosity reward from a completed exploration.
+    #[inline]
     pub fn curiosity_reward(&mut self, frontier_id: u64, raw_reward: f32, surprise: f32) -> CuriosityReward {
         self.tick += 1;
         let surprise_bonus = surprise * SURPRISE_BOOST;
@@ -366,9 +371,9 @@ impl AppsCuriosityEngine {
         };
 
         if self.reward_history.len() >= MAX_HISTORY {
-            self.reward_history.remove(0);
+            self.reward_history.pop_front();
         }
-        self.reward_history.push(record.clone());
+        self.reward_history.push_back(record.clone());
         record
     }
 
@@ -435,16 +440,19 @@ impl AppsCuriosityEngine {
     }
 
     /// Set the exploration budget.
+    #[inline(always)]
     pub fn set_budget(&mut self, total: u32) {
         self.budget_total = total;
     }
 
     /// Reset the budget for a new exploration cycle.
+    #[inline(always)]
     pub fn reset_budget(&mut self) {
         self.budget_spent = 0;
     }
 
     /// Return engine stats.
+    #[inline(always)]
     pub fn stats(&self) -> &CuriosityStats {
         &self.stats
     }

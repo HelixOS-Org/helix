@@ -8,6 +8,7 @@ use crate::core::{ComponentId, NexusTimestamp};
 
 /// An event that modifies state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateEvent {
     /// Unique ID
     pub id: u64,
@@ -44,12 +45,14 @@ impl StateEvent {
     }
 
     /// Set old value
+    #[inline(always)]
     pub fn with_old_value(mut self, value: Vec<u8>) -> Self {
         self.old_value = Some(value);
         self
     }
 
     /// Set new value
+    #[inline(always)]
     pub fn with_new_value(mut self, value: Vec<u8>) -> Self {
         self.new_value = Some(value);
         self
@@ -85,6 +88,7 @@ impl StateEvent {
     }
 
     /// Verify checksum
+    #[inline]
     pub fn verify_checksum(&self) -> bool {
         let mut event = self.clone();
         event.calculate_checksum();

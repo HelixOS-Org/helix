@@ -24,6 +24,7 @@ pub enum VirtType {
 
 impl VirtType {
     /// Get isolation level
+    #[inline]
     pub fn isolation_level(&self) -> IsolationLevel {
         match self {
             Self::FullVirt | Self::ParaVirt => IsolationLevel::Full,
@@ -34,11 +35,13 @@ impl VirtType {
     }
 
     /// Is hardware-accelerated?
+    #[inline(always)]
     pub fn is_hardware_accelerated(&self) -> bool {
         matches!(self, Self::FullVirt | Self::ParaVirt | Self::MicroVm)
     }
 
     /// Typical overhead
+    #[inline]
     pub fn typical_overhead_percent(&self) -> f64 {
         match self {
             Self::FullVirt => 5.0,

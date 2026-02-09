@@ -22,6 +22,7 @@ impl LatencyHolisticRecord {
 
 /// Latency holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LatencyHolisticStats { pub total_samples: u64, pub over_100ms: u64, pub worst_us: u64, pub avg_us: u64 }
 
 /// Main holistic latency
@@ -33,6 +34,7 @@ pub struct HolisticLatency {
 
 impl HolisticLatency {
     pub fn new() -> Self { Self { stats: LatencyHolisticStats { total_samples: 0, over_100ms: 0, worst_us: 0, avg_us: 0 }, sum_us: 0 } }
+    #[inline]
     pub fn record(&mut self, rec: &LatencyHolisticRecord) {
         self.stats.total_samples += 1;
         if rec.bucket == LatencyBucket::Over100ms || rec.bucket == LatencyBucket::Over1s { self.stats.over_100ms += 1; }

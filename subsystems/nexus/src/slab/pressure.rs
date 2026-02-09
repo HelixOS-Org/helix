@@ -24,6 +24,7 @@ pub enum MemoryPressureLevel {
 
 impl MemoryPressureLevel {
     /// Get level name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::None => "none",
@@ -103,11 +104,13 @@ impl MemoryPressureHandler {
     }
 
     /// Set shrinker priority for cache
+    #[inline(always)]
     pub fn set_priority(&mut self, cache_id: SlabCacheId, priority: u8) {
         self.shrinker_priority.insert(cache_id, priority);
     }
 
     /// Get current pressure level
+    #[inline(always)]
     pub fn current_level(&self) -> MemoryPressureLevel {
         self.current_level
     }
@@ -184,22 +187,26 @@ impl MemoryPressureHandler {
     }
 
     /// Record shrink operation
+    #[inline(always)]
     pub fn record_shrink(&self, objects: u64) {
         self.shrink_count.fetch_add(1, Ordering::Relaxed);
         self.objects_reclaimed.fetch_add(objects, Ordering::Relaxed);
     }
 
     /// Get shrink count
+    #[inline(always)]
     pub fn shrink_count(&self) -> u64 {
         self.shrink_count.load(Ordering::Relaxed)
     }
 
     /// Get objects reclaimed
+    #[inline(always)]
     pub fn objects_reclaimed(&self) -> u64 {
         self.objects_reclaimed.load(Ordering::Relaxed)
     }
 
     /// Set thresholds
+    #[inline(always)]
     pub fn set_thresholds(&mut self, low: f32, medium: f32, high: f32, critical: f32) {
         self.thresholds = [low, medium, high, critical];
     }

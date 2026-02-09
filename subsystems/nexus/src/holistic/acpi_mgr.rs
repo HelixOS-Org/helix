@@ -59,6 +59,7 @@ pub struct SratMemAffinity {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AcpiMgrStats {
     pub tables_parsed: u32,
     pub processors_found: u32,
@@ -81,16 +82,21 @@ impl HolisticAcpiMgr {
         Self { tables: BTreeMap::new(), madt_entries: Vec::new(), srat_mem: Vec::new(), power_state: AcpiPowerState::S0Working, next_table_id: 1 }
     }
 
+    #[inline]
     pub fn add_table(&mut self, header: AcpiTableHeader) -> u32 {
         let id = self.next_table_id; self.next_table_id += 1;
         self.tables.insert(id, header);
         id
     }
 
+    #[inline(always)]
     pub fn add_madt_entry(&mut self, entry: MadtEntry) { self.madt_entries.push(entry); }
+    #[inline(always)]
     pub fn add_srat_mem(&mut self, entry: SratMemAffinity) { self.srat_mem.push(entry); }
+    #[inline(always)]
     pub fn set_power_state(&mut self, state: AcpiPowerState) { self.power_state = state; }
 
+    #[inline]
     pub fn stats(&self) -> AcpiMgrStats {
         let procs = self.madt_entries.iter().filter(|e| matches!(e.entry_type, MadtEntryType::LocalApic | MadtEntryType::LocalX2Apic) && e.enabled).count() as u32;
         let ioapics = self.madt_entries.iter().filter(|e| e.entry_type == MadtEntryType::IoApic).count() as u32;

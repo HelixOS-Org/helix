@@ -9,7 +9,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -93,7 +95,7 @@ pub struct ThreadSchedProfile {
     /// CPU migrations
     pub migrations: u64,
     /// Burst history (recent)
-    bursts: Vec<CpuBurst>,
+    bursts: VecDeque<CpuBurst>,
     /// Max bursts to keep
     max_bursts: usize,
 }
@@ -112,7 +114,7 @@ impl ThreadSchedProfile {
             last_sched_in: 0,
             last_enqueue: 0,
             migrations: 0,
-            bursts: Vec::new(),
+            bursts: VecDeque::new(),
             max_bursts: 64,
         }
     }
@@ -138,9 +140,9 @@ impl ThreadSchedProfile {
 
         // Record burst
         if self.bursts.len() >= self.max_bursts {
-            self.bursts.remove(0);
+            self.bursts.pop_front();
         }
-        self.bursts.push(CpuBurst {
+        self.bursts.push_back(CpuBurst {
             start: self.last_sched_in,
             duration: run_time,
             cpu: self.current_cpu,
@@ -170,12 +172,14 @@ impl ThreadSchedProfile {
     }
 
     /// Record wakeup
+    #[inline(always)]
     pub fn on_wakeup(&mut self, now: u64) {
         self.state = RunState::Runnable;
         self.last_enqueue = now;
     }
 
     /// Average burst duration (ns)
+    #[inline]
     pub fn avg_burst_ns(&self) -> f64 {
         if self.bursts.is_empty() {
             return 0.0;
@@ -185,6 +189,7 @@ impl ThreadSchedProfile {
     }
 
     /// Average run queue latency (ns)
+    #[inline]
     pub fn avg_wait_ns(&self) -> f64 {
         let total_switches = self.voluntary_switches + self.involuntary_switches;
         if total_switches == 0 {
@@ -194,6 +199,7 @@ impl ThreadSchedProfile {
     }
 
     /// CPU utilization
+    #[inline]
     pub fn cpu_utilization(&self) -> f64 {
         let total = self.total_run_time_ns + self.total_wait_time_ns + self.total_sleep_time_ns;
         if total == 0 {
@@ -203,11 +209,13 @@ impl ThreadSchedProfile {
     }
 
     /// Is CPU bound?
+    #[inline(always)]
     pub fn is_cpu_bound(&self) -> bool {
         self.involuntary_switches > self.voluntary_switches * 2
     }
 
     /// Is I/O bound?
+    #[inline(always)]
     pub fn is_io_bound(&self) -> bool {
         self.voluntary_switches > self.involuntary_switches * 3
     }
@@ -234,19 +242,19 @@ pub struct WakeupEvent {
 #[derive(Debug)]
 pub struct WakeupChainTracker {
     /// Recent wakeups
-    wakeups: Vec<WakeupEvent>,
+    wakeups: VecDeque<WakeupEvent>,
     /// Max entries
     max_entries: usize,
     /// Per-pair frequency: (waker, wakee) hash -> count
-    frequencies: BTreeMap<u64, u64>,
+    frequencies: LinearMap<u64, 64>,
 }
 
 impl WakeupChainTracker {
     pub fn new(max_entries: usize) -> Self {
         Self {
-            wakeups: Vec::new(),
+            wakeups: VecDeque::new(),
             max_entries,
-            frequencies: BTreeMap::new(),
+            frequencies: LinearMap::new(),
         }
     }
 
@@ -260,13 +268,14 @@ impl WakeupChainTracker {
     }
 
     /// Record wakeup
+    #[inline]
     pub fn record(&mut self, event: WakeupEvent) {
         let key = Self::pair_key(event.waker, event.wakee);
-        *self.frequencies.entry(key).or_insert(0) += 1;
+        self.frequencies.add(key, 1);
         if self.wakeups.len() >= self.max_entries {
-            self.wakeups.remove(0);
+            self.wakeups.pop_front();
         }
-        self.wakeups.push(event);
+        self.wakeups.push_back(event);
     }
 }
 
@@ -276,6 +285,7 @@ impl WakeupChainTracker {
 
 /// Scheduling stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppSchedProfileStats {
     /// Tracked threads
     pub tracked_threads: usize,
@@ -307,12 +317,14 @@ impl AppSchedProfiler {
     }
 
     /// Register thread
+    #[inline(always)]
     pub fn register(&mut self, tid: u64) {
         self.profiles.insert(tid, ThreadSchedProfile::new(tid));
         self.update_stats();
     }
 
     /// Schedule in
+    #[inline]
     pub fn on_sched_in(&mut self, tid: u64, cpu: u32, now: u64) {
         if let Some(profile) = self.profiles.get_mut(&tid) {
             profile.on_sched_in(cpu, now);
@@ -320,6 +332,7 @@ impl AppSchedProfiler {
     }
 
     /// Schedule out
+    #[inline]
     pub fn on_sched_out(&mut self, tid: u64, reason: ContextSwitchReason, now: u64) {
         if let Some(profile) = self.profiles.get_mut(&tid) {
             profile.on_sched_out(reason, now);
@@ -328,6 +341,7 @@ impl AppSchedProfiler {
     }
 
     /// Wakeup
+    #[inline]
     pub fn on_wakeup(&mut self, tid: u64, now: u64) {
         if let Some(profile) = self.profiles.get_mut(&tid) {
             profile.on_wakeup(now);
@@ -335,12 +349,14 @@ impl AppSchedProfiler {
     }
 
     /// Remove thread
+    #[inline(always)]
     pub fn remove(&mut self, tid: u64) {
         self.profiles.remove(&tid);
         self.update_stats();
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, tid: u64) -> Option<&ThreadSchedProfile> {
         self.profiles.get(&tid)
     }
@@ -357,6 +373,7 @@ impl AppSchedProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppSchedProfileStats {
         &self.stats
     }

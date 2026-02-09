@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Signal delivery pattern
@@ -27,6 +28,7 @@ impl SignalHolisticRecord {
 
 /// Signal holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SignalHolisticStats {
     pub total_signals: u64,
     pub storms_detected: u64,
@@ -38,22 +40,23 @@ pub struct SignalHolisticStats {
 #[derive(Debug)]
 pub struct HolisticSignal {
     pub stats: SignalHolisticStats,
-    pub recent_latencies: Vec<u64>,
+    pub recent_latencies: VecDeque<u64>,
 }
 
 impl HolisticSignal {
     pub fn new() -> Self {
         Self {
             stats: SignalHolisticStats { total_signals: 0, storms_detected: 0, avg_latency_ns: 0, peak_burst: 0 },
-            recent_latencies: Vec::new(),
+            recent_latencies: VecDeque::new(),
         }
     }
+    #[inline]
     pub fn record(&mut self, rec: &SignalHolisticRecord) {
         self.stats.total_signals += 1;
         if rec.pattern == SignalPattern::SignalStorm { self.stats.storms_detected += 1; }
         if rec.target_count > self.stats.peak_burst { self.stats.peak_burst = rec.target_count; }
-        self.recent_latencies.push(rec.latency_ns);
-        if self.recent_latencies.len() > 256 { self.recent_latencies.remove(0); }
+        self.recent_latencies.push_back(rec.latency_ns);
+        if self.recent_latencies.len() > 256 { self.recent_latencies.pop_front(); }
         let sum: u64 = self.recent_latencies.iter().sum();
         self.stats.avg_latency_ns = sum / self.recent_latencies.len() as u64;
     }

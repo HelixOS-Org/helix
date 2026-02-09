@@ -30,6 +30,7 @@ pub enum LsmDecision {
 
 /// LSM hook record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LsmHookRecord {
     pub category: LsmHookCategory,
     pub hook_hash: u64,
@@ -59,6 +60,7 @@ impl LsmHookRecord {
 
 /// LSM bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LsmBridgeStats {
     pub total_hooks: u64,
     pub allows: u64,
@@ -86,6 +88,7 @@ impl BridgeLsm {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &LsmHookRecord) {
         self.stats.total_hooks += 1;
         self.stats.total_latency_ns += rec.latency_ns;
@@ -96,6 +99,7 @@ impl BridgeLsm {
         }
     }
 
+    #[inline]
     pub fn deny_rate(&self) -> f64 {
         if self.stats.total_hooks == 0 {
             0.0

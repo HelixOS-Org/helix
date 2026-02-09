@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Consensus algorithm type
@@ -82,10 +83,12 @@ impl Proposal {
         }
     }
 
+    #[inline(always)]
     pub fn start_voting(&mut self) {
         self.state = ProposalState::Voting;
     }
 
+    #[inline]
     pub fn cast_vote(&mut self, voter_id: u32, vote: Vote, weight: u32, now: u64) -> bool {
         if self.state != ProposalState::Voting { return false; }
         if self.voters.iter().any(|v| v.voter_id == voter_id) { return false; }
@@ -96,14 +99,17 @@ impl Proposal {
         true
     }
 
+    #[inline(always)]
     pub fn accept_count(&self) -> u32 {
         self.voters.iter().filter(|v| v.vote == Vote::Accept).count() as u32
     }
 
+    #[inline(always)]
     pub fn reject_count(&self) -> u32 {
         self.voters.iter().filter(|v| v.vote == Vote::Reject).count() as u32
     }
 
+    #[inline(always)]
     pub fn accept_weight(&self) -> u32 {
         self.voters.iter().filter(|v| v.vote == Vote::Accept).map(|v| v.weight).sum()
     }
@@ -147,6 +153,7 @@ impl Proposal {
         false
     }
 
+    #[inline]
     pub fn check_timeout(&mut self, now: u64) -> bool {
         if self.state != ProposalState::Voting { return false; }
         if self.timeout_ns > 0 && now.saturating_sub(self.created_at) >= self.timeout_ns {
@@ -157,11 +164,13 @@ impl Proposal {
         false
     }
 
+    #[inline(always)]
     pub fn completion_ratio(&self) -> f64 {
         if self.required_voters == 0 { return 0.0; }
         self.voters.len() as f64 / self.required_voters as f64
     }
 
+    #[inline(always)]
     pub fn duration(&self) -> u64 {
         if self.resolved_at > 0 { self.resolved_at - self.created_at } else { 0 }
     }
@@ -169,6 +178,7 @@ impl Proposal {
 
 /// Consensus stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConsensusMgrStats {
     pub active_proposals: u32,
     pub total_proposed: u64,
@@ -181,7 +191,7 @@ pub struct ConsensusMgrStats {
 /// Main consensus manager
 pub struct CoopConsensusMgr {
     proposals: BTreeMap<u64, Proposal>,
-    history: Vec<Proposal>,
+    history: VecDeque<Proposal>,
     max_history: usize,
     next_id: u64,
     total_proposed: u64,
@@ -194,13 +204,14 @@ pub struct CoopConsensusMgr {
 impl CoopConsensusMgr {
     pub fn new(max_history: usize) -> Self {
         Self {
-            proposals: BTreeMap::new(), history: Vec::new(),
+            proposals: BTreeMap::new(), history: VecDeque::new(),
             max_history, next_id: 1, total_proposed: 0,
             total_accepted: 0, total_rejected: 0,
             total_timed_out: 0, total_votes: 0,
         }
     }
 
+    #[inline]
     pub fn propose(&mut self, proposer: u32, algo: ConsensusAlgorithm, required: u32, timeout: u64, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -224,6 +235,7 @@ impl CoopConsensusMgr {
         false
     }
 
+    #[inline]
     pub fn tick(&mut self, now: u64) {
         for p in self.proposals.values_mut() {
             if p.check_timeout(now) {
@@ -239,13 +251,14 @@ impl CoopConsensusMgr {
             .collect();
         for id in &resolved {
             if let Some(p) = self.proposals.remove(id) {
-                if self.history.len() >= self.max_history { self.history.remove(0); }
-                self.history.push(p);
+                if self.history.len() >= self.max_history { self.history.pop_front(); }
+                self.history.push_back(p);
             }
         }
         resolved
     }
 
+    #[inline]
     pub fn stats(&self) -> ConsensusMgrStats {
         ConsensusMgrStats {
             active_proposals: self.proposals.len() as u32,
@@ -297,6 +310,7 @@ impl ProposalV2 {
         Self { id, proposer, round, value_hash, state: ConsensusV2State::Proposing, votes: BTreeMap::new(), quorum_size: quorum, timestamp: now }
     }
 
+    #[inline]
     pub fn vote(&mut self, voter: u64, v: VoteV2) {
         self.votes.insert(voter, v);
         let accepts = self.votes.values().filter(|&&vt| vt == VoteV2::Accept).count() as u32;
@@ -305,6 +319,7 @@ impl ProposalV2 {
         else if rejects >= self.quorum_size { self.state = ConsensusV2State::Aborted; }
     }
 
+    #[inline(always)]
     pub fn is_decided(&self) -> bool {
         self.state == ConsensusV2State::Committed || self.state == ConsensusV2State::Aborted
     }
@@ -312,6 +327,7 @@ impl ProposalV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConsensusV2Stats {
     pub total_proposals: u32,
     pub committed: u32,
@@ -330,6 +346,7 @@ pub struct CoopConsensusMgrV2 {
 impl CoopConsensusMgrV2 {
     pub fn new() -> Self { Self { proposals: BTreeMap::new(), current_round: 0, next_id: 1 } }
 
+    #[inline]
     pub fn propose(&mut self, proposer: u64, value_hash: u64, quorum: u32, now: u64) -> u64 {
         self.current_round += 1;
         let id = self.next_id; self.next_id += 1;
@@ -337,10 +354,12 @@ impl CoopConsensusMgrV2 {
         id
     }
 
+    #[inline(always)]
     pub fn vote(&mut self, proposal_id: u64, voter: u64, v: VoteV2) {
         if let Some(p) = self.proposals.get_mut(&proposal_id) { p.vote(voter, v); }
     }
 
+    #[inline]
     pub fn stats(&self) -> ConsensusV2Stats {
         let committed = self.proposals.values().filter(|p| p.state == ConsensusV2State::Committed).count() as u32;
         let aborted = self.proposals.values().filter(|p| p.state == ConsensusV2State::Aborted).count() as u32;

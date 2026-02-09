@@ -59,6 +59,7 @@ impl TokenBucket {
     }
 
     /// Try to consume tokens
+    #[inline]
     pub fn try_consume(&mut self, tokens: u64, current_time_ms: u64) -> bool {
         self.refill(current_time_ms);
         if self.tokens >= tokens {
@@ -70,11 +71,13 @@ impl TokenBucket {
     }
 
     /// Available tokens
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.tokens
     }
 
     /// Time until N tokens available (milliseconds)
+    #[inline]
     pub fn time_until(&self, tokens: u64) -> u64 {
         if self.tokens >= tokens {
             return 0;
@@ -147,6 +150,7 @@ impl SlidingWindow {
     }
 
     /// Record an event
+    #[inline]
     pub fn record(&mut self, current_time_ms: u64) {
         self.advance(current_time_ms);
         self.slots[self.current_slot] += 1;
@@ -154,12 +158,14 @@ impl SlidingWindow {
     }
 
     /// Get count in current window
+    #[inline(always)]
     pub fn count(&mut self, current_time_ms: u64) -> u64 {
         self.advance(current_time_ms);
         self.total
     }
 
     /// Get rate (events per second)
+    #[inline]
     pub fn rate(&mut self, current_time_ms: u64) -> f64 {
         let count = self.count(current_time_ms);
         if self.window_ms == 0 {
@@ -208,6 +214,7 @@ pub struct ThrottleDecision {
 }
 
 impl ThrottleDecision {
+    #[inline]
     pub fn allow() -> Self {
         Self {
             throttled: false,
@@ -217,6 +224,7 @@ impl ThrottleDecision {
         }
     }
 
+    #[inline]
     pub fn throttle(reason: ThrottleReason, delay_us: u64) -> Self {
         Self {
             throttled: true,
@@ -310,6 +318,7 @@ struct SyscallThrottleState {
 
 /// Throttle statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ThrottleStats {
     /// Total checks
     pub total_checks: u64,
@@ -322,6 +331,7 @@ pub struct ThrottleStats {
 }
 
 /// Syscall throttling engine
+#[repr(align(64))]
 pub struct ThrottleEngine {
     /// Per-process state
     process_state: BTreeMap<u64, ProcessThrottleState>,
@@ -350,6 +360,7 @@ impl ThrottleEngine {
     }
 
     /// Register process with throttle config
+    #[inline]
     pub fn register_process(&mut self, pid: u64, config: ProcessThrottleConfig) {
         let state = ProcessThrottleState {
             bucket: TokenBucket::new(config.burst_size, config.max_rate),
@@ -362,6 +373,7 @@ impl ThrottleEngine {
     }
 
     /// Register syscall throttle config
+    #[inline]
     pub fn register_syscall(&mut self, syscall_nr: u32, config: SyscallThrottleConfig) {
         let state = SyscallThrottleState {
             global_window: SlidingWindow::new(1000, 10),
@@ -458,6 +470,7 @@ impl ThrottleEngine {
     }
 
     /// Unregister process
+    #[inline]
     pub fn unregister_process(&mut self, pid: u64) {
         self.process_state.remove(&pid);
         for state in self.syscall_state.values_mut() {
@@ -466,12 +479,14 @@ impl ThrottleEngine {
     }
 
     /// Update system state
+    #[inline(always)]
     pub fn update_system_state(&mut self, cpu_load: u32, mem_pressure: u32) {
         self.system_load = cpu_load;
         self.memory_pressure = mem_pressure;
     }
 
     /// Throttle rate (percent)
+    #[inline]
     pub fn throttle_rate(&self) -> f64 {
         if self.stats.total_checks == 0 {
             return 0.0;

@@ -36,6 +36,7 @@ impl PciManager {
     }
 
     /// Register bus
+    #[inline(always)]
     pub fn register_bus(&mut self, bus: PciBus) {
         self.buses.insert(bus.number, bus);
     }
@@ -66,16 +67,19 @@ impl PciManager {
     }
 
     /// Get device
+    #[inline(always)]
     pub fn get_device(&self, id: PciDeviceId) -> Option<&PciDevice> {
         self.all_devices.get(&id)
     }
 
     /// Get device mutably
+    #[inline(always)]
     pub fn get_device_mut(&mut self, id: PciDeviceId) -> Option<&mut PciDevice> {
         self.all_devices.get_mut(&id)
     }
 
     /// Get devices by vendor
+    #[inline]
     pub fn devices_by_vendor(&self, vendor: VendorId) -> Vec<&PciDevice> {
         self.all_devices
             .values()
@@ -84,6 +88,7 @@ impl PciManager {
     }
 
     /// Get devices by class
+    #[inline]
     pub fn devices_by_class(&self, class: u8) -> Vec<&PciDevice> {
         self.all_devices
             .values()
@@ -92,6 +97,7 @@ impl PciManager {
     }
 
     /// Get bridges
+    #[inline]
     pub fn bridges(&self) -> Vec<&PciDevice> {
         self.all_devices
             .values()
@@ -100,6 +106,7 @@ impl PciManager {
     }
 
     /// Get endpoints
+    #[inline]
     pub fn endpoints(&self) -> Vec<&PciDevice> {
         self.all_devices
             .values()
@@ -108,11 +115,13 @@ impl PciManager {
     }
 
     /// Get device count
+    #[inline(always)]
     pub fn device_count(&self) -> u32 {
         self.device_count.load(Ordering::Relaxed)
     }
 
     /// Get bus count
+    #[inline(always)]
     pub fn bus_count(&self) -> usize {
         self.buses.len()
     }

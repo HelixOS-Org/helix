@@ -23,6 +23,7 @@ impl BindBridgeRecord {
 
 /// Bind bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BindBridgeStats { pub total_binds: u64, pub inet_binds: u64, pub unix_binds: u64, pub reuse_binds: u64 }
 
 /// Main bridge bind
@@ -31,6 +32,7 @@ pub struct BridgeBind { pub stats: BindBridgeStats }
 
 impl BridgeBind {
     pub fn new() -> Self { Self { stats: BindBridgeStats { total_binds: 0, inet_binds: 0, unix_binds: 0, reuse_binds: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &BindBridgeRecord) {
         self.stats.total_binds += 1;
         match rec.family {

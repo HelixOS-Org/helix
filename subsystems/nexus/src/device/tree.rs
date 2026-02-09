@@ -37,6 +37,7 @@ impl DeviceTreeNode {
     }
 
     /// Get property as string
+    #[inline]
     pub fn get_property_string(&self, name: &str) -> Option<String> {
         self.properties
             .get(name)
@@ -45,6 +46,7 @@ impl DeviceTreeNode {
     }
 
     /// Get property as u32
+    #[inline]
     pub fn get_property_u32(&self, name: &str) -> Option<u32> {
         self.properties
             .get(name)
@@ -53,11 +55,13 @@ impl DeviceTreeNode {
     }
 
     /// Check if node matches compatible
+    #[inline(always)]
     pub fn matches_compatible(&self, compat: &str) -> bool {
         self.compatible.iter().any(|c| c == compat)
     }
 
     /// Count total nodes in subtree
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         1 + self.children.iter().map(|c| c.node_count()).sum::<usize>()
     }
@@ -84,6 +88,7 @@ impl DeviceTreeParser {
     }
 
     /// Parse device tree blob
+    #[inline]
     pub fn parse(&mut self, _dtb: &[u8]) -> bool {
         // Simplified parsing - in real implementation would parse DTB format
         self.root = Some(DeviceTreeNode::new(String::from("/")));
@@ -91,6 +96,7 @@ impl DeviceTreeParser {
     }
 
     /// Get root node
+    #[inline(always)]
     pub fn root(&self) -> Option<&DeviceTreeNode> {
         self.root.as_ref()
     }
@@ -118,12 +124,14 @@ impl DeviceTreeParser {
     }
 
     /// Find node by phandle
+    #[inline(always)]
     pub fn find_by_phandle(&self, phandle: u32) -> Option<&DeviceTreeNode> {
         let path = self.phandle_map.get(&phandle)?;
         self.find_node(path)
     }
 
     /// Find nodes by compatible
+    #[inline]
     pub fn find_compatible(&self, compat: &str) -> Vec<&DeviceTreeNode> {
         let mut result = Vec::new();
         if let Some(root) = &self.root {
@@ -147,6 +155,7 @@ impl DeviceTreeParser {
     }
 
     /// Get parse errors
+    #[inline(always)]
     pub fn errors(&self) -> &[String] {
         &self.errors
     }

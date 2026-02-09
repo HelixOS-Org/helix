@@ -8,6 +8,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
@@ -259,17 +260,20 @@ impl CausalGraph {
     }
 
     /// Get variable
+    #[inline(always)]
     pub fn get_variable(&self, id: u64) -> Option<&CausalVariable> {
         self.variables.get(&id)
     }
 
     /// Get variable by name
+    #[inline(always)]
     pub fn get_variable_by_name(&self, name: &str) -> Option<&CausalVariable> {
         let id = self.by_name.get(name)?;
         self.variables.get(id)
     }
 
     /// Set variable value
+    #[inline]
     pub fn set_value(&mut self, id: u64, value: CausalValue) -> Result<(), &'static str> {
         let var = self.variables.get_mut(&id).ok_or("Variable not found")?;
         var.value = value;
@@ -407,7 +411,7 @@ impl CausalGraph {
     /// Get topological order
     pub fn topological_order(&self) -> Vec<u64> {
         let mut order = Vec::new();
-        let mut in_degree: BTreeMap<u64, usize> = BTreeMap::new();
+        let mut in_degree: LinearMap<usize, 64> = BTreeMap::new();
 
         // Calculate in-degrees
         for id in self.variables.keys() {
@@ -443,11 +447,13 @@ impl CausalGraph {
     }
 
     /// Variable count
+    #[inline(always)]
     pub fn variable_count(&self) -> usize {
         self.variables.len()
     }
 
     /// Edge count
+    #[inline(always)]
     pub fn edge_count(&self) -> usize {
         self.edges.len()
     }
@@ -502,6 +508,7 @@ pub struct InterventionalQuery {
 
 /// Counterfactual query
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualQuery {
     /// What would Y be...
     pub outcome: u64,
@@ -513,6 +520,7 @@ pub struct CounterfactualQuery {
 
 /// Counterfactual result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualResult {
     /// Query
     pub query: CounterfactualQuery,
@@ -598,6 +606,7 @@ impl Default for ReasonerConfig {
 
 /// Reasoner statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ReasonerStats {
     /// Queries processed
     pub queries_processed: u64,
@@ -618,11 +627,13 @@ impl CausalReasoner {
     }
 
     /// Get graph
+    #[inline(always)]
     pub fn graph(&self) -> &CausalGraph {
         &self.graph
     }
 
     /// Get mutable graph
+    #[inline(always)]
     pub fn graph_mut(&mut self) -> &mut CausalGraph {
         &mut self.graph
     }
@@ -793,6 +804,7 @@ impl CausalReasoner {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ReasonerStats {
         &self.stats
     }

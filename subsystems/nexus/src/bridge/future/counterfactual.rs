@@ -11,7 +11,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -90,6 +92,7 @@ impl BridgeAction {
 
 /// A counterfactual scenario: what would have happened with a different choice.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualScenario {
     /// Unique identifier for this decision point
     pub decision_point: u64,
@@ -144,7 +147,7 @@ struct RegretEntry {
     context_hash: u64,
     cumulative_regret: f32,
     decision_count: u64,
-    best_action_history: BTreeMap<u64, u32>, // action_hash -> times it was best
+    best_action_history: LinearMap<u32, 64>, // action_hash -> times it was best
     avg_regret_ema: f32,
 }
 
@@ -154,6 +157,7 @@ struct RegretEntry {
 
 /// Statistics for the counterfactual engine.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualStats {
     pub total_decisions: u64,
     pub total_what_ifs: u64,
@@ -189,11 +193,12 @@ impl CounterfactualStats {
 /// After each decision, evaluates what would have happened if a different action
 /// was taken. Tracks cumulative regret, decision quality, and hindsight-optimal
 /// rates to drive online learning.
+#[repr(align(64))]
 pub struct BridgeCounterfactual {
     /// Active decision records waiting for outcome observation
     pending: BTreeMap<u64, DecisionRecord>,
     /// Completed decisions with observed outcomes
-    completed: Vec<DecisionRecord>,
+    completed: VecDeque<DecisionRecord>,
     /// Regret tracking per context
     regret_table: BTreeMap<u64, RegretEntry>,
     /// Action → outcome model: (context_hash, action_hash) → EMA outcome
@@ -211,7 +216,7 @@ impl BridgeCounterfactual {
     pub fn new() -> Self {
         Self {
             pending: BTreeMap::new(),
-            completed: Vec::new(),
+            completed: VecDeque::new(),
             regret_table: BTreeMap::new(),
             action_model: BTreeMap::new(),
             stats: CounterfactualStats::new(),
@@ -319,7 +324,7 @@ impl BridgeCounterfactual {
                     context_hash: record.context_hash,
                     cumulative_regret: 0.0,
                     decision_count: 0,
-                    best_action_history: BTreeMap::new(),
+                    best_action_history: LinearMap::new(),
                     avg_regret_ema: 0.0,
                 });
             regret_entry.cumulative_regret += regret;
@@ -356,9 +361,9 @@ impl BridgeCounterfactual {
                 self.stats.positive_regret_fraction *= 1.0 - EMA_ALPHA;
             }
 
-            self.completed.push(record);
+            self.completed.push_back(record);
             if self.completed.len() > MAX_HISTORY {
-                self.completed.remove(0);
+                self.completed.pop_front();
             }
         }
     }
@@ -399,6 +404,7 @@ impl BridgeCounterfactual {
     }
 
     /// Compute regret analysis for a specific decision context.
+    #[inline]
     pub fn regret_analysis(&mut self, context_hash: u64) -> Option<(f32, f32, u64)> {
         self.stats.total_regret_queries += 1;
         let entry = self.regret_table.get(&context_hash)?;
@@ -428,6 +434,7 @@ impl BridgeCounterfactual {
     }
 
     /// Compute the counterfactual value: expected gain from switching to the best alternative.
+    #[inline]
     pub fn counterfactual_value(&self, context_hash: u64) -> f32 {
         let best = self.best_alternative(context_hash);
         let current_avg = self.current_average_outcome(context_hash);
@@ -450,6 +457,7 @@ impl BridgeCounterfactual {
     }
 
     /// Evaluate overall decision quality: fraction of decisions that were optimal.
+    #[inline(always)]
     pub fn decision_quality(&self) -> f32 {
         self.stats.avg_decision_quality
     }
@@ -485,6 +493,7 @@ impl BridgeCounterfactual {
     }
 
     /// Decay regret entries over time.
+    #[inline]
     pub fn decay_regret(&mut self) {
         for entry in self.regret_table.values_mut() {
             entry.cumulative_regret *= REGRET_DECAY;
@@ -493,16 +502,19 @@ impl BridgeCounterfactual {
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &CounterfactualStats {
         &self.stats
     }
 
     /// Get the number of completed decisions in history.
+    #[inline(always)]
     pub fn completed_count(&self) -> usize {
         self.completed.len()
     }
 
     /// Get the number of pending (unresolved) decisions.
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }

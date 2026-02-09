@@ -16,6 +16,7 @@ use alloc::vec::Vec;
 pub enum VmaHealth { Optimal, Acceptable, Fragmented, Overloaded }
 
 impl VmaHealth {
+    #[inline]
     pub fn from_count(vma_count: u64) -> Self {
         if vma_count < 100 { Self::Optimal }
         else if vma_count < 500 { Self::Acceptable }
@@ -36,11 +37,13 @@ pub struct ProcessVmaProfile {
 }
 
 impl ProcessVmaProfile {
+    #[inline]
     pub fn overhead_ratio(&self) -> f64 {
         // VMA metadata overhead: ~200 bytes per VMA
         let overhead = self.vma_count * 200;
         overhead as f64 / self.total_mapped.max(1) as f64
     }
+    #[inline(always)]
     pub fn residency(&self) -> f64 {
         if self.total_mapped == 0 { return 0.0; }
         self.total_resident as f64 / self.total_mapped as f64
@@ -56,6 +59,7 @@ pub struct WorkloadTemplate {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct VmaHolisticStats {
     pub total_system_vmas: u64,
     pub avg_vma_per_process: f64,
@@ -80,6 +84,7 @@ impl VmaHolisticManager {
         }
     }
 
+    #[inline]
     pub fn update_profile(&mut self, profile: ProcessVmaProfile) {
         if profile.health == VmaHealth::Overloaded {
             self.stats.overloaded_processes += 1;
@@ -98,6 +103,7 @@ impl VmaHolisticManager {
     }
 
     /// Find processes with most VMAs (potential overhead problems)
+    #[inline]
     pub fn top_vma_consumers(&self, n: usize) -> Vec<(u64, u64)> {
         let mut sorted: Vec<_> = self.profiles.iter()
             .map(|(&pid, p)| (pid, p.vma_count))
@@ -107,6 +113,7 @@ impl VmaHolisticManager {
     }
 
     /// Find processes with most merge opportunities
+    #[inline]
     pub fn top_merge_candidates(&self, n: usize) -> Vec<(u64, u64)> {
         let mut sorted: Vec<_> = self.profiles.iter()
             .map(|(&pid, p)| (pid, p.merge_opportunities))
@@ -117,6 +124,7 @@ impl VmaHolisticManager {
     }
 
     /// Learn a layout template from observed workloads
+    #[inline]
     pub fn learn_template(&mut self, class_hash: u64, layout: Vec<(u64, u64)>) {
         let vma_count = layout.len() as u64;
         let template = self.templates.entry(class_hash).or_insert(WorkloadTemplate {
@@ -130,6 +138,7 @@ impl VmaHolisticManager {
     }
 
     /// Check if a process deviates from its expected template
+    #[inline]
     pub fn deviation_from_template(&self, pid: u64, class_hash: u64) -> Option<f64> {
         let profile = self.profiles.get(&pid)?;
         let template = self.templates.get(&class_hash)?;
@@ -139,6 +148,7 @@ impl VmaHolisticManager {
     }
 
     /// System-wide VMA density (VMAs per GB of mapped memory)
+    #[inline]
     pub fn system_vma_density(&self) -> f64 {
         let total_mapped: u64 = self.profiles.values().map(|p| p.total_mapped).sum();
         let gb = total_mapped as f64 / (1024.0 * 1024.0 * 1024.0);
@@ -146,6 +156,8 @@ impl VmaHolisticManager {
         self.stats.total_system_vmas as f64 / gb
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessVmaProfile> { self.profiles.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &VmaHolisticStats { &self.stats }
 }

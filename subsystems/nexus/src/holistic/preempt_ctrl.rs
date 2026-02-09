@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Preemption model
@@ -50,6 +51,7 @@ pub struct PreemptDisableEntry {
 
 /// Per-CPU preemption state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuPreemptState {
     pub cpu_id: u32,
     pub preempt_count: u32,
@@ -74,6 +76,7 @@ impl CpuPreemptState {
         }
     }
 
+    #[inline]
     pub fn disable(&mut self, reason: DisableReason, site: u64, ts: u64) {
         if self.preempt_count == 0 { self.current_disable_start = Some(ts); }
         self.preempt_count += 1;
@@ -95,13 +98,18 @@ impl CpuPreemptState {
         }
     }
 
+    #[inline(always)]
     pub fn is_preemptible(&self) -> bool { self.preempt_count == 0 }
 
+    #[inline(always)]
     pub fn current_nesting(&self) -> u32 { self.preempt_count }
 
+    #[inline(always)]
     pub fn record_voluntary(&mut self) { self.voluntary_preempts += 1; }
+    #[inline(always)]
     pub fn record_involuntary(&mut self) { self.involuntary_preempts += 1; }
 
+    #[inline]
     pub fn voluntary_ratio(&self) -> f64 {
         let total = self.voluntary_preempts + self.involuntary_preempts;
         if total == 0 { return 0.0; }
@@ -137,6 +145,7 @@ impl LatencyBudget {
         Self { task_id: task, max_preempt_latency_ns: preempt_ns, max_irq_latency_ns: irq_ns, violations: 0, worst_observed_ns: 0 }
     }
 
+    #[inline]
     pub fn check(&mut self, observed_ns: u64) -> bool {
         if observed_ns > self.worst_observed_ns { self.worst_observed_ns = observed_ns; }
         if observed_ns > self.max_preempt_latency_ns { self.violations += 1; return false; }
@@ -155,6 +164,7 @@ pub struct PreemptHotspot {
 }
 
 impl PreemptHotspot {
+    #[inline(always)]
     pub fn avg_duration_ns(&self) -> f64 {
         if self.occurrences == 0 { return 0.0; }
         self.total_duration_ns as f64 / self.occurrences as f64
@@ -163,6 +173,7 @@ impl PreemptHotspot {
 
 /// Preempt control stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PreemptCtrlStats {
     pub total_cpus: usize,
     pub preempt_model: u8,
@@ -179,7 +190,7 @@ pub struct PreemptCtrlStats {
 /// Holistic preemption control manager
 pub struct HolisticPreemptCtrl {
     cpus: BTreeMap<u32, CpuPreemptState>,
-    sections: Vec<CriticalSection>,
+    sections: VecDeque<CriticalSection>,
     budgets: BTreeMap<u64, LatencyBudget>,
     hotspots: BTreeMap<u64, PreemptHotspot>,
     model: PreemptModel,
@@ -191,24 +202,26 @@ pub struct HolisticPreemptCtrl {
 impl HolisticPreemptCtrl {
     pub fn new(model: PreemptModel) -> Self {
         Self {
-            cpus: BTreeMap::new(), sections: Vec::new(),
+            cpus: BTreeMap::new(), sections: VecDeque::new(),
             budgets: BTreeMap::new(), hotspots: BTreeMap::new(),
             model, next_section_id: 1, max_sections: 10_000,
             stats: PreemptCtrlStats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn init_cpu(&mut self, cpu: u32) { self.cpus.insert(cpu, CpuPreemptState::new(cpu)); }
 
+    #[inline]
     pub fn preempt_disable(&mut self, cpu: u32, reason: DisableReason, site: u64, ts: u64) {
         if let Some(state) = self.cpus.get_mut(&cpu) {
             state.disable(reason, site, ts);
             let sid = self.next_section_id; self.next_section_id += 1;
-            self.sections.push(CriticalSection {
+            self.sections.push_back(CriticalSection {
                 section_id: sid, cpu_id: cpu, reason, start_ts: ts,
                 end_ts: None, duration_ns: 0, site, depth: state.preempt_count,
             });
-            if self.sections.len() > self.max_sections { self.sections.remove(0); }
+            if self.sections.len() > self.max_sections { self.sections.pop_front(); }
         }
     }
 
@@ -233,14 +246,17 @@ impl HolisticPreemptCtrl {
         }
     }
 
+    #[inline(always)]
     pub fn set_need_resched(&mut self, cpu: u32) {
         if let Some(state) = self.cpus.get_mut(&cpu) { state.need_resched = true; }
     }
 
+    #[inline(always)]
     pub fn add_budget(&mut self, budget: LatencyBudget) {
         self.budgets.insert(budget.task_id, budget);
     }
 
+    #[inline]
     pub fn top_hotspots(&self, n: usize) -> Vec<&PreemptHotspot> {
         let mut sorted: Vec<&PreemptHotspot> = self.hotspots.values().collect();
         sorted.sort_by(|a, b| b.max_duration_ns.cmp(&a.max_duration_ns));
@@ -267,5 +283,6 @@ impl HolisticPreemptCtrl {
         self.stats.currently_disabled_cpus = self.cpus.values().filter(|c| !c.is_preemptible()).count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PreemptCtrlStats { &self.stats }
 }

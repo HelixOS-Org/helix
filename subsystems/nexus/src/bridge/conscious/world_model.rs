@@ -51,6 +51,7 @@ fn xorshift64(state: &mut u64) -> u64 {
 
 /// Health state of a kernel subsystem as observed by the bridge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SubsystemHealth {
     pub name: String,
     pub id: u64,
@@ -70,6 +71,7 @@ pub struct SubsystemHealth {
 
 /// Global resource availability snapshot
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ResourceState {
     /// Fraction of memory available (0.0 – 1.0)
     pub memory_available: f32,
@@ -101,6 +103,7 @@ pub struct Prediction {
 
 /// Aggregate statistics about the world model
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct WorldModelStats {
     pub subsystems_tracked: usize,
     pub avg_subsystem_health: f32,
@@ -119,6 +122,7 @@ pub struct WorldModelStats {
 /// The bridge's model of the OS environment — subsystem health, resource
 /// state, prediction accuracy, and surprise detection.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeWorldModel {
     /// Subsystem health models (keyed by FNV hash)
     subsystems: BTreeMap<u64, SubsystemHealth>,
@@ -155,6 +159,7 @@ impl BridgeWorldModel {
     }
 
     /// Update the health state of a kernel subsystem
+    #[inline]
     pub fn update_state(&mut self, subsystem_name: &str, observed_health: f32) {
         self.tick += 1;
         let clamped = observed_health.max(0.0).min(1.0);
@@ -215,6 +220,7 @@ impl BridgeWorldModel {
     }
 
     /// Update global resource state
+    #[inline]
     pub fn update_resources(&mut self, resources: ResourceState) {
         self.prev_resources = self.resources;
         self.resources = resources;
@@ -249,12 +255,14 @@ impl BridgeWorldModel {
     }
 
     /// Overall model accuracy (1.0 − average prediction error)
+    #[inline(always)]
     pub fn model_accuracy(&self) -> f32 {
         (1.0 - self.avg_prediction_error).max(0.0)
     }
 
     /// Detect surprise events: subsystems whose last observation deviated
     /// significantly from prediction
+    #[inline]
     pub fn surprise_detection(&self) -> Vec<(String, f32)> {
         self.subsystems
             .values()
@@ -319,12 +327,14 @@ impl BridgeWorldModel {
     }
 
     /// Get health of a specific subsystem
+    #[inline(always)]
     pub fn subsystem_health(&self, name: &str) -> Option<f32> {
         let id = fnv1a_hash(name.as_bytes());
         self.subsystems.get(&id).map(|s| s.health)
     }
 
     /// List all subsystems sorted by health (worst first)
+    #[inline]
     pub fn subsystem_ranking(&self) -> Vec<(String, f32)> {
         let mut ranking: Vec<(String, f32)> = self
             .subsystems

@@ -8,6 +8,7 @@
 //! - Trend analysis
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
@@ -32,6 +33,7 @@ const BUCKET_BOUNDARIES_NS: [u64; 8] = [
 
 /// Latency histogram
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LatencyHistogram {
     /// Bucket counts
     pub buckets: [u64; NUM_BUCKETS],
@@ -82,6 +84,7 @@ impl LatencyHistogram {
     }
 
     /// Average latency (ns)
+    #[inline]
     pub fn avg_ns(&self) -> u64 {
         if self.count == 0 {
             0
@@ -121,26 +124,31 @@ impl LatencyHistogram {
     }
 
     /// p50
+    #[inline(always)]
     pub fn p50(&self) -> u64 {
         self.percentile(50.0)
     }
 
     /// p90
+    #[inline(always)]
     pub fn p90(&self) -> u64 {
         self.percentile(90.0)
     }
 
     /// p95
+    #[inline(always)]
     pub fn p95(&self) -> u64 {
         self.percentile(95.0)
     }
 
     /// p99
+    #[inline(always)]
     pub fn p99(&self) -> u64 {
         self.percentile(99.0)
     }
 
     /// Reset the histogram
+    #[inline]
     pub fn reset(&mut self) {
         self.buckets = [0; NUM_BUCKETS];
         self.count = 0;
@@ -161,7 +169,7 @@ pub struct ThroughputTracker {
     /// Window size in milliseconds
     window_ms: u64,
     /// Samples per window
-    windows: Vec<WindowSample>,
+    windows: VecDeque<WindowSample>,
     /// Max windows to keep
     max_windows: usize,
     /// Current window start
@@ -189,7 +197,7 @@ impl ThroughputTracker {
     pub fn new(window_ms: u64) -> Self {
         Self {
             window_ms,
-            windows: Vec::new(),
+            windows: VecDeque::new(),
             max_windows: 60, // Keep 1 minute of history at 1s windows
             current_window_start: 0,
             current_count: 0,
@@ -198,6 +206,7 @@ impl ThroughputTracker {
     }
 
     /// Record an operation
+    #[inline]
     pub fn record(&mut self, bytes: u64, current_time: u64) {
         self.maybe_rotate(current_time);
         self.current_count += 1;
@@ -220,9 +229,9 @@ impl ThroughputTracker {
             };
 
             if self.windows.len() >= self.max_windows {
-                self.windows.remove(0);
+                self.windows.pop_front();
             }
-            self.windows.push(sample);
+            self.windows.push_back(sample);
 
             self.current_window_start = current_time;
             self.current_count = 0;
@@ -288,6 +297,7 @@ impl ThroughputTracker {
 
 /// Per-syscall-type error tracking
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ErrorTracker {
     /// Error counts per error code
     error_counts: BTreeMap<i32, u64>,
@@ -296,7 +306,7 @@ pub struct ErrorTracker {
     /// Total successful calls
     total_success: u64,
     /// Recent error timestamps (for rate calculation)
-    recent_errors: Vec<u64>,
+    recent_errors: VecDeque<u64>,
     /// Max recent errors to store
     max_recent: usize,
 }
@@ -307,7 +317,7 @@ impl ErrorTracker {
             error_counts: BTreeMap::new(),
             total_errors: 0,
             total_success: 0,
-            recent_errors: Vec::new(),
+            recent_errors: VecDeque::new(),
             max_recent: 100,
         }
     }
@@ -318,15 +328,16 @@ impl ErrorTracker {
             self.total_errors += 1;
             *self.error_counts.entry(return_value as i32).or_insert(0) += 1;
             if self.recent_errors.len() >= self.max_recent {
-                self.recent_errors.remove(0);
+                self.recent_errors.pop_front();
             }
-            self.recent_errors.push(timestamp);
+            self.recent_errors.push_back(timestamp);
         } else {
             self.total_success += 1;
         }
     }
 
     /// Error rate (0.0 - 1.0)
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         let total = self.total_errors + self.total_success;
         if total == 0 {
@@ -351,6 +362,7 @@ impl ErrorTracker {
     }
 
     /// Most common error code
+    #[inline]
     pub fn most_common_error(&self) -> Option<(i32, u64)> {
         self.error_counts
             .iter()
@@ -365,6 +377,7 @@ impl ErrorTracker {
 
 /// Per-syscall-type metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallTypeMetrics {
     /// Syscall type
     pub syscall_type: SyscallType,
@@ -393,6 +406,7 @@ impl SyscallTypeMetrics {
     }
 
     /// Record a syscall completion
+    #[inline]
     pub fn record(&mut self, latency_ns: u64, return_value: i64, bytes: u64, timestamp: u64) {
         self.invocations += 1;
         self.bytes_transferred += bytes;
@@ -404,6 +418,7 @@ impl SyscallTypeMetrics {
 
 /// Per-process metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessSyscallMetrics {
     /// Process ID
     pub pid: u64,
@@ -454,6 +469,7 @@ impl ProcessSyscallMetrics {
     }
 
     /// Average latency
+    #[inline]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.total_syscalls == 0 {
             0
@@ -463,6 +479,7 @@ impl ProcessSyscallMetrics {
     }
 
     /// Syscalls per second
+    #[inline]
     pub fn rate(&self) -> f64 {
         let duration_ms = self.last_seen.saturating_sub(self.first_seen);
         if duration_ms == 0 {
@@ -472,6 +489,7 @@ impl ProcessSyscallMetrics {
     }
 
     /// Top N most used syscall types
+    #[inline]
     pub fn top_types(&self, n: usize) -> Vec<(u8, u64)> {
         let mut types: Vec<(u8, u64)> = self.per_type.iter().map(|(&k, &v)| (k, v)).collect();
         types.sort_by(|a, b| b.1.cmp(&a.1));
@@ -485,6 +503,7 @@ impl ProcessSyscallMetrics {
 // ============================================================================
 
 /// Global syscall metrics registry
+#[repr(align(64))]
 pub struct MetricsRegistry {
     /// Per-syscall-type metrics
     type_metrics: BTreeMap<u8, SyscallTypeMetrics>,
@@ -548,21 +567,25 @@ impl MetricsRegistry {
     }
 
     /// Get type metrics
+    #[inline(always)]
     pub fn get_type_metrics(&self, syscall_type: SyscallType) -> Option<&SyscallTypeMetrics> {
         self.type_metrics.get(&(syscall_type as u8))
     }
 
     /// Get process metrics
+    #[inline(always)]
     pub fn get_process_metrics(&self, pid: u64) -> Option<&ProcessSyscallMetrics> {
         self.process_metrics.get(&pid)
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.process_metrics.remove(&pid);
     }
 
     /// Global average latency
+    #[inline]
     pub fn global_avg_latency_ns(&self) -> u64 {
         if self.global_syscalls == 0 {
             0
@@ -572,6 +595,7 @@ impl MetricsRegistry {
     }
 
     /// Global error rate
+    #[inline]
     pub fn global_error_rate(&self) -> f64 {
         if self.global_syscalls == 0 {
             0.0
@@ -581,6 +605,7 @@ impl MetricsRegistry {
     }
 
     /// Top N processes by syscall count
+    #[inline]
     pub fn top_processes(&self, n: usize) -> Vec<(u64, u64)> {
         let mut procs: Vec<(u64, u64)> = self
             .process_metrics
@@ -593,6 +618,7 @@ impl MetricsRegistry {
     }
 
     /// Top N syscall types by invocation count
+    #[inline]
     pub fn top_types(&self, n: usize) -> Vec<(u8, u64)> {
         let mut types: Vec<(u8, u64)> = self
             .type_metrics
@@ -605,6 +631,7 @@ impl MetricsRegistry {
     }
 
     /// Process count being tracked
+    #[inline(always)]
     pub fn tracked_processes(&self) -> usize {
         self.process_metrics.len()
     }

@@ -169,6 +169,7 @@ impl Default for InductionConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct InductionStats {
     /// Observations
     pub observations: u64,
@@ -450,6 +451,7 @@ impl InductionEngine {
     }
 
     /// Matches observation against pattern
+    #[inline]
     pub fn matches(&self, obs: &Observation, pattern: &Pattern) -> bool {
         pattern.conditions.iter().all(|cond| {
             if let Some(val) = obs.features.get(&cond.feature) {
@@ -487,21 +489,25 @@ impl InductionEngine {
     }
 
     /// Get generalization
+    #[inline(always)]
     pub fn get_generalization(&self, id: u64) -> Option<&Generalization> {
         self.generalizations.get(&id)
     }
 
     /// Get hypothesis
+    #[inline(always)]
     pub fn get_hypothesis(&self, id: u64) -> Option<&Hypothesis> {
         self.hypotheses.get(&id)
     }
 
     /// Get all generalizations
+    #[inline(always)]
     pub fn all_generalizations(&self) -> Vec<&Generalization> {
         self.generalizations.values().collect()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &InductionStats {
         &self.stats
     }

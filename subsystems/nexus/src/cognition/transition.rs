@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -154,6 +155,7 @@ impl<S: Clone + Eq> TransitionExecution<S> {
     }
 
     /// Check if timed out
+    #[inline]
     pub fn is_timed_out(&self) -> bool {
         if let Some(timeout) = self.transition.timeout_ns {
             let now = Timestamp::now();
@@ -164,6 +166,7 @@ impl<S: Clone + Eq> TransitionExecution<S> {
     }
 
     /// Get progress
+    #[inline]
     pub fn progress(&self) -> f64 {
         if self.transition.actions.is_empty() {
             1.0
@@ -178,6 +181,7 @@ impl<S: Clone + Eq> TransitionExecution<S> {
 // ============================================================================
 
 /// State machine with transition management
+#[repr(align(64))]
 pub struct StateMachine<S: Clone + Eq + Ord> {
     /// Current state
     current_state: S,
@@ -186,7 +190,7 @@ pub struct StateMachine<S: Clone + Eq + Ord> {
     /// Active executions
     executions: BTreeMap<u64, TransitionExecution<S>>,
     /// State history
-    history: Vec<StateChange<S>>,
+    history: VecDeque<StateChange<S>>,
     /// Next transition ID
     next_transition_id: AtomicU64,
     /// Next execution ID
@@ -203,6 +207,7 @@ pub struct StateMachine<S: Clone + Eq + Ord> {
 
 /// State change record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateChange<S: Clone> {
     /// From state
     pub from: S,
@@ -218,6 +223,7 @@ pub struct StateChange<S: Clone> {
 
 /// Configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateMachineConfig {
     /// Maximum history
     pub max_history: usize,
@@ -242,6 +248,7 @@ impl Default for StateMachineConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct StateMachineStats {
     /// Total transitions
     pub total_transitions: u64,
@@ -262,7 +269,7 @@ impl<S: Clone + Eq + Ord + core::fmt::Debug> StateMachine<S> {
             current_state: initial_state,
             transitions: BTreeMap::new(),
             executions: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             next_transition_id: AtomicU64::new(1),
             next_execution_id: AtomicU64::new(1),
             flags: BTreeMap::new(),
@@ -273,6 +280,7 @@ impl<S: Clone + Eq + Ord + core::fmt::Debug> StateMachine<S> {
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn state(&self) -> &S {
         &self.current_state
     }
@@ -304,21 +312,25 @@ impl<S: Clone + Eq + Ord + core::fmt::Debug> StateMachine<S> {
     }
 
     /// Set flag
+    #[inline(always)]
     pub fn set_flag(&mut self, name: &str, value: bool) {
         self.flags.insert(name.into(), value);
     }
 
     /// Get flag
+    #[inline(always)]
     pub fn get_flag(&self, name: &str) -> bool {
         self.flags.get(name).copied().unwrap_or(false)
     }
 
     /// Set metric
+    #[inline(always)]
     pub fn set_metric(&mut self, name: &str, value: f64) {
         self.metrics.insert(name.into(), value);
     }
 
     /// Get metric
+    #[inline(always)]
     pub fn get_metric(&self, name: &str) -> f64 {
         self.metrics.get(name).copied().unwrap_or(0.0)
     }
@@ -337,6 +349,7 @@ impl<S: Clone + Eq + Ord + core::fmt::Debug> StateMachine<S> {
     }
 
     /// Get valid transitions from current state
+    #[inline]
     pub fn available_transitions(&self) -> Vec<&Transition<S>> {
         self.transitions
             .values()
@@ -446,9 +459,9 @@ impl<S: Clone + Eq + Ord + core::fmt::Debug> StateMachine<S> {
 
                 // Record history
                 if self.history.len() >= self.config.max_history {
-                    self.history.remove(0);
+                    self.history.pop_front();
                 }
-                self.history.push(StateChange {
+                self.history.push_back(StateChange {
                     from,
                     to,
                     transition_id: execution.transition.id,
@@ -520,21 +533,25 @@ impl<S: Clone + Eq + Ord + core::fmt::Debug> StateMachine<S> {
     }
 
     /// Get execution
+    #[inline(always)]
     pub fn get_execution(&self, id: u64) -> Option<&TransitionExecution<S>> {
         self.executions.get(&id)
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[StateChange<S>] {
         &self.history
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &StateMachineStats {
         &self.stats
     }
 
     /// Cleanup completed/failed executions
+    #[inline]
     pub fn cleanup(&mut self) {
         self.executions.retain(|_, e| {
             e.phase != ExecutionPhase::Completed && e.phase != ExecutionPhase::Failed

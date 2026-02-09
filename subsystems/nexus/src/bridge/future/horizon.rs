@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -131,6 +132,7 @@ struct ErrorRecord {
 
 /// Aggregate prediction statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct HorizonStats {
     pub total_predictions: u64,
     pub total_observations: u64,
@@ -150,7 +152,7 @@ pub struct HorizonStats {
 #[derive(Debug, Clone)]
 struct ScaleTracker {
     patterns: BTreeMap<u64, TemporalPattern>,
-    bucket_counts: BTreeMap<u64, u32>,
+    bucket_counts: LinearMap<u32, 64>,
     accuracy_ema: f32,
     total_predictions: u64,
     correct_predictions: u64,
@@ -161,7 +163,7 @@ impl ScaleTracker {
     fn new() -> Self {
         Self {
             patterns: BTreeMap::new(),
-            bucket_counts: BTreeMap::new(),
+            bucket_counts: LinearMap::new(),
             accuracy_ema: 0.5,
             total_predictions: 0,
             correct_predictions: 0,
@@ -169,6 +171,7 @@ impl ScaleTracker {
         }
     }
 
+    #[inline]
     fn record_observation(&mut self, syscall_nr: u32, tick: u64, bucket_width: u64) {
         let bucket = tick / bucket_width.max(1);
         let count = self.bucket_counts.entry(bucket).or_insert(0);
@@ -232,6 +235,7 @@ impl ScaleTracker {
         }
     }
 
+    #[inline]
     fn record_accuracy(&mut self, correct: bool, confidence: f32) {
         self.total_predictions += 1;
         if correct {
@@ -326,6 +330,7 @@ impl BridgeHorizonPredictor {
     }
 
     /// Get confidence for a prediction at a specific time scale
+    #[inline]
     pub fn confidence_at_time(&self, scale: TimeScale) -> f32 {
         let idx = scale as usize;
         let base = self.scale_trackers[idx].accuracy_ema;

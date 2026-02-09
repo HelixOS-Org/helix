@@ -42,6 +42,7 @@ impl Position {
         Self { x, y, z }
     }
 
+    #[inline]
     pub fn distance(&self, other: &Position) -> f64 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;

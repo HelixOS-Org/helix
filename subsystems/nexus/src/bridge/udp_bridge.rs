@@ -22,6 +22,7 @@ impl UdpBridgeRecord {
 
 /// UDP bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UdpBridgeStats { pub total_events: u64, pub sent: u64, pub received: u64, pub dropped: u64 }
 
 /// Main bridge UDP
@@ -30,6 +31,7 @@ pub struct BridgeUdp { pub stats: UdpBridgeStats }
 
 impl BridgeUdp {
     pub fn new() -> Self { Self { stats: UdpBridgeStats { total_events: 0, sent: 0, received: 0, dropped: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &UdpBridgeRecord) {
         self.stats.total_events += 1;
         match rec.event {

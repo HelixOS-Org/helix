@@ -39,11 +39,13 @@ impl NexusState {
     }
 
     /// Check if operational
+    #[inline(always)]
     pub fn is_operational(&self) -> bool {
         matches!(self, Self::Running | Self::Degraded | Self::Healing)
     }
 
     /// Check if accepting events
+    #[inline]
     pub fn accepts_events(&self) -> bool {
         matches!(
             self,

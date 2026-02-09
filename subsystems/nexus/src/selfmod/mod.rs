@@ -208,6 +208,7 @@ pub struct ModificationResult {
 
 /// Metrics delta
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MetricsDelta {
     /// Performance change (positive = improvement)
     pub performance: f64,
@@ -324,6 +325,7 @@ pub struct VersionInfo {
 
 /// Engine statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SelfModStats {
     /// Total modifications proposed
     pub total_proposed: u64,
@@ -626,32 +628,38 @@ impl SelfModEngine {
     }
 
     /// Lock the engine
+    #[inline(always)]
     pub fn lock(&self) {
         self.locked.store(true, Ordering::SeqCst);
     }
 
     /// Unlock the engine
+    #[inline(always)]
     pub fn unlock(&self) {
         self.locked.store(false, Ordering::SeqCst);
     }
 
     /// Enter emergency mode
+    #[inline(always)]
     pub fn emergency_mode(&mut self) {
         self.state = EngineState::Emergency;
         self.lock();
     }
 
     /// Get current version
+    #[inline(always)]
     pub fn current_version(&self) -> VersionId {
         self.current_version
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SelfModStats {
         &self.stats
     }
 
     /// Get state
+    #[inline(always)]
     pub fn state(&self) -> EngineState {
         self.state
     }

@@ -52,6 +52,7 @@ impl LogEntry {
         hash
     }
 
+    #[inline(always)]
     pub fn verify_checksum(&self) -> bool {
         self.checksum == Self::compute_checksum(self.sequence, self.term, &self.key, self.data_len)
     }
@@ -88,10 +89,12 @@ impl FollowerInfo {
         }
     }
 
+    #[inline(always)]
     pub fn replication_lag(&self, leader_seq: u64) -> u64 {
         leader_seq.saturating_sub(self.match_sequence)
     }
 
+    #[inline(always)]
     pub fn ack_ratio(&self) -> f64 {
         if self.entries_sent == 0 { return 1.0; }
         self.entries_acked as f64 / self.entries_sent as f64
@@ -129,6 +132,7 @@ impl Default for CompactionPolicy {
 
 /// Log replicator stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LogReplicatorStats {
     pub total_entries: usize,
     pub total_bytes: usize,
@@ -168,6 +172,7 @@ impl CoopLogReplicator {
         }
     }
 
+    #[inline]
     pub fn append(&mut self, kind: LogEntryKind, key: String, data_len: usize, ts: u64) -> u64 {
         self.current_sequence += 1;
         let entry = LogEntry::new(self.current_sequence, self.current_term, kind, key, data_len, ts);
@@ -176,8 +181,10 @@ impl CoopLogReplicator {
         self.current_sequence
     }
 
+    #[inline(always)]
     pub fn set_term(&mut self, term: u64) { self.current_term = term; }
 
+    #[inline]
     pub fn get_entries_from(&self, from_seq: u64, max: usize) -> Vec<&LogEntry> {
         self.log.iter()
             .filter(|e| e.sequence >= from_seq)
@@ -185,10 +192,12 @@ impl CoopLogReplicator {
             .collect()
     }
 
+    #[inline(always)]
     pub fn register_follower(&mut self, id: u64) {
         self.followers.insert(id, FollowerInfo::new(id));
     }
 
+    #[inline(always)]
     pub fn unregister_follower(&mut self, id: u64) { self.followers.remove(&id); }
 
     pub fn send_entries(&mut self, follower_id: u64, count: usize) -> Vec<u64> {
@@ -230,6 +239,7 @@ impl CoopLogReplicator {
         }
     }
 
+    #[inline]
     pub fn create_snapshot(&mut self, ts: u64) -> u64 {
         let id = self.snapshots.len() as u64 + 1;
         let meta = SnapshotMeta {
@@ -241,6 +251,7 @@ impl CoopLogReplicator {
         id
     }
 
+    #[inline]
     pub fn compact(&mut self) {
         if self.log.len() <= self.compaction_policy.min_entries_to_keep { return; }
         let min_follower_seq = self.followers.values().map(|f| f.match_sequence).min().unwrap_or(self.current_sequence);
@@ -253,6 +264,7 @@ impl CoopLogReplicator {
         }
     }
 
+    #[inline]
     pub fn verify_log_integrity(&mut self) -> usize {
         let mut failures = 0;
         for entry in &self.log {
@@ -278,5 +290,6 @@ impl CoopLogReplicator {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &LogReplicatorStats { &self.stats }
 }

@@ -38,6 +38,7 @@ impl BlockManager {
     }
 
     /// Register device
+    #[inline]
     pub fn register_device(&mut self, mut device: BlockDevice) {
         device.state = BlockDeviceState::Active;
         device.init_request_queue();
@@ -46,16 +47,19 @@ impl BlockManager {
     }
 
     /// Get device
+    #[inline(always)]
     pub fn get_device(&self, id: BlockDeviceId) -> Option<&BlockDevice> {
         self.devices.get(&id)
     }
 
     /// Get device mutably
+    #[inline(always)]
     pub fn get_device_mut(&mut self, id: BlockDeviceId) -> Option<&mut BlockDevice> {
         self.devices.get_mut(&id)
     }
 
     /// Register partition
+    #[inline]
     pub fn register_partition(&mut self, partition: Partition, parent: BlockDeviceId) {
         if let Some(parent_dev) = self.devices.get_mut(&parent) {
             parent_dev.children.push(partition.device_id);
@@ -64,11 +68,13 @@ impl BlockManager {
     }
 
     /// Get partition
+    #[inline(always)]
     pub fn get_partition(&self, id: BlockDeviceId) -> Option<&Partition> {
         self.partitions.get(&id)
     }
 
     /// Get all disks (non-partition devices)
+    #[inline]
     pub fn disks(&self) -> Vec<&BlockDevice> {
         self.devices
             .values()
@@ -77,6 +83,7 @@ impl BlockManager {
     }
 
     /// Get all SSDs
+    #[inline]
     pub fn ssds(&self) -> Vec<&BlockDevice> {
         self.devices
             .values()
@@ -85,6 +92,7 @@ impl BlockManager {
     }
 
     /// Get all HDDs
+    #[inline]
     pub fn hdds(&self) -> Vec<&BlockDevice> {
         self.devices
             .values()
@@ -93,6 +101,7 @@ impl BlockManager {
     }
 
     /// Submit I/O request
+    #[inline]
     pub fn submit_io(&mut self, device_id: BlockDeviceId, request: IoRequest) {
         if let Some(device) = self.devices.get_mut(&device_id) {
             device.submit_io(request);
@@ -101,6 +110,7 @@ impl BlockManager {
     }
 
     /// Complete I/O request
+    #[inline]
     pub fn complete_io(
         &mut self,
         device_id: BlockDeviceId,
@@ -115,6 +125,7 @@ impl BlockManager {
     }
 
     /// Get device count
+    #[inline(always)]
     pub fn device_count(&self) -> u32 {
         self.device_count.load(Ordering::Relaxed)
     }
@@ -156,6 +167,7 @@ impl BlockManager {
     }
 
     /// Get devices iterator
+    #[inline(always)]
     pub fn devices(&self) -> impl Iterator<Item = &BlockDevice> {
         self.devices.values()
     }

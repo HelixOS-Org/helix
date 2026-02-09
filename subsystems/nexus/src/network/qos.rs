@@ -100,6 +100,7 @@ impl QosEngine {
     }
 
     /// Add port-based rule
+    #[inline(always)]
     pub fn add_port_rule(&mut self, port: u16, class: QosClass) {
         self.port_rules.insert(port, class);
     }
@@ -124,11 +125,13 @@ impl QosEngine {
     }
 
     /// Set flow classification
+    #[inline(always)]
     pub fn set_classification(&mut self, flow_id: FlowId, class: QosClass) {
         self.classifications.insert(flow_id, class);
     }
 
     /// Get DSCP for flow
+    #[inline(always)]
     pub fn get_dscp(&mut self, flow_id: FlowId) -> u8 {
         self.classify(flow_id).to_dscp()
     }
@@ -148,6 +151,7 @@ impl QosEngine {
     }
 
     /// Record bandwidth usage
+    #[inline]
     pub fn record_usage(&mut self, flow_id: &FlowId, bytes: u64) {
         let class = *self
             .classifications
@@ -160,6 +164,7 @@ impl QosEngine {
     }
 
     /// Reset usage counters
+    #[inline]
     pub fn reset_usage(&mut self) {
         for alloc in self.allocations.values_mut() {
             alloc.current_usage = 0;
@@ -167,11 +172,13 @@ impl QosEngine {
     }
 
     /// Get allocation for class
+    #[inline(always)]
     pub fn get_allocation(&self, class: QosClass) -> Option<&BandwidthAllocation> {
         self.allocations.get(&class)
     }
 
     /// Set allocation
+    #[inline]
     pub fn set_allocation(&mut self, class: QosClass, min: u64, max: u64, weight: u32) {
         self.allocations.insert(class, BandwidthAllocation {
             min_bandwidth: min,

@@ -42,6 +42,7 @@ pub trait Analyzer: NexusComponent {
 
 /// Analyzer statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AnalyzerStats {
     /// Total analyses performed
     pub total_analyses: u64,
@@ -59,6 +60,7 @@ pub struct AnalyzerStats {
 
 impl AnalyzerStats {
     /// Success rate (0.0 to 1.0)
+    #[inline]
     pub fn success_rate(&self) -> f32 {
         if self.total_analyses == 0 {
             return 1.0;
@@ -67,6 +69,7 @@ impl AnalyzerStats {
     }
 
     /// Record a successful analysis
+    #[inline]
     pub fn record_success(&mut self, latency_ns: u64) {
         self.total_analyses += 1;
         self.successful += 1;
@@ -74,6 +77,7 @@ impl AnalyzerStats {
     }
 
     /// Record a failed analysis
+    #[inline]
     pub fn record_failure(&mut self, latency_ns: u64) {
         self.total_analyses += 1;
         self.failed += 1;

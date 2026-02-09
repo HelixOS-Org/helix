@@ -40,6 +40,7 @@ pub enum PayoffType {
 
 impl PayoffFunction {
     /// Create from matrix (2-player games)
+    #[inline]
     pub fn from_matrix(matrix: Vec<Vec<(Utility, Utility)>>) -> Self {
         Self {
             matrix: Some(matrix),
@@ -48,6 +49,7 @@ impl PayoffFunction {
     }
 
     /// Create for resource allocation
+    #[inline]
     pub fn resource_allocation(total_resource: f64) -> Self {
         Self {
             matrix: None,

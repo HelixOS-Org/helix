@@ -31,6 +31,7 @@ pub enum LockType {
 
 impl LockType {
     /// Is blocking lock?
+    #[inline]
     pub fn is_blocking(&self) -> bool {
         matches!(
             self,
@@ -39,6 +40,7 @@ impl LockType {
     }
 
     /// Is spinning lock?
+    #[inline(always)]
     pub fn is_spinning(&self) -> bool {
         matches!(self, Self::Spinlock | Self::Seqlock)
     }

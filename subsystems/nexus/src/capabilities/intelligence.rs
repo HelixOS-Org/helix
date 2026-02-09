@@ -29,6 +29,7 @@ impl CapabilitiesIntelligence {
     }
 
     /// Register process
+    #[inline]
     pub fn register_process(&mut self, caps: ProcessCaps) {
         let pid = caps.pid;
         self.tracker.register_process(caps);
@@ -139,6 +140,7 @@ impl CapabilitiesIntelligence {
     }
 
     /// Get least privilege recommendation
+    #[inline]
     pub fn get_least_privilege(&self, pid: Pid) -> Option<LeastPrivilegeRec> {
         self.tracker
             .get_process(pid)
@@ -146,21 +148,25 @@ impl CapabilitiesIntelligence {
     }
 
     /// Get tracker
+    #[inline(always)]
     pub fn tracker(&self) -> &CapabilityTracker {
         &self.tracker
     }
 
     /// Get tracker mutably
+    #[inline(always)]
     pub fn tracker_mut(&mut self) -> &mut CapabilityTracker {
         &mut self.tracker
     }
 
     /// Get analyzer
+    #[inline(always)]
     pub fn analyzer(&self) -> &LeastPrivilegeAnalyzer {
         &self.analyzer
     }
 
     /// Get analyzer mutably
+    #[inline(always)]
     pub fn analyzer_mut(&mut self) -> &mut LeastPrivilegeAnalyzer {
         &mut self.analyzer
     }

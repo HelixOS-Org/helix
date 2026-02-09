@@ -38,6 +38,7 @@ impl SyscallSignature {
     }
 
     /// FNV-1a style hash combining
+    #[inline]
     pub fn compute_hash(syscall_nr: u32, args: &[u64]) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
         hash ^= syscall_nr as u64;
@@ -56,6 +57,7 @@ impl SyscallSignature {
 
 /// Cached syscall result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CachedResult {
     /// Return value
     pub return_value: u64,
@@ -83,22 +85,26 @@ impl CachedResult {
         }
     }
 
+    #[inline(always)]
     pub fn with_duration(mut self, duration_ns: u64) -> Self {
         self.original_duration_ns = duration_ns;
         self
     }
 
     /// Is expired
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now.saturating_sub(self.cached_at) > self.ttl_ns
     }
 
     /// Record hit
+    #[inline(always)]
     pub fn hit(&mut self) {
         self.hits += 1;
     }
 
     /// Saved time (estimated)
+    #[inline(always)]
     pub fn saved_ns(&self) -> u64 {
         self.hits * self.original_duration_ns
     }
@@ -147,11 +153,13 @@ impl SyscallDedupPolicy {
         }
     }
 
+    #[inline(always)]
     pub fn with_ttl(mut self, ttl_ns: u64) -> Self {
         self.default_ttl_ns = ttl_ns;
         self
     }
 
+    #[inline(always)]
     pub fn with_max_entries(mut self, max: usize) -> Self {
         self.max_entries = max;
         self
@@ -188,12 +196,14 @@ impl RedundancyPattern {
         }
     }
 
+    #[inline]
     pub fn record_redundant(&mut self, duration_ns: u64) {
         self.consecutive_count += 1;
         self.total_redundant += 1;
         self.wasted_ns += duration_ns;
     }
 
+    #[inline(always)]
     pub fn reset_consecutive(&mut self) {
         self.consecutive_count = 0;
     }
@@ -271,6 +281,7 @@ impl SyscallCache {
 
 /// Dedup statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DedupStats {
     /// Total lookups
     pub total_lookups: u64,
@@ -287,6 +298,7 @@ pub struct DedupStats {
 }
 
 /// Bridge dedup manager
+#[repr(align(64))]
 pub struct BridgeDedupManager {
     /// Per-syscall caches
     caches: BTreeMap<u32, SyscallCache>,
@@ -312,6 +324,7 @@ impl BridgeDedupManager {
     }
 
     /// Register dedup policy
+    #[inline]
     pub fn register_policy(&mut self, policy: SyscallDedupPolicy) {
         let nr = policy.syscall_nr;
         if policy.enabled {
@@ -383,6 +396,7 @@ impl BridgeDedupManager {
     }
 
     /// Evict expired entries
+    #[inline]
     pub fn evict_expired(&mut self, now: u64) {
         for cache in self.caches.values_mut() {
             cache.evict_expired(now);
@@ -391,6 +405,7 @@ impl BridgeDedupManager {
     }
 
     /// Get redundancy patterns
+    #[inline]
     pub fn redundancy_patterns(&self) -> Vec<&RedundancyPattern> {
         self.redundancy
             .values()
@@ -420,6 +435,7 @@ impl BridgeDedupManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &DedupStats {
         &self.stats
     }

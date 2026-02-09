@@ -58,6 +58,7 @@ impl RmdirRecord {
         }
     }
 
+    #[inline(always)]
     pub fn total_entries_removed(&self) -> u32 {
         self.dirs_removed + self.files_removed
     }
@@ -65,6 +66,7 @@ impl RmdirRecord {
 
 /// Rmdir app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RmdirAppStats {
     pub total_ops: u64,
     pub total_dirs_removed: u64,
@@ -109,6 +111,7 @@ impl AppRmdir {
         }
     }
 
+    #[inline(always)]
     pub fn success_rate(&self) -> f64 {
         if self.stats.total_ops == 0 { 0.0 }
         else { (self.stats.total_ops - self.stats.failures) as f64 / self.stats.total_ops as f64 }

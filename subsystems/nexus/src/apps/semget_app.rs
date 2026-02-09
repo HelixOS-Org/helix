@@ -23,6 +23,7 @@ impl SemgetRecord {
 
 /// Semget app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemgetAppStats { pub total_ops: u64, pub created: u64, pub errors: u64 }
 
 /// Main app semget
@@ -31,6 +32,7 @@ pub struct AppSemget { pub stats: SemgetAppStats }
 
 impl AppSemget {
     pub fn new() -> Self { Self { stats: SemgetAppStats { total_ops: 0, created: 0, errors: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SemgetRecord) {
         self.stats.total_ops += 1;
         if rec.result == SemgetResult::Success { self.stats.created += 1; }

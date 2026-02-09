@@ -100,11 +100,13 @@ impl CapabilityToken {
     }
 
     /// Check if this capability grants a specific right
+    #[inline(always)]
     pub fn has_right(&self, right: CapRight) -> bool {
         self.rights & (1 << (right as u32)) != 0
     }
 
     /// Is this capability still valid?
+    #[inline(always)]
     pub fn is_valid(&self, now_ns: u64) -> bool {
         !self.revoked && now_ns < self.expiry_ns
     }
@@ -145,6 +147,7 @@ impl CapabilityToken {
     }
 
     /// Rights as bitmask value
+    #[inline]
     pub fn rights_count(&self) -> u32 {
         let mut r = self.rights;
         let mut count = 0;
@@ -181,6 +184,7 @@ impl ProcessCapTable {
         }
     }
 
+    #[inline(always)]
     pub fn insert(&mut self, cap: CapabilityToken) {
         self.caps.insert(cap.cap_id, cap);
         self.grants_received += 1;
@@ -200,6 +204,7 @@ impl ProcessCapTable {
         has
     }
 
+    #[inline]
     pub fn revoke(&mut self, cap_id: u64) -> bool {
         if let Some(cap) = self.caps.get_mut(&cap_id) {
             cap.revoked = true;
@@ -210,14 +215,17 @@ impl ProcessCapTable {
         }
     }
 
+    #[inline(always)]
     pub fn cleanup_expired(&mut self, now_ns: u64) {
         self.caps.retain(|_, cap| cap.is_valid(now_ns));
     }
 
+    #[inline(always)]
     pub fn cap_count(&self) -> usize {
         self.caps.len()
     }
 
+    #[inline]
     pub fn denial_rate(&self) -> f64 {
         if self.access_checks == 0 { 0.0 } else {
             self.access_denials as f64 / self.access_checks as f64
@@ -227,6 +235,7 @@ impl ProcessCapTable {
 
 /// Capability protocol stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopCapProtocolStats {
     pub tracked_processes: usize,
     pub total_capabilities: usize,
@@ -251,12 +260,14 @@ impl CoopCapProtocol {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) {
         self.processes.entry(pid)
             .or_insert_with(|| ProcessCapTable::new(pid));
     }
 
     /// Grant a new root capability
+    #[inline]
     pub fn grant_root(&mut self, pid: u64, obj_type: CapObjectType, obj_id: u64, rights: u32, now_ns: u64) -> u64 {
         let cap_id = self.next_cap_id;
         self.next_cap_id += 1;
@@ -313,6 +324,7 @@ impl CoopCapProtocol {
         self.update_stats();
     }
 
+    #[inline]
     pub fn check_access(&mut self, pid: u64, obj_type: CapObjectType, obj_id: u64, right: CapRight, now_ns: u64) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.check_access(obj_type, obj_id, right, now_ns)
@@ -336,6 +348,7 @@ impl CoopCapProtocol {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopCapProtocolStats {
         &self.stats
     }

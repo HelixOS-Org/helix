@@ -175,6 +175,7 @@ impl SourceTracker {
         }
     }
 
+    #[inline]
     fn record(&mut self, predicted_conf: f32, correct: bool) {
         self.total += 1;
         if correct {
@@ -231,6 +232,7 @@ impl SourceTracker {
 
 /// Aggregate validation statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ValidationStats {
     pub total_predictions: u64,
     pub validated_count: u64,
@@ -249,6 +251,7 @@ pub struct ValidationStats {
 /// Validates bridge predictions against actual outcomes. Tracks Brier score,
 /// log-loss, calibration curves, sharpness, and reliability diagrams.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgePredictionValidator {
     predictions: Vec<PredictionRecord>,
     write_idx: usize,
@@ -323,6 +326,7 @@ impl BridgePredictionValidator {
     }
 
     /// Validate a prediction against the actual outcome
+    #[inline]
     pub fn validate_prediction(&mut self, prediction_id: u64, actual_outcome: u32) -> Option<f32> {
         let pred = self
             .predictions
@@ -365,11 +369,13 @@ impl BridgePredictionValidator {
     }
 
     /// Compute the Brier score (lower is better, 0 = perfect)
+    #[inline(always)]
     pub fn brier_score(&self) -> f32 {
         self.global_brier_ema
     }
 
     /// Compute per-source Brier score
+    #[inline]
     pub fn brier_score_by_source(&self, source: PredictionSource) -> f32 {
         self.source_trackers
             .get(&(source as u8))
@@ -397,6 +403,7 @@ impl BridgePredictionValidator {
     }
 
     /// Compute sharpness: average distance from 0.5 (higher = more decisive)
+    #[inline(always)]
     pub fn sharpness(&self) -> f32 {
         self.global_sharpness_ema
     }
@@ -436,6 +443,7 @@ impl BridgePredictionValidator {
     }
 
     /// Log loss by source
+    #[inline]
     pub fn log_loss_by_source(&self, source: PredictionSource) -> f32 {
         self.source_trackers
             .get(&(source as u8))

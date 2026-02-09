@@ -4,6 +4,7 @@
 
 #![allow(dead_code)]
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::message::{Message, MessagePriority};
@@ -14,9 +15,11 @@ use crate::types::Timestamp;
 // ============================================================================
 
 /// Priority queue for messages
+#[repr(align(64))]
 pub struct MessageQueue {
     /// Queues by priority (0=Low, 1=Normal, 2=High, 3=Urgent, 4=Critical)
-    queues: [Vec<Message>; 5],
+    /// VecDeque for O(1) pop_front — was Vec (O(n) remove(0))
+    queues: [VecDeque<Message>; 5],
     /// Total message count
     count: usize,
     /// Max queue size
@@ -27,7 +30,7 @@ impl MessageQueue {
     /// Create new queue
     pub fn new(max_size: usize) -> Self {
         Self {
-            queues: [Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()],
+            queues: [VecDeque::new(), VecDeque::new(), VecDeque::new(), VecDeque::new(), VecDeque::new()],
             count: 0,
             max_size,
         }
@@ -52,7 +55,7 @@ impl MessageQueue {
     fn drop_lowest(&mut self) -> bool {
         for queue in &mut self.queues {
             if !queue.is_empty() {
-                queue.remove(0);
+                queue.pop_front();
                 self.count -= 1;
                 return true;
             }
@@ -61,12 +64,13 @@ impl MessageQueue {
     }
 
     /// Pop highest priority message
+    #[inline]
     pub fn pop(&mut self) -> Option<Message> {
         // Check from highest to lowest priority
         for queue in self.queues.iter_mut().rev() {
             if !queue.is_empty() {
                 self.count -= 1;
-                return Some(queue.remove(0));
+                return queue.pop_front();
             }
         }
         None
@@ -80,7 +84,7 @@ impl MessageQueue {
         for idx in (min_idx..5).rev() {
             while !self.queues[idx].is_empty() {
                 self.count -= 1;
-                result.push(self.queues[idx].remove(0));
+                result.push(self.queues[idx].pop_front().unwrap());
             }
         }
 
@@ -88,31 +92,36 @@ impl MessageQueue {
     }
 
     /// Peek at highest priority message
+    #[inline]
     pub fn peek(&self) -> Option<&Message> {
         for queue in self.queues.iter().rev() {
             if !queue.is_empty() {
-                return queue.first();
+                return queue.front();
             }
         }
         None
     }
 
     /// Get count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.count
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
 
     /// Get count at priority level
+    #[inline(always)]
     pub fn len_at_priority(&self, priority: MessagePriority) -> usize {
         self.queues[priority as usize].len()
     }
 
     /// Clear all messages
+    #[inline]
     pub fn clear(&mut self) {
         for queue in &mut self.queues {
             queue.clear();
@@ -121,6 +130,7 @@ impl MessageQueue {
     }
 
     /// Expire old messages
+    #[inline]
     pub fn expire(&mut self, now: Timestamp) -> usize {
         let mut expired = 0;
         for queue in &mut self.queues {
@@ -133,16 +143,19 @@ impl MessageQueue {
     }
 
     /// Get capacity
+    #[inline(always)]
     pub fn capacity(&self) -> usize {
         self.max_size
     }
 
     /// Get remaining capacity
+    #[inline(always)]
     pub fn remaining(&self) -> usize {
         self.max_size.saturating_sub(self.count)
     }
 
     /// Drain all messages
+    #[inline]
     pub fn drain(&mut self) -> Vec<Message> {
         let mut result = Vec::with_capacity(self.count);
         for queue in self.queues.iter_mut().rev() {

@@ -118,6 +118,7 @@ impl McsLockInstance {
         None
     }
 
+    #[inline]
     pub fn avg_spin(&self) -> f64 {
         if self.total_acquires == 0 {
             return 0.0;
@@ -128,6 +129,7 @@ impl McsLockInstance {
 
 /// Statistics for MCS lock.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct McsLockStats {
     pub total_locks: u64,
     pub total_acquires: u64,
@@ -156,6 +158,7 @@ impl CoopMcsLock {
         }
     }
 
+    #[inline]
     pub fn create_lock(&mut self) -> u64 {
         let id = self.next_lock_id;
         self.next_lock_id += 1;
@@ -165,6 +168,7 @@ impl CoopMcsLock {
         id
     }
 
+    #[inline(always)]
     pub fn lock_count(&self) -> usize {
         self.locks.len()
     }

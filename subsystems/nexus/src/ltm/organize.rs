@@ -8,6 +8,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
@@ -177,6 +178,7 @@ impl Default for OrganizerConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OrganizerStats {
     /// Total categories
     pub total_categories: u64,
@@ -230,6 +232,7 @@ impl MemoryOrganizer {
     }
 
     /// Set category schema
+    #[inline]
     pub fn set_schema(&mut self, category_id: u64, schema: Schema) {
         if let Some(category) = self.categories.get_mut(&category_id) {
             category.schema = Some(schema);
@@ -237,6 +240,7 @@ impl MemoryOrganizer {
     }
 
     /// Categorize memory
+    #[inline]
     pub fn categorize(&mut self, memory_id: u64, category_id: u64) {
         if let Some(category) = self.categories.get_mut(&category_id) {
             if category.members.insert(memory_id) {
@@ -250,6 +254,7 @@ impl MemoryOrganizer {
     }
 
     /// Uncategorize memory
+    #[inline]
     pub fn uncategorize(&mut self, memory_id: u64, category_id: u64) {
         if let Some(category) = self.categories.get_mut(&category_id) {
             category.members.remove(&memory_id);
@@ -261,11 +266,13 @@ impl MemoryOrganizer {
     }
 
     /// Get category
+    #[inline(always)]
     pub fn get_category(&self, id: u64) -> Option<&Category> {
         self.categories.get(&id)
     }
 
     /// Get memory categories
+    #[inline]
     pub fn get_memory_categories(&self, memory_id: u64) -> Vec<&Category> {
         self.memory_categories.get(&memory_id)
             .map(|cats| {
@@ -332,6 +339,7 @@ impl MemoryOrganizer {
     }
 
     /// Link memory to node
+    #[inline]
     pub fn link_memory_to_node(&mut self, memory_id: u64, node_id: u64) {
         if let Some(node) = self.nodes.get_mut(&node_id) {
             if !node.memory_refs.contains(&memory_id) {
@@ -341,11 +349,13 @@ impl MemoryOrganizer {
     }
 
     /// Get node
+    #[inline(always)]
     pub fn get_node(&self, id: u64) -> Option<&KnowledgeNode> {
         self.nodes.get(&id)
     }
 
     /// Get edges from node
+    #[inline]
     pub fn get_edges_from(&self, node_id: u64) -> Vec<&KnowledgeEdge> {
         self.edges.values()
             .filter(|e| e.source == node_id)
@@ -353,6 +363,7 @@ impl MemoryOrganizer {
     }
 
     /// Get edges to node
+    #[inline]
     pub fn get_edges_to(&self, node_id: u64) -> Vec<&KnowledgeEdge> {
         self.edges.values()
             .filter(|e| e.target == node_id)
@@ -365,7 +376,7 @@ impl MemoryOrganizer {
 
         let mut visited = BTreeSet::new();
         let mut queue = VecDeque::new();
-        let mut parents: BTreeMap<u64, u64> = BTreeMap::new();
+        let mut parents: LinearMap<u64, 64> = BTreeMap::new();
 
         queue.push_back(start);
         visited.insert(start);
@@ -398,6 +409,7 @@ impl MemoryOrganizer {
     }
 
     /// Find related nodes
+    #[inline]
     pub fn find_related(&self, node_id: u64, relation: &str) -> Vec<&KnowledgeNode> {
         self.edges.values()
             .filter(|e| e.source == node_id && e.relation == relation)
@@ -406,6 +418,7 @@ impl MemoryOrganizer {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &OrganizerStats {
         &self.stats
     }
@@ -439,6 +452,7 @@ impl SchemaBuilder {
     }
 
     /// Add field
+    #[inline]
     pub fn field(mut self, name: &str, field_type: FieldType, required: bool) -> Self {
         self.fields.push(SchemaField {
             name: name.into(),
@@ -450,6 +464,7 @@ impl SchemaBuilder {
     }
 
     /// Add constraint
+    #[inline]
     pub fn constraint(mut self, constraint_type: ConstraintType, fields: Vec<&str>) -> Self {
         self.constraints.push(Constraint {
             constraint_type,
@@ -460,6 +475,7 @@ impl SchemaBuilder {
     }
 
     /// Build
+    #[inline]
     pub fn build(self, id: u64) -> Schema {
         Schema {
             id,

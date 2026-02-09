@@ -156,10 +156,12 @@ impl ConstraintSet {
         }
     }
 
+    #[inline(always)]
     pub fn add(&mut self, constraint: Constraint) {
         self.constraints.push(constraint);
     }
 
+    #[inline(always)]
     pub fn declare(&mut self, id: VarId, name: &str, typ: TypeExpr) {
         self.var_names.insert(id, name.into());
         self.var_types.insert(id, typ);
@@ -216,6 +218,7 @@ impl Default for SolverConfig {
 
 /// Solver statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SolverStats {
     /// Total solves
     pub total_solves: u64,
@@ -240,6 +243,7 @@ impl ConstraintSolver {
     }
 
     /// Create fresh variable
+    #[inline(always)]
     pub fn fresh_var(&self) -> VarId {
         self.next_var.fetch_add(1, Ordering::Relaxed)
     }
@@ -547,6 +551,7 @@ impl ConstraintSolver {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SolverStats {
         &self.stats
     }

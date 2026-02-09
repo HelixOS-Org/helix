@@ -66,6 +66,7 @@ impl UdpDatagram {
         }
     }
 
+    #[inline]
     pub fn fragment_count(&self) -> u32 {
         if self.payload_len <= 1472 {
             1
@@ -114,21 +115,25 @@ impl UdpSocket {
         }
     }
 
+    #[inline(always)]
     pub fn bind(&mut self, port: u16) {
         self.local_port = port;
         self.state = UdpSocketState::Bound;
     }
 
+    #[inline(always)]
     pub fn send(&mut self, datagram: &UdpDatagram) {
         self.datagrams_sent += 1;
         self.bytes_sent += datagram.payload_len as u64;
     }
 
+    #[inline(always)]
     pub fn receive(&mut self, datagram: &UdpDatagram) {
         self.datagrams_received += 1;
         self.bytes_received += datagram.payload_len as u64;
     }
 
+    #[inline]
     pub fn join_multicast(&mut self, group_id: u32) {
         if !self.multicast_groups.contains(&group_id) {
             self.multicast_groups.push(group_id);
@@ -136,6 +141,7 @@ impl UdpSocket {
         }
     }
 
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.datagrams_received + self.drops;
         if total == 0 {
@@ -144,6 +150,7 @@ impl UdpSocket {
         self.drops as f64 / total as f64
     }
 
+    #[inline]
     pub fn avg_datagram_size(&self) -> u64 {
         if self.datagrams_sent == 0 {
             return 0;
@@ -154,6 +161,7 @@ impl UdpSocket {
 
 /// UDP manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UdpMgrStats {
     pub total_sockets: u64,
     pub active_sockets: u64,
@@ -187,6 +195,7 @@ impl HolisticUdpMgr {
         }
     }
 
+    #[inline]
     pub fn create_socket(&mut self) -> u64 {
         let id = self.next_socket_id;
         self.next_socket_id += 1;

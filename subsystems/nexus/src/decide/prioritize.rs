@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -92,7 +93,7 @@ pub struct PrioritizationResult {
     /// Ordered items
     pub ordered: Vec<u64>,
     /// Priority scores
-    pub scores: BTreeMap<u64, f64>,
+    pub scores: LinearMap<f64, 64>,
     /// Method used
     pub method: PriorityMethod,
     /// Timestamp
@@ -164,6 +165,7 @@ impl Default for PrioritizerConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PrioritizerStats {
     /// Items added
     pub items_added: u64,
@@ -210,6 +212,7 @@ impl DecisionPrioritizer {
     }
 
     /// Set deadline
+    #[inline]
     pub fn set_deadline(&mut self, id: u64, deadline: Timestamp) {
         if let Some(item) = self.items.get_mut(&id) {
             item.deadline = Some(deadline);
@@ -217,6 +220,7 @@ impl DecisionPrioritizer {
     }
 
     /// Add dependency
+    #[inline]
     pub fn add_dependency(&mut self, id: u64, dependency: u64) {
         if let Some(item) = self.items.get_mut(&id) {
             if !item.dependencies.contains(&dependency) {
@@ -387,17 +391,20 @@ impl DecisionPrioritizer {
     }
 
     /// Get next item
+    #[inline(always)]
     pub fn next(&mut self) -> Option<&DecisionItem> {
         let result = self.prioritize(self.config.default_method);
         result.ordered.first().and_then(|id| self.items.get(id))
     }
 
     /// Get item
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&DecisionItem> {
         self.items.get(&id)
     }
 
     /// Get pending items
+    #[inline]
     pub fn pending(&self) -> Vec<&DecisionItem> {
         self.items.values()
             .filter(|item| item.status == ItemStatus::Pending || item.status == ItemStatus::Ready)
@@ -405,6 +412,7 @@ impl DecisionPrioritizer {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PrioritizerStats {
         &self.stats
     }

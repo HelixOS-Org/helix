@@ -26,6 +26,7 @@ impl SigprocmaskRecord {
         Self { how, mask_bits: mask, old_mask_bits: 0, pid: 0, tid: 0 }
     }
 
+    #[inline(always)]
     pub fn blocked_count(&self) -> u32 {
         self.mask_bits.count_ones()
     }
@@ -33,6 +34,7 @@ impl SigprocmaskRecord {
 
 /// Sigprocmask bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SigprocmaskBridgeStats {
     pub total_ops: u64,
     pub blocks: u64,
@@ -51,6 +53,7 @@ impl BridgeSigprocmask {
         Self { stats: SigprocmaskBridgeStats { total_ops: 0, blocks: 0, unblocks: 0, full_sets: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SigprocmaskRecord) {
         self.stats.total_ops += 1;
         match rec.how {

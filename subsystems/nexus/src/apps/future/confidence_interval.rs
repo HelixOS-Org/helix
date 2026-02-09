@@ -15,6 +15,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -54,6 +55,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f64, sample: f64, alpha: f64) -> f64 {
     alpha * sample + (1.0 - alpha) * current
 }
@@ -161,6 +163,7 @@ impl ConfidenceIntervalResult {
     }
 
     /// Check whether an observed value falls within this interval.
+    #[inline(always)]
     pub fn contains(&self, value: f64) -> bool {
         value >= self.lower_bound && value <= self.upper_bound
     }
@@ -184,8 +187,8 @@ pub struct UncertaintySource {
 
 #[derive(Debug, Clone)]
 struct ErrorTracker {
-    errors: Vec<f64>,
-    absolute_errors: Vec<f64>,
+    errors: VecDeque<f64>,
+    absolute_errors: VecDeque<f64>,
     ema_error: f64,
     ema_abs_error: f64,
     coverage_hits: u64,
@@ -195,8 +198,8 @@ struct ErrorTracker {
 impl ErrorTracker {
     fn new() -> Self {
         Self {
-            errors: Vec::new(),
-            absolute_errors: Vec::new(),
+            errors: VecDeque::new(),
+            absolute_errors: VecDeque::new(),
             ema_error: 0.0,
             ema_abs_error: 0.0,
             coverage_hits: 0,
@@ -212,11 +215,11 @@ impl ErrorTracker {
         self.ema_abs_error = ema_update(self.ema_abs_error, abs_error, EMA_ALPHA);
 
         if self.errors.len() >= MAX_SAMPLES {
-            self.errors.remove(0);
-            self.absolute_errors.remove(0);
+            self.errors.pop_front();
+            self.absolute_errors.pop_front().unwrap();
         }
-        self.errors.push(error);
-        self.absolute_errors.push(abs_error);
+        self.errors.push_back(error);
+        self.absolute_errors.push_back(abs_error);
     }
 
     fn record_coverage(&mut self, was_within: bool) {
@@ -299,6 +302,7 @@ impl AppCIState {
 
 /// Engine-level statistics for the confidence interval module.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConfidenceIntervalStats {
     pub total_ci_computed: u64,
     pub total_bootstrap_runs: u64,
@@ -356,6 +360,7 @@ impl AppsConfidenceInterval {
     }
 
     /// Record a prediction and its eventual observed value.
+    #[inline]
     pub fn record_outcome(
         &mut self,
         app_id: u64,
@@ -566,6 +571,7 @@ impl AppsConfidenceInterval {
     }
 
     /// Track coverage: record whether a previously-computed CI contained the outcome.
+    #[inline]
     pub fn coverage_tracking(
         &mut self,
         app_id: u64,
@@ -642,21 +648,25 @@ impl AppsConfidenceInterval {
     }
 
     /// Return a snapshot of engine statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &ConfidenceIntervalStats {
         &self.stats
     }
 
     /// Total number of tracked apps.
+    #[inline(always)]
     pub fn tracked_apps(&self) -> usize {
         self.app_states.len()
     }
 
     /// Global EMA-smoothed average interval width.
+    #[inline(always)]
     pub fn avg_interval_width(&self) -> f64 {
         self.ema_width
     }
 
     /// Global EMA-smoothed average coverage rate.
+    #[inline(always)]
     pub fn avg_coverage(&self) -> f64 {
         self.ema_coverage
     }

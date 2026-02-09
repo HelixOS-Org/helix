@@ -30,6 +30,7 @@ impl Tag {
     }
 
     /// Create from static strings (no allocation)
+    #[inline]
     pub fn from_static(key: &'static str, value: &'static str) -> Self {
         Self {
             key: String::from(key),
@@ -54,21 +55,25 @@ pub struct Tags(pub Vec<Tag>);
 
 impl Tags {
     /// Create empty tags
+    #[inline(always)]
     pub const fn new() -> Self {
         Self(Vec::new())
     }
 
     /// Create with capacity
+    #[inline(always)]
     pub fn with_capacity(capacity: usize) -> Self {
         Self(Vec::with_capacity(capacity))
     }
 
     /// Add tag
+    #[inline(always)]
     pub fn add(&mut self, key: impl Into<String>, value: impl Into<String>) {
         self.0.push(Tag::new(key, value));
     }
 
     /// Add tag, replacing if key exists
+    #[inline]
     pub fn set(&mut self, key: impl Into<String>, value: impl Into<String>) {
         let key = key.into();
         if let Some(tag) = self.0.iter_mut().find(|t| t.key == key) {
@@ -82,6 +87,7 @@ impl Tags {
     }
 
     /// Remove tag by key
+    #[inline]
     pub fn remove(&mut self, key: &str) -> Option<Tag> {
         if let Some(idx) = self.0.iter().position(|t| t.key == key) {
             Some(self.0.remove(idx))
@@ -91,6 +97,7 @@ impl Tags {
     }
 
     /// Get tag value
+    #[inline]
     pub fn get(&self, key: &str) -> Option<&str> {
         self.0
             .iter()
@@ -99,36 +106,43 @@ impl Tags {
     }
 
     /// Has tag
+    #[inline(always)]
     pub fn has(&self, key: &str) -> bool {
         self.0.iter().any(|t| t.key == key)
     }
 
     /// Number of tags
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
     /// Iterate over tags
+    #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = &Tag> {
         self.0.iter()
     }
 
     /// Get keys
+    #[inline(always)]
     pub fn keys(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(|t| t.key.as_str())
     }
 
     /// Get values
+    #[inline(always)]
     pub fn values(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(|t| t.value.as_str())
     }
 
     /// Merge with another tags collection
+    #[inline]
     pub fn merge(&mut self, other: Tags) {
         for tag in other.0 {
             self.set(tag.key, tag.value);
@@ -136,6 +150,7 @@ impl Tags {
     }
 
     /// Filter tags by predicate
+    #[inline(always)]
     pub fn filter<F>(&self, predicate: F) -> Tags
     where
         F: Fn(&Tag) -> bool,
@@ -144,6 +159,7 @@ impl Tags {
     }
 
     /// Clear all tags
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.0.clear();
     }
@@ -179,11 +195,13 @@ impl Label {
     }
 
     /// Get value
+    #[inline(always)]
     pub fn value(&self) -> &str {
         &self.0
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -201,11 +219,13 @@ pub struct Labels(pub Vec<Label>);
 
 impl Labels {
     /// Create empty labels
+    #[inline(always)]
     pub const fn new() -> Self {
         Self(Vec::new())
     }
 
     /// Add label
+    #[inline]
     pub fn add(&mut self, label: impl Into<String>) {
         let label = Label::new(label);
         if !self.has(&label.0) {
@@ -214,11 +234,13 @@ impl Labels {
     }
 
     /// Has label
+    #[inline(always)]
     pub fn has(&self, label: &str) -> bool {
         self.0.iter().any(|l| l.0 == label)
     }
 
     /// Remove label
+    #[inline]
     pub fn remove(&mut self, label: &str) -> bool {
         if let Some(idx) = self.0.iter().position(|l| l.0 == label) {
             self.0.remove(idx);
@@ -229,16 +251,19 @@ impl Labels {
     }
 
     /// Number of labels
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
     /// Iterate
+    #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = &Label> {
         self.0.iter()
     }

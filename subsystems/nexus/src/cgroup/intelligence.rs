@@ -112,11 +112,13 @@ impl CgroupIntelligence {
     }
 
     /// Initialize
+    #[inline(always)]
     pub fn initialize(&mut self, timestamp: u64) -> CgroupId {
         self.hierarchy.init_root(timestamp)
     }
 
     /// Create cgroup
+    #[inline(always)]
     pub fn create_cgroup(
         &mut self,
         parent: CgroupId,
@@ -127,22 +129,26 @@ impl CgroupIntelligence {
     }
 
     /// Delete cgroup
+    #[inline(always)]
     pub fn delete_cgroup(&mut self, id: CgroupId) -> bool {
         self.accountant.clear_samples(id);
         self.hierarchy.delete_cgroup(id)
     }
 
     /// Add process to cgroup
+    #[inline(always)]
     pub fn add_process(&mut self, cgroup: CgroupId, pid: ProcessId) -> bool {
         self.hierarchy.add_process(cgroup, pid)
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: ProcessId) -> bool {
         self.hierarchy.remove_process(pid)
     }
 
     /// Set CPU limits
+    #[inline]
     pub fn set_cpu_limits(&mut self, cgroup: CgroupId, limits: CpuLimits) -> bool {
         if let Some(info) = self.hierarchy.get_cgroup_mut(cgroup) {
             info.cpu_limits = limits;
@@ -152,6 +158,7 @@ impl CgroupIntelligence {
     }
 
     /// Set memory limits
+    #[inline]
     pub fn set_memory_limits(&mut self, cgroup: CgroupId, limits: MemoryLimits) -> bool {
         if let Some(info) = self.hierarchy.get_cgroup_mut(cgroup) {
             info.memory_limits = limits;
@@ -331,31 +338,37 @@ impl CgroupIntelligence {
     }
 
     /// Get hierarchy manager
+    #[inline(always)]
     pub fn hierarchy(&self) -> &HierarchyManager {
         &self.hierarchy
     }
 
     /// Get hierarchy manager mutably
+    #[inline(always)]
     pub fn hierarchy_mut(&mut self) -> &mut HierarchyManager {
         &mut self.hierarchy
     }
 
     /// Get resource accountant
+    #[inline(always)]
     pub fn accountant(&self) -> &ResourceAccountant {
         &self.accountant
     }
 
     /// Get limits enforcer
+    #[inline(always)]
     pub fn enforcer(&self) -> &LimitsEnforcer {
         &self.enforcer
     }
 
     /// Get cgroup by ID
+    #[inline(always)]
     pub fn get_cgroup(&self, id: CgroupId) -> Option<&CgroupInfo> {
         self.hierarchy.get_cgroup(id)
     }
 
     /// Get hierarchy statistics
+    #[inline(always)]
     pub fn hierarchy_stats(&self) -> HierarchyStats {
         self.hierarchy.stats()
     }

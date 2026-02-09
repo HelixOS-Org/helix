@@ -82,6 +82,7 @@ impl ContinuousLearningIntelligence {
     }
 
     /// Record experience
+    #[inline(always)]
     pub fn record_experience(
         &mut self,
         action: &str,
@@ -116,6 +117,7 @@ impl ContinuousLearningIntelligence {
     }
 
     /// Learn from recent experiences
+    #[inline]
     pub fn learn(&mut self) -> Vec<RuleId> {
         // Get recent experiences
         let recent = self.feedback.recent(100);
@@ -151,26 +153,31 @@ impl ContinuousLearningIntelligence {
     }
 
     /// Check if action is safe
+    #[inline(always)]
     pub fn is_safe(&self, action: &str, context: &BTreeMap<String, String>) -> bool {
         self.safe_learner.is_safe(action, context)
     }
 
     /// Record metric
+    #[inline(always)]
     pub fn record_metric(&mut self, name: &str, value: f32, timestamp: u64) {
         self.regression.record(name, value, timestamp);
     }
 
     /// Check for regressions
+    #[inline(always)]
     pub fn check_regressions(&mut self, timestamp: u64) -> Vec<RegressionEvent> {
         self.regression.check(timestamp)
     }
 
     /// Create hypothesis
+    #[inline(always)]
     pub fn create_hypothesis(&mut self, statement: &str) -> HypothesisId {
         self.hypotheses.create(String::from(statement))
     }
 
     /// Test hypothesis
+    #[inline(always)]
     pub fn test_hypothesis(&mut self, id: HypothesisId, supports: bool, timestamp: u64) {
         self.hypotheses.add_evidence(id, supports, timestamp);
     }
@@ -203,21 +210,25 @@ impl ContinuousLearningIntelligence {
     }
 
     /// Get feedback loop
+    #[inline(always)]
     pub fn feedback(&self) -> &FeedbackLoop {
         &self.feedback
     }
 
     /// Get generalizer
+    #[inline(always)]
     pub fn generalizer(&self) -> &Generalizer {
         &self.generalizer
     }
 
     /// Get curriculum
+    #[inline(always)]
     pub fn curriculum(&self) -> &CurriculumLearner {
         &self.curriculum
     }
 
     /// Get safe learner
+    #[inline(always)]
     pub fn safe_learner(&self) -> &SafeLearner {
         &self.safe_learner
     }

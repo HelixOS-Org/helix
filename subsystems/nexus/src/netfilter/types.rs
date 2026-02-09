@@ -10,11 +10,13 @@ pub struct RuleId(pub u64);
 
 impl RuleId {
     /// Create a new rule ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -26,11 +28,13 @@ pub struct ChainId(pub u64);
 
 impl ChainId {
     /// Create a new chain ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -42,11 +46,13 @@ pub struct TableId(pub u64);
 
 impl TableId {
     /// Create a new table ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -58,11 +64,13 @@ pub struct ConntrackId(pub u64);
 
 impl ConntrackId {
     /// Create a new conntrack ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -144,6 +152,7 @@ pub enum AddressFamily {
 
 impl AddressFamily {
     /// Get family name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Inet => "inet",
@@ -176,6 +185,7 @@ pub enum HookType {
 
 impl HookType {
     /// Get hook name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Prerouting => "prerouting",
@@ -189,6 +199,7 @@ impl HookType {
     }
 
     /// Get hook priority range (lower = earlier)
+    #[inline]
     pub fn default_priority(&self) -> i32 {
         match self {
             Self::Prerouting => -100,
@@ -254,6 +265,7 @@ impl Verdict {
     }
 
     /// Is terminal verdict
+    #[inline(always)]
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Accept | Self::Drop | Self::Reject | Self::Goto(_))
     }
@@ -276,6 +288,7 @@ pub enum ConnState {
 
 impl ConnState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::New => "new",

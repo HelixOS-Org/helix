@@ -12,7 +12,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -124,6 +126,7 @@ pub struct FrontierPoint {
 
 /// Aggregate exploration statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ExplorerStats {
     pub total_generations: u64,
     pub total_evaluations: u64,
@@ -144,20 +147,21 @@ pub struct ExplorerStats {
 /// Tracks the fitness improvement curve across generations
 #[derive(Debug, Clone)]
 struct FitnessCurve {
-    best_per_generation: BTreeMap<u32, f32>,
-    mean_per_generation: BTreeMap<u32, f32>,
+    best_per_generation: ArrayMap<f32, 32>,
+    mean_per_generation: ArrayMap<f32, 32>,
     improvement_ema: f32,
 }
 
 impl FitnessCurve {
     fn new() -> Self {
         Self {
-            best_per_generation: BTreeMap::new(),
-            mean_per_generation: BTreeMap::new(),
+            best_per_generation: ArrayMap::new(0.0),
+            mean_per_generation: ArrayMap::new(0.0),
             improvement_ema: 0.0,
         }
     }
 
+    #[inline]
     fn record(&mut self, generation: u32, best: f32, mean: f32) {
         let prev_best = self
             .best_per_generation
@@ -192,7 +196,7 @@ impl FitnessCurve {
 pub struct AppsExplorer {
     population: Vec<FeatureIndividual>,
     fitness_curve: FitnessCurve,
-    frontier: Vec<FrontierPoint>,
+    frontier: VecDeque<FrontierPoint>,
     dimension_best: BTreeMap<u64, FeatureIndividual>,
     generation: u32,
     rng_state: u64,
@@ -207,7 +211,7 @@ impl AppsExplorer {
         Self {
             population: Vec::new(),
             fitness_curve: FitnessCurve::new(),
-            frontier: Vec::new(),
+            frontier: VecDeque::new(),
             dimension_best: BTreeMap::new(),
             generation: 0,
             rng_state: seed | 1,
@@ -257,6 +261,7 @@ impl AppsExplorer {
     }
 
     /// Mutate a classifier's feature weights with adaptive mutation rate
+    #[inline]
     pub fn mutate_classifier(&mut self, individual: &mut FeatureIndividual) {
         for feature in individual.features.iter_mut() {
             if xorshift_f32(&mut self.rng_state) < self.mutation_rate {
@@ -309,6 +314,7 @@ impl AppsExplorer {
     }
 
     /// Evaluate fitness of a feature set against workload telemetry
+    #[inline]
     pub fn fitness_test(
         &mut self,
         individual: &mut FeatureIndividual,
@@ -476,9 +482,9 @@ impl AppsExplorer {
                             && point.coverage >= fp.coverage
                             && point.efficiency >= fp.efficiency)
                     });
-                self.frontier.push(point);
+                self.frontier.push_back(point);
                 if self.frontier.len() > FRONTIER_BUDGET {
-                    self.frontier.remove(0);
+                    self.frontier.pop_front();
                 }
             }
         }
@@ -486,16 +492,19 @@ impl AppsExplorer {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> ExplorerStats {
         self.stats
     }
 
     /// Get best individual for a dimension
+    #[inline(always)]
     pub fn dimension_best(&self, dim: ExplorationDimension) -> Option<&FeatureIndividual> {
         self.dimension_best.get(&(dim as u64))
     }
 
     /// Get frontier snapshot
+    #[inline(always)]
     pub fn frontier(&self) -> &[FrontierPoint] {
         &self.frontier
     }

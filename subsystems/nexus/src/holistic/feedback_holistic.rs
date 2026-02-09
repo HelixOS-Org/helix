@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -71,6 +72,7 @@ pub struct GainSchedule {
 
 /// Feedback controller state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FeedbackControllerState {
     /// Setpoint (target value)
     pub setpoint: f64,
@@ -142,7 +144,7 @@ pub struct FeedbackLoop {
     /// Settling time estimate
     pub settled: bool,
     /// Error history (recent)
-    error_history: Vec<f64>,
+    error_history: VecDeque<f64>,
     /// Max history
     max_history: usize,
 }
@@ -168,12 +170,13 @@ impl FeedbackLoop {
             schedules: Vec::new(),
             update_count: 0,
             settled: false,
-            error_history: Vec::new(),
+            error_history: VecDeque::new(),
             max_history: 100,
         }
     }
 
     /// Add gain schedule
+    #[inline(always)]
     pub fn add_schedule(&mut self, schedule: GainSchedule) {
         self.schedules.push(schedule);
     }
@@ -229,9 +232,9 @@ impl FeedbackLoop {
 
         // Track error
         if self.error_history.len() >= self.max_history {
-            self.error_history.remove(0);
+            self.error_history.pop_front();
         }
-        self.error_history.push(self.state.error);
+        self.error_history.push_back(self.state.error);
 
         // Check settling
         self.check_settled();
@@ -302,6 +305,7 @@ pub struct CascadeController {
 
 /// Feedback stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticFeedbackStats {
     /// Active loops
     pub active_loops: usize,
@@ -331,6 +335,7 @@ impl HolisticFeedbackEngine {
     }
 
     /// Add loop
+    #[inline]
     pub fn add_loop(&mut self, feedback_loop: FeedbackLoop) {
         let key = feedback_loop.variable as u8;
         self.loops.insert(key, feedback_loop);
@@ -338,6 +343,7 @@ impl HolisticFeedbackEngine {
     }
 
     /// Update a loop
+    #[inline]
     pub fn update(&mut self, variable: FeedbackVariable, process_value: f64, dt: f64) -> Option<f64> {
         let key = variable as u8;
         if let Some(fl) = self.loops.get_mut(&key) {
@@ -350,6 +356,7 @@ impl HolisticFeedbackEngine {
     }
 
     /// Set setpoint
+    #[inline]
     pub fn set_setpoint(&mut self, variable: FeedbackVariable, setpoint: f64) {
         let key = variable as u8;
         if let Some(fl) = self.loops.get_mut(&key) {
@@ -358,6 +365,7 @@ impl HolisticFeedbackEngine {
     }
 
     /// Add cascade
+    #[inline(always)]
     pub fn add_cascade(&mut self, cascade: CascadeController) {
         self.cascades.push(cascade);
     }
@@ -380,6 +388,7 @@ impl HolisticFeedbackEngine {
     }
 
     /// Are all loops settled?
+    #[inline(always)]
     pub fn all_settled(&self) -> bool {
         self.loops.values().all(|fl| fl.settled)
     }
@@ -391,6 +400,7 @@ impl HolisticFeedbackEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticFeedbackStats {
         &self.stats
     }

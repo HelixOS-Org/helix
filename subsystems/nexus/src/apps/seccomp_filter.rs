@@ -41,6 +41,7 @@ impl SeccompAction {
         }
     }
 
+    #[inline(always)]
     pub fn is_blocking(&self) -> bool {
         matches!(self, Self::KillProcess | Self::KillThread | Self::Trap | Self::Errno(_))
     }
@@ -78,10 +79,12 @@ impl SeccompFilter {
         }
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, syscall_nr: u32, action: SeccompAction) {
         self.syscall_rules.insert(syscall_nr, action);
     }
 
+    #[inline]
     pub fn evaluate(&mut self, syscall_nr: u32, _arch: u32) -> SeccompAction {
         self.eval_count += 1;
         let action = self.syscall_rules.get(&syscall_nr)
@@ -91,8 +94,10 @@ impl SeccompFilter {
         action
     }
 
+    #[inline(always)]
     pub fn instruction_count(&self) -> usize { self.instructions.len() }
 
+    #[inline(always)]
     pub fn block_rate(&self) -> f64 {
         if self.eval_count == 0 { return 0.0; }
         self.block_count as f64 / self.eval_count as f64
@@ -108,10 +113,12 @@ pub struct FilterChain {
 impl FilterChain {
     pub fn new() -> Self { Self { filters: Vec::new() } }
 
+    #[inline(always)]
     pub fn push_filter(&mut self, filter: SeccompFilter) {
         self.filters.push(filter);
     }
 
+    #[inline]
     pub fn evaluate(&mut self, syscall_nr: u32, arch: u32) -> SeccompAction {
         let mut most_restrictive = SeccompAction::Allow;
         for filter in self.filters.iter_mut() {
@@ -123,7 +130,9 @@ impl FilterChain {
         most_restrictive
     }
 
+    #[inline(always)]
     pub fn filter_count(&self) -> usize { self.filters.len() }
+    #[inline(always)]
     pub fn total_instructions(&self) -> usize {
         self.filters.iter().map(|f| f.instruction_count()).sum()
     }
@@ -131,6 +140,7 @@ impl FilterChain {
 
 /// Per-process seccomp state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessSeccompState {
     pub pid: u32,
     pub mode: SeccompMode,
@@ -149,11 +159,13 @@ impl ProcessSeccompState {
         }
     }
 
+    #[inline(always)]
     pub fn install_filter(&mut self, filter: SeccompFilter) {
         self.mode = SeccompMode::Filter;
         self.chain.push_filter(filter);
     }
 
+    #[inline(always)]
     pub fn set_strict(&mut self) {
         self.mode = SeccompMode::Strict;
     }
@@ -192,6 +204,7 @@ pub struct SeccompNotif {
 
 /// Seccomp filter stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompFilterStats {
     pub tracked_processes: u32,
     pub filter_mode_count: u32,
@@ -219,14 +232,17 @@ impl AppSeccompFilter {
         }
     }
 
+    #[inline(always)]
     pub fn create_process(&mut self, pid: u32) {
         self.processes.insert(pid, ProcessSeccompState::new(pid));
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u32) -> bool {
         self.processes.remove(&pid).is_some()
     }
 
+    #[inline]
     pub fn install_filter(&mut self, pid: u32, default_action: SeccompAction, now: u64) -> Option<u32> {
         let id = self.next_filter_id;
         self.next_filter_id += 1;
@@ -236,6 +252,7 @@ impl AppSeccompFilter {
         Some(id)
     }
 
+    #[inline]
     pub fn add_rule(&mut self, pid: u32, filter_idx: usize, syscall_nr: u32, action: SeccompAction) -> bool {
         if let Some(state) = self.processes.get_mut(&pid) {
             if let Some(filter) = state.chain.filters.get_mut(filter_idx) {
@@ -246,12 +263,14 @@ impl AppSeccompFilter {
         false
     }
 
+    #[inline]
     pub fn check_syscall(&mut self, pid: u32, syscall_nr: u32, arch: u32) -> SeccompAction {
         if let Some(state) = self.processes.get_mut(&pid) {
             state.check_syscall(syscall_nr, arch)
         } else { SeccompAction::Allow }
     }
 
+    #[inline]
     pub fn fork_filters(&mut self, parent: u32, child: u32) -> bool {
         if let Some(parent_state) = self.processes.get(&parent) {
             let mut child_state = ProcessSeccompState::new(child);

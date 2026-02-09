@@ -64,6 +64,7 @@ pub enum GoalStatus {
 
 /// A single goal in the hierarchy
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Goal {
     pub id: u64,
     pub name: String,
@@ -109,6 +110,7 @@ pub struct GoalConflict {
 
 /// Aggregate goal tracking statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct GoalTrackerStats {
     pub total_goals: usize,
     pub active_goals: usize,
@@ -128,6 +130,7 @@ pub struct GoalTrackerStats {
 /// Maintains a hierarchy of bridge goals, tracking progress and resolving
 /// conflicts between competing objectives.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeGoalTracker {
     /// All goals keyed by FNV-1a hash
     goals: BTreeMap<u64, Goal>,
@@ -206,6 +209,7 @@ impl BridgeGoalTracker {
     }
 
     /// Update a goal's current value and recompute progress
+    #[inline]
     pub fn evaluate_progress(&mut self, name: &str, current_value: f32) -> Option<f32> {
         self.tick += 1;
         let id = fnv1a_hash(name.as_bytes());
@@ -339,6 +343,7 @@ impl BridgeGoalTracker {
     }
 
     /// Overall achievement rate (fraction of created goals that were achieved)
+    #[inline]
     pub fn achievement_rate(&self) -> f32 {
         if self.total_created == 0 {
             return 0.0;
@@ -394,12 +399,14 @@ impl BridgeGoalTracker {
     }
 
     /// Get a goal's progress by name
+    #[inline(always)]
     pub fn goal_progress(&self, name: &str) -> Option<f32> {
         let id = fnv1a_hash(name.as_bytes());
         self.goals.get(&id).map(|g| g.progress)
     }
 
     /// Abandon a goal
+    #[inline]
     pub fn abandon_goal(&mut self, name: &str) {
         let id = fnv1a_hash(name.as_bytes());
         if let Some(g) = self.goals.get_mut(&id) {

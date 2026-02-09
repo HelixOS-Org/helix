@@ -8,11 +8,13 @@ pub struct MemoryId(pub u64);
 
 impl MemoryId {
     /// Create new memory ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +26,13 @@ pub struct EpisodeId(pub u64);
 
 impl EpisodeId {
     /// Create new episode ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -40,11 +44,13 @@ pub struct PatternId(pub u64);
 
 impl PatternId {
     /// Create new pattern ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -56,11 +62,13 @@ pub struct ProcedureId(pub u64);
 
 impl ProcedureId {
     /// Create new procedure ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -72,11 +80,13 @@ pub struct BootId(pub u64);
 
 impl BootId {
     /// Create new boot ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -88,36 +98,43 @@ pub struct Timestamp(pub u64);
 
 impl Timestamp {
     /// Create new timestamp
+    #[inline(always)]
     pub const fn new(ns: u64) -> Self {
         Self(ns)
     }
 
     /// Now (placeholder - would use real time source)
+    #[inline(always)]
     pub fn now() -> Self {
         Self(0) // In real implementation, get current time
     }
 
     /// Difference in nanoseconds
+    #[inline(always)]
     pub fn diff(&self, other: &Self) -> u64 {
         self.0.saturating_sub(other.0)
     }
 
     /// Add duration
+    #[inline(always)]
     pub fn add_ns(&self, ns: u64) -> Self {
         Self(self.0.saturating_add(ns))
     }
 
     /// As seconds
+    #[inline(always)]
     pub fn as_secs(&self) -> u64 {
         self.0 / 1_000_000_000
     }
 
     /// As milliseconds
+    #[inline(always)]
     pub fn as_millis(&self) -> u64 {
         self.0 / 1_000_000
     }
 
     /// Get raw nanoseconds
+    #[inline(always)]
     pub const fn as_nanos(&self) -> u64 {
         self.0
     }
@@ -134,21 +151,25 @@ pub struct TimeRange {
 
 impl TimeRange {
     /// Create new range
+    #[inline(always)]
     pub const fn new(start: Timestamp, end: Timestamp) -> Self {
         Self { start, end }
     }
 
     /// Duration in nanoseconds
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.end.0.saturating_sub(self.start.0)
     }
 
     /// Contains timestamp
+    #[inline(always)]
     pub fn contains(&self, ts: Timestamp) -> bool {
         ts >= self.start && ts <= self.end
     }
 
     /// Overlaps with another range
+    #[inline(always)]
     pub fn overlaps(&self, other: &Self) -> bool {
         self.start <= other.end && self.end >= other.start
     }

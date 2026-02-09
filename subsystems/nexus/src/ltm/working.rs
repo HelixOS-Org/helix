@@ -28,6 +28,7 @@ pub struct WorkingMemoryItem {
 
 impl WorkingMemoryItem {
     /// Check if expired
+    #[inline(always)]
     pub fn is_expired(&self, current_time: u64) -> bool {
         self.ttl_ns > 0 && self.created.0 + self.ttl_ns < current_time
     }
@@ -56,16 +57,19 @@ pub enum WorkingMemoryContent {
 
 impl WorkingMemoryContent {
     /// Create current event
+    #[inline(always)]
     pub fn event(event_type: String, data: BTreeMap<String, String>) -> Self {
         Self::CurrentEvent { event_type, data }
     }
 
     /// Create decision
+    #[inline(always)]
     pub fn decision(decision: String, outcome: String) -> Self {
         Self::RecentDecision { decision, outcome }
     }
 
     /// Create pattern match
+    #[inline]
     pub fn pattern(pattern_id: PatternId, match_score: f32) -> Self {
         Self::ActivePattern {
             pattern_id,
@@ -74,11 +78,13 @@ impl WorkingMemoryContent {
     }
 
     /// Create pending action
+    #[inline(always)]
     pub fn action(action: String, deadline: Timestamp) -> Self {
         Self::PendingAction { action, deadline }
     }
 
     /// Create context
+    #[inline(always)]
     pub fn context(key: String, value: String) -> Self {
         Self::Context { key, value }
     }
@@ -128,6 +134,7 @@ impl WorkingMemory {
     }
 
     /// Get item
+    #[inline]
     pub fn get(&mut self, id: MemoryId) -> Option<&WorkingMemoryItem> {
         if let Some(item) = self.items.get_mut(&id) {
             item.last_accessed = Timestamp::new(self.current_time.load(Ordering::Relaxed));
@@ -137,16 +144,19 @@ impl WorkingMemory {
     }
 
     /// Get item immutably
+    #[inline(always)]
     pub fn peek(&self, id: MemoryId) -> Option<&WorkingMemoryItem> {
         self.items.get(&id)
     }
 
     /// Remove item
+    #[inline(always)]
     pub fn remove(&mut self, id: MemoryId) -> Option<WorkingMemoryItem> {
         self.items.remove(&id)
     }
 
     /// Update time
+    #[inline(always)]
     pub fn update_time(&mut self, time_ns: u64) {
         self.current_time.store(time_ns, Ordering::Relaxed);
         self.expire_items();
@@ -190,16 +200,19 @@ impl WorkingMemory {
     }
 
     /// Item count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.items.len()
     }
 
     /// All items
+    #[inline(always)]
     pub fn all_items(&self) -> impl Iterator<Item = &WorkingMemoryItem> {
         self.items.values()
     }
 
     /// Find by content type - patterns
+    #[inline]
     pub fn find_patterns(&self) -> Vec<&WorkingMemoryItem> {
         self.items
             .values()
@@ -208,6 +221,7 @@ impl WorkingMemory {
     }
 
     /// Find by content type - events
+    #[inline]
     pub fn find_events(&self) -> Vec<&WorkingMemoryItem> {
         self.items
             .values()
@@ -216,6 +230,7 @@ impl WorkingMemory {
     }
 
     /// Find by content type - decisions
+    #[inline]
     pub fn find_decisions(&self) -> Vec<&WorkingMemoryItem> {
         self.items
             .values()
@@ -224,6 +239,7 @@ impl WorkingMemory {
     }
 
     /// Find by content type - pending actions
+    #[inline]
     pub fn find_pending_actions(&self) -> Vec<&WorkingMemoryItem> {
         self.items
             .values()
@@ -232,6 +248,7 @@ impl WorkingMemory {
     }
 
     /// Get context value
+    #[inline]
     pub fn get_context(&self, key: &str) -> Option<&str> {
         for item in self.items.values() {
             if let WorkingMemoryContent::Context { key: k, value } = &item.content {
@@ -244,6 +261,7 @@ impl WorkingMemory {
     }
 
     /// Clear all items
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.items.clear();
     }

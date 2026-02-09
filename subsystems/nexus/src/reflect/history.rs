@@ -185,6 +185,7 @@ impl Default for HistoryConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HistoryStats {
     /// Total entries
     pub total_entries: u64,
@@ -246,6 +247,7 @@ impl HistoryTracker {
     }
 
     /// Set outcome
+    #[inline]
     pub fn set_outcome(&mut self, id: u64, outcome: Outcome) {
         if let Some(entry) = self.entries.get_mut(&id) {
             entry.outcome = Some(outcome);
@@ -299,6 +301,7 @@ impl HistoryTracker {
     }
 
     /// Get entry
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&HistoryEntry> {
         self.entries.get(&id)
     }
@@ -470,6 +473,7 @@ impl HistoryTracker {
     }
 
     /// Get by type
+    #[inline]
     pub fn by_type(&self, event_type: EventType) -> Vec<&HistoryEntry> {
         self.by_type.get(&event_type)
             .map(|ids| {
@@ -481,6 +485,7 @@ impl HistoryTracker {
     }
 
     /// Get by tag
+    #[inline]
     pub fn by_tag(&self, tag: &str) -> Vec<&HistoryEntry> {
         self.by_tag.get(tag)
             .map(|ids| {
@@ -492,6 +497,7 @@ impl HistoryTracker {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &HistoryStats {
         &self.stats
     }

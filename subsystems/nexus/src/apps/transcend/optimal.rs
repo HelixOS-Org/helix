@@ -95,6 +95,7 @@ pub struct ScheduleSlot {
 
 /// Statistics for the optimal allocation engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct OptimalStats {
     pub total_allocations: u64,
     pub total_proofs: u64,
@@ -223,6 +224,7 @@ impl AppsOptimal {
     }
 
     /// Return proof records for the most recent allocation round.
+    #[inline]
     pub fn allocation_proof(&self) -> &[AllocationProof] {
         let start = if self.proofs.len() > self.demands.len() {
             self.proofs.len() - self.demands.len()
@@ -334,6 +336,7 @@ impl AppsOptimal {
     }
 
     /// Return a reference to current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &OptimalStats {
         &self.stats
     }

@@ -148,6 +148,7 @@ impl Default for IndexConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IndexStats {
     /// Indexes created
     pub indexes_created: u64,
@@ -430,17 +431,20 @@ impl IndexManager {
     }
 
     /// Get index definition
+    #[inline(always)]
     pub fn get_index(&self, name: &str) -> Option<&IndexDef> {
         let id = self.name_to_id.get(name)?;
         self.definitions.get(id)
     }
 
     /// Get entry
+    #[inline(always)]
     pub fn get_entry(&self, id: u64) -> Option<&IndexEntry> {
         self.entries.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &IndexStats {
         &self.stats
     }

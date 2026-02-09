@@ -41,13 +41,17 @@ impl StatfsResult {
         Self { fs_type, block_size: bsize, total_blocks: total, free_blocks: free, avail_blocks: free, total_inodes: 0, free_inodes: 0, fs_id: 0, name_max: 255, flags: 0 }
     }
 
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 { self.total_blocks * self.block_size }
+    #[inline(always)]
     pub fn free_bytes(&self) -> u64 { self.free_blocks * self.block_size }
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 { if self.total_blocks == 0 { 0.0 } else { 1.0 - self.free_blocks as f64 / self.total_blocks as f64 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StatfsAppStats {
     pub total_queries: u64,
     pub unique_filesystems: u32,
@@ -64,13 +68,16 @@ pub struct AppStatfs {
 impl AppStatfs {
     pub fn new() -> Self { Self { filesystems: BTreeMap::new(), queries: 0 } }
 
+    #[inline(always)]
     pub fn register(&mut self, fs_id: u64, result: StatfsResult) { self.filesystems.insert(fs_id, result); }
 
+    #[inline(always)]
     pub fn query(&mut self, fs_id: u64) -> Option<&StatfsResult> {
         self.queries += 1;
         self.filesystems.get(&fs_id)
     }
 
+    #[inline]
     pub fn stats(&self) -> StatfsAppStats {
         let cap: u64 = self.filesystems.values().map(|f| f.total_bytes()).sum();
         let free: u64 = self.filesystems.values().map(|f| f.free_bytes()).sum();

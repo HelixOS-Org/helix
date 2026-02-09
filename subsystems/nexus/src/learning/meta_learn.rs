@@ -8,6 +8,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
@@ -82,6 +83,7 @@ pub enum LearningOutcome {
 
 /// Episode metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct EpisodeMetrics {
     /// Error rate
     pub error_rate: f64,
@@ -116,7 +118,7 @@ pub struct TaskModel {
     /// Best strategy
     pub best_strategy: Option<u64>,
     /// Strategy performance
-    pub strategy_performance: BTreeMap<u64, f64>,
+    pub strategy_performance: LinearMap<f64, 64>,
     /// Difficulty
     pub difficulty: f64,
     /// Samples seen
@@ -173,6 +175,7 @@ impl Default for MetaConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MetaStats {
     /// Strategies created
     pub strategies_created: u64,
@@ -231,7 +234,7 @@ impl MetaLearner {
             self.tasks.insert(task_type.into(), TaskModel {
                 task_type: task_type.into(),
                 best_strategy: None,
-                strategy_performance: BTreeMap::new(),
+                strategy_performance: LinearMap::new(),
                 difficulty: 0.5,
                 samples_seen: 0,
             });
@@ -322,6 +325,7 @@ impl MetaLearner {
         id
     }
 
+    #[inline]
     fn update_strategy_stats(&mut self, strategy_id: u64, outcome: LearningOutcome) {
         if let Some(strategy) = self.strategies.get_mut(&strategy_id) {
             let success = match outcome {
@@ -435,26 +439,31 @@ impl MetaLearner {
     }
 
     /// Get strategy
+    #[inline(always)]
     pub fn get_strategy(&self, id: u64) -> Option<&LearningStrategy> {
         self.strategies.get(&id)
     }
 
     /// Get active strategy
+    #[inline(always)]
     pub fn active(&self) -> Option<&LearningStrategy> {
         self.active.and_then(|id| self.strategies.get(&id))
     }
 
     /// Get task model
+    #[inline(always)]
     pub fn task(&self, task_type: &str) -> Option<&TaskModel> {
         self.tasks.get(task_type)
     }
 
     /// Get all strategies
+    #[inline(always)]
     pub fn strategies(&self) -> Vec<&LearningStrategy> {
         self.strategies.values().collect()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MetaStats {
         &self.stats
     }

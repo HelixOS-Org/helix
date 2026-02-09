@@ -28,14 +28,22 @@
 // Sub-module declarations
 // ---------------------------------------------------------------------------
 
+pub mod abstraction;
+pub mod ascension;
 pub mod beyond;
+pub mod creativity;
+pub mod enlightenment;
+pub mod evolution;
 pub mod genesis;
 pub mod interface;
 pub mod omniscient;
 pub mod optimal;
 pub mod oracle;
+pub mod reasoning_chain;
 pub mod singularity;
 pub mod synthesis_engine;
+pub mod teaching;
+pub mod wisdom;
 
 // ---------------------------------------------------------------------------
 // Re-exports — omniscient.rs
@@ -44,9 +52,50 @@ pub mod synthesis_engine;
 // ---------------------------------------------------------------------------
 // Re-exports — beyond.rs
 // ---------------------------------------------------------------------------
-pub use beyond::BeyondStats;
+// ---------------------------------------------------------------------------
+// Re-exports — abstraction.rs
+// ---------------------------------------------------------------------------
+pub use abstraction::Abstraction;
+pub use abstraction::{
+    AbstractionStats, AbstractionTowerSummary, CompressionResult, Concept, EmergentConceptReport,
+    HolisticAbstraction, MetaAbstraction,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — ascension.rs
+// ---------------------------------------------------------------------------
+pub use ascension::AscensionStage;
+pub use ascension::{
+    AscensionCeremony, AscensionMilestone, AscensionStats, DivineComputation, EternalOptimisation,
+    HolisticAscension, OmegaPointReport, SelfTranscendenceReport, UltimateState,
+};
 pub use beyond::{
-    Breakthrough, EvolutionEvent, HolisticBeyond, InfiniteHorizonPlan, ZeroLatencyDecision,
+    BeyondStats, Breakthrough, EvolutionEvent, HolisticBeyond, InfiniteHorizonPlan,
+    ZeroLatencyDecision,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — creativity.rs
+// ---------------------------------------------------------------------------
+pub use creativity::Invention;
+pub use creativity::{
+    CreativeSynthesis, CreativityExplosion, CreativityStats, HolisticCreativity,
+    ImpossibleSolution, NovelArchitecture, StrategyFragment,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — enlightenment.rs
+// ---------------------------------------------------------------------------
+pub use enlightenment::EnlightenmentLevel;
+pub use enlightenment::{
+    EnlightenedOperationReport, EnlightenmentStats, HolisticEnlightenment, MasteryRecord,
+    NirvanaCheck, PurposeRealization, SelfInsight, TranscendentStateReport,
+    UnderstandingDepthReport,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — evolution.rs
+// ---------------------------------------------------------------------------
+pub use evolution::KernelConfig;
+pub use evolution::{
+    CrossoverResult, EvolutionStats, EvolutionaryPressureReport, FitnessLandscapeView,
+    HolisticEvolution, MutationEvent, Species,
 };
 // ---------------------------------------------------------------------------
 // Re-exports — genesis.rs
@@ -82,6 +131,14 @@ pub use oracle::{
     HolisticOracle, OraclePrediction, OracleStats, PredictionSource, UncertaintyState,
 };
 // ---------------------------------------------------------------------------
+// Re-exports — reasoning_chain.rs
+// ---------------------------------------------------------------------------
+pub use reasoning_chain::Evidence;
+pub use reasoning_chain::{
+    CrossReference, EvidenceTrace, GlobalExplanation, HolisticReasoningChain, MetaReasoningResult,
+    ReasoningChainRecord, ReasoningChainStats, ReasoningDagSummary, ReasoningNode,
+};
+// ---------------------------------------------------------------------------
 // Re-exports — singularity.rs
 // ---------------------------------------------------------------------------
 pub use singularity::HolisticSingularity;
@@ -92,4 +149,20 @@ pub use singularity::{IntelligenceSource, ParityAssessment, SingularityEvent, Si
 pub use synthesis_engine::ArchitectureVariant;
 pub use synthesis_engine::{
     CandidateAlgorithm, HolisticSynthesisEngine, ImprovementEvent, NovelAlgorithm, SynthesisStats,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — teaching.rs
+// ---------------------------------------------------------------------------
+pub use teaching::TeachingLesson;
+pub use teaching::{
+    Curriculum, HolisticTeaching, KnowledgePackage, TeachingImpactReport,
+    TeachingMasteryAssessment, TeachingStats, TransferRecord, UniversalLesson,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — wisdom.rs
+// ---------------------------------------------------------------------------
+pub use wisdom::WisdomEntry;
+pub use wisdom::{
+    ConsultationRecord, ContextualMasteryReport, HolisticWisdom, SageDecision, WisdomLegacy,
+    WisdomStats, WisdomSynthesisResult, WisdomVsIntelligenceReport,
 };

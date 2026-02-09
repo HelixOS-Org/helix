@@ -29,6 +29,7 @@ pub enum FpuFeature {
 }
 
 impl FpuFeature {
+    #[inline]
     pub fn state_size(&self) -> usize {
         match self {
             Self::X87 => 108,
@@ -101,6 +102,7 @@ impl MxcsrFlags {
 
 /// Per-task FPU context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TaskFpuContext {
     pub task_id: u64,
     pub max_feature: FpuFeature,
@@ -128,28 +130,34 @@ impl TaskFpuContext {
         }
     }
 
+    #[inline(always)]
     pub fn mark_dirty(&mut self) { self.state_dirty = true; }
 
+    #[inline]
     pub fn save(&mut self, ts: u64) {
         self.state_dirty = false;
         self.eager_saves += 1;
         self.last_save_ts = ts;
     }
 
+    #[inline(always)]
     pub fn restore(&mut self, ts: u64) {
         self.last_restore_ts = ts;
     }
 
+    #[inline]
     pub fn trap_and_restore(&mut self, ts: u64) {
         self.trap_count += 1;
         self.lazy_switches += 1;
         self.restore(ts);
     }
 
+    #[inline(always)]
     pub fn record_exception(&mut self, exc: FpuException) {
         self.exceptions.push(exc);
     }
 
+    #[inline]
     pub fn upgrade_feature(&mut self, feature: FpuFeature) {
         if feature > self.actual_used {
             self.actual_used = feature;
@@ -157,6 +165,7 @@ impl TaskFpuContext {
         }
     }
 
+    #[inline(always)]
     pub fn exception_count(&self) -> usize { self.exceptions.len() }
 }
 
@@ -185,6 +194,7 @@ impl CpuFpuCaps {
 
 /// FPU context stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FpuContextStats {
     pub tasks_tracked: usize,
     pub total_lazy_switches: u64,
@@ -197,6 +207,7 @@ pub struct FpuContextStats {
 }
 
 /// Holistic FPU context manager
+#[repr(align(64))]
 pub struct HolisticFpuContext {
     tasks: BTreeMap<u64, TaskFpuContext>,
     cpus: BTreeMap<u32, CpuFpuCaps>,
@@ -214,14 +225,17 @@ impl HolisticFpuContext {
         }
     }
 
+    #[inline(always)]
     pub fn add_cpu(&mut self, caps: CpuFpuCaps) {
         self.cpus.insert(caps.cpu_id, caps);
     }
 
+    #[inline(always)]
     pub fn register_task(&mut self, task_id: u64, max_feature: FpuFeature) {
         self.tasks.insert(task_id, TaskFpuContext::new(task_id, max_feature));
     }
 
+    #[inline]
     pub fn should_eager_save(&self, task_id: u64) -> bool {
         match self.strategy {
             FpuStrategy::Eager => true,
@@ -246,24 +260,28 @@ impl HolisticFpuContext {
         }
     }
 
+    #[inline]
     pub fn handle_fpu_trap(&mut self, task_id: u64, ts: u64) {
         if let Some(ctx) = self.tasks.get_mut(&task_id) {
             ctx.trap_and_restore(ts);
         }
     }
 
+    #[inline]
     pub fn record_exception(&mut self, task_id: u64, exc: FpuException) {
         if let Some(ctx) = self.tasks.get_mut(&task_id) {
             ctx.record_exception(exc);
         }
     }
 
+    #[inline]
     pub fn upgrade_feature(&mut self, task_id: u64, feature: FpuFeature) {
         if let Some(ctx) = self.tasks.get_mut(&task_id) {
             ctx.upgrade_feature(feature);
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.tasks_tracked = self.tasks.len();
         self.stats.total_lazy_switches = self.tasks.values().map(|t| t.lazy_switches).sum();
@@ -276,6 +294,8 @@ impl HolisticFpuContext {
         self.stats.avx512_users = self.tasks.values().filter(|t| t.actual_used >= FpuFeature::Avx512).count();
     }
 
+    #[inline(always)]
     pub fn task(&self, id: u64) -> Option<&TaskFpuContext> { self.tasks.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &FpuContextStats { &self.stats }
 }

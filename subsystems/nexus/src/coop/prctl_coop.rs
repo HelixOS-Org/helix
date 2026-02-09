@@ -29,6 +29,7 @@ pub struct CoopPrctlEntry {
 
 /// Prctl cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopPrctlStats {
     pub total_ops: u64,
     pub name_changes: u64,
@@ -57,6 +58,7 @@ impl CoopPrctlManager {
         }
     }
 
+    #[inline]
     pub fn init_entry(&mut self, pid: u64, name: &str) {
         let entry = CoopPrctlEntry {
             pid,
@@ -69,6 +71,7 @@ impl CoopPrctlManager {
         self.entries.insert(pid, entry);
     }
 
+    #[inline]
     pub fn set_name(&mut self, pid: u64, name: &str) -> bool {
         self.stats.total_ops += 1;
         if let Some(e) = self.entries.get_mut(&pid) {
@@ -81,6 +84,7 @@ impl CoopPrctlManager {
         }
     }
 
+    #[inline]
     pub fn set_subreaper(&mut self, pid: u64) -> bool {
         self.stats.total_ops += 1;
         if let Some(e) = self.entries.get_mut(&pid) {
@@ -92,6 +96,7 @@ impl CoopPrctlManager {
         }
     }
 
+    #[inline]
     pub fn set_seccomp(&mut self, pid: u64, level: u32) -> bool {
         self.stats.total_ops += 1;
         if let Some(e) = self.entries.get_mut(&pid) {
@@ -103,6 +108,7 @@ impl CoopPrctlManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopPrctlStats {
         &self.stats
     }

@@ -50,6 +50,7 @@ impl DeliveryOptimizer {
     }
 
     /// Register thread
+    #[inline]
     pub fn register_thread(&mut self, tid: ThreadId) {
         self.thread_affinity.insert(tid, Vec::new());
         self.thread_available.insert(tid, true);
@@ -57,6 +58,7 @@ impl DeliveryOptimizer {
     }
 
     /// Unregister thread
+    #[inline]
     pub fn unregister_thread(&mut self, tid: ThreadId) {
         self.thread_affinity.remove(&tid);
         self.thread_available.remove(&tid);
@@ -64,11 +66,13 @@ impl DeliveryOptimizer {
     }
 
     /// Set thread affinity for signal
+    #[inline(always)]
     pub fn set_affinity(&mut self, tid: ThreadId, signo: SignalNumber) {
         self.thread_affinity.entry(tid).or_default().push(signo);
     }
 
     /// Clear thread affinity
+    #[inline]
     pub fn clear_affinity(&mut self, tid: ThreadId) {
         if let Some(affinities) = self.thread_affinity.get_mut(&tid) {
             affinities.clear();
@@ -76,16 +80,19 @@ impl DeliveryOptimizer {
     }
 
     /// Update thread availability
+    #[inline(always)]
     pub fn set_available(&mut self, tid: ThreadId, available: bool) {
         self.thread_available.insert(tid, available);
     }
 
     /// Check if thread is available
+    #[inline(always)]
     pub fn is_available(&self, tid: ThreadId) -> bool {
         self.thread_available.get(&tid).copied().unwrap_or(true)
     }
 
     /// Record delivery latency
+    #[inline]
     pub fn record_latency(&mut self, tid: ThreadId, latency_ns: u64) {
         if let Some(avg) = self.thread_latency.get_mut(&tid) {
             // Exponential moving average
@@ -94,6 +101,7 @@ impl DeliveryOptimizer {
     }
 
     /// Get thread latency
+    #[inline(always)]
     pub fn get_latency(&self, tid: ThreadId) -> u64 {
         self.thread_latency.get(&tid).copied().unwrap_or(0)
     }
@@ -162,21 +170,25 @@ impl DeliveryOptimizer {
     }
 
     /// Set batching enabled
+    #[inline(always)]
     pub fn set_batching(&mut self, enabled: bool) {
         self.batching_enabled = enabled;
     }
 
     /// Check if batching is enabled
+    #[inline(always)]
     pub fn batching_enabled(&self) -> bool {
         self.batching_enabled
     }
 
     /// Set batch window
+    #[inline(always)]
     pub fn set_batch_window(&mut self, window_ns: u64) {
         self.batch_window_ns = window_ns;
     }
 
     /// Get batch window
+    #[inline(always)]
     pub fn batch_window(&self) -> u64 {
         self.batch_window_ns
     }

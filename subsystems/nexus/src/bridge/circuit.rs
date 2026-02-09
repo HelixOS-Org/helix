@@ -58,6 +58,7 @@ pub struct CircuitBreakerConfig {
 }
 
 impl CircuitBreakerConfig {
+    #[inline]
     pub fn default_config() -> Self {
         Self {
             failure_threshold: 5,
@@ -68,6 +69,7 @@ impl CircuitBreakerConfig {
         }
     }
 
+    #[inline]
     pub fn aggressive() -> Self {
         Self {
             failure_threshold: 3,
@@ -78,6 +80,7 @@ impl CircuitBreakerConfig {
         }
     }
 
+    #[inline]
     pub fn conservative() -> Self {
         Self {
             failure_threshold: 10,
@@ -95,6 +98,7 @@ impl CircuitBreakerConfig {
 
 /// Failure event
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FailureEvent {
     /// Failure type
     pub failure_type: BridgeFailureType,
@@ -122,6 +126,7 @@ impl FailureWindow {
     }
 
     /// Record failure
+    #[inline]
     pub fn record(&mut self, event: FailureEvent) {
         let cutoff = event.timestamp.saturating_sub(self.window_ns);
         self.events.retain(|e| e.timestamp >= cutoff);
@@ -129,12 +134,14 @@ impl FailureWindow {
     }
 
     /// Failure count in window
+    #[inline(always)]
     pub fn count(&self, now: u64) -> u32 {
         let cutoff = now.saturating_sub(self.window_ns);
         self.events.iter().filter(|e| e.timestamp >= cutoff).count() as u32
     }
 
     /// Failure rate (per second)
+    #[inline]
     pub fn rate(&self, now: u64) -> f64 {
         let c = self.count(now);
         if self.window_ns == 0 {
@@ -213,6 +220,7 @@ impl CircuitBreaker {
     }
 
     /// Can a call proceed?
+    #[inline]
     pub fn allow(&self, now: u64) -> bool {
         match self.state {
             CircuitState::Closed => true,
@@ -280,6 +288,7 @@ impl CircuitBreaker {
     }
 
     /// Success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         let total = self.total_success + self.total_failure;
         if total == 0 {
@@ -289,11 +298,13 @@ impl CircuitBreaker {
     }
 
     /// Failure rate in window
+    #[inline(always)]
     pub fn failure_rate(&self, now: u64) -> f64 {
         self.failures.rate(now)
     }
 
     /// Time in current state (ns)
+    #[inline]
     pub fn state_duration(&self, now: u64) -> u64 {
         match self.state {
             CircuitState::Open | CircuitState::HalfOpen => now.saturating_sub(self.opened_at),
@@ -308,6 +319,7 @@ impl CircuitBreaker {
 
 /// Circuit breaker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CircuitBreakerStats {
     /// Total breakers
     pub total_breakers: usize,
@@ -322,6 +334,7 @@ pub struct CircuitBreakerStats {
 }
 
 /// Circuit breaker manager
+#[repr(align(64))]
 pub struct BridgeCircuitBreakerManager {
     /// Breakers per target
     breakers: BTreeMap<u32, CircuitBreaker>,
@@ -341,6 +354,7 @@ impl BridgeCircuitBreakerManager {
     }
 
     /// Register breaker
+    #[inline]
     pub fn register(&mut self, target: u32, config: CircuitBreakerConfig) {
         self.breakers
             .insert(target, CircuitBreaker::new(target, config));
@@ -363,6 +377,7 @@ impl BridgeCircuitBreakerManager {
     }
 
     /// Record success
+    #[inline]
     pub fn record_success(&mut self, target: u32, now: u64) {
         if let Some(b) = self.breakers.get_mut(&target) {
             b.record_success(now);
@@ -371,6 +386,7 @@ impl BridgeCircuitBreakerManager {
     }
 
     /// Record failure
+    #[inline]
     pub fn record_failure(
         &mut self,
         target: u32,
@@ -385,11 +401,13 @@ impl BridgeCircuitBreakerManager {
     }
 
     /// Get breaker state
+    #[inline(always)]
     pub fn breaker_state(&self, target: u32) -> Option<CircuitState> {
         self.breakers.get(&target).map(|b| b.state)
     }
 
     /// All open circuits
+    #[inline]
     pub fn open_circuits(&self) -> Vec<u32> {
         self.breakers
             .iter()
@@ -413,6 +431,7 @@ impl BridgeCircuitBreakerManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CircuitBreakerStats {
         &self.stats
     }

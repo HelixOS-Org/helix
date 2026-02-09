@@ -11,6 +11,7 @@ use super::{CpuId, TimerId, TimerInfo, TimerType};
 
 /// Timer migration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerMigration {
     /// Timer ID
     pub timer_id: TimerId,
@@ -87,12 +88,14 @@ impl PowerAwareScheduler {
     }
 
     /// Register CPU
+    #[inline(always)]
     pub fn register_cpu(&mut self, cpu: CpuId) {
         self.per_cpu.insert(cpu, Vec::new());
         self.cpu_idle.insert(cpu, true);
     }
 
     /// Set CPU idle state
+    #[inline(always)]
     pub fn set_cpu_idle(&mut self, cpu: CpuId, idle: bool) {
         self.cpu_idle.insert(cpu, idle);
     }
@@ -181,16 +184,19 @@ impl PowerAwareScheduler {
     }
 
     /// Get timers on CPU
+    #[inline(always)]
     pub fn timers_on_cpu(&self, cpu: CpuId) -> &[TimerId] {
         self.per_cpu.get(&cpu).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
     /// Get migrations
+    #[inline(always)]
     pub fn migrations(&self) -> &[TimerMigration] {
         &self.migrations
     }
 
     /// Get decisions
+    #[inline(always)]
     pub fn decisions(&self) -> &[SchedulingDecision] {
         &self.decisions
     }

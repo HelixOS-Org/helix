@@ -14,6 +14,7 @@ pub struct IfIndex(pub u32);
 
 impl IfIndex {
     /// Create new index
+    #[inline(always)]
     pub const fn new(idx: u32) -> Self {
         Self(idx)
     }
@@ -29,36 +30,43 @@ pub struct MacAddress(pub [u8; 6]);
 
 impl MacAddress {
     /// Create new MAC address
+    #[inline(always)]
     pub const fn new(bytes: [u8; 6]) -> Self {
         Self(bytes)
     }
 
     /// Zero MAC
+    #[inline(always)]
     pub const fn zero() -> Self {
         Self([0; 6])
     }
 
     /// Broadcast MAC
+    #[inline(always)]
     pub const fn broadcast() -> Self {
         Self([0xff; 6])
     }
 
     /// Is multicast
+    #[inline(always)]
     pub fn is_multicast(&self) -> bool {
         self.0[0] & 0x01 != 0
     }
 
     /// Is broadcast
+    #[inline(always)]
     pub fn is_broadcast(&self) -> bool {
         self.0 == [0xff; 6]
     }
 
     /// Is zero
+    #[inline(always)]
     pub fn is_zero(&self) -> bool {
         self.0 == [0; 6]
     }
 
     /// Format as string
+    #[inline]
     pub fn to_string(&self) -> String {
         alloc::format!(
             "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
@@ -82,26 +90,31 @@ pub struct Ipv4Address(pub [u8; 4]);
 
 impl Ipv4Address {
     /// Create new IPv4 address
+    #[inline(always)]
     pub const fn new(a: u8, b: u8, c: u8, d: u8) -> Self {
         Self([a, b, c, d])
     }
 
     /// From u32
+    #[inline(always)]
     pub fn from_u32(val: u32) -> Self {
         Self(val.to_be_bytes())
     }
 
     /// To u32
+    #[inline(always)]
     pub fn to_u32(&self) -> u32 {
         u32::from_be_bytes(self.0)
     }
 
     /// Is loopback
+    #[inline(always)]
     pub fn is_loopback(&self) -> bool {
         self.0[0] == 127
     }
 
     /// Is private
+    #[inline]
     pub fn is_private(&self) -> bool {
         self.0[0] == 10
             || (self.0[0] == 172 && (self.0[1] >= 16 && self.0[1] <= 31))
@@ -109,6 +122,7 @@ impl Ipv4Address {
     }
 
     /// Format as string
+    #[inline(always)]
     pub fn to_string(&self) -> String {
         alloc::format!("{}.{}.{}.{}", self.0[0], self.0[1], self.0[2], self.0[3])
     }
@@ -120,21 +134,25 @@ pub struct Ipv6Address(pub [u8; 16]);
 
 impl Ipv6Address {
     /// Create new IPv6 address
+    #[inline(always)]
     pub const fn new(bytes: [u8; 16]) -> Self {
         Self(bytes)
     }
 
     /// Loopback
+    #[inline(always)]
     pub const fn loopback() -> Self {
         Self([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
     }
 
     /// Is loopback
+    #[inline(always)]
     pub fn is_loopback(&self) -> bool {
         self.0 == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
     }
 
     /// Is link local
+    #[inline(always)]
     pub fn is_link_local(&self) -> bool {
         self.0[0] == 0xfe && (self.0[1] & 0xc0) == 0x80
     }
@@ -157,6 +175,7 @@ pub enum Duplex {
 
 impl Duplex {
     /// Get duplex name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Half => "half",
@@ -186,6 +205,7 @@ impl LinkSpeed {
     pub const SPEED_400000: Self = Self(400000);
 
     /// Format as string
+    #[inline]
     pub fn to_string(&self) -> String {
         if self.0 >= 1000 {
             alloc::format!("{}Gbps", self.0 / 1000)
@@ -195,6 +215,7 @@ impl LinkSpeed {
     }
 
     /// Bytes per second
+    #[inline(always)]
     pub fn bytes_per_sec(&self) -> u64 {
         (self.0 as u64) * 1_000_000 / 8
     }

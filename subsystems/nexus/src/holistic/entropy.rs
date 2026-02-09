@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -87,6 +88,7 @@ impl SourceTracker {
     }
 
     /// Record contribution
+    #[inline]
     pub fn contribute(&mut self, bits: u64, now: u64) {
         self.total_bits += bits;
         self.samples += 1;
@@ -129,6 +131,7 @@ impl SourceTracker {
 
 /// Entropy pool
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct EntropyPool {
     /// Pool name hash (FNV-1a)
     pub name_hash: u64,
@@ -141,7 +144,7 @@ pub struct EntropyPool {
     /// Total bits consumed
     pub total_consumed: u64,
     /// Consumers
-    consumers: BTreeMap<u64, u64>,
+    consumers: LinearMap<u64, 64>,
 }
 
 impl EntropyPool {
@@ -157,26 +160,29 @@ impl EntropyPool {
             capacity_bits,
             total_generated: 0,
             total_consumed: 0,
-            consumers: BTreeMap::new(),
+            consumers: LinearMap::new(),
         }
     }
 
     /// Add entropy
+    #[inline(always)]
     pub fn add(&mut self, bits: u64) {
         self.current_bits = (self.current_bits + bits).min(self.capacity_bits);
         self.total_generated += bits;
     }
 
     /// Consume entropy
+    #[inline]
     pub fn consume(&mut self, bits: u64, consumer_pid: u64) -> u64 {
         let available = self.current_bits.min(bits);
         self.current_bits -= available;
         self.total_consumed += available;
-        *self.consumers.entry(consumer_pid).or_insert(0) += available;
+        self.consumers.add(consumer_pid, available);
         available
     }
 
     /// Fill ratio
+    #[inline]
     pub fn fill_ratio(&self) -> f64 {
         if self.capacity_bits == 0 {
             return 0.0;
@@ -201,6 +207,7 @@ impl EntropyPool {
     }
 
     /// Depletion forecast (seconds until empty at current consumption rate)
+    #[inline]
     pub fn depletion_forecast(&self, consumption_rate_bps: f64) -> f64 {
         if consumption_rate_bps <= 0.0 {
             return f64::INFINITY;
@@ -209,6 +216,7 @@ impl EntropyPool {
     }
 
     /// Top consumers
+    #[inline]
     pub fn top_consumers(&self, n: usize) -> Vec<(u64, u64)> {
         let mut sorted: Vec<(u64, u64)> = self.consumers.iter().map(|(&k, &v)| (k, v)).collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
@@ -223,6 +231,7 @@ impl EntropyPool {
 
 /// Entropy tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticEntropyStats {
     /// Tracked sources
     pub tracked_sources: usize,
@@ -258,12 +267,14 @@ impl HolisticEntropyTracker {
     }
 
     /// Register source
+    #[inline(always)]
     pub fn register_source(&mut self, source: EntropySource) {
         self.sources.insert(source as u8, SourceTracker::new(source));
         self.update_stats();
     }
 
     /// Contribute entropy from source
+    #[inline]
     pub fn contribute(&mut self, source: EntropySource, bits: u64, now: u64) {
         if let Some(tracker) = self.sources.get_mut(&(source as u8)) {
             tracker.contribute(bits, now);
@@ -273,6 +284,7 @@ impl HolisticEntropyTracker {
     }
 
     /// Consume entropy
+    #[inline]
     pub fn consume(&mut self, bits: u64, consumer_pid: u64) -> u64 {
         let actual = self.pool.consume(bits, consumer_pid);
         self.update_stats();
@@ -293,6 +305,7 @@ impl HolisticEntropyTracker {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticEntropyStats {
         &self.stats
     }

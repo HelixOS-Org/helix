@@ -13,6 +13,7 @@
 extern crate alloc;
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -168,19 +169,19 @@ pub trait Frontier {
 /// FIFO frontier for BFS
 #[derive(Default)]
 pub struct FIFOFrontier {
-    queue: Vec<SearchNode>,
+    queue: VecDeque<SearchNode>,
 }
 
 impl Frontier for FIFOFrontier {
     fn push(&mut self, node: SearchNode) {
-        self.queue.push(node);
+        self.queue.push_back(node);
     }
 
     fn pop(&mut self) -> Option<SearchNode> {
         if self.queue.is_empty() {
             None
         } else {
-            Some(self.queue.remove(0))
+            self.queue.pop_front()
         }
     }
 
@@ -298,6 +299,7 @@ impl Default for SearchConfig {
 
 /// Search statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SearchStats {
     pub nodes_created: u64,
     pub nodes_expanded: u64,
@@ -1005,6 +1007,7 @@ impl SearchEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SearchStats {
         &self.stats
     }

@@ -16,26 +16,31 @@ impl PredictionConfidence {
     }
 
     /// Get the raw value
+    #[inline(always)]
     pub fn value(&self) -> f32 {
         self.0
     }
 
     /// Check if confidence is above threshold
+    #[inline(always)]
     pub fn is_above(&self, threshold: f32) -> bool {
         self.0 >= threshold
     }
 
     /// Check if this is a high confidence prediction
+    #[inline(always)]
     pub fn is_high(&self) -> bool {
         self.0 >= 0.8
     }
 
     /// Check if this is a medium confidence prediction
+    #[inline(always)]
     pub fn is_medium(&self) -> bool {
         self.0 >= 0.5 && self.0 < 0.8
     }
 
     /// Check if this is a low confidence prediction
+    #[inline(always)]
     pub fn is_low(&self) -> bool {
         self.0 < 0.5
     }
@@ -120,6 +125,7 @@ impl PredictionKind {
     }
 
     /// Is this a critical prediction?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.severity() >= 9
     }
@@ -157,6 +163,7 @@ impl Trend {
     }
 
     /// Is this a concerning trend?
+    #[inline(always)]
     pub fn is_concerning(&self) -> bool {
         matches!(self, Self::RapidIncrease | Self::RapidDecrease)
     }

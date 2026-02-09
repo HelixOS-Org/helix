@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -37,6 +38,7 @@ pub struct MerkleNode {
 }
 
 impl MerkleNode {
+    #[inline]
     pub fn leaf(id: u64, key: u64, value_hash: u64, depth: u32) -> Self {
         let hash = Self::compute_leaf_hash(key, value_hash);
         Self {
@@ -46,6 +48,7 @@ impl MerkleNode {
         }
     }
 
+    #[inline]
     pub fn internal(id: u64, left_hash: u64, right_hash: u64, depth: u32) -> Self {
         let hash = Self::compute_internal_hash(left_hash, right_hash);
         Self {
@@ -69,6 +72,7 @@ impl MerkleNode {
         h
     }
 
+    #[inline]
     pub fn rehash_leaf(&mut self) {
         if let (Some(k), Some(v)) = (self.key, self.value_hash) {
             self.hash = Self::compute_leaf_hash(k, v);
@@ -93,6 +97,7 @@ pub struct MerkleProof {
 }
 
 impl MerkleProof {
+    #[inline]
     pub fn verify(&self) -> bool {
         let mut current = MerkleNode::compute_leaf_hash(self.key, self.value_hash);
         for step in &self.steps {
@@ -125,6 +130,7 @@ pub enum DiffType {
 
 /// Merkle tree stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MerkleTreeStats {
     pub total_nodes: usize,
     pub leaf_nodes: usize,
@@ -139,7 +145,7 @@ pub struct MerkleTreeStats {
 /// Coop Merkle tree
 pub struct CoopMerkleTree {
     nodes: BTreeMap<u64, MerkleNode>,
-    leaves: BTreeMap<u64, u64>,  // key -> node_id
+    leaves: LinearMap<u64, 64>,  // key -> node_id
     root_id: Option<u64>,
     stats: MerkleTreeStats,
     next_id: u64,
@@ -150,6 +156,7 @@ impl CoopMerkleTree {
         Self { nodes: BTreeMap::new(), leaves: BTreeMap::new(), root_id: None, stats: MerkleTreeStats::default(), next_id: 1 }
     }
 
+    #[inline]
     pub fn insert(&mut self, key: u64, value_hash: u64) {
         let node_id = self.next_id; self.next_id += 1;
         let node = MerkleNode::leaf(node_id, key, value_hash, 0);
@@ -158,8 +165,9 @@ impl CoopMerkleTree {
         self.rebuild();
     }
 
+    #[inline]
     pub fn update(&mut self, key: u64, new_value_hash: u64) {
-        if let Some(&node_id) = self.leaves.get(&key) {
+        if let Some(&node_id) = self.leaves.get(key) {
             if let Some(node) = self.nodes.get_mut(&node_id) {
                 node.value_hash = Some(new_value_hash);
                 node.rehash_leaf();
@@ -168,8 +176,9 @@ impl CoopMerkleTree {
         }
     }
 
+    #[inline]
     pub fn remove(&mut self, key: u64) {
-        if let Some(node_id) = self.leaves.remove(&key) {
+        if let Some(node_id) = self.leaves.remove(key) {
             self.nodes.remove(&node_id);
             self.rebuild();
         }
@@ -218,12 +227,13 @@ impl CoopMerkleTree {
         self.root_id = current_level.first().copied();
     }
 
+    #[inline(always)]
     pub fn root_hash(&self) -> u64 {
         self.root_id.and_then(|id| self.nodes.get(&id)).map(|n| n.hash).unwrap_or(0)
     }
 
     pub fn generate_proof(&mut self, key: u64) -> Option<MerkleProof> {
-        let &node_id = self.leaves.get(&key)?;
+        let &node_id = self.leaves.get(key)?;
         let node = self.nodes.get(&node_id)?;
         let value_hash = node.value_hash?;
         let mut steps = Vec::new();
@@ -249,6 +259,7 @@ impl CoopMerkleTree {
         Some(MerkleProof { key, value_hash, steps, root_hash: self.root_hash() })
     }
 
+    #[inline(always)]
     pub fn verify_proof(&mut self, proof: &MerkleProof) -> bool {
         self.stats.proofs_verified += 1;
         proof.verify()
@@ -269,13 +280,14 @@ impl CoopMerkleTree {
             }
         }
         for (&key, &hash) in other_leaves {
-            if !self.leaves.contains_key(&key) {
+            if !self.leaves.contains_key(key) {
                 diffs.push(MerkleDiff { key, diff_type: DiffType::Added, local_hash: None, remote_hash: Some(hash) });
             }
         }
         diffs
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_nodes = self.nodes.len();
         self.stats.leaf_nodes = self.leaves.len();
@@ -284,5 +296,6 @@ impl CoopMerkleTree {
         self.stats.root_hash = self.root_hash();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MerkleTreeStats { &self.stats }
 }

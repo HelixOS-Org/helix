@@ -61,6 +61,7 @@ impl ShareEntity {
         }
     }
 
+    #[inline]
     pub fn update_vruntime(&mut self, delta_ns: u64) {
         let weighted = if self.weight == 0 { delta_ns } else {
             (delta_ns * 1024) / self.weight as u64
@@ -69,11 +70,13 @@ impl ShareEntity {
         self.actual_runtime += delta_ns;
     }
 
+    #[inline(always)]
     pub fn fair_ratio(&self, total_weight: u32) -> f64 {
         if total_weight == 0 { return 0.0; }
         self.weight as f64 / total_weight as f64
     }
 
+    #[inline]
     pub fn satisfaction(&self, dim: u8) -> f64 {
         let demand = self.demand.get(&dim).copied().unwrap_or(0);
         let alloc = self.allocated.get(&dim).copied().unwrap_or(0);
@@ -92,6 +95,7 @@ pub struct AllocationResult {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FairShareStats {
     pub total_entities: u32,
     pub active_entities: u32,
@@ -114,6 +118,7 @@ impl CoopFairShare {
         Self { entities: BTreeMap::new(), total_resources: BTreeMap::new(), share_type, next_id: 1 }
     }
 
+    #[inline]
     pub fn add_entity(&mut self, weight: u32) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -121,10 +126,12 @@ impl CoopFairShare {
         id
     }
 
+    #[inline(always)]
     pub fn set_demand(&mut self, entity: u64, dim: u8, amount: u64) {
         if let Some(e) = self.entities.get_mut(&entity) { e.demand.insert(dim, amount); }
     }
 
+    #[inline(always)]
     pub fn set_total_resource(&mut self, dim: u8, amount: u64) {
         self.total_resources.insert(dim, amount);
     }

@@ -44,6 +44,7 @@ impl Fault {
     }
 
     /// Record an occurrence
+    #[inline]
     pub fn record_occurrence(&mut self) {
         self.occurrences += 1;
 
@@ -56,6 +57,7 @@ impl Fault {
     }
 
     /// Stop the fault
+    #[inline(always)]
     pub fn stop(&mut self) {
         self.active = false;
         self.ended = Some(NexusTimestamp::now());
@@ -86,6 +88,7 @@ impl Fault {
     }
 
     /// Get fault type
+    #[inline(always)]
     pub fn fault_type(&self) -> FaultType {
         self.config.fault_type
     }

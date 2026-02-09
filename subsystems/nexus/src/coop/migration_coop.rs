@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -73,6 +73,7 @@ pub enum MigrationTarget {
 
 /// State transfer item
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateTransferItem {
     /// Item type
     pub item_type: StateItemType,
@@ -164,11 +165,13 @@ impl MigrationPlan {
     }
 
     /// Add state item
+    #[inline(always)]
     pub fn add_item(&mut self, item: StateTransferItem) {
         self.items.push(item);
     }
 
     /// Begin negotiation
+    #[inline]
     pub fn begin_negotiation(&mut self) {
         if self.state == CoopMigrationState::Planning {
             self.state = CoopMigrationState::Negotiating;
@@ -176,6 +179,7 @@ impl MigrationPlan {
     }
 
     /// Begin pre-copy
+    #[inline]
     pub fn begin_precopy(&mut self, now: u64) {
         if self.state == CoopMigrationState::Negotiating {
             self.state = CoopMigrationState::PreCopy;
@@ -184,17 +188,20 @@ impl MigrationPlan {
     }
 
     /// Complete a pre-copy round
+    #[inline(always)]
     pub fn complete_precopy_round(&mut self, dirty_bytes: u64) {
         self.precopy_rounds += 1;
         self.bytes_transferred += dirty_bytes;
     }
 
     /// Ready for stop-and-copy?
+    #[inline(always)]
     pub fn ready_for_stop_copy(&self) -> bool {
         self.precopy_rounds >= self.max_precopy_rounds
     }
 
     /// Begin stop-and-copy
+    #[inline]
     pub fn begin_stop_copy(&mut self) {
         if self.state == CoopMigrationState::PreCopy {
             self.state = CoopMigrationState::StopAndCopy;
@@ -202,6 +209,7 @@ impl MigrationPlan {
     }
 
     /// Begin resume
+    #[inline]
     pub fn begin_resume(&mut self, downtime_ns: u64) {
         if self.state == CoopMigrationState::StopAndCopy {
             self.downtime_ns = downtime_ns;
@@ -210,6 +218,7 @@ impl MigrationPlan {
     }
 
     /// Complete migration
+    #[inline]
     pub fn complete(&mut self, now: u64) {
         self.state = CoopMigrationState::Complete;
         self.completed_at = Some(now);
@@ -219,16 +228,19 @@ impl MigrationPlan {
     }
 
     /// Fail migration
+    #[inline(always)]
     pub fn fail(&mut self) {
         self.state = CoopMigrationState::Failed;
     }
 
     /// Rollback
+    #[inline(always)]
     pub fn rollback(&mut self) {
         self.state = CoopMigrationState::RolledBack;
     }
 
     /// Total state size
+    #[inline(always)]
     pub fn total_state_size(&self) -> u64 {
         self.items.iter().map(|i| i.size).sum()
     }
@@ -249,6 +261,7 @@ impl MigrationPlan {
     }
 
     /// Total migration time (ns)
+    #[inline(always)]
     pub fn total_time_ns(&self, now: u64) -> u64 {
         let end = self.completed_at.unwrap_or(now);
         end.saturating_sub(self.plan_start)
@@ -261,6 +274,7 @@ impl MigrationPlan {
 
 /// Migration coordination stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopMigrationStats {
     /// Active migrations
     pub active_count: usize,
@@ -281,7 +295,7 @@ pub struct CoopMigrationCoordinator {
     /// Next plan id
     next_id: u64,
     /// Completed downtimes for average
-    completed_downtimes: Vec<u64>,
+    completed_downtimes: VecDeque<u64>,
     /// Max completed history
     max_history: usize,
     /// Stats
@@ -293,13 +307,14 @@ impl CoopMigrationCoordinator {
         Self {
             plans: BTreeMap::new(),
             next_id: 1,
-            completed_downtimes: Vec::new(),
+            completed_downtimes: VecDeque::new(),
             max_history: 128,
             stats: CoopMigrationStats::default(),
         }
     }
 
     /// Create migration plan
+    #[inline]
     pub fn create_plan(
         &mut self,
         pid: u64,
@@ -317,11 +332,13 @@ impl CoopMigrationCoordinator {
     }
 
     /// Get plan
+    #[inline(always)]
     pub fn plan(&self, id: u64) -> Option<&MigrationPlan> {
         self.plans.get(&id)
     }
 
     /// Get mutable plan
+    #[inline(always)]
     pub fn plan_mut(&mut self, id: u64) -> Option<&mut MigrationPlan> {
         self.plans.get_mut(&id)
     }
@@ -331,9 +348,9 @@ impl CoopMigrationCoordinator {
         if let Some(plan) = self.plans.get_mut(&id) {
             plan.complete(now);
             if self.completed_downtimes.len() >= self.max_history {
-                self.completed_downtimes.remove(0);
+                self.completed_downtimes.pop_front();
             }
-            self.completed_downtimes.push(plan.downtime_ns);
+            self.completed_downtimes.push_back(plan.downtime_ns);
             self.stats.total_completed += 1;
             self.update_stats();
             true
@@ -343,6 +360,7 @@ impl CoopMigrationCoordinator {
     }
 
     /// Fail migration
+    #[inline]
     pub fn fail(&mut self, id: u64) -> bool {
         if let Some(plan) = self.plans.get_mut(&id) {
             plan.fail();
@@ -355,6 +373,7 @@ impl CoopMigrationCoordinator {
     }
 
     /// Rollback migration
+    #[inline]
     pub fn rollback(&mut self, id: u64) -> bool {
         if let Some(plan) = self.plans.get_mut(&id) {
             plan.rollback();
@@ -367,6 +386,7 @@ impl CoopMigrationCoordinator {
     }
 
     /// Cleanup completed/failed
+    #[inline]
     pub fn cleanup(&mut self) {
         self.plans.retain(|_, p| {
             p.state != CoopMigrationState::Complete
@@ -393,6 +413,7 @@ impl CoopMigrationCoordinator {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopMigrationStats {
         &self.stats
     }

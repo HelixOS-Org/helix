@@ -90,6 +90,7 @@ impl AppTypeDistribution {
         }
     }
 
+    #[inline]
     fn update(&mut self, new_demand: f32, new_count: u32) {
         let clamped = new_demand.max(0.0).min(1.0);
         self.observations += 1;
@@ -152,6 +153,7 @@ pub struct InterferencePair {
 
 /// Aggregate statistics about the app ecosystem world model
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct WorldModelStats {
     pub app_types_tracked: usize,
     pub total_instances: u32,
@@ -203,6 +205,7 @@ impl AppsWorldModel {
     }
 
     /// Update the ecosystem with a new observation for an app type
+    #[inline]
     pub fn update_ecosystem(&mut self, app_type_name: &str, demand: f32, instance_count: u32) {
         self.tick += 1;
         let id = fnv1a_hash(app_type_name.as_bytes());
@@ -266,6 +269,7 @@ impl AppsWorldModel {
     }
 
     /// Record interference between two co-running app types
+    #[inline]
     pub fn interference_map(&mut self, type_a: &str, type_b: &str, magnitude: f32) {
         self.tick += 1;
         let id_a = fnv1a_hash(type_a.as_bytes());
@@ -315,12 +319,14 @@ impl AppsWorldModel {
     }
 
     /// Get the trend direction for a specific app type
+    #[inline(always)]
     pub fn trend_direction(&self, app_type_name: &str) -> f32 {
         let id = fnv1a_hash(app_type_name.as_bytes());
         self.app_types.get(&id).map(|d| d.trend()).unwrap_or(0.0)
     }
 
     /// Get the top interference pairs sorted by magnitude
+    #[inline]
     pub fn top_interference(&self, max_results: usize) -> Vec<(String, String, f32)> {
         let mut pairs: Vec<(String, String, f32)> = self
             .interference

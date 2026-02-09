@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -69,6 +70,7 @@ pub struct InterceptVerdict {
 }
 
 impl InterceptVerdict {
+    #[inline]
     pub fn allow() -> Self {
         Self {
             action: InterceptAction::Allow,
@@ -80,6 +82,7 @@ impl InterceptVerdict {
         }
     }
 
+    #[inline]
     pub fn block() -> Self {
         Self {
             action: InterceptAction::Block,
@@ -91,6 +94,7 @@ impl InterceptVerdict {
         }
     }
 
+    #[inline]
     pub fn override_return(value: i64) -> Self {
         Self {
             action: InterceptAction::OverrideReturn,
@@ -122,6 +126,7 @@ impl SyscallArgs {
         }
     }
 
+    #[inline]
     pub fn get(&self, idx: usize) -> Option<u64> {
         if idx < self.count as usize {
             Some(self.args[idx])
@@ -130,6 +135,7 @@ impl SyscallArgs {
         }
     }
 
+    #[inline]
     pub fn set(&mut self, idx: usize, value: u64) {
         if idx < 6 {
             self.args[idx] = value;
@@ -212,11 +218,13 @@ impl FilterProgram {
         }
     }
 
+    #[inline(always)]
     pub fn add_condition(&mut self, condition: FilterCondition) {
         self.conditions.push(condition);
     }
 
     /// Evaluate all conditions
+    #[inline]
     pub fn evaluate(&self, pid: u64, syscall_nr: u32, args: &SyscallArgs, pgroup: u64) -> bool {
         if !self.enabled {
             return false;
@@ -248,6 +256,7 @@ pub struct InterceptHook {
 
 /// Hook statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct InterceptHookStats {
     /// Times evaluated
     pub evaluations: u64,
@@ -293,7 +302,7 @@ pub struct InterceptEngine {
     /// Post-syscall hooks
     post_hooks: Vec<InterceptHook>,
     /// Intercept log
-    log: Vec<InterceptLogEntry>,
+    log: VecDeque<InterceptLogEntry>,
     /// Max log entries
     max_log: usize,
     /// Next hook ID
@@ -313,7 +322,7 @@ impl InterceptEngine {
         Self {
             pre_hooks: Vec::new(),
             post_hooks: Vec::new(),
-            log: Vec::new(),
+            log: VecDeque::new(),
             max_log: 1000,
             next_hook_id: 1,
             total_interceptions: 0,
@@ -360,6 +369,7 @@ impl InterceptEngine {
     }
 
     /// Remove hook
+    #[inline]
     pub fn remove_hook(&mut self, hook_id: u32) -> bool {
         let pre_len = self.pre_hooks.len();
         self.pre_hooks.retain(|h| h.id != hook_id);
@@ -472,7 +482,7 @@ impl InterceptEngine {
         args: &SyscallArgs,
         return_value: Option<i64>,
     ) {
-        self.log.push(InterceptLogEntry {
+        self.log.push_back(InterceptLogEntry {
             timestamp,
             pid,
             syscall_nr,
@@ -482,11 +492,12 @@ impl InterceptEngine {
             return_value,
         });
         if self.log.len() > self.max_log {
-            self.log.remove(0);
+            self.log.pop_front();
         }
     }
 
     /// Expire old hooks
+    #[inline]
     pub fn expire_hooks(&mut self, current_time: u64) {
         self.pre_hooks
             .retain(|h| h.expires_at == 0 || current_time <= h.expires_at);
@@ -495,11 +506,13 @@ impl InterceptEngine {
     }
 
     /// Hook count
+    #[inline(always)]
     pub fn hook_count(&self) -> usize {
         self.pre_hooks.len() + self.post_hooks.len()
     }
 
     /// Log entries
+    #[inline(always)]
     pub fn log_entries(&self) -> &[InterceptLogEntry] {
         &self.log
     }

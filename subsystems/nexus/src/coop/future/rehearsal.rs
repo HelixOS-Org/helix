@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -86,6 +87,7 @@ pub struct OutcomePrediction {
 
 /// Rolling statistics for the rehearsal engine.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct RehearsalStats {
     pub rehearsals_run: u64,
     pub protocols_tested: u64,
@@ -145,7 +147,7 @@ pub struct CoopRehearsal {
     agents: BTreeMap<u64, RehearsalAgent>,
     protocols: BTreeMap<u64, ProtocolModel>,
     quality_history: Vec<QualityRecord>,
-    fairness_history: Vec<u64>,
+    fairness_history: VecDeque<u64>,
     stats: RehearsalStats,
     rng_state: u64,
     max_agents: usize,
@@ -159,7 +161,7 @@ impl CoopRehearsal {
             agents: BTreeMap::new(),
             protocols: BTreeMap::new(),
             quality_history: Vec::new(),
-            fairness_history: Vec::new(),
+            fairness_history: VecDeque::new(),
             stats: RehearsalStats::new(),
             rng_state: seed | 1,
             max_agents: 64,
@@ -188,6 +190,7 @@ impl CoopRehearsal {
     }
 
     /// Register a protocol model for testing.
+    #[inline]
     pub fn register_protocol(
         &mut self,
         name: &str,
@@ -435,9 +438,9 @@ impl CoopRehearsal {
 
         let gini = self.compute_gini(&values);
         if self.fairness_history.len() >= self.max_history {
-            self.fairness_history.remove(0);
+            self.fairness_history.pop_front();
         }
-        self.fairness_history.push(fairness);
+        self.fairness_history.push_back(fairness);
         self.stats.avg_fairness = ema_update(self.stats.avg_fairness, fairness, 3, 10);
 
         FairnessResult {
@@ -505,6 +508,7 @@ impl CoopRehearsal {
     }
 
     /// Compute an overall quality score for the last N rehearsals.
+    #[inline]
     pub fn rehearsal_quality(&self) -> u64 {
         if self.quality_history.is_empty() {
             return self.stats.avg_quality;
@@ -515,6 +519,7 @@ impl CoopRehearsal {
     }
 
     /// Get the current statistics snapshot.
+    #[inline(always)]
     pub fn stats(&self) -> &RehearsalStats {
         &self.stats
     }

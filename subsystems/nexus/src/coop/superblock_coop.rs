@@ -34,15 +34,21 @@ impl CoopSuperblockEntry {
         Self { dev_id, fs_type_hash: h, state: CoopSbState::Active, total_blocks: 0, free_blocks: 0, shared_count: 1, sync_count: 0 }
     }
 
+    #[inline(always)]
     pub fn share(&mut self) { self.shared_count += 1; self.state = CoopSbState::Shared; }
+    #[inline(always)]
     pub fn sync(&mut self) { self.sync_count += 1; self.state = CoopSbState::Syncing; }
+    #[inline(always)]
     pub fn freeze(&mut self) { self.state = CoopSbState::Frozen; }
+    #[inline(always)]
     pub fn thaw(&mut self) { self.state = if self.shared_count > 1 { CoopSbState::Shared } else { CoopSbState::Active }; }
+    #[inline(always)]
     pub fn usage_pct(&self) -> f64 { if self.total_blocks == 0 { 0.0 } else { (self.total_blocks - self.free_blocks) as f64 / self.total_blocks as f64 } }
 }
 
 /// Coop superblock stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopSuperblockStats {
     pub total_superblocks: u64,
     pub shared: u64,
@@ -62,15 +68,18 @@ impl CoopSuperblock {
         Self { sbs: BTreeMap::new(), stats: CoopSuperblockStats { total_superblocks: 0, shared: 0, syncs: 0, freezes: 0 } }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, dev_id: u64, fs_type: &[u8]) {
         self.stats.total_superblocks += 1;
         self.sbs.insert(dev_id, CoopSuperblockEntry::new(dev_id, fs_type));
     }
 
+    #[inline(always)]
     pub fn share(&mut self, dev_id: u64) {
         if let Some(sb) = self.sbs.get_mut(&dev_id) { sb.share(); self.stats.shared += 1; }
     }
 
+    #[inline(always)]
     pub fn sync(&mut self, dev_id: u64) {
         if let Some(sb) = self.sbs.get_mut(&dev_id) { sb.sync(); self.stats.syncs += 1; }
     }
@@ -105,6 +114,7 @@ pub struct CoopSuperblockV2Entry {
 
 /// Stats for superblock cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopSuperblockV2Stats {
     pub total_syncs: u64,
     pub dirty_superblocks: u64,
@@ -151,6 +161,7 @@ impl CoopSuperblockV2Manager {
         id
     }
 
+    #[inline]
     pub fn mark_dirty(&mut self, sb_id: u64) {
         if let Some(sb) = self.superblocks.get_mut(&sb_id) {
             if sb.state != CoopSuperblockV2State::Dirty {
@@ -161,6 +172,7 @@ impl CoopSuperblockV2Manager {
         }
     }
 
+    #[inline]
     pub fn sync(&mut self, sb_id: u64) -> bool {
         if let Some(sb) = self.superblocks.get_mut(&sb_id) {
             sb.state = CoopSuperblockV2State::Clean;
@@ -187,6 +199,7 @@ impl CoopSuperblockV2Manager {
         }
     }
 
+    #[inline]
     pub fn free_blocks(&mut self, sb_id: u64, count: u64) {
         if let Some(sb) = self.superblocks.get_mut(&sb_id) {
             sb.free_blocks = (sb.free_blocks + count).min(sb.total_blocks);
@@ -194,6 +207,7 @@ impl CoopSuperblockV2Manager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopSuperblockV2Stats {
         &self.stats
     }

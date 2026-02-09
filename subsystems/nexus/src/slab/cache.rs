@@ -8,6 +8,7 @@ use super::{CacheState, SlabAllocatorType, SlabCacheId, SlabFlags};
 
 /// Slab cache information
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlabCacheInfo {
     /// Cache ID
     pub id: SlabCacheId,
@@ -61,6 +62,7 @@ impl SlabCacheInfo {
     }
 
     /// Calculate utilization
+    #[inline]
     pub fn utilization(&self) -> f32 {
         if self.total_objects == 0 {
             return 0.0;
@@ -69,16 +71,19 @@ impl SlabCacheInfo {
     }
 
     /// Calculate memory usage
+    #[inline(always)]
     pub fn memory_usage(&self) -> u64 {
         self.total_objects * self.aligned_size as u64
     }
 
     /// Calculate wasted memory
+    #[inline(always)]
     pub fn wasted_memory(&self) -> u64 {
         (self.total_objects - self.active_objects) * self.aligned_size as u64
     }
 
     /// Check if cache is mostly empty
+    #[inline(always)]
     pub fn is_underutilized(&self, threshold: f32) -> bool {
         self.utilization() < threshold
     }
@@ -86,6 +91,7 @@ impl SlabCacheInfo {
 
 /// Slab allocation statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SlabStats {
     /// Total allocations
     pub alloc_count: u64,
@@ -115,6 +121,7 @@ pub struct SlabStats {
 
 impl SlabStats {
     /// Calculate allocation rate (allocs/s)
+    #[inline]
     pub fn allocation_rate(&self, duration_ns: u64) -> f32 {
         if duration_ns == 0 {
             return 0.0;
@@ -123,6 +130,7 @@ impl SlabStats {
     }
 
     /// Calculate CPU cache hit rate
+    #[inline]
     pub fn cpu_cache_hit_rate(&self) -> f32 {
         if self.alloc_count == 0 {
             return 0.0;
@@ -131,6 +139,7 @@ impl SlabStats {
     }
 
     /// Calculate failure rate
+    #[inline]
     pub fn failure_rate(&self) -> f32 {
         let total = self.alloc_count + self.alloc_failures;
         if total == 0 {
@@ -140,6 +149,7 @@ impl SlabStats {
     }
 
     /// Calculate NUMA locality
+    #[inline]
     pub fn numa_locality(&self) -> f32 {
         if self.alloc_count == 0 {
             return 1.0;

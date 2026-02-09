@@ -49,6 +49,7 @@ pub enum TcpTimerKind {
 
 /// TCP congestion window state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TcpCwndState {
     pub cwnd: u32,
     pub ssthresh: u32,
@@ -98,6 +99,7 @@ impl TcpCwndState {
         }
     }
 
+    #[inline]
     pub fn on_ack(&mut self) {
         if self.cwnd < self.ssthresh {
             self.cwnd += self.mss as u32;
@@ -106,6 +108,7 @@ impl TcpCwndState {
         }
     }
 
+    #[inline]
     pub fn on_loss(&mut self) {
         self.ssthresh = if self.cwnd / 2 > 2 * self.mss as u32 {
             self.cwnd / 2
@@ -117,6 +120,7 @@ impl TcpCwndState {
         self.loss_count += 1;
     }
 
+    #[inline]
     pub fn bandwidth_estimate_bps(&self) -> u64 {
         if self.srtt_us == 0 {
             return 0;
@@ -162,11 +166,13 @@ impl TcpConnection {
         }
     }
 
+    #[inline(always)]
     pub fn connect(&mut self) {
         self.state = TcpState::SynSent;
         self.segments_sent += 1;
     }
 
+    #[inline]
     pub fn syn_ack_received(&mut self) {
         if self.state == TcpState::SynSent {
             self.state = TcpState::Established;
@@ -175,6 +181,7 @@ impl TcpConnection {
         }
     }
 
+    #[inline]
     pub fn send_data(&mut self, bytes: u64) {
         if self.state == TcpState::Established {
             self.bytes_sent += bytes;
@@ -183,6 +190,7 @@ impl TcpConnection {
         }
     }
 
+    #[inline]
     pub fn receive_data(&mut self, bytes: u64) {
         if self.state == TcpState::Established {
             self.bytes_received += bytes;
@@ -191,6 +199,7 @@ impl TcpConnection {
         }
     }
 
+    #[inline]
     pub fn retransmit_rate(&self) -> f64 {
         if self.segments_sent == 0 {
             return 0.0;
@@ -198,6 +207,7 @@ impl TcpConnection {
         self.retransmits as f64 / self.segments_sent as f64
     }
 
+    #[inline]
     pub fn close(&mut self) {
         match self.state {
             TcpState::Established => self.state = TcpState::FinWait1,
@@ -210,6 +220,7 @@ impl TcpConnection {
 
 /// TCP stack stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TcpStackStats {
     pub total_connections: u64,
     pub active_connections: u64,
@@ -260,6 +271,7 @@ impl HolisticTcpStack {
         Some(id)
     }
 
+    #[inline]
     pub fn close_connection(&mut self, conn_id: u64) -> bool {
         if let Some(conn) = self.connections.get_mut(&conn_id) {
             conn.close();
@@ -270,6 +282,7 @@ impl HolisticTcpStack {
         }
     }
 
+    #[inline]
     pub fn avg_bandwidth_bps(&self) -> u64 {
         if self.connections.is_empty() {
             return 0;

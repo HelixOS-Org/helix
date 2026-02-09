@@ -33,6 +33,7 @@ impl CryptoHolisticFinding {
 
 /// Crypto holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CryptoHolisticStats {
     pub total_analyses: u64,
     pub weak_algorithms: u64,
@@ -51,6 +52,7 @@ impl HolisticCrypto {
         Self { stats: CryptoHolisticStats { total_analyses: 0, weak_algorithms: 0, key_reuses: 0, low_entropy: 0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &CryptoHolisticFinding) {
         self.stats.total_analyses += 1;
         match finding.metric {

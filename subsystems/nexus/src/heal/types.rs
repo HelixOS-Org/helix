@@ -77,6 +77,7 @@ impl HealingStrategy {
     }
 
     /// From recommended action
+    #[inline]
     pub fn from_action(action: RecommendedAction) -> Self {
         match action {
             RecommendedAction::Monitor => Self::Monitor,

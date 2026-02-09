@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use alloc::string::String;
 
@@ -26,6 +27,7 @@ pub enum LockMode {
 }
 
 impl LockMode {
+    #[inline]
     pub fn is_compatible(&self, other: &LockMode) -> bool {
         match (self, other) {
             (Self::Shared, Self::Shared) => true,
@@ -55,7 +57,9 @@ pub struct FencingToken(pub u64);
 
 impl FencingToken {
     pub fn new(epoch: u64) -> Self { Self(epoch) }
+    #[inline(always)]
     pub fn next(&self) -> Self { Self(self.0 + 1) }
+    #[inline(always)]
     pub fn is_valid_after(&self, other: &FencingToken) -> bool { self.0 > other.0 }
 }
 
@@ -76,8 +80,10 @@ impl LockHolder {
         Self { node_id: node, owner_id: owner, mode, fence, acquired_ts: ts, lease_deadline: ts + lease_ns, conversion_pending: None }
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool { now > self.lease_deadline }
 
+    #[inline(always)]
     pub fn renew(&mut self, now: u64, lease_ns: u64) { self.lease_deadline = now + lease_ns; }
 }
 
@@ -97,6 +103,7 @@ impl LockWaiter {
         Self { node_id: node, owner_id: owner, requested_mode: mode, priority, enqueued_ts: ts, timeout_ns: timeout }
     }
 
+    #[inline(always)]
     pub fn is_timed_out(&self, now: u64) -> bool {
         self.timeout_ns > 0 && now.saturating_sub(self.enqueued_ts) > self.timeout_ns
     }
@@ -108,7 +115,7 @@ pub struct DistributedLock {
     pub name: String,
     pub state: DLockState,
     pub holders: Vec<LockHolder>,
-    pub waiters: Vec<LockWaiter>,
+    pub waiters: VecDeque<LockWaiter>,
     pub fence: FencingToken,
     pub created_ts: u64,
     pub grant_count: u64,
@@ -119,17 +126,19 @@ pub struct DistributedLock {
 impl DistributedLock {
     pub fn new(name: String, ts: u64) -> Self {
         Self {
-            name, state: DLockState::Free, holders: Vec::new(), waiters: Vec::new(),
+            name, state: DLockState::Free, holders: Vec::new(), waiters: VecDeque::new(),
             fence: FencingToken(0), created_ts: ts, grant_count: 0,
             contention_count: 0, timeout_count: 0,
         }
     }
 
+    #[inline(always)]
     pub fn can_grant(&self, mode: LockMode) -> bool {
         if self.holders.is_empty() { return true; }
         self.holders.iter().all(|h| h.mode.is_compatible(&mode))
     }
 
+    #[inline]
     pub fn grant(&mut self, node: u64, owner: u64, mode: LockMode, ts: u64, lease_ns: u64) -> FencingToken {
         self.fence = self.fence.next();
         let holder = LockHolder::new(node, owner, mode, self.fence, ts, lease_ns);
@@ -139,6 +148,7 @@ impl DistributedLock {
         self.fence
     }
 
+    #[inline]
     pub fn release(&mut self, node: u64, owner: u64) -> bool {
         let before = self.holders.len();
         self.holders.retain(|h| !(h.node_id == node && h.owner_id == owner));
@@ -146,6 +156,7 @@ impl DistributedLock {
         self.holders.len() < before
     }
 
+    #[inline]
     pub fn expire_leases(&mut self, now: u64) -> Vec<LockHolder> {
         let mut expired = Vec::new();
         self.holders.retain(|h| {
@@ -155,12 +166,14 @@ impl DistributedLock {
         expired
     }
 
+    #[inline]
     pub fn enqueue_waiter(&mut self, waiter: LockWaiter) {
         self.contention_count += 1;
-        self.waiters.push(waiter);
-        self.waiters.sort_by(|a, b| b.priority.cmp(&a.priority));
+        self.waiters.push_back(waiter);
+        self.waiters.make_contiguous().sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
+    #[inline]
     pub fn drain_expired_waiters(&mut self, now: u64) -> Vec<LockWaiter> {
         let mut timed_out = Vec::new();
         self.waiters.retain(|w| {
@@ -171,9 +184,9 @@ impl DistributedLock {
 
     pub fn try_grant_waiters(&mut self, ts: u64, lease_ns: u64) -> Vec<FencingToken> {
         let mut granted = Vec::new();
-        while let Some(w) = self.waiters.first() {
+        while let Some(w) = self.waiters.front() {
             if self.can_grant(w.requested_mode) {
-                let w = self.waiters.remove(0);
+                let w = self.waiters.pop_front().unwrap();
                 let fence = self.grant(w.node_id, w.owner_id, w.requested_mode, ts, lease_ns);
                 granted.push(fence);
             } else {
@@ -196,6 +209,7 @@ pub struct DeadlockEdge {
 
 /// DLM stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DlmStats {
     pub total_locks: usize,
     pub held_locks: usize,
@@ -227,12 +241,14 @@ impl CoopDistLockMgr {
         hash
     }
 
+    #[inline]
     pub fn create_lock(&mut self, name: String, ts: u64) -> u64 {
         let id = Self::name_hash(&name);
         self.locks.entry(id).or_insert_with(|| DistributedLock::new(name, ts));
         id
     }
 
+    #[inline]
     pub fn try_acquire(&mut self, lock_id: u64, node: u64, owner: u64, mode: LockMode, ts: u64) -> Option<FencingToken> {
         let lease = self.default_lease_ns;
         if let Some(lock) = self.locks.get_mut(&lock_id) {
@@ -243,12 +259,14 @@ impl CoopDistLockMgr {
         None
     }
 
+    #[inline]
     pub fn enqueue(&mut self, lock_id: u64, node: u64, owner: u64, mode: LockMode, priority: u32, ts: u64, timeout: u64) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.enqueue_waiter(LockWaiter::new(node, owner, mode, priority, ts, timeout));
         }
     }
 
+    #[inline]
     pub fn release(&mut self, lock_id: u64, node: u64, owner: u64, ts: u64) {
         let lease = self.default_lease_ns;
         if let Some(lock) = self.locks.get_mut(&lock_id) {
@@ -257,6 +275,7 @@ impl CoopDistLockMgr {
         }
     }
 
+    #[inline]
     pub fn expire_all(&mut self, now: u64) {
         let lease = self.default_lease_ns;
         for lock in self.locks.values_mut() {
@@ -267,6 +286,7 @@ impl CoopDistLockMgr {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_locks = self.locks.len();
         self.stats.held_locks = self.locks.values().filter(|l| l.state == DLockState::Held).count();
@@ -278,6 +298,8 @@ impl CoopDistLockMgr {
         self.stats.total_timeouts = self.locks.values().map(|l| l.timeout_count).sum();
     }
 
+    #[inline(always)]
     pub fn lock(&self, id: u64) -> Option<&DistributedLock> { self.locks.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &DlmStats { &self.stats }
 }

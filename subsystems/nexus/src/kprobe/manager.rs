@@ -49,11 +49,13 @@ impl KprobeManager {
     }
 
     /// Allocate kprobe ID
+    #[inline(always)]
     pub fn allocate_kprobe_id(&self) -> KprobeId {
         KprobeId::new(self.next_kprobe_id.fetch_add(1, Ordering::Relaxed))
     }
 
     /// Allocate kretprobe ID
+    #[inline(always)]
     pub fn allocate_kretprobe_id(&self) -> KretprobeId {
         KretprobeId::new(self.next_kretprobe_id.fetch_add(1, Ordering::Relaxed))
     }
@@ -85,6 +87,7 @@ impl KprobeManager {
     }
 
     /// Unregister kprobe
+    #[inline]
     pub fn unregister(&mut self, id: KprobeId) -> bool {
         if let Some(def) = self.kprobes.remove(&id) {
             self.by_address.remove(&def.address);
@@ -125,6 +128,7 @@ impl KprobeManager {
     }
 
     /// Register kretprobe
+    #[inline]
     pub fn register_kretprobe(
         &mut self,
         kprobe_id: KprobeId,
@@ -142,16 +146,19 @@ impl KprobeManager {
     }
 
     /// Get kprobe
+    #[inline(always)]
     pub fn get(&self, id: KprobeId) -> Option<&KprobeDef> {
         self.kprobes.get(&id)
     }
 
     /// Get kprobe mutably
+    #[inline(always)]
     pub fn get_mut(&mut self, id: KprobeId) -> Option<&mut KprobeDef> {
         self.kprobes.get_mut(&id)
     }
 
     /// Get kprobe at address
+    #[inline]
     pub fn get_at_address(&self, address: ProbeAddress) -> Option<&KprobeDef> {
         self.by_address
             .get(&address)
@@ -159,26 +166,31 @@ impl KprobeManager {
     }
 
     /// Get kretprobe
+    #[inline(always)]
     pub fn get_kretprobe(&self, id: KretprobeId) -> Option<&KretprobeDef> {
         self.kretprobes.get(&id)
     }
 
     /// Get active count
+    #[inline(always)]
     pub fn active_count(&self) -> u32 {
         self.active_count
     }
 
     /// Get total registered
+    #[inline(always)]
     pub fn total_registered(&self) -> u64 {
         self.total_registered.load(Ordering::Relaxed)
     }
 
     /// Get instruction analyzer
+    #[inline(always)]
     pub fn analyzer(&self) -> &InstructionAnalyzer {
         &self.analyzer
     }
 
     /// Get instruction analyzer mutably
+    #[inline(always)]
     pub fn analyzer_mut(&mut self) -> &mut InstructionAnalyzer {
         &mut self.analyzer
     }

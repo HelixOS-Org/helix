@@ -47,6 +47,7 @@ impl Default for FaultConfig {
 
 impl FaultConfig {
     /// Create a memory fault config
+    #[inline]
     pub fn memory(pressure: f32) -> Self {
         Self {
             fault_type: FaultType::Memory,
@@ -56,6 +57,7 @@ impl FaultConfig {
     }
 
     /// Create a latency fault config
+    #[inline]
     pub fn latency(cycles: u64) -> Self {
         Self {
             fault_type: FaultType::Latency,
@@ -65,6 +67,7 @@ impl FaultConfig {
     }
 
     /// Create a CPU fault config
+    #[inline]
     pub fn cpu() -> Self {
         Self {
             fault_type: FaultType::Cpu,
@@ -73,6 +76,7 @@ impl FaultConfig {
     }
 
     /// Create an I/O fault config
+    #[inline]
     pub fn io() -> Self {
         Self {
             fault_type: FaultType::Io,
@@ -81,24 +85,28 @@ impl FaultConfig {
     }
 
     /// Set probability
+    #[inline(always)]
     pub fn with_probability(mut self, p: f32) -> Self {
         self.probability = p.clamp(0.0, 1.0);
         self
     }
 
     /// Set target
+    #[inline(always)]
     pub fn with_target(mut self, target: FaultTarget) -> Self {
         self.target = target;
         self
     }
 
     /// Set duration
+    #[inline(always)]
     pub fn with_duration(mut self, cycles: u64) -> Self {
         self.duration_cycles = Some(cycles);
         self
     }
 
     /// Set max occurrences
+    #[inline(always)]
     pub fn with_max_occurrences(mut self, max: u32) -> Self {
         self.max_occurrences = Some(max);
         self

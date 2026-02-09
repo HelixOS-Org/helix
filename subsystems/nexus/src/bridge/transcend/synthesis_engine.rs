@@ -122,6 +122,7 @@ pub struct NoveltyAssessment {
 
 /// Aggregate statistics for the synthesis engine.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SynthesisEngineStats {
     pub total_generations: u64,
     pub total_individuals: u64,
@@ -229,6 +230,7 @@ impl Population {
         }
     }
 
+    #[inline]
     fn update_stats(&mut self) {
         let n = self.individuals.len();
         if n == 0 {
@@ -255,6 +257,7 @@ impl Population {
 /// Self-improvement engine that evolves new optimisation strategies
 /// through genetic programming and validates them before deployment.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeSynthesisEngine {
     population: Population,
     strategies: BTreeMap<u64, SynthesisedStrategy>,
@@ -451,6 +454,7 @@ impl BridgeSynthesisEngine {
 
     /// Compute the improvement rate (EMA-smoothed delta of best fitness
     /// per generation).
+    #[inline(always)]
     pub fn improvement_rate(&self) -> f32 {
         self.stats.improvement_rate_ema
     }
@@ -478,6 +482,7 @@ impl BridgeSynthesisEngine {
     }
 
     /// Deploy a validated strategy.
+    #[inline]
     pub fn deploy_strategy(&mut self, strategy_id: u64) -> bool {
         if let Some(s) = self.strategies.get_mut(&strategy_id) {
             if s.status == AlgorithmStatus::Validated {
@@ -491,6 +496,7 @@ impl BridgeSynthesisEngine {
     }
 
     /// Aggregate statistics.
+    #[inline(always)]
     pub fn stats(&self) -> SynthesisEngineStats {
         self.stats
     }

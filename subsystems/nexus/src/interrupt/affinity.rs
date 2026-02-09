@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -26,7 +27,7 @@ pub struct AffinityOptimizer {
     /// NUMA topology
     numa_nodes: Vec<Vec<CpuId>>,
     /// Optimization history
-    history: Vec<AffinityChange>,
+    history: VecDeque<AffinityChange>,
     /// Max history
     max_history: usize,
 }
@@ -54,27 +55,31 @@ impl AffinityOptimizer {
             cpu_loads: BTreeMap::new(),
             irq_stats: BTreeMap::new(),
             numa_nodes: Vec::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
         }
     }
 
     /// Set NUMA topology
+    #[inline(always)]
     pub fn set_numa_topology(&mut self, nodes: Vec<Vec<CpuId>>) {
         self.numa_nodes = nodes;
     }
 
     /// Update CPU load
+    #[inline(always)]
     pub fn update_cpu_load(&mut self, cpu: CpuId, load: f64) {
         self.cpu_loads.insert(cpu, load);
     }
 
     /// Update IRQ stats
+    #[inline(always)]
     pub fn update_irq_stats(&mut self, irq: Irq, stats: IrqStats) {
         self.irq_stats.insert(irq, stats);
     }
 
     /// Set current affinity
+    #[inline(always)]
     pub fn set_affinity(&mut self, irq: Irq, cpus: Vec<CpuId>) {
         self.affinities.insert(irq, cpus);
     }
@@ -155,7 +160,7 @@ impl AffinityOptimizer {
 
     /// Record affinity change
     fn record_change(&mut self, irq: Irq, old: Vec<CpuId>, new: Vec<CpuId>, reason: &str) {
-        self.history.push(AffinityChange {
+        self.history.push_back(AffinityChange {
             irq,
             old_cpus: old,
             new_cpus: new.clone(),
@@ -164,18 +169,20 @@ impl AffinityOptimizer {
         });
 
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         self.affinities.insert(irq, new);
     }
 
     /// Get change history
+    #[inline(always)]
     pub fn history(&self) -> &[AffinityChange] {
         &self.history
     }
 
     /// Get current affinity
+    #[inline(always)]
     pub fn get_affinity(&self, irq: Irq) -> Option<&Vec<CpuId>> {
         self.affinities.get(&irq)
     }

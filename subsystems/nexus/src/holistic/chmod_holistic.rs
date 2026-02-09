@@ -49,12 +49,15 @@ impl ChmodChangeRecord {
         }
     }
 
+    #[inline(always)]
     pub fn setuid_added(&self) -> bool {
         self.new_mode & 0o4000 != 0 && self.old_mode & 0o4000 == 0
     }
+    #[inline(always)]
     pub fn setgid_added(&self) -> bool {
         self.new_mode & 0o2000 != 0 && self.old_mode & 0o2000 == 0
     }
+    #[inline(always)]
     pub fn world_writable_added(&self) -> bool {
         self.new_mode & 0o002 != 0 && self.old_mode & 0o002 == 0
     }
@@ -62,6 +65,7 @@ impl ChmodChangeRecord {
 
 /// Holistic chmod stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticChmodStats {
     pub total_changes: u64,
     pub setuid_additions: u64,
@@ -104,6 +108,7 @@ impl HolisticChmod {
         }
     }
 
+    #[inline]
     pub fn risk_rate(&self) -> f64 {
         if self.stats.total_changes == 0 {
             0.0

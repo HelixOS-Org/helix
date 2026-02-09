@@ -43,6 +43,7 @@ impl PersonalizedModel {
     }
 
     /// Get combined parameters
+    #[inline]
     pub fn get_combined(&self) -> Vec<f64> {
         let mut combined = self.shared.clone();
         combined.extend_from_slice(&self.local);
@@ -50,6 +51,7 @@ impl PersonalizedModel {
     }
 
     /// Update from global model
+    #[inline]
     pub fn update_from_global(&mut self, global: &[f64]) {
         for (s, &g) in self.shared.iter_mut().zip(global.iter()) {
             *s = self.alpha * g + (1.0 - self.alpha) * *s;
@@ -57,6 +59,7 @@ impl PersonalizedModel {
     }
 
     /// Get local update
+    #[inline]
     pub fn get_local_update(&self, new_local: &[f64]) -> Vec<f64> {
         self.local
             .iter()
@@ -95,11 +98,13 @@ impl PersonalizedFLClient {
     }
 
     /// Receive global model update
+    #[inline(always)]
     pub fn receive_global(&mut self, global_params: &[f64]) {
         self.model.update_from_global(global_params);
     }
 
     /// Compute update to send
+    #[inline]
     pub fn compute_update(&self) -> ModelUpdate {
         // In real implementation, would compute gradient from local training
         let delta = self.model.shared.clone();

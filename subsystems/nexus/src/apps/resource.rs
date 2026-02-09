@@ -63,11 +63,13 @@ impl CpuAccounting {
     }
 
     /// Total CPU time
+    #[inline(always)]
     pub fn total_cpu_ns(&self) -> u64 {
         self.user_time_ns + self.system_time_ns
     }
 
     /// System/User ratio
+    #[inline]
     pub fn system_ratio(&self) -> f64 {
         let total = self.total_cpu_ns();
         if total == 0 {
@@ -78,6 +80,7 @@ impl CpuAccounting {
     }
 
     /// Context switch rate (switches per second given a time window)
+    #[inline]
     pub fn switch_rate(&self, window_ns: u64) -> f64 {
         if window_ns == 0 {
             return 0.0;
@@ -145,6 +148,7 @@ impl MemoryAccounting {
     }
 
     /// Update RSS and track peak
+    #[inline]
     pub fn update_rss(&mut self, rss: u64) {
         self.resident_size = rss;
         if rss > self.peak_rss {
@@ -153,6 +157,7 @@ impl MemoryAccounting {
     }
 
     /// RSS as percentage of virtual
+    #[inline]
     pub fn rss_ratio(&self) -> f64 {
         if self.virtual_size == 0 {
             0.0
@@ -162,6 +167,7 @@ impl MemoryAccounting {
     }
 
     /// Swap pressure
+    #[inline]
     pub fn swap_ratio(&self) -> f64 {
         let total = self.resident_size + self.swap_size;
         if total == 0 {
@@ -172,6 +178,7 @@ impl MemoryAccounting {
     }
 
     /// Major fault rate
+    #[inline]
     pub fn major_fault_rate(&self) -> f64 {
         let total = self.minor_faults + self.major_faults;
         if total == 0 {
@@ -234,11 +241,13 @@ impl IoAccounting {
     }
 
     /// Total bytes transferred
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.read_bytes + self.write_bytes
     }
 
     /// Read/write ratio
+    #[inline]
     pub fn read_ratio(&self) -> f64 {
         let total = self.total_bytes();
         if total == 0 {
@@ -249,6 +258,7 @@ impl IoAccounting {
     }
 
     /// Average operation size (bytes)
+    #[inline]
     pub fn avg_op_size(&self) -> u64 {
         let total_ops = self.read_ops + self.write_ops;
         if total_ops == 0 {
@@ -259,6 +269,7 @@ impl IoAccounting {
     }
 
     /// IOPS
+    #[inline(always)]
     pub fn iops(&self) -> u64 {
         self.read_ops + self.write_ops
     }
@@ -310,11 +321,13 @@ impl NetworkAccounting {
     }
 
     /// Total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.tx_bytes + self.rx_bytes
     }
 
     /// Retransmission rate
+    #[inline]
     pub fn retransmit_rate(&self) -> f64 {
         if self.tx_packets == 0 {
             0.0
@@ -324,6 +337,7 @@ impl NetworkAccounting {
     }
 
     /// Connection error rate
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         if self.total_connections == 0 {
             0.0
@@ -417,12 +431,14 @@ impl FdTracker {
     }
 
     /// Close an FD
+    #[inline(always)]
     pub fn close(&mut self, fd: u32) -> Option<FdInfo> {
         self.total_closed += 1;
         self.fds.remove(&fd)
     }
 
     /// Record I/O on an FD
+    #[inline]
     pub fn record_io(&mut self, fd: u32, bytes: u64, is_read: bool) {
         if let Some(info) = self.fds.get_mut(&fd) {
             info.ops += 1;
@@ -435,16 +451,19 @@ impl FdTracker {
     }
 
     /// Current open FD count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.fds.len()
     }
 
     /// FDs by type
+    #[inline(always)]
     pub fn count_by_type(&self, fd_type: FdType) -> usize {
         self.fds.values().filter(|f| f.fd_type == fd_type).count()
     }
 
     /// Get FD info
+    #[inline(always)]
     pub fn get(&self, fd: u32) -> Option<&FdInfo> {
         self.fds.get(&fd)
     }
@@ -532,6 +551,7 @@ impl ResourceManager {
     }
 
     /// Get or create a tracker
+    #[inline]
     pub fn get_or_create(&mut self, pid: u64) -> &mut ResourceTracker {
         if !self.trackers.contains_key(&pid) && self.trackers.len() < self.max_processes {
             self.trackers.insert(pid, ResourceTracker::new(pid));
@@ -542,16 +562,19 @@ impl ResourceManager {
     }
 
     /// Get tracker
+    #[inline(always)]
     pub fn get(&self, pid: u64) -> Option<&ResourceTracker> {
         self.trackers.get(&pid)
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.trackers.remove(&pid);
     }
 
     /// Top N resource consumers
+    #[inline]
     pub fn top_consumers(&self, n: usize) -> Vec<(u64, f64)> {
         let mut consumers: Vec<(u64, f64)> = self
             .trackers
@@ -564,6 +587,7 @@ impl ResourceManager {
     }
 
     /// Number of tracked processes
+    #[inline(always)]
     pub fn tracked_count(&self) -> usize {
         self.trackers.len()
     }

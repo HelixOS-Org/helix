@@ -241,6 +241,7 @@ impl Default for BusConfig {
 
 /// Bus statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BusStats {
     /// Total messages sent
     pub total_sent: u64,
@@ -302,6 +303,7 @@ impl MessageBus {
     }
 
     /// Unsubscribe
+    #[inline]
     pub fn unsubscribe(&mut self, sub_id: u64) -> bool {
         for subs in self.subscriptions.values_mut() {
             if let Some(pos) = subs.iter().position(|s| s.id == sub_id) {
@@ -355,6 +357,7 @@ impl MessageBus {
     }
 
     /// Respond to a request
+    #[inline]
     pub fn respond(&mut self, request_id: u64, mut response: BusMessage) {
         response.msg_type = MessageType::Response;
         response.correlation_id = Some(request_id);
@@ -467,16 +470,19 @@ impl MessageBus {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &BusStats {
         &self.stats
     }
 
     /// Get queue depth
+    #[inline(always)]
     pub fn queue_depth(&self) -> usize {
         self.messages.len()
     }
 
     /// Get subscription count
+    #[inline(always)]
     pub fn subscription_count(&self) -> usize {
         self.subscriptions.values().map(|s| s.len()).sum()
     }

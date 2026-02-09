@@ -28,6 +28,7 @@ impl ReplayEngine {
     }
 
     /// Add event handler for component
+    #[inline]
     pub fn on_event(
         &mut self,
         component: ComponentId,
@@ -74,11 +75,13 @@ impl ReplayEngine {
     }
 
     /// Get reconstructor
+    #[inline(always)]
     pub fn reconstructor(&self) -> &StateReconstructor {
         &self.reconstructor
     }
 
     /// Get mutable reconstructor
+    #[inline(always)]
     pub fn reconstructor_mut(&mut self) -> &mut StateReconstructor {
         &mut self.reconstructor
     }

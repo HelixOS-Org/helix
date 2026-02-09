@@ -188,6 +188,7 @@ impl Default for HubConfig {
 
 /// Hub statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HubStats {
     /// Total messages sent
     pub messages_sent: u64,
@@ -310,6 +311,7 @@ impl IntegrationHub {
     }
 
     /// Disconnect endpoints
+    #[inline]
     pub fn disconnect(&mut self, source: u64, target: u64) {
         if let Some(targets) = self.connections.get_mut(&source) {
             targets.retain(|&t| t != target);
@@ -526,16 +528,19 @@ impl IntegrationHub {
     }
 
     /// Get endpoint
+    #[inline(always)]
     pub fn get_endpoint(&self, id: u64) -> Option<&IntegrationEndpoint> {
         self.endpoints.get(&id)
     }
 
     /// Get endpoint by name
+    #[inline(always)]
     pub fn get_endpoint_by_name(&self, name: &str) -> Option<&IntegrationEndpoint> {
         self.endpoints.values().find(|e| e.name == name)
     }
 
     /// Get endpoints by owner
+    #[inline]
     pub fn get_endpoints_by_owner(&self, owner: DomainId) -> Vec<&IntegrationEndpoint> {
         self.endpoints
             .values()
@@ -544,11 +549,13 @@ impl IntegrationHub {
     }
 
     /// Get connected endpoints
+    #[inline(always)]
     pub fn get_connections(&self, source: u64) -> Vec<u64> {
         self.connections.get(&source).cloned().unwrap_or_default()
     }
 
     /// Update endpoint status
+    #[inline]
     pub fn set_endpoint_status(&mut self, id: u64, status: EndpointStatus) {
         if let Some(ep) = self.endpoints.get_mut(&id) {
             ep.status = status;
@@ -584,16 +591,19 @@ impl IntegrationHub {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &HubStats {
         &self.stats
     }
 
     /// Get endpoint count
+    #[inline(always)]
     pub fn endpoint_count(&self) -> usize {
         self.endpoints.len()
     }
 
     /// Get pending message count
+    #[inline(always)]
     pub fn pending_message_count(&self) -> usize {
         self.message_queue.len()
     }

@@ -160,6 +160,7 @@ impl Session {
     }
 
     /// Activate session
+    #[inline]
     pub fn activate(&mut self, caps: SessionCapabilities) {
         self.state = SessionState::Active;
         self.capabilities = caps;
@@ -168,33 +169,39 @@ impl Session {
     }
 
     /// Record app message
+    #[inline(always)]
     pub fn record_app_message(&mut self, timestamp: u64) {
         self.app_messages += 1;
         self.last_activity = timestamp;
     }
 
     /// Record kernel message
+    #[inline(always)]
     pub fn record_kernel_message(&mut self, timestamp: u64) {
         self.kernel_messages += 1;
         self.last_activity = timestamp;
     }
 
     /// Check if session is idle
+    #[inline(always)]
     pub fn is_idle(&self, current_time: u64) -> bool {
         current_time.saturating_sub(self.last_activity) > self.idle_timeout_ms
     }
 
     /// Session age (ms)
+    #[inline(always)]
     pub fn age(&self, current_time: u64) -> u64 {
         current_time.saturating_sub(self.created_at)
     }
 
     /// Is session active?
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.state == SessionState::Active
     }
 
     /// Total messages exchanged
+    #[inline(always)]
     pub fn total_messages(&self) -> u64 {
         self.app_messages + self.kernel_messages
     }
@@ -231,6 +238,7 @@ impl SessionGroup {
     }
 
     /// Add a member
+    #[inline]
     pub fn add_member(&mut self, session_id: SessionId) {
         if !self.members.contains(&session_id) {
             self.members.push(session_id);
@@ -238,11 +246,13 @@ impl SessionGroup {
     }
 
     /// Remove a member
+    #[inline(always)]
     pub fn remove_member(&mut self, session_id: SessionId) {
         self.members.retain(|&id| id != session_id);
     }
 
     /// Member count
+    #[inline(always)]
     pub fn member_count(&self) -> usize {
         self.members.len()
     }
@@ -308,21 +318,25 @@ impl SessionManager {
     }
 
     /// Get session by ID
+    #[inline(always)]
     pub fn get(&self, id: SessionId) -> Option<&Session> {
         self.sessions.get(&id.0)
     }
 
     /// Get mutable session by ID
+    #[inline(always)]
     pub fn get_mut(&mut self, id: SessionId) -> Option<&mut Session> {
         self.sessions.get_mut(&id.0)
     }
 
     /// Get session for a PID
+    #[inline(always)]
     pub fn get_by_pid(&self, pid: u64) -> Option<&Session> {
         self.pid_sessions.get(&pid).and_then(|id| self.sessions.get(&id.0))
     }
 
     /// Get mutable session for a PID
+    #[inline(always)]
     pub fn get_by_pid_mut(&mut self, pid: u64) -> Option<&mut Session> {
         let id = self.pid_sessions.get(&pid).copied()?;
         self.sessions.get_mut(&id.0)
@@ -346,6 +360,7 @@ impl SessionManager {
     }
 
     /// Terminate session by PID
+    #[inline]
     pub fn terminate_by_pid(&mut self, pid: u64) {
         if let Some(&id) = self.pid_sessions.get(&pid) {
             self.terminate(id);
@@ -353,6 +368,7 @@ impl SessionManager {
     }
 
     /// Create a session group
+    #[inline]
     pub fn create_group(&mut self, leader_pid: u64, timestamp: u64) -> u64 {
         let gid = self.next_group_id;
         self.next_group_id += 1;
@@ -361,6 +377,7 @@ impl SessionManager {
     }
 
     /// Add session to group
+    #[inline]
     pub fn add_to_group(&mut self, session_id: SessionId, group_id: u64) {
         if let Some(session) = self.sessions.get_mut(&session_id.0) {
             session.group_id = Some(group_id);
@@ -385,16 +402,19 @@ impl SessionManager {
     }
 
     /// Active session count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.sessions.values().filter(|s| s.is_active()).count()
     }
 
     /// Total session count
+    #[inline(always)]
     pub fn total_count(&self) -> usize {
         self.sessions.len()
     }
 
     /// Group count
+    #[inline(always)]
     pub fn group_count(&self) -> usize {
         self.groups.len()
     }

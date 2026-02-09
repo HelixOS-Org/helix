@@ -4,6 +4,7 @@
 //! Tracks compliance, benefit metrics, and overall cooperation health.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -64,16 +65,19 @@ impl CoopFeedback {
         }
     }
 
+    #[inline(always)]
     pub fn with_improvement(mut self, ratio: f64) -> Self {
         self.improvement_ratio = ratio;
         self
     }
 
+    #[inline(always)]
     pub fn with_context(mut self, value: i64) -> Self {
         self.context_value = value;
         self
     }
 
+    #[inline(always)]
     pub fn with_timestamp(mut self, ts: u64) -> Self {
         self.timestamp = ts;
         self
@@ -86,6 +90,7 @@ impl CoopFeedback {
 
 /// Metrics for a single cooperation session
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopMetrics {
     /// Session ID
     pub session_id: u64,
@@ -135,6 +140,7 @@ impl CoopMetrics {
     }
 
     /// Advisory compliance rate (0.0 - 1.0)
+    #[inline]
     pub fn advisory_compliance(&self) -> f64 {
         let total = self.advisories_followed + self.advisories_ignored;
         if total == 0 {
@@ -144,6 +150,7 @@ impl CoopMetrics {
     }
 
     /// Hint accuracy rate (0.0 - 1.0)
+    #[inline]
     pub fn hint_accuracy(&self) -> f64 {
         let total = self.hints_accurate + self.hints_inaccurate;
         if total == 0 {
@@ -153,6 +160,7 @@ impl CoopMetrics {
     }
 
     /// Contract fulfillment rate (0.0 - 1.0)
+    #[inline]
     pub fn contract_fulfillment(&self) -> f64 {
         if self.contracts_total == 0 {
             return 1.0;
@@ -161,6 +169,7 @@ impl CoopMetrics {
     }
 
     /// Average measured improvement
+    #[inline]
     pub fn average_improvement(&self) -> f64 {
         if self.improvement_count == 0 {
             return 1.0;
@@ -169,6 +178,7 @@ impl CoopMetrics {
     }
 
     /// Overall cooperation health score (0.0 - 1.0)
+    #[inline]
     pub fn health_score(&self) -> f64 {
         let compliance = self.advisory_compliance();
         let accuracy = self.hint_accuracy();
@@ -212,6 +222,7 @@ impl FeedbackCollector {
     }
 
     /// Initialize metrics for a session
+    #[inline]
     pub fn init_session(&mut self, session_id: u64, pid: u64) {
         self.metrics
             .entry(session_id)
@@ -255,17 +266,19 @@ impl FeedbackCollector {
         // Store in history
         let hist = self.history.entry(session_id).or_insert_with(Vec::new);
         if hist.len() >= MAX_HISTORY_PER_SESSION {
-            hist.remove(0);
+            hist.pop_front();
         }
         hist.push(feedback);
     }
 
     /// Get metrics for a session
+    #[inline(always)]
     pub fn get_metrics(&self, session_id: u64) -> Option<&CoopMetrics> {
         self.metrics.get(&session_id)
     }
 
     /// Get global average improvement ratio
+    #[inline]
     pub fn global_improvement(&self) -> f64 {
         if self.global_improvement_count == 0 {
             return 1.0;
@@ -274,11 +287,13 @@ impl FeedbackCollector {
     }
 
     /// Get the total number of sessions being tracked
+    #[inline(always)]
     pub fn session_count(&self) -> usize {
         self.metrics.len()
     }
 
     /// Get the least cooperative sessions (by health score)
+    #[inline]
     pub fn least_cooperative(&self, n: usize) -> Vec<(u64, f64)> {
         let mut scores: Vec<(u64, f64)> = self
             .metrics
@@ -291,6 +306,7 @@ impl FeedbackCollector {
     }
 
     /// Remove session data
+    #[inline(always)]
     pub fn remove_session(&mut self, session_id: u64) {
         self.metrics.remove(&session_id);
         self.history.remove(&session_id);

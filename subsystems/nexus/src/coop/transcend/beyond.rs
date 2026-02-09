@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -109,6 +110,7 @@ pub struct EmergentProtocol {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct BeyondStats {
     pub anticipated_needs: usize,
     pub trust_seeds: usize,
@@ -160,11 +162,12 @@ impl CoopBeyond {
 
     // -- demand observation -------------------------------------------------
 
+    #[inline]
     pub fn observe_demand(&mut self, agent_id: u64, demand: u64) {
         let history = self.demand_history.entry(agent_id).or_insert_with(Vec::new);
         history.push(demand);
         if history.len() > 128 {
-            history.remove(0);
+            history.pop_front();
         }
     }
 
@@ -530,6 +533,7 @@ impl CoopBeyond {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> BeyondStats {
         self.stats.clone()
     }

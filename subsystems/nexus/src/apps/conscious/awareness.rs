@@ -100,6 +100,7 @@ impl ProcessAwareness {
     }
 
     /// Record a behavioral observation
+    #[inline]
     fn observe(&mut self, behavior_hash: u64, matched_known: bool, tick: u64) {
         self.observations += 1;
         self.last_tick = tick;
@@ -170,6 +171,7 @@ pub struct NoveltyEvent {
 
 /// Aggregate awareness statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct AwarenessStats {
     pub processes_tracked: usize,
     pub avg_awareness: f32,
@@ -216,6 +218,7 @@ impl AppsAwareness {
     }
 
     /// Compute the awareness score for a specific application
+    #[inline]
     pub fn app_awareness_score(&self, process_id: u64) -> f32 {
         self.processes
             .get(&process_id)
@@ -224,6 +227,7 @@ impl AppsAwareness {
     }
 
     /// Detect unknown behavior for a process
+    #[inline]
     pub fn unknown_behavior_detect(
         &mut self,
         process_id: u64,
@@ -262,6 +266,7 @@ impl AppsAwareness {
     }
 
     /// Get the learning rate for a specific process
+    #[inline]
     pub fn learning_rate(&self, process_id: u64) -> f32 {
         self.processes
             .get(&process_id)
@@ -270,6 +275,7 @@ impl AppsAwareness {
     }
 
     /// Compute the familiarity index for a process (0.0 – 1.0)
+    #[inline]
     pub fn familiarity_index(&self, process_id: u64) -> f32 {
         self.processes
             .get(&process_id)
@@ -297,6 +303,7 @@ impl AppsAwareness {
     }
 
     /// Apply temporal decay to all processes (staleness reduction)
+    #[inline]
     pub fn apply_decay(&mut self) {
         for proc_state in self.processes.values_mut() {
             proc_state.decay();
@@ -304,6 +311,7 @@ impl AppsAwareness {
     }
 
     /// Evict processes below minimum awareness threshold
+    #[inline(always)]
     pub fn evict_stale(&mut self, min_awareness: f32) {
         self.processes.retain(|_, p| p.awareness > min_awareness);
     }

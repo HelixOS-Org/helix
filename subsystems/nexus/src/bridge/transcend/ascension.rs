@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -83,12 +84,13 @@ pub struct ImprovementCycle {
 
 /// A metric tracked for ascension progress.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AscensionMetric {
     pub metric_id: u64,
     pub name: String,
     pub current_value: f32,
     pub target_value: f32,
-    pub history: Vec<f32>,
+    pub history: VecDeque<f32>,
     pub ema: f32,
 }
 
@@ -129,6 +131,7 @@ pub struct DivineOptimisation {
 
 /// Aggregate statistics for the ascension engine.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct AscensionStats {
     pub current_level: u8, // 0-4 for Mortal-Divine
     pub progress: f32,
@@ -147,11 +150,12 @@ pub struct AscensionStats {
 /// Final ascension framework. Tracks progress from Mortal to Divine,
 /// manages autonomous improvement cycles, and conducts promotion ceremonies.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeAscension {
     level: AscensionLevel,
     progress: f32,
     metrics: BTreeMap<u64, AscensionMetric>,
-    improvement_log: Vec<ImprovementCycle>,
+    improvement_log: VecDeque<ImprovementCycle>,
     ceremonies: Vec<AscensionCeremony>,
     divine_log: Vec<DivineOptimisation>,
     total_improvements: u64,
@@ -169,7 +173,7 @@ impl BridgeAscension {
             level: AscensionLevel::Mortal,
             progress: 0.0,
             metrics: BTreeMap::new(),
-            improvement_log: Vec::new(),
+            improvement_log: VecDeque::new(),
             ceremonies: Vec::new(),
             divine_log: Vec::new(),
             total_improvements: 0,
@@ -192,7 +196,7 @@ impl BridgeAscension {
                 name: String::from(name),
                 current_value: 0.0,
                 target_value: target,
-                history: Vec::new(),
+                history: VecDeque::new(),
                 ema: 0.0,
             });
         }
@@ -201,23 +205,26 @@ impl BridgeAscension {
     }
 
     /// Update a metric's current value.
+    #[inline]
     pub fn update_metric(&mut self, metric_id: u64, value: f32) {
         if let Some(m) = self.metrics.get_mut(&metric_id) {
             m.current_value = value;
             m.ema = EMA_ALPHA * value + (1.0 - EMA_ALPHA) * m.ema;
             m.history.push(value);
             if m.history.len() > IMPROVEMENT_WINDOW * 5 {
-                m.history.remove(0);
+                m.history.pop_front().unwrap();
             }
         }
     }
 
     /// Current ascension level.
+    #[inline(always)]
     pub fn current_level(&self) -> AscensionLevel {
         self.level
     }
 
     /// Overall ascension progress [0.0, 1.0].
+    #[inline]
     pub fn ascension_progress(&mut self) -> f32 {
         self.tick += 1;
 
@@ -277,6 +284,7 @@ impl BridgeAscension {
     }
 
     /// Record an autonomous improvement cycle.
+    #[inline]
     pub fn autonomous_improvement(
         &mut self,
         description: &str,
@@ -301,9 +309,9 @@ impl BridgeAscension {
         };
 
         if self.improvement_log.len() >= MAX_IMPROVEMENT_LOG {
-            self.improvement_log.remove(0);
+            self.improvement_log.pop_front();
         }
-        self.improvement_log.push(cycle);
+        self.improvement_log.push_back(cycle);
 
         self.improvement_ema =
             EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
@@ -315,6 +323,7 @@ impl BridgeAscension {
     }
 
     /// Record a human-assisted improvement cycle.
+    #[inline]
     pub fn human_improvement(
         &mut self,
         description: &str,
@@ -338,9 +347,9 @@ impl BridgeAscension {
         };
 
         if self.improvement_log.len() >= MAX_IMPROVEMENT_LOG {
-            self.improvement_log.remove(0);
+            self.improvement_log.pop_front();
         }
-        self.improvement_log.push(cycle);
+        self.improvement_log.push_back(cycle);
 
         self.improvement_ema =
             EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
@@ -382,6 +391,7 @@ impl BridgeAscension {
     }
 
     /// Perform a divine-level optimisation (only available at Transcendent+).
+    #[inline]
     pub fn divine_optimization(&mut self, domain: &str) -> Option<DivineOptimisation> {
         if self.level < AscensionLevel::Transcendent {
             return None;
@@ -415,21 +425,25 @@ impl BridgeAscension {
     }
 
     /// How many ceremonies have been performed.
+    #[inline(always)]
     pub fn ceremonies_performed(&self) -> usize {
         self.ceremonies.len()
     }
 
     /// Get divine optimisation log.
+    #[inline(always)]
     pub fn divine_log(&self) -> &[DivineOptimisation] {
         &self.divine_log
     }
 
     /// Get a metric by ID.
+    #[inline(always)]
     pub fn get_metric(&self, metric_id: u64) -> Option<&AscensionMetric> {
         self.metrics.get(&metric_id)
     }
 
     /// All metric IDs.
+    #[inline(always)]
     pub fn metric_ids(&self) -> Vec<u64> {
         self.metrics.keys().copied().collect()
     }
@@ -462,6 +476,7 @@ impl BridgeAscension {
     }
 
     /// Current tick.
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

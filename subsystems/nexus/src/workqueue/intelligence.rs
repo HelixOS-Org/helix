@@ -20,6 +20,7 @@ use super::{
 
 /// Work queue analysis result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkQueueAnalysis {
     /// Queue ID
     pub queue_id: WorkQueueId,
@@ -54,6 +55,7 @@ pub enum WorkQueueBottleneck {
 
 /// Recommendation for work queue
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkQueueRecommendation {
     /// Action to take
     pub action: WorkQueueAction,
@@ -90,6 +92,7 @@ pub enum WorkQueueAction {
 
 /// Predicted issue
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkQueuePrediction {
     /// Issue type
     pub issue: WorkQueueBottleneck,
@@ -102,6 +105,7 @@ pub struct WorkQueuePrediction {
 }
 
 /// Work Queue Intelligence - comprehensive analysis and optimization
+#[repr(align(64))]
 pub struct WorkQueueIntelligence {
     /// Queue information
     queues: BTreeMap<WorkQueueId, WorkQueueInfo>,
@@ -143,6 +147,7 @@ impl WorkQueueIntelligence {
     }
 
     /// Register work queue
+    #[inline]
     pub fn register_queue(
         &mut self,
         queue_id: WorkQueueId,
@@ -158,6 +163,7 @@ impl WorkQueueIntelligence {
     }
 
     /// Record work enqueued
+    #[inline]
     pub fn record_enqueue(&mut self, queue_id: WorkQueueId, _work: &WorkInfo) {
         if let Some(info) = self.queues.get_mut(&queue_id) {
             info.pending_count += 1;
@@ -168,6 +174,7 @@ impl WorkQueueIntelligence {
     }
 
     /// Record work started
+    #[inline]
     pub fn record_work_started(&mut self, queue_id: WorkQueueId, _work_id: WorkId) {
         if let Some(info) = self.queues.get_mut(&queue_id) {
             info.pending_count = info.pending_count.saturating_sub(1);
@@ -216,6 +223,7 @@ impl WorkQueueIntelligence {
     }
 
     /// Record queue depth sample
+    #[inline]
     pub fn record_depth_sample(
         &mut self,
         queue_id: WorkQueueId,
@@ -319,16 +327,19 @@ impl WorkQueueIntelligence {
     }
 
     /// Schedule work with intelligence
+    #[inline(always)]
     pub fn schedule_work(&mut self, work: &WorkInfo, current_time: u64) -> PowerSchedulingDecision {
         self.power_scheduler.schedule_work(work, current_time, None)
     }
 
     /// Find steal target
+    #[inline(always)]
     pub fn find_steal_target(&self, cpu_id: CpuId) -> Option<StealTarget> {
         self.stealing_optimizer.find_steal_target(cpu_id)
     }
 
     /// Add work dependency
+    #[inline(always)]
     pub fn add_dependency(
         &mut self,
         source: WorkId,
@@ -340,61 +351,73 @@ impl WorkQueueIntelligence {
     }
 
     /// Check if work is ready
+    #[inline(always)]
     pub fn is_work_ready(&self, work_id: WorkId) -> bool {
         self.dependency_tracker.is_ready(work_id)
     }
 
     /// Get queue count
+    #[inline(always)]
     pub fn queue_count(&self) -> usize {
         self.queues.len()
     }
 
     /// Get total processed count
+    #[inline(always)]
     pub fn total_processed(&self) -> u64 {
         self.total_processed.load(Ordering::Relaxed)
     }
 
     /// Get total failed count
+    #[inline(always)]
     pub fn total_failed(&self) -> u64 {
         self.total_failed.load(Ordering::Relaxed)
     }
 
     /// Get work stealing optimizer
+    #[inline(always)]
     pub fn stealing_optimizer(&self) -> &WorkStealingOptimizer {
         &self.stealing_optimizer
     }
 
     /// Get work stealing optimizer mutably
+    #[inline(always)]
     pub fn stealing_optimizer_mut(&mut self) -> &mut WorkStealingOptimizer {
         &mut self.stealing_optimizer
     }
 
     /// Get power scheduler
+    #[inline(always)]
     pub fn power_scheduler(&self) -> &PowerAwareWorkScheduler {
         &self.power_scheduler
     }
 
     /// Get power scheduler mutably
+    #[inline(always)]
     pub fn power_scheduler_mut(&mut self) -> &mut PowerAwareWorkScheduler {
         &mut self.power_scheduler
     }
 
     /// Get dependency tracker
+    #[inline(always)]
     pub fn dependency_tracker(&self) -> &WorkDependencyTracker {
         &self.dependency_tracker
     }
 
     /// Get dependency tracker mutably
+    #[inline(always)]
     pub fn dependency_tracker_mut(&mut self) -> &mut WorkDependencyTracker {
         &mut self.dependency_tracker
     }
 
     /// Get queue info
+    #[inline(always)]
     pub fn get_queue(&self, queue_id: WorkQueueId) -> Option<&WorkQueueInfo> {
         self.queues.get(&queue_id)
     }
 
     /// Get latency stats for queue
+    #[inline]
     pub fn get_latency_stats(&self, queue_id: WorkQueueId) -> Option<LatencyStats> {
         self.latency_analyzers
             .get(&queue_id)

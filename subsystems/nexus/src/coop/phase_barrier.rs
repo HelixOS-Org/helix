@@ -30,8 +30,10 @@ impl PhaseParticipant {
         Self { id, current_phase: 0, arrived: false, phases_completed: 0, total_wait_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn arrive(&mut self) { self.arrived = true; }
 
+    #[inline]
     pub fn advance(&mut self, wait_ns: u64) {
         self.current_phase += 1;
         self.arrived = false;
@@ -55,15 +57,19 @@ impl PhaseBarrier {
         Self { current_phase: 0, state: PhaseState::Registration, participants: BTreeMap::new(), phase_durations: Vec::new(), phase_start_time: 0 }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, id: u64) { self.participants.insert(id, PhaseParticipant::new(id)); }
 
+    #[inline(always)]
     pub fn start(&mut self, now: u64) { self.state = PhaseState::Active; self.phase_start_time = now; }
 
+    #[inline(always)]
     pub fn arrive(&mut self, id: u64) -> bool {
         if let Some(p) = self.participants.get_mut(&id) { p.arrive(); }
         self.participants.values().all(|p| p.arrived)
     }
 
+    #[inline]
     pub fn advance(&mut self, now: u64) {
         let duration = now.saturating_sub(self.phase_start_time);
         self.phase_durations.push(duration);
@@ -72,11 +78,13 @@ impl PhaseBarrier {
         self.phase_start_time = now;
     }
 
+    #[inline(always)]
     pub fn deregister(&mut self, id: u64) { self.participants.remove(&id); }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PhaseBarrierStats {
     pub current_phase: u64,
     pub participant_count: u32,
@@ -92,12 +100,15 @@ pub struct CoopPhaseBarrier {
 impl CoopPhaseBarrier {
     pub fn new() -> Self { Self { barriers: Vec::new() } }
 
+    #[inline(always)]
     pub fn create(&mut self) -> usize { let idx = self.barriers.len(); self.barriers.push(PhaseBarrier::new()); idx }
 
+    #[inline(always)]
     pub fn register(&mut self, idx: usize, id: u64) {
         if let Some(b) = self.barriers.get_mut(idx) { b.register(id); }
     }
 
+    #[inline]
     pub fn stats(&self) -> Vec<PhaseBarrierStats> {
         self.barriers.iter().map(|b| {
             let arrived = b.participants.values().filter(|p| p.arrived).count() as u32;
@@ -151,6 +162,7 @@ impl PhaseBarrierV2Instance {
         }
     }
 
+    #[inline]
     pub fn register(&mut self, pid: u64) -> u64 {
         let idx = self.participants.len() as u64;
         self.participants.push(PhaseV2Participant {
@@ -191,6 +203,7 @@ impl PhaseBarrierV2Instance {
         self.state = PhaseV2State::Arriving;
     }
 
+    #[inline]
     pub fn deregister(&mut self, pid: u64) {
         for p in self.participants.iter_mut() {
             if p.id == pid {
@@ -204,6 +217,7 @@ impl PhaseBarrierV2Instance {
 
 /// Statistics for phase barrier V2
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PhaseBarrierV2Stats {
     pub barriers_created: u64,
     pub total_phases: u64,
@@ -233,6 +247,7 @@ impl CoopPhaseBarrierV2 {
         }
     }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -241,6 +256,7 @@ impl CoopPhaseBarrierV2 {
         id
     }
 
+    #[inline]
     pub fn register(&mut self, barrier_id: u64, pid: u64) -> bool {
         if let Some(b) = self.barriers.get_mut(&barrier_id) {
             b.register(pid);
@@ -249,6 +265,7 @@ impl CoopPhaseBarrierV2 {
         } else { false }
     }
 
+    #[inline]
     pub fn arrive(&mut self, barrier_id: u64, pid: u64) -> bool {
         if let Some(b) = self.barriers.get_mut(&barrier_id) {
             self.stats.total_arrivals += 1;
@@ -260,6 +277,7 @@ impl CoopPhaseBarrierV2 {
         false
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PhaseBarrierV2Stats {
         &self.stats
     }

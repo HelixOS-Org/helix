@@ -104,16 +104,19 @@ impl PerfIntelligence {
     }
 
     /// Register PMU
+    #[inline(always)]
     pub fn register_pmu(&mut self, pmu: Pmu) {
         self.manager.register_pmu(pmu);
     }
 
     /// Create event
+    #[inline(always)]
     pub fn create_event(&mut self, config: EventConfig, pmu: PmuId) -> EventId {
         self.manager.create_event(config, pmu)
     }
 
     /// Update metrics
+    #[inline(always)]
     pub fn update_metrics(&mut self, metrics: PerfMetrics) {
         self.current_metrics = metrics;
     }
@@ -226,16 +229,19 @@ impl PerfIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &PerfManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut PerfManager {
         &mut self.manager
     }
 
     /// Get current metrics
+    #[inline(always)]
     pub fn metrics(&self) -> &PerfMetrics {
         &self.current_metrics
     }

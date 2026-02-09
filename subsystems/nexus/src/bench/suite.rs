@@ -42,22 +42,26 @@ impl BenchmarkSuite {
     }
 
     /// Add a benchmark
+    #[inline(always)]
     pub fn add(&mut self, benchmark: Benchmark) {
         self.benchmarks.push(benchmark);
     }
 
     /// Add a simple benchmark
+    #[inline(always)]
     pub fn bench(&mut self, name: impl Into<String>, func: impl Fn() + Send + Sync + 'static) {
         self.add(Benchmark::new(name, func));
     }
 
     /// Set global setup
+    #[inline(always)]
     pub fn with_setup(mut self, setup: impl Fn() + Send + Sync + 'static) -> Self {
         self.setup = Some(Box::new(setup));
         self
     }
 
     /// Set global teardown
+    #[inline(always)]
     pub fn with_teardown(mut self, teardown: impl Fn() + Send + Sync + 'static) -> Self {
         self.teardown = Some(Box::new(teardown));
         self
@@ -90,11 +94,13 @@ impl BenchmarkSuite {
     }
 
     /// Get benchmark count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.benchmarks.len()
     }
 
     /// Is suite empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.benchmarks.is_empty()
     }
@@ -117,6 +123,7 @@ pub struct SuiteResult {
 
 impl SuiteResult {
     /// Get fastest benchmark
+    #[inline]
     pub fn fastest(&self) -> Option<&BenchmarkResult> {
         self.results.iter().min_by(|a, b| {
             a.mean
@@ -126,6 +133,7 @@ impl SuiteResult {
     }
 
     /// Get slowest benchmark
+    #[inline]
     pub fn slowest(&self) -> Option<&BenchmarkResult> {
         self.results.iter().max_by(|a, b| {
             a.mean

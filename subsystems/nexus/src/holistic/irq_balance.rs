@@ -78,14 +78,17 @@ impl IrqDescriptor {
         }
     }
 
+    #[inline(always)]
     pub fn is_high_rate(&self) -> bool {
         self.fire_count > 100_000 // per second approximation
     }
 
+    #[inline(always)]
     pub fn cpu_time_ns(&self) -> u64 {
         self.handler_ns_avg * self.fire_count
     }
 
+    #[inline(always)]
     pub fn spurious_ratio(&self) -> f64 {
         if self.fire_count == 0 { return 0.0; }
         self.spurious_count as f64 / self.fire_count as f64
@@ -115,6 +118,7 @@ impl CpuIrqLoad {
         }
     }
 
+    #[inline(always)]
     pub fn total_overhead_ns(&self) -> u64 {
         self.total_irq_time_ns + self.softirq_time_ns
     }
@@ -156,6 +160,7 @@ impl MsiXAssignment {
         }
     }
 
+    #[inline]
     pub fn spread_across(&mut self, cpus: &[u32]) {
         self.vectors.clear();
         for (i, &cpu) in cpus.iter().enumerate() {
@@ -167,6 +172,7 @@ impl MsiXAssignment {
 
 /// Holistic IRQ Balance stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticIrqBalanceStats {
     pub total_irqs: usize,
     pub total_cpus: usize,
@@ -197,6 +203,7 @@ impl HolisticIrqBalance {
         }
     }
 
+    #[inline]
     pub fn register_irq(&mut self, desc: IrqDescriptor) {
         let cpu = desc.affinity_cpu;
         let irq = desc.irq_number;
@@ -208,10 +215,12 @@ impl HolisticIrqBalance {
         }
     }
 
+    #[inline(always)]
     pub fn register_cpu(&mut self, load: CpuIrqLoad) {
         self.cpus.insert(load.cpu_id, load);
     }
 
+    #[inline(always)]
     pub fn register_msix(&mut self, assignment: MsiXAssignment) {
         self.msix.insert(assignment.device_id, assignment);
     }
@@ -306,7 +315,10 @@ impl HolisticIrqBalance {
         self.stats.high_rate_irqs = self.irqs.values().filter(|i| i.is_high_rate()).count();
     }
 
+    #[inline(always)]
     pub fn irq(&self, num: u32) -> Option<&IrqDescriptor> { self.irqs.get(&num) }
+    #[inline(always)]
     pub fn cpu_load(&self, id: u32) -> Option<&CpuIrqLoad> { self.cpus.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticIrqBalanceStats { &self.stats }
 }

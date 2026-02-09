@@ -52,6 +52,7 @@ fn xorshift64(state: &mut u64) -> u64 {
 
 /// A stage in a syscall handling path
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PathStage {
     pub name: String,
     pub stage_id: u64,
@@ -63,6 +64,7 @@ pub struct PathStage {
 
 /// A complete syscall handling path for rehearsal
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RehearsalPath {
     pub path_id: u64,
     pub syscall_nr: u32,
@@ -73,6 +75,7 @@ pub struct RehearsalPath {
 
 /// Identified bottleneck in a rehearsal path
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Bottleneck {
     pub bottleneck_id: u64,
     pub path_id: u64,
@@ -86,6 +89,7 @@ pub struct Bottleneck {
 
 /// A counterfactual: "what if we did it differently?"
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Counterfactual {
     pub scenario_id: u64,
     pub original_path_id: u64,
@@ -112,6 +116,7 @@ pub struct RehearsalResult {
 
 /// Aggregate rehearsal statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct RehearsalStats {
     pub total_rehearsals: u64,
     pub total_bottlenecks_found: u64,
@@ -143,6 +148,7 @@ impl StageHistory {
         }
     }
 
+    #[inline]
     fn record(&mut self, latency_ns: u64, failed: bool) {
         self.observations += 1;
         self.latency_ema = EMA_ALPHA * latency_ns as f32 + (1.0 - EMA_ALPHA) * self.latency_ema;
@@ -158,6 +164,7 @@ impl StageHistory {
 /// Dry-run rehearsal engine for syscall handling paths. Rehearses paths
 /// without committing, identifies bottlenecks, and explores counterfactuals.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeRehearsal {
     rehearsal_history: Vec<RehearsalResult>,
     write_idx: usize,
@@ -194,6 +201,7 @@ impl BridgeRehearsal {
     }
 
     /// Rehearse a syscall handling path, returning analysis
+    #[inline]
     pub fn rehearse_path(&mut self, syscall_nr: u32, stages: Vec<PathStage>) -> RehearsalResult {
         self.tick += 1;
         self.total_rehearsals += 1;
@@ -300,6 +308,7 @@ impl BridgeRehearsal {
     }
 
     /// Identify bottlenecks in a rehearsed path
+    #[inline(always)]
     pub fn identify_bottleneck(&self, path: &RehearsalPath) -> Vec<Bottleneck> {
         self.find_bottlenecks(path)
     }
@@ -349,11 +358,13 @@ impl BridgeRehearsal {
     }
 
     /// Compute the cost of rehearsal relative to actual execution
+    #[inline(always)]
     pub fn rehearsal_cost(&self) -> f32 {
         self.rehearsal_overhead_ema
     }
 
     /// Generate counterfactual alternatives for a rehearsed path
+    #[inline(always)]
     pub fn counterfactual(&mut self, path: &RehearsalPath) -> Vec<Counterfactual> {
         let bottlenecks = self.find_bottlenecks(path);
         self.generate_counterfactuals(path, &bottlenecks)

@@ -22,6 +22,7 @@ impl NotifyCoopRecord {
 
 /// Notify coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NotifyCoopStats { pub total_events: u64, pub fanouts: u64, pub coalesced: u64, pub filtered: u64 }
 
 /// Main coop notify
@@ -30,6 +31,7 @@ pub struct CoopNotify { pub stats: NotifyCoopStats }
 
 impl CoopNotify {
     pub fn new() -> Self { Self { stats: NotifyCoopStats { total_events: 0, fanouts: 0, coalesced: 0, filtered: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &NotifyCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

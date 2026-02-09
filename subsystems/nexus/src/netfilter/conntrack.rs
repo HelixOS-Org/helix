@@ -59,6 +59,7 @@ impl ConnTuple {
     }
 
     /// Get reply tuple (swapped src/dst)
+    #[inline]
     pub fn reply(&self) -> Self {
         Self {
             src_addr: self.dst_addr,
@@ -147,6 +148,7 @@ impl ConntrackEntry {
     }
 
     /// Update original direction
+    #[inline]
     pub fn update_orig(&self, bytes: u64, timestamp: u64) {
         self.packets_orig.fetch_add(1, Ordering::Relaxed);
         self.bytes_orig.fetch_add(bytes, Ordering::Relaxed);
@@ -154,6 +156,7 @@ impl ConntrackEntry {
     }
 
     /// Update reply direction
+    #[inline]
     pub fn update_reply(&self, bytes: u64, timestamp: u64) {
         self.packets_reply.fetch_add(1, Ordering::Relaxed);
         self.bytes_reply.fetch_add(bytes, Ordering::Relaxed);
@@ -161,16 +164,19 @@ impl ConntrackEntry {
     }
 
     /// Is expired
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now > self.last_seen.load(Ordering::Relaxed) + self.timeout
     }
 
     /// Total packets
+    #[inline(always)]
     pub fn total_packets(&self) -> u64 {
         self.packets_orig.load(Ordering::Relaxed) + self.packets_reply.load(Ordering::Relaxed)
     }
 
     /// Total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.bytes_orig.load(Ordering::Relaxed) + self.bytes_reply.load(Ordering::Relaxed)
     }
@@ -235,11 +241,13 @@ impl Conntrack {
     }
 
     /// Get entry
+    #[inline(always)]
     pub fn get(&self, id: ConntrackId) -> Option<&ConntrackEntry> {
         self.entries.get(&id)
     }
 
     /// Delete entry
+    #[inline]
     pub fn delete(&mut self, id: ConntrackId) -> bool {
         if let Some(entry) = self.entries.remove(&id) {
             let orig_hash = self.hash_tuple(&entry.original);
@@ -261,6 +269,7 @@ impl Conntrack {
     }
 
     /// Entry count
+    #[inline(always)]
     pub fn entry_count(&self) -> usize {
         self.entries.len()
     }

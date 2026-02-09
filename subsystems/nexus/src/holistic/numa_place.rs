@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -32,6 +33,7 @@ pub enum AccessLocality {
 
 /// Per-node memory state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NumaNodeMemState {
     pub node_id: u32,
     pub total_pages: u64,
@@ -65,22 +67,26 @@ impl NumaNodeMemState {
         }
     }
 
+    #[inline]
     pub fn locality_ratio(&self) -> f64 {
         let total = self.local_accesses + self.remote_accesses;
         if total == 0 { return 1.0; }
         self.local_accesses as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn free_ratio(&self) -> f64 {
         if self.total_pages == 0 { return 0.0; }
         self.free_pages as f64 / self.total_pages as f64
     }
 
+    #[inline(always)]
     pub fn bandwidth_pressure(&self) -> f64 {
         if self.bandwidth_capacity_mbps == 0 { return 0.0; }
         self.bandwidth_used_mbps as f64 / self.bandwidth_capacity_mbps as f64
     }
 
+    #[inline(always)]
     pub fn is_bandwidth_constrained(&self) -> bool {
         self.bandwidth_pressure() > 0.85
     }
@@ -92,8 +98,8 @@ pub struct ProcessNumaProfile {
     pub process_id: u64,
     pub preferred_node: u32,
     pub running_node: u32,
-    pub pages_per_node: BTreeMap<u32, u64>,
-    pub accesses_per_node: BTreeMap<u32, u64>,
+    pub pages_per_node: ArrayMap<u64, 32>,
+    pub accesses_per_node: ArrayMap<u64, 32>,
     pub total_remote_accesses: u64,
     pub migration_count: u32,
     pub affinity_score: f64, // 0.0 = all remote, 1.0 = all local
@@ -105,14 +111,15 @@ impl ProcessNumaProfile {
             process_id,
             preferred_node: preferred,
             running_node: preferred,
-            pages_per_node: BTreeMap::new(),
-            accesses_per_node: BTreeMap::new(),
+            pages_per_node: ArrayMap::new(0),
+            accesses_per_node: ArrayMap::new(0),
             total_remote_accesses: 0,
             migration_count: 0,
             affinity_score: 1.0,
         }
     }
 
+    #[inline]
     pub fn dominant_node(&self) -> u32 {
         self.pages_per_node.iter()
             .max_by_key(|(_, &count)| count)
@@ -120,10 +127,12 @@ impl ProcessNumaProfile {
             .unwrap_or(self.preferred_node)
     }
 
+    #[inline(always)]
     pub fn is_misplaced(&self) -> bool {
         self.dominant_node() != self.running_node
     }
 
+    #[inline]
     pub fn compute_affinity(&mut self) {
         let total: u64 = self.accesses_per_node.values().sum();
         if total == 0 {
@@ -134,8 +143,9 @@ impl ProcessNumaProfile {
         self.affinity_score = local as f64 / total as f64;
     }
 
+    #[inline(always)]
     pub fn pages_on_node(&self, node: u32) -> u64 {
-        self.pages_per_node.get(&node).copied().unwrap_or(0)
+        self.pages_per_node.try_get(node as usize).copied().unwrap_or(0)
     }
 }
 
@@ -159,6 +169,7 @@ pub struct MigrationCandidate {
 
 /// Holistic NUMA Placement stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticNumaPlaceStats {
     pub total_nodes: usize,
     pub total_processes: usize,
@@ -186,18 +197,22 @@ impl HolisticNumaPlace {
         }
     }
 
+    #[inline(always)]
     pub fn add_node(&mut self, state: NumaNodeMemState) {
         self.nodes.insert(state.node_id, state);
     }
 
+    #[inline(always)]
     pub fn add_distance(&mut self, from: u32, to: u32, distance: u32) {
         self.distances.push(NumaDistanceEntry { from_node: from, to_node: to, distance });
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, profile: ProcessNumaProfile) {
         self.processes.insert(profile.process_id, profile);
     }
 
+    #[inline]
     pub fn distance(&self, from: u32, to: u32) -> u32 {
         if from == to { return 10; }
         self.distances.iter()
@@ -232,6 +247,7 @@ impl HolisticNumaPlace {
     }
 
     /// Find best node for a process
+    #[inline]
     pub fn best_node(&self, pid: u64) -> Option<u32> {
         let node_ids: Vec<u32> = self.nodes.keys().copied().collect();
         node_ids.into_iter()
@@ -289,7 +305,10 @@ impl HolisticNumaPlace {
             .filter(|n| n.is_bandwidth_constrained()).count();
     }
 
+    #[inline(always)]
     pub fn node(&self, id: u32) -> Option<&NumaNodeMemState> { self.nodes.get(&id) }
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcessNumaProfile> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticNumaPlaceStats { &self.stats }
 }

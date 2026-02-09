@@ -33,6 +33,7 @@ impl CredHolisticFinding {
 
 /// Credential holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CredHolisticStats {
     pub total_analyses: u64,
     pub anomalies: u64,
@@ -51,6 +52,7 @@ impl HolisticCredential {
         Self { stats: CredHolisticStats { total_analyses: 0, anomalies: 0, escalation_attempts: 0, ns_leakages: 0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &CredHolisticFinding) {
         self.stats.total_analyses += 1;
         if finding.escalations > 0 { self.stats.escalation_attempts += finding.escalations as u64; }

@@ -144,6 +144,7 @@ pub struct AnalysisResult {
 
 /// Cumulative analysis statistics.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct AnalysisStats {
     pub total_analyses: u64,
     pub significant_results: u64,
@@ -184,6 +185,7 @@ pub struct AnovaResult {
 // ============================================================================
 
 /// Statistical analysis engine for bridge research results.
+#[repr(align(64))]
 pub struct BridgeAnalysisEngine {
     results: Vec<AnalysisResult>,
     groups: BTreeMap<u64, SampleGroup>,
@@ -295,6 +297,7 @@ impl BridgeAnalysisEngine {
     }
 
     /// Compute Cohen's d effect size between two groups.
+    #[inline]
     pub fn effect_size(&self, label_a: &str, label_b: &str) -> f32 {
         let key_a = fnv1a_hash(label_a.as_bytes());
         let key_b = fnv1a_hash(label_b.as_bytes());
@@ -407,6 +410,7 @@ impl BridgeAnalysisEngine {
 
     /// Check significance of the most recent result, applying Bonferroni
     /// correction if multiple comparisons were made.
+    #[inline]
     pub fn significance_check(&self) -> Vec<(String, bool, f32)> {
         let n_comparisons = self.results.len().min(BONFERRONI_MAX_COMPARISONS).max(1);
         let corrected_alpha = self.alpha_level / n_comparisons as f32;
@@ -448,16 +452,19 @@ impl BridgeAnalysisEngine {
     }
 
     /// Current engine statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &AnalysisStats {
         &self.stats
     }
 
     /// Number of registered groups.
+    #[inline(always)]
     pub fn group_count(&self) -> usize {
         self.groups.len()
     }
 
     /// Clear all groups and results.
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.groups.clear();
         self.results.clear();
@@ -598,6 +605,7 @@ impl BridgeAnalysisEngine {
 
 /// A human-readable summary of all analyses performed.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct AnalysisSummary {
     pub total_tests: usize,
     pub significant_count: usize,

@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -72,6 +73,7 @@ pub enum CheckpointTrigger {
 
 /// Captured state fragment
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateFragment {
     /// Component type
     pub component: StateComponent,
@@ -97,6 +99,7 @@ impl StateFragment {
     }
 
     /// Create incremental fragment
+    #[inline]
     pub fn incremental(
         component: StateComponent,
         data_hash: u64,
@@ -155,6 +158,7 @@ impl Checkpoint {
     }
 
     /// Add fragment
+    #[inline]
     pub fn add_fragment(&mut self, fragment: StateFragment) {
         self.total_size += fragment.size_bytes;
         // Update verification hash
@@ -164,16 +168,19 @@ impl Checkpoint {
     }
 
     /// Finalize
+    #[inline(always)]
     pub fn finalize(&mut self) {
         self.state = CheckpointState::Valid;
     }
 
     /// Invalidate
+    #[inline(always)]
     pub fn invalidate(&mut self) {
         self.state = CheckpointState::Invalidated;
     }
 
     /// Verify integrity
+    #[inline]
     pub fn verify(&self) -> bool {
         let mut hash: u64 = 0xcbf29ce484222325;
         for f in &self.fragments {
@@ -184,6 +191,7 @@ impl Checkpoint {
     }
 
     /// Fragment count by component
+    #[inline]
     pub fn fragment_count(&self, component: StateComponent) -> usize {
         self.fragments
             .iter()
@@ -215,6 +223,7 @@ pub struct RestorePlan {
 
 /// Checkpoint stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeCheckpointStats {
     /// Total checkpoints created
     pub checkpoints_created: u64,
@@ -232,7 +241,7 @@ pub struct BridgeCheckpointStats {
 #[derive(Debug)]
 struct ProcessCheckpoints {
     /// Ordered checkpoints
-    checkpoints: Vec<Checkpoint>,
+    checkpoints: VecDeque<Checkpoint>,
     /// Max checkpoints per process
     max_checkpoints: usize,
 }
@@ -240,7 +249,7 @@ struct ProcessCheckpoints {
 impl ProcessCheckpoints {
     fn new(max: usize) -> Self {
         Self {
-            checkpoints: Vec::new(),
+            checkpoints: VecDeque::new(),
             max_checkpoints: max,
         }
     }
@@ -248,13 +257,13 @@ impl ProcessCheckpoints {
     fn add(&mut self, cp: Checkpoint) {
         if self.checkpoints.len() >= self.max_checkpoints {
             // Remove oldest
-            self.checkpoints.remove(0);
+            self.checkpoints.pop_front();
         }
-        self.checkpoints.push(cp);
+        self.checkpoints.push_back(cp);
     }
 
     fn latest(&self) -> Option<&Checkpoint> {
-        self.checkpoints.last()
+        self.checkpoints.back()
     }
 
     fn get(&self, id: u64) -> Option<&Checkpoint> {
@@ -278,6 +287,7 @@ impl ProcessCheckpoints {
 }
 
 /// Bridge checkpoint manager
+#[repr(align(64))]
 pub struct BridgeCheckpointManager {
     /// Per-process checkpoints
     processes: BTreeMap<u64, ProcessCheckpoints>,
@@ -315,6 +325,7 @@ impl BridgeCheckpointManager {
     }
 
     /// Add state fragment to checkpoint
+    #[inline]
     pub fn add_fragment(&mut self, pid: u64, checkpoint_id: u64, fragment: StateFragment) -> bool {
         if let Some(history) = self.processes.get_mut(&pid) {
             if let Some(cp) = history.get_mut(checkpoint_id) {
@@ -387,6 +398,7 @@ impl BridgeCheckpointManager {
     }
 
     /// Verify checkpoint integrity
+    #[inline]
     pub fn verify(&self, pid: u64, checkpoint_id: u64) -> bool {
         self.processes
             .get(&pid)
@@ -396,6 +408,7 @@ impl BridgeCheckpointManager {
     }
 
     /// Invalidate all checkpoints for process (e.g., after state mutation)
+    #[inline]
     pub fn invalidate_all(&mut self, pid: u64) {
         if let Some(history) = self.processes.get_mut(&pid) {
             for cp in &mut history.checkpoints {
@@ -408,6 +421,7 @@ impl BridgeCheckpointManager {
     }
 
     /// Cleanup old checkpoints
+    #[inline]
     pub fn cleanup(&mut self, max_age_ns: u64, now: u64) {
         for history in self.processes.values_mut() {
             history.checkpoints.retain(|cp| {
@@ -425,6 +439,7 @@ impl BridgeCheckpointManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCheckpointStats {
         &self.stats
     }

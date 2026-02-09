@@ -22,6 +22,7 @@ impl UnixBridgeRecord {
 
 /// Unix bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UnixBridgeStats { pub total_events: u64, pub streams: u64, pub dgrams: u64, pub fd_passes: u64 }
 
 /// Main bridge unix
@@ -30,6 +31,7 @@ pub struct BridgeUnix { pub stats: UnixBridgeStats }
 
 impl BridgeUnix {
     pub fn new() -> Self { Self { stats: UnixBridgeStats { total_events: 0, streams: 0, dgrams: 0, fd_passes: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &UnixBridgeRecord) {
         self.stats.total_events += 1;
         match rec.event {

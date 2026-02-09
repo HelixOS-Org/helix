@@ -103,16 +103,19 @@ impl FragmentationAnalyzer {
     }
 
     /// Set free space fragmentation
+    #[inline(always)]
     pub fn set_free_space_fragmentation(&mut self, score: f64) {
         self.free_space_fragmentation = score;
     }
 
     /// Get file fragmentation score
+    #[inline(always)]
     pub fn get_score(&self, inode: Inode) -> Option<&FragmentationScore> {
         self.file_scores.get(&inode)
     }
 
     /// Get files needing defragmentation
+    #[inline]
     pub fn files_needing_defrag(&self, min_priority: DefragPriority) -> Vec<&FragmentationScore> {
         self.file_scores
             .values()
@@ -121,6 +124,7 @@ impl FragmentationAnalyzer {
     }
 
     /// Get most fragmented files
+    #[inline]
     pub fn most_fragmented(&self, n: usize) -> Vec<&FragmentationScore> {
         let mut files: Vec<_> = self.file_scores.values().collect();
         files.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
@@ -129,6 +133,7 @@ impl FragmentationAnalyzer {
     }
 
     /// Get average fragmentation
+    #[inline]
     pub fn average_fragmentation(&self) -> f64 {
         if self.file_scores.is_empty() {
             0.0
@@ -139,6 +144,7 @@ impl FragmentationAnalyzer {
     }
 
     /// Get overall filesystem health
+    #[inline]
     pub fn filesystem_health(&self) -> f64 {
         let avg_frag = self.average_fragmentation();
         let free_frag = self.free_space_fragmentation;

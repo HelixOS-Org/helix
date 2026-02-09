@@ -29,6 +29,7 @@ impl AsyncOneshot {
         Self { state: OneshotState::Empty, value_hash: 0, sender_tid: sender, receiver_tid: receiver, created_at: now, filled_at: 0, taken_at: 0 }
     }
 
+    #[inline]
     pub fn send(&mut self, value_hash: u64, now: u64) -> bool {
         if self.state != OneshotState::Empty { return false; }
         self.value_hash = value_hash;
@@ -37,6 +38,7 @@ impl AsyncOneshot {
         true
     }
 
+    #[inline]
     pub fn recv(&mut self, now: u64) -> Option<u64> {
         if self.state != OneshotState::Filled { return None; }
         self.state = OneshotState::Taken;
@@ -44,12 +46,15 @@ impl AsyncOneshot {
         Some(self.value_hash)
     }
 
+    #[inline(always)]
     pub fn cancel(&mut self) { self.state = OneshotState::Cancelled; }
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 { if self.taken_at > self.filled_at { self.taken_at - self.filled_at } else { 0 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AsyncOneshotStats {
     pub total_channels: u32,
     pub filled: u32,
@@ -65,20 +70,24 @@ pub struct CoopAsyncOneshot {
 impl CoopAsyncOneshot {
     pub fn new() -> Self { Self { channels: alloc::vec::Vec::new() } }
 
+    #[inline]
     pub fn create(&mut self, sender: u64, receiver: u64, now: u64) -> usize {
         let idx = self.channels.len();
         self.channels.push(AsyncOneshot::new(sender, receiver, now));
         idx
     }
 
+    #[inline(always)]
     pub fn send(&mut self, idx: usize, val: u64, now: u64) -> bool {
         if idx < self.channels.len() { self.channels[idx].send(val, now) } else { false }
     }
 
+    #[inline(always)]
     pub fn recv(&mut self, idx: usize, now: u64) -> Option<u64> {
         if idx < self.channels.len() { self.channels[idx].recv(now) } else { None }
     }
 
+    #[inline]
     pub fn stats(&self) -> AsyncOneshotStats {
         let filled = self.channels.iter().filter(|c| c.state == OneshotState::Filled).count() as u32;
         let taken = self.channels.iter().filter(|c| c.state == OneshotState::Taken).count() as u32;

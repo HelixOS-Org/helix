@@ -19,6 +19,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -158,6 +159,7 @@ impl CognitiveProcess {
     }
 
     /// Duration in cycles
+    #[inline]
     pub fn duration(&self) -> u64 {
         match self.end_time {
             Some(end) => end.saturating_sub(self.start_time),
@@ -166,6 +168,7 @@ impl CognitiveProcess {
     }
 
     /// Is the process complete?
+    #[inline]
     pub fn is_complete(&self) -> bool {
         matches!(
             self.state,
@@ -174,6 +177,7 @@ impl CognitiveProcess {
     }
 
     /// Is the process successful?
+    #[inline(always)]
     pub fn is_successful(&self) -> bool {
         self.state == ProcessState::Completed
     }
@@ -185,6 +189,7 @@ impl CognitiveProcess {
 
 /// Performance metrics for a cognitive domain
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DomainMetrics {
     /// Domain/process type
     pub domain: CognitiveProcessType,
@@ -259,6 +264,7 @@ impl DomainMetrics {
 
 /// Overall cognitive system metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SystemMetrics {
     /// Total processes executed
     pub total_processes: u64,
@@ -587,11 +593,13 @@ impl AnomalyDetector {
     }
 
     /// Get unresolved anomalies
+    #[inline(always)]
     pub fn get_unresolved(&self) -> Vec<&Anomaly> {
         self.anomalies.iter().filter(|a| !a.resolved).collect()
     }
 
     /// Resolve an anomaly
+    #[inline]
     pub fn resolve(&mut self, id: u64) {
         for anomaly in &mut self.anomalies {
             if anomaly.id == id {
@@ -741,11 +749,13 @@ impl ConfidenceCalibrator {
     }
 
     /// Get expected calibration error
+    #[inline(always)]
     pub fn expected_calibration_error(&self) -> f64 {
         self.ece
     }
 
     /// Get maximum calibration error
+    #[inline(always)]
     pub fn maximum_calibration_error(&self) -> f64 {
         self.mce
     }
@@ -770,6 +780,7 @@ impl ConfidenceCalibrator {
     }
 
     /// Get calibration reliability diagram data
+    #[inline]
     pub fn reliability_diagram(&self) -> Vec<(f64, f64, u64)> {
         self.bins
             .iter()
@@ -787,7 +798,7 @@ pub struct MetacognitionMonitor {
     /// Active cognitive processes
     active_processes: BTreeMap<CognitiveProcessId, CognitiveProcess>,
     /// Completed process history
-    history: Vec<CognitiveProcess>,
+    history: VecDeque<CognitiveProcess>,
     /// Domain metrics
     domain_metrics: BTreeMap<CognitiveProcessType, DomainMetrics>,
     /// System metrics
@@ -809,7 +820,7 @@ impl MetacognitionMonitor {
     pub fn new() -> Self {
         Self {
             active_processes: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             domain_metrics: BTreeMap::new(),
             system_metrics: SystemMetrics::default(),
             anomaly_detector: AnomalyDetector::new(),
@@ -821,6 +832,7 @@ impl MetacognitionMonitor {
     }
 
     /// Set current time
+    #[inline(always)]
     pub fn set_time(&mut self, time: u64) {
         self.current_time = time;
     }
@@ -914,6 +926,7 @@ impl MetacognitionMonitor {
     }
 
     /// Update a process's metrics during execution
+    #[inline]
     pub fn update_process(
         &mut self,
         id: CognitiveProcessId,
@@ -962,11 +975,11 @@ impl MetacognitionMonitor {
 
     /// Add process to history
     fn add_to_history(&mut self, process: CognitiveProcess) {
-        self.history.push(process);
+        self.history.push_back(process);
 
         // Trim history if needed
         while self.history.len() > self.history_limit {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
@@ -1004,53 +1017,63 @@ impl MetacognitionMonitor {
     }
 
     /// Get system metrics
+    #[inline(always)]
     pub fn get_system_metrics(&self) -> &SystemMetrics {
         &self.system_metrics
     }
 
     /// Get domain metrics
+    #[inline(always)]
     pub fn get_domain_metrics(&self, domain: CognitiveProcessType) -> Option<&DomainMetrics> {
         self.domain_metrics.get(&domain)
     }
 
     /// Get all domain metrics
+    #[inline(always)]
     pub fn get_all_domain_metrics(&self) -> &BTreeMap<CognitiveProcessType, DomainMetrics> {
         &self.domain_metrics
     }
 
     /// Get active processes
+    #[inline(always)]
     pub fn get_active_processes(&self) -> Vec<&CognitiveProcess> {
         self.active_processes.values().collect()
     }
 
     /// Get recent history
+    #[inline(always)]
     pub fn get_recent_history(&self, limit: usize) -> Vec<&CognitiveProcess> {
         let start = self.history.len().saturating_sub(limit);
         self.history[start..].iter().collect()
     }
 
     /// Get unresolved anomalies
+    #[inline(always)]
     pub fn get_anomalies(&self) -> Vec<&Anomaly> {
         self.anomaly_detector.get_unresolved()
     }
 
     /// Resolve an anomaly
+    #[inline(always)]
     pub fn resolve_anomaly(&mut self, id: u64) {
         self.anomaly_detector.resolve(id);
     }
 
     /// Calibrate confidence
+    #[inline(always)]
     pub fn calibrate_confidence(&self, raw_confidence: f64) -> f64 {
         self.confidence_calibrator.calibrate(raw_confidence)
     }
 
     /// Add calibration sample
+    #[inline(always)]
     pub fn add_calibration_sample(&mut self, confidence: f64, was_correct: bool) {
         self.confidence_calibrator
             .add_sample(confidence, was_correct);
     }
 
     /// Get expected calibration error
+    #[inline(always)]
     pub fn get_calibration_error(&self) -> f64 {
         self.confidence_calibrator.expected_calibration_error()
     }

@@ -487,6 +487,7 @@ pub struct MutationEngine {
 
 /// Mutation statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MutationStats {
     pub point_mutations: u64,
     pub insertions: u64,
@@ -585,6 +586,7 @@ impl MutationEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MutationStats {
         &self.stats
     }

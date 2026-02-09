@@ -49,6 +49,7 @@ pub struct WakeupEvent {
 
 impl WakeupEvent {
     /// Is this a cross-CPU wakeup?
+    #[inline(always)]
     pub fn is_cross_cpu(&self) -> bool {
         self.waker_cpu != self.wakee_cpu
     }
@@ -93,10 +94,12 @@ impl WakeupEdge {
         }
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> f64 {
         if self.count == 0 { 0.0 } else { self.total_latency_ns as f64 / self.count as f64 }
     }
 
+    #[inline(always)]
     pub fn cross_cpu_ratio(&self) -> f64 {
         if self.count == 0 { 0.0 } else { self.cross_cpu_count as f64 / self.count as f64 }
     }
@@ -104,6 +107,7 @@ impl WakeupEdge {
 
 /// Per-thread wakeup stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ThreadWakeupStats {
     pub tid: u64,
     /// Times this thread was woken
@@ -145,10 +149,12 @@ impl ThreadWakeupStats {
         }
     }
 
+    #[inline(always)]
     pub fn record_waking(&mut self) {
         self.times_waking += 1;
     }
 
+    #[inline]
     pub fn avg_wakeup_latency_ns(&self) -> f64 {
         if self.times_woken == 0 { 0.0 } else {
             self.total_wakeup_latency_ns as f64 / self.times_woken as f64
@@ -195,6 +201,7 @@ pub struct WakeupChain {
 }
 
 impl WakeupChain {
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.chain.len()
     }
@@ -202,6 +209,7 @@ impl WakeupChain {
 
 /// Wakeup profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppWakeupProfilerStats {
     pub total_wakeups: u64,
     pub cross_cpu_wakeups: u64,
@@ -266,11 +274,13 @@ impl AppWakeupProfiler {
             .count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppWakeupProfilerStats {
         &self.stats
     }
 
     /// Most frequent wakeup edges
+    #[inline]
     pub fn top_edges(&self, n: usize) -> Vec<&WakeupEdge> {
         let mut edges: Vec<&WakeupEdge> = self.edges.values().collect();
         edges.sort_by(|a, b| b.count.cmp(&a.count));
@@ -279,6 +289,7 @@ impl AppWakeupProfiler {
     }
 
     /// Threads with wakeup storms
+    #[inline]
     pub fn storm_threads(&self) -> Vec<u64> {
         self.threads.iter()
             .filter(|(_, t)| t.is_wakeup_storm())

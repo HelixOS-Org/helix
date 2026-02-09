@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -69,6 +70,7 @@ impl ResourceIdentity {
         Self { resource_type: rtype, kernel_id: kid, ref_count: 1, sharing_pids: Vec::new() }
     }
 
+    #[inline]
     pub fn add_sharer(&mut self, pid: u64) {
         if !self.sharing_pids.contains(&pid) {
             self.sharing_pids.push(pid);
@@ -76,14 +78,16 @@ impl ResourceIdentity {
         }
     }
 
+    #[inline(always)]
     pub fn is_shared(&self) -> bool { self.ref_count > 1 }
 }
 
 /// Process resource map
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessResources {
     pub pid: u64,
-    pub files: BTreeMap<u64, u64>,
+    pub files: LinearMap<u64, 64>,
     pub vm_id: u64,
     pub fs_id: u64,
     pub sighand_id: u64,
@@ -92,13 +96,13 @@ pub struct ProcessResources {
 
 impl ProcessResources {
     pub fn new(pid: u64) -> Self {
-        Self { pid, files: BTreeMap::new(), vm_id: pid, fs_id: pid, sighand_id: pid, io_id: pid }
+        Self { pid, files: LinearMap::new(), vm_id: pid, fs_id: pid, sighand_id: pid, io_id: pid }
     }
 
     pub fn compare(&self, other: &ProcessResources, rtype: KcmpType, idx1: u64, idx2: u64) -> KcmpResult {
         match rtype {
             KcmpType::File => {
-                let a = self.files.get(&idx1);
+                let a = self.files.get(idx1);
                 let b = other.files.get(&idx2);
                 match (a, b) {
                     (Some(&a), Some(&b)) if a == b => KcmpResult::Equal,
@@ -118,6 +122,7 @@ impl ProcessResources {
 
 /// Bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KcmpBridgeStats {
     pub total_comparisons: u64,
     pub equal_results: u64,
@@ -127,6 +132,7 @@ pub struct KcmpBridgeStats {
 }
 
 /// Main kcmp bridge
+#[repr(align(64))]
 pub struct BridgeKcmp {
     processes: BTreeMap<u64, ProcessResources>,
     history: Vec<KcmpResponse>,
@@ -138,10 +144,12 @@ impl BridgeKcmp {
         Self { processes: BTreeMap::new(), history: Vec::new(), max_history: 4096 }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.entry(pid).or_insert_with(|| ProcessResources::new(pid));
     }
 
+    #[inline]
     pub fn compare(&mut self, pid1: u64, pid2: u64, rtype: KcmpType, idx1: u64, idx2: u64, now: u64) -> KcmpResult {
         let req = KcmpRequest::new(pid1, pid2, rtype, idx1, idx2, now);
         let result = match (self.processes.get(&pid1), self.processes.get(&pid2)) {
@@ -154,6 +162,7 @@ impl BridgeKcmp {
         result
     }
 
+    #[inline]
     pub fn stats(&self) -> KcmpBridgeStats {
         let equal = self.history.iter().filter(|r| r.result == KcmpResult::Equal).count() as u64;
         let avg_dur = if self.history.is_empty() { 0 } else {
@@ -202,6 +211,7 @@ pub struct ResourceId {
 }
 
 impl ResourceId {
+    #[inline]
     pub fn hash_key(&self) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
         h ^= self.pid; h = h.wrapping_mul(0x100000001b3);
@@ -226,6 +236,7 @@ pub struct KcmpV2Record {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KcmpV2BridgeStats {
     pub comparisons: u64,
     pub equal_results: u64,
@@ -234,6 +245,7 @@ pub struct KcmpV2BridgeStats {
 }
 
 /// Main kcmp v2 bridge
+#[repr(align(64))]
 pub struct BridgeKcmpV2 {
     resources: BTreeMap<u64, ResourceId>,
     records: Vec<KcmpV2Record>,
@@ -246,6 +258,7 @@ pub struct BridgeKcmpV2 {
 impl BridgeKcmpV2 {
     pub fn new() -> Self { Self { resources: BTreeMap::new(), records: Vec::new(), next_id: 1, max_records: 4096, type_counts: [0; 8], equal_count: 0 } }
 
+    #[inline(always)]
     pub fn register_resource(&mut self, res: ResourceId) {
         let key = res.hash_key();
         self.resources.insert(key, res);
@@ -265,6 +278,7 @@ impl BridgeKcmpV2 {
         result
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> KcmpV2BridgeStats {
         KcmpV2BridgeStats { comparisons: self.records.len() as u64, equal_results: self.equal_count, tracked_resources: self.resources.len() as u32, by_type: self.type_counts }
     }

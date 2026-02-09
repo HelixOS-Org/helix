@@ -28,6 +28,7 @@ pub enum PageCacheList {
 
 /// Per-file page cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FileCacheProfile {
     pub inode: u64,
     pub cached_pages: u64,
@@ -49,22 +50,27 @@ impl FileCacheProfile {
         }
     }
 
+    #[inline(always)]
     pub fn add_page(&mut self) {
         self.cached_pages += 1;
     }
+    #[inline]
     pub fn evict_page(&mut self) {
         if self.cached_pages > 0 {
             self.cached_pages -= 1;
         }
         self.evictions += 1;
     }
+    #[inline(always)]
     pub fn hit(&mut self) {
         self.hits += 1;
     }
+    #[inline(always)]
     pub fn miss(&mut self) {
         self.misses += 1;
     }
 
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
         if total == 0 {
@@ -77,6 +83,7 @@ impl FileCacheProfile {
 
 /// Holistic page cache stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticPageCacheStats {
     pub total_pages: u64,
     pub hits: u64,
@@ -89,6 +96,7 @@ pub struct HolisticPageCacheStats {
 
 /// Main holistic page cache
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct HolisticPageCache {
     pub files: BTreeMap<u64, FileCacheProfile>,
     pub stats: HolisticPageCacheStats,
@@ -141,6 +149,7 @@ impl HolisticPageCache {
         }
     }
 
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.stats.hits + self.stats.misses;
         if total == 0 {

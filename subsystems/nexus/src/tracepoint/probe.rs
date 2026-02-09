@@ -60,21 +60,25 @@ impl ProbeInfo {
     }
 
     /// Record hit
+    #[inline(always)]
     pub fn hit(&self) {
         self.hits.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get hit count
+    #[inline(always)]
     pub fn hit_count(&self) -> u64 {
         self.hits.load(Ordering::Relaxed)
     }
 
     /// Set filter
+    #[inline(always)]
     pub fn set_filter(&mut self, filter_id: u64) {
         self.filter = Some(filter_id);
     }
 
     /// Clear filter
+    #[inline(always)]
     pub fn clear_filter(&mut self) {
         self.filter = None;
     }
@@ -107,11 +111,13 @@ impl ProbeManager {
     }
 
     /// Allocate probe ID
+    #[inline(always)]
     pub fn allocate_id(&self) -> ProbeId {
         ProbeId::new(self.next_id.fetch_add(1, Ordering::Relaxed))
     }
 
     /// Register probe
+    #[inline]
     pub fn register(&mut self, probe_type: ProbeType, target: String, timestamp: u64) -> ProbeId {
         let id = self.allocate_id();
         let info = ProbeInfo::new(id, probe_type, target, timestamp);
@@ -121,6 +127,7 @@ impl ProbeManager {
     }
 
     /// Attach probe to tracepoint
+    #[inline]
     pub fn attach(&mut self, probe_id: ProbeId, tracepoint_id: TracepointId) -> bool {
         if !self.probes.contains_key(&probe_id) {
             return false;
@@ -134,6 +141,7 @@ impl ProbeManager {
     }
 
     /// Detach probe from tracepoint
+    #[inline]
     pub fn detach(&mut self, probe_id: ProbeId, tracepoint_id: TracepointId) -> bool {
         if let Some(probes) = self.by_tracepoint.get_mut(&tracepoint_id) {
             probes.retain(|&id| id != probe_id);
@@ -143,6 +151,7 @@ impl ProbeManager {
     }
 
     /// Enable probe
+    #[inline]
     pub fn enable(&mut self, id: ProbeId) -> bool {
         if let Some(probe) = self.probes.get_mut(&id) {
             if !probe.enabled {
@@ -155,6 +164,7 @@ impl ProbeManager {
     }
 
     /// Disable probe
+    #[inline]
     pub fn disable(&mut self, id: ProbeId) -> bool {
         if let Some(probe) = self.probes.get_mut(&id) {
             if probe.enabled {
@@ -182,16 +192,19 @@ impl ProbeManager {
     }
 
     /// Get probe
+    #[inline(always)]
     pub fn get(&self, id: ProbeId) -> Option<&ProbeInfo> {
         self.probes.get(&id)
     }
 
     /// Get probe mutably
+    #[inline(always)]
     pub fn get_mut(&mut self, id: ProbeId) -> Option<&mut ProbeInfo> {
         self.probes.get_mut(&id)
     }
 
     /// Get probes for tracepoint
+    #[inline]
     pub fn get_for_tracepoint(&self, tracepoint_id: TracepointId) -> Vec<&ProbeInfo> {
         self.by_tracepoint
             .get(&tracepoint_id)
@@ -200,16 +213,19 @@ impl ProbeManager {
     }
 
     /// Get active count
+    #[inline(always)]
     pub fn active_count(&self) -> u32 {
         self.active_count
     }
 
     /// Get total registered
+    #[inline(always)]
     pub fn total_registered(&self) -> u64 {
         self.total_registered.load(Ordering::Relaxed)
     }
 
     /// Get all probes
+    #[inline(always)]
     pub fn all(&self) -> impl Iterator<Item = &ProbeInfo> {
         self.probes.values()
     }

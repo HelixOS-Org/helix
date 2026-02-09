@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Memory zone
@@ -41,6 +42,7 @@ pub enum PageState {
 
 /// Per-zone counters
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ZoneCounters {
     pub free_pages: u64,
     pub active_anon: u64,
@@ -60,6 +62,7 @@ pub struct ZoneCounters {
 }
 
 impl ZoneCounters {
+    #[inline]
     pub fn total_pages(&self) -> u64 {
         self.free_pages + self.active_anon + self.inactive_anon + self.active_file
             + self.inactive_file + self.unevictable + self.dirty + self.writeback
@@ -67,8 +70,11 @@ impl ZoneCounters {
             + self.kernel_stack + self.bounce + self.mapped + self.shmem
     }
 
+    #[inline(always)]
     pub fn reclaimable(&self) -> u64 { self.inactive_file + self.inactive_anon + self.slab_reclaimable }
+    #[inline(always)]
     pub fn file_backed(&self) -> u64 { self.active_file + self.inactive_file }
+    #[inline(always)]
     pub fn anon_pages(&self) -> u64 { self.active_anon + self.inactive_anon }
 }
 
@@ -94,14 +100,19 @@ impl ZoneDesc {
         }
     }
 
+    #[inline(always)]
     pub fn is_below_min(&self) -> bool { self.counters.free_pages < self.watermark_min }
+    #[inline(always)]
     pub fn is_below_low(&self) -> bool { self.counters.free_pages < self.watermark_low }
+    #[inline(always)]
     pub fn is_below_high(&self) -> bool { self.counters.free_pages < self.watermark_high }
+    #[inline(always)]
     pub fn pressure(&self) -> f64 { if self.managed_pages == 0 { 0.0 } else { 1.0 - (self.counters.free_pages as f64 / self.managed_pages as f64) } }
 }
 
 /// Swap stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SwapCounters {
     pub total_pages: u64,
     pub used_pages: u64,
@@ -112,6 +123,7 @@ pub struct SwapCounters {
 }
 
 impl SwapCounters {
+    #[inline(always)]
     pub fn usage(&self) -> f64 { if self.total_pages == 0 { 0.0 } else { self.used_pages as f64 / self.total_pages as f64 } }
 }
 
@@ -128,6 +140,7 @@ pub struct VmRateSample {
 
 /// Reclaim statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ReclaimCounters {
     pub pages_scanned: u64,
     pub pages_reclaimed: u64,
@@ -140,6 +153,7 @@ pub struct ReclaimCounters {
 }
 
 impl ReclaimCounters {
+    #[inline(always)]
     pub fn reclaim_efficiency(&self) -> f64 { if self.pages_scanned == 0 { 0.0 } else { self.pages_reclaimed as f64 / self.pages_scanned as f64 } }
 }
 
@@ -163,7 +177,7 @@ pub struct HolisticVmstatTracker {
     zones: BTreeMap<u64, ZoneDesc>,
     swap: SwapCounters,
     reclaim: ReclaimCounters,
-    rate_history: Vec<VmRateSample>,
+    rate_history: VecDeque<VmRateSample>,
     summary: VmStatSummary,
     next_zone_key: u64,
     max_history: usize,
@@ -173,22 +187,25 @@ impl HolisticVmstatTracker {
     pub fn new(max_history: usize) -> Self {
         Self {
             zones: BTreeMap::new(), swap: SwapCounters::default(),
-            reclaim: ReclaimCounters::default(), rate_history: Vec::new(),
+            reclaim: ReclaimCounters::default(), rate_history: VecDeque::new(),
             summary: VmStatSummary::default(), next_zone_key: 1,
             max_history,
         }
     }
 
+    #[inline]
     pub fn add_zone(&mut self, zone: VmZone, node: u32, managed: u64) -> u64 {
         let key = self.next_zone_key; self.next_zone_key += 1;
         self.zones.insert(key, ZoneDesc::new(zone, node, managed));
         key
     }
 
+    #[inline(always)]
     pub fn update_counters(&mut self, zone_key: u64, counters: ZoneCounters) {
         if let Some(z) = self.zones.get_mut(&zone_key) { z.counters = counters; }
     }
 
+    #[inline]
     pub fn update_swap(&mut self, total: u64, used: u64, sin: u64, sout: u64) {
         self.swap.total_pages = total;
         self.swap.used_pages = used;
@@ -198,20 +215,25 @@ impl HolisticVmstatTracker {
         self.swap.swap_out_bytes += sout * 4096;
     }
 
+    #[inline]
     pub fn record_reclaim(&mut self, scanned: u64, reclaimed: u64, skipped: u64) {
         self.reclaim.pages_scanned += scanned;
         self.reclaim.pages_reclaimed += reclaimed;
         self.reclaim.pages_skipped += skipped;
     }
 
+    #[inline(always)]
     pub fn record_kswapd_wake(&mut self) { self.reclaim.kswapd_wake += 1; }
+    #[inline(always)]
     pub fn record_direct_reclaim(&mut self) { self.reclaim.direct_reclaim += 1; }
 
+    #[inline(always)]
     pub fn record_rate(&mut self, sample: VmRateSample) {
-        self.rate_history.push(sample);
-        if self.rate_history.len() > self.max_history { self.rate_history.remove(0); }
+        self.rate_history.push_back(sample);
+        if self.rate_history.len() > self.max_history { self.rate_history.pop_front(); }
     }
 
+    #[inline(always)]
     pub fn zones_under_pressure(&self) -> Vec<u64> {
         self.zones.iter().filter(|(_, z)| z.is_below_low()).map(|(&k, _)| k).collect()
     }
@@ -231,9 +253,14 @@ impl HolisticVmstatTracker {
         }
     }
 
+    #[inline(always)]
     pub fn zone(&self, key: u64) -> Option<&ZoneDesc> { self.zones.get(&key) }
+    #[inline(always)]
     pub fn swap(&self) -> &SwapCounters { &self.swap }
+    #[inline(always)]
     pub fn reclaim(&self) -> &ReclaimCounters { &self.reclaim }
+    #[inline(always)]
     pub fn summary(&self) -> &VmStatSummary { &self.summary }
+    #[inline(always)]
     pub fn rate_history(&self) -> &[VmRateSample] { &self.rate_history }
 }

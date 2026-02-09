@@ -29,6 +29,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -78,6 +79,7 @@ fn xorshift64(state: &mut u64) -> u64 {
 
 /// Empathy state for a single subsystem
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SubsystemEmpathyState {
     pub name: String,
     pub id: u64,
@@ -120,6 +122,7 @@ impl SubsystemEmpathyState {
     }
 
     /// Update the empathy state with new observations
+    #[inline]
     pub fn update(&mut self, wellbeing: f32, stress: f32, resource_sat: f32, perf: f32, tick: u64) {
         let clamp = |v: f32| if v < 0.0 { 0.0 } else if v > 1.0 { 1.0 } else { v };
         let old_composite = self.composite;
@@ -138,6 +141,7 @@ impl SubsystemEmpathyState {
     }
 
     /// Whether this subsystem is a pain point
+    #[inline(always)]
     pub fn is_pain_point(&self) -> bool {
         self.stress > PAIN_THRESHOLD || self.wellbeing < (1.0 - PAIN_THRESHOLD)
     }
@@ -175,6 +179,7 @@ impl CrossCorrelation {
     }
 
     /// Update correlation with new co-observation
+    #[inline]
     pub fn observe(&mut self, delta_a: f32, delta_b: f32) {
         let product = delta_a * delta_b;
         self.co_movement += EMA_ALPHA * (product - self.co_movement);
@@ -211,7 +216,7 @@ pub struct PainPoint {
 #[derive(Debug, Clone)]
 pub struct SystemEmpathyMap {
     /// Per-subsystem empathy scores
-    pub per_subsystem: BTreeMap<u64, f32>,
+    pub per_subsystem: LinearMap<f32, 64>,
     /// Overall system happiness (0.0 – 1.0)
     pub system_happiness: f32,
     /// Cross-correlation count of significant pairs
@@ -229,6 +234,7 @@ pub struct SystemEmpathyMap {
 
 /// Empathy engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticEmpathyStats {
     pub total_observations: u64,
     pub total_pain_points_detected: u64,
@@ -280,7 +286,7 @@ impl HolisticEmpathyEngine {
             happiness_history,
             happiness_write_idx: 0,
             current_map: SystemEmpathyMap {
-                per_subsystem: BTreeMap::new(),
+                per_subsystem: LinearMap::new(),
                 system_happiness: HAPPINESS_BASELINE,
                 significant_correlations: 0,
                 active_pain_points: 0,
@@ -303,6 +309,7 @@ impl HolisticEmpathyEngine {
     }
 
     /// Run the full system empathy cycle
+    #[inline]
     pub fn system_empathy(&mut self, tick: u64) -> &SystemEmpathyMap {
         self.tick = tick;
         self.recompute_map();
@@ -312,6 +319,7 @@ impl HolisticEmpathyEngine {
     }
 
     /// Build holistic understanding from all subsystem states
+    #[inline]
     pub fn holistic_understanding(&self) -> f32 {
         if self.subsystems.is_empty() {
             return 0.0;
@@ -354,6 +362,7 @@ impl HolisticEmpathyEngine {
     }
 
     /// Compute system happiness index
+    #[inline(always)]
     pub fn system_happiness(&self) -> f32 {
         self.current_map.system_happiness
     }
@@ -423,6 +432,7 @@ impl HolisticEmpathyEngine {
     }
 
     /// Register or update a subsystem in the empathy model
+    #[inline]
     pub fn register_subsystem(&mut self, name: String) -> u64 {
         let id = fnv1a_hash(name.as_bytes());
         self.subsystems
@@ -432,6 +442,7 @@ impl HolisticEmpathyEngine {
     }
 
     /// Update a subsystem's empathy state
+    #[inline]
     pub fn update_subsystem(
         &mut self,
         subsystem_id: u64,
@@ -448,16 +459,19 @@ impl HolisticEmpathyEngine {
     }
 
     /// Active pain points
+    #[inline(always)]
     pub fn active_pain_points(&self) -> Vec<&PainPoint> {
         self.pain_points.iter().filter(|pp| !pp.resolved).collect()
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticEmpathyStats {
         &self.stats
     }
 
     /// Subsystem count
+    #[inline(always)]
     pub fn subsystem_count(&self) -> usize {
         self.subsystems.len()
     }
@@ -466,6 +480,7 @@ impl HolisticEmpathyEngine {
     // INTERNAL
     // ========================================================================
 
+    #[inline]
     fn recompute_map(&mut self) {
         let mut per_sub = BTreeMap::new();
         let mut total_composite = 0.0f32;

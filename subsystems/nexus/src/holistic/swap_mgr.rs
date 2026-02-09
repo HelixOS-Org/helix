@@ -71,25 +71,30 @@ impl SwapDevice {
         }
     }
 
+    #[inline(always)]
     pub fn free_pages(&self) -> u64 {
         self.total_pages.saturating_sub(self.used_pages + self.reserved_pages)
     }
 
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
         if self.total_pages == 0 { return 0.0; }
         self.used_pages as f64 / self.total_pages as f64
     }
 
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.free_pages() == 0
     }
 
+    #[inline]
     pub fn effective_capacity(&self) -> u64 {
         if self.compression_ratio > 0.01 {
             (self.total_pages as f64 / self.compression_ratio) as u64
         } else { self.total_pages }
     }
 
+    #[inline(always)]
     pub fn is_healthy(&self) -> bool {
         self.wear_level_pct < 90.0 && self.bad_pages < 100
     }
@@ -120,12 +125,14 @@ impl ProcessSwapUsage {
         }
     }
 
+    #[inline]
     pub fn avg_swap_latency(&self) -> u64 {
         let total_ops = self.swap_ins + self.swap_outs;
         if total_ops == 0 { return 0; }
         self.total_swap_latency_ns / total_ops
     }
 
+    #[inline]
     pub fn is_thrashing(&self) -> bool {
         // Thrashing if high major fault rate and roughly equal in/out
         if self.swap_ins < 100 { return false; }
@@ -135,6 +142,7 @@ impl ProcessSwapUsage {
         ratio > 0.5 && ratio < 2.0 && self.major_faults > 1000
     }
 
+    #[inline]
     pub fn exceeds_limit(&self) -> bool {
         if let Some(limit) = self.swap_limit {
             self.swapped_pages > limit
@@ -144,6 +152,7 @@ impl ProcessSwapUsage {
 
 /// Zswap/zram state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CompressedSwapState {
     pub stored_pages: u64,
     pub compressed_bytes: u64,
@@ -167,20 +176,24 @@ impl CompressedSwapState {
         }
     }
 
+    #[inline(always)]
     pub fn compression_ratio(&self) -> f64 {
         if self.compressed_bytes == 0 { return 1.0; }
         self.original_bytes as f64 / self.compressed_bytes as f64
     }
 
+    #[inline(always)]
     pub fn pool_usage_ratio(&self) -> f64 {
         if self.pool_limit_bytes == 0 { return 0.0; }
         self.pool_size_bytes as f64 / self.pool_limit_bytes as f64
     }
 
+    #[inline(always)]
     pub fn is_pool_full(&self) -> bool {
         self.pool_usage_ratio() > 0.95
     }
 
+    #[inline(always)]
     pub fn savings_bytes(&self) -> u64 {
         self.original_bytes.saturating_sub(self.compressed_bytes)
     }
@@ -188,6 +201,7 @@ impl CompressedSwapState {
 
 /// Holistic Swap Manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticSwapMgrStats {
     pub total_devices: usize,
     pub total_swap_pages: u64,
@@ -217,14 +231,17 @@ impl HolisticSwapMgr {
         }
     }
 
+    #[inline(always)]
     pub fn add_device(&mut self, dev: SwapDevice) {
         self.devices.insert(dev.device_id, dev);
     }
 
+    #[inline(always)]
     pub fn set_compressed(&mut self, state: CompressedSwapState) {
         self.compressed = Some(state);
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.entry(pid)
             .or_insert_with(|| ProcessSwapUsage::new(pid));
@@ -310,9 +327,13 @@ impl HolisticSwapMgr {
             .map(|c| c.savings_bytes()).unwrap_or(0);
     }
 
+    #[inline(always)]
     pub fn device(&self, id: u32) -> Option<&SwapDevice> { self.devices.get(&id) }
+    #[inline(always)]
     pub fn process_swap(&self, pid: u64) -> Option<&ProcessSwapUsage> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticSwapMgrStats { &self.stats }
+    #[inline(always)]
     pub fn total_free_swap(&self) -> u64 { self.devices.values().map(|d| d.free_pages()).sum() }
 }
 
@@ -351,13 +372,16 @@ impl SwapAreaV2 {
         Self { id, area_type: at, priority: SwapPriority(prio), total_pages: total, used_pages: 0, bad_pages: 0, swap_in_count: 0, swap_out_count: 0, active: true }
     }
 
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 { if self.total_pages == 0 { 0.0 } else { self.used_pages as f64 / self.total_pages as f64 } }
 
+    #[inline(always)]
     pub fn swap_out(&mut self) -> bool {
         if self.used_pages < self.total_pages - self.bad_pages { self.used_pages += 1; self.swap_out_count += 1; true }
         else { false }
     }
 
+    #[inline(always)]
     pub fn swap_in(&mut self) {
         if self.used_pages > 0 { self.used_pages -= 1; self.swap_in_count += 1; }
     }
@@ -374,6 +398,7 @@ pub struct SwapEntryV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SwapMgrV2Stats {
     pub total_areas: u32,
     pub active_areas: u32,
@@ -394,6 +419,7 @@ pub struct HolisticSwapMgrV2 {
 impl HolisticSwapMgrV2 {
     pub fn new() -> Self { Self { areas: BTreeMap::new(), entries: BTreeMap::new(), next_offset: 0 } }
 
+    #[inline(always)]
     pub fn add_area(&mut self, id: u64, at: SwapAreaType, prio: i32, total: u64) { self.areas.insert(id, SwapAreaV2::new(id, at, prio, total)); }
 
     pub fn swap_out(&mut self, pid: u64, vaddr: u64) -> Option<u64> {
@@ -409,6 +435,7 @@ impl HolisticSwapMgrV2 {
         None
     }
 
+    #[inline]
     pub fn swap_in(&mut self, offset: u64) -> bool {
         if let Some(entry) = self.entries.remove(&offset) {
             if let Some(area) = self.areas.get_mut(&entry.area_id) { area.swap_in(); }
@@ -416,6 +443,7 @@ impl HolisticSwapMgrV2 {
         } else { false }
     }
 
+    #[inline]
     pub fn stats(&self) -> SwapMgrV2Stats {
         let active = self.areas.values().filter(|a| a.active).count() as u32;
         let cap: u64 = self.areas.values().map(|a| a.total_pages).sum();
@@ -486,6 +514,7 @@ impl ZswapEntry {
         }
     }
 
+    #[inline]
     pub fn compression_ratio(&self) -> f64 {
         if self.original_size == 0 {
             return 1.0;
@@ -493,6 +522,7 @@ impl ZswapEntry {
         self.compressed_size as f64 / self.original_size as f64
     }
 
+    #[inline(always)]
     pub fn savings_bytes(&self) -> u32 {
         self.original_size.saturating_sub(self.compressed_size)
     }
@@ -521,6 +551,7 @@ impl SwapV3Cluster {
         }
     }
 
+    #[inline]
     pub fn try_alloc(&mut self) -> Option<u64> {
         if self.free_slots > 0 {
             self.free_slots -= 1;
@@ -531,16 +562,19 @@ impl SwapV3Cluster {
         }
     }
 
+    #[inline]
     pub fn free_slot(&mut self) {
         if self.free_slots < self.slot_count {
             self.free_slots += 1;
         }
     }
 
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.free_slots == 0
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.free_slots == self.slot_count
     }
@@ -577,6 +611,7 @@ impl SwapV3Area {
         }
     }
 
+    #[inline]
     pub fn utilization_percent(&self) -> f64 {
         if self.total_slots == 0 {
             return 0.0;
@@ -588,6 +623,7 @@ impl SwapV3Area {
 
 /// Statistics for the swap manager V3.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SwapMgrV3Stats {
     pub total_areas: u64,
     pub total_clusters: u64,
@@ -642,6 +678,7 @@ impl HolisticSwapMgrV3 {
         }
     }
 
+    #[inline]
     pub fn add_area(&mut self, name: String, device_type: SwapV3DeviceType, total_slots: u64) -> u64 {
         let id = self.next_area_id;
         self.next_area_id += 1;
@@ -666,6 +703,7 @@ impl HolisticSwapMgrV3 {
         true
     }
 
+    #[inline]
     pub fn zswap_load(&mut self, page_pfn: u64) -> Option<&ZswapEntry> {
         if self.zswap_cache.contains_key(&page_pfn) {
             self.stats.zswap_hits += 1;
@@ -698,6 +736,7 @@ impl HolisticSwapMgrV3 {
         evicted
     }
 
+    #[inline]
     pub fn zswap_compression_ratio(&self) -> f64 {
         if self.stats.zswap_stored_bytes == 0 {
             return 1.0;
@@ -705,10 +744,12 @@ impl HolisticSwapMgrV3 {
         self.stats.zswap_compressed_bytes as f64 / self.stats.zswap_stored_bytes as f64
     }
 
+    #[inline(always)]
     pub fn area_count(&self) -> usize {
         self.areas.len()
     }
 
+    #[inline(always)]
     pub fn zswap_entry_count(&self) -> usize {
         self.zswap_cache.len()
     }

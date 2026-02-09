@@ -3,6 +3,7 @@
 //! Profiles signal handler execution for performance analysis.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -23,6 +24,7 @@ pub struct HandlerSample {
 
 /// Handler statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HandlerStats {
     /// Signal number
     pub signo: SignalNumber,
@@ -58,6 +60,7 @@ impl HandlerStats {
     }
 
     /// Calculate average execution time
+    #[inline]
     pub fn avg_time_ns(&self) -> u64 {
         if self.execution_count == 0 {
             return 0;
@@ -66,6 +69,7 @@ impl HandlerStats {
     }
 
     /// Calculate failure rate
+    #[inline]
     pub fn failure_rate(&self) -> f32 {
         if self.execution_count == 0 {
             return 0.0;
@@ -81,7 +85,7 @@ pub struct HandlerProfiler {
     /// Per-process per-signal statistics
     per_process_stats: BTreeMap<(ProcessId, SignalNumber), HandlerStats>,
     /// Recent samples
-    samples: Vec<HandlerSample>,
+    samples: VecDeque<HandlerSample>,
     /// Maximum samples
     max_samples: usize,
     /// Slow handler threshold (nanoseconds)
@@ -171,12 +175,13 @@ impl HandlerProfiler {
             timestamp,
         };
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
     /// Record async-signal-unsafe call
+    #[inline]
     pub fn record_unsafe_call(&mut self, signo: SignalNumber) {
         self.stats
             .entry(signo)
@@ -185,16 +190,19 @@ impl HandlerProfiler {
     }
 
     /// Get handler stats
+    #[inline(always)]
     pub fn get_stats(&self, signo: SignalNumber) -> Option<&HandlerStats> {
         self.stats.get(&signo)
     }
 
     /// Get per-process stats
+    #[inline(always)]
     pub fn get_process_stats(&self, pid: ProcessId, signo: SignalNumber) -> Option<&HandlerStats> {
         self.per_process_stats.get(&(pid, signo))
     }
 
     /// Get slow handler count
+    #[inline(always)]
     pub fn slow_handler_count(&self) -> u64 {
         self.slow_handlers.load(Ordering::Relaxed)
     }
@@ -214,21 +222,25 @@ impl HandlerProfiler {
     }
 
     /// Set slow threshold
+    #[inline(always)]
     pub fn set_slow_threshold(&mut self, threshold_ns: u64) {
         self.slow_threshold_ns = threshold_ns;
     }
 
     /// Get slow threshold
+    #[inline(always)]
     pub fn slow_threshold(&self) -> u64 {
         self.slow_threshold_ns
     }
 
     /// Get total execution count
+    #[inline(always)]
     pub fn total_executions(&self) -> u64 {
         self.stats.values().map(|s| s.execution_count).sum()
     }
 
     /// Get recent samples
+    #[inline(always)]
     pub fn get_samples(&self) -> &[HandlerSample] {
         &self.samples
     }

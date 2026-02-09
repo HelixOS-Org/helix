@@ -62,6 +62,7 @@ impl TokenBucket {
         }
     }
 
+    #[inline]
     pub fn refill(&mut self, now_ns: u64) {
         if self.last_fill_ns == 0 {
             self.last_fill_ns = now_ns;
@@ -73,6 +74,7 @@ impl TokenBucket {
         self.last_fill_ns = now_ns;
     }
 
+    #[inline]
     pub fn consume(&mut self, bytes: u64) -> bool {
         if self.tokens >= bytes {
             self.tokens -= bytes;
@@ -82,6 +84,7 @@ impl TokenBucket {
         }
     }
 
+    #[inline]
     pub fn fill_ratio(&self) -> f64 {
         if self.max_tokens == 0 {
             return 0.0;
@@ -121,12 +124,14 @@ impl FqCodelFlow {
         }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, pkt_bytes: u64) {
         self.queue_depth += 1;
         self.total_packets += 1;
         self.total_bytes += pkt_bytes;
     }
 
+    #[inline]
     pub fn dequeue(&mut self) -> bool {
         if self.queue_depth > 0 {
             self.queue_depth -= 1;
@@ -208,6 +213,7 @@ impl HtbClass {
         }
     }
 
+    #[inline]
     pub fn utilization_pct(&self) -> f64 {
         if self.rate.rate_bps == 0 {
             return 0.0;
@@ -219,6 +225,7 @@ impl HtbClass {
 
 /// Qdisc stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QdiscStats {
     pub total_qdiscs: u64,
     pub total_classes: u64,
@@ -258,6 +265,7 @@ impl HolisticQdisc {
         }
     }
 
+    #[inline]
     pub fn add_class(&mut self, parent_id: u32, rate_bps: u64, ceil_bps: u64) -> u32 {
         let id = self.next_class_id;
         self.next_class_id += 1;
@@ -289,6 +297,7 @@ impl HolisticQdisc {
         }
     }
 
+    #[inline(always)]
     pub fn total_bandwidth_bps(&self) -> u64 {
         self.classes.values().map(|c| c.rate.rate_bps).sum()
     }

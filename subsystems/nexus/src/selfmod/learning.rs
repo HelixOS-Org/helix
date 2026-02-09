@@ -24,6 +24,7 @@ pub struct SessionId(pub u64);
 static SESSION_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl SessionId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(SESSION_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -36,6 +37,7 @@ pub struct ExperienceId(pub u64);
 static EXPERIENCE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl ExperienceId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(EXPERIENCE_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -104,6 +106,7 @@ pub struct Experience {
 
 /// State representation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct State {
     /// Feature vector
     pub features: Vec<f64>,
@@ -134,6 +137,7 @@ impl State {
     }
 
     /// Euclidean distance to another state
+    #[inline]
     pub fn distance(&self, other: &State) -> f64 {
         self.features
             .iter()
@@ -187,6 +191,7 @@ pub struct Action {
 }
 
 impl Action {
+    #[inline]
     pub fn discrete(id: u64, name: String) -> Self {
         Self {
             id,
@@ -196,6 +201,7 @@ impl Action {
         }
     }
 
+    #[inline]
     pub fn continuous(value: Vec<f64>) -> Self {
         Self {
             id: 0,
@@ -211,6 +217,7 @@ impl Action {
 // ============================================================================
 
 /// Experience replay buffer
+#[repr(align(64))]
 pub struct ReplayBuffer {
     /// Experiences
     experiences: Vec<Experience>,
@@ -233,6 +240,7 @@ impl ReplayBuffer {
     }
 
     /// Add experience
+    #[inline]
     pub fn add(&mut self, experience: Experience) {
         if self.experiences.len() < self.capacity {
             self.experiences.push(experience);
@@ -265,16 +273,19 @@ impl ReplayBuffer {
     }
 
     /// Size
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.experiences.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.experiences.is_empty()
     }
 
     /// Clear
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.experiences.clear();
         self.position = 0;
@@ -286,6 +297,7 @@ impl ReplayBuffer {
 // ============================================================================
 
 /// Prioritized experience replay
+#[repr(align(64))]
 pub struct PrioritizedReplayBuffer {
     /// Experiences with priorities
     experiences: Vec<(Experience, f64)>,
@@ -428,6 +440,7 @@ impl PrioritizedReplayBuffer {
     }
 
     /// Update priority
+    #[inline]
     pub fn update_priority(&mut self, idx: usize, priority: f64) {
         if idx < self.experiences.len() {
             let priority = priority.max(self.min_priority).powf(self.alpha);
@@ -464,6 +477,7 @@ impl QTable {
     }
 
     /// Get Q-value
+    #[inline]
     pub fn get(&self, state_hash: u64, action_id: u64) -> f64 {
         self.values
             .get(&state_hash)
@@ -473,11 +487,13 @@ impl QTable {
     }
 
     /// Get all Q-values for state
+    #[inline(always)]
     pub fn get_all(&self, state_hash: u64) -> Option<&BTreeMap<u64, f64>> {
         self.values.get(&state_hash)
     }
 
     /// Get best action for state
+    #[inline]
     pub fn best_action(&self, state_hash: u64) -> Option<u64> {
         self.values.get(&state_hash).and_then(|actions| {
             actions
@@ -513,6 +529,7 @@ impl QTable {
     }
 
     /// SARSA update
+    #[inline]
     pub fn update_sarsa(
         &mut self,
         state: u64,
@@ -533,6 +550,7 @@ impl QTable {
     }
 
     /// State count
+    #[inline(always)]
     pub fn state_count(&self) -> usize {
         self.values.len()
     }
@@ -695,6 +713,7 @@ impl ActorCritic {
     }
 
     /// Estimate value of state
+    #[inline]
     pub fn value(&self, state: &State) -> f64 {
         self.value_weights
             .iter()
@@ -704,6 +723,7 @@ impl ActorCritic {
     }
 
     /// Get action probabilities
+    #[inline(always)]
     pub fn action_probabilities(&self, state: &State) -> Vec<(u64, f64)> {
         self.policy.action_probabilities(state)
     }

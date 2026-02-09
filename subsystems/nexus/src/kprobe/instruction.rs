@@ -71,6 +71,7 @@ impl InstructionInfo {
     }
 
     /// Mark as not probeable
+    #[inline(always)]
     pub fn mark_not_probeable(&mut self, reason: String) {
         self.probeable = false;
         self.probe_reason = Some(reason);
@@ -278,12 +279,14 @@ impl InstructionAnalyzer {
     }
 
     /// Check if address is probeable
+    #[inline(always)]
     pub fn is_probeable(&mut self, address: ProbeAddress, bytes: &[u8]) -> bool {
         let info = self.analyze(address, bytes);
         info.probeable
     }
 
     /// Get cache hit rate
+    #[inline]
     pub fn cache_hit_rate(&self) -> f32 {
         let hits = self.cache_hits.load(Ordering::Relaxed);
         let total = self.total_analyses.load(Ordering::Relaxed);
@@ -295,6 +298,7 @@ impl InstructionAnalyzer {
     }
 
     /// Clear cache
+    #[inline(always)]
     pub fn clear_cache(&mut self) {
         self.cache.clear();
     }

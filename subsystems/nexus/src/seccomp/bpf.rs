@@ -17,6 +17,7 @@ pub struct BpfInsn {
 
 impl BpfInsn {
     /// Create new instruction
+    #[inline(always)]
     pub const fn new(code: u16, jt: u8, jf: u8, k: u32) -> Self {
         Self { code, jt, jf, k }
     }
@@ -46,21 +47,25 @@ impl BpfInsn {
     pub const BPF_A: u16 = 0x10;
 
     /// Load architecture
+    #[inline(always)]
     pub fn load_arch() -> Self {
         Self::new(Self::BPF_LD | Self::BPF_W | Self::BPF_ABS, 0, 0, 4)
     }
 
     /// Load syscall number
+    #[inline(always)]
     pub fn load_syscall() -> Self {
         Self::new(Self::BPF_LD | Self::BPF_W | Self::BPF_ABS, 0, 0, 0)
     }
 
     /// Jump if equal
+    #[inline(always)]
     pub fn jeq(k: u32, jt: u8, jf: u8) -> Self {
         Self::new(Self::BPF_JMP | Self::BPF_JEQ | Self::BPF_K, jt, jf, k)
     }
 
     /// Return action
+    #[inline(always)]
     pub fn ret(action: u32) -> Self {
         Self::new(Self::BPF_RET | Self::BPF_K, 0, 0, action)
     }

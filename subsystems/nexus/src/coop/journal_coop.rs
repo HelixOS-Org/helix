@@ -41,6 +41,7 @@ pub struct CoopJournalTx {
 
 /// Stats for journal cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopJournalStats {
     pub total_transactions: u64,
     pub committed: u64,
@@ -104,6 +105,7 @@ impl CoopJournalManager {
         Some(id)
     }
 
+    #[inline]
     pub fn commit_tx(&mut self, tx_id: u64) -> bool {
         if let Some(tx) = self.transactions.get_mut(&tx_id) {
             if tx.state == CoopJournalTxState::Running {
@@ -115,6 +117,7 @@ impl CoopJournalManager {
         false
     }
 
+    #[inline]
     pub fn flush_commits(&mut self) -> usize {
         let queue: Vec<u64> = self.commit_queue.drain(..).collect();
         let count = queue.len();
@@ -143,6 +146,7 @@ impl CoopJournalManager {
         count
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopJournalStats {
         &self.stats
     }

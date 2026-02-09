@@ -47,6 +47,7 @@ pub enum AccessPattern {
 
 impl AccessPattern {
     /// Check if this pattern is prefetchable
+    #[inline]
     pub fn is_prefetchable(&self) -> bool {
         matches!(
             self,

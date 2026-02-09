@@ -23,6 +23,7 @@ impl MqueueCoopRecord {
 
 /// Mqueue coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MqueueCoopStats { pub total_events: u64, pub balances: u64, pub throttles: u64, pub redirects: u64 }
 
 /// Main coop mqueue
@@ -31,6 +32,7 @@ pub struct CoopMqueue { pub stats: MqueueCoopStats }
 
 impl CoopMqueue {
     pub fn new() -> Self { Self { stats: MqueueCoopStats { total_events: 0, balances: 0, throttles: 0, redirects: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &MqueueCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

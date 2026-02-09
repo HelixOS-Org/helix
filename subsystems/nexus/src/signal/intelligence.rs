@@ -52,6 +52,7 @@ impl SignalIntelligence {
     }
 
     /// Create with custom queue capacity
+    #[inline]
     pub fn with_queue_capacity(capacity: usize) -> Self {
         Self {
             queue_manager: SignalQueueManager::new(capacity),
@@ -90,6 +91,7 @@ impl SignalIntelligence {
     }
 
     /// Deliver signal to process
+    #[inline]
     pub fn deliver_signal(&mut self, pid: ProcessId) -> Option<PendingSignal> {
         let signal = self.queue_manager.dequeue(pid)?;
         self.total_delivered.fetch_add(1, Ordering::Relaxed);
@@ -101,6 +103,7 @@ impl SignalIntelligence {
     }
 
     /// Complete signal delivery
+    #[inline]
     pub fn complete_delivery(
         &mut self,
         pid: ProcessId,
@@ -115,22 +118,26 @@ impl SignalIntelligence {
     }
 
     /// Set signal mask for process
+    #[inline(always)]
     pub fn set_signal_mask(&mut self, pid: ProcessId, mask: u64) {
         self.signal_masks.insert(pid, mask);
     }
 
     /// Get signal mask for process
+    #[inline(always)]
     pub fn get_signal_mask(&self, pid: ProcessId) -> u64 {
         self.signal_masks.get(&pid).copied().unwrap_or(0)
     }
 
     /// Block signal for process
+    #[inline(always)]
     pub fn block_signal(&mut self, pid: ProcessId, signo: SignalNumber) {
         let mask = self.signal_masks.entry(pid).or_default();
         *mask |= 1 << signo.raw();
     }
 
     /// Unblock signal for process
+    #[inline]
     pub fn unblock_signal(&mut self, pid: ProcessId, signo: SignalNumber) {
         if let Some(mask) = self.signal_masks.get_mut(&pid) {
             *mask &= !(1 << signo.raw());
@@ -138,12 +145,14 @@ impl SignalIntelligence {
     }
 
     /// Check if signal is blocked
+    #[inline(always)]
     pub fn is_blocked(&self, pid: ProcessId, signo: SignalNumber) -> bool {
         let mask = self.signal_masks.get(&pid).copied().unwrap_or(0);
         (mask & (1 << signo.raw())) != 0
     }
 
     /// Register thread for delivery optimization
+    #[inline(always)]
     pub fn register_thread(&mut self, tid: ThreadId) {
         self.delivery_optimizer.register_thread(tid);
     }
@@ -279,61 +288,73 @@ impl SignalIntelligence {
     }
 
     /// Get pattern detector
+    #[inline(always)]
     pub fn pattern_detector(&self) -> &SignalPatternDetector {
         &self.pattern_detector
     }
 
     /// Get pattern detector mutably
+    #[inline(always)]
     pub fn pattern_detector_mut(&mut self) -> &mut SignalPatternDetector {
         &mut self.pattern_detector
     }
 
     /// Get handler profiler
+    #[inline(always)]
     pub fn handler_profiler(&self) -> &HandlerProfiler {
         &self.handler_profiler
     }
 
     /// Get handler profiler mutably
+    #[inline(always)]
     pub fn handler_profiler_mut(&mut self) -> &mut HandlerProfiler {
         &mut self.handler_profiler
     }
 
     /// Get queue manager
+    #[inline(always)]
     pub fn queue_manager(&self) -> &SignalQueueManager {
         &self.queue_manager
     }
 
     /// Get queue manager mutably
+    #[inline(always)]
     pub fn queue_manager_mut(&mut self) -> &mut SignalQueueManager {
         &mut self.queue_manager
     }
 
     /// Get delivery optimizer
+    #[inline(always)]
     pub fn delivery_optimizer(&self) -> &DeliveryOptimizer {
         &self.delivery_optimizer
     }
 
     /// Get delivery optimizer mutably
+    #[inline(always)]
     pub fn delivery_optimizer_mut(&mut self) -> &mut DeliveryOptimizer {
         &mut self.delivery_optimizer
     }
 
     /// Get total signals sent
+    #[inline(always)]
     pub fn total_sent(&self) -> u64 {
         self.total_sent.load(Ordering::Relaxed)
     }
 
     /// Get total signals delivered
+    #[inline(always)]
     pub fn total_delivered(&self) -> u64 {
         self.total_delivered.load(Ordering::Relaxed)
     }
 
     /// Get queue stats
+    #[inline(always)]
     pub fn queue_stats(&self) -> &QueueStats {
         self.queue_manager.global_stats()
     }
 
     /// Perform periodic maintenance
+    #[inline]
     pub fn periodic_maintenance(&mut self, current_time_ns: u64) {
         if current_time_ns - self.last_analysis_ns < self.analysis_interval_ns {
             return;
@@ -346,6 +367,7 @@ impl SignalIntelligence {
     }
 
     /// Set analysis interval
+    #[inline(always)]
     pub fn set_analysis_interval(&mut self, interval_ns: u64) {
         self.analysis_interval_ns = interval_ns;
     }

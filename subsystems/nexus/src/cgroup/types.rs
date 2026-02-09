@@ -8,11 +8,13 @@ pub struct CgroupId(pub u64);
 
 impl CgroupId {
     /// Create a new cgroup ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -27,11 +29,13 @@ pub struct ProcessId(pub u64);
 
 impl ProcessId {
     /// Create a new process ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -100,6 +104,7 @@ impl ControllerType {
     }
 
     /// Check if controller is v2 only
+    #[inline(always)]
     pub fn is_v2_only(&self) -> bool {
         matches!(self, Self::Misc)
     }

@@ -46,11 +46,13 @@ impl FutexBucket {
         Self { hash, waiters: Vec::new(), total_waits: 0, total_wakes: 0, total_requeues: 0 }
     }
 
+    #[inline(always)]
     pub fn wait(&mut self, tid: u64, uaddr: u64, val: u32, bitset: u32, now: u64, is_pi: bool) {
         self.waiters.push(FutexWaiter { tid, uaddr, expected_val: val, bitset, wait_start: now, is_pi });
         self.total_waits += 1;
     }
 
+    #[inline]
     pub fn wake(&mut self, uaddr: u64, nr: u32, bitset: u32) -> u32 {
         let mut woken = 0u32;
         self.waiters.retain(|w| {
@@ -64,6 +66,7 @@ impl FutexBucket {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FutexMgrStats {
     pub total_buckets: u32,
     pub total_waiters: u32,
@@ -87,17 +90,20 @@ impl HolisticFutexMgr {
         h
     }
 
+    #[inline]
     pub fn wait(&mut self, tid: u64, uaddr: u64, val: u32, bitset: u32, now: u64) {
         let hash = Self::hash_uaddr(uaddr);
         let bucket = self.buckets.entry(hash).or_insert_with(|| FutexBucket::new(hash));
         bucket.wait(tid, uaddr, val, bitset, now, false);
     }
 
+    #[inline(always)]
     pub fn wake(&mut self, uaddr: u64, nr: u32, bitset: u32) -> u32 {
         let hash = Self::hash_uaddr(uaddr);
         self.buckets.get_mut(&hash).map_or(0, |b| b.wake(uaddr, nr, bitset))
     }
 
+    #[inline]
     pub fn stats(&self) -> FutexMgrStats {
         let waiters: u32 = self.buckets.values().map(|b| b.waiters.len() as u32).sum();
         let waits: u64 = self.buckets.values().map(|b| b.total_waits).sum();

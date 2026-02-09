@@ -44,8 +44,10 @@ impl SeccompFilter {
         Self { id, instructions: Vec::new(), default_action: default, syscall_rules: BTreeMap::new(), match_count: 0, deny_count: 0 }
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, syscall_nr: u32, action: SeccompAction) { self.syscall_rules.insert(syscall_nr, action); }
 
+    #[inline]
     pub fn evaluate(&mut self, syscall_nr: u32) -> SeccompAction {
         self.match_count += 1;
         let action = self.syscall_rules.get(&syscall_nr).copied().unwrap_or(self.default_action);
@@ -78,6 +80,7 @@ pub struct SeccompNotification {
 impl SeccompNotifyInstance {
     pub fn new(id: u64) -> Self { Self { id, pending: Vec::new(), total_notified: 0, total_responded: 0 } }
 
+    #[inline]
     pub fn notify(&mut self, pid: u64, syscall: u32, args: [u64; 6]) -> u64 {
         self.total_notified += 1;
         let nid = self.total_notified;
@@ -85,6 +88,7 @@ impl SeccompNotifyInstance {
         nid
     }
 
+    #[inline]
     pub fn respond(&mut self, nid: u64, error: i32, val: u64) {
         if let Some(n) = self.pending.iter_mut().find(|n| n.notify_id == nid) {
             n.responded = true; n.response_error = error; n.response_val = val;
@@ -95,6 +99,7 @@ impl SeccompNotifyInstance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompV2Stats {
     pub total_filters: u32,
     pub total_evaluations: u64,
@@ -113,20 +118,24 @@ pub struct AppSeccompV2 {
 impl AppSeccompV2 {
     pub fn new() -> Self { Self { filters: BTreeMap::new(), notifiers: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn install_filter(&mut self, default: SeccompAction) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.filters.insert(id, SeccompFilter::new(id, default));
         id
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, filter: u64, syscall: u32, action: SeccompAction) {
         if let Some(f) = self.filters.get_mut(&filter) { f.add_rule(syscall, action); }
     }
 
+    #[inline(always)]
     pub fn evaluate(&mut self, filter: u64, syscall: u32) -> SeccompAction {
         self.filters.get_mut(&filter).map(|f| f.evaluate(syscall)).unwrap_or(SeccompAction::Kill)
     }
 
+    #[inline]
     pub fn stats(&self) -> SeccompV2Stats {
         let evals: u64 = self.filters.values().map(|f| f.match_count).sum();
         let denials: u64 = self.filters.values().map(|f| f.deny_count).sum();

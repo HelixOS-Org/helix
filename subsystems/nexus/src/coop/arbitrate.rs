@@ -189,6 +189,7 @@ pub struct ArbitrationPolicy {
 }
 
 impl ArbitrationPolicy {
+    #[inline]
     pub fn default_policy() -> Self {
         Self {
             default_strategy: ResolutionType::ProportionalSplit,
@@ -206,6 +207,7 @@ impl ArbitrationPolicy {
 
 /// Arbitration stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopArbitrationStats {
     /// Active disputes
     pub active_disputes: usize,
@@ -250,6 +252,7 @@ impl CoopArbitrationManager {
     }
 
     /// Set policy
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: ArbitrationPolicy) {
         self.policy = policy;
     }
@@ -294,6 +297,7 @@ impl CoopArbitrationManager {
     }
 
     /// Add evidence
+    #[inline]
     pub fn add_evidence(&mut self, dispute_id: u64, evidence: DisputeEvidence) {
         if let Some(dispute) = self.disputes.get_mut(&dispute_id) {
             dispute.evidence.push(evidence);
@@ -301,6 +305,7 @@ impl CoopArbitrationManager {
     }
 
     /// Begin arbitration
+    #[inline]
     pub fn begin_arbitration(&mut self, dispute_id: u64) {
         if let Some(dispute) = self.disputes.get_mut(&dispute_id) {
             if dispute.state == DisputeState::Filed {
@@ -400,17 +405,20 @@ impl CoopArbitrationManager {
     }
 
     /// Dispute history between two processes
+    #[inline(always)]
     pub fn dispute_history(&self, pid1: u64, pid2: u64) -> usize {
         let pair = (pid1.min(pid2), pid1.max(pid2));
         self.history.get(&pair).map(|h| h.len()).unwrap_or(0)
     }
 
     /// Get dispute
+    #[inline(always)]
     pub fn dispute(&self, id: u64) -> Option<&Dispute> {
         self.disputes.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopArbitrationStats {
         &self.stats
     }

@@ -53,7 +53,9 @@ impl VersionRecord {
         }
     }
 
+    #[inline(always)]
     pub fn commit(&mut self) { self.visibility = VersionVisibility::Committed; }
+    #[inline(always)]
     pub fn abort(&mut self) { self.visibility = VersionVisibility::Aborted; }
 }
 
@@ -98,17 +100,22 @@ impl MvccTransaction {
         }
     }
 
+    #[inline(always)]
     pub fn read(&mut self, key: u64) { self.read_set.push(key); }
 
+    #[inline]
     pub fn write(&mut self, key: u64, version_id: u64) {
         self.write_set.push(key);
         self.versions_created.push(version_id);
         self.is_read_only = false;
     }
 
+    #[inline(always)]
     pub fn commit(&mut self, ts: u64) { self.state = MvccTxnState::Committed; self.commit_ts = Some(ts); }
+    #[inline(always)]
     pub fn abort(&mut self) { self.state = MvccTxnState::Aborted; }
 
+    #[inline]
     pub fn has_conflict(&self, other: &MvccTransaction) -> bool {
         // Write-write conflict: overlapping write sets
         for key in &self.write_set {
@@ -135,6 +142,7 @@ impl Snapshot {
         Self { snapshot_ts: ts, active_txns: active, min_active_ts: min_active }
     }
 
+    #[inline]
     pub fn is_visible(&self, version: &VersionRecord) -> bool {
         if version.visibility == VersionVisibility::Aborted { return false; }
         if version.created_ts > self.snapshot_ts { return false; }
@@ -145,6 +153,7 @@ impl Snapshot {
 
 /// MVCC stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MvccStats {
     pub total_keys: usize,
     pub total_versions: usize,
@@ -158,6 +167,7 @@ pub struct MvccStats {
 }
 
 /// Coop versioned state store
+#[repr(align(64))]
 pub struct CoopVersionedState {
     versions: BTreeMap<u64, VersionRecord>,
     chains: BTreeMap<u64, VersionChain>,
@@ -178,6 +188,7 @@ impl CoopVersionedState {
         }
     }
 
+    #[inline]
     pub fn begin_txn(&mut self, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.transactions.insert(id, MvccTransaction::new(id, ts));
@@ -247,6 +258,7 @@ impl CoopVersionedState {
         true
     }
 
+    #[inline]
     pub fn abort_txn(&mut self, txn_id: u64) {
         if let Some(t) = self.transactions.get_mut(&txn_id) {
             t.abort();
@@ -257,6 +269,7 @@ impl CoopVersionedState {
         self.aborted_txns += 1;
     }
 
+    #[inline]
     pub fn gc(&mut self, min_active_ts: u64) {
         let gc: Vec<u64> = self.versions.iter()
             .filter(|(_, v)| v.visibility == VersionVisibility::Aborted || (v.visibility == VersionVisibility::Committed && v.created_ts < min_active_ts && v.prev_version.is_some()))
@@ -277,5 +290,6 @@ impl CoopVersionedState {
         self.stats.max_chain_length = lengths.iter().copied().max().unwrap_or(0);
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MvccStats { &self.stats }
 }

@@ -80,12 +80,14 @@ impl LockdepNode {
         }
     }
 
+    #[inline]
     pub fn add_forward(&mut self, dep: u64) {
         if !self.forward_deps.contains(&dep) {
             self.forward_deps.push(dep);
         }
     }
 
+    #[inline]
     pub fn add_backward(&mut self, dep: u64) {
         if !self.backward_deps.contains(&dep) {
             self.backward_deps.push(dep);
@@ -110,6 +112,7 @@ impl LockdepHoldStack {
         }
     }
 
+    #[inline]
     pub fn push(&mut self, lock_id: u64) {
         self.held_locks.push(lock_id);
         if self.held_locks.len() > self.max_depth {
@@ -117,6 +120,7 @@ impl LockdepHoldStack {
         }
     }
 
+    #[inline]
     pub fn pop(&mut self, lock_id: u64) -> bool {
         if let Some(pos) = self.held_locks.iter().rposition(|&l| l == lock_id) {
             self.held_locks.remove(pos);
@@ -126,6 +130,7 @@ impl LockdepHoldStack {
         }
     }
 
+    #[inline(always)]
     pub fn is_held(&self, lock_id: u64) -> bool {
         self.held_locks.contains(&lock_id)
     }
@@ -133,6 +138,7 @@ impl LockdepHoldStack {
 
 /// Statistics for lockdep.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LockdepStats {
     pub total_nodes: u64,
     pub total_edges: u64,
@@ -169,6 +175,7 @@ impl CoopLockdep {
         }
     }
 
+    #[inline]
     pub fn register_lock(&mut self, lock_id: u64, class: LockdepClass) {
         if !self.graph.contains_key(&lock_id) {
             let node = LockdepNode::new(lock_id, class);
@@ -211,6 +218,7 @@ impl CoopLockdep {
         }
     }
 
+    #[inline]
     pub fn record_release(&mut self, cpu: u32, lock_id: u64) {
         if let Some(stack) = self.stacks.get_mut(&cpu) {
             stack.pop(lock_id);
@@ -237,6 +245,7 @@ impl CoopLockdep {
         false
     }
 
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.graph.len()
     }

@@ -7,6 +7,7 @@ use super::ProcessId;
 
 /// Process metrics snapshot
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessMetrics {
     /// Process ID
     pub pid: ProcessId,
@@ -66,6 +67,7 @@ impl ProcessMetrics {
     }
 
     /// Calculate CPU usage ratio between two snapshots
+    #[inline]
     pub fn cpu_usage(&self, previous: &Self, wall_time_ns: u64) -> f64 {
         if wall_time_ns == 0 {
             return 0.0;
@@ -76,6 +78,7 @@ impl ProcessMetrics {
     }
 
     /// Get memory delta
+    #[inline(always)]
     pub fn memory_delta(&self, previous: &Self) -> i64 {
         self.memory_bytes as i64 - previous.memory_bytes as i64
     }

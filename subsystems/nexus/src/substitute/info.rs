@@ -46,36 +46,42 @@ impl ModuleInfo {
     }
 
     /// Set component
+    #[inline(always)]
     pub fn with_component(mut self, component: ComponentId) -> Self {
         self.component = component;
         self
     }
 
     /// Set ABI hash
+    #[inline(always)]
     pub fn with_abi_hash(mut self, hash: u64) -> Self {
         self.abi_hash = hash;
         self
     }
 
     /// Add capability
+    #[inline(always)]
     pub fn with_capability(mut self, cap: impl Into<String>) -> Self {
         self.capabilities.push(cap.into());
         self
     }
 
     /// Add dependency
+    #[inline(always)]
     pub fn with_dependency(mut self, dep: impl Into<String>) -> Self {
         self.dependencies.push(dep.into());
         self
     }
 
     /// Mark as fallback
+    #[inline(always)]
     pub fn as_fallback(mut self) -> Self {
         self.is_fallback = true;
         self
     }
 
     /// Check ABI compatibility
+    #[inline(always)]
     pub fn is_compatible_with(&self, other: &ModuleInfo) -> bool {
         self.version.is_abi_compatible(&other.version) && self.abi_hash == other.abi_hash
     }

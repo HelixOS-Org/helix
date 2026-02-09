@@ -22,6 +22,7 @@ impl BandwidthHolisticRecord {
 
 /// Bandwidth holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BandwidthHolisticStats { pub total_samples: u64, pub saturated: u64, pub peak_tx: u64, pub peak_rx: u64 }
 
 /// Main holistic bandwidth
@@ -30,6 +31,7 @@ pub struct HolisticBandwidth { pub stats: BandwidthHolisticStats }
 
 impl HolisticBandwidth {
     pub fn new() -> Self { Self { stats: BandwidthHolisticStats { total_samples: 0, saturated: 0, peak_tx: 0, peak_rx: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &BandwidthHolisticRecord) {
         self.stats.total_samples += 1;
         if rec.grade == BandwidthGrade::Saturated || rec.grade == BandwidthGrade::Oversubscribed { self.stats.saturated += 1; }

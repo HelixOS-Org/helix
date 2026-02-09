@@ -47,6 +47,7 @@ impl BloomFilter {
         Self { bits: alloc::vec![0u64; words], bit_count, num_hashes, item_count: 0 }
     }
 
+    #[inline]
     pub fn insert(&mut self, item: u64) {
         let positions = bloom_hashes(item, self.num_hashes, self.bit_count);
         for pos in positions {
@@ -55,6 +56,7 @@ impl BloomFilter {
         self.item_count += 1;
     }
 
+    #[inline]
     pub fn contains(&self, item: u64) -> bool {
         let positions = bloom_hashes(item, self.num_hashes, self.bit_count);
         for pos in positions {
@@ -63,11 +65,13 @@ impl BloomFilter {
         true
     }
 
+    #[inline(always)]
     pub fn clear(&mut self) {
         for w in &mut self.bits { *w = 0; }
         self.item_count = 0;
     }
 
+    #[inline]
     pub fn estimated_fp_rate(&self) -> f64 {
         let m = self.bit_count as f64;
         let k = self.num_hashes as f64;
@@ -76,6 +80,7 @@ impl BloomFilter {
         libm::pow(p, k)
     }
 
+    #[inline]
     pub fn merge(&mut self, other: &BloomFilter) {
         if self.bit_count == other.bit_count {
             for (a, b) in self.bits.iter_mut().zip(other.bits.iter()) {
@@ -85,10 +90,14 @@ impl BloomFilter {
         }
     }
 
+    #[inline(always)]
     pub fn item_count(&self) -> u64 { self.item_count }
+    #[inline(always)]
     pub fn bit_count(&self) -> usize { self.bit_count }
+    #[inline(always)]
     pub fn size_bytes(&self) -> usize { self.bits.len() * 8 }
 
+    #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
         let set: usize = self.bits.iter().map(|w| w.count_ones() as usize).sum();
         set as f64 / self.bit_count as f64
@@ -112,6 +121,7 @@ impl CountingBloomFilter {
         Self { counters: alloc::vec![0u8; bit_count], bit_count, num_hashes, item_count: 0, overflow_count: 0 }
     }
 
+    #[inline]
     pub fn insert(&mut self, item: u64) {
         let positions = bloom_hashes(item, self.num_hashes, self.bit_count);
         for pos in positions {
@@ -134,13 +144,17 @@ impl CountingBloomFilter {
         true
     }
 
+    #[inline(always)]
     pub fn contains(&self, item: u64) -> bool {
         let positions = bloom_hashes(item, self.num_hashes, self.bit_count);
         positions.iter().all(|&pos| self.counters[pos] > 0)
     }
 
+    #[inline(always)]
     pub fn item_count(&self) -> u64 { self.item_count }
+    #[inline(always)]
     pub fn size_bytes(&self) -> usize { self.counters.len() }
+    #[inline(always)]
     pub fn overflow_count(&self) -> u64 { self.overflow_count }
 }
 
@@ -163,6 +177,7 @@ impl ScalableBloomFilter {
         }
     }
 
+    #[inline]
     pub fn insert(&mut self, item: u64) {
         let last = self.filters.last().unwrap();
         if last.fill_ratio() > 0.5 {
@@ -175,17 +190,22 @@ impl ScalableBloomFilter {
         self.total_items += 1;
     }
 
+    #[inline(always)]
     pub fn contains(&self, item: u64) -> bool {
         self.filters.iter().any(|f| f.contains(item))
     }
 
+    #[inline(always)]
     pub fn total_items(&self) -> u64 { self.total_items }
+    #[inline(always)]
     pub fn filter_count(&self) -> usize { self.filters.len() }
+    #[inline(always)]
     pub fn total_size_bytes(&self) -> usize { self.filters.iter().map(|f| f.size_bytes()).sum() }
 }
 
 /// Bloom filter stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BloomFilterStats {
     pub total_filters: usize,
     pub total_items: u64,
@@ -205,20 +225,24 @@ impl CoopBloomFilter {
         Self { filters: Vec::new(), stats: BloomFilterStats::default() }
     }
 
+    #[inline(always)]
     pub fn create_filter(&mut self, id: u64, capacity: usize, fp_rate: f64) {
         self.filters.push((id, BloomFilter::new(capacity, fp_rate)));
     }
 
+    #[inline]
     pub fn insert(&mut self, filter_id: u64, item: u64) {
         if let Some((_, f)) = self.filters.iter_mut().find(|(id, _)| *id == filter_id) {
             f.insert(item);
         }
     }
 
+    #[inline(always)]
     pub fn contains(&self, filter_id: u64, item: u64) -> bool {
         self.filters.iter().find(|(id, _)| *id == filter_id).map(|(_, f)| f.contains(item)).unwrap_or(false)
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_filters = self.filters.len();
         self.stats.total_items = self.filters.iter().map(|(_, f)| f.item_count()).sum();
@@ -229,6 +253,7 @@ impl CoopBloomFilter {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BloomFilterStats { &self.stats }
 }
 

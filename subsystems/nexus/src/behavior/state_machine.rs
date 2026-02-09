@@ -8,6 +8,7 @@
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -18,6 +19,7 @@ use alloc::vec::Vec;
 
 /// Unique identifier for states
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct StateId(pub u64);
 
 impl StateId {
@@ -38,6 +40,7 @@ pub struct EventId(pub u64);
 
 /// Event that can trigger transitions
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateEvent {
     pub id: EventId,
     pub name: String,
@@ -55,11 +58,13 @@ impl StateEvent {
         }
     }
 
+    #[inline(always)]
     pub fn with_data(mut self, data: EventData) -> Self {
         self.data = Some(data);
         self
     }
 
+    #[inline(always)]
     pub fn with_timestamp(mut self, timestamp: u64) -> Self {
         self.timestamp = timestamp;
         self
@@ -78,6 +83,7 @@ pub enum EventData {
 }
 
 impl EventData {
+    #[inline]
     pub fn as_int(&self) -> Option<i64> {
         match self {
             Self::Int(v) => Some(*v),
@@ -85,6 +91,7 @@ impl EventData {
         }
     }
 
+    #[inline]
     pub fn as_float(&self) -> Option<f64> {
         match self {
             Self::Float(v) => Some(*v),
@@ -92,6 +99,7 @@ impl EventData {
         }
     }
 
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Self::Bool(v) => Some(*v),
@@ -101,6 +109,7 @@ impl EventData {
 }
 
 /// Context for state machine execution
+#[repr(align(64))]
 pub struct StateContext {
     pub time: u64,
     pub delta_time: u64,
@@ -118,18 +127,22 @@ impl StateContext {
         }
     }
 
+    #[inline(always)]
     pub fn get_var(&self, name: &str) -> Option<&EventData> {
         self.variables.get(name)
     }
 
+    #[inline(always)]
     pub fn set_var(&mut self, name: String, value: EventData) {
         self.variables.insert(name, value);
     }
 
+    #[inline(always)]
     pub fn emit_event(&mut self, event: StateEvent) {
         self.pending_events.push(event);
     }
 
+    #[inline(always)]
     pub fn take_events(&mut self) -> Vec<StateEvent> {
         core::mem::take(&mut self.pending_events)
     }
@@ -157,6 +170,7 @@ pub enum StateType {
 }
 
 /// A state in the state machine
+#[repr(align(64))]
 pub struct State {
     pub id: StateId,
     pub name: String,
@@ -190,16 +204,19 @@ impl State {
         }
     }
 
+    #[inline(always)]
     pub fn with_type(mut self, state_type: StateType) -> Self {
         self.state_type = state_type;
         self
     }
 
+    #[inline(always)]
     pub fn with_parent(mut self, parent: StateId) -> Self {
         self.parent = Some(parent);
         self
     }
 
+    #[inline(always)]
     pub fn with_on_enter<F>(mut self, f: F) -> Self
     where
         F: Fn(&mut StateContext) + Send + Sync + 'static,
@@ -208,6 +225,7 @@ impl State {
         self
     }
 
+    #[inline(always)]
     pub fn with_on_exit<F>(mut self, f: F) -> Self
     where
         F: Fn(&mut StateContext) + Send + Sync + 'static,
@@ -216,6 +234,7 @@ impl State {
         self
     }
 
+    #[inline(always)]
     pub fn with_on_update<F>(mut self, f: F) -> Self
     where
         F: Fn(&mut StateContext) + Send + Sync + 'static,
@@ -224,6 +243,7 @@ impl State {
         self
     }
 
+    #[inline]
     pub fn enter(&mut self, ctx: &mut StateContext) {
         self.time_in_state = 0;
         if let Some(ref f) = self.on_enter {
@@ -231,12 +251,14 @@ impl State {
         }
     }
 
+    #[inline]
     pub fn exit(&mut self, ctx: &mut StateContext) {
         if let Some(ref f) = self.on_exit {
             f(ctx);
         }
     }
 
+    #[inline]
     pub fn update(&mut self, ctx: &mut StateContext) {
         self.time_in_state += ctx.delta_time;
         if let Some(ref f) = self.on_update {
@@ -244,14 +266,17 @@ impl State {
         }
     }
 
+    #[inline(always)]
     pub fn time_in_state(&self) -> u64 {
         self.time_in_state
     }
 
+    #[inline(always)]
     pub fn is_composite(&self) -> bool {
         self.state_type == StateType::Composite
     }
 
+    #[inline(always)]
     pub fn is_final(&self) -> bool {
         self.state_type == StateType::Final
     }
@@ -362,16 +387,19 @@ impl Transition {
         }
     }
 
+    #[inline(always)]
     pub fn with_condition(mut self, condition: TransitionCondition) -> Self {
         self.condition = condition;
         self
     }
 
+    #[inline(always)]
     pub fn with_priority(mut self, priority: i32) -> Self {
         self.priority = priority;
         self
     }
 
+    #[inline(always)]
     pub fn with_action<F>(mut self, f: F) -> Self
     where
         F: Fn(&mut StateContext) + Send + Sync + 'static,
@@ -380,6 +408,7 @@ impl Transition {
         self
     }
 
+    #[inline(always)]
     pub fn can_fire(
         &self,
         ctx: &StateContext,
@@ -389,6 +418,7 @@ impl Transition {
         self.condition.evaluate(ctx, event, time_in_state)
     }
 
+    #[inline]
     pub fn execute(&self, ctx: &mut StateContext) {
         if let Some(ref action) = self.action {
             action(ctx);
@@ -401,13 +431,14 @@ impl Transition {
 // ============================================================================
 
 /// Flat state machine
+#[repr(align(64))]
 pub struct StateMachine {
     name: String,
     states: BTreeMap<StateId, State>,
     transitions: Vec<Transition>,
     initial_state: StateId,
     current_state: StateId,
-    history: Vec<StateId>,
+    history: VecDeque<StateId>,
 }
 
 impl StateMachine {
@@ -418,35 +449,41 @@ impl StateMachine {
             transitions: Vec::new(),
             initial_state,
             current_state: initial_state,
-            history: Vec::new(),
+            history: VecDeque::new(),
         }
     }
 
+    #[inline(always)]
     pub fn add_state(&mut self, state: State) {
         self.states.insert(state.id, state);
     }
 
+    #[inline]
     pub fn add_transition(&mut self, transition: Transition) {
         self.transitions.push(transition);
         // Sort by priority (higher first)
         self.transitions.sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
+    #[inline(always)]
     pub fn current_state(&self) -> StateId {
         self.current_state
     }
 
+    #[inline]
     pub fn current_state_name(&self) -> Option<&str> {
         self.states
             .get(&self.current_state)
             .map(|s| s.name.as_str())
     }
 
+    #[inline(always)]
     pub fn history(&self) -> &[StateId] {
         &self.history
     }
 
     /// Initialize the state machine
+    #[inline]
     pub fn initialize(&mut self, ctx: &mut StateContext) {
         self.current_state = self.initial_state;
         if let Some(state) = self.states.get_mut(&self.current_state) {
@@ -455,11 +492,13 @@ impl StateMachine {
     }
 
     /// Process an event
+    #[inline(always)]
     pub fn process_event(&mut self, event: &StateEvent, ctx: &mut StateContext) -> bool {
         self.try_transition(Some(event), ctx)
     }
 
     /// Update the state machine
+    #[inline]
     pub fn update(&mut self, ctx: &mut StateContext) {
         // Update current state
         if let Some(state) = self.states.get_mut(&self.current_state) {
@@ -514,9 +553,9 @@ impl StateMachine {
             }
 
             // Update history
-            self.history.push(self.current_state);
+            self.history.push_back(self.current_state);
             if self.history.len() > 100 {
-                self.history.remove(0);
+                self.history.pop_front();
             }
 
             // Enter new state
@@ -532,6 +571,7 @@ impl StateMachine {
     }
 
     /// Check if in a final state
+    #[inline]
     pub fn is_finished(&self) -> bool {
         self.states
             .get(&self.current_state)
@@ -568,6 +608,7 @@ struct HierarchyEntry {
 }
 
 /// Hierarchical state machine with nested states
+#[repr(align(64))]
 pub struct HierarchicalStateMachine {
     name: String,
     states: BTreeMap<StateId, State>,
@@ -603,24 +644,29 @@ impl HierarchicalStateMachine {
         }
     }
 
+    #[inline(always)]
     pub fn add_transition(&mut self, transition: Transition) {
         self.transitions.push(transition);
         self.transitions.sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
+    #[inline(always)]
     pub fn active_states(&self) -> &[StateId] {
         &self.active_states
     }
 
+    #[inline(always)]
     pub fn current_leaf(&self) -> Option<StateId> {
         self.active_states.last().copied()
     }
 
+    #[inline(always)]
     pub fn is_in_state(&self, state_id: StateId) -> bool {
         self.active_states.contains(&state_id)
     }
 
     /// Initialize the hierarchical state machine
+    #[inline(always)]
     pub fn initialize(&mut self, ctx: &mut StateContext) {
         self.active_states.clear();
         self.enter_state(self.root_state, ctx);
@@ -808,6 +854,7 @@ impl HierarchicalStateMachine {
     }
 
     /// Get history state for a composite state
+    #[inline(always)]
     pub fn get_history(&self, composite: StateId) -> Option<StateId> {
         self.history.get(&composite).copied()
     }
@@ -847,12 +894,14 @@ pub enum KernelState {
 }
 
 impl KernelState {
+    #[inline(always)]
     pub fn as_state_id(&self) -> StateId {
         StateId(*self as u64 + 1)
     }
 }
 
 /// Builder for kernel state machines
+#[repr(align(64))]
 pub struct KernelStateMachineBuilder {
     name: String,
     next_id: u64,
@@ -882,6 +931,7 @@ impl KernelStateMachineBuilder {
         id
     }
 
+    #[inline]
     pub fn add_state(mut self, name: impl Into<String>, state_type: StateType) -> (Self, StateId) {
         let id = self.next_state_id();
         let state = State::new(id, name).with_type(state_type);
@@ -889,6 +939,7 @@ impl KernelStateMachineBuilder {
         (self, id)
     }
 
+    #[inline]
     pub fn add_transition(
         mut self,
         name: impl Into<String>,
@@ -902,6 +953,7 @@ impl KernelStateMachineBuilder {
         self
     }
 
+    #[inline]
     pub fn build(self, initial: StateId) -> StateMachine {
         let mut sm = StateMachine::new(self.name, initial);
         for state in self.states {

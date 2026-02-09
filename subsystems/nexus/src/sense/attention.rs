@@ -158,6 +158,7 @@ impl Default for AttentionConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AttentionStats {
     /// Total targets
     pub total_targets: u64,
@@ -351,6 +352,7 @@ impl AttentionManager {
     }
 
     /// Update salience
+    #[inline]
     pub fn update_salience(&mut self, target_id: u64, salience: f64) {
         if let Some(target) = self.targets.get_mut(&target_id) {
             target.salience = salience.clamp(0.0, 1.0);
@@ -376,6 +378,7 @@ impl AttentionManager {
     }
 
     /// Apply decay
+    #[inline]
     pub fn decay(&mut self) {
         for target in self.targets.values_mut() {
             if target.status != AttentionStatus::Active {
@@ -409,6 +412,7 @@ impl AttentionManager {
     }
 
     /// Get most salient target
+    #[inline]
     pub fn most_salient(&self) -> Option<&AttentionTarget> {
         self.targets
             .values()
@@ -417,6 +421,7 @@ impl AttentionManager {
     }
 
     /// Get current focus
+    #[inline]
     pub fn current_focus(&self) -> Vec<&AttentionTarget> {
         self.focus_stack
             .iter()
@@ -425,16 +430,19 @@ impl AttentionManager {
     }
 
     /// Get target
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&AttentionTarget> {
         self.targets.get(&id)
     }
 
     /// Is focused
+    #[inline(always)]
     pub fn is_focused(&self, target_id: u64) -> bool {
         self.focus_stack.iter().any(|f| f.target_id == target_id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &AttentionStats {
         &self.stats
     }

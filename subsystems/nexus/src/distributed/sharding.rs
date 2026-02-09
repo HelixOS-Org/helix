@@ -8,6 +8,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -32,12 +33,14 @@ static SHARD_COUNTER: AtomicU64 = AtomicU64::new(1);
 static PARTITION_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl ShardId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(SHARD_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
 }
 
 impl PartitionId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(PARTITION_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -53,7 +56,7 @@ pub struct Shard {
     /// Primary node
     pub primary: NodeId,
     /// Replicas
-    pub replicas: Vec<NodeId>,
+    pub replicas: VecDeque<NodeId>,
     /// Status
     pub status: ShardStatus,
     /// Items count
@@ -164,6 +167,7 @@ impl ConsistentHashRing {
     }
 
     /// Add node
+    #[inline]
     pub fn add_node(&mut self, node: NodeId) {
         for i in 0..self.virtual_nodes {
             let key = format!("{}:{}", node.0, i);
@@ -226,6 +230,7 @@ impl ConsistentHashRing {
     }
 
     /// Get all nodes
+    #[inline]
     pub fn nodes(&self) -> Vec<NodeId> {
         let mut nodes: Vec<NodeId> = self.ring.values().copied().collect();
         nodes.sort();
@@ -294,6 +299,7 @@ impl Default for ShardConfig {
 
 /// Shard statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ShardStats {
     /// Total shards
     pub total_shards: u64,
@@ -592,6 +598,7 @@ impl ShardManager {
     }
 
     /// Add node
+    #[inline(always)]
     pub fn add_node(&mut self, node: NodeId) {
         self.ring.add_node(node);
     }
@@ -613,23 +620,26 @@ impl ShardManager {
                 // Promote first replica
                 if let Some(new_primary) = shard.replicas.first().copied() {
                     shard.primary = new_primary;
-                    shard.replicas.remove(0);
+                    shard.replicas.pop_front().unwrap();
                 }
             }
         }
     }
 
     /// Get shard
+    #[inline(always)]
     pub fn get(&self, id: ShardId) -> Option<&Shard> {
         self.shards.get(&id)
     }
 
     /// Get all shards
+    #[inline(always)]
     pub fn all_shards(&self) -> impl Iterator<Item = &Shard> {
         self.shards.values()
     }
 
     /// Get local shards
+    #[inline]
     pub fn local_shards(&self) -> impl Iterator<Item = &Shard> {
         self.shards
             .values()
@@ -637,6 +647,7 @@ impl ShardManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ShardStats {
         &self.stats
     }

@@ -40,11 +40,13 @@ pub enum PriorityLevel {
 
 impl PriorityLevel {
     /// Get numeric value
+    #[inline(always)]
     pub fn value(&self) -> u8 {
         *self as u8
     }
 
     /// From numeric value
+    #[inline]
     pub fn from_value(v: u8) -> Self {
         match v {
             0 => Self::Background,
@@ -58,6 +60,7 @@ impl PriorityLevel {
     }
 
     /// Get weight multiplier
+    #[inline]
     pub fn weight(&self) -> f32 {
         match self {
             Self::Background => 0.1,
@@ -120,24 +123,28 @@ impl Priority {
     }
 
     /// With sublevel
+    #[inline(always)]
     pub fn with_sublevel(mut self, sublevel: u8) -> Self {
         self.sublevel = sublevel;
         self
     }
 
     /// With boost
+    #[inline(always)]
     pub fn with_boost(mut self, boost: f32) -> Self {
         self.boost = boost;
         self
     }
 
     /// With age factor
+    #[inline(always)]
     pub fn with_age_factor(mut self, factor: f32) -> Self {
         self.age_factor = factor;
         self
     }
 
     /// Calculate effective priority
+    #[inline]
     pub fn effective(&self, age_cycles: u64) -> f32 {
         let base = (self.level.value() as f32 * 256.0) + self.sublevel as f32;
         let age_boost = age_cycles as f32 * self.age_factor;
@@ -156,6 +163,7 @@ impl Default for Priority {
 // ============================================================================
 
 /// Priority queue for cognitive items
+#[repr(align(64))]
 pub struct PriorityQueue<T> {
     /// Items by priority level
     levels: BTreeMap<PriorityLevel, Vec<PrioritizedItem<T>>>,
@@ -171,6 +179,7 @@ pub struct PriorityQueue<T> {
 
 /// Configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PriorityQueueConfig {
     /// Maximum items per level
     pub max_per_level: usize,
@@ -195,6 +204,7 @@ impl Default for PriorityQueueConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PriorityQueueStats {
     /// Total items enqueued
     pub total_enqueued: u64,
@@ -425,21 +435,25 @@ impl<T: Clone> PriorityQueue<T> {
     }
 
     /// Get queue length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.levels.values().map(|v| v.len()).sum()
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.levels.values().all(|v| v.is_empty())
     }
 
     /// Get length at level
+    #[inline(always)]
     pub fn len_at_level(&self, level: PriorityLevel) -> usize {
         self.levels.get(&level).map(|v| v.len()).unwrap_or(0)
     }
 
     /// Clear all items
+    #[inline]
     pub fn clear(&mut self) {
         for items in self.levels.values_mut() {
             items.clear();
@@ -456,6 +470,7 @@ impl<T: Clone> PriorityQueue<T> {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PriorityQueueStats {
         &self.stats
     }
@@ -495,6 +510,7 @@ impl PriorityScheduler {
     }
 
     /// Build round-robin order based on weights
+    #[inline]
     pub fn build_order(&mut self) {
         self.rr_order.clear();
 
@@ -508,6 +524,7 @@ impl PriorityScheduler {
     }
 
     /// Get next level to service
+    #[inline]
     pub fn next_level(&mut self) -> PriorityLevel {
         if self.rr_order.is_empty() {
             self.build_order();
@@ -519,12 +536,14 @@ impl PriorityScheduler {
     }
 
     /// Set weight for level
+    #[inline(always)]
     pub fn set_weight(&mut self, level: PriorityLevel, weight: u32) {
         self.weights.insert(level, weight);
         self.build_order();
     }
 
     /// Get weight for level
+    #[inline(always)]
     pub fn get_weight(&self, level: PriorityLevel) -> u32 {
         self.weights.get(&level).copied().unwrap_or(0)
     }

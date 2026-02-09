@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -50,6 +51,7 @@ pub enum HolisticForecastHorizon {
 
 impl HolisticForecastHorizon {
     /// Steps ahead
+    #[inline]
     pub fn steps(&self) -> usize {
         match self {
             Self::Short => 10,
@@ -81,7 +83,7 @@ pub struct ForecastSeries {
     /// Metric
     pub metric: ForecastMetric,
     /// Raw values
-    values: Vec<f64>,
+    values: VecDeque<f64>,
     /// Max length
     max_len: usize,
     /// Smoothed values (exponential smoothing)
@@ -97,7 +99,7 @@ impl ForecastSeries {
     pub fn new(metric: ForecastMetric) -> Self {
         Self {
             metric,
-            values: Vec::new(),
+            values: VecDeque::new(),
             max_len: 1024,
             level: 0.0,
             trend: 0.0,
@@ -107,6 +109,7 @@ impl ForecastSeries {
     }
 
     /// Add observation
+    #[inline]
     pub fn observe(&mut self, value: f64) {
         if self.values.is_empty() {
             self.level = value;
@@ -117,13 +120,14 @@ impl ForecastSeries {
             self.trend = self.beta * (self.level - prev_level) + (1.0 - self.beta) * self.trend;
         }
 
-        self.values.push(value);
+        self.values.push_back(value);
         if self.values.len() > self.max_len {
-            self.values.remove(0);
+            self.values.pop_front();
         }
     }
 
     /// Forecast k steps ahead
+    #[inline]
     pub fn forecast(&self, steps: usize) -> Vec<f64> {
         let mut result = Vec::with_capacity(steps);
         for i in 1..=steps {
@@ -133,6 +137,7 @@ impl ForecastSeries {
     }
 
     /// Current trend direction
+    #[inline]
     pub fn trend_direction(&self) -> TrendDirection {
         if self.trend > 0.01 {
             TrendDirection::Increasing
@@ -144,6 +149,7 @@ impl ForecastSeries {
     }
 
     /// Mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.values.is_empty() {
             return 0.0;
@@ -234,6 +240,7 @@ impl ForecastScenario {
     }
 
     /// Set override
+    #[inline(always)]
     pub fn set_override(&mut self, metric: ForecastMetric, value: f64) {
         self.overrides.insert(metric as u8, value);
     }
@@ -279,6 +286,7 @@ pub enum CapacityRisk {
 
 /// Forecast engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticForecastStats {
     /// Series tracked
     pub series_count: usize,
@@ -310,11 +318,13 @@ impl HolisticForecastEngine {
     }
 
     /// Set capacity limit
+    #[inline(always)]
     pub fn set_capacity(&mut self, metric: ForecastMetric, capacity: f64) {
         self.capacity_limits.insert(metric as u8, capacity);
     }
 
     /// Observe metric
+    #[inline]
     pub fn observe(&mut self, metric: ForecastMetric, value: f64) {
         let series = self
             .series
@@ -419,6 +429,7 @@ impl HolisticForecastEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticForecastStats {
         &self.stats
     }

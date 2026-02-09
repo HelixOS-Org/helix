@@ -42,6 +42,7 @@ pub struct MembarrierInvocation {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MembarrierBridgeStats {
     pub total_invocations: u64,
     pub total_registrations: u32,
@@ -62,14 +63,17 @@ impl BridgeMembarrier {
         Self { registrations: Vec::new(), invocations: Vec::new(), supported_cmds: 0x1FF }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, cmds: u32, now: u64) {
         self.registrations.push(MembarrierRegistration { pid, registered_cmds: cmds, timestamp: now });
     }
 
+    #[inline(always)]
     pub fn invoke(&mut self, pid: u64, cmd: MembarrierCmd, flags: u32, cpu: i32, now: u64, dur: u64) {
         self.invocations.push(MembarrierInvocation { pid, cmd, flags, cpu_id: cpu, timestamp: now, duration_ns: dur });
     }
 
+    #[inline]
     pub fn stats(&self) -> MembarrierBridgeStats {
         let global = self.invocations.iter().filter(|i| matches!(i.cmd, MembarrierCmd::Global | MembarrierCmd::GlobalExpedited)).count() as u64;
         let private = self.invocations.iter().filter(|i| matches!(i.cmd, MembarrierCmd::Private | MembarrierCmd::PrivateExpedited | MembarrierCmd::PrivateExpeditedSyncCore | MembarrierCmd::PrivateExpeditedRseq)).count() as u64;

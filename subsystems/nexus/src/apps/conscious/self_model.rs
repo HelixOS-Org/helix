@@ -94,6 +94,7 @@ impl WorkloadAccuracy {
     }
 
     /// Record a classification result for this workload
+    #[inline]
     pub fn record(&mut self, was_correct: bool, confidence: f32, tick: u64) {
         let raw = if was_correct { 1.0 } else { 0.0 };
         self.attempts += 1;
@@ -123,18 +124,21 @@ impl WorkloadAccuracy {
     }
 
     /// Update prediction hit rate with a new outcome
+    #[inline]
     pub fn update_prediction(&mut self, hit: bool) {
         let raw = if hit { 1.0 } else { 0.0 };
         self.prediction_hit_rate = EMA_ALPHA * raw + (1.0 - EMA_ALPHA) * self.prediction_hit_rate;
     }
 
     /// Update adaptation success rate
+    #[inline]
     pub fn update_adaptation(&mut self, success: bool) {
         let raw = if success { 1.0 } else { 0.0 };
         self.adaptation_success = EMA_ALPHA * raw + (1.0 - EMA_ALPHA) * self.adaptation_success;
     }
 
     /// 95% confidence interval half-width around accuracy
+    #[inline]
     pub fn confidence_half_width(&self) -> f32 {
         if self.attempts < 2 {
             return 0.5;
@@ -145,6 +149,7 @@ impl WorkloadAccuracy {
     }
 
     /// Improvement trajectory: slope of recent accuracy trend
+    #[inline]
     pub fn improvement_trajectory(&self) -> f32 {
         let len = self.history.len();
         if len < 4 {
@@ -207,6 +212,7 @@ impl CalibrationBin {
 
 /// Aggregate statistics about the apps self-model
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SelfModelStats {
     pub workload_types_tracked: usize,
     pub avg_classification_accuracy: f32,
@@ -258,6 +264,7 @@ impl AppsSelfModel {
     }
 
     /// Update classification accuracy for a workload type
+    #[inline]
     pub fn update_accuracy(&mut self, workload_name: &str, was_correct: bool, confidence: f32) {
         self.tick += 1;
         let id = fnv1a_hash(workload_name.as_bytes());
@@ -279,6 +286,7 @@ impl AppsSelfModel {
     }
 
     /// Assess classification quality for a specific workload
+    #[inline]
     pub fn assess_classification(&self, workload_name: &str) -> Option<(f32, f32, f32)> {
         let id = fnv1a_hash(workload_name.as_bytes());
         self.workloads.get(&id).map(|w| {
@@ -325,6 +333,7 @@ impl AppsSelfModel {
     }
 
     /// Overall improvement trajectory across all workloads
+    #[inline]
     pub fn improvement_trajectory(&self) -> f32 {
         if self.workloads.is_empty() {
             return 0.0;
@@ -338,6 +347,7 @@ impl AppsSelfModel {
     }
 
     /// Update prediction hit rate for a workload
+    #[inline]
     pub fn record_prediction(&mut self, workload_name: &str, hit: bool) {
         let id = fnv1a_hash(workload_name.as_bytes());
         if let Some(w) = self.workloads.get_mut(&id) {
@@ -346,6 +356,7 @@ impl AppsSelfModel {
     }
 
     /// Update adaptation success for a workload
+    #[inline]
     pub fn record_adaptation(&mut self, workload_name: &str, success: bool) {
         let id = fnv1a_hash(workload_name.as_bytes());
         if let Some(w) = self.workloads.get_mut(&id) {

@@ -3,6 +3,7 @@
 //! Tracking capability events and process capabilities.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -67,7 +68,7 @@ impl CapEventType {
 /// Capability tracker
 pub struct CapabilityTracker {
     /// Events
-    events: Vec<CapabilityEvent>,
+    events: VecDeque<CapabilityEvent>,
     /// Max events
     max_events: usize,
     /// Process caps
@@ -84,7 +85,7 @@ impl CapabilityTracker {
     /// Create new tracker
     pub fn new(max_events: usize) -> Self {
         Self {
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events,
             process_caps: BTreeMap::new(),
             total_events: AtomicU64::new(0),
@@ -106,48 +107,56 @@ impl CapabilityTracker {
         }
 
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event);
+        self.events.push_back(event);
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register_process(&mut self, caps: ProcessCaps) {
         self.process_caps.insert(caps.pid, caps);
     }
 
     /// Unregister process
+    #[inline(always)]
     pub fn unregister_process(&mut self, pid: Pid) -> Option<ProcessCaps> {
         self.process_caps.remove(&pid)
     }
 
     /// Get process caps
+    #[inline(always)]
     pub fn get_process(&self, pid: Pid) -> Option<&ProcessCaps> {
         self.process_caps.get(&pid)
     }
 
     /// Get recent events
+    #[inline(always)]
     pub fn recent_events(&self, count: usize) -> &[CapabilityEvent] {
         let start = self.events.len().saturating_sub(count);
         &self.events[start..]
     }
 
     /// Get denial count
+    #[inline(always)]
     pub fn denial_count(&self) -> u64 {
         self.denial_count.load(Ordering::Relaxed)
     }
 
     /// Get total events
+    #[inline(always)]
     pub fn total_events(&self) -> u64 {
         self.total_events.load(Ordering::Relaxed)
     }
 
     /// Enable/disable
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }

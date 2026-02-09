@@ -4,6 +4,7 @@
 //! and finds patterns to guide system improvement.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
@@ -132,12 +133,14 @@ impl CognitiveFailure {
     }
 
     /// Add context
+    #[inline(always)]
     pub fn with_context(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.context.insert(key.into(), value.into());
         self
     }
 
     /// Is diagnosed?
+    #[inline(always)]
     pub fn is_diagnosed(&self) -> bool {
         self.diagnosis.is_some()
     }
@@ -175,11 +178,13 @@ impl Diagnosis {
     }
 
     /// Add factor
+    #[inline(always)]
     pub fn add_factor(&mut self, factor: impl Into<String>) {
         self.contributing_factors.push(factor.into());
     }
 
     /// Add recommendation
+    #[inline(always)]
     pub fn add_recommendation(&mut self, recommendation: impl Into<String>) {
         self.recommendations.push(recommendation.into());
     }
@@ -219,6 +224,7 @@ pub enum PatternType {
 
 impl PatternType {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Repeated => "Repeated",
@@ -236,7 +242,7 @@ impl PatternType {
 /// Diagnostician - diagnoses cognitive failures
 pub struct Diagnostician {
     /// Failure records
-    failures: Vec<CognitiveFailure>,
+    failures: VecDeque<CognitiveFailure>,
     /// Maximum failures
     max_failures: usize,
     /// Diagnoses made
@@ -247,18 +253,19 @@ impl Diagnostician {
     /// Create new diagnostician
     pub fn new(max_failures: usize) -> Self {
         Self {
-            failures: Vec::new(),
+            failures: VecDeque::new(),
             max_failures,
             diagnoses_made: AtomicU64::new(0),
         }
     }
 
     /// Record a failure
+    #[inline]
     pub fn record_failure(&mut self, failure: CognitiveFailure) -> FailureId {
         let id = failure.id;
-        self.failures.push(failure);
+        self.failures.push_back(failure);
         if self.failures.len() > self.max_failures {
-            self.failures.remove(0);
+            self.failures.pop_front();
         }
         id
     }
@@ -381,11 +388,13 @@ impl Diagnostician {
     }
 
     /// Get failure by ID
+    #[inline(always)]
     pub fn get_failure(&self, id: FailureId) -> Option<&CognitiveFailure> {
         self.failures.iter().find(|f| f.id == id)
     }
 
     /// Get all failures
+    #[inline(always)]
     pub fn failures(&self) -> &[CognitiveFailure] {
         &self.failures
     }
@@ -442,6 +451,7 @@ impl Diagnostician {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> DiagnosticianStats {
         DiagnosticianStats {
             failures_recorded: self.failures.len(),
@@ -459,6 +469,7 @@ impl Default for Diagnostician {
 
 /// Diagnostician statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DiagnosticianStats {
     /// Failures recorded
     pub failures_recorded: usize,

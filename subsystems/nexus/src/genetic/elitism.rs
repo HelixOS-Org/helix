@@ -97,6 +97,7 @@ pub struct HallOfFame {
 
 /// Hall of Fame statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HallOfFameStats {
     /// Total additions
     pub additions: u64,
@@ -190,26 +191,31 @@ impl HallOfFame {
     }
 
     /// Check if individual is in hall of fame
+    #[inline(always)]
     pub fn contains(&self, id: &GenomeId) -> bool {
         self.elites.iter().any(|e| e.individual.id == *id)
     }
 
     /// Get elite by rank
+    #[inline(always)]
     pub fn get_by_rank(&self, rank: usize) -> Option<&Elite> {
         self.elites.get(rank.saturating_sub(1))
     }
 
     /// Get best
+    #[inline(always)]
     pub fn best(&self) -> Option<&Elite> {
         self.elites.first()
     }
 
     /// Get all elites
+    #[inline(always)]
     pub fn all(&self) -> &[Elite] {
         &self.elites
     }
 
     /// Record contribution
+    #[inline]
     pub fn record_contribution(&mut self, id: GenomeId) {
         if let Some(elite) = self.elites.iter_mut().find(|e| e.individual.id == id) {
             elite.contribution_count += 1;
@@ -217,6 +223,7 @@ impl HallOfFame {
     }
 
     /// Age out old elites
+    #[inline]
     pub fn age_out(&mut self, current_gen: Generation, max_age: u64) {
         let before = self.elites.len();
 
@@ -245,16 +252,19 @@ impl HallOfFame {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &HallOfFameStats {
         &self.stats
     }
 
     /// Get size
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.elites.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.elites.is_empty()
     }
@@ -278,6 +288,7 @@ pub struct ElitismManager {
 
 /// Elitism statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ElitismStats {
     /// Elites preserved
     pub elites_preserved: u64,
@@ -464,16 +475,19 @@ impl ElitismManager {
     }
 
     /// Set generation
+    #[inline(always)]
     pub fn set_generation(&mut self, generation: Generation) {
         self.generation = generation;
     }
 
     /// Get hall of fame
+    #[inline(always)]
     pub fn hall_of_fame(&self) -> &HallOfFame {
         &self.hall_of_fame
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ElitismStats {
         &self.stats
     }

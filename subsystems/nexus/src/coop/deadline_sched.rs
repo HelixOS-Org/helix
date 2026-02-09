@@ -26,6 +26,7 @@ pub struct DlParams {
 
 impl DlParams {
     pub fn new(runtime: u64, deadline: u64, period: u64) -> Self { Self { runtime_ns: runtime, deadline_ns: deadline, period_ns: period } }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 { if self.period_ns == 0 { 0.0 } else { self.runtime_ns as f64 / self.period_ns as f64 } }
 }
 
@@ -48,6 +49,7 @@ impl DlTask {
         Self { id, state: DlTaskState::Ready, params, absolute_deadline: 0, runtime_remaining: params.runtime_ns, total_runtime: 0, deadline_misses: 0, periods_completed: 0, last_activation: 0 }
     }
 
+    #[inline]
     pub fn activate(&mut self, now: u64) {
         self.state = DlTaskState::Ready;
         self.absolute_deadline = now + self.params.deadline_ns;
@@ -55,6 +57,7 @@ impl DlTask {
         self.last_activation = now;
     }
 
+    #[inline]
     pub fn run(&mut self, elapsed: u64) {
         self.state = DlTaskState::Running;
         let consumed = elapsed.min(self.runtime_remaining);
@@ -63,17 +66,21 @@ impl DlTask {
         if self.runtime_remaining == 0 { self.state = DlTaskState::Throttled; }
     }
 
+    #[inline(always)]
     pub fn check_deadline(&mut self, now: u64) -> bool {
         if now > self.absolute_deadline && self.runtime_remaining > 0 { self.deadline_misses += 1; self.state = DlTaskState::DeadlineMiss; true }
         else { false }
     }
 
+    #[inline(always)]
     pub fn complete_period(&mut self) { self.periods_completed += 1; }
+    #[inline(always)]
     pub fn miss_rate(&self) -> f64 { if self.periods_completed == 0 { 0.0 } else { self.deadline_misses as f64 / self.periods_completed as f64 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DeadlineSchedStats {
     pub total_tasks: u32,
     pub total_utilization: f64,
@@ -91,17 +98,20 @@ pub struct CoopDeadlineSched {
 impl CoopDeadlineSched {
     pub fn new() -> Self { Self { tasks: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn add_task(&mut self, params: DlParams) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.tasks.insert(id, DlTask::new(id, params));
         id
     }
 
+    #[inline(always)]
     pub fn pick_next(&self) -> Option<u64> {
         self.tasks.values().filter(|t| t.state == DlTaskState::Ready)
             .min_by_key(|t| t.absolute_deadline).map(|t| t.id)
     }
 
+    #[inline]
     pub fn stats(&self) -> DeadlineSchedStats {
         let util: f64 = self.tasks.values().map(|t| t.params.utilization()).sum();
         let misses: u64 = self.tasks.values().map(|t| t.deadline_misses).sum();

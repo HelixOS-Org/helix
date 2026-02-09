@@ -10,6 +10,7 @@ use super::{CausalEvent, CausalEventId, CausalEventType, CausalGraph, EventSever
 
 /// Counterfactual scenario
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualScenario {
     /// Scenario ID
     pub id: u64,
@@ -38,6 +39,7 @@ pub enum CounterfactualModification {
 
 /// Counterfactual result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualResult {
     /// Scenario
     pub scenario: CounterfactualScenario,
@@ -53,6 +55,7 @@ pub struct CounterfactualResult {
 
 /// Counterfactual impact
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualImpact {
     /// Severity reduction (0.0 - 1.0)
     pub severity_reduction: f32,
@@ -68,6 +71,7 @@ pub struct CounterfactualImpact {
 
 impl CounterfactualImpact {
     /// Create empty impact
+    #[inline]
     pub fn empty() -> Self {
         Self {
             severity_reduction: 0.0,
@@ -79,12 +83,14 @@ impl CounterfactualImpact {
     }
 
     /// Is significant impact
+    #[inline(always)]
     pub fn is_significant(&self) -> bool {
         self.severity_reduction > 0.2 || self.errors_prevented > 0
     }
 }
 
 /// Counterfactual engine
+#[repr(align(64))]
 pub struct CounterfactualEngine {
     /// Scenario counter
     scenario_counter: AtomicU64,
@@ -99,6 +105,7 @@ impl CounterfactualEngine {
     }
 
     /// Create scenario
+    #[inline]
     pub fn create_scenario(
         &self,
         description: String,
@@ -168,6 +175,7 @@ impl CounterfactualEngine {
     }
 
     /// Scenario count
+    #[inline(always)]
     pub fn scenario_count(&self) -> u64 {
         self.scenario_counter.load(Ordering::Relaxed)
     }

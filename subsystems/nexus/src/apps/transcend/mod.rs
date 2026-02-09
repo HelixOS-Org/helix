@@ -27,11 +27,28 @@ pub mod oracle;
 pub mod singularity;
 pub mod synthesis_engine;
 
+pub mod abstraction;
+pub mod ascension;
+pub mod creativity;
+pub mod enlightenment;
+pub mod evolution;
+pub mod reasoning_chain;
+pub mod teaching;
+pub mod wisdom;
+
+pub use abstraction::AppsAbstraction;
+pub use ascension::AppsAscension;
 pub use beyond::AppsBeyond;
+pub use creativity::AppsCreativity;
+pub use enlightenment::AppsEnlightenment;
+pub use evolution::AppsEvolution;
 pub use genesis::AppsGenesis;
 pub use interface::AppsInterface;
 pub use omniscient::AppsOmniscient;
 pub use optimal::AppsOptimal;
 pub use oracle::AppsOracle;
+pub use reasoning_chain::AppsReasoningChain;
 pub use singularity::AppsSingularity;
 pub use synthesis_engine::AppsSynthesisEngine;
+pub use teaching::AppsTeaching;
+pub use wisdom::AppsWisdom;

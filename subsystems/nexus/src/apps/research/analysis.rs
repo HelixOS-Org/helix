@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -157,6 +158,7 @@ pub struct SummaryStatistics {
 
 /// Running stats for the engine.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct AnalysisStats {
     pub results_analyzed: u64,
     pub significant_found: u64,
@@ -176,9 +178,9 @@ pub struct AppsAnalysisEngine {
     results: BTreeMap<u64, AnalysisResult>,
     effects: BTreeMap<u64, EffectSizeReport>,
     significance: BTreeMap<u64, SignificanceReport>,
-    comparisons: Vec<CategoryComparison>,
+    comparisons: VecDeque<CategoryComparison>,
     category_values: BTreeMap<String, Vec<f32>>,
-    summary_history: Vec<SummaryStatistics>,
+    summary_history: VecDeque<SummaryStatistics>,
     stats: AnalysisStats,
     rng_state: u64,
     tick: u64,
@@ -191,9 +193,9 @@ impl AppsAnalysisEngine {
             results: BTreeMap::new(),
             effects: BTreeMap::new(),
             significance: BTreeMap::new(),
-            comparisons: Vec::new(),
+            comparisons: VecDeque::new(),
             category_values: BTreeMap::new(),
-            summary_history: Vec::new(),
+            summary_history: VecDeque::new(),
             stats: AnalysisStats {
                 results_analyzed: 0,
                 significant_found: 0,
@@ -211,6 +213,7 @@ impl AppsAnalysisEngine {
     // ── Primary API ────────────────────────────────────────────────────
 
     /// Ingest a new research result for analysis.
+    #[inline]
     pub fn analyze_result(&mut self, category: &str, control: &[f32], treatment: &[f32]) -> u64 {
         self.tick += 1;
         let id = fnv1a_hash(category.as_bytes()) ^ self.tick;
@@ -229,7 +232,7 @@ impl AppsAnalysisEngine {
         let entry = self.category_values.entry(String::from(category)).or_insert_with(Vec::new);
         entry.push(mean_t);
         if entry.len() > MAX_RESULTS {
-            entry.remove(0);
+            entry.pop_front();
         }
 
         if self.results.len() >= MAX_RESULTS {
@@ -258,11 +261,13 @@ impl AppsAnalysisEngine {
     }
 
     /// Compute Cohen's d effect size for an optimization comparison.
+    #[inline(always)]
     pub fn effect_size(&self, result_id: u64) -> Option<EffectSizeReport> {
         self.effects.get(&result_id).cloned()
     }
 
     /// Run a significance test for a given result.
+    #[inline(always)]
     pub fn significance_test(&self, result_id: u64) -> Option<SignificanceReport> {
         self.significance.get(&result_id).cloned()
     }
@@ -361,13 +366,14 @@ impl AppsAnalysisEngine {
         };
 
         if self.comparisons.len() >= MAX_COMPARISONS {
-            self.comparisons.remove(0);
+            self.comparisons.pop_front();
         }
-        self.comparisons.push(comparison.clone());
+        self.comparisons.push_back(comparison.clone());
         Some(comparison)
     }
 
     /// Compute the required sample size to achieve target statistical power.
+    #[inline]
     pub fn power_analysis(&mut self, target_effect: f32, current_n: usize) -> PowerReport {
         self.stats.power_analyses += 1;
 
@@ -398,6 +404,7 @@ impl AppsAnalysisEngine {
     }
 
     /// Produce an aggregate summary of all analysis activity.
+    #[inline]
     pub fn summary_statistics(&mut self) -> SummaryStatistics {
         let total = self.stats.results_analyzed as usize;
         let sig_count = self.stats.significant_found as usize;
@@ -423,13 +430,14 @@ impl AppsAnalysisEngine {
         };
 
         if self.summary_history.len() >= MAX_SUMMARY_HISTORY {
-            self.summary_history.remove(0);
+            self.summary_history.pop_front();
         }
-        self.summary_history.push(summary.clone());
+        self.summary_history.push_back(summary.clone());
         summary
     }
 
     /// Return engine stats.
+    #[inline(always)]
     pub fn stats(&self) -> &AnalysisStats {
         &self.stats
     }

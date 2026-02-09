@@ -35,6 +35,7 @@ impl ApiVersion {
         patch: 0,
     };
 
+    #[inline]
     pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
         Self {
             major,
@@ -44,11 +45,13 @@ impl ApiVersion {
     }
 
     /// Check if compatible (same major, >= minor)
+    #[inline(always)]
     pub fn is_compatible(&self, other: &ApiVersion) -> bool {
         self.major == other.major && self.minor >= other.minor
     }
 
     /// Check if backward compatible
+    #[inline]
     pub fn is_backward_compatible(&self, older: &ApiVersion) -> bool {
         if self.major > older.major {
             return false; // Breaking change
@@ -60,11 +63,13 @@ impl ApiVersion {
     }
 
     /// Encode as u64
+    #[inline(always)]
     pub fn encode(&self) -> u64 {
         ((self.major as u64) << 32) | ((self.minor as u64) << 16) | (self.patch as u64)
     }
 
     /// Decode from u64
+    #[inline]
     pub fn decode(encoded: u64) -> Self {
         Self {
             major: (encoded >> 32) as u16,
@@ -151,6 +156,7 @@ impl FeatureInfo {
         }
     }
 
+    #[inline]
     pub fn is_available(&self) -> bool {
         matches!(
             self.status,
@@ -158,6 +164,7 @@ impl FeatureInfo {
         )
     }
 
+    #[inline(always)]
     pub fn record_usage(&mut self) {
         self.usage_count += 1;
     }
@@ -196,16 +203,19 @@ impl SyscallDefinition {
         }
     }
 
+    #[inline]
     pub fn deprecate(mut self, since: ApiVersion, replacement: u32) -> Self {
         self.deprecated_since = Some(since);
         self.replacement = Some(replacement);
         self
     }
 
+    #[inline(always)]
     pub fn is_deprecated(&self) -> bool {
         self.deprecated_since.is_some()
     }
 
+    #[inline(always)]
     pub fn is_available_at(&self, version: &ApiVersion) -> bool {
         version.is_backward_compatible(&self.since)
     }
@@ -265,10 +275,12 @@ impl CompatShim {
         }
     }
 
+    #[inline(always)]
     pub fn applies_to(&self, version: &ApiVersion) -> bool {
         self.active && version >= &self.min_version && version <= &self.max_version
     }
 
+    #[inline(always)]
     pub fn invoke(&mut self) {
         self.invocations += 1;
     }
@@ -280,6 +292,7 @@ impl CompatShim {
 
 /// Versioning stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct VersioningStats {
     /// Current API version
     pub current_version: u64,
@@ -296,6 +309,7 @@ pub struct VersioningStats {
 }
 
 /// Bridge versioning manager
+#[repr(align(64))]
 pub struct BridgeVersionManager {
     /// Syscall definitions (number → def)
     syscalls: BTreeMap<u32, SyscallDefinition>,
@@ -324,24 +338,28 @@ impl BridgeVersionManager {
     }
 
     /// Register syscall
+    #[inline(always)]
     pub fn register_syscall(&mut self, def: SyscallDefinition) {
         self.syscalls.insert(def.number, def);
         self.update_stats();
     }
 
     /// Register feature
+    #[inline(always)]
     pub fn register_feature(&mut self, info: FeatureInfo) {
         self.features.insert(info.feature as u8, info);
         self.stats.feature_count = self.features.len();
     }
 
     /// Add shim
+    #[inline(always)]
     pub fn add_shim(&mut self, shim: CompatShim) {
         self.shims.push(shim);
         self.stats.active_shims = self.shims.iter().filter(|s| s.active).count();
     }
 
     /// Set process version
+    #[inline(always)]
     pub fn set_process_version(&mut self, pid: u64, version: ApiVersion) {
         self.process_versions.insert(pid, version);
     }
@@ -380,6 +398,7 @@ impl BridgeVersionManager {
     }
 
     /// Check feature availability
+    #[inline]
     pub fn check_feature(&mut self, feature: SyscallFeature) -> bool {
         if let Some(info) = self.features.get_mut(&(feature as u8)) {
             if info.is_available() {
@@ -391,6 +410,7 @@ impl BridgeVersionManager {
     }
 
     /// Get deprecated syscalls
+    #[inline(always)]
     pub fn deprecated_syscalls(&self) -> Vec<&SyscallDefinition> {
         self.syscalls.values().filter(|s| s.is_deprecated()).collect()
     }
@@ -401,6 +421,7 @@ impl BridgeVersionManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &VersioningStats {
         &self.stats
     }

@@ -36,36 +36,43 @@ impl NexusLevel {
     }
 
     /// Check if monitoring is enabled
+    #[inline(always)]
     pub fn is_monitoring(&self) -> bool {
         *self >= Self::Monitoring
     }
 
     /// Check if detection is enabled
+    #[inline(always)]
     pub fn is_detecting(&self) -> bool {
         *self >= Self::Detection
     }
 
     /// Check if prediction is enabled
+    #[inline(always)]
     pub fn is_predicting(&self) -> bool {
         *self >= Self::Prediction
     }
 
     /// Check if correction is enabled
+    #[inline(always)]
     pub fn is_correcting(&self) -> bool {
         *self >= Self::Correction
     }
 
     /// Check if healing is enabled
+    #[inline(always)]
     pub fn is_healing(&self) -> bool {
         *self >= Self::Healing
     }
 
     /// Check if autonomous operation is enabled
+    #[inline(always)]
     pub fn is_autonomous(&self) -> bool {
         *self >= Self::Autonomous
     }
 
     /// Get the display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Disabled => "Disabled",

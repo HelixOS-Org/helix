@@ -41,10 +41,12 @@ pub enum BehaviorStatus {
 }
 
 impl BehaviorStatus {
+    #[inline(always)]
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Success | Self::Failure | Self::Cancelled)
     }
 
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         matches!(self, Self::Running)
     }
@@ -62,6 +64,7 @@ pub enum BlackboardValue {
 }
 
 impl BlackboardValue {
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Self::Bool(v) => Some(*v),
@@ -69,6 +72,7 @@ impl BlackboardValue {
         }
     }
 
+    #[inline]
     pub fn as_int(&self) -> Option<i64> {
         match self {
             Self::Int(v) => Some(*v),
@@ -76,6 +80,7 @@ impl BlackboardValue {
         }
     }
 
+    #[inline]
     pub fn as_float(&self) -> Option<f64> {
         match self {
             Self::Float(v) => Some(*v),
@@ -97,22 +102,27 @@ impl Blackboard {
         }
     }
 
+    #[inline(always)]
     pub fn get(&self, key: &str) -> Option<&BlackboardValue> {
         self.entries.get(key)
     }
 
+    #[inline(always)]
     pub fn set(&mut self, key: String, value: BlackboardValue) {
         self.entries.insert(key, value);
     }
 
+    #[inline(always)]
     pub fn remove(&mut self, key: &str) -> Option<BlackboardValue> {
         self.entries.remove(key)
     }
 
+    #[inline(always)]
     pub fn contains(&self, key: &str) -> bool {
         self.entries.contains_key(key)
     }
 
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.entries.clear();
     }
@@ -125,6 +135,7 @@ impl Default for Blackboard {
 }
 
 /// Context passed to behavior tree nodes during execution
+#[repr(align(64))]
 pub struct TreeContext<'a> {
     /// Shared blackboard for data exchange
     pub blackboard: &'a mut Blackboard,
@@ -146,10 +157,12 @@ impl<'a> TreeContext<'a> {
         }
     }
 
+    #[inline(always)]
     pub fn push_node(&mut self, id: NodeId) {
         self.execution_stack.push(id);
     }
 
+    #[inline(always)]
     pub fn pop_node(&mut self) -> Option<NodeId> {
         self.execution_stack.pop()
     }
@@ -339,10 +352,12 @@ impl Sequence {
         }
     }
 
+    #[inline(always)]
     pub fn add_child(&mut self, child: Box<dyn BehaviorNode>) {
         self.children.push(child);
     }
 
+    #[inline(always)]
     pub fn with_child(mut self, child: Box<dyn BehaviorNode>) -> Self {
         self.add_child(child);
         self
@@ -426,10 +441,12 @@ impl Selector {
         }
     }
 
+    #[inline(always)]
     pub fn add_child(&mut self, child: Box<dyn BehaviorNode>) {
         self.children.push(child);
     }
 
+    #[inline(always)]
     pub fn with_child(mut self, child: Box<dyn BehaviorNode>) -> Self {
         self.add_child(child);
         self
@@ -526,6 +543,7 @@ impl Parallel {
         }
     }
 
+    #[inline(always)]
     pub fn add_child(&mut self, child: Box<dyn BehaviorNode>) {
         self.children.push(child);
         self.child_statuses.push(BehaviorStatus::Ready);
@@ -675,14 +693,17 @@ impl Decorator {
         }
     }
 
+    #[inline(always)]
     pub fn inverter(id: NodeId, name: impl Into<String>, child: Box<dyn BehaviorNode>) -> Self {
         Self::new(id, name, child, DecoratorType::Inverter)
     }
 
+    #[inline(always)]
     pub fn succeeder(id: NodeId, name: impl Into<String>, child: Box<dyn BehaviorNode>) -> Self {
         Self::new(id, name, child, DecoratorType::Succeeder)
     }
 
+    #[inline(always)]
     pub fn repeat(
         id: NodeId,
         name: impl Into<String>,
@@ -692,6 +713,7 @@ impl Decorator {
         Self::new(id, name, child, DecoratorType::Repeat(times))
     }
 
+    #[inline(always)]
     pub fn timeout(
         id: NodeId,
         name: impl Into<String>,
@@ -828,34 +850,41 @@ impl BehaviorTree {
         }
     }
 
+    #[inline(always)]
     pub fn with_blackboard(mut self, blackboard: Blackboard) -> Self {
         self.blackboard = blackboard;
         self
     }
 
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[inline(always)]
     pub fn status(&self) -> BehaviorStatus {
         self.status
     }
 
+    #[inline(always)]
     pub fn blackboard(&self) -> &Blackboard {
         &self.blackboard
     }
 
+    #[inline(always)]
     pub fn blackboard_mut(&mut self) -> &mut Blackboard {
         &mut self.blackboard
     }
 
     /// Initialize the tree
+    #[inline(always)]
     pub fn initialize(&mut self) {
         let mut ctx = TreeContext::new(&mut self.blackboard, 0, 0);
         self.root.initialize(&mut ctx);
     }
 
     /// Tick the tree once
+    #[inline]
     pub fn tick(&mut self, time: u64, delta_time: u64) -> BehaviorStatus {
         let mut ctx = TreeContext::new(&mut self.blackboard, time, delta_time);
         self.status = self.root.tick(&mut ctx);
@@ -863,6 +892,7 @@ impl BehaviorTree {
     }
 
     /// Abort the tree
+    #[inline]
     pub fn abort(&mut self) {
         let mut ctx = TreeContext::new(&mut self.blackboard, 0, 0);
         self.root.abort(&mut ctx);
@@ -870,6 +900,7 @@ impl BehaviorTree {
     }
 
     /// Reset the tree
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.root.reset();
         self.status = BehaviorStatus::Ready;
@@ -896,6 +927,7 @@ impl TreeExecutor {
         }
     }
 
+    #[inline]
     pub fn register_tree(&mut self, tree: BehaviorTree) {
         let name = tree.name().to_string();
         self.trees.insert(name.clone(), tree);
@@ -904,6 +936,7 @@ impl TreeExecutor {
         }
     }
 
+    #[inline]
     pub fn set_active(&mut self, name: &str) -> bool {
         if self.trees.contains_key(name) {
             self.active_tree = Some(name.to_string());
@@ -913,6 +946,7 @@ impl TreeExecutor {
         }
     }
 
+    #[inline]
     pub fn tick(&mut self, time: u64) -> Option<BehaviorStatus> {
         let delta_time = time.saturating_sub(self.last_tick_time);
         self.last_tick_time = time;
@@ -925,14 +959,17 @@ impl TreeExecutor {
         None
     }
 
+    #[inline(always)]
     pub fn get_tree(&self, name: &str) -> Option<&BehaviorTree> {
         self.trees.get(name)
     }
 
+    #[inline(always)]
     pub fn get_tree_mut(&mut self, name: &str) -> Option<&mut BehaviorTree> {
         self.trees.get_mut(name)
     }
 
+    #[inline(always)]
     pub fn tree_count(&self) -> usize {
         self.trees.len()
     }
@@ -1128,27 +1165,33 @@ impl BehaviorTreeBuilder {
         id
     }
 
+    #[inline(always)]
     pub fn with_blackboard_entry(mut self, key: String, value: BlackboardValue) -> Self {
         self.blackboard.set(key, value);
         self
     }
 
+    #[inline(always)]
     pub fn sequence(&mut self, name: impl Into<String>) -> Sequence {
         Sequence::new(self.next_id(), name)
     }
 
+    #[inline(always)]
     pub fn selector(&mut self, name: impl Into<String>) -> Selector {
         Selector::new(self.next_id(), name)
     }
 
+    #[inline(always)]
     pub fn parallel(&mut self, name: impl Into<String>, policy: ParallelPolicy) -> Parallel {
         Parallel::new(self.next_id(), name, policy)
     }
 
+    #[inline(always)]
     pub fn wait(&mut self, name: impl Into<String>, duration_us: u64) -> WaitNode {
         WaitNode::new(self.next_id(), name, duration_us)
     }
 
+    #[inline(always)]
     pub fn build(self, root: Box<dyn BehaviorNode>) -> BehaviorTree {
         BehaviorTree::new(self.name, root).with_blackboard(self.blackboard)
     }

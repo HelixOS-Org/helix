@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Lockup type
@@ -77,6 +78,7 @@ impl CpuWatchdog {
         }
     }
 
+    #[inline(always)]
     pub fn touch(&mut self, now_ns: u64) {
         self.last_touch_ns = now_ns;
         self.state = WatchdogState::Normal;
@@ -96,6 +98,7 @@ impl CpuWatchdog {
         }
     }
 
+    #[inline]
     pub fn check_hard(&mut self, now_ns: u64) -> bool {
         let elapsed = now_ns.saturating_sub(self.last_nmi_ns);
         if elapsed > self.threshold_ns * 2 {
@@ -151,6 +154,7 @@ pub struct WatchdogEvent {
 
 /// Holistic Watchdog stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticWatchdogMgrStats {
     pub total_cpus: usize,
     pub cpus_normal: usize,
@@ -167,8 +171,8 @@ pub struct HolisticWatchdogMgrStats {
 pub struct HolisticWatchdogMgr {
     cpu_watchdogs: BTreeMap<u32, CpuWatchdog>,
     hung_tasks: BTreeMap<u64, HungTaskEntry>,
-    rcu_stalls: Vec<RcuStallRecord>,
-    events: Vec<WatchdogEvent>,
+    rcu_stalls: VecDeque<RcuStallRecord>,
+    events: VecDeque<WatchdogEvent>,
     hung_task_threshold_ns: u64,
     max_events: usize,
     stats: HolisticWatchdogMgrStats,
@@ -179,19 +183,21 @@ impl HolisticWatchdogMgr {
         Self {
             cpu_watchdogs: BTreeMap::new(),
             hung_tasks: BTreeMap::new(),
-            rcu_stalls: Vec::new(),
-            events: Vec::new(),
+            rcu_stalls: VecDeque::new(),
+            events: VecDeque::new(),
             hung_task_threshold_ns,
             max_events,
             stats: HolisticWatchdogMgrStats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32, threshold_ns: u64) {
         self.cpu_watchdogs.entry(cpu_id)
             .or_insert_with(|| CpuWatchdog::new(cpu_id, threshold_ns));
     }
 
+    #[inline]
     pub fn touch_cpu(&mut self, cpu_id: u32, now_ns: u64) {
         if let Some(wd) = self.cpu_watchdogs.get_mut(&cpu_id) {
             wd.touch(now_ns);
@@ -244,30 +250,33 @@ impl HolisticWatchdogMgr {
         }
 
         for evt in &new_events {
-            self.events.push(evt.clone());
+            self.events.push_back(evt.clone());
         }
         while self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
 
         self.recompute();
         new_events
     }
 
+    #[inline]
     pub fn report_hung_task(&mut self, task_id: u64, in_kernel_ns: u64, now_ns: u64) {
         self.hung_tasks.entry(task_id)
             .or_insert_with(|| HungTaskEntry::new(task_id, in_kernel_ns, now_ns))
             .in_kernel_ns = in_kernel_ns;
     }
 
+    #[inline(always)]
     pub fn clear_hung_task(&mut self, task_id: u64) {
         self.hung_tasks.remove(&task_id);
     }
 
+    #[inline]
     pub fn report_rcu_stall(&mut self, stall: RcuStallRecord) {
-        self.rcu_stalls.push(stall);
+        self.rcu_stalls.push_back(stall);
         if self.rcu_stalls.len() > 256 {
-            self.rcu_stalls.remove(0);
+            self.rcu_stalls.pop_front();
         }
     }
 
@@ -288,7 +297,9 @@ impl HolisticWatchdogMgr {
         self.stats.total_events = self.events.len();
     }
 
+    #[inline(always)]
     pub fn cpu_watchdog(&self, id: u32) -> Option<&CpuWatchdog> { self.cpu_watchdogs.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticWatchdogMgrStats { &self.stats }
 }
 
@@ -333,14 +344,17 @@ impl WatchdogV2 {
         Self { id, wd_type: wt, state: WatchdogV2State::Active, timeout_ms, last_ping: 0, ping_count: 0, expire_count: 0, cpu_id: None, pretimeout_ms: timeout_ms / 2 }
     }
 
+    #[inline(always)]
     pub fn ping(&mut self, now: u64) { self.last_ping = now; self.ping_count += 1; }
 
+    #[inline]
     pub fn check(&mut self, now: u64) -> bool {
         if self.state != WatchdogV2State::Active { return false; }
         if now - self.last_ping > self.timeout_ms { self.state = WatchdogV2State::Expired; self.expire_count += 1; true }
         else { false }
     }
 
+    #[inline(always)]
     pub fn is_pretimeout(&self, now: u64) -> bool {
         self.state == WatchdogV2State::Active && (now - self.last_ping) > self.pretimeout_ms
     }
@@ -348,6 +362,7 @@ impl WatchdogV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WatchdogV2MgrStats {
     pub total_watchdogs: u32,
     pub active: u32,
@@ -365,22 +380,26 @@ pub struct HolisticWatchdogMgrV2 {
 impl HolisticWatchdogMgrV2 {
     pub fn new() -> Self { Self { watchdogs: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, wt: WatchdogV2Type, timeout_ms: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.watchdogs.insert(id, WatchdogV2::new(id, wt, timeout_ms));
         id
     }
 
+    #[inline(always)]
     pub fn ping(&mut self, id: u64, now: u64) {
         if let Some(w) = self.watchdogs.get_mut(&id) { w.ping(now); }
     }
 
+    #[inline]
     pub fn check_all(&mut self, now: u64) -> u32 {
         let mut expired = 0u32;
         for w in self.watchdogs.values_mut() { if w.check(now) { expired += 1; } }
         expired
     }
 
+    #[inline]
     pub fn stats(&self) -> WatchdogV2MgrStats {
         let active = self.watchdogs.values().filter(|w| w.state == WatchdogV2State::Active).count() as u32;
         let expired = self.watchdogs.values().filter(|w| w.state == WatchdogV2State::Expired).count() as u32;

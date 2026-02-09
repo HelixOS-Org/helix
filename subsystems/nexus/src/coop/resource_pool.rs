@@ -41,6 +41,7 @@ pub enum PoolObjectState {
 
 /// A pool object
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PoolObject {
     pub object_id: u64,
     pub size: u32,
@@ -66,6 +67,7 @@ impl PoolObject {
         }
     }
 
+    #[inline]
     pub fn allocate(&mut self, pid: u64, now_ns: u64) {
         self.state = PoolObjectState::Allocated;
         self.owner_pid = Some(pid);
@@ -74,20 +76,24 @@ impl PoolObject {
         self.access_count = 1;
     }
 
+    #[inline(always)]
     pub fn release(&mut self) {
         self.state = PoolObjectState::Free;
         self.owner_pid = None;
     }
 
+    #[inline(always)]
     pub fn access(&mut self, now_ns: u64) {
         self.last_access_ns = now_ns;
         self.access_count += 1;
     }
 
+    #[inline(always)]
     pub fn age_ns(&self, now_ns: u64) -> u64 {
         now_ns.saturating_sub(self.alloc_ns)
     }
 
+    #[inline(always)]
     pub fn idle_ns(&self, now_ns: u64) -> u64 {
         now_ns.saturating_sub(self.last_access_ns)
     }
@@ -95,6 +101,7 @@ impl PoolObject {
 
 /// Slab for same-sized objects
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PoolSlab {
     pub slab_id: u64,
     pub object_size: u32,
@@ -122,6 +129,7 @@ impl PoolSlab {
         }
     }
 
+    #[inline]
     pub fn allocate(&mut self, pid: u64, now_ns: u64) -> Option<u64> {
         for obj in self.objects.iter_mut() {
             if obj.state == PoolObjectState::Free {
@@ -133,6 +141,7 @@ impl PoolSlab {
         None
     }
 
+    #[inline]
     pub fn release(&mut self, object_id: u64) -> bool {
         if let Some(obj) = self.objects.iter_mut().find(|o| o.object_id == object_id) {
             obj.release();
@@ -145,6 +154,7 @@ impl PoolSlab {
         }
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 {
             0.0
@@ -153,11 +163,13 @@ impl PoolSlab {
         }
     }
 
+    #[inline(always)]
     pub fn free_count(&self) -> usize {
         self.capacity - self.allocated_count
     }
 
     /// Grow the slab
+    #[inline]
     pub fn grow(&mut self, additional: usize) {
         for _ in 0..additional {
             self.objects.push(PoolObject::new(
@@ -191,6 +203,7 @@ impl PoolSlab {
     }
 
     /// Cold objects (not accessed for a long time)
+    #[inline]
     pub fn cold_objects(&self, idle_threshold_ns: u64, now_ns: u64) -> Vec<u64> {
         self.objects
             .iter()
@@ -204,6 +217,7 @@ impl PoolSlab {
 
 /// Resource pool stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopResourcePoolV2Stats {
     pub total_slabs: usize,
     pub total_objects: usize,
@@ -215,6 +229,7 @@ pub struct CoopResourcePoolV2Stats {
 }
 
 /// Coop Resource Pool V2
+#[repr(align(64))]
 pub struct CoopResourcePoolV2 {
     slabs: BTreeMap<u64, PoolSlab>,
     /// Size to slab mapping
@@ -276,6 +291,7 @@ impl CoopResourcePoolV2 {
     }
 
     /// Release an object
+    #[inline]
     pub fn release(&mut self, slab_id: u64, object_id: u64) -> bool {
         if let Some(slab) = self.slabs.get_mut(&slab_id) {
             let result = slab.release(object_id);
@@ -331,6 +347,7 @@ impl CoopResourcePoolV2 {
             .count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopResourcePoolV2Stats {
         &self.stats
     }

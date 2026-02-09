@@ -4,6 +4,7 @@
 
 use alloc::format;
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::AtomicU64;
 
@@ -61,7 +62,7 @@ pub struct NetworkAnomalyDetector {
     /// Anomaly threshold (sigma)
     threshold: f64,
     /// Detection history
-    detections: Vec<NetworkAnomaly>,
+    detections: VecDeque<NetworkAnomaly>,
     /// Maximum detections to keep
     max_detections: usize,
     /// Total packets analyzed
@@ -76,13 +77,14 @@ impl NetworkAnomalyDetector {
             baseline_connections: 0.0,
             baseline_rtt: 0.0,
             threshold: 3.0,
-            detections: Vec::new(),
+            detections: VecDeque::new(),
             max_detections: 1000,
             packets_analyzed: AtomicU64::new(0),
         }
     }
 
     /// Update baseline
+    #[inline]
     pub fn update_baseline(&mut self, bandwidth: f64, connections: f64, rtt: f64) {
         // Exponential moving average
         let alpha = 0.1;
@@ -201,21 +203,23 @@ impl NetworkAnomalyDetector {
             flow_id,
         };
 
-        self.detections.push(anomaly.clone());
+        self.detections.push_back(anomaly.clone());
         if self.detections.len() > self.max_detections {
-            self.detections.remove(0);
+            self.detections.pop_front();
         }
 
         anomaly
     }
 
     /// Get recent detections
+    #[inline(always)]
     pub fn recent_detections(&self, n: usize) -> &[NetworkAnomaly] {
         let start = self.detections.len().saturating_sub(n);
         &self.detections[start..]
     }
 
     /// Get detections by type
+    #[inline]
     pub fn detections_by_type(&self, anomaly_type: NetworkAnomalyType) -> Vec<&NetworkAnomaly> {
         self.detections
             .iter()
@@ -224,11 +228,13 @@ impl NetworkAnomalyDetector {
     }
 
     /// Set threshold
+    #[inline(always)]
     pub fn set_threshold(&mut self, threshold: f64) {
         self.threshold = threshold.max(1.5);
     }
 
     /// Clear detections
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.detections.clear();
     }

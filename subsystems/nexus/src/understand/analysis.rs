@@ -184,16 +184,19 @@ impl AbstractValue {
     }
 
     /// Is this value bottom?
+    #[inline(always)]
     pub fn is_bottom(&self) -> bool {
         matches!(self, AbstractValue::Bottom)
     }
 
     /// Is this value top?
+    #[inline(always)]
     pub fn is_top(&self) -> bool {
         matches!(self, AbstractValue::Top)
     }
 
     /// Is this a constant?
+    #[inline]
     pub fn is_constant(&self) -> bool {
         matches!(
             self,
@@ -202,6 +205,7 @@ impl AbstractValue {
     }
 
     /// Get constant value if known
+    #[inline]
     pub fn get_constant(&self) -> Option<i64> {
         match self {
             AbstractValue::ConstInt(c) => Some(*c),
@@ -222,6 +226,7 @@ impl Default for AbstractValue {
 
 /// Abstract state (maps variables to abstract values)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AbstractState {
     /// Variable values
     values: BTreeMap<VarId, AbstractValue>,
@@ -239,6 +244,7 @@ impl AbstractState {
     }
 
     /// Create an unreachable state
+    #[inline]
     pub fn unreachable() -> Self {
         Self {
             values: BTreeMap::new(),
@@ -247,11 +253,13 @@ impl AbstractState {
     }
 
     /// Set a variable's value
+    #[inline(always)]
     pub fn set(&mut self, var: VarId, value: AbstractValue) {
         self.values.insert(var, value);
     }
 
     /// Get a variable's value
+    #[inline(always)]
     pub fn get(&self, var: VarId) -> &AbstractValue {
         self.values.get(&var).unwrap_or(&AbstractValue::Top)
     }
@@ -313,6 +321,7 @@ impl AbstractState {
     }
 
     /// Check if state is unreachable
+    #[inline(always)]
     pub fn is_unreachable(&self) -> bool {
         !self.reachable
     }
@@ -609,6 +618,7 @@ impl AbstractInterpreter {
     }
 
     /// Widen value (to ensure termination)
+    #[inline]
     pub fn widen(&self, old: &AbstractValue, new: &AbstractValue) -> AbstractValue {
         match (old, new) {
             (AbstractValue::Interval(l1, h1), AbstractValue::Interval(l2, h2)) => {
@@ -622,6 +632,7 @@ impl AbstractInterpreter {
     }
 
     /// Narrow value (after widening)
+    #[inline]
     pub fn narrow(&self, old: &AbstractValue, new: &AbstractValue) -> AbstractValue {
         match (old, new) {
             (AbstractValue::Interval(l1, h1), AbstractValue::Interval(l2, h2)) => {
@@ -676,21 +687,25 @@ impl ProgramSlice {
     }
 
     /// Add statement to slice
+    #[inline(always)]
     pub fn add_statement(&mut self, stmt: StmtId) {
         self.statements.insert(stmt);
     }
 
     /// Add variable to slice
+    #[inline(always)]
     pub fn add_variable(&mut self, var: VarId) {
         self.variables.insert(var);
     }
 
     /// Check if statement is in slice
+    #[inline(always)]
     pub fn contains_statement(&self, stmt: StmtId) -> bool {
         self.statements.contains(&stmt)
     }
 
     /// Get slice size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.statements.len()
     }
@@ -720,11 +735,13 @@ impl ProgramSlicer {
     }
 
     /// Add data dependency
+    #[inline(always)]
     pub fn add_data_dep(&mut self, from: StmtId, to: StmtId) {
         self.data_deps.entry(from).or_default().insert(to);
     }
 
     /// Add control dependency
+    #[inline]
     pub fn add_control_dep(&mut self, stmt: StmtId, controller: StmtId) {
         self.control_deps
             .entry(stmt)
@@ -733,11 +750,13 @@ impl ProgramSlicer {
     }
 
     /// Add definition
+    #[inline(always)]
     pub fn add_definition(&mut self, stmt: StmtId, var: VarId) {
         self.definitions.entry(stmt).or_default().insert(var);
     }
 
     /// Add use
+    #[inline(always)]
     pub fn add_use(&mut self, stmt: StmtId, var: VarId) {
         self.uses.entry(stmt).or_default().insert(var);
     }
@@ -881,6 +900,7 @@ impl SideEffectSummary {
     }
 
     /// Add side effect
+    #[inline]
     pub fn add_effect(&mut self, effect: SideEffect) {
         self.is_pure = false;
         if matches!(effect, SideEffect::MayDiverge) {
@@ -890,6 +910,7 @@ impl SideEffectSummary {
     }
 
     /// Check if function modifies any global
+    #[inline]
     pub fn modifies_globals(&self) -> bool {
         self.effects
             .iter()
@@ -897,6 +918,7 @@ impl SideEffectSummary {
     }
 
     /// Check if function allocates
+    #[inline]
     pub fn allocates(&self) -> bool {
         self.effects
             .iter()
@@ -904,6 +926,7 @@ impl SideEffectSummary {
     }
 
     /// Get modified globals
+    #[inline]
     pub fn get_modified_globals(&self) -> Vec<VarId> {
         self.effects
             .iter()
@@ -933,16 +956,19 @@ impl SideEffectAnalyzer {
     }
 
     /// Add function summary
+    #[inline(always)]
     pub fn add_summary(&mut self, func: FuncId, summary: SideEffectSummary) {
         self.summaries.insert(func, summary);
     }
 
     /// Add call edge
+    #[inline(always)]
     pub fn add_call(&mut self, caller: FuncId, callee: FuncId) {
         self.call_graph.entry(caller).or_default().insert(callee);
     }
 
     /// Get transitive effects (including callees)
+    #[inline]
     pub fn transitive_effects(&self, func: FuncId) -> SideEffectSummary {
         let mut visited = BTreeSet::new();
         let mut combined = SideEffectSummary::new(func);
@@ -978,11 +1004,13 @@ impl SideEffectAnalyzer {
     }
 
     /// Check if function is pure
+    #[inline(always)]
     pub fn is_pure(&self, func: FuncId) -> bool {
         self.transitive_effects(func).is_pure
     }
 
     /// Check if function is total
+    #[inline(always)]
     pub fn is_total(&self, func: FuncId) -> bool {
         self.transitive_effects(func).is_total
     }

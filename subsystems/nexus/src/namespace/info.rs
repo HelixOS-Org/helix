@@ -56,16 +56,19 @@ impl NamespaceInfo {
     }
 
     /// Check if namespace is alive
+    #[inline(always)]
     pub fn is_alive(&self) -> bool {
         matches!(self.state, NamespaceState::Active)
     }
 
     /// Check if namespace is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.processes.is_empty()
     }
 
     /// Get process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }
@@ -93,11 +96,13 @@ impl IdMapping {
     }
 
     /// Check if ID is in mapping range
+    #[inline(always)]
     pub fn contains(&self, id: u32) -> bool {
         id >= self.inside_id && id < self.inside_id + self.count
     }
 
     /// Map inside ID to outside ID
+    #[inline]
     pub fn map_to_outside(&self, inside: u32) -> Option<u32> {
         if self.contains(inside) {
             Some(self.outside_id + (inside - self.inside_id))
@@ -107,6 +112,7 @@ impl IdMapping {
     }
 
     /// Map outside ID to inside ID
+    #[inline]
     pub fn map_to_inside(&self, outside: u32) -> Option<u32> {
         if outside >= self.outside_id && outside < self.outside_id + self.count {
             Some(self.inside_id + (outside - self.outside_id))
@@ -147,6 +153,7 @@ impl UserNamespaceInfo {
     }
 
     /// Map UID to parent namespace
+    #[inline]
     pub fn map_uid(&self, uid: UserId) -> Option<UserId> {
         for mapping in &self.uid_map {
             if let Some(outside) = mapping.map_to_outside(uid.raw()) {
@@ -157,6 +164,7 @@ impl UserNamespaceInfo {
     }
 
     /// Map GID to parent namespace
+    #[inline]
     pub fn map_gid(&self, gid: GroupId) -> Option<GroupId> {
         for mapping in &self.gid_map {
             if let Some(outside) = mapping.map_to_outside(gid.raw()) {
@@ -167,11 +175,13 @@ impl UserNamespaceInfo {
     }
 
     /// Check if UID has mapping
+    #[inline(always)]
     pub fn has_uid_mapping(&self, uid: UserId) -> bool {
         self.uid_map.iter().any(|m| m.contains(uid.raw()))
     }
 
     /// Check if GID has mapping
+    #[inline(always)]
     pub fn has_gid_mapping(&self, gid: GroupId) -> bool {
         self.gid_map.iter().any(|m| m.contains(gid.raw()))
     }
@@ -208,6 +218,7 @@ impl PidNamespaceInfo {
     }
 
     /// Allocate PID
+    #[inline]
     pub fn allocate_pid(&mut self) -> Option<u32> {
         if self.last_pid >= self.pid_max {
             // Wrap around (simplified)
@@ -243,6 +254,7 @@ impl NetNamespaceInfo {
     }
 
     /// Add network device
+    #[inline]
     pub fn add_device(&mut self, name: String) {
         if !self.devices.contains(&name) {
             self.devices.push(name);
@@ -250,6 +262,7 @@ impl NetNamespaceInfo {
     }
 
     /// Remove network device
+    #[inline(always)]
     pub fn remove_device(&mut self, name: &str) {
         self.devices.retain(|d| d != name);
     }

@@ -10,6 +10,7 @@ use alloc::boxed::Box;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -77,6 +78,7 @@ pub enum PatternMatcher {
 
 impl PatternMatcher {
     /// Check if pattern matches
+    #[inline]
     pub fn matches(&self, value: &str) -> bool {
         match self {
             Self::Exact(s) => value == s,
@@ -251,7 +253,7 @@ pub struct TriggerEngine {
     /// Triggers by event type
     by_event_type: BTreeMap<String, Vec<u64>>,
     /// Event history (for rate limiting)
-    event_history: Vec<Event>,
+    event_history: VecDeque<Event>,
     /// Metrics (for threshold conditions)
     metrics: BTreeMap<String, f64>,
     /// Flags
@@ -295,6 +297,7 @@ impl Default for TriggerConfig {
 
 /// Trigger statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TriggerStats {
     /// Total events processed
     pub total_events: u64,
@@ -329,7 +332,7 @@ impl TriggerEngine {
         Self {
             triggers: BTreeMap::new(),
             by_event_type: BTreeMap::new(),
-            event_history: Vec::new(),
+            event_history: VecDeque::new(),
             metrics: BTreeMap::new(),
             flags: BTreeMap::new(),
             next_trigger_id: AtomicU64::new(1),
@@ -392,6 +395,7 @@ impl TriggerEngine {
     }
 
     /// Enable/disable trigger
+    #[inline]
     pub fn set_enabled(&mut self, id: u64, enabled: bool) {
         if let Some(trigger) = self.triggers.get_mut(&id) {
             trigger.enabled = enabled;
@@ -399,11 +403,13 @@ impl TriggerEngine {
     }
 
     /// Set metric value
+    #[inline(always)]
     pub fn set_metric(&mut self, name: &str, value: f64) {
         self.metrics.insert(name.into(), value);
     }
 
     /// Set flag value
+    #[inline(always)]
     pub fn set_flag(&mut self, name: &str, value: bool) {
         self.flags.insert(name.into(), value);
     }
@@ -430,9 +436,9 @@ impl TriggerEngine {
 
         // Store in history
         if self.event_history.len() >= self.config.max_history {
-            self.event_history.remove(0);
+            self.event_history.pop_front();
         }
-        self.event_history.push(event.clone());
+        self.event_history.push_back(event.clone());
 
         // Find matching triggers
         let matching: Vec<u64> = self.triggers.values()
@@ -654,11 +660,13 @@ impl TriggerEngine {
     }
 
     /// Get trigger
+    #[inline(always)]
     pub fn get_trigger(&self, id: u64) -> Option<&Trigger> {
         self.triggers.get(&id)
     }
 
     /// Get triggers for domain
+    #[inline]
     pub fn triggers_for(&self, owner: DomainId) -> Vec<&Trigger> {
         self.triggers.values()
             .filter(|t| t.owner == owner)
@@ -666,6 +674,7 @@ impl TriggerEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &TriggerStats {
         &self.stats
     }

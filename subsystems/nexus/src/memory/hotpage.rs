@@ -85,6 +85,7 @@ impl HotPageTracker {
     }
 
     /// Get hot pages
+    #[inline]
     pub fn hot_pages(&self) -> Vec<u64> {
         self.access_counts
             .iter()
@@ -94,6 +95,7 @@ impl HotPageTracker {
     }
 
     /// Get cold pages
+    #[inline]
     pub fn cold_pages(&self) -> Vec<u64> {
         self.access_counts
             .iter()
@@ -103,6 +105,7 @@ impl HotPageTracker {
     }
 
     /// Get pages by temperature (hottest first)
+    #[inline]
     pub fn pages_by_temperature(&self) -> Vec<(u64, f64)> {
         let mut pages: Vec<_> = self
             .access_counts
@@ -114,6 +117,7 @@ impl HotPageTracker {
     }
 
     /// Is page hot?
+    #[inline]
     pub fn is_hot(&self, page_addr: u64) -> bool {
         self.access_counts
             .get(&page_addr)
@@ -122,6 +126,7 @@ impl HotPageTracker {
     }
 
     /// Get page temperature
+    #[inline]
     pub fn get_temperature(&self, page_addr: u64) -> f64 {
         self.access_counts
             .get(&page_addr)
@@ -130,6 +135,7 @@ impl HotPageTracker {
     }
 
     /// Set thresholds
+    #[inline(always)]
     pub fn set_thresholds(&mut self, hot: u64, cold: u64) {
         self.hot_threshold = hot;
         self.cold_threshold = cold;
@@ -158,6 +164,7 @@ impl Default for HotPageTracker {
 
 /// Hot page statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HotPageStats {
     /// Total pages tracked
     pub total_pages: usize,

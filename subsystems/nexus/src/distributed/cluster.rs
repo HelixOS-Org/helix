@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -26,6 +27,7 @@ pub struct MemberId(pub u64);
 static MEMBER_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl MemberId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(MEMBER_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -224,13 +226,14 @@ impl HealthChecker {
     }
 
     /// Record health check
+    #[inline]
     pub fn record(&mut self, check: HealthCheck) {
         let history = self.history.entry(check.node_id).or_insert_with(Vec::new);
         history.push(check);
 
         // Trim history
         if history.len() > self.config.history_size {
-            history.remove(0);
+            history.pop_front();
         }
     }
 
@@ -272,6 +275,7 @@ impl HealthChecker {
     }
 
     /// Get average latency
+    #[inline]
     pub fn average_latency(&self, node_id: NodeId) -> Option<u32> {
         let history = self.history.get(&node_id)?;
         if history.is_empty() {
@@ -308,12 +312,13 @@ impl PhiAccrualDetector {
     }
 
     /// Record heartbeat
+    #[inline]
     pub fn heartbeat(&mut self, node_id: NodeId, timestamp: u64) {
         let history = self.heartbeats.entry(node_id).or_insert_with(Vec::new);
         history.push(timestamp);
 
         if history.len() > self.window_size {
-            history.remove(0);
+            history.pop_front();
         }
     }
 
@@ -358,6 +363,7 @@ impl PhiAccrualDetector {
     }
 
     /// Is node suspected failed?
+    #[inline]
     pub fn is_failed(&self, node_id: NodeId, now: u64) -> bool {
         match self.phi(node_id, now) {
             Some(phi) => phi > self.threshold,
@@ -400,6 +406,7 @@ pub struct ClusterManager {
 
 /// Cluster statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ClusterStats {
     /// Members joined
     pub members_joined: u64,
@@ -430,11 +437,13 @@ impl ClusterManager {
     }
 
     /// Start the manager
+    #[inline(always)]
     pub fn start(&self) {
         self.running.store(true, Ordering::Release);
     }
 
     /// Stop the manager
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::Release);
     }
@@ -628,11 +637,13 @@ impl ClusterManager {
     }
 
     /// Get members
+    #[inline(always)]
     pub fn members(&self) -> &[Member] {
         &self.config.members
     }
 
     /// Get active voters
+    #[inline]
     pub fn voters(&self) -> impl Iterator<Item = &Member> {
         self.config
             .members
@@ -641,22 +652,26 @@ impl ClusterManager {
     }
 
     /// Get quorum size
+    #[inline(always)]
     pub fn quorum_size(&self) -> usize {
         let voters = self.voters().count();
         (voters / 2) + 1
     }
 
     /// Get cluster ID
+    #[inline(always)]
     pub fn cluster_id(&self) -> ClusterId {
         self.cluster_id
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &ClusterConfiguration {
         &self.config
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ClusterStats {
         &self.stats
     }

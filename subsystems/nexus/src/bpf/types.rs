@@ -10,11 +10,13 @@ pub struct BpfProgId(pub u32);
 
 impl BpfProgId {
     /// Create a new BPF program ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -26,11 +28,13 @@ pub struct BpfMapId(pub u32);
 
 impl BpfMapId {
     /// Create a new BPF map ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -42,11 +46,13 @@ pub struct BtfId(pub u32);
 
 impl BtfId {
     /// Create a new BTF ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -183,6 +189,7 @@ impl BpfProgType {
     }
 
     /// Is tracing related
+    #[inline]
     pub fn is_tracing(&self) -> bool {
         matches!(
             self,
@@ -196,6 +203,7 @@ impl BpfProgType {
     }
 
     /// Is cgroup related
+    #[inline]
     pub fn is_cgroup(&self) -> bool {
         matches!(
             self,
@@ -321,6 +329,7 @@ impl BpfMapType {
     }
 
     /// Is per-CPU
+    #[inline]
     pub fn is_percpu(&self) -> bool {
         matches!(
             self,
@@ -329,6 +338,7 @@ impl BpfMapType {
     }
 
     /// Has LRU eviction
+    #[inline(always)]
     pub fn has_lru(&self) -> bool {
         matches!(self, Self::LruHash | Self::LruPercpuHash)
     }

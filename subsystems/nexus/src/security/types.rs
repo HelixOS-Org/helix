@@ -27,11 +27,13 @@ pub enum ThreatSeverity {
 
 impl ThreatSeverity {
     /// Should block operation?
+    #[inline(always)]
     pub fn should_block(&self) -> bool {
         matches!(self, Self::High | Self::Critical)
     }
 
     /// Get display name
+    #[inline]
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Info => "Info",
@@ -160,35 +162,41 @@ impl Threat {
     }
 
     /// Set severity
+    #[inline(always)]
     pub fn with_severity(mut self, severity: ThreatSeverity) -> Self {
         self.severity = severity;
         self
     }
 
     /// Set target
+    #[inline(always)]
     pub fn with_target(mut self, target: u64) -> Self {
         self.target_id = Some(target);
         self
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Add context
+    #[inline(always)]
     pub fn with_context(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.context.insert(key.into(), value.into());
         self
     }
 
     /// Mark as confirmed
+    #[inline(always)]
     pub fn confirm(&mut self) {
         self.confirmed = true;
     }
 
     /// Mark as mitigated
+    #[inline(always)]
     pub fn mitigate(&mut self) {
         self.mitigated = true;
     }

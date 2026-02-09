@@ -143,6 +143,7 @@ impl SystemPrinciple {
     }
 
     /// Record a compliance check result
+    #[inline]
     pub fn record_check(&mut self, compliant: bool) {
         self.check_count += 1;
         if !compliant {
@@ -219,6 +220,7 @@ pub struct OverrideEvent {
 
 /// Conscience statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticConscienceStats {
     pub total_checks: u64,
     pub total_approvals: u64,
@@ -348,6 +350,7 @@ impl HolisticConscience {
     }
 
     /// Get the overall principle compliance score
+    #[inline]
     pub fn principle_compliance(&self) -> f32 {
         if self.principles.is_empty() {
             return 1.0;
@@ -389,6 +392,7 @@ impl HolisticConscience {
     }
 
     /// Compute fairness across all tracked dimensions
+    #[inline(always)]
     pub fn fairness_across_all(&self) -> f32 {
         self.principle_compliance()
     }
@@ -425,6 +429,7 @@ impl HolisticConscience {
     }
 
     /// The conscience's moral authority score: how trustworthy is our ethical framework?
+    #[inline]
     pub fn moral_authority(&self) -> f32 {
         let compliance = self.principle_compliance();
         let consistency = if self.stats.total_checks > 0 {
@@ -437,6 +442,7 @@ impl HolisticConscience {
     }
 
     /// Get the principle hierarchy — sorted by level then importance
+    #[inline]
     pub fn principle_hierarchy(&self) -> Vec<(u64, String, PrincipleLevel, f32)> {
         let mut hierarchy: Vec<_> = self.principles.values()
             .map(|p| (p.id, p.name.clone(), p.level, p.importance))
@@ -448,6 +454,7 @@ impl HolisticConscience {
     }
 
     /// Register a new principle
+    #[inline]
     pub fn register_principle(&mut self, principle: SystemPrinciple) {
         if self.principles.len() < MAX_PRINCIPLES {
             self.principles.insert(principle.id, principle);
@@ -455,6 +462,7 @@ impl HolisticConscience {
     }
 
     /// Resolve an injustice
+    #[inline]
     pub fn resolve_injustice(&mut self, injustice_id: u64, tick: u64) -> bool {
         for inj in self.injustices.iter_mut() {
             if inj.id == injustice_id && !inj.resolved {
@@ -468,16 +476,19 @@ impl HolisticConscience {
     }
 
     /// Active injustices
+    #[inline(always)]
     pub fn active_injustices(&self) -> Vec<&InjusticeRecord> {
         self.injustices.iter().filter(|i| !i.resolved).collect()
     }
 
     /// Principle count
+    #[inline(always)]
     pub fn principle_count(&self) -> usize {
         self.principles.len()
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticConscienceStats {
         &self.stats
     }

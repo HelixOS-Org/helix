@@ -61,16 +61,19 @@ impl KobjectIntelligence {
     }
 
     /// Allocate kobject ID
+    #[inline(always)]
     pub fn allocate_kobject_id(&self) -> KobjectId {
         KobjectId::new(self.next_kobject_id.fetch_add(1, Ordering::Relaxed))
     }
 
     /// Allocate kset ID
+    #[inline(always)]
     pub fn allocate_kset_id(&self) -> KsetId {
         KsetId::new(self.next_kset_id.fetch_add(1, Ordering::Relaxed))
     }
 
     /// Allocate ktype ID
+    #[inline(always)]
     pub fn allocate_ktype_id(&self) -> KtypeId {
         KtypeId::new(self.next_ktype_id.fetch_add(1, Ordering::Relaxed))
     }
@@ -108,11 +111,13 @@ impl KobjectIntelligence {
     }
 
     /// Get kobject
+    #[inline(always)]
     pub fn get_kobject(&self, id: KobjectId) -> Option<&KobjectInfo> {
         self.kobjects.get(&id)
     }
 
     /// Increment refcount
+    #[inline]
     pub fn kobject_get(&mut self, id: KobjectId, caller: String, timestamp: u64) -> Option<u32> {
         if let Some(info) = self.kobjects.get_mut(&id) {
             info.refcount += 1;
@@ -147,11 +152,13 @@ impl KobjectIntelligence {
     }
 
     /// Register kset
+    #[inline(always)]
     pub fn register_kset(&mut self, info: KsetInfo) {
         self.ksets.insert(info.id, info);
     }
 
     /// Register ktype
+    #[inline(always)]
     pub fn register_ktype(&mut self, info: KtypeInfo) {
         self.ktypes.insert(info.id, info);
     }
@@ -254,51 +261,61 @@ impl KobjectIntelligence {
     }
 
     /// Get refcount analyzer
+    #[inline(always)]
     pub fn refcount_analyzer(&self) -> &RefCountAnalyzer {
         &self.refcount_analyzer
     }
 
     /// Get refcount analyzer mutably
+    #[inline(always)]
     pub fn refcount_analyzer_mut(&mut self) -> &mut RefCountAnalyzer {
         &mut self.refcount_analyzer
     }
 
     /// Get sysfs manager
+    #[inline(always)]
     pub fn sysfs_manager(&self) -> &SysfsManager {
         &self.sysfs_manager
     }
 
     /// Get sysfs manager mutably
+    #[inline(always)]
     pub fn sysfs_manager_mut(&mut self) -> &mut SysfsManager {
         &mut self.sysfs_manager
     }
 
     /// Get uevent handler
+    #[inline(always)]
     pub fn uevent_handler(&self) -> &UeventHandler {
         &self.uevent_handler
     }
 
     /// Get uevent handler mutably
+    #[inline(always)]
     pub fn uevent_handler_mut(&mut self) -> &mut UeventHandler {
         &mut self.uevent_handler
     }
 
     /// Get lifecycle tracker
+    #[inline(always)]
     pub fn lifecycle_tracker(&self) -> &LifecycleTracker {
         &self.lifecycle_tracker
     }
 
     /// Get total created
+    #[inline(always)]
     pub fn total_created(&self) -> u64 {
         self.total_created.load(Ordering::Relaxed)
     }
 
     /// Get total destroyed
+    #[inline(always)]
     pub fn total_destroyed(&self) -> u64 {
         self.total_destroyed.load(Ordering::Relaxed)
     }
 
     /// Get active kobject count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.kobjects.len()
     }

@@ -19,6 +19,7 @@ pub enum FlushStrategy { Periodic, OnDemand, Adaptive, Aggressive }
 pub enum CongestionLevel { None, Light, Medium, Heavy, Saturated }
 
 impl CongestionLevel {
+    #[inline]
     pub fn from_pending_ratio(ratio: f64) -> Self {
         if ratio < 0.2 { Self::None }
         else if ratio < 0.4 { Self::Light }
@@ -40,10 +41,12 @@ pub struct DeviceSyncProfile {
 }
 
 impl DeviceSyncProfile {
+    #[inline(always)]
     pub fn dirty_ratio(&self) -> f64 {
         if self.total_pages == 0 { return 0.0; }
         self.dirty_pages as f64 / self.total_pages as f64
     }
+    #[inline(always)]
     pub fn estimated_flush_time_ns(&self) -> u64 {
         if self.write_bandwidth_bps == 0 { return u64::MAX; }
         (self.dirty_pages * 4096 * 1_000_000_000) / self.write_bandwidth_bps
@@ -60,6 +63,7 @@ pub struct WritebackSchedule {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MsyncHolisticStats {
     pub total_dirty_pages: u64,
     pub total_flushes: u64,
@@ -90,6 +94,7 @@ impl MsyncHolisticManager {
         }
     }
 
+    #[inline(always)]
     pub fn register_device(&mut self, profile: DeviceSyncProfile) {
         self.stats.total_dirty_pages += profile.dirty_pages;
         self.devices.insert(profile.device_id, profile);
@@ -109,6 +114,7 @@ impl MsyncHolisticManager {
     }
 
     /// Compute system-wide dirty ratio
+    #[inline]
     pub fn global_dirty_ratio(&self) -> f64 {
         let total_pages: u64 = self.devices.values().map(|d| d.total_pages).sum();
         if total_pages == 0 { return 0.0; }
@@ -116,6 +122,7 @@ impl MsyncHolisticManager {
     }
 
     /// Detect I/O congestion
+    #[inline]
     pub fn congestion_level(&self) -> CongestionLevel {
         let total_pending: u64 = self.devices.values().map(|d| d.pending_flushes).sum();
         let total_capacity: u64 = self.devices.values().map(|d| d.total_pages / 100).sum();
@@ -170,6 +177,7 @@ impl MsyncHolisticManager {
     }
 
     /// Record a completed flush
+    #[inline]
     pub fn record_flush(&mut self, device_id: u64, pages: u64, latency: u64, now: u64) {
         if let Some(dev) = self.devices.get_mut(&device_id) {
             dev.dirty_pages = dev.dirty_pages.saturating_sub(pages);
@@ -181,6 +189,8 @@ impl MsyncHolisticManager {
         self.stats.avg_flush_latency = (self.stats.avg_flush_latency * 15 + latency) / 16;
     }
 
+    #[inline(always)]
     pub fn strategy(&self) -> FlushStrategy { self.strategy }
+    #[inline(always)]
     pub fn stats(&self) -> &MsyncHolisticStats { &self.stats }
 }

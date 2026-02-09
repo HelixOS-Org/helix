@@ -33,6 +33,7 @@ pub enum GoalPriority {
 
 impl GoalPriority {
     /// Convert to numeric value
+    #[inline(always)]
     pub fn value(&self) -> u32 {
         *self as u32
     }
@@ -137,36 +138,42 @@ impl Goal {
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: GoalPriority) -> Self {
         self.priority = priority;
         self
     }
 
     /// Set deadline
+    #[inline(always)]
     pub fn with_deadline(mut self, deadline: u64) -> Self {
         self.deadline = Some(deadline);
         self
     }
 
     /// Add prerequisite
+    #[inline(always)]
     pub fn with_prerequisite(mut self, prereq: GoalId) -> Self {
         self.prerequisites.insert(prereq);
         self
     }
 
     /// Set utility
+    #[inline(always)]
     pub fn with_utility(mut self, utility: f64) -> Self {
         self.utility = utility.max(0.0);
         self
     }
 
     /// Set cost
+    #[inline(always)]
     pub fn with_cost(mut self, cost: f64) -> Self {
         self.cost = cost.max(0.0);
         self
     }
 
     /// Check if goal is terminal (achieved, failed, or abandoned)
+    #[inline]
     pub fn is_terminal(&self) -> bool {
         matches!(
             self.status,
@@ -175,11 +182,13 @@ impl Goal {
     }
 
     /// Check if goal is actionable (can be pursued)
+    #[inline(always)]
     pub fn is_actionable(&self) -> bool {
         matches!(self.status, GoalStatus::Pending | GoalStatus::Active)
     }
 
     /// Update progress
+    #[inline]
     pub fn update_progress(&mut self, progress: f64) {
         self.progress = progress.clamp(0.0, 1.0);
         if self.progress >= 1.0 {
@@ -188,6 +197,7 @@ impl Goal {
     }
 
     /// Increment attempt counter
+    #[inline]
     pub fn attempt(&mut self) -> bool {
         self.attempts += 1;
         if self.attempts >= self.max_attempts {
@@ -272,6 +282,7 @@ impl GoalManager {
     }
 
     /// Create and add goal
+    #[inline]
     pub fn create_goal(&mut self, name: String, goal_type: GoalType) -> GoalId {
         let id = GoalId(self.next_id);
         self.next_id += 1;
@@ -331,6 +342,7 @@ impl GoalManager {
     }
 
     /// Suspend goal
+    #[inline]
     pub fn suspend(&mut self, id: GoalId) {
         if let Some(goal) = self.goals.get_mut(&id) {
             goal.status = GoalStatus::Suspended;
@@ -355,6 +367,7 @@ impl GoalManager {
     }
 
     /// Mark goal as failed
+    #[inline]
     pub fn fail(&mut self, id: GoalId) {
         if let Some(goal) = self.goals.get_mut(&id) {
             goal.status = GoalStatus::Failed;
@@ -364,6 +377,7 @@ impl GoalManager {
     }
 
     /// Update goal progress
+    #[inline]
     pub fn update_progress(&mut self, id: GoalId, progress: f64) {
         if let Some(goal) = self.goals.get_mut(&id) {
             goal.update_progress(progress);
@@ -421,11 +435,13 @@ impl GoalManager {
     }
 
     /// Get goal
+    #[inline(always)]
     pub fn get_goal(&self, id: GoalId) -> Option<&Goal> {
         self.goals.get(&id)
     }
 
     /// Get goal mut
+    #[inline(always)]
     pub fn get_goal_mut(&mut self, id: GoalId) -> Option<&mut Goal> {
         self.goals.get_mut(&id)
     }
@@ -450,11 +466,13 @@ impl GoalManager {
     }
 
     /// Get highest priority active goal
+    #[inline(always)]
     pub fn get_top_goal(&self) -> Option<&Goal> {
         self.get_active_sorted().into_iter().next()
     }
 
     /// Get pending goals that can be activated
+    #[inline]
     pub fn get_activatable(&self) -> Vec<&Goal> {
         self.goals
             .values()
@@ -463,21 +481,25 @@ impl GoalManager {
     }
 
     /// Update current time
+    #[inline(always)]
     pub fn update_time(&mut self, time: u64) {
         self.current_time = time;
     }
 
     /// Get goal count
+    #[inline(always)]
     pub fn goal_count(&self) -> usize {
         self.goals.len()
     }
 
     /// Get active count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.active.len()
     }
 
     /// Get achieved count
+    #[inline]
     pub fn achieved_count(&self) -> usize {
         self.goals
             .values()

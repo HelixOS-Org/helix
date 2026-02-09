@@ -28,6 +28,7 @@ pub struct ProtocolVersion {
 }
 
 impl ProtocolVersion {
+    #[inline]
     pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
         Self {
             major,
@@ -39,6 +40,7 @@ impl ProtocolVersion {
     pub const CURRENT: Self = Self::new(1, 0, 0);
 
     /// Check compatibility
+    #[inline(always)]
     pub fn is_compatible(&self, other: &Self) -> bool {
         self.major == other.major
     }
@@ -124,18 +126,22 @@ impl FrameFlags {
         Self { bits: 0 }
     }
 
+    #[inline(always)]
     pub fn set(&mut self, flag: u16) {
         self.bits |= flag;
     }
 
+    #[inline(always)]
     pub fn clear(&mut self, flag: u16) {
         self.bits &= !flag;
     }
 
+    #[inline(always)]
     pub fn is_set(&self, flag: u16) -> bool {
         self.bits & flag != 0
     }
 
+    #[inline(always)]
     pub fn bits(&self) -> u16 {
         self.bits
     }
@@ -171,6 +177,7 @@ impl FrameTrailer {
         !crc
     }
 
+    #[inline(always)]
     pub fn verify(&self, payload: &[u8]) -> bool {
         self.checksum == Self::calculate_crc(payload)
     }
@@ -358,6 +365,7 @@ impl Default for ProtocolConfig {
 
 /// Protocol statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ProtocolStats {
     /// Frames sent
     pub frames_sent: u64,
@@ -665,6 +673,7 @@ impl ProtocolHandler {
     }
 
     /// Complete session connection
+    #[inline]
     pub fn connect_session(&mut self, session_id: u64) {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             session.state = SessionState::Connected;
@@ -672,6 +681,7 @@ impl ProtocolHandler {
     }
 
     /// Close a session
+    #[inline]
     pub fn close_session(&mut self, session_id: u64) {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             session.state = SessionState::Closed;
@@ -681,11 +691,13 @@ impl ProtocolHandler {
     }
 
     /// Get session
+    #[inline(always)]
     pub fn get_session(&self, session_id: u64) -> Option<&ProtocolSession> {
         self.sessions.get(&session_id)
     }
 
     /// Get sessions for domain
+    #[inline]
     pub fn get_sessions_for_domain(&self, domain: DomainId) -> Vec<&ProtocolSession> {
         self.sessions
             .values()
@@ -712,6 +724,7 @@ impl ProtocolHandler {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ProtocolStats {
         &self.stats
     }

@@ -20,6 +20,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -61,6 +62,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f32, new_sample: f32) -> f32 {
     EMA_ALPHA * new_sample + (1.0 - EMA_ALPHA) * current
 }
@@ -88,8 +90,9 @@ pub enum ResourceDimension {
 
 /// Full system state vector at a point in time
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SystemStateVector {
-    pub values: BTreeMap<u64, f32>,
+    pub values: LinearMap<f32, 64>,
     pub timestamp_us: u64,
     pub generation: u64,
 }
@@ -97,7 +100,7 @@ pub struct SystemStateVector {
 impl SystemStateVector {
     fn new(timestamp_us: u64, generation: u64) -> Self {
         Self {
-            values: BTreeMap::new(),
+            values: LinearMap::new(),
             timestamp_us,
             generation,
         }
@@ -110,7 +113,7 @@ impl SystemStateVector {
 
     fn get(&self, dim: ResourceDimension) -> f32 {
         let key = fnv1a_hash(&[dim as u8]);
-        self.values.get(&key).copied().unwrap_or(0.0)
+        self.values.get(key).copied().unwrap_or(0.0)
     }
 
     fn distance(&self, other: &Self) -> f32 {
@@ -144,12 +147,13 @@ pub struct ScenarioNode {
 
 /// Transition edge between two nodes
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateTransition {
     pub from_node: u64,
     pub to_node: u64,
     pub transition_prob: f32,
     pub trigger_description: String,
-    pub resource_delta: BTreeMap<u64, f32>,
+    pub resource_delta: LinearMap<f32, 64>,
 }
 
 /// An extracted path through the tree
@@ -163,9 +167,10 @@ pub struct TreePath {
 
 /// Result of expected-state aggregation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExpectedSystemState {
     pub weighted_state: SystemStateVector,
-    pub variance_per_dim: BTreeMap<u64, f32>,
+    pub variance_per_dim: LinearMap<f32, 64>,
     pub branch_count: usize,
     pub total_probability_mass: f32,
     pub horizon_us: u64,
@@ -197,6 +202,7 @@ pub enum PruningStrategy {
 
 /// Runtime statistics for the scenario tree engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ScenarioTreeStats {
     pub trees_built: u64,
     pub total_nodes_created: u64,
@@ -321,6 +327,7 @@ impl HolisticScenarioTree {
     }
 
     /// Extract the optimal (highest cumulative score) path from root to leaf
+    #[inline]
     pub fn optimal_path(&mut self) -> Option<TreePath> {
         let root = self.root_id?;
         let path = self.trace_best_path(root, true);
@@ -331,6 +338,7 @@ impl HolisticScenarioTree {
     }
 
     /// Extract the worst-case (lowest cumulative score) path from root to leaf
+    #[inline]
     pub fn worst_case_path(&mut self) -> Option<TreePath> {
         let root = self.root_id?;
         let path = self.trace_best_path(root, false);
@@ -343,7 +351,7 @@ impl HolisticScenarioTree {
     /// Compute the probability-weighted expected system state at the leaves
     pub fn expected_system_state(&mut self, horizon_us: u64) -> ExpectedSystemState {
         let mut weighted = SystemStateVector::new(horizon_us, self.generation);
-        let mut variance_acc: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut variance_acc: LinearMap<f32, 64> = BTreeMap::new();
         let mut total_prob = 0.0_f32;
         let mut leaf_count = 0_usize;
 
@@ -476,6 +484,7 @@ impl HolisticScenarioTree {
     }
 
     /// Return the current tree size (total / active / pruned)
+    #[inline]
     pub fn tree_size(&self) -> (usize, usize, usize) {
         let total = self.nodes.len();
         let pruned = self.nodes.values().filter(|n| n.pruned).count();
@@ -504,6 +513,7 @@ impl HolisticScenarioTree {
     }
 
     /// Get current statistics snapshot
+    #[inline(always)]
     pub fn stats(&self) -> &ScenarioTreeStats {
         &self.stats
     }
@@ -588,7 +598,7 @@ impl HolisticScenarioTree {
                 to_node: to,
                 transition_prob: prob,
                 trigger_description: String::new(),
-                resource_delta: BTreeMap::new(),
+                resource_delta: LinearMap::new(),
             });
         }
     }

@@ -2,7 +2,7 @@
 //!
 //! This module provides histogram-based latency analysis with SLA tracking.
 
-use alloc::vec::Vec;
+use alloc::collections::VecDeque;
 use super::WorkQueueId;
 
 /// Latency distribution bucket
@@ -16,6 +16,7 @@ pub struct LatencyBucket {
 
 /// Work latency statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LatencyStats {
     /// Minimum latency (nanoseconds)
     pub min_ns: u64,
@@ -49,6 +50,7 @@ pub enum LatencyTrend {
 }
 
 /// Work latency analyzer with histogram
+#[repr(align(64))]
 pub struct WorkLatencyAnalyzer {
     /// Queue ID being analyzed
     queue_id: WorkQueueId,
@@ -67,7 +69,7 @@ pub struct WorkLatencyAnalyzer {
     /// Maximum observed latency
     max_ns: u64,
     /// Recent latencies for trend analysis
-    recent_latencies: Vec<u64>,
+    recent_latencies: VecDeque<u64>,
     /// Maximum recent samples
     max_recent: usize,
     /// SLA threshold (nanoseconds)
@@ -96,7 +98,7 @@ impl WorkLatencyAnalyzer {
             sum_sq_ns: 0,
             min_ns: u64::MAX,
             max_ns: 0,
-            recent_latencies: Vec::with_capacity(1000),
+            recent_latencies: VecDeque::with_capacity(1000),
             max_recent: 1000,
             sla_threshold_ns: 10_000_000, // 10ms default
             sla_violations: 0,
@@ -129,9 +131,9 @@ impl WorkLatencyAnalyzer {
 
         // Update recent latencies
         if self.recent_latencies.len() >= self.max_recent {
-            self.recent_latencies.remove(0);
+            self.recent_latencies.pop_front();
         }
-        self.recent_latencies.push(latency_ns);
+        self.recent_latencies.push_back(latency_ns);
 
         // Check SLA
         if latency_ns > self.sla_threshold_ns {
@@ -140,6 +142,7 @@ impl WorkLatencyAnalyzer {
     }
 
     /// Set SLA threshold
+    #[inline(always)]
     pub fn set_sla_threshold(&mut self, threshold_ns: u64) {
         self.sla_threshold_ns = threshold_ns;
     }
@@ -201,6 +204,7 @@ impl WorkLatencyAnalyzer {
     }
 
     /// Calculate SLA compliance rate
+    #[inline]
     pub fn sla_compliance_rate(&self) -> f32 {
         if self.total_samples == 0 {
             return 1.0;
@@ -217,14 +221,16 @@ impl WorkLatencyAnalyzer {
         let len = self.recent_latencies.len();
         let half = len / 2;
 
-        let first_half_avg: f64 = self.recent_latencies[..half]
+        let first_half_avg: f64 = self.recent_latencies
             .iter()
+            .take(half)
             .map(|&v| v as f64)
             .sum::<f64>()
             / half as f64;
 
-        let second_half_avg: f64 = self.recent_latencies[half..]
+        let second_half_avg: f64 = self.recent_latencies
             .iter()
+            .skip(half)
             .map(|&v| v as f64)
             .sum::<f64>()
             / (len - half) as f64;
@@ -241,11 +247,13 @@ impl WorkLatencyAnalyzer {
     }
 
     /// Get queue ID
+    #[inline(always)]
     pub fn queue_id(&self) -> WorkQueueId {
         self.queue_id
     }
 
     /// Get total sample count
+    #[inline(always)]
     pub fn sample_count(&self) -> u64 {
         self.total_samples
     }

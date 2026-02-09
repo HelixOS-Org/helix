@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -109,6 +110,7 @@ impl PolicyCondition {
     }
 
     /// Evaluate condition
+    #[inline]
     pub fn evaluate(&self, value: f64) -> bool {
         match self.op {
             ConditionOp::Eq => libm::fabs(value - self.threshold) < 0.0001,
@@ -160,6 +162,7 @@ impl PolicyRule {
     }
 
     /// Add condition
+    #[inline(always)]
     pub fn add_condition(&mut self, condition: PolicyCondition) {
         self.conditions.push(condition);
     }
@@ -208,6 +211,7 @@ impl PolicySet {
     }
 
     /// Add rule
+    #[inline]
     pub fn add_rule(&mut self, rule: PolicyRule) {
         self.rules.push(rule);
         // Sort by priority (highest first)
@@ -215,6 +219,7 @@ impl PolicySet {
     }
 
     /// Evaluate all rules (first match wins)
+    #[inline]
     pub fn evaluate(&mut self, values: &BTreeMap<u64, f64>) -> PolicyAction {
         for rule in &mut self.rules {
             if let Some(action) = rule.evaluate(values) {
@@ -239,9 +244,9 @@ pub struct TenantBoundary {
     /// Policy set
     pub policy_set_id: u64,
     /// Resource limits
-    pub resource_limits: BTreeMap<u64, f64>,
+    pub resource_limits: LinearMap<f64, 64>,
     /// Current usage
-    pub resource_usage: BTreeMap<u64, f64>,
+    pub resource_usage: LinearMap<f64, 64>,
 }
 
 impl TenantBoundary {
@@ -250,12 +255,13 @@ impl TenantBoundary {
             tenant_id,
             members: Vec::new(),
             policy_set_id,
-            resource_limits: BTreeMap::new(),
-            resource_usage: BTreeMap::new(),
+            resource_limits: LinearMap::new(),
+            resource_usage: LinearMap::new(),
         }
     }
 
     /// Add member
+    #[inline]
     pub fn add_member(&mut self, pid: u64) {
         if !self.members.contains(&pid) {
             self.members.push(pid);
@@ -263,24 +269,28 @@ impl TenantBoundary {
     }
 
     /// Remove member
+    #[inline(always)]
     pub fn remove_member(&mut self, pid: u64) {
         self.members.retain(|&p| p != pid);
     }
 
     /// Set limit
+    #[inline(always)]
     pub fn set_limit(&mut self, resource_hash: u64, limit: f64) {
         self.resource_limits.insert(resource_hash, limit);
     }
 
     /// Update usage
+    #[inline(always)]
     pub fn update_usage(&mut self, resource_hash: u64, usage: f64) {
         self.resource_usage.insert(resource_hash, usage);
     }
 
     /// Check within limits
+    #[inline]
     pub fn within_limits(&self) -> bool {
         for (&resource, &limit) in &self.resource_limits {
-            let usage = self.resource_usage.get(&resource).copied().unwrap_or(0.0);
+            let usage = self.resource_usage.get(resource).copied().unwrap_or(0.0);
             if usage > limit {
                 return false;
             }
@@ -289,9 +299,10 @@ impl TenantBoundary {
     }
 
     /// Utilization per resource
+    #[inline]
     pub fn utilization(&self, resource_hash: u64) -> f64 {
-        let usage = self.resource_usage.get(&resource_hash).copied().unwrap_or(0.0);
-        let limit = self.resource_limits.get(&resource_hash).copied().unwrap_or(1.0);
+        let usage = self.resource_usage.get(resource_hash).copied().unwrap_or(0.0);
+        let limit = self.resource_limits.get(resource_hash).copied().unwrap_or(1.0);
         if limit > 0.0 { usage / limit } else { 0.0 }
     }
 }
@@ -302,6 +313,7 @@ impl TenantBoundary {
 
 /// Governance stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopGovernanceStats {
     /// Policy sets
     pub policy_sets: usize,
@@ -322,7 +334,7 @@ pub struct CoopGovernanceEngine {
     /// Tenants
     tenants: BTreeMap<u64, TenantBoundary>,
     /// Process -> tenant mapping
-    process_tenant: BTreeMap<u64, u64>,
+    process_tenant: LinearMap<u64, 64>,
     /// Stats
     stats: CoopGovernanceStats,
     /// Next policy set ID
@@ -334,13 +346,14 @@ impl CoopGovernanceEngine {
         Self {
             policies: BTreeMap::new(),
             tenants: BTreeMap::new(),
-            process_tenant: BTreeMap::new(),
+            process_tenant: LinearMap::new(),
             stats: CoopGovernanceStats::default(),
             next_set_id: 1,
         }
     }
 
     /// Create policy set
+    #[inline]
     pub fn create_policy_set(&mut self, now: u64) -> u64 {
         let id = self.next_set_id;
         self.next_set_id += 1;
@@ -350,6 +363,7 @@ impl CoopGovernanceEngine {
     }
 
     /// Add rule to policy set
+    #[inline]
     pub fn add_rule(&mut self, set_id: u64, rule: PolicyRule) {
         if let Some(set) = self.policies.get_mut(&set_id) {
             set.add_rule(rule);
@@ -358,12 +372,14 @@ impl CoopGovernanceEngine {
     }
 
     /// Create tenant
+    #[inline(always)]
     pub fn create_tenant(&mut self, tenant_id: u64, policy_set_id: u64) {
         self.tenants.insert(tenant_id, TenantBoundary::new(tenant_id, policy_set_id));
         self.update_stats();
     }
 
     /// Add process to tenant
+    #[inline]
     pub fn assign_tenant(&mut self, pid: u64, tenant_id: u64) {
         if let Some(tenant) = self.tenants.get_mut(&tenant_id) {
             tenant.add_member(pid);
@@ -376,7 +392,7 @@ impl CoopGovernanceEngine {
         self.stats.total_evaluations += 1;
 
         // Find tenant-specific policy
-        if let Some(&tenant_id) = self.process_tenant.get(&pid) {
+        if let Some(&tenant_id) = self.process_tenant.get(pid) {
             if let Some(tenant) = self.tenants.get(&tenant_id) {
                 let set_id = tenant.policy_set_id;
                 if let Some(policy_set) = self.policies.get_mut(&set_id) {
@@ -402,8 +418,9 @@ impl CoopGovernanceEngine {
     }
 
     /// Remove process
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
-        if let Some(tenant_id) = self.process_tenant.remove(&pid) {
+        if let Some(tenant_id) = self.process_tenant.remove(pid) {
             if let Some(tenant) = self.tenants.get_mut(&tenant_id) {
                 tenant.remove_member(pid);
             }
@@ -417,6 +434,7 @@ impl CoopGovernanceEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopGovernanceStats {
         &self.stats
     }

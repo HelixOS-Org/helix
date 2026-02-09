@@ -101,31 +101,37 @@ impl BpfInsn {
     }
 
     /// Decode opcode class
+    #[inline(always)]
     pub fn opcode_class(&self) -> u8 {
         self.opcode & 0x07
     }
 
     /// Is ALU operation
+    #[inline(always)]
     pub fn is_alu(&self) -> bool {
         matches!(self.opcode_class(), 0x04 | 0x07)
     }
 
     /// Is jump operation
+    #[inline(always)]
     pub fn is_jump(&self) -> bool {
         matches!(self.opcode_class(), 0x05 | 0x06)
     }
 
     /// Is memory operation
+    #[inline(always)]
     pub fn is_mem(&self) -> bool {
         matches!(self.opcode_class(), 0x00 | 0x01 | 0x02 | 0x03)
     }
 
     /// Is call operation
+    #[inline(always)]
     pub fn is_call(&self) -> bool {
         self.opcode == 0x85
     }
 
     /// Is exit operation
+    #[inline(always)]
     pub fn is_exit(&self) -> bool {
         self.opcode == 0x95
     }

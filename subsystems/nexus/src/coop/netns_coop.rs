@@ -46,12 +46,18 @@ impl CoopVethPair {
         }
     }
 
+    #[inline(always)]
     pub fn bring_up(&mut self) { self.state = CoopVethState::Up; }
+    #[inline(always)]
     pub fn transmit(&mut self, bytes: u64) { self.tx_bytes += bytes; self.tx_packets += 1; }
+    #[inline(always)]
     pub fn receive(&mut self, bytes: u64) { self.rx_bytes += bytes; self.rx_packets += 1; }
+    #[inline(always)]
     pub fn drop_pkt(&mut self) { self.drops += 1; }
 
+    #[inline(always)]
     pub fn total_throughput(&self) -> u64 { self.tx_bytes + self.rx_bytes }
+    #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         let total = self.tx_packets + self.rx_packets + self.drops;
         if total == 0 { 0.0 } else { self.drops as f64 / total as f64 }
@@ -80,10 +86,12 @@ impl CoopNetNamespace {
         }
     }
 
+    #[inline(always)]
     pub fn add_interface(&mut self, if_id: u64) {
         if !self.interfaces.contains(&if_id) { self.interfaces.push(if_id); }
     }
 
+    #[inline]
     pub fn share_with(&mut self, other_ns: u64) {
         if !self.shared_with.contains(&other_ns) {
             self.shared_with.push(other_ns);
@@ -91,15 +99,20 @@ impl CoopNetNamespace {
         }
     }
 
+    #[inline(always)]
     pub fn attach_process(&mut self) { self.process_count += 1; }
+    #[inline(always)]
     pub fn detach_process(&mut self) { self.process_count = self.process_count.saturating_sub(1); }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.process_count == 0 }
 
+    #[inline(always)]
     pub fn destroy(&mut self) { self.state = CoopNetnsState::Destroyed; }
 }
 
 /// Coop netns stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopNetnsStats {
     pub total_namespaces: u64,
     pub shared_namespaces: u64,
@@ -124,11 +137,13 @@ impl CoopNetns {
         }
     }
 
+    #[inline(always)]
     pub fn create_namespace(&mut self, ns_id: u64, name: &[u8]) {
         self.namespaces.insert(ns_id, CoopNetNamespace::new(ns_id, name));
         self.stats.total_namespaces += 1;
     }
 
+    #[inline]
     pub fn create_veth_pair(&mut self, pair_id: u64, ns_a: u64, ns_b: u64) {
         self.veth_pairs.insert(pair_id, CoopVethPair::new(pair_id, ns_a, ns_b));
         if let Some(ns) = self.namespaces.get_mut(&ns_a) { ns.veth_pairs.push(pair_id); }
@@ -136,12 +151,14 @@ impl CoopNetns {
         self.stats.total_veth_pairs += 1;
     }
 
+    #[inline]
     pub fn share_namespaces(&mut self, ns_a: u64, ns_b: u64) {
         if let Some(ns) = self.namespaces.get_mut(&ns_a) { ns.share_with(ns_b); }
         if let Some(ns) = self.namespaces.get_mut(&ns_b) { ns.share_with(ns_a); }
         self.stats.shared_namespaces += 1;
     }
 
+    #[inline]
     pub fn destroy_namespace(&mut self, ns_id: u64) -> bool {
         if let Some(ns) = self.namespaces.get_mut(&ns_id) {
             if ns.is_empty() { ns.destroy(); true } else { false }

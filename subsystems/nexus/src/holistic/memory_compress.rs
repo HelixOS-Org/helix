@@ -60,11 +60,13 @@ impl CompressedPage {
         }
     }
 
+    #[inline(always)]
     pub fn ratio(&self) -> f64 {
         if self.compressed_size == 0 { return 0.0; }
         self.original_size as f64 / self.compressed_size as f64
     }
 
+    #[inline(always)]
     pub fn savings_bytes(&self) -> u32 {
         self.original_size.saturating_sub(self.compressed_size)
     }
@@ -72,6 +74,7 @@ impl CompressedPage {
 
 /// Compression pool
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CompressPool {
     pub pool_type: CompressPoolType,
     pub pages: BTreeMap<u64, CompressedPage>,
@@ -95,16 +98,19 @@ impl CompressPool {
         }
     }
 
+    #[inline(always)]
     pub fn ratio(&self) -> f64 {
         if self.total_compressed_bytes == 0 { return 0.0; }
         self.total_original_bytes as f64 / self.total_compressed_bytes as f64
     }
 
+    #[inline(always)]
     pub fn usage(&self) -> f64 {
         if self.max_pages == 0 { return 0.0; }
         self.pages.len() as f64 / self.max_pages as f64
     }
 
+    #[inline]
     pub fn insert(&mut self, page: CompressedPage) -> Option<CompressedPage> {
         self.total_original_bytes += page.original_size as u64;
         self.total_compressed_bytes += page.compressed_size as u64;
@@ -117,6 +123,7 @@ impl CompressPool {
         evicted
     }
 
+    #[inline]
     pub fn access(&mut self, pfn: u64, now: u64) -> bool {
         if let Some(page) = self.pages.get_mut(&pfn) {
             page.access_count += 1;
@@ -126,6 +133,7 @@ impl CompressPool {
         } else { false }
     }
 
+    #[inline]
     pub fn remove(&mut self, pfn: u64) -> Option<CompressedPage> {
         if let Some(page) = self.pages.remove(&pfn) {
             self.total_original_bytes -= page.original_size as u64;
@@ -147,6 +155,7 @@ impl CompressPool {
     }
 
     /// Get cold pages (candidates for writeback)
+    #[inline]
     pub fn cold_pages(&self, age_threshold: u64, now: u64) -> Vec<u64> {
         self.pages.iter()
             .filter(|(_, p)| now.saturating_sub(p.last_access_ts) > age_threshold)
@@ -170,6 +179,7 @@ pub enum AdmissionDecision {
 
 /// Compression stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticMemCompressStats {
     pub total_pages: usize,
     pub hot_pages: usize,
@@ -365,6 +375,7 @@ impl HolisticMemCompress {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticMemCompressStats {
         &self.stats
     }

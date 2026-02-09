@@ -115,6 +115,7 @@ pub struct SynthesisEvent {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct SynthesisStats {
     pub population_size: usize,
     pub archive_size: usize,
@@ -166,6 +167,7 @@ impl CoopSynthesisEngine {
 
     // -- seed population ----------------------------------------------------
 
+    #[inline]
     pub fn seed_population(&mut self, count: usize) {
         let count = count.min(MAX_POPULATION);
         for _ in 0..count {
@@ -254,6 +256,7 @@ impl CoopSynthesisEngine {
 
     // -- evolve protocol ----------------------------------------------------
 
+    #[inline]
     pub fn evolve_protocol(&mut self) -> Option<ProtocolGenome> {
         if self.population.len() < TOURNAMENT_SIZE {
             return None;
@@ -413,6 +416,7 @@ impl CoopSynthesisEngine {
 
     // -- novelty score (public) ---------------------------------------------
 
+    #[inline]
     pub fn novelty_score(&self, genome_id: u64) -> u64 {
         match self.population.get(&genome_id) {
             Some(g) => g.novelty,
@@ -422,6 +426,7 @@ impl CoopSynthesisEngine {
 
     // -- protocol fitness (public) ------------------------------------------
 
+    #[inline]
     pub fn protocol_fitness(&self, genome_id: u64) -> u64 {
         match self.population.get(&genome_id) {
             Some(g) => g.fitness,
@@ -431,6 +436,7 @@ impl CoopSynthesisEngine {
 
     // -- synthesis rate (public) --------------------------------------------
 
+    #[inline(always)]
     pub fn synthesis_rate(&self) -> u64 {
         self.synthesis_rate_ema
     }
@@ -465,6 +471,7 @@ impl CoopSynthesisEngine {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> SynthesisStats {
         self.stats.clone()
     }

@@ -28,6 +28,7 @@ pub struct HolisticSessionEntry {
 
 /// Session holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticSessionStats {
     pub total_analyzed: u64,
     pub healthy: u64,
@@ -85,6 +86,7 @@ impl HolisticSessionManager {
         health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticSessionStats {
         &self.stats
     }

@@ -28,6 +28,7 @@ pub struct BridgePriorityEntry {
 
 /// Stats for priority operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgePriorityStats {
     pub total_changes: u64,
     pub priority_boosts: u64,
@@ -37,6 +38,7 @@ pub struct BridgePriorityStats {
 }
 
 /// Manager for priority bridge operations
+#[repr(align(64))]
 pub struct BridgePriorityManager {
     entries: BTreeMap<u64, BridgePriorityEntry>,
     stats: BridgePriorityStats,
@@ -78,6 +80,7 @@ impl BridgePriorityManager {
         }
     }
 
+    #[inline]
     pub fn set_nice(&mut self, id: u64, nice: i32) {
         if let Some(entry) = self.entries.get_mut(&id) {
             entry.nice_value = nice.clamp(-20, 19);
@@ -85,6 +88,7 @@ impl BridgePriorityManager {
         }
     }
 
+    #[inline]
     pub fn boost_priority(&mut self, id: u64, boost: i32) {
         if let Some(entry) = self.entries.get_mut(&id) {
             entry.dynamic_priority = entry.static_priority + boost;
@@ -92,10 +96,12 @@ impl BridgePriorityManager {
         }
     }
 
+    #[inline(always)]
     pub fn get_priority(&self, id: u64) -> Option<i32> {
         self.entries.get(&id).map(|e| e.dynamic_priority)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgePriorityStats {
         &self.stats
     }

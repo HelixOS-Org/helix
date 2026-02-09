@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -118,6 +119,7 @@ fn ln_approx(x: f32) -> f32 {
 
 /// A single simulated future scenario
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FutureSample {
     pub sample_id: u64,
     pub outcome_score: f32,
@@ -148,6 +150,7 @@ pub struct RareEvent {
 
 /// Result of a Monte Carlo simulation run
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SimulationResult {
     pub simulation_id: u64,
     pub sample_count: u32,
@@ -158,7 +161,7 @@ pub struct SimulationResult {
     pub max_score: f32,
     pub confidence_intervals: Vec<ConfidenceInterval>,
     pub rare_events: Vec<RareEvent>,
-    pub percentiles: BTreeMap<u32, f32>,
+    pub percentiles: ArrayMap<f32, 32>,
 }
 
 // ============================================================================
@@ -167,6 +170,7 @@ pub struct SimulationResult {
 
 /// Aggregate Monte Carlo statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct MonteCarloStats {
     pub total_simulations: u64,
     pub total_samples: u64,
@@ -184,6 +188,7 @@ pub struct MonteCarloStats {
 /// Monte Carlo simulation engine for syscall future analysis. Generates
 /// random future scenarios, evaluates them, and produces statistical summaries.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeMonteCarlo {
     distributions: BTreeMap<u64, Distribution>,
     rng_state: u64,
@@ -214,6 +219,7 @@ impl BridgeMonteCarlo {
     }
 
     /// Register a distribution for sampling
+    #[inline]
     pub fn register_distribution(&mut self, name_hash: u64, dist: Distribution) {
         if self.distributions.len() < MAX_DISTRIBUTIONS {
             self.distributions.insert(name_hash, dist);
@@ -280,6 +286,7 @@ impl BridgeMonteCarlo {
     }
 
     /// Aggregate samples into a simulation result
+    #[inline]
     pub fn aggregate_results(
         &mut self,
         mut samples: Vec<FutureSample>,
@@ -375,6 +382,7 @@ impl BridgeMonteCarlo {
     }
 
     /// Detect rare events from samples
+    #[inline(always)]
     pub fn rare_event_detect(&self, samples: &[FutureSample]) -> Vec<RareEvent> {
         self.detect_rare_events(samples)
     }
@@ -437,6 +445,7 @@ impl BridgeMonteCarlo {
     }
 
     /// Aggregate Monte Carlo statistics
+    #[inline]
     pub fn stats(&self) -> MonteCarloStats {
         MonteCarloStats {
             total_simulations: self.total_simulations,

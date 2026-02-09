@@ -29,6 +29,7 @@ pub enum WorkloadCharacter {
 
 impl WorkloadCharacter {
     /// Get character name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::CpuBound => "cpu-bound",

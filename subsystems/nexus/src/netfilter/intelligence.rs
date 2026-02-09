@@ -96,6 +96,7 @@ impl NetfilterIntelligence {
     }
 
     /// Create table
+    #[inline(always)]
     pub fn create_table(
         &mut self,
         name: String,
@@ -106,6 +107,7 @@ impl NetfilterIntelligence {
     }
 
     /// Create chain
+    #[inline(always)]
     pub fn create_chain(
         &mut self,
         table_id: TableId,
@@ -116,6 +118,7 @@ impl NetfilterIntelligence {
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(
         &mut self,
         chain_id: ChainId,
@@ -200,11 +203,13 @@ impl NetfilterIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &NetfilterManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut NetfilterManager {
         &mut self.manager
     }

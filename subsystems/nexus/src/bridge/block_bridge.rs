@@ -77,13 +77,21 @@ impl BlockReq {
         }
     }
 
+    #[inline(always)]
     pub fn dispatch(&mut self, ts: u64) { self.state = BioState::Dispatched; self.dispatch_ts = ts; }
+    #[inline(always)]
     pub fn start(&mut self) { self.state = BioState::InFlight; }
+    #[inline(always)]
     pub fn complete(&mut self, ts: u64) { self.state = BioState::Completed; self.complete_ts = ts; }
+    #[inline(always)]
     pub fn fail(&mut self, err: i32, ts: u64) { self.state = BioState::Error; self.error = err; self.complete_ts = ts; }
+    #[inline(always)]
     pub fn queue_latency_ns(&self) -> u64 { if self.dispatch_ts > self.enqueue_ts { self.dispatch_ts - self.enqueue_ts } else { 0 } }
+    #[inline(always)]
     pub fn service_time_ns(&self) -> u64 { if self.complete_ts > self.dispatch_ts { self.complete_ts - self.dispatch_ts } else { 0 } }
+    #[inline(always)]
     pub fn total_latency_ns(&self) -> u64 { if self.complete_ts > self.enqueue_ts { self.complete_ts - self.enqueue_ts } else { 0 } }
+    #[inline(always)]
     pub fn bytes(&self) -> u64 { self.nr_sectors as u64 * 512 }
 }
 
@@ -136,8 +144,10 @@ impl BlockDevice {
         }
     }
 
+    #[inline(always)]
     pub fn capacity_bytes(&self) -> u64 { self.capacity_sectors * self.block_size as u64 }
 
+    #[inline]
     pub fn record_complete(&mut self, req: &BlockReq) {
         match req.op {
             BioOp::Read => { self.read_ios += 1; self.read_bytes += req.bytes(); }
@@ -148,12 +158,15 @@ impl BlockDevice {
         }
     }
 
+    #[inline(always)]
     pub fn iops(&self) -> u64 { self.read_ios + self.write_ios }
+    #[inline(always)]
     pub fn throughput_bytes(&self) -> u64 { self.read_bytes + self.write_bytes }
 }
 
 /// Block bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BlockBridgeStats {
     pub total_devices: usize,
     pub total_ios: u64,
@@ -166,6 +179,7 @@ pub struct BlockBridgeStats {
 }
 
 /// Bridge block device manager
+#[repr(align(64))]
 pub struct BridgeBlockBridge {
     devices: BTreeMap<u64, BlockDevice>,
     requests: BTreeMap<u64, BlockReq>,
@@ -179,12 +193,14 @@ impl BridgeBlockBridge {
         Self { devices: BTreeMap::new(), requests: BTreeMap::new(), stats: BlockBridgeStats::default(), next_dev: 1, next_req: 1 }
     }
 
+    #[inline]
     pub fn register_device(&mut self, name: String, capacity: u64) -> u64 {
         let id = self.next_dev; self.next_dev += 1;
         self.devices.insert(id, BlockDevice::new(id, name, capacity));
         id
     }
 
+    #[inline]
     pub fn submit_bio(&mut self, dev: u64, op: BioOp, sector: u64, count: u32, ts: u64) -> u64 {
         let id = self.next_req; self.next_req += 1;
         let mut req = BlockReq::new(id, dev, op, sector, count);
@@ -194,10 +210,12 @@ impl BridgeBlockBridge {
         id
     }
 
+    #[inline(always)]
     pub fn dispatch_req(&mut self, id: u64, ts: u64) {
         if let Some(r) = self.requests.get_mut(&id) { r.dispatch(ts); }
     }
 
+    #[inline]
     pub fn complete_req(&mut self, id: u64, ts: u64) {
         let dev_id = self.requests.get(&id).map(|r| r.device_id);
         if let Some(r) = self.requests.get_mut(&id) { r.complete(ts); }
@@ -209,6 +227,7 @@ impl BridgeBlockBridge {
         }
     }
 
+    #[inline]
     pub fn error_req(&mut self, id: u64, err: i32, ts: u64) {
         if let Some(r) = self.requests.get_mut(&id) {
             let dev = r.device_id;
@@ -217,7 +236,9 @@ impl BridgeBlockBridge {
         }
     }
 
+    #[inline(always)]
     pub fn set_sched(&mut self, dev: u64, sched: IoSched) { if let Some(d) = self.devices.get_mut(&dev) { d.sched = sched; } }
+    #[inline(always)]
     pub fn set_queue_depth(&mut self, dev: u64, depth: u32) { if let Some(d) = self.devices.get_mut(&dev) { d.queue_depth = depth; } }
 
     pub fn recompute(&mut self) {
@@ -235,7 +256,10 @@ impl BridgeBlockBridge {
         self.stats.total_merges = self.requests.values().filter(|r| r.merged).count() as u64;
     }
 
+    #[inline(always)]
     pub fn device(&self, id: u64) -> Option<&BlockDevice> { self.devices.get(&id) }
+    #[inline(always)]
     pub fn request(&self, id: u64) -> Option<&BlockReq> { self.requests.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &BlockBridgeStats { &self.stats }
 }

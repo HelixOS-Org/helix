@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -66,7 +67,7 @@ impl FileAccessTracker {
         });
 
         if history.len() > self.max_history {
-            history.remove(0);
+            history.pop_front();
         }
 
         // Update pattern detection
@@ -124,11 +125,13 @@ impl FileAccessTracker {
     }
 
     /// Get pattern for file
+    #[inline(always)]
     pub fn get_pattern(&self, inode: Inode) -> Option<IoPatternType> {
         self.patterns.get(&inode).copied()
     }
 
     /// Get total accesses
+    #[inline(always)]
     pub fn total_accesses(&self) -> u64 {
         self.total_accesses.load(Ordering::Relaxed)
     }
@@ -173,6 +176,7 @@ impl FileAccessTracker {
     }
 
     /// Clear history
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.history.clear();
         self.patterns.clear();

@@ -85,6 +85,7 @@ impl DriverFeatures {
     }
 
     /// Enable feature
+    #[inline]
     pub fn enable(&mut self, feature: DriverFeature) {
         if !self.enabled.contains(&feature) {
             self.enabled.push(feature);
@@ -92,11 +93,13 @@ impl DriverFeatures {
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self, feature: DriverFeature) -> bool {
         self.enabled.contains(&feature)
     }
 
     /// Add available
+    #[inline]
     pub fn add_available(&mut self, feature: DriverFeature) {
         if !self.available.contains(&feature) {
             self.available.push(feature);
@@ -104,11 +107,13 @@ impl DriverFeatures {
     }
 
     /// Is available
+    #[inline(always)]
     pub fn is_available(&self, feature: DriverFeature) -> bool {
         self.available.contains(&feature)
     }
 
     /// Has offload support
+    #[inline]
     pub fn has_offloads(&self) -> bool {
         self.is_enabled(DriverFeature::RxChecksum)
             || self.is_enabled(DriverFeature::TxChecksum)
@@ -117,11 +122,13 @@ impl DriverFeatures {
     }
 
     /// Enabled count
+    #[inline(always)]
     pub fn enabled_count(&self) -> usize {
         self.enabled.len()
     }
 
     /// Available count
+    #[inline(always)]
     pub fn available_count(&self) -> usize {
         self.available.len()
     }

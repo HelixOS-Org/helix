@@ -13,6 +13,7 @@ pub struct ThermalZoneId(pub u32);
 
 impl ThermalZoneId {
     /// Create new zone ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
@@ -24,6 +25,7 @@ pub struct CoolingDeviceId(pub u32);
 
 impl CoolingDeviceId {
     /// Create new device ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
@@ -35,26 +37,31 @@ pub struct Temperature(pub i32);
 
 impl Temperature {
     /// Create from millidegrees
+    #[inline(always)]
     pub const fn from_millidegrees(md: i32) -> Self {
         Self(md)
     }
 
     /// Create from degrees Celsius
+    #[inline(always)]
     pub fn from_celsius(c: f32) -> Self {
         Self((c * 1000.0) as i32)
     }
 
     /// Get as millidegrees
+    #[inline(always)]
     pub fn millidegrees(&self) -> i32 {
         self.0
     }
 
     /// Get as degrees Celsius
+    #[inline(always)]
     pub fn celsius(&self) -> f32 {
         self.0 as f32 / 1000.0
     }
 
     /// Get as degrees Fahrenheit
+    #[inline(always)]
     pub fn fahrenheit(&self) -> f32 {
         self.celsius() * 9.0 / 5.0 + 32.0
     }

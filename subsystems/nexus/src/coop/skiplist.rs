@@ -29,7 +29,9 @@ impl SkiplistNode {
         Self { key, value, height, forward, marked: false, fully_linked: false }
     }
 
+    #[inline(always)]
     pub fn link(&mut self) { self.fully_linked = true; }
+    #[inline(always)]
     pub fn mark_for_removal(&mut self) { self.marked = true; }
 }
 
@@ -48,6 +50,7 @@ pub struct SkiplistConfig {
 }
 
 impl SkiplistConfig {
+    #[inline(always)]
     pub fn default_config() -> Self {
         Self { max_height: 32, probability: 50, seed: 0x12345678 }
     }
@@ -68,6 +71,7 @@ impl SkiplistConfig {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SkiplistStats {
     pub total_nodes: u64,
     pub max_height_used: u32,
@@ -120,11 +124,13 @@ impl CoopSkiplist {
         true
     }
 
+    #[inline(always)]
     pub fn find(&mut self, key: u64) -> Option<u64> {
         self.stats.total_finds += 1;
         self.nodes.get(&key).filter(|n| !n.marked).map(|n| n.value)
     }
 
+    #[inline]
     pub fn remove(&mut self, key: u64) -> bool {
         if let Some(node) = self.nodes.get_mut(&key) {
             node.mark_for_removal();
@@ -133,5 +139,6 @@ impl CoopSkiplist {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SkiplistStats { &self.stats }
 }

@@ -2,6 +2,7 @@
 //! NEXUS Apps — Socketpair (bidirectional socket pairs)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -54,16 +55,19 @@ impl SocketpairInstance {
         }
     }
 
+    #[inline(always)]
     pub fn send_a_to_b(&mut self, bytes: u64) {
         self.bytes_a_to_b += bytes;
         self.msgs_a_to_b += 1;
     }
 
+    #[inline(always)]
     pub fn send_b_to_a(&mut self, bytes: u64) {
         self.bytes_b_to_a += bytes;
         self.msgs_b_to_a += 1;
     }
 
+    #[inline]
     pub fn close_fd(&mut self, fd: u64) {
         if fd == self.fd_a || fd == self.fd_b {
             match self.state {
@@ -74,9 +78,12 @@ impl SocketpairInstance {
         }
     }
 
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 { self.bytes_a_to_b + self.bytes_b_to_a }
+    #[inline(always)]
     pub fn total_msgs(&self) -> u64 { self.msgs_a_to_b + self.msgs_b_to_a }
 
+    #[inline(always)]
     pub fn direction_ratio(&self) -> u64 {
         let total = self.total_bytes();
         if total == 0 { 50 } else { (self.bytes_a_to_b * 100) / total }
@@ -84,6 +91,7 @@ impl SocketpairInstance {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketpairAppStats {
     pub total_pairs: u64,
     pub active_pairs: u64,
@@ -93,7 +101,7 @@ pub struct SocketpairAppStats {
 
 pub struct AppSocketpair {
     pairs: BTreeMap<u64, SocketpairInstance>,
-    fd_to_pair: BTreeMap<u64, u64>,
+    fd_to_pair: LinearMap<u64, 64>,
     next_id: u64,
     stats: SocketpairAppStats,
 }
@@ -102,7 +110,7 @@ impl AppSocketpair {
     pub fn new() -> Self {
         Self {
             pairs: BTreeMap::new(),
-            fd_to_pair: BTreeMap::new(),
+            fd_to_pair: LinearMap::new(),
             next_id: 1,
             stats: SocketpairAppStats {
                 total_pairs: 0, active_pairs: 0,
@@ -111,6 +119,7 @@ impl AppSocketpair {
         }
     }
 
+    #[inline]
     pub fn create_pair(&mut self, fd_a: u64, fd_b: u64, domain: SocketpairDomain, pair_type: SocketpairType) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -123,8 +132,9 @@ impl AppSocketpair {
         id
     }
 
+    #[inline]
     pub fn close_fd(&mut self, fd: u64) {
-        if let Some(&pair_id) = self.fd_to_pair.get(&fd) {
+        if let Some(&pair_id) = self.fd_to_pair.get(fd) {
             if let Some(pair) = self.pairs.get_mut(&pair_id) {
                 pair.close_fd(fd);
                 if pair.state == SocketpairState::FullyClosed {
@@ -134,5 +144,6 @@ impl AppSocketpair {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SocketpairAppStats { &self.stats }
 }

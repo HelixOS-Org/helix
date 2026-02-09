@@ -1,6 +1,7 @@
 //! CPU/core affinity prediction.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -11,6 +12,7 @@ use super::types::TaskFeatures;
 // ============================================================================
 
 /// CPU/core affinity predictor
+#[repr(align(64))]
 pub struct AffinityPredictor {
     /// Core utilization history
     core_history: Vec<CoreHistory>,
@@ -25,8 +27,8 @@ pub struct AffinityPredictor {
 /// Core utilization history
 #[derive(Debug, Clone)]
 struct CoreHistory {
-    utilization: Vec<f64>,
-    temperature: Vec<f64>,
+    utilization: VecDeque<f64>,
+    temperature: VecDeque<f64>,
     #[allow(dead_code)]
     power_state: Vec<u8>,
 }
@@ -34,8 +36,8 @@ struct CoreHistory {
 impl CoreHistory {
     fn new() -> Self {
         Self {
-            utilization: Vec::new(),
-            temperature: Vec::new(),
+            utilization: VecDeque::new(),
+            temperature: VecDeque::new(),
             power_state: Vec::new(),
         }
     }
@@ -50,6 +52,7 @@ impl CoreHistory {
 
 /// NUMA topology information
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NumaTopology {
     /// Nodes
     pub nodes: Vec<NumaNode>,
@@ -82,28 +85,31 @@ impl AffinityPredictor {
     }
 
     /// Set NUMA topology
+    #[inline(always)]
     pub fn set_numa_topology(&mut self, topology: NumaTopology) {
         self.numa_topology = Some(topology);
     }
 
     /// Update core utilization
+    #[inline]
     pub fn update_core_utilization(&mut self, core_id: usize, utilization: f64) {
         if core_id < self.core_history.len() {
             let history = &mut self.core_history[core_id];
-            history.utilization.push(utilization);
+            history.utilization.push_back(utilization);
             if history.utilization.len() > 100 {
-                history.utilization.remove(0);
+                history.utilization.pop_front();
             }
         }
     }
 
     /// Update core temperature
+    #[inline]
     pub fn update_core_temperature(&mut self, core_id: usize, temp: f64) {
         if core_id < self.core_history.len() {
             let history = &mut self.core_history[core_id];
-            history.temperature.push(temp);
+            history.temperature.push_back(temp);
             if history.temperature.len() > 100 {
-                history.temperature.remove(0);
+                history.temperature.pop_front();
             }
         }
     }
@@ -156,6 +162,7 @@ impl AffinityPredictor {
     }
 
     /// Record task execution on a core (for learning)
+    #[inline]
     pub fn record_execution(&mut self, task_hash: u64, core_id: usize, performance: f64) {
         let scores = self
             .affinity_scores

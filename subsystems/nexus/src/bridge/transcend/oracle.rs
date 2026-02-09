@@ -12,6 +12,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -58,6 +59,7 @@ fn abs_f32(x: f32) -> f32 {
 
 /// A single predictor that feeds into the oracle's Bayesian fusion.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Predictor {
     pub predictor_id: u64,
     pub name: String,
@@ -121,6 +123,7 @@ struct BayesianResult {
 
 /// Aggregate statistics for the oracle.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct OracleStats {
     pub total_predictions: u64,
     pub correct_predictions: u64,
@@ -166,6 +169,7 @@ impl PredictorRegistry {
         pid
     }
 
+    #[inline]
     fn update(&mut self, pid: u64, correct: bool, confidence: f32, tick: u64) {
         if let Some(pred) = self.predictors.get_mut(&pid) {
             pred.prediction_count += 1;
@@ -227,12 +231,14 @@ impl BridgeOracle {
     }
 
     /// Register a new predictor source.
+    #[inline(always)]
     pub fn register_predictor(&mut self, name: String) -> u64 {
         self.registry.register(name, self.tick)
     }
 
     /// Produce a Bayesian-fused oracle prediction from multiple predictor
     /// outputs. Each input is `(predictor_id, predicted_value, confidence)`.
+    #[inline]
     pub fn oracle_prediction(
         &mut self,
         context: &str,
@@ -293,6 +299,7 @@ impl BridgeOracle {
 
     /// Perform Bayesian fusion of predictor outputs. Public interface that
     /// returns posterior confidence and per-predictor contributions.
+    #[inline(always)]
     pub fn bayesian_fusion(&self, inputs: &[(u64, u32, f32)]) -> (f32, Vec<(u64, f32)>) {
         let result = self.bayesian_fusion_internal(inputs);
         (result.posterior, result.contributions)
@@ -350,11 +357,13 @@ impl BridgeOracle {
     }
 
     /// Retrieve impossible-prediction log.
+    #[inline(always)]
     pub fn impossible_prediction(&self) -> &[ImpossiblePrediction] {
         &self.impossible_log
     }
 
     /// Record the outcome of a prediction and update predictor weights.
+    #[inline]
     pub fn record_outcome(&mut self, prediction_id: u64, actual_value: u32) {
         let mut contribs: Vec<(u64, f32)> = Vec::new();
         let mut correct = false;
@@ -392,11 +401,13 @@ impl BridgeOracle {
     }
 
     /// Overall oracle accuracy [0, 1].
+    #[inline(always)]
     pub fn oracle_accuracy(&self) -> f32 {
         self.stats.accuracy_ema
     }
 
     /// Aggregate statistics.
+    #[inline(always)]
     pub fn stats(&self) -> OracleStats {
         self.stats
     }
@@ -414,7 +425,7 @@ impl BridgeOracle {
         }
 
         // Tally votes per predicted value, weighted by predictor accuracy.
-        let mut vote_map: BTreeMap<u32, f32> = BTreeMap::new();
+        let mut vote_map: ArrayMap<f32, 32> = BTreeMap::new();
         let mut contributions: Vec<(u64, f32)> = Vec::new();
         let total_w = self.registry.total_weight().max(1e-12);
 

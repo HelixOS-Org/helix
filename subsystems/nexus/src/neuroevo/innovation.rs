@@ -25,6 +25,7 @@ impl InnovationTracker {
     }
 
     /// Get or create innovation number for a connection
+    #[inline]
     pub fn get_or_create(&mut self, from: NodeId, to: NodeId) -> InnovationNumber {
         let key = (from, to);
         if let Some(&innov) = self.innovations.get(&key) {
@@ -37,12 +38,14 @@ impl InnovationTracker {
     }
 
     /// Get a new node ID
+    #[inline(always)]
     pub fn new_node_id(&mut self) -> NodeId {
         self.current_node += 1;
         self.current_node
     }
 
     /// Reset for a new generation (keeps node IDs, clears innovation cache)
+    #[inline(always)]
     pub fn new_generation(&mut self) {
         self.innovations.clear();
     }

@@ -95,6 +95,7 @@ impl NoveltySearch {
     }
 
     /// Set population behaviors for current generation
+    #[inline(always)]
     pub fn set_population_behaviors(&mut self, behaviors: Vec<BehaviorVector>) {
         self.population_behaviors = behaviors;
     }

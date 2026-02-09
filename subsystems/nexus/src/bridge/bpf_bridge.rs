@@ -69,22 +69,27 @@ pub struct BpfInsn {
 }
 
 impl BpfInsn {
+    #[inline(always)]
     pub fn is_call(&self) -> bool {
         self.opcode == 0x85
     }
 
+    #[inline(always)]
     pub fn is_exit(&self) -> bool {
         self.opcode == 0x95
     }
 
+    #[inline(always)]
     pub fn is_jump(&self) -> bool {
         (self.opcode & 0x07) == 0x05
     }
 
+    #[inline(always)]
     pub fn is_load(&self) -> bool {
         (self.opcode & 0x07) == 0x01 || (self.opcode & 0x07) == 0x00
     }
 
+    #[inline(always)]
     pub fn is_store(&self) -> bool {
         (self.opcode & 0x07) == 0x03 || (self.opcode & 0x07) == 0x02
     }
@@ -123,14 +128,17 @@ impl BpfProgram {
         }
     }
 
+    #[inline(always)]
     pub fn instruction_count(&self) -> usize {
         self.insns.len()
     }
 
+    #[inline(always)]
     pub fn avg_run_ns(&self) -> u64 {
         if self.run_count == 0 { 0 } else { self.run_time_ns / self.run_count }
     }
 
+    #[inline]
     pub fn complexity_score(&self) -> u32 {
         let mut score = self.insns.len() as u32;
         for insn in &self.insns {
@@ -172,27 +180,33 @@ impl BpfMap {
         }
     }
 
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.current_entries >= self.max_entries
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.max_entries == 0 { return 0.0; }
         self.current_entries as f64 / self.max_entries as f64
     }
 
+    #[inline(always)]
     pub fn memory_bytes(&self) -> u64 {
         (self.key_size as u64 + self.value_size as u64) * self.max_entries as u64
     }
 
+    #[inline(always)]
     pub fn record_lookup(&mut self) {
         self.lookup_count = self.lookup_count.saturating_add(1);
     }
 
+    #[inline(always)]
     pub fn record_update(&mut self) {
         self.update_count = self.update_count.saturating_add(1);
     }
 
+    #[inline(always)]
     pub fn record_delete(&mut self) {
         self.delete_count = self.delete_count.saturating_add(1);
     }
@@ -209,6 +223,7 @@ pub struct VerifyConfig {
 }
 
 impl VerifyConfig {
+    #[inline]
     pub fn default_config() -> Self {
         Self {
             max_insns: 1_000_000,
@@ -219,6 +234,7 @@ impl VerifyConfig {
         }
     }
 
+    #[inline]
     pub fn strict() -> Self {
         Self {
             max_insns: 4096,
@@ -232,6 +248,7 @@ impl VerifyConfig {
 
 /// BPF bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BpfBridgeStats {
     pub programs_loaded: u64,
     pub programs_rejected: u64,
@@ -243,6 +260,7 @@ pub struct BpfBridgeStats {
 }
 
 /// Main BPF bridge manager
+#[repr(align(64))]
 pub struct BridgeBpf {
     programs: BTreeMap<u64, BpfProgram>,
     maps: BTreeMap<u64, BpfMap>,
@@ -330,6 +348,7 @@ impl BridgeBpf {
         }
     }
 
+    #[inline]
     pub fn unload_program(&mut self, prog_id: u64) -> bool {
         if let Some(prog) = self.programs.remove(&prog_id) {
             if prog.attached {
@@ -373,6 +392,7 @@ impl BridgeBpf {
         }
     }
 
+    #[inline]
     pub fn create_map(
         &mut self,
         name: String,
@@ -388,10 +408,12 @@ impl BridgeBpf {
         id
     }
 
+    #[inline(always)]
     pub fn delete_map(&mut self, map_id: u64) -> bool {
         self.maps.remove(&map_id).is_some()
     }
 
+    #[inline]
     pub fn record_run(&mut self, prog_id: u64, duration_ns: u64, error: Option<i32>) {
         if let Some(prog) = self.programs.get_mut(&prog_id) {
             prog.run_count = prog.run_count.saturating_add(1);
@@ -402,6 +424,7 @@ impl BridgeBpf {
         }
     }
 
+    #[inline]
     pub fn map_lookup(&mut self, map_id: u64) -> bool {
         if let Some(map) = self.maps.get_mut(&map_id) {
             map.record_lookup();
@@ -426,20 +449,24 @@ impl BridgeBpf {
         }
     }
 
+    #[inline(always)]
     pub fn set_verify_config(&mut self, config: VerifyConfig) {
         self.verify_config = config;
     }
 
+    #[inline]
     pub fn program_info(&self, prog_id: u64) -> Option<(u64, &str, BpfProgType, bool)> {
         self.programs.get(&prog_id).map(|p| {
             (p.run_count, p.attach_point.as_str(), p.prog_type, p.attached)
         })
     }
 
+    #[inline(always)]
     pub fn total_bpf_memory(&self) -> u64 {
         self.maps.values().map(|m| m.memory_bytes()).sum()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BpfBridgeStats {
         &self.stats
     }
@@ -497,6 +524,7 @@ impl BpfV2Program {
     pub fn new(id: u64, pt: BpfV2ProgType, insns: u32) -> Self {
         Self { id, prog_type: pt, insn_count: insns, verified: false, jitted: false, attach_count: 0, run_count: 0, run_time_ns: 0 }
     }
+    #[inline(always)]
     pub fn avg_run_ns(&self) -> u64 { if self.run_count == 0 { 0 } else { self.run_time_ns / self.run_count } }
 }
 
@@ -513,6 +541,7 @@ pub struct BpfV2Map {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BpfV2BridgeStats {
     pub total_programs: u32,
     pub total_maps: u32,
@@ -522,6 +551,7 @@ pub struct BpfV2BridgeStats {
 }
 
 /// Main BPF v2 bridge
+#[repr(align(64))]
 pub struct BridgeBpfV2 {
     programs: BTreeMap<u64, BpfV2Program>,
     maps: Vec<BpfV2Map>,
@@ -531,16 +561,19 @@ pub struct BridgeBpfV2 {
 impl BridgeBpfV2 {
     pub fn new() -> Self { Self { programs: BTreeMap::new(), maps: Vec::new(), next_id: 1 } }
 
+    #[inline]
     pub fn load_program(&mut self, pt: BpfV2ProgType, insns: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.programs.insert(id, BpfV2Program::new(id, pt, insns));
         id
     }
 
+    #[inline(always)]
     pub fn verify(&mut self, id: u64) -> bool {
         if let Some(p) = self.programs.get_mut(&id) { p.verified = true; true } else { false }
     }
 
+    #[inline]
     pub fn stats(&self) -> BpfV2BridgeStats {
         let verified = self.programs.values().filter(|p| p.verified).count() as u32;
         let jitted = self.programs.values().filter(|p| p.jitted).count() as u32;

@@ -117,6 +117,7 @@ impl HeuristicRule {
         }
     }
 
+    #[inline]
     fn record_hit(&mut self, was_correct: bool, tick: u64) {
         self.last_hit_tick = tick;
         if was_correct {
@@ -162,6 +163,7 @@ pub struct ClassificationComparison {
 
 /// Aggregate intuition engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IntuitionStats {
     pub total_heuristics: usize,
     pub promoted_count: usize,
@@ -212,6 +214,7 @@ impl AppsIntuitionEngine {
     /// Attempt fast intuitive classification of an app behavioral sample
     ///
     /// Returns `Some((classification_hash, confidence))` on cache hit, `None` on miss.
+    #[inline]
     pub fn intuitive_classify(
         &mut self,
         cpu: f32,
@@ -306,6 +309,7 @@ impl AppsIntuitionEngine {
     }
 
     /// Current intuition hit rate
+    #[inline]
     pub fn intuition_hit_rate(&self) -> f32 {
         if self.total_lookups == 0 {
             return 0.0;
@@ -431,11 +435,13 @@ impl AppsIntuitionEngine {
     }
 
     /// Number of cached rules
+    #[inline(always)]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }
 
     /// Get the EMA-smoothed hit rate
+    #[inline(always)]
     pub fn smoothed_hit_rate(&self) -> f32 {
         self.hit_rate_ema
     }

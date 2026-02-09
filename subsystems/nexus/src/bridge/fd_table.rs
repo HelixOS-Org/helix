@@ -94,16 +94,19 @@ impl FdEntry {
     }
 
     /// Age in ns
+    #[inline(always)]
     pub fn age_ns(&self, now_ns: u64) -> u64 {
         now_ns.saturating_sub(self.opened_ns)
     }
 
     /// Idle time (since last activity)
+    #[inline(always)]
     pub fn idle_ns(&self, now_ns: u64) -> u64 {
         now_ns.saturating_sub(self.last_activity_ns)
     }
 
     /// Is potentially leaked? (old + no activity)
+    #[inline]
     pub fn is_leak_candidate(&self, now_ns: u64) -> bool {
         let age = self.age_ns(now_ns);
         let idle = self.idle_ns(now_ns);
@@ -114,6 +117,7 @@ impl FdEntry {
 
 /// Per-process FD table
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessFdTable {
     /// PID
     pub pid: u64,
@@ -142,6 +146,7 @@ impl ProcessFdTable {
     }
 
     /// Open FD
+    #[inline]
     pub fn open_fd(&mut self, fd: u32, fd_type: FdType, now_ns: u64) {
         self.fds.insert(fd, FdEntry::new(fd, fd_type, now_ns));
         self.total_opens += 1;
@@ -152,6 +157,7 @@ impl ProcessFdTable {
     }
 
     /// Close FD
+    #[inline(always)]
     pub fn close_fd(&mut self, fd: u32) -> Option<FdEntry> {
         self.total_closes += 1;
         self.fds.remove(&fd)
@@ -172,11 +178,13 @@ impl ProcessFdTable {
     }
 
     /// Current open FDs
+    #[inline(always)]
     pub fn open_count(&self) -> usize {
         self.fds.len()
     }
 
     /// Pressure (ratio of open to limit)
+    #[inline]
     pub fn pressure(&self) -> f64 {
         if self.fd_limit == 0 {
             return 0.0;
@@ -185,6 +193,7 @@ impl ProcessFdTable {
     }
 
     /// Leak candidates
+    #[inline]
     pub fn leak_candidates(&self, now_ns: u64) -> Vec<u32> {
         self.fds.iter()
             .filter(|(_, e)| e.is_leak_candidate(now_ns))
@@ -193,6 +202,7 @@ impl ProcessFdTable {
     }
 
     /// FDs by type
+    #[inline]
     pub fn count_by_type(&self) -> BTreeMap<u8, u32> {
         let mut counts = BTreeMap::new();
         for entry in self.fds.values() {
@@ -202,6 +212,7 @@ impl ProcessFdTable {
     }
 
     /// Close-on-exec count
+    #[inline(always)]
     pub fn cloexec_count(&self) -> usize {
         self.fds.values().filter(|e| e.flags.cloexec).count()
     }
@@ -209,6 +220,7 @@ impl ProcessFdTable {
 
 /// FD table proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeFdTableStats {
     pub tracked_processes: usize,
     pub total_open_fds: usize,
@@ -219,6 +231,7 @@ pub struct BridgeFdTableStats {
 }
 
 /// Bridge FD table proxy
+#[repr(align(64))]
 pub struct BridgeFdTableProxy {
     /// Per-process tables
     tables: BTreeMap<u64, ProcessFdTable>,
@@ -235,12 +248,14 @@ impl BridgeFdTableProxy {
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64, fd_limit: u32) {
         self.tables.insert(pid, ProcessFdTable::new(pid, fd_limit));
         self.update_stats();
     }
 
     /// Record FD open
+    #[inline]
     pub fn open_fd(&mut self, pid: u64, fd: u32, fd_type: FdType, now_ns: u64) {
         if let Some(table) = self.tables.get_mut(&pid) {
             table.open_fd(fd, fd_type, now_ns);
@@ -249,6 +264,7 @@ impl BridgeFdTableProxy {
     }
 
     /// Record FD close
+    #[inline]
     pub fn close_fd(&mut self, pid: u64, fd: u32) -> Option<FdEntry> {
         let result = self.tables.get_mut(&pid).and_then(|t| t.close_fd(fd));
         self.update_stats();
@@ -256,6 +272,7 @@ impl BridgeFdTableProxy {
     }
 
     /// Scan for leaks
+    #[inline]
     pub fn scan_leaks(&self, now_ns: u64) -> Vec<(u64, Vec<u32>)> {
         self.tables.iter()
             .filter_map(|(&pid, table)| {
@@ -275,6 +292,7 @@ impl BridgeFdTableProxy {
         self.stats.total_closes = self.tables.values().map(|t| t.total_closes).sum();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeFdTableStats {
         &self.stats
     }

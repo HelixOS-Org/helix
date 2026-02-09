@@ -52,11 +52,13 @@ impl FutexWaiter {
         }
     }
 
+    #[inline(always)]
     pub fn wake(&mut self, now: u64) {
         self.state = FutexWaitState::Woken;
         self.wake_time = now;
     }
 
+    #[inline(always)]
     pub fn wait_time(&self) -> u64 {
         if self.wake_time > 0 { self.wake_time - self.enqueue_time } else { 0 }
     }
@@ -81,6 +83,7 @@ impl FutexBucket {
         }
     }
 
+    #[inline(always)]
     pub fn add_waiter(&mut self, waiter: FutexWaiter) {
         self.wait_count += 1;
         self.waiters.push(waiter);
@@ -122,6 +125,7 @@ impl FutexBucket {
         requeued
     }
 
+    #[inline]
     pub fn timeout_waiters(&mut self, deadline: u64) -> u32 {
         let mut count = 0u32;
         for w in &mut self.waiters {
@@ -134,11 +138,13 @@ impl FutexBucket {
         count
     }
 
+    #[inline(always)]
     pub fn waiter_count(&self) -> usize { self.waiters.len() }
 }
 
 /// Futex manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FutexMgrStats {
     pub total_buckets: u32,
     pub total_waiters: u64,
@@ -178,6 +184,7 @@ impl CoopFutexMgr {
         hash
     }
 
+    #[inline]
     pub fn wait(&mut self, addr: u64, expected: u32, bitset: u32, tid: u32, now: u64) {
         let key = Self::hash_address(addr);
         let bucket = self.buckets.entry(key).or_insert_with(|| FutexBucket::new(addr));
@@ -187,6 +194,7 @@ impl CoopFutexMgr {
         if self.current_waiters > self.peak_waiters { self.peak_waiters = self.current_waiters; }
     }
 
+    #[inline]
     pub fn wake(&mut self, addr: u64, n: u32, bitset: u32, now: u64) -> u32 {
         let key = Self::hash_address(addr);
         if let Some(bucket) = self.buckets.get_mut(&key) {
@@ -216,6 +224,7 @@ impl CoopFutexMgr {
         requeued
     }
 
+    #[inline]
     pub fn tick_timeouts(&mut self, deadline: u64) -> u32 {
         let mut total = 0u32;
         for bucket in self.buckets.values_mut() {
@@ -227,6 +236,7 @@ impl CoopFutexMgr {
         total
     }
 
+    #[inline]
     pub fn hottest_buckets(&self, n: usize) -> Vec<(u64, usize)> {
         let mut v: Vec<_> = self.buckets.iter()
             .map(|(&k, b)| (k, b.waiter_count()))
@@ -236,6 +246,7 @@ impl CoopFutexMgr {
         v
     }
 
+    #[inline]
     pub fn stats(&self) -> FutexMgrStats {
         FutexMgrStats {
             total_buckets: self.buckets.len() as u32,

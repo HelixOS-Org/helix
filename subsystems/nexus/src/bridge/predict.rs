@@ -6,7 +6,9 @@
 //! Uses n-gram sequence analysis and Markov chain models to learn
 //! per-process syscall patterns.
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
@@ -24,18 +26,22 @@ impl SyscallConfidence {
         Self(value.clamp(0.0, 1.0))
     }
 
+    #[inline(always)]
     pub fn value(&self) -> f64 {
         self.0
     }
 
+    #[inline(always)]
     pub fn is_high(&self) -> bool {
         self.0 >= 0.8
     }
 
+    #[inline(always)]
     pub fn is_medium(&self) -> bool {
         self.0 >= 0.5 && self.0 < 0.8
     }
 
+    #[inline(always)]
     pub fn is_low(&self) -> bool {
         self.0 < 0.5
     }
@@ -84,14 +90,17 @@ impl SyscallSequence {
         Self { types: Vec::new() }
     }
 
+    #[inline(always)]
     pub fn push(&mut self, st: SyscallType) {
         self.types.push(st.from_number_reverse_pub());
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.types.len()
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.types.is_empty()
     }
@@ -112,6 +121,7 @@ pub struct SyscallPattern {
 
 impl SyscallPattern {
     /// Probability of the following syscall given the trigger
+    #[inline]
     pub fn probability(&self) -> f64 {
         if self.trigger_count == 0 {
             return 0.0;
@@ -126,9 +136,10 @@ impl SyscallPattern {
 
 /// The prediction engine — learns per-process syscall patterns and predicts
 /// future syscalls using n-gram analysis.
+#[repr(align(64))]
 pub struct SyscallPredictor {
     /// Recent syscall history (ring buffer per process)
-    history: Vec<SyscallType>,
+    history: VecDeque<SyscallType>,
     /// History capacity
     capacity: usize,
     /// N-gram order (e.g., 3 = trigrams)
@@ -136,7 +147,7 @@ pub struct SyscallPredictor {
     /// N-gram frequency table: sequence_hash -> (following_type -> count)
     ngram_table: BTreeMap<u64, BTreeMap<u64, u64>>,
     /// Total transitions from each sequence
-    ngram_totals: BTreeMap<u64, u64>,
+    ngram_totals: LinearMap<u64, 64>,
     /// Minimum occurrences before using a pattern
     min_occurrences: u64,
     /// Total observations
@@ -151,7 +162,7 @@ impl SyscallPredictor {
             capacity,
             ngram_order: ngram_order.max(1),
             ngram_table: BTreeMap::new(),
-            ngram_totals: BTreeMap::new(),
+            ngram_totals: LinearMap::new(),
             min_occurrences: 2,
             total_observations: 0,
         }
@@ -170,14 +181,14 @@ impl SyscallPredictor {
                 .or_default()
                 .entry(type_key)
                 .or_insert(0) += 1;
-            *self.ngram_totals.entry(key).or_insert(0) += 1;
+            self.ngram_totals.add(key, 1);
         }
 
         // Add to history
         if self.history.len() >= self.capacity {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(syscall_type);
+        self.history.push_back(syscall_type);
         self.total_observations += 1;
     }
 
@@ -189,7 +200,7 @@ impl SyscallPredictor {
 
         let key = self.compute_ngram_key();
         let transitions = self.ngram_table.get(&key)?;
-        let total = *self.ngram_totals.get(&key)?;
+        let total = *self.ngram_totals.get(key)?;
 
         if total < self.min_occurrences {
             return None;
@@ -227,7 +238,7 @@ impl SyscallPredictor {
             );
 
             if let Some(transitions) = self.ngram_table.get(&key) {
-                if let Some(total) = self.ngram_totals.get(&key) {
+                if let Some(total) = self.ngram_totals.get(key) {
                     if let Some((best_type_key, best_count)) =
                         transitions.iter().max_by_key(|(_, c)| **c)
                     {
@@ -255,7 +266,7 @@ impl SyscallPredictor {
 
                         // Advance simulated history
                         if simulated_history.len() >= self.capacity {
-                            simulated_history.remove(0);
+                            simulated_history.pop_front();
                         }
                         simulated_history.push(predicted_type);
                     }
@@ -279,7 +290,7 @@ impl SyscallPredictor {
             Some(t) => t,
             None => return Vec::new(),
         };
-        let total = match self.ngram_totals.get(&key) {
+        let total = match self.ngram_totals.get(key) {
             Some(t) => *t,
             None => return Vec::new(),
         };
@@ -304,11 +315,13 @@ impl SyscallPredictor {
     }
 
     /// Total observations
+    #[inline(always)]
     pub fn total_observations(&self) -> u64 {
         self.total_observations
     }
 
     /// Number of unique patterns learned
+    #[inline(always)]
     pub fn patterns_learned(&self) -> usize {
         self.ngram_table.len()
     }

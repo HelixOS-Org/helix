@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::format;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -57,6 +58,7 @@ pub enum HealthStatus {
 
 impl HealthStatus {
     /// Convert to numeric level
+    #[inline]
     pub fn level(&self) -> u8 {
         match self {
             Self::Healthy => 4,
@@ -69,6 +71,7 @@ impl HealthStatus {
     }
 
     /// From health score
+    #[inline]
     pub fn from_score(score: f32) -> Self {
         match score {
             s if s >= 0.9 => Self::Healthy,
@@ -82,6 +85,7 @@ impl HealthStatus {
 
 /// Health metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HealthMetrics {
     /// Response time (ns)
     pub response_time_ns: u64,
@@ -174,7 +178,7 @@ pub struct HealthMonitor {
     /// System-wide health
     system_health: SystemHealth,
     /// Health history
-    history: Vec<HealthSnapshot>,
+    history: VecDeque<HealthSnapshot>,
     /// Next issue ID
     next_issue_id: AtomicU64,
     /// Configuration
@@ -300,7 +304,7 @@ impl HealthMonitor {
         Self {
             domain_health: BTreeMap::new(),
             system_health: SystemHealth::default(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             next_issue_id: AtomicU64::new(1),
             config,
             thresholds,
@@ -324,12 +328,14 @@ impl HealthMonitor {
     }
 
     /// Unregister a domain
+    #[inline(always)]
     pub fn unregister_domain(&mut self, domain_id: DomainId) {
         self.domain_health.remove(&domain_id);
         self.update_system_health();
     }
 
     /// Update domain metrics
+    #[inline]
     pub fn update_metrics(&mut self, domain_id: DomainId, metrics: HealthMetrics) {
         if let Some(health) = self.domain_health.get_mut(&domain_id) {
             health.metrics = metrics;
@@ -548,12 +554,13 @@ impl HealthMonitor {
         };
 
         if self.history.len() >= self.config.history_size {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(snapshot);
+        self.history.push_back(snapshot);
     }
 
     /// Add alert
+    #[inline]
     pub fn add_alert(
         &mut self,
         domain: Option<DomainId>,
@@ -593,11 +600,13 @@ impl HealthMonitor {
     }
 
     /// Get triggered alerts
+    #[inline(always)]
     pub fn get_triggered_alerts(&self) -> Vec<&HealthAlert> {
         self.alerts.iter().filter(|a| a.triggered).collect()
     }
 
     /// Clear triggered alerts
+    #[inline]
     pub fn clear_alerts(&mut self) {
         for alert in &mut self.alerts {
             alert.triggered = false;
@@ -605,21 +614,25 @@ impl HealthMonitor {
     }
 
     /// Get domain health
+    #[inline(always)]
     pub fn get_domain_health(&self, domain_id: DomainId) -> Option<&DomainHealth> {
         self.domain_health.get(&domain_id)
     }
 
     /// Get system health
+    #[inline(always)]
     pub fn get_system_health(&self) -> &SystemHealth {
         &self.system_health
     }
 
     /// Get all domain healths
+    #[inline(always)]
     pub fn all_domain_healths(&self) -> &BTreeMap<DomainId, DomainHealth> {
         &self.domain_health
     }
 
     /// Get health history
+    #[inline(always)]
     pub fn history(&self) -> &[HealthSnapshot] {
         &self.history
     }

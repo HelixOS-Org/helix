@@ -38,6 +38,7 @@ pub enum AttentionLevel {
 
 impl AttentionLevel {
     /// Get resource multiplier for this level
+    #[inline]
     pub fn resource_multiplier(&self) -> f32 {
         match self {
             Self::Background => 0.1,
@@ -50,6 +51,7 @@ impl AttentionLevel {
     }
 
     /// Get check frequency (cycles between checks)
+    #[inline]
     pub fn check_frequency(&self) -> u64 {
         match self {
             Self::Background => 1000,
@@ -148,6 +150,7 @@ pub enum SubsystemId {
 
 /// Context for attention
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AttentionContext {
     /// Relevant metrics
     pub metrics: BTreeMap<String, f64>,
@@ -209,6 +212,7 @@ impl Default for AttentionConfig {
 
 /// Statistics for attention manager
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AttentionStats {
     /// Total attention items created
     pub total_items: u64,
@@ -299,6 +303,7 @@ impl AttentionManager {
     }
 
     /// Remove an attention item
+    #[inline]
     pub fn remove_attention(&mut self, id: u64) -> bool {
         if let Some(item) = self.items.remove(&id) {
             self.usage -= item.level.resource_multiplier();
@@ -363,6 +368,7 @@ impl AttentionManager {
     }
 
     /// Get items that need checking this cycle
+    #[inline]
     pub fn items_to_check(&self, cycle: u64) -> Vec<u64> {
         self.items
             .iter()
@@ -372,6 +378,7 @@ impl AttentionManager {
     }
 
     /// Mark item as checked
+    #[inline]
     pub fn mark_checked(&mut self, id: u64, score: f32) {
         if let Some(item) = self.items.get_mut(&id) {
             item.last_check = Timestamp::now();
@@ -428,11 +435,13 @@ impl AttentionManager {
     }
 
     /// Get attention item by ID
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&AttentionItem> {
         self.items.get(&id)
     }
 
     /// Get all items for a target
+    #[inline]
     pub fn items_for_target(&self, target: &AttentionTarget) -> Vec<&AttentionItem> {
         self.items
             .values()
@@ -441,31 +450,37 @@ impl AttentionManager {
     }
 
     /// Get current budget usage
+    #[inline(always)]
     pub fn usage(&self) -> f32 {
         self.usage
     }
 
     /// Get available budget
+    #[inline(always)]
     pub fn available(&self) -> f32 {
         self.budget - self.usage
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &AttentionStats {
         &self.stats
     }
 
     /// Get item count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.items.len()
     }
 
     /// Get items by level
+    #[inline(always)]
     pub fn items_by_level(&self, level: AttentionLevel) -> Vec<&AttentionItem> {
         self.items.values().filter(|i| i.level == level).collect()
     }
 
     /// Get highest priority items
+    #[inline]
     pub fn highest_priority(&self, count: usize) -> Vec<&AttentionItem> {
         let mut items: Vec<_> = self.items.values().collect();
         items.sort_by(|a, b| b.level.cmp(&a.level));
@@ -550,6 +565,7 @@ impl AttentionScheduler {
     }
 
     /// Add attention
+    #[inline(always)]
     pub fn add_attention(
         &mut self,
         target: AttentionTarget,
@@ -560,26 +576,31 @@ impl AttentionScheduler {
     }
 
     /// Remove attention
+    #[inline(always)]
     pub fn remove_attention(&mut self, id: u64) -> bool {
         self.manager.remove_attention(id)
     }
 
     /// Mark as checked
+    #[inline(always)]
     pub fn mark_checked(&mut self, id: u64, score: f32) {
         self.manager.mark_checked(id, score);
     }
 
     /// Escalate
+    #[inline(always)]
     pub fn escalate(&mut self, id: u64) -> bool {
         self.manager.escalate(id)
     }
 
     /// Get manager reference
+    #[inline(always)]
     pub fn manager(&self) -> &AttentionManager {
         &self.manager
     }
 
     /// Get current cycle
+    #[inline(always)]
     pub fn current_cycle(&self) -> u64 {
         self.cycle
     }

@@ -7,6 +7,7 @@ use super::{SlabCacheId, CpuId};
 
 /// Per-CPU cache statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CpuCacheStats {
     /// CPU ID
     pub cpu_id: u32,
@@ -34,6 +35,7 @@ impl CpuCacheStats {
     }
 
     /// Calculate hit rate
+    #[inline]
     pub fn hit_rate(&self) -> f32 {
         let total = self.hits + self.misses;
         if total == 0 {
@@ -43,6 +45,7 @@ impl CpuCacheStats {
     }
 
     /// Calculate fill level
+    #[inline]
     pub fn fill_level(&self) -> f32 {
         if self.capacity == 0 {
             return 0.0;
@@ -52,6 +55,7 @@ impl CpuCacheStats {
 }
 
 /// CPU cache optimizer
+#[repr(align(64))]
 pub struct CpuCacheOptimizer {
     /// Cache ID
     cache_id: SlabCacheId,
@@ -84,6 +88,7 @@ impl CpuCacheOptimizer {
     }
 
     /// Register CPU
+    #[inline]
     pub fn register_cpu(&mut self, cpu_id: CpuId) {
         let mut stats = CpuCacheStats::new(cpu_id);
         stats.capacity = self.default_size;
@@ -91,6 +96,7 @@ impl CpuCacheOptimizer {
     }
 
     /// Update CPU cache stats
+    #[inline]
     pub fn update_stats(&mut self, cpu_id: CpuId, cached: u32, hits: u64, misses: u64) {
         if let Some(stats) = self.cpu_stats.get_mut(&cpu_id) {
             stats.cached_objects = cached;
@@ -100,6 +106,7 @@ impl CpuCacheOptimizer {
     }
 
     /// Record hit
+    #[inline]
     pub fn record_hit(&mut self, cpu_id: CpuId) {
         if let Some(stats) = self.cpu_stats.get_mut(&cpu_id) {
             stats.hits += 1;
@@ -107,6 +114,7 @@ impl CpuCacheOptimizer {
     }
 
     /// Record miss
+    #[inline]
     pub fn record_miss(&mut self, cpu_id: CpuId) {
         if let Some(stats) = self.cpu_stats.get_mut(&cpu_id) {
             stats.misses += 1;
@@ -114,6 +122,7 @@ impl CpuCacheOptimizer {
     }
 
     /// Record refill
+    #[inline]
     pub fn record_refill(&mut self, cpu_id: CpuId, count: u64) {
         if let Some(stats) = self.cpu_stats.get_mut(&cpu_id) {
             stats.refills += count;
@@ -121,6 +130,7 @@ impl CpuCacheOptimizer {
     }
 
     /// Record flush
+    #[inline]
     pub fn record_flush(&mut self, cpu_id: CpuId, count: u64) {
         if let Some(stats) = self.cpu_stats.get_mut(&cpu_id) {
             stats.flushes += count;
@@ -156,6 +166,7 @@ impl CpuCacheOptimizer {
     }
 
     /// Get average hit rate across all CPUs
+    #[inline]
     pub fn average_hit_rate(&self) -> f32 {
         if self.cpu_stats.is_empty() {
             return 0.0;
@@ -165,21 +176,25 @@ impl CpuCacheOptimizer {
     }
 
     /// Get CPU stats
+    #[inline(always)]
     pub fn get_stats(&self, cpu_id: CpuId) -> Option<&CpuCacheStats> {
         self.cpu_stats.get(&cpu_id)
     }
 
     /// Get cache ID
+    #[inline(always)]
     pub fn cache_id(&self) -> SlabCacheId {
         self.cache_id
     }
 
     /// Get adjustment count
+    #[inline(always)]
     pub fn adjustments(&self) -> u64 {
         self.adjustments
     }
 
     /// Set hit rate target
+    #[inline(always)]
     pub fn set_hit_rate_target(&mut self, target: f32) {
         self.hit_rate_target = target;
     }

@@ -71,6 +71,7 @@ pub enum ComparisonResult {
 
 /// Collected metric samples
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricSamples {
     /// Values
     values: Vec<f64>,
@@ -113,6 +114,7 @@ impl MetricSamples {
     }
 
     /// Mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.count == 0 {
             return 0.0;
@@ -121,6 +123,7 @@ impl MetricSamples {
     }
 
     /// Variance
+    #[inline]
     pub fn variance(&self) -> f64 {
         if self.count < 2 {
             return 0.0;
@@ -130,11 +133,13 @@ impl MetricSamples {
     }
 
     /// Standard deviation
+    #[inline(always)]
     pub fn stddev(&self) -> f64 {
         libm::sqrt(self.variance())
     }
 
     /// Sample count
+    #[inline(always)]
     pub fn sample_count(&self) -> u64 {
         self.count
     }
@@ -146,6 +151,7 @@ impl MetricSamples {
 
 /// A canary deployment
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CanaryDeployment {
     /// Deployment id
     pub id: u64,
@@ -192,11 +198,13 @@ impl CanaryDeployment {
     }
 
     /// Set threshold for a metric
+    #[inline(always)]
     pub fn set_threshold(&mut self, metric: CanaryMetric, max_degradation_pct: f64) {
         self.thresholds.insert(metric as u8, max_degradation_pct);
     }
 
     /// Start deployment
+    #[inline]
     pub fn start(&mut self, now: u64) {
         self.state = CanaryState::Active;
         self.traffic_pct = self.step_pct.min(self.target_pct);
@@ -204,6 +212,7 @@ impl CanaryDeployment {
     }
 
     /// Record baseline sample
+    #[inline]
     pub fn record_baseline(&mut self, metric: CanaryMetric, value: f64) {
         self.baseline
             .entry(metric as u8)
@@ -212,6 +221,7 @@ impl CanaryDeployment {
     }
 
     /// Record canary sample
+    #[inline]
     pub fn record_canary(&mut self, metric: CanaryMetric, value: f64) {
         self.canary
             .entry(metric as u8)
@@ -282,12 +292,14 @@ impl CanaryDeployment {
     }
 
     /// Rollback
+    #[inline(always)]
     pub fn rollback(&mut self) {
         self.state = CanaryState::RollingBack;
         self.traffic_pct = 0;
     }
 
     /// Complete
+    #[inline(always)]
     pub fn complete(&mut self) {
         self.state = CanaryState::Completed;
     }
@@ -299,6 +311,7 @@ impl CanaryDeployment {
 
 /// Canary stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeCanaryStats {
     /// Active canaries
     pub active_canaries: usize,
@@ -311,6 +324,7 @@ pub struct BridgeCanaryStats {
 }
 
 /// Bridge canary manager
+#[repr(align(64))]
 pub struct BridgeCanaryManager {
     /// Deployments
     deployments: BTreeMap<u64, CanaryDeployment>,
@@ -330,6 +344,7 @@ impl BridgeCanaryManager {
     }
 
     /// Create canary deployment
+    #[inline]
     pub fn create(&mut self, target_pct: u32, step_pct: u32, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -341,6 +356,7 @@ impl BridgeCanaryManager {
     }
 
     /// Start deployment
+    #[inline]
     pub fn start(&mut self, id: u64, now: u64) -> bool {
         if let Some(dep) = self.deployments.get_mut(&id) {
             dep.start(now);
@@ -351,6 +367,7 @@ impl BridgeCanaryManager {
     }
 
     /// Advance deployment
+    #[inline]
     pub fn advance(&mut self, id: u64) -> bool {
         if let Some(dep) = self.deployments.get_mut(&id) {
             dep.advance()
@@ -360,6 +377,7 @@ impl BridgeCanaryManager {
     }
 
     /// Rollback deployment
+    #[inline]
     pub fn rollback(&mut self, id: u64) {
         if let Some(dep) = self.deployments.get_mut(&id) {
             dep.rollback();
@@ -368,6 +386,7 @@ impl BridgeCanaryManager {
     }
 
     /// Get deployment
+    #[inline(always)]
     pub fn deployment(&self, id: u64) -> Option<&CanaryDeployment> {
         self.deployments.get(&id)
     }
@@ -380,6 +399,7 @@ impl BridgeCanaryManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCanaryStats {
         &self.stats
     }

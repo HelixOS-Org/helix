@@ -39,6 +39,7 @@ pub struct AppThreadEntry {
 
 /// Stats for thread operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppThreadStats {
     pub total_created: u64,
     pub active_threads: u64,
@@ -116,6 +117,7 @@ impl AppThreadManager {
         }
     }
 
+    #[inline]
     pub fn cancel(&mut self, tid: u64) -> bool {
         if self.threads.remove(&tid).is_some() {
             self.stats.cancellations += 1;
@@ -126,12 +128,14 @@ impl AppThreadManager {
         }
     }
 
+    #[inline]
     pub fn set_state(&mut self, tid: u64, state: AppThreadState) {
         if let Some(t) = self.threads.get_mut(&tid) {
             t.state = state;
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppThreadStats {
         &self.stats
     }

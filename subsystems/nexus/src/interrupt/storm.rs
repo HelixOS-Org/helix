@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::{CpuId, Irq};
@@ -27,7 +28,7 @@ pub struct StormDetector {
     /// Active storms
     active_storms: BTreeMap<Irq, StormInfo>,
     /// Storm history
-    storm_history: Vec<StormEvent>,
+    storm_history: VecDeque<StormEvent>,
     /// Max history
     max_history: usize,
 }
@@ -80,7 +81,7 @@ impl StormDetector {
             window_ms,
             last_reset: NexusTimestamp::now().raw(),
             active_storms: BTreeMap::new(),
-            storm_history: Vec::new(),
+            storm_history: VecDeque::new(),
             max_history: 1000,
         }
     }
@@ -176,28 +177,32 @@ impl StormDetector {
 
     /// Record event in history
     fn record_event(&mut self, event: StormEvent) {
-        self.storm_history.push(event);
+        self.storm_history.push_back(event);
         if self.storm_history.len() > self.max_history {
-            self.storm_history.remove(0);
+            self.storm_history.pop_front();
         }
     }
 
     /// Is storm active for IRQ?
+    #[inline(always)]
     pub fn is_storm_active(&self, irq: Irq) -> bool {
         self.active_storms.contains_key(&irq)
     }
 
     /// Get storm info
+    #[inline(always)]
     pub fn get_storm(&self, irq: Irq) -> Option<&StormInfo> {
         self.active_storms.get(&irq)
     }
 
     /// Get all active storms
+    #[inline(always)]
     pub fn active_storms(&self) -> impl Iterator<Item = (&Irq, &StormInfo)> {
         self.active_storms.iter()
     }
 
     /// Get storm history
+    #[inline(always)]
     pub fn history(&self) -> &[StormEvent] {
         &self.storm_history
     }

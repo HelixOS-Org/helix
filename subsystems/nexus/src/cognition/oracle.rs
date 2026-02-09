@@ -10,6 +10,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -78,6 +79,7 @@ pub enum OracleValue {
 }
 
 impl OracleValue {
+    #[inline]
     pub fn as_f64(&self) -> Option<f64> {
         match self {
             Self::Float(v) => Some(*v),
@@ -133,7 +135,7 @@ pub struct TimeSeriesPredictor {
     /// Name
     pub name: String,
     /// Historical data
-    history: Vec<(u64, f64)>,
+    history: VecDeque<(u64, f64)>,
     /// Maximum history
     max_history: usize,
     /// Model type
@@ -160,7 +162,7 @@ impl TimeSeriesPredictor {
     pub fn new(name: &str, model: TimeSeriesModel, max_history: usize) -> Self {
         Self {
             name: name.into(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history,
             model,
             coefficients: Vec::new(),
@@ -168,10 +170,11 @@ impl TimeSeriesPredictor {
     }
 
     /// Add observation
+    #[inline]
     pub fn observe(&mut self, timestamp: u64, value: f64) {
-        self.history.push((timestamp, value));
+        self.history.push_back((timestamp, value));
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
         self.update_model();
     }
@@ -208,6 +211,7 @@ impl TimeSeriesPredictor {
     }
 
     /// Predict future value
+    #[inline]
     pub fn predict(&self, steps_ahead: usize) -> Option<(f64, f64)> {
         if self.history.is_empty() {
             return None;
@@ -247,10 +251,10 @@ impl TimeSeriesPredictor {
             TimeSeriesModel::Arima => {
                 // Simplified ARIMA: use last value plus trend
                 if self.history.len() < 2 {
-                    return Some((self.history.last()?.1, 0.5));
+                    return Some((self.history.back()?.1, 0.5));
                 }
-                let trend = self.history.last()?.1 - self.history[self.history.len() - 2].1;
-                let value = self.history.last()?.1 + trend * steps_ahead as f64;
+                let trend = self.history.back()?.1 - self.history[self.history.len() - 2].1;
+                let value = self.history.back()?.1 + trend * steps_ahead as f64;
                 (value, 0.6)
             },
         };
@@ -286,7 +290,7 @@ pub struct OracleEngine {
     /// Classification models
     classifiers: BTreeMap<String, Classifier>,
     /// Query history
-    query_history: Vec<(OracleQuery, OracleResponse)>,
+    query_history: VecDeque<(OracleQuery, OracleResponse)>,
     /// Next query ID
     next_query_id: AtomicU64,
     /// Configuration
@@ -407,6 +411,7 @@ impl Default for OracleConfig {
 
 /// Oracle statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OracleStats {
     /// Total queries
     pub total_queries: u64,
@@ -426,7 +431,7 @@ impl OracleEngine {
         Self {
             predictors: BTreeMap::new(),
             classifiers: BTreeMap::new(),
-            query_history: Vec::new(),
+            query_history: VecDeque::new(),
             next_query_id: AtomicU64::new(1),
             config,
             stats: OracleStats::default(),
@@ -434,18 +439,21 @@ impl OracleEngine {
     }
 
     /// Create predictor
+    #[inline(always)]
     pub fn create_predictor(&mut self, name: &str, model: TimeSeriesModel) {
         let predictor = TimeSeriesPredictor::new(name, model, self.config.max_history);
         self.predictors.insert(name.into(), predictor);
     }
 
     /// Create classifier
+    #[inline(always)]
     pub fn create_classifier(&mut self, name: &str, classes: Vec<String>) {
         let classifier = Classifier::new(name, classes);
         self.classifiers.insert(name.into(), classifier);
     }
 
     /// Record observation
+    #[inline]
     pub fn observe(&mut self, predictor_name: &str, timestamp: u64, value: f64) {
         if let Some(predictor) = self.predictors.get_mut(predictor_name) {
             predictor.observe(timestamp, value);
@@ -453,6 +461,7 @@ impl OracleEngine {
     }
 
     /// Train classifier
+    #[inline]
     pub fn train_classifier(&mut self, classifier_name: &str, class: &str, features: &[f64]) {
         if let Some(classifier) = self.classifiers.get_mut(classifier_name) {
             classifier.train(class, features);
@@ -501,9 +510,9 @@ impl OracleEngine {
 
         // Store in history
         if self.query_history.len() >= self.config.max_history {
-            self.query_history.remove(0);
+            self.query_history.pop_front();
         }
-        self.query_history.push((query, response.clone()));
+        self.query_history.push_back((query, response.clone()));
 
         response
     }
@@ -684,6 +693,7 @@ impl OracleEngine {
     }
 
     /// Create a query
+    #[inline]
     pub fn create_query(
         &self,
         query_type: QueryType,
@@ -702,16 +712,19 @@ impl OracleEngine {
     }
 
     /// Get predictor
+    #[inline(always)]
     pub fn get_predictor(&self, name: &str) -> Option<&TimeSeriesPredictor> {
         self.predictors.get(name)
     }
 
     /// Get classifier
+    #[inline(always)]
     pub fn get_classifier(&self, name: &str) -> Option<&Classifier> {
         self.classifiers.get(name)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &OracleStats {
         &self.stats
     }

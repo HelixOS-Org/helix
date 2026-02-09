@@ -18,6 +18,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -59,6 +60,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f32, sample: f32) -> f32 {
     EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * current
 }
@@ -136,7 +138,7 @@ pub enum RippleDirection {
 #[derive(Debug, Clone)]
 pub struct GlobalRegret {
     pub total_regret: f32,
-    pub domain_regret: BTreeMap<u64, f32>,
+    pub domain_regret: LinearMap<f32, 64>,
     pub worst_decision_id: u64,
     pub worst_regret: f32,
     pub regret_trend: f32,
@@ -166,6 +168,7 @@ pub struct OptimalDecision {
 
 /// Counterfactual cascade: full system ripple from one change
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualCascade {
     pub trigger_decision_id: u64,
     pub ripple_effects: Vec<RippleEffect>,
@@ -185,7 +188,7 @@ pub struct DecisionQualityReport {
     pub quality_trend: f32,
     pub best_domain: DecisionDomain,
     pub worst_domain: DecisionDomain,
-    pub domain_scores: BTreeMap<u64, f32>,
+    pub domain_scores: LinearMap<f32, 64>,
 }
 
 /// An alternative timeline reconstruction
@@ -194,7 +197,7 @@ pub struct AlternativeTimeline {
     pub timeline_id: u64,
     pub divergence_point_us: u64,
     pub changed_decisions: Vec<u64>,
-    pub projected_outcomes: BTreeMap<u64, f32>,
+    pub projected_outcomes: LinearMap<f32, 64>,
     pub overall_quality: f32,
     pub description: String,
 }
@@ -205,6 +208,7 @@ pub struct AlternativeTimeline {
 
 /// Runtime statistics for the counterfactual engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualStats {
     pub what_if_queries: u64,
     pub regret_computations: u64,
@@ -240,6 +244,7 @@ impl CounterfactualStats {
 // ============================================================================
 
 /// System-wide counterfactual reasoning engine
+#[repr(align(64))]
 pub struct HolisticCounterfactual {
     decisions: BTreeMap<u64, SystemDecision>,
     decision_order: Vec<u64>,
@@ -370,7 +375,7 @@ impl HolisticCounterfactual {
     pub fn global_regret(&mut self, window_us: u64) -> GlobalRegret {
         self.stats.regret_computations += 1;
         let mut total_regret = 0.0_f32;
-        let mut domain_regret: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut domain_regret: LinearMap<f32, 64> = BTreeMap::new();
         let mut worst_id = 0_u64;
         let mut worst_regret = 0.0_f32;
         let mut count = 0_usize;
@@ -517,8 +522,8 @@ impl HolisticCounterfactual {
         window_end_us: u64,
     ) -> DecisionQualityReport {
         self.stats.quality_reports += 1;
-        let mut domain_scores: BTreeMap<u64, f32> = BTreeMap::new();
-        let mut domain_counts: BTreeMap<u64, u64> = BTreeMap::new();
+        let mut domain_scores: LinearMap<f32, 64> = BTreeMap::new();
+        let mut domain_counts: LinearMap<u64, 64> = BTreeMap::new();
         let mut total_quality = 0.0_f32;
         let mut count = 0_usize;
 
@@ -564,7 +569,7 @@ impl HolisticCounterfactual {
         let tid = self.next_timeline_id;
         self.next_timeline_id += 1;
 
-        let mut projected: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut projected: LinearMap<f32, 64> = BTreeMap::new();
         let mut overall = 0.0_f32;
         let mut proj_count = 0_usize;
 
@@ -595,6 +600,7 @@ impl HolisticCounterfactual {
     }
 
     /// Get current statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CounterfactualStats {
         &self.stats
     }

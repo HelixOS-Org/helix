@@ -30,6 +30,7 @@ impl SigwaitRecord {
 
 /// Sigwait app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SigwaitAppStats { pub total_ops: u64, pub received: u64, pub timeouts: u64 }
 
 /// Main app sigwait
@@ -38,6 +39,7 @@ pub struct AppSigwait { pub stats: SigwaitAppStats }
 
 impl AppSigwait {
     pub fn new() -> Self { Self { stats: SigwaitAppStats { total_ops: 0, received: 0, timeouts: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SigwaitRecord) {
         self.stats.total_ops += 1;
         match rec.result {

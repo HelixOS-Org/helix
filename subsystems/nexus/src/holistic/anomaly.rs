@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -56,7 +57,7 @@ pub enum HolisticAnomalySeverity {
 #[derive(Debug)]
 pub struct DriftDetector {
     /// Window of values
-    window: Vec<f64>,
+    window: VecDeque<f64>,
     /// Max window size
     max_window: usize,
     /// Detection threshold (confidence)
@@ -74,7 +75,7 @@ pub struct DriftDetector {
 impl DriftDetector {
     pub fn new(max_window: usize, threshold: f64) -> Self {
         Self {
-            window: Vec::new(),
+            window: VecDeque::new(),
             max_window,
             threshold,
             drift_detected: false,
@@ -87,9 +88,9 @@ impl DriftDetector {
     /// Add value and check for drift
     pub fn add(&mut self, value: f64) -> bool {
         if self.window.len() >= self.max_window {
-            self.window.remove(0);
+            self.window.pop_front();
         }
-        self.window.push(value);
+        self.window.push_back(value);
         self.count += 1;
 
         // Update running stats
@@ -127,6 +128,7 @@ impl DriftDetector {
     }
 
     /// Reset
+    #[inline]
     pub fn reset(&mut self) {
         self.window.clear();
         self.drift_detected = false;
@@ -168,13 +170,14 @@ pub struct HolisticAnomaly {
 
 /// Per-metric anomaly tracker
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct MetricAnomalyTracker {
     /// Metric hash
     pub metric_hash: u64,
     /// Drift detector
     pub drift: DriftDetector,
     /// Recent values
-    values: Vec<f64>,
+    values: VecDeque<f64>,
     /// Max values
     max_values: usize,
     /// Mean
@@ -192,7 +195,7 @@ impl MetricAnomalyTracker {
         Self {
             metric_hash,
             drift: DriftDetector::new(128, 3.0),
-            values: Vec::new(),
+            values: VecDeque::new(),
             max_values: 256,
             mean: 0.0,
             stddev: 0.0,
@@ -205,9 +208,9 @@ impl MetricAnomalyTracker {
     pub fn add(&mut self, value: f64, now: u64) -> Option<HolisticAnomaly> {
         // Update stats
         if self.values.len() >= self.max_values {
-            self.values.remove(0);
+            self.values.pop_front();
         }
-        self.values.push(value);
+        self.values.push_back(value);
         self.recompute_stats();
 
         // Check drift
@@ -274,6 +277,7 @@ impl MetricAnomalyTracker {
 
 /// Anomaly V2 stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticAnomalyV2Stats {
     /// Tracked metrics
     pub tracked_metrics: usize,
@@ -290,7 +294,7 @@ pub struct HolisticAnomalyV2 {
     /// Per-metric trackers
     trackers: BTreeMap<u64, MetricAnomalyTracker>,
     /// Recent anomalies
-    recent: Vec<HolisticAnomaly>,
+    recent: VecDeque<HolisticAnomaly>,
     /// Stats
     stats: HolisticAnomalyV2Stats,
 }
@@ -299,7 +303,7 @@ impl HolisticAnomalyV2 {
     pub fn new() -> Self {
         Self {
             trackers: BTreeMap::new(),
-            recent: Vec::new(),
+            recent: VecDeque::new(),
             stats: HolisticAnomalyV2Stats::default(),
         }
     }
@@ -323,9 +327,9 @@ impl HolisticAnomalyV2 {
         let anomaly = tracker.add(value, now);
         if let Some(ref a) = anomaly {
             if self.recent.len() >= 512 {
-                self.recent.remove(0);
+                self.recent.pop_front();
             }
-            self.recent.push(a.clone());
+            self.recent.push_back(a.clone());
             self.stats.total_anomalies += 1;
         }
         self.update_stats();
@@ -333,6 +337,7 @@ impl HolisticAnomalyV2 {
     }
 
     /// Set threshold for metric
+    #[inline]
     pub fn set_threshold(&mut self, metric_name: &str, z_threshold: f64) {
         let hash = Self::hash_metric(metric_name);
         if let Some(tracker) = self.trackers.get_mut(&hash) {
@@ -349,6 +354,7 @@ impl HolisticAnomalyV2 {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticAnomalyV2Stats {
         &self.stats
     }

@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -110,6 +111,7 @@ impl CoopSnapshot {
     }
 
     /// Add entry
+    #[inline]
     pub fn add_entry(&mut self, entry: SnapshotEntry) {
         self.total_size += entry.size;
         if entry.is_dirty {
@@ -119,6 +121,7 @@ impl CoopSnapshot {
     }
 
     /// Finalize snapshot
+    #[inline(always)]
     pub fn finalize(&mut self) {
         self.checksum = self.compute_checksum();
         self.state = SnapshotState::Complete;
@@ -134,11 +137,13 @@ impl CoopSnapshot {
     }
 
     /// Entry count
+    #[inline(always)]
     pub fn entry_count(&self) -> usize {
         self.entries.len()
     }
 
     /// Dirty ratio
+    #[inline]
     pub fn dirty_ratio(&self) -> f64 {
         if self.total_size == 0 {
             return 0.0;
@@ -147,6 +152,7 @@ impl CoopSnapshot {
     }
 
     /// Entries
+    #[inline(always)]
     pub fn entries(&self) -> &[SnapshotEntry] {
         &self.entries
     }
@@ -253,7 +259,7 @@ pub struct CoordinatedSnapshot {
     /// Participant pids
     pub participants: Vec<u64>,
     /// Per-participant snapshot ids
-    pub snapshots: BTreeMap<u64, u64>,
+    pub snapshots: LinearMap<u64, 64>,
     /// All participants completed?
     pub is_complete: bool,
     /// Timestamp
@@ -267,7 +273,7 @@ impl CoordinatedSnapshot {
         Self {
             id,
             participants,
-            snapshots: BTreeMap::new(),
+            snapshots: LinearMap::new(),
             is_complete: false,
             timestamp: now,
             barrier_count: 0,
@@ -275,6 +281,7 @@ impl CoordinatedSnapshot {
     }
 
     /// Register participant snapshot
+    #[inline]
     pub fn register_snapshot(&mut self, pid: u64, snapshot_id: u64) {
         self.snapshots.insert(pid, snapshot_id);
         self.barrier_count = self.snapshots.len();
@@ -284,6 +291,7 @@ impl CoordinatedSnapshot {
     }
 
     /// Progress ratio
+    #[inline]
     pub fn progress(&self) -> f64 {
         if self.participants.is_empty() {
             return 1.0;
@@ -298,6 +306,7 @@ impl CoordinatedSnapshot {
 
 /// Snapshot stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopSnapshotStats {
     /// Total snapshots
     pub total_snapshots: u64,
@@ -325,7 +334,7 @@ pub struct CoopSnapshotManager {
 impl CoopSnapshotManager {
     pub fn new() -> Self {
         Self {
-            snapshots: BTreeMap::new(),
+            snapshots: LinearMap::new(),
             coordinated: BTreeMap::new(),
             next_snap_id: 1,
             next_coord_id: 1,
@@ -334,6 +343,7 @@ impl CoopSnapshotManager {
     }
 
     /// Create snapshot
+    #[inline]
     pub fn create(&mut self, owner: u64, now: u64) -> u64 {
         let id = self.next_snap_id;
         self.next_snap_id += 1;
@@ -346,6 +356,7 @@ impl CoopSnapshotManager {
     }
 
     /// Add entry to snapshot
+    #[inline]
     pub fn add_entry(&mut self, snap_id: u64, entry: SnapshotEntry) -> bool {
         if let Some(snap) = self.snapshots.get_mut(&snap_id) {
             snap.add_entry(entry);
@@ -357,6 +368,7 @@ impl CoopSnapshotManager {
     }
 
     /// Finalize snapshot
+    #[inline]
     pub fn finalize(&mut self, snap_id: u64) -> bool {
         if let Some(snap) = self.snapshots.get_mut(&snap_id) {
             snap.finalize();
@@ -367,6 +379,7 @@ impl CoopSnapshotManager {
     }
 
     /// Delete snapshot
+    #[inline]
     pub fn delete(&mut self, snap_id: u64) -> bool {
         if let Some(snap) = self.snapshots.get_mut(&snap_id) {
             snap.state = SnapshotState::Deleted;
@@ -378,6 +391,7 @@ impl CoopSnapshotManager {
     }
 
     /// Create coordinated snapshot
+    #[inline]
     pub fn create_coordinated(&mut self, participants: Vec<u64>, now: u64) -> u64 {
         let id = self.next_coord_id;
         self.next_coord_id += 1;
@@ -388,6 +402,7 @@ impl CoopSnapshotManager {
     }
 
     /// Register participant in coordinated snapshot
+    #[inline]
     pub fn register_participant(&mut self, coord_id: u64, pid: u64, snap_id: u64) -> bool {
         if let Some(coord) = self.coordinated.get_mut(&coord_id) {
             coord.register_snapshot(pid, snap_id);
@@ -398,8 +413,9 @@ impl CoopSnapshotManager {
     }
 
     /// Get snapshot
+    #[inline(always)]
     pub fn snapshot(&self, id: u64) -> Option<&CoopSnapshot> {
-        self.snapshots.get(&id)
+        self.snapshots.get(id)
     }
 
     fn update_stats(&mut self) {
@@ -418,6 +434,7 @@ impl CoopSnapshotManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopSnapshotStats {
         &self.stats
     }

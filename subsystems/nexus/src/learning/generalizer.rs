@@ -117,16 +117,19 @@ impl LearnedRule {
     }
 
     /// Add condition
+    #[inline(always)]
     pub fn add_condition(&mut self, condition: RuleCondition) {
         self.conditions.push(condition);
     }
 
     /// Set action
+    #[inline(always)]
     pub fn set_action(&mut self, action: String) {
         self.action = action;
     }
 
     /// Evaluate against context
+    #[inline]
     pub fn evaluate(&self, context: &BTreeMap<String, String>) -> bool {
         self.conditions.iter().all(|cond| {
             context
@@ -151,6 +154,7 @@ impl LearnedRule {
     }
 
     /// Is reliable
+    #[inline(always)]
     pub fn is_reliable(&self) -> bool {
         self.confidence >= 0.7 && self.validation_count >= 10
     }
@@ -186,6 +190,7 @@ impl Generalizer {
     }
 
     /// Set strategy
+    #[inline(always)]
     pub fn set_strategy(&mut self, strategy: GeneralizationStrategy) {
         self.strategy = strategy;
     }
@@ -282,16 +287,19 @@ impl Generalizer {
     }
 
     /// Get rule
+    #[inline(always)]
     pub fn get(&self, id: RuleId) -> Option<&LearnedRule> {
         self.rules.get(&id)
     }
 
     /// Get rule mutably
+    #[inline(always)]
     pub fn get_mut(&mut self, id: RuleId) -> Option<&mut LearnedRule> {
         self.rules.get_mut(&id)
     }
 
     /// Find matching rules
+    #[inline]
     pub fn find_matching(&self, context: &BTreeMap<String, String>) -> Vec<&LearnedRule> {
         self.rules
             .values()
@@ -300,11 +308,13 @@ impl Generalizer {
     }
 
     /// Find reliable rules
+    #[inline(always)]
     pub fn find_reliable(&self) -> Vec<&LearnedRule> {
         self.rules.values().filter(|r| r.is_reliable()).collect()
     }
 
     /// Rule count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.rules.len()
     }

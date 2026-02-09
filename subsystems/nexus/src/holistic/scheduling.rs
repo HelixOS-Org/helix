@@ -71,6 +71,7 @@ pub enum PlacementReason {
 
 /// CPU state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuState {
     /// CPU id
     pub id: u32,
@@ -111,6 +112,7 @@ impl CpuState {
     }
 
     /// Capacity (inverse of load)
+    #[inline(always)]
     pub fn capacity(&self) -> f64 {
         1.0 - self.load
     }
@@ -152,6 +154,7 @@ impl SchedTask {
     }
 
     /// Can migrate now?
+    #[inline(always)]
     pub fn can_migrate(&self, now: u64) -> bool {
         now.saturating_sub(self.last_migration) >= self.migration_cooldown_ns
     }
@@ -236,6 +239,7 @@ impl HolisticLoadBalancer {
     }
 
     /// Should balance now?
+    #[inline(always)]
     pub fn should_balance(&self, now: u64) -> bool {
         now.saturating_sub(self.last_balance) >= self.interval_ns
     }
@@ -247,6 +251,7 @@ impl HolisticLoadBalancer {
 
 /// Scheduling stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticSchedulingStats {
     /// Total CPUs
     pub total_cpus: usize,
@@ -285,18 +290,21 @@ impl HolisticSchedulingEngine {
     }
 
     /// Register CPU
+    #[inline(always)]
     pub fn add_cpu(&mut self, cpu: CpuState) {
         self.cpus.insert(cpu.id, cpu);
         self.update_stats();
     }
 
     /// Add task
+    #[inline(always)]
     pub fn add_task(&mut self, task: SchedTask) {
         self.tasks.insert(task.id, task);
         self.update_stats();
     }
 
     /// Remove task
+    #[inline]
     pub fn remove_task(&mut self, task_id: u64) {
         if let Some(task) = self.tasks.remove(&task_id) {
             if let Some(cpu_id) = task.current_cpu {
@@ -397,6 +405,7 @@ impl HolisticSchedulingEngine {
     }
 
     /// Update CPU load
+    #[inline]
     pub fn update_cpu_load(&mut self, cpu_id: u32, load: f64) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.load = load;
@@ -421,6 +430,7 @@ impl HolisticSchedulingEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticSchedulingStats {
         &self.stats
     }

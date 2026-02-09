@@ -150,6 +150,7 @@ impl SimProcess {
         }
     }
 
+    #[inline]
     fn step(&mut self, rng: &mut u64) -> TrajectoryPoint {
         if self.phase_ticks_remaining == 0 {
             self.phase = self.phase.next();
@@ -217,6 +218,7 @@ pub struct InteractionSimResult {
 
 /// Aggregate simulation statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SimulatorStats {
     pub total_simulations: u64,
     pub total_steps_computed: u64,
@@ -262,6 +264,7 @@ impl AppsSimulator {
     }
 
     /// Register a process for simulation
+    #[inline]
     pub fn register_process(
         &mut self,
         process_id: u64,
@@ -278,6 +281,7 @@ impl AppsSimulator {
     }
 
     /// Simulate the future of a specific app for `num_steps` steps
+    #[inline]
     pub fn simulate_app_future(&mut self, process_id: u64, num_steps: usize) -> SimulationResult {
         self.total_simulations += 1;
         let steps = num_steps.min(MAX_SIM_STEPS);
@@ -367,6 +371,7 @@ impl AppsSimulator {
     }
 
     /// Generate the resource trajectory for a process
+    #[inline(always)]
     pub fn resource_trajectory(
         &mut self,
         process_id: u64,
@@ -457,11 +462,13 @@ impl AppsSimulator {
     }
 
     /// Get the current fidelity estimate for the simulator
+    #[inline(always)]
     pub fn simulation_fidelity(&self) -> f32 {
         self.fidelity_ema
     }
 
     /// Update fidelity from actual observation
+    #[inline]
     pub fn update_fidelity(&mut self, predicted: f32, actual: f32) {
         let error = (predicted - actual).abs() / (actual.abs() + 1.0);
         let fidelity = (1.0 - error).max(0.0);
@@ -469,6 +476,7 @@ impl AppsSimulator {
     }
 
     /// Remove a process model
+    #[inline(always)]
     pub fn deregister_process(&mut self, process_id: u64) {
         self.models.remove(&process_id);
     }

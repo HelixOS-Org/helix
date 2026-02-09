@@ -50,6 +50,7 @@ pub struct FilterPredicate {
 
 impl FilterPredicate {
     /// Create new numeric predicate
+    #[inline]
     pub fn numeric(
         field_name: String,
         field_offset: usize,
@@ -68,6 +69,7 @@ impl FilterPredicate {
     }
 
     /// Create string predicate
+    #[inline]
     pub fn string(
         field_name: String,
         field_offset: usize,
@@ -132,6 +134,7 @@ pub enum FilterExpr {
 
 impl FilterExpr {
     /// Evaluate filter expression
+    #[inline]
     pub fn evaluate(&self, event: &EventData) -> bool {
         match self {
             Self::Predicate(pred) => pred.evaluate(event),
@@ -144,16 +147,19 @@ impl FilterExpr {
     }
 
     /// Create AND expression
+    #[inline(always)]
     pub fn and(self, other: FilterExpr) -> Self {
         Self::And(Box::new(self), Box::new(other))
     }
 
     /// Create OR expression
+    #[inline(always)]
     pub fn or(self, other: FilterExpr) -> Self {
         Self::Or(Box::new(self), Box::new(other))
     }
 
     /// Create NOT expression
+    #[inline(always)]
     pub fn not(self) -> Self {
         Self::Not(Box::new(self))
     }
@@ -205,6 +211,7 @@ impl EventFilter {
     }
 
     /// Get pass rate
+    #[inline]
     pub fn pass_rate(&self) -> f32 {
         let passed = self.events_passed.load(Ordering::Relaxed);
         let filtered = self.events_filtered.load(Ordering::Relaxed);
@@ -217,21 +224,25 @@ impl EventFilter {
     }
 
     /// Get events passed
+    #[inline(always)]
     pub fn events_passed(&self) -> u64 {
         self.events_passed.load(Ordering::Relaxed)
     }
 
     /// Get events filtered
+    #[inline(always)]
     pub fn events_filtered(&self) -> u64 {
         self.events_filtered.load(Ordering::Relaxed)
     }
 
     /// Enable filter
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.enabled = true;
     }
 
     /// Disable filter
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.enabled = false;
     }

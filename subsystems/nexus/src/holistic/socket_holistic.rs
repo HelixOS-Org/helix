@@ -24,6 +24,7 @@ impl SocketHolisticRecord {
 
 /// Socket holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketHolisticStats { pub total_samples: u64, pub active: u32, pub leaked: u64, pub state_counts: BTreeMap<u8, u64> }
 
 /// Main holistic socket
@@ -32,6 +33,7 @@ pub struct HolisticSocket { pub stats: SocketHolisticStats }
 
 impl HolisticSocket {
     pub fn new() -> Self { Self { stats: SocketHolisticStats { total_samples: 0, active: 0, leaked: 0, state_counts: BTreeMap::new() } } }
+    #[inline]
     pub fn record(&mut self, rec: &SocketHolisticRecord) {
         self.stats.total_samples += 1;
         let key = rec.lifecycle as u8;

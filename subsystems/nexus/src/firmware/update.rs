@@ -97,6 +97,7 @@ impl FirmwareUpdateManager {
     }
 
     /// Queue update
+    #[inline]
     pub fn queue_update(&mut self, component: String, current: String, target: String) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let update = FirmwareUpdate::new(id, component, current, target);
@@ -105,6 +106,7 @@ impl FirmwareUpdateManager {
     }
 
     /// Get update by ID
+    #[inline]
     pub fn get_update(&self, id: u64) -> Option<&FirmwareUpdate> {
         self.pending_updates.iter().find(|u| u.id == id)
             .or_else(|| self.completed_updates.iter().find(|u| u.id == id))
@@ -112,6 +114,7 @@ impl FirmwareUpdateManager {
     }
 
     /// Get pending updates
+    #[inline(always)]
     pub fn pending_updates(&self) -> &[FirmwareUpdate] {
         &self.pending_updates
     }
@@ -132,6 +135,7 @@ impl FirmwareUpdateManager {
     }
 
     /// Update progress
+    #[inline]
     pub fn update_progress(&mut self, id: u64, progress: u8, state: UpdateState) {
         if let Some(update) = self.pending_updates.iter_mut().find(|u| u.id == id) {
             update.progress = progress.min(100);
@@ -140,6 +144,7 @@ impl FirmwareUpdateManager {
     }
 
     /// Complete update
+    #[inline]
     pub fn complete_update(&mut self, id: u64) {
         if let Some(idx) = self.pending_updates.iter().position(|u| u.id == id) {
             let mut update = self.pending_updates.remove(idx);
@@ -153,6 +158,7 @@ impl FirmwareUpdateManager {
     }
 
     /// Fail update
+    #[inline]
     pub fn fail_update(&mut self, id: u64, error: String) {
         if let Some(idx) = self.pending_updates.iter().position(|u| u.id == id) {
             let mut update = self.pending_updates.remove(idx);
@@ -166,16 +172,19 @@ impl FirmwareUpdateManager {
     }
 
     /// Enable/disable updates
+    #[inline(always)]
     pub fn set_updates_allowed(&mut self, allowed: bool) {
         self.updates_allowed = allowed;
     }
 
     /// Check if updates allowed
+    #[inline(always)]
     pub fn updates_allowed(&self) -> bool {
         self.updates_allowed
     }
 
     /// Get active update ID
+    #[inline(always)]
     pub fn active_update(&self) -> Option<u64> {
         self.active_update
     }

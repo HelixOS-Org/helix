@@ -62,6 +62,7 @@ impl WorkloadType {
 
 /// Task behavioral features for classification
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TaskFeatures {
     /// Average CPU usage (0.0-1.0)
     pub avg_cpu_usage: f64,

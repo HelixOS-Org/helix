@@ -49,13 +49,17 @@ impl SharedPathEntry {
         Self { path_hash: h, inode, hits: 0, shared_by: 1, state: CoopVfsState::Cached }
     }
 
+    #[inline(always)]
     pub fn share(&mut self) { self.shared_by += 1; }
+    #[inline(always)]
     pub fn hit(&mut self) { self.hits += 1; }
+    #[inline(always)]
     pub fn unshare(&mut self) { if self.shared_by > 0 { self.shared_by -= 1; } }
 }
 
 /// Coop VFS stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopVfsStats {
     pub total_ops: u64,
     pub cache_hits: u64,
@@ -90,11 +94,13 @@ impl CoopVfs {
         }
     }
 
+    #[inline(always)]
     pub fn insert(&mut self, path: &[u8], inode: u64) {
         let entry = SharedPathEntry::new(path, inode);
         self.cache.insert(entry.path_hash, entry);
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         let total = self.stats.cache_hits + self.stats.cache_misses;
         if total == 0 { 0.0 } else { self.stats.cache_hits as f64 / total as f64 }
@@ -142,6 +148,7 @@ pub enum CoopVfsV2State {
 
 /// Stats for VFS cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopVfsV2Stats {
     pub total_ops: u64,
     pub conflicts_resolved: u64,
@@ -191,6 +198,7 @@ impl CoopVfsV2Manager {
         id
     }
 
+    #[inline]
     pub fn resolve_conflict(&mut self, op_id: u64) -> bool {
         if let Some(state) = self.state_map.get_mut(&op_id) {
             if *state == CoopVfsV2State::Conflicted {
@@ -202,6 +210,7 @@ impl CoopVfsV2Manager {
         false
     }
 
+    #[inline]
     pub fn complete_op(&mut self, op_id: u64) -> bool {
         if self.pending_ops.remove(&op_id).is_some() {
             self.state_map.insert(op_id, CoopVfsV2State::Completed);
@@ -211,6 +220,7 @@ impl CoopVfsV2Manager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopVfsV2Stats {
         &self.stats
     }

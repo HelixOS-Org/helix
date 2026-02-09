@@ -23,6 +23,7 @@ use crate::types::Timestamp;
 
 /// Context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Context {
     /// Context ID
     pub id: u64,
@@ -58,6 +59,7 @@ pub enum ContextType {
 
 /// Context value
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ContextValue {
     /// Value ID
     pub id: u64,
@@ -145,6 +147,7 @@ pub enum ConstraintType {
 
 /// Context query
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ContextQuery {
     /// Variable name
     pub variable: Option<String>,
@@ -168,6 +171,7 @@ pub struct QueryResult {
 // ============================================================================
 
 /// Context manager
+#[repr(align(64))]
 pub struct ContextManager {
     /// Contexts
     contexts: BTreeMap<u64, Context>,
@@ -185,6 +189,7 @@ pub struct ContextManager {
 
 /// Configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ContextConfig {
     /// Maximum nesting
     pub max_nesting: usize,
@@ -203,6 +208,7 @@ impl Default for ContextConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ContextStats {
     /// Contexts created
     pub contexts_created: u64,
@@ -274,6 +280,7 @@ impl ContextManager {
     }
 
     /// Exit context
+    #[inline]
     pub fn exit(&mut self) -> Option<u64> {
         if self.context_stack.len() <= 1 {
             return None;
@@ -314,6 +321,7 @@ impl ContextManager {
     }
 
     /// Set variable value
+    #[inline]
     pub fn set_value(&mut self, name: &str, value: ValueData) {
         if let Some(context) = self.contexts.get_mut(&self.active_context) {
             if let Some(var) = context.variables.get_mut(name) {
@@ -432,21 +440,25 @@ impl ContextManager {
     }
 
     /// Get context
+    #[inline(always)]
     pub fn get_context(&self, id: u64) -> Option<&Context> {
         self.contexts.get(&id)
     }
 
     /// Get active context
+    #[inline(always)]
     pub fn active(&self) -> &Context {
         self.contexts.get(&self.active_context).unwrap()
     }
 
     /// Get nesting depth
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.context_stack.len()
     }
 
     /// Get context path
+    #[inline]
     pub fn path(&self) -> Vec<String> {
         self.context_stack.iter()
             .filter_map(|id| self.contexts.get(id))
@@ -472,6 +484,7 @@ impl ContextManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ContextStats {
         &self.stats
     }

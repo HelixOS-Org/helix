@@ -90,6 +90,7 @@ pub struct NfMatch {
 }
 
 impl NfMatch {
+    #[inline(always)]
     pub fn check(&self, packet_val: u64) -> bool {
         let result = (packet_val & self.mask) == (self.value & self.mask);
         if self.negate { !result } else { result }
@@ -163,11 +164,13 @@ impl NfChain {
         }
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: NfRule) {
         self.rules.push(rule);
         self.rules.sort_by_key(|r| r.priority);
     }
 
+    #[inline]
     pub fn evaluate_packet(&mut self, fields: &[(NfMatchType, u64)], pkt_bytes: u64) -> NfVerdict {
         for rule in &mut self.rules {
             if let Some(verdict) = rule.evaluate(fields) {
@@ -221,6 +224,7 @@ impl ConntrackEntry {
         }
     }
 
+    #[inline]
     pub fn update_orig(&mut self, bytes: u64) {
         self.packets_orig += 1;
         self.bytes_orig += bytes;
@@ -229,6 +233,7 @@ impl ConntrackEntry {
         }
     }
 
+    #[inline]
     pub fn update_reply(&mut self, bytes: u64) {
         self.packets_reply += 1;
         self.bytes_reply += bytes;
@@ -237,6 +242,7 @@ impl ConntrackEntry {
         }
     }
 
+    #[inline]
     pub fn flow_hash(&self) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
         for b in self.src_ip.to_le_bytes() { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
@@ -250,6 +256,7 @@ impl ConntrackEntry {
 
 /// Netfilter stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetfilterStats {
     pub total_rules: u64,
     pub total_chains: u64,
@@ -289,6 +296,7 @@ impl HolisticNetfilter {
         }
     }
 
+    #[inline]
     pub fn create_chain(&mut self, hook: NfHook, table_type: NfTableType) -> u32 {
         let id = self.next_chain_id;
         self.next_chain_id += 1;
@@ -297,6 +305,7 @@ impl HolisticNetfilter {
         id
     }
 
+    #[inline]
     pub fn add_rule_to_chain(&mut self, chain_id: u32, rule: NfRule) -> bool {
         if let Some(chain) = self.chains.get_mut(&chain_id) {
             chain.add_rule(rule);
@@ -328,6 +337,7 @@ impl HolisticNetfilter {
         NfVerdict::Accept
     }
 
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.stats.packets_accepted + self.stats.packets_dropped;
         if total == 0 {

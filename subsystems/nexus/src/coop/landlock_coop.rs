@@ -32,6 +32,7 @@ impl LandlockCoopRecord {
 
 /// Landlock coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LandlockCoopStats {
     pub total_events: u64,
     pub stacks: u64,
@@ -50,6 +51,7 @@ impl CoopLandlock {
         Self { stats: LandlockCoopStats { total_events: 0, stacks: 0, inherits: 0, narrows: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &LandlockCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

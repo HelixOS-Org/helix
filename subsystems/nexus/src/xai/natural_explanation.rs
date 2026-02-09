@@ -55,6 +55,7 @@ pub enum Audience {
 
 /// Explanation context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExplanationContext {
     /// Decision being explained
     pub decision_type: DecisionType,
@@ -143,6 +144,7 @@ impl Factor {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: String) -> Self {
         self.description = desc;
         self
@@ -202,26 +204,31 @@ impl DecisionData {
     }
 
     /// Add a factor
+    #[inline(always)]
     pub fn add_factor(&mut self, factor: Factor) {
         self.factors.push(factor);
     }
 
     /// Add an alternative
+    #[inline(always)]
     pub fn add_alternative(&mut self, alt: Alternative) {
         self.alternatives.push(alt);
     }
 
     /// Add causal step
+    #[inline(always)]
     pub fn add_causal_step(&mut self, step: CausalStep) {
         self.causal_steps.push(step);
     }
 
     /// Get primary factors
+    #[inline(always)]
     pub fn primary_factors(&self) -> Vec<&Factor> {
         self.factors.iter().filter(|f| f.primary).collect()
     }
 
     /// Get top N factors by contribution
+    #[inline]
     pub fn top_factors(&self, n: usize) -> Vec<&Factor> {
         let mut sorted: Vec<&Factor> = self.factors.iter().collect();
         sorted.sort_by(|a, b| {
@@ -293,6 +300,7 @@ impl ExplanationTemplate {
     }
 
     /// Get pattern for detail level
+    #[inline(always)]
     pub fn get_pattern(&self, level: DetailLevel) -> Option<&String> {
         self.patterns.get(&level)
     }
@@ -321,6 +329,7 @@ impl ExplanationTemplate {
     }
 
     /// Get causal connector
+    #[inline]
     pub fn causal_connector(&self, index: usize) -> &str {
         self.phrases
             .causal_connectors

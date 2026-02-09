@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -96,6 +97,7 @@ pub struct RecalibrationResult {
 
 /// Rolling statistics for the validator.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     pub trust_validations: u64,
     pub contention_validations: u64,
@@ -136,7 +138,7 @@ struct CalibrationState {
     model_hash: u64,
     bias: i64,
     scale_factor: u64,
-    error_history: Vec<u64>,
+    error_history: VecDeque<u64>,
     overestimates: u64,
     underestimates: u64,
     last_calibration_tick: u64,
@@ -146,7 +148,7 @@ struct CalibrationState {
 #[derive(Clone, Debug)]
 struct DriftTracker {
     metric_hash: u64,
-    error_trend: Vec<i64>,
+    error_trend: VecDeque<i64>,
     ema_drift: i64,
     last_stable_tick: u64,
     stable_threshold: u64,
@@ -182,11 +184,13 @@ impl CoopPredictionValidator {
     }
 
     /// Advance the internal tick counter.
+    #[inline(always)]
     pub fn tick(&mut self, now: u64) {
         self.current_tick = now;
     }
 
     /// Set the tolerance for within-tolerance checks (0-1000 scale).
+    #[inline(always)]
     pub fn set_tolerance(&mut self, tol: u64) {
         self.tolerance = tol.min(500);
     }
@@ -203,7 +207,7 @@ impl CoopPredictionValidator {
         let key = fnv1a_hash(&partner_id.to_le_bytes());
         let pairs = self.trust_pairs.entry(key).or_insert_with(Vec::new);
         if pairs.len() >= self.max_history {
-            pairs.remove(0);
+            pairs.pop_front();
         }
         pairs.push(PredictionPair {
             predicted,
@@ -247,7 +251,7 @@ impl CoopPredictionValidator {
         let key = fnv1a_hash(&resource_id.to_le_bytes());
         let pairs = self.contention_pairs.entry(key).or_insert_with(Vec::new);
         if pairs.len() >= self.max_history {
-            pairs.remove(0);
+            pairs.pop_front();
         }
         pairs.push(PredictionPair {
             predicted,
@@ -340,7 +344,7 @@ impl CoopPredictionValidator {
             .entry(key)
             .or_insert_with(|| DriftTracker {
                 metric_hash: key,
-                error_trend: Vec::new(),
+                error_trend: VecDeque::new(),
                 ema_drift: 0,
                 last_stable_tick: 0,
                 stable_threshold: 50,
@@ -405,7 +409,7 @@ impl CoopPredictionValidator {
                 model_hash: key,
                 bias: 0,
                 scale_factor: 1000,
-                error_history: Vec::new(),
+                error_history: VecDeque::new(),
                 overestimates: 0,
                 underestimates: 0,
                 last_calibration_tick: 0,
@@ -463,6 +467,7 @@ impl CoopPredictionValidator {
     }
 
     /// Get the current statistics snapshot.
+    #[inline(always)]
     pub fn stats(&self) -> &ValidatorStats {
         &self.stats
     }
@@ -476,7 +481,7 @@ impl CoopPredictionValidator {
                 model_hash: key,
                 bias: 0,
                 scale_factor: 1000,
-                error_history: Vec::new(),
+                error_history: VecDeque::new(),
                 overestimates: 0,
                 underestimates: 0,
                 last_calibration_tick: 0,
@@ -491,7 +496,7 @@ impl CoopPredictionValidator {
         };
 
         if cal.error_history.len() >= self.max_history {
-            cal.error_history.remove(0);
+            cal.error_history.pop_front().unwrap();
         }
         cal.error_history.push(error);
 
@@ -506,7 +511,7 @@ impl CoopPredictionValidator {
             .entry(key)
             .or_insert_with(|| DriftTracker {
                 metric_hash: key,
-                error_trend: Vec::new(),
+                error_trend: VecDeque::new(),
                 ema_drift: 0,
                 last_stable_tick: self.current_tick,
                 stable_threshold: 50,
@@ -514,7 +519,7 @@ impl CoopPredictionValidator {
 
         let signed_error = predicted as i64 - actual as i64;
         if tracker.error_trend.len() >= self.max_history {
-            tracker.error_trend.remove(0);
+            tracker.error_trend.pop_front().unwrap();
         }
         tracker.error_trend.push(signed_error);
 

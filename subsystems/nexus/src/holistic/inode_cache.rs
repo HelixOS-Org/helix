@@ -34,6 +34,7 @@ pub enum InodeCacheType {
 
 /// A cached inode.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InodeCacheEntry {
     pub ino: u64,
     pub super_block_id: u32,
@@ -73,15 +74,18 @@ impl InodeCacheEntry {
         }
     }
 
+    #[inline(always)]
     pub fn mark_dirty(&mut self) {
         self.state = InodeCacheState::Dirty;
     }
 
+    #[inline(always)]
     pub fn mark_clean(&mut self) {
         self.state = InodeCacheState::Clean;
         self.dirty_pages = 0;
     }
 
+    #[inline(always)]
     pub fn is_dirty(&self) -> bool {
         self.state == InodeCacheState::Dirty
     }
@@ -109,6 +113,7 @@ impl InodeSuperBlockPartition {
 
 /// Statistics for inode cache.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InodeCacheStats {
     pub total_inodes: u64,
     pub dirty_inodes: u64,
@@ -120,6 +125,7 @@ pub struct InodeCacheStats {
 }
 
 /// Main holistic inode cache manager.
+#[repr(align(64))]
 pub struct HolisticInodeCache {
     pub inodes: BTreeMap<u64, InodeCacheEntry>,
     pub partitions: BTreeMap<u32, InodeSuperBlockPartition>,
@@ -145,6 +151,7 @@ impl HolisticInodeCache {
         }
     }
 
+    #[inline]
     pub fn insert(&mut self, sb_id: u32, itype: InodeCacheType) -> u64 {
         let part = self.partitions.entry(sb_id).or_insert_with(|| InodeSuperBlockPartition::new(sb_id));
         let ino = part.next_ino;
@@ -156,6 +163,7 @@ impl HolisticInodeCache {
         ino
     }
 
+    #[inline]
     pub fn lookup(&mut self, ino: u64) -> Option<&InodeCacheEntry> {
         self.stats.lookups += 1;
         if self.inodes.contains_key(&ino) {
@@ -167,6 +175,7 @@ impl HolisticInodeCache {
         }
     }
 
+    #[inline]
     pub fn mark_dirty(&mut self, ino: u64) {
         if let Some(entry) = self.inodes.get_mut(&ino) {
             if !entry.is_dirty() {
@@ -176,6 +185,7 @@ impl HolisticInodeCache {
         }
     }
 
+    #[inline(always)]
     pub fn inode_count(&self) -> usize {
         self.inodes.len()
     }

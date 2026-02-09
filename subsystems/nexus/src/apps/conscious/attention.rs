@@ -78,6 +78,7 @@ pub enum AttentionTier {
 }
 
 impl AttentionTier {
+    #[inline]
     pub fn label(&self) -> &'static str {
         match self {
             AttentionTier::Spotlight => "spotlight",
@@ -125,6 +126,7 @@ pub struct AttentionShift {
 
 /// Tracked attention state for a single application
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppAttentionState {
     pub app_id: u64,
     pub app_name: String,
@@ -166,6 +168,7 @@ impl AppAttentionState {
         }
     }
 
+    #[inline]
     fn update_salience(&mut self, resource_impact: f32, novelty: f32, priority: f32, events: f32) {
         self.resource_impact = resource_impact;
         self.novelty_signal = novelty;
@@ -216,6 +219,7 @@ impl AppAttentionState {
 
 /// Aggregate attention engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AttentionStats {
     pub total_apps: usize,
     pub spotlight_count: usize,
@@ -365,11 +369,13 @@ impl AppsAttentionEngine {
     }
 
     /// Compute salience score for a specific app
+    #[inline(always)]
     pub fn app_salience(&self, app_id: u64) -> Option<f32> {
         self.apps.get(&app_id).map(|s| s.salience)
     }
 
     /// Return the current attention budget state
+    #[inline]
     pub fn attention_budget(&self) -> (u32, u32, f32) {
         let used: u32 = self.apps.values().map(|a| a.attention_units).sum();
         let utilization = if self.budget > 0 {
@@ -381,6 +387,7 @@ impl AppsAttentionEngine {
     }
 
     /// Detect all hot apps (spotlight-tier)
+    #[inline]
     pub fn hot_app_detection(&self) -> Vec<(u64, f32)> {
         let mut hot = Vec::new();
         for (id, state) in &self.apps {
@@ -393,6 +400,7 @@ impl AppsAttentionEngine {
     }
 
     /// Compute attention efficiency — fraction of shifts that were beneficial
+    #[inline]
     pub fn attention_efficiency(&self) -> f32 {
         if self.total_shifts == 0 {
             return 1.0;
@@ -452,11 +460,13 @@ impl AppsAttentionEngine {
     }
 
     /// Salience trend for a specific app
+    #[inline(always)]
     pub fn salience_trend(&self, app_id: u64) -> Option<f32> {
         self.apps.get(&app_id).map(|s| s.salience_trend())
     }
 
     /// Decay all salience values (call periodically)
+    #[inline]
     pub fn decay_all(&mut self) {
         for (_, state) in self.apps.iter_mut() {
             state.salience *= ATTENTION_DECAY;
@@ -470,6 +480,7 @@ impl AppsAttentionEngine {
     }
 
     /// Number of tracked apps
+    #[inline(always)]
     pub fn app_count(&self) -> usize {
         self.apps.len()
     }

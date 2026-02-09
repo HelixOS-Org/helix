@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Capability (Linux-style)
@@ -66,20 +67,32 @@ pub struct CapSet {
 }
 
 impl CapSet {
+    #[inline(always)]
     pub fn empty() -> Self { Self { bits: 0 } }
+    #[inline(always)]
     pub fn full() -> Self { Self { bits: (1u64 << 41) - 1 } }
 
+    #[inline(always)]
     pub fn set(&mut self, cap: Capability) { self.bits |= 1u64 << (cap as u32); }
+    #[inline(always)]
     pub fn clear(&mut self, cap: Capability) { self.bits &= !(1u64 << (cap as u32)); }
+    #[inline(always)]
     pub fn has(&self, cap: Capability) -> bool { (self.bits >> (cap as u32)) & 1 == 1 }
+    #[inline(always)]
     pub fn count(&self) -> u32 { self.bits.count_ones() }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.bits == 0 }
 
+    #[inline(always)]
     pub fn intersect(&self, other: &Self) -> Self { Self { bits: self.bits & other.bits } }
+    #[inline(always)]
     pub fn union(&self, other: &Self) -> Self { Self { bits: self.bits | other.bits } }
+    #[inline(always)]
     pub fn difference(&self, other: &Self) -> Self { Self { bits: self.bits & !other.bits } }
+    #[inline(always)]
     pub fn is_subset_of(&self, other: &Self) -> bool { self.bits & !other.bits == 0 }
 
+    #[inline(always)]
     pub fn has_privileged(&self) -> bool {
         self.has(Capability::CapSysAdmin) || self.has(Capability::CapNetAdmin) || self.has(Capability::CapSysRawio)
     }
@@ -108,6 +121,7 @@ pub struct ProcessCred {
 }
 
 impl ProcessCred {
+    #[inline]
     pub fn root() -> Self {
         Self {
             pid: 0, uid: 0, gid: 0, euid: 0, egid: 0, suid: 0, sgid: 0,
@@ -118,6 +132,7 @@ impl ProcessCred {
         }
     }
 
+    #[inline]
     pub fn unprivileged(uid: u32, gid: u32) -> Self {
         Self {
             pid: 0, uid, gid, euid: uid, egid: gid, suid: uid, sgid: gid,
@@ -128,11 +143,15 @@ impl ProcessCred {
         }
     }
 
+    #[inline(always)]
     pub fn is_root(&self) -> bool { self.euid == 0 }
+    #[inline(always)]
     pub fn is_privileged(&self) -> bool { self.is_root() || self.cap_effective.has_privileged() }
 
+    #[inline(always)]
     pub fn can(&self, cap: Capability) -> bool { self.cap_effective.has(cap) }
 
+    #[inline]
     pub fn setuid(&mut self, uid: u32) -> bool {
         if self.euid == 0 || self.can(Capability::CapSetuid) {
             self.uid = uid; self.euid = uid; self.suid = uid; self.fsuid = uid;
@@ -144,6 +163,7 @@ impl ProcessCred {
         } else { false }
     }
 
+    #[inline]
     pub fn setgid(&mut self, gid: u32) -> bool {
         if self.egid == 0 || self.can(Capability::CapSetgid) {
             self.gid = gid; self.egid = gid; self.sgid = gid; self.fsgid = gid;
@@ -154,6 +174,7 @@ impl ProcessCred {
         } else { false }
     }
 
+    #[inline]
     pub fn inherit_to_child(&self) -> ProcessCred {
         let mut child = self.clone();
         // On exec, calculate new caps
@@ -164,6 +185,7 @@ impl ProcessCred {
         child
     }
 
+    #[inline]
     pub fn drop_privileges(&mut self) {
         self.cap_effective = CapSet::empty();
         self.cap_permitted = CapSet::empty();
@@ -197,6 +219,7 @@ pub enum CredEventType {
 
 /// Cred manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CredManagerStats {
     pub processes_tracked: usize,
     pub root_processes: usize,
@@ -211,16 +234,17 @@ pub struct CredManagerStats {
 /// Holistic credential manager
 pub struct HolisticCredManager {
     creds: BTreeMap<u64, ProcessCred>,
-    events: Vec<CredEvent>,
+    events: VecDeque<CredEvent>,
     max_events: usize,
     stats: CredManagerStats,
 }
 
 impl HolisticCredManager {
     pub fn new() -> Self {
-        Self { creds: BTreeMap::new(), events: Vec::new(), max_events: 2048, stats: CredManagerStats::default() }
+        Self { creds: BTreeMap::new(), events: VecDeque::new(), max_events: 2048, stats: CredManagerStats::default() }
     }
 
+    #[inline]
     pub fn register(&mut self, pid: u64, cred: ProcessCred) {
         let mut c = cred;
         c.pid = pid;
@@ -254,6 +278,7 @@ impl HolisticCredManager {
         } else { false }
     }
 
+    #[inline]
     pub fn revoke_cap(&mut self, pid: u64, cap: Capability, ts: u64) {
         if let Some(c) = self.creds.get_mut(&pid) {
             c.cap_effective.clear(cap);
@@ -264,10 +289,12 @@ impl HolisticCredManager {
         }
     }
 
+    #[inline(always)]
     pub fn check_capability(&self, pid: u64, cap: Capability) -> bool {
         self.creds.get(&pid).map(|c| c.can(cap)).unwrap_or(false)
     }
 
+    #[inline]
     pub fn fork_cred(&mut self, parent_pid: u64, child_pid: u64) {
         if let Some(parent) = self.creds.get(&parent_pid).cloned() {
             let mut child = parent;
@@ -276,6 +303,7 @@ impl HolisticCredManager {
         }
     }
 
+    #[inline]
     pub fn exec_transition(&mut self, pid: u64, ts: u64) {
         if let Some(c) = self.creds.get(&pid).cloned() {
             let new_cred = c.inherit_to_child();
@@ -287,10 +315,11 @@ impl HolisticCredManager {
     }
 
     fn record_event(&mut self, pid: u64, etype: CredEventType, old_uid: u32, new_uid: u32, gained: CapSet, lost: CapSet, ts: u64) {
-        self.events.push(CredEvent { pid, event_type: etype, timestamp: ts, old_uid, new_uid, caps_gained: gained, caps_lost: lost });
-        if self.events.len() > self.max_events { self.events.remove(0); }
+        self.events.push_back(CredEvent { pid, event_type: etype, timestamp: ts, old_uid, new_uid, caps_gained: gained, caps_lost: lost });
+        if self.events.len() > self.max_events { self.events.pop_front(); }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.processes_tracked = self.creds.len();
         self.stats.root_processes = self.creds.values().filter(|c| c.is_root()).count();
@@ -302,7 +331,10 @@ impl HolisticCredManager {
         self.stats.events_recorded = self.events.len();
     }
 
+    #[inline(always)]
     pub fn cred(&self, pid: u64) -> Option<&ProcessCred> { self.creds.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &CredManagerStats { &self.stats }
+    #[inline(always)]
     pub fn events(&self) -> &[CredEvent] { &self.events }
 }

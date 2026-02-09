@@ -93,6 +93,7 @@ impl SecureAggregation {
     }
 
     /// Submit a share
+    #[inline(always)]
     pub fn submit_share(&mut self, share: SecretShare) {
         self.shares.insert((share.source, share.target), share);
     }
@@ -123,6 +124,7 @@ impl SecureAggregation {
     }
 
     /// Reset for new round
+    #[inline(always)]
     pub fn new_round(&mut self) {
         self.round += 1;
         self.shares.clear();

@@ -69,6 +69,7 @@ impl BlockDevGeometry {
         }
     }
 
+    #[inline(always)]
     pub fn capacity_bytes(&self) -> u64 {
         self.total_sectors * self.sector_size as u64
     }
@@ -132,6 +133,7 @@ impl BlockDevEntry {
 
 /// Statistics for block devices.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BlockDevStats {
     pub total_devices: u64,
     pub total_partitions: u64,
@@ -186,6 +188,7 @@ impl HolisticBlockDev {
         id
     }
 
+    #[inline(always)]
     pub fn device_count(&self) -> usize {
         self.devices.len()
     }

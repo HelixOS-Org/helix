@@ -49,6 +49,7 @@ pub enum EppHint {
 
 /// Per-CPU frequency state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuFreqState {
     pub cpu_id: u32,
     pub current_freq_khz: u32,
@@ -86,15 +87,18 @@ impl CpuFreqState {
         }
     }
 
+    #[inline(always)]
     pub fn freq_ratio(&self) -> f64 {
         if self.max_freq_khz == 0 { return 0.0; }
         self.current_freq_khz as f64 / self.max_freq_khz as f64
     }
 
+    #[inline(always)]
     pub fn is_turbo(&self) -> bool {
         self.current_freq_khz > self.base_freq_khz
     }
 
+    #[inline(always)]
     pub fn is_minimum(&self) -> bool {
         self.current_freq_khz <= self.min_freq_khz
     }
@@ -125,6 +129,7 @@ impl FreqDomain {
         }
     }
 
+    #[inline]
     pub fn power_headroom(&self) -> f64 {
         if self.energy_budget_uw == u64::MAX || self.energy_budget_uw == 0 { return 1.0; }
         let remaining = self.energy_budget_uw.saturating_sub(self.current_power_uw);
@@ -153,20 +158,24 @@ impl TurboBudget {
         }
     }
 
+    #[inline]
     pub fn remaining_ratio(&self) -> f64 {
         if self.total_budget_ns == 0 { return 0.0; }
         let rem = self.total_budget_ns.saturating_sub(self.consumed_ns);
         rem as f64 / self.total_budget_ns as f64
     }
 
+    #[inline(always)]
     pub fn can_turbo(&self) -> bool {
         self.consumed_ns < self.total_budget_ns && self.active_turbo_cpus < self.max_turbo_cpus
     }
 
+    #[inline(always)]
     pub fn consume(&mut self, ns: u64) {
         self.consumed_ns = self.consumed_ns.saturating_add(ns);
     }
 
+    #[inline(always)]
     pub fn reset_window(&mut self) {
         self.consumed_ns = 0;
     }
@@ -174,6 +183,7 @@ impl TurboBudget {
 
 /// Holistic CPU Frequency Governor stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticCpuFreqStats {
     pub total_cpus: usize,
     pub total_domains: usize,
@@ -202,6 +212,7 @@ impl HolisticCpuFreqGov {
         }
     }
 
+    #[inline]
     pub fn add_cpu(&mut self, state: CpuFreqState, domain_id: u32) {
         let cpu_id = state.cpu_id;
         self.cpus.insert(cpu_id, state);
@@ -210,6 +221,7 @@ impl HolisticCpuFreqGov {
             .cpus.push(cpu_id);
     }
 
+    #[inline]
     pub fn update_utilization(&mut self, cpu_id: u32, util: f64, ipc: f64) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.utilization = util;
@@ -301,7 +313,10 @@ impl HolisticCpuFreqGov {
         self.stats.total_transitions = self.cpus.values().map(|c| c.transitions).sum();
     }
 
+    #[inline(always)]
     pub fn cpu(&self, id: u32) -> Option<&CpuFreqState> { self.cpus.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCpuFreqStats { &self.stats }
+    #[inline(always)]
     pub fn turbo_budget(&self) -> &TurboBudget { &self.turbo_budget }
 }

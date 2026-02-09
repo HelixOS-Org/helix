@@ -32,6 +32,7 @@ impl SynapticIntelligence {
     }
 
     /// Initialize with starting parameters
+    #[inline]
     pub fn init_params(&mut self, params: &[f64]) {
         self.prev_params = params.to_vec();
         for pi in &mut self.path_integral {
@@ -40,6 +41,7 @@ impl SynapticIntelligence {
     }
 
     /// Update after a training step
+    #[inline]
     pub fn update_step(&mut self, params: &[f64], gradients: &[f64]) {
         for (i, (&p, &prev)) in params.iter().zip(self.prev_params.iter()).enumerate() {
             let delta = p - prev;

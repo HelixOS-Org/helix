@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -129,6 +129,7 @@ impl ScalingThreshold {
     }
 
     /// Reset counters
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.consecutive_up = 0;
         self.consecutive_down = 0;
@@ -173,24 +174,29 @@ impl ScalingPolicy {
         }
     }
 
+    #[inline(always)]
     pub fn add_threshold(&mut self, threshold: ScalingThreshold) {
         self.thresholds.push(threshold);
     }
 
+    #[inline(always)]
     pub fn set_min(&mut self, dimension: ScalingDimension, min: u64) {
         self.min_scale.insert(dimension as u8, min);
     }
 
+    #[inline(always)]
     pub fn set_max(&mut self, dimension: ScalingDimension, max: u64) {
         self.max_scale.insert(dimension as u8, max);
     }
 
     /// Is in cooldown
+    #[inline(always)]
     pub fn in_cooldown(&self, now: u64) -> bool {
         now.saturating_sub(self.last_scale_time) < self.cooldown_ns
     }
 
     /// Clamp value to min/max for dimension
+    #[inline]
     pub fn clamp(&self, dimension: ScalingDimension, value: u64) -> u64 {
         let key = dimension as u8;
         let min = self.min_scale.get(&key).copied().unwrap_or(0);
@@ -292,6 +298,7 @@ impl DemandPredictor {
     }
 
     /// Update with observation
+    #[inline]
     pub fn observe(&mut self, utilization: f64) {
         if self.samples == 0 {
             self.smoothed = utilization;
@@ -305,6 +312,7 @@ impl DemandPredictor {
     }
 
     /// Forecast ahead
+    #[inline]
     pub fn forecast(&self, steps_ahead: u32) -> f64 {
         let predicted = self.smoothed + self.trend * steps_ahead as f64;
         // Clamp to 0.0..1.0
@@ -318,14 +326,11 @@ impl DemandPredictor {
     }
 
     /// Confidence based on sample count
+    #[inline]
     pub fn confidence(&self) -> f64 {
         let max_conf = 0.95;
         let ramp = self.samples as f64 / 100.0;
-        if ramp > max_conf {
-            max_conf
-        } else {
-            ramp
-        }
+        if ramp > max_conf { max_conf } else { ramp }
     }
 }
 
@@ -335,6 +340,7 @@ impl DemandPredictor {
 
 /// Scaling manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticScalingStats {
     /// Active policies
     pub active_policies: usize,
@@ -355,7 +361,7 @@ pub struct HolisticScalingManager {
     /// Pending decisions
     pending: Vec<ScalingDecision>,
     /// Decision history
-    history: Vec<ScalingDecision>,
+    history: VecDeque<ScalingDecision>,
     /// Demand predictors per (target, dimension)
     predictors: BTreeMap<(u64, u8), DemandPredictor>,
     /// Current resource levels (target, dimension) → value
@@ -373,7 +379,7 @@ impl HolisticScalingManager {
         Self {
             policies: BTreeMap::new(),
             pending: Vec::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             predictors: BTreeMap::new(),
             current_levels: BTreeMap::new(),
             next_id: 1,
@@ -383,6 +389,7 @@ impl HolisticScalingManager {
     }
 
     /// Add policy
+    #[inline]
     pub fn add_policy(&mut self, policy: ScalingPolicy) -> u64 {
         let id = policy.id;
         self.policies.insert(id, policy);
@@ -391,12 +398,14 @@ impl HolisticScalingManager {
     }
 
     /// Remove policy
+    #[inline(always)]
     pub fn remove_policy(&mut self, id: u64) {
         self.policies.remove(&id);
         self.stats.active_policies = self.policies.len();
     }
 
     /// Set current resource level
+    #[inline(always)]
     pub fn set_level(&mut self, target: u64, dimension: ScalingDimension, value: u64) {
         self.current_levels.insert((target, dimension as u8), value);
     }
@@ -438,10 +447,11 @@ impl HolisticScalingManager {
                 let proposed = match direction {
                     ScalingDirection::Up => {
                         policy.clamp(dimension, current + threshold.scale_up_amount)
-                    }
-                    ScalingDirection::Down => {
-                        policy.clamp(dimension, current.saturating_sub(threshold.scale_down_amount))
-                    }
+                    },
+                    ScalingDirection::Down => policy.clamp(
+                        dimension,
+                        current.saturating_sub(threshold.scale_down_amount),
+                    ),
                     ScalingDirection::None => continue,
                 };
 
@@ -466,7 +476,7 @@ impl HolisticScalingManager {
             match d.direction {
                 ScalingDirection::Up => self.stats.scale_up_events += 1,
                 ScalingDirection::Down => self.stats.scale_down_events += 1,
-                _ => {}
+                _ => {},
             }
         }
         self.pending.extend(decisions);
@@ -494,20 +504,28 @@ impl HolisticScalingManager {
     }
 
     /// Drain pending decisions
+    #[inline]
     pub fn drain_decisions(&mut self) -> Vec<ScalingDecision> {
         let decisions = core::mem::take(&mut self.pending);
         for d in &decisions {
-            self.history.push(d.clone());
+            self.history.push_back(d.clone());
         }
         while self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
         self.stats.pending_decisions = 0;
         decisions
     }
 
     /// Acknowledge execution
-    pub fn acknowledge(&mut self, target: u64, dimension: ScalingDimension, new_level: u64, now: u64) {
+    #[inline]
+    pub fn acknowledge(
+        &mut self,
+        target: u64,
+        dimension: ScalingDimension,
+        new_level: u64,
+        now: u64,
+    ) {
         self.current_levels
             .insert((target, dimension as u8), new_level);
         // Update cooldown on affected policies
@@ -519,6 +537,7 @@ impl HolisticScalingManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticScalingStats {
         &self.stats
     }

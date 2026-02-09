@@ -210,6 +210,7 @@ impl VersionGraph {
     }
 
     /// Switch branch
+    #[inline]
     pub fn checkout(&mut self, branch_id: BranchId) -> Result<(), VersionError> {
         if !self.branches.contains_key(&branch_id) {
             return Err(VersionError::BranchNotFound(branch_id));
@@ -219,6 +220,7 @@ impl VersionGraph {
     }
 
     /// Checkout by name
+    #[inline]
     pub fn checkout_name(&mut self, name: &str) -> Result<(), VersionError> {
         let branch_id = self
             .branch_names
@@ -300,6 +302,7 @@ impl VersionGraph {
     }
 
     /// Get current head
+    #[inline]
     pub fn get_head(&self) -> CommitId {
         self.branches
             .get(&self.current_branch)
@@ -308,11 +311,13 @@ impl VersionGraph {
     }
 
     /// Get commit
+    #[inline(always)]
     pub fn get_commit(&self, id: CommitId) -> Option<&Commit> {
         self.commits.get(&id)
     }
 
     /// Get branch
+    #[inline(always)]
     pub fn get_branch(&self, id: BranchId) -> Option<&Branch> {
         self.branches.get(&id)
     }
@@ -405,16 +410,19 @@ impl VersionGraph {
     }
 
     /// Get current branch
+    #[inline(always)]
     pub fn current_branch(&self) -> &Branch {
         self.branches.get(&self.current_branch).unwrap()
     }
 
     /// List branches
+    #[inline(always)]
     pub fn list_branches(&self) -> impl Iterator<Item = &Branch> {
         self.branches.values()
     }
 
     /// List tags
+    #[inline(always)]
     pub fn list_tags(&self) -> impl Iterator<Item = &Tag> {
         self.tags.values()
     }
@@ -582,6 +590,7 @@ impl Default for VersionConfig {
 
 /// Version statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct VersionStats {
     /// Total commits
     pub commits: u64,
@@ -604,6 +613,7 @@ impl VersionManager {
     }
 
     /// Commit changes
+    #[inline]
     pub fn commit(
         &mut self,
         version: VersionId,
@@ -616,6 +626,7 @@ impl VersionManager {
     }
 
     /// Create branch
+    #[inline]
     pub fn create_branch(&mut self, name: impl Into<String>) -> BranchId {
         let id = self.graph.create_branch(name);
         self.stats.branches = self.graph.branches.len();
@@ -623,6 +634,7 @@ impl VersionManager {
     }
 
     /// Merge
+    #[inline]
     pub fn merge(
         &mut self,
         source: BranchId,
@@ -634,6 +646,7 @@ impl VersionManager {
     }
 
     /// Tag
+    #[inline]
     pub fn tag(&mut self, name: impl Into<String>) -> TagId {
         let id = self.graph.tag(name, None);
         self.stats.tags = self.graph.tags.len();
@@ -641,16 +654,19 @@ impl VersionManager {
     }
 
     /// Get graph
+    #[inline(always)]
     pub fn graph(&self) -> &VersionGraph {
         &self.graph
     }
 
     /// Get graph mutable
+    #[inline(always)]
     pub fn graph_mut(&mut self) -> &mut VersionGraph {
         &mut self.graph
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &VersionStats {
         &self.stats
     }

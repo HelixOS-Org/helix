@@ -180,6 +180,7 @@ impl SystemPattern {
     }
 
     /// Record a prediction outcome
+    #[inline]
     pub fn record_outcome(&mut self, correct: bool) {
         self.observation_count += 1;
         if correct {
@@ -190,6 +191,7 @@ impl SystemPattern {
     }
 
     /// Decay confidence over time
+    #[inline(always)]
     pub fn decay_confidence(&mut self) {
         self.accuracy *= CONFIDENCE_DECAY;
     }
@@ -238,6 +240,7 @@ impl MetaIntuitionEntry {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, correct: bool) {
         self.total_predictions += 1;
         if correct {
@@ -255,6 +258,7 @@ impl MetaIntuitionEntry {
 
 /// Intuition engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticIntuitionStats {
     pub patterns_stored: u64,
     pub total_assessments: u64,
@@ -330,6 +334,7 @@ impl HolisticIntuitionEngine {
     }
 
     /// Run the complete system intuition cycle against current state
+    #[inline]
     pub fn system_intuition(&mut self, state: &[f32], tick: u64) -> Vec<RapidAssessment> {
         self.tick = tick;
         let matches = self.global_pattern_match(state);
@@ -377,6 +382,7 @@ impl HolisticIntuitionEngine {
     }
 
     /// Get overall intuition confidence (average pattern accuracy)
+    #[inline]
     pub fn intuition_confidence(&self) -> f32 {
         if self.patterns.is_empty() {
             return 0.0;
@@ -414,11 +420,13 @@ impl HolisticIntuitionEngine {
     }
 
     /// Get overall intuition accuracy
+    #[inline(always)]
     pub fn intuition_accuracy(&self) -> f32 {
         self.stats.average_accuracy
     }
 
     /// Get the pattern library summary
+    #[inline]
     pub fn pattern_library(&self) -> Vec<(u64, String, f32)> {
         self.patterns
             .values()
@@ -447,6 +455,7 @@ impl HolisticIntuitionEngine {
     }
 
     /// Store a new pattern in the library
+    #[inline]
     pub fn learn_pattern(&mut self, pattern: SystemPattern) {
         if self.patterns.len() < MAX_PATTERNS {
             self.patterns.insert(pattern.id, pattern);
@@ -472,6 +481,7 @@ impl HolisticIntuitionEngine {
     }
 
     /// Decay all pattern confidences
+    #[inline]
     pub fn decay_all(&mut self) {
         for (_id, pattern) in self.patterns.iter_mut() {
             pattern.decay_confidence();
@@ -479,11 +489,13 @@ impl HolisticIntuitionEngine {
     }
 
     /// Number of stored patterns
+    #[inline(always)]
     pub fn pattern_count(&self) -> usize {
         self.patterns.len()
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticIntuitionStats {
         &self.stats
     }

@@ -75,24 +75,29 @@ impl VethPair {
         }
     }
 
+    #[inline(always)]
     pub fn bring_up(&mut self) {
         self.state = VethState::Up;
     }
 
+    #[inline(always)]
     pub fn transmit(&mut self, bytes: u64) {
         self.tx_packets += 1;
         self.tx_bytes += bytes;
     }
 
+    #[inline(always)]
     pub fn receive(&mut self, bytes: u64) {
         self.rx_packets += 1;
         self.rx_bytes += bytes;
     }
 
+    #[inline(always)]
     pub fn total_throughput(&self) -> u64 {
         self.tx_bytes + self.rx_bytes
     }
 
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.tx_packets + self.rx_packets + self.tx_drops + self.rx_drops;
         if total == 0 {
@@ -144,39 +149,48 @@ impl NetNamespace {
         }
     }
 
+    #[inline(always)]
     pub fn activate(&mut self, ts_ns: u64) {
         self.state = NetNsState::Active;
         self.created_ns = ts_ns;
     }
 
+    #[inline(always)]
     pub fn add_interface(&mut self, iface_id: u32) {
         self.interfaces.push(iface_id);
     }
 
+    #[inline(always)]
     pub fn add_veth(&mut self, veth_id: u32) {
         self.veth_pairs.push(veth_id);
     }
 
+    #[inline(always)]
     pub fn grant_cap(&mut self, cap: NetNsCap) {
         self.capabilities |= 1u64 << (cap as u64);
     }
 
+    #[inline(always)]
     pub fn has_cap(&self, cap: NetNsCap) -> bool {
         self.capabilities & (1u64 << (cap as u64)) != 0
     }
 
+    #[inline(always)]
     pub fn attach_process(&mut self) {
         self.process_count += 1;
     }
 
+    #[inline(always)]
     pub fn detach_process(&mut self) {
         self.process_count = self.process_count.saturating_sub(1);
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.process_count == 0 && self.socket_count == 0
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self) {
         self.state = NetNsState::Destroying;
     }
@@ -184,6 +198,7 @@ impl NetNamespace {
 
 /// Net namespace stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetNsStats {
     pub total_namespaces: u64,
     pub active_namespaces: u64,
@@ -225,6 +240,7 @@ impl HolisticNetNs {
         mgr
     }
 
+    #[inline]
     pub fn create_namespace(&mut self, name: &str, ts_ns: u64) -> u32 {
         let id = self.next_ns_id;
         self.next_ns_id += 1;

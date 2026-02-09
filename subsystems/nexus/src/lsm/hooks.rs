@@ -125,16 +125,19 @@ impl LsmHook {
     }
 
     /// Get call count
+    #[inline(always)]
     pub fn call_count(&self) -> u64 {
         self.call_count.load(Ordering::Relaxed)
     }
 
     /// Get deny count
+    #[inline(always)]
     pub fn deny_count(&self) -> u64 {
         self.deny_count.load(Ordering::Relaxed)
     }
 
     /// Get deny rate
+    #[inline]
     pub fn deny_rate(&self) -> f32 {
         let calls = self.call_count();
         if calls == 0 {
@@ -144,6 +147,7 @@ impl LsmHook {
     }
 
     /// Get average latency
+    #[inline(always)]
     pub fn avg_latency(&self) -> u64 {
         self.avg_latency_ns.load(Ordering::Relaxed)
     }

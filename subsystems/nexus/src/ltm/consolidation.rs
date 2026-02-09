@@ -42,6 +42,7 @@ pub struct ConsolidationResult {
 
 impl ConsolidationResult {
     /// Empty result
+    #[inline]
     pub fn empty() -> Self {
         Self {
             episodes_consolidated: 0,
@@ -53,6 +54,7 @@ impl ConsolidationResult {
     }
 
     /// Total items processed
+    #[inline(always)]
     pub fn total_items(&self) -> u64 {
         self.episodes_consolidated + self.patterns_extracted + self.procedures_created
     }
@@ -85,21 +87,25 @@ impl MemoryConsolidator {
     }
 
     /// Set interval
+    #[inline(always)]
     pub fn set_interval(&mut self, interval_ns: u64) {
         self.interval_ns = interval_ns;
     }
 
     /// Set threshold
+    #[inline(always)]
     pub fn set_threshold(&mut self, count: usize) {
         self.threshold_count = count;
     }
 
     /// Get strategy
+    #[inline(always)]
     pub fn strategy(&self) -> ConsolidationStrategy {
         self.strategy
     }
 
     /// Should consolidate
+    #[inline]
     pub fn should_consolidate(&self, current_time: u64) -> bool {
         match self.strategy {
             ConsolidationStrategy::Immediate => true,
@@ -113,6 +119,7 @@ impl MemoryConsolidator {
     }
 
     /// Should consolidate with working memory info
+    #[inline]
     pub fn should_consolidate_with_wm(&self, current_time: u64, wm_count: usize) -> bool {
         match self.strategy {
             ConsolidationStrategy::Threshold => wm_count >= self.threshold_count,
@@ -214,11 +221,13 @@ impl MemoryConsolidator {
     }
 
     /// Total consolidations
+    #[inline(always)]
     pub fn total_consolidations(&self) -> u64 {
         self.total_consolidations.load(Ordering::Relaxed)
     }
 
     /// Last consolidation time
+    #[inline(always)]
     pub fn last_consolidation(&self) -> u64 {
         self.last_consolidation.load(Ordering::Relaxed)
     }

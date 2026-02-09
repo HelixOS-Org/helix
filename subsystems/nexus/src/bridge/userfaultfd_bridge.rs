@@ -29,7 +29,9 @@ impl UffdFeatures {
     pub const WP_ASYNC: u64 = 1 << 15;
 
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn set(&mut self, f: u64) { self.0 |= f; }
+    #[inline(always)]
     pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
 }
 
@@ -58,6 +60,7 @@ impl UffdEvent {
         Self { id, fault_type: ftype, address: addr, tid, timestamp: now, resolved: false, resolution_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn resolve(&mut self, now: u64) {
         self.resolved = true;
         self.resolution_ns = now.saturating_sub(self.timestamp);
@@ -105,10 +108,12 @@ impl UffdInstance {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, start: u64, length: u64, mode: UffdRegMode) {
         self.ranges.push(UffdRange { start, length, mode });
     }
 
+    #[inline]
     pub fn fault(&mut self, ftype: UffdFaultType, addr: u64, tid: u64, now: u64) -> u64 {
         self.total_faults += 1;
         let event = UffdEvent::new(self.total_faults, ftype, addr, tid, now);
@@ -117,6 +122,7 @@ impl UffdInstance {
         eid
     }
 
+    #[inline]
     pub fn resolve_copy(&mut self, event_id: u64, now: u64) {
         if let Some(ev) = self.pending_events.iter_mut().find(|e| e.id == event_id) {
             ev.resolve(now);
@@ -125,6 +131,7 @@ impl UffdInstance {
         }
     }
 
+    #[inline]
     pub fn resolve_zeropage(&mut self, event_id: u64, now: u64) {
         if let Some(ev) = self.pending_events.iter_mut().find(|e| e.id == event_id) {
             ev.resolve(now);
@@ -136,6 +143,7 @@ impl UffdInstance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UffdBridgeStats {
     pub total_instances: u32,
     pub total_ranges: u32,
@@ -146,6 +154,7 @@ pub struct UffdBridgeStats {
 }
 
 /// Main userfaultfd bridge
+#[repr(align(64))]
 pub struct BridgeUserfaultfd {
     instances: BTreeMap<u64, UffdInstance>,
     next_id: u64,
@@ -154,20 +163,24 @@ pub struct BridgeUserfaultfd {
 impl BridgeUserfaultfd {
     pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, features: UffdFeatures, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.instances.insert(id, UffdInstance::new(id, features, now));
         id
     }
 
+    #[inline(always)]
     pub fn register(&mut self, id: u64, start: u64, length: u64, mode: UffdRegMode) {
         if let Some(inst) = self.instances.get_mut(&id) { inst.register(start, length, mode); }
     }
 
+    #[inline(always)]
     pub fn fault(&mut self, id: u64, ftype: UffdFaultType, addr: u64, tid: u64, now: u64) -> Option<u64> {
         self.instances.get_mut(&id).map(|inst| inst.fault(ftype, addr, tid, now))
     }
 
+    #[inline]
     pub fn stats(&self) -> UffdBridgeStats {
         let ranges: u32 = self.instances.values().map(|i| i.ranges.len() as u32).sum();
         let faults: u64 = self.instances.values().map(|i| i.total_faults).sum();
@@ -235,13 +248,16 @@ impl UffdV2Instance {
         Self { fd, pid, features, registered_ranges: Vec::new(), events: Vec::new(), total_faults: 0, total_resolved: 0 }
     }
 
+    #[inline(always)]
     pub fn register_range(&mut self, start: u64, len: u64) { self.registered_ranges.push((start, len)); }
 
+    #[inline(always)]
     pub fn fault(&mut self, id: u64, ft: UffdV2Type, addr: u64, now: u64) {
         self.events.push(UffdV2Event { id, fault_type: ft, address: addr, pid: self.pid, timestamp: now, resolved: false, resolution_ns: 0 });
         self.total_faults += 1;
     }
 
+    #[inline]
     pub fn resolve(&mut self, id: u64, now: u64) {
         if let Some(ev) = self.events.iter_mut().find(|e| e.id == id && !e.resolved) {
             ev.resolved = true;
@@ -253,6 +269,7 @@ impl UffdV2Instance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UffdV2BridgeStats {
     pub total_instances: u32,
     pub total_faults: u64,
@@ -262,6 +279,7 @@ pub struct UffdV2BridgeStats {
 }
 
 /// Main bridge userfaultfd v2
+#[repr(align(64))]
 pub struct BridgeUserfaultfdV2 {
     instances: BTreeMap<u64, UffdV2Instance>,
 }
@@ -269,10 +287,13 @@ pub struct BridgeUserfaultfdV2 {
 impl BridgeUserfaultfdV2 {
     pub fn new() -> Self { Self { instances: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn create(&mut self, fd: u64, pid: u64, features: u64) { self.instances.insert(fd, UffdV2Instance::new(fd, pid, features)); }
 
+    #[inline(always)]
     pub fn close(&mut self, fd: u64) { self.instances.remove(&fd); }
 
+    #[inline]
     pub fn stats(&self) -> UffdV2BridgeStats {
         let faults: u64 = self.instances.values().map(|i| i.total_faults).sum();
         let resolved: u64 = self.instances.values().map(|i| i.total_resolved).sum();

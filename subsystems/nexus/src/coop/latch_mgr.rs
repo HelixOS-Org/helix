@@ -31,6 +31,7 @@ impl CountdownLatch {
         Self { id, initial_count: count, current_count: count, state: LatchState::Waiting, waiters: 0, created_at: now, released_at: 0, countdown_events: 0 }
     }
 
+    #[inline]
     pub fn count_down(&mut self, now: u64) -> bool {
         if self.current_count == 0 { return false; }
         self.current_count -= 1;
@@ -39,12 +40,15 @@ impl CountdownLatch {
         else { false }
     }
 
+    #[inline(always)]
     pub fn is_released(&self) -> bool { self.state == LatchState::Released }
+    #[inline(always)]
     pub fn progress(&self) -> f64 { if self.initial_count == 0 { 1.0 } else { (self.initial_count - self.current_count) as f64 / self.initial_count as f64 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LatchMgrStats {
     pub total_latches: u32,
     pub waiting_latches: u32,
@@ -62,16 +66,19 @@ pub struct CoopLatchMgr {
 impl CoopLatchMgr {
     pub fn new() -> Self { Self { latches: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, count: u32, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.latches.insert(id, CountdownLatch::new(id, count, now));
         id
     }
 
+    #[inline(always)]
     pub fn count_down(&mut self, id: u64, now: u64) -> bool {
         self.latches.get_mut(&id).map_or(false, |l| l.count_down(now))
     }
 
+    #[inline]
     pub fn stats(&self) -> LatchMgrStats {
         let waiting = self.latches.values().filter(|l| l.state == LatchState::Waiting).count() as u32;
         let released = self.latches.values().filter(|l| l.is_released()).count() as u32;

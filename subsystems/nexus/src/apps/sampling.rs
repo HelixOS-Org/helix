@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -66,11 +67,13 @@ impl Sample {
     }
 
     /// Add stack frame
+    #[inline(always)]
     pub fn push_frame(&mut self, addr: u64) {
         self.stack.push(addr);
     }
 
     /// Stack depth
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.stack.len()
     }
@@ -84,7 +87,7 @@ impl Sample {
 #[derive(Debug)]
 pub struct AddressHistogram {
     /// Address -> hit count
-    hits: BTreeMap<u64, u64>,
+    hits: LinearMap<u64, 64>,
     /// Total samples
     total: u64,
 }
@@ -92,14 +95,15 @@ pub struct AddressHistogram {
 impl AddressHistogram {
     pub fn new() -> Self {
         Self {
-            hits: BTreeMap::new(),
+            hits: LinearMap::new(),
             total: 0,
         }
     }
 
     /// Record hit
+    #[inline(always)]
     pub fn record(&mut self, addr: u64, weight: u32) {
-        *self.hits.entry(addr).or_insert(0) += weight as u64;
+        self.hits.add(addr, weight);
         self.total += weight as u64;
     }
 
@@ -122,11 +126,13 @@ impl AddressHistogram {
     }
 
     /// Unique addresses
+    #[inline(always)]
     pub fn unique_count(&self) -> usize {
         self.hits.len()
     }
 
     /// Total samples
+    #[inline(always)]
     pub fn total(&self) -> u64 {
         self.total
     }
@@ -149,9 +155,9 @@ pub struct CallEdge {
 #[derive(Debug)]
 pub struct CallGraph {
     /// Edge weights
-    edges: BTreeMap<u64, u64>,
+    edges: LinearMap<u64, 64>,
     /// Node self-weight
-    self_weight: BTreeMap<u64, u64>,
+    self_weight: LinearMap<u64, 64>,
     /// Total weight
     total_weight: u64,
 }
@@ -159,8 +165,8 @@ pub struct CallGraph {
 impl CallGraph {
     pub fn new() -> Self {
         Self {
-            edges: BTreeMap::new(),
-            self_weight: BTreeMap::new(),
+            edges: LinearMap::new(),
+            self_weight: LinearMap::new(),
             total_weight: 0,
         }
     }
@@ -181,13 +187,13 @@ impl CallGraph {
         }
         // Self-weight to the top of stack (leaf)
         let leaf = stack[stack.len() - 1];
-        *self.self_weight.entry(leaf).or_insert(0) += weight as u64;
+        self.self_weight.add(leaf, weight);
         self.total_weight += weight as u64;
 
         // Edges from bottom to top
         for i in 0..stack.len() - 1 {
             let key = Self::edge_key(stack[i], stack[i + 1]);
-            *self.edges.entry(key).or_insert(0) += weight as u64;
+            self.edges.add(key, weight);
         }
     }
 
@@ -210,6 +216,7 @@ impl CallGraph {
     }
 
     /// Total weight
+    #[inline(always)]
     pub fn total_weight(&self) -> u64 {
         self.total_weight
     }
@@ -235,6 +242,7 @@ pub struct SamplingConfig {
 }
 
 impl SamplingConfig {
+    #[inline]
     pub fn default_config() -> Self {
         Self {
             rate: 99, // 99 Hz to avoid aliasing with timers
@@ -246,6 +254,7 @@ impl SamplingConfig {
     }
 
     /// High frequency config
+    #[inline]
     pub fn high_frequency() -> Self {
         Self {
             rate: 999,
@@ -257,6 +266,7 @@ impl SamplingConfig {
     }
 
     /// Interval in nanoseconds
+    #[inline]
     pub fn interval_ns(&self) -> u64 {
         if self.rate == 0 {
             return u64::MAX;
@@ -318,11 +328,13 @@ impl ProcessSamplingProfile {
     }
 
     /// Sampling duration
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.last_sample.saturating_sub(self.first_sample)
     }
 
     /// Sample rate (actual)
+    #[inline]
     pub fn actual_rate(&self) -> f64 {
         let dur = self.duration_ns();
         if dur == 0 {
@@ -332,11 +344,13 @@ impl ProcessSamplingProfile {
     }
 
     /// Top hot IPs
+    #[inline(always)]
     pub fn hot_ips(&self, limit: usize) -> Vec<(u64, u64, f64)> {
         self.ip_histogram.top_n(limit)
     }
 
     /// Hot functions
+    #[inline(always)]
     pub fn hot_functions(&self, limit: usize) -> Vec<(u64, u64, f64)> {
         self.call_graph.hot_functions(limit)
     }
@@ -348,6 +362,7 @@ impl ProcessSamplingProfile {
 
 /// Sampling stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppSamplingStats {
     /// Profiles active
     pub active_profiles: usize,
@@ -383,16 +398,19 @@ impl AppSamplingEngine {
     }
 
     /// Configure
+    #[inline(always)]
     pub fn configure(&mut self, config: SamplingConfig) {
         self.config = config;
     }
 
     /// Enable sampling
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.config.enabled = true;
     }
 
     /// Disable sampling
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.config.enabled = false;
     }
@@ -425,11 +443,13 @@ impl AppSamplingEngine {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessSamplingProfile> {
         self.profiles.get(&pid)
     }
 
     /// Hot across all processes
+    #[inline]
     pub fn global_hot_ips(&self, limit: usize) -> Vec<(u64, u64, f64)> {
         let mut combined = AddressHistogram::new();
         for profile in self.profiles.values() {
@@ -442,11 +462,13 @@ impl AppSamplingEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppSamplingStats {
         &self.stats
     }
 
     /// Config
+    #[inline(always)]
     pub fn config(&self) -> &SamplingConfig {
         &self.config
     }

@@ -24,6 +24,7 @@ impl SigactionAppRecord {
 
 /// Sigaction app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SigactionAppStats { pub total_ops: u64, pub custom_set: u64, pub defaults_restored: u64 }
 
 /// Main app sigaction
@@ -32,6 +33,7 @@ pub struct AppSigaction { pub stats: SigactionAppStats }
 
 impl AppSigaction {
     pub fn new() -> Self { Self { stats: SigactionAppStats { total_ops: 0, custom_set: 0, defaults_restored: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SigactionAppRecord) {
         self.stats.total_ops += 1;
         match rec.handler {

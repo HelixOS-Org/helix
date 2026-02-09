@@ -52,6 +52,7 @@ impl ByzantineRobustAggregator {
     }
 
     /// Submit an update
+    #[inline(always)]
     pub fn submit_update(&mut self, update: ModelUpdate) {
         self.pending_updates.push(update);
     }

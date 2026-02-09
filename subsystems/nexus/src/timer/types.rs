@@ -31,16 +31,19 @@ pub enum TimerType {
 
 impl TimerType {
     /// Is coalescable?
+    #[inline(always)]
     pub fn is_coalescable(&self) -> bool {
         matches!(self, Self::OneShot | Self::Periodic | Self::Deferrable)
     }
 
     /// Is deferrable?
+    #[inline(always)]
     pub fn is_deferrable(&self) -> bool {
         matches!(self, Self::Deferrable)
     }
 
     /// Requires precision?
+    #[inline(always)]
     pub fn requires_precision(&self) -> bool {
         matches!(self, Self::HighRes | Self::Watchdog)
     }
@@ -76,6 +79,7 @@ pub enum TimerPriority {
 
 /// Timer information
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerInfo {
     /// Timer ID
     pub id: TimerId,
@@ -123,45 +127,53 @@ impl TimerInfo {
     }
 
     /// Set as periodic
+    #[inline(always)]
     pub fn with_period(mut self, period_ns: u64) -> Self {
         self.period_ns = period_ns;
         self
     }
 
     /// Set slack
+    #[inline(always)]
     pub fn with_slack(mut self, slack_ns: u64) -> Self {
         self.slack_ns = slack_ns;
         self
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: TimerPriority) -> Self {
         self.priority = priority;
         self
     }
 
     /// Set CPU affinity
+    #[inline(always)]
     pub fn on_cpu(mut self, cpu: CpuId) -> Self {
         self.cpu = Some(cpu);
         self
     }
 
     /// Is periodic?
+    #[inline(always)]
     pub fn is_periodic(&self) -> bool {
         self.period_ns > 0
     }
 
     /// Is expired?
+    #[inline(always)]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         self.deadline_ns <= now_ns
     }
 
     /// Time until deadline
+    #[inline(always)]
     pub fn time_until(&self, now_ns: u64) -> i64 {
         self.deadline_ns as i64 - now_ns as i64
     }
 
     /// Schedule next occurrence
+    #[inline]
     pub fn schedule_next(&mut self, now_ns: u64) {
         if self.is_periodic() {
             self.deadline_ns = now_ns + self.period_ns;
@@ -172,6 +184,7 @@ impl TimerInfo {
     }
 
     /// Record callback
+    #[inline(always)]
     pub fn record_callback(&mut self, duration_ns: u64) {
         self.callback_count += 1;
         self.last_callback_ns = duration_ns;

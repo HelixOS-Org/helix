@@ -56,6 +56,7 @@ impl BtrfsCowExtent {
         }
     }
 
+    #[inline]
     pub fn add_ref(&mut self) {
         self.ref_count += 1;
         if self.ref_count > 1 {
@@ -78,6 +79,7 @@ impl BtrfsCowExtent {
         }
     }
 
+    #[inline(always)]
     pub fn is_shared(&self) -> bool {
         self.ref_count > 1
     }
@@ -133,6 +135,7 @@ impl BtrfsCowSpaceInfo {
 
 /// Statistics for btrfs COW.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BtrfsCowStats {
     pub total_extents: u64,
     pub shared_extents: u64,
@@ -171,6 +174,7 @@ impl HolisticBtrfsCow {
         }
     }
 
+    #[inline]
     pub fn allocate_extent(&mut self, logical: u64, physical: u64, length: u64) -> u64 {
         let id = self.next_extent_id;
         self.next_extent_id += 1;
@@ -200,6 +204,7 @@ impl HolisticBtrfsCow {
         }
     }
 
+    #[inline(always)]
     pub fn extent_count(&self) -> usize {
         self.extents.len()
     }

@@ -19,6 +19,7 @@ pub enum BlkIoOp {
 
 /// Hardware queue
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct HwQueue {
     pub id: u32,
     pub cpu_affinity: u32,
@@ -34,9 +35,13 @@ impl HwQueue {
         Self { id, cpu_affinity: cpu, depth, pending: 0, completed: 0, total_bytes: 0, total_latency_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn submit(&mut self) { self.pending += 1; }
+    #[inline(always)]
     pub fn complete(&mut self, bytes: u64, lat: u64) { if self.pending > 0 { self.pending -= 1; } self.completed += 1; self.total_bytes += bytes; self.total_latency_ns += lat; }
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 { if self.completed == 0 { 0 } else { self.total_latency_ns / self.completed } }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 { if self.depth == 0 { 0.0 } else { self.pending as f64 / self.depth as f64 } }
 }
 
@@ -53,6 +58,7 @@ pub struct BlkRequest {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BlkMqStats {
     pub total_queues: u32,
     pub total_completed: u64,
@@ -69,14 +75,18 @@ pub struct HolisticBlkMq {
 impl HolisticBlkMq {
     pub fn new() -> Self { Self { queues: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn add_queue(&mut self, id: u32, cpu: u32, depth: u32) { self.queues.insert(id, HwQueue::new(id, cpu, depth)); }
 
+    #[inline(always)]
     pub fn submit(&mut self, queue_id: u32) { if let Some(q) = self.queues.get_mut(&queue_id) { q.submit(); } }
 
+    #[inline(always)]
     pub fn complete(&mut self, queue_id: u32, bytes: u64, lat: u64) {
         if let Some(q) = self.queues.get_mut(&queue_id) { q.complete(bytes, lat); }
     }
 
+    #[inline]
     pub fn stats(&self) -> BlkMqStats {
         let completed: u64 = self.queues.values().map(|q| q.completed).sum();
         let bytes: u64 = self.queues.values().map(|q| q.total_bytes).sum();

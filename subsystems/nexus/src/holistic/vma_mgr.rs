@@ -24,7 +24,9 @@ impl VmaFlags {
     pub const MERGEABLE: u64 = 1 << 10;
 
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn set(&mut self, f: u64) { self.0 |= f; }
+    #[inline(always)]
     pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
 }
 
@@ -60,9 +62,13 @@ impl Vma {
         Self { start, end, flags, vma_type: vtype, file_offset: 0, inode: 0, pgoff: 0, page_count: 0, rss_pages: 0, swap_pages: 0 }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end - self.start }
+    #[inline(always)]
     pub fn pages(&self) -> u64 { self.size() / 4096 }
+    #[inline(always)]
     pub fn overlaps(&self, start: u64, end: u64) -> bool { self.start < end && start < self.end }
+    #[inline(always)]
     pub fn can_merge(&self, other: &Vma) -> bool { self.end == other.start && self.flags.0 == other.flags.0 && self.vma_type == other.vma_type }
 }
 
@@ -84,9 +90,12 @@ impl ProcessMm {
         Self { pid, vmas: Vec::new(), total_vm: 0, rss: 0, brk_start: 0, brk_end: 0, stack_start: 0, mmap_base: 0x7f0000000000 }
     }
 
+    #[inline(always)]
     pub fn add_vma(&mut self, vma: Vma) { self.total_vm += vma.size(); self.vmas.push(vma); }
+    #[inline(always)]
     pub fn vma_count(&self) -> u32 { self.vmas.len() as u32 }
 
+    #[inline(always)]
     pub fn find_vma(&self, addr: u64) -> Option<&Vma> {
         self.vmas.iter().find(|v| v.start <= addr && addr < v.end)
     }
@@ -94,6 +103,7 @@ impl ProcessMm {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct VmaMgrStats {
     pub total_processes: u32,
     pub total_vmas: u32,
@@ -109,12 +119,15 @@ pub struct HolisticVmaMgr {
 
 impl HolisticVmaMgr {
     pub fn new() -> Self { Self { processes: BTreeMap::new() } }
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessMm::new(pid)); }
 
+    #[inline(always)]
     pub fn mmap(&mut self, pid: u64, start: u64, end: u64, flags: VmaFlags, vtype: VmaType) {
         if let Some(mm) = self.processes.get_mut(&pid) { mm.add_vma(Vma::new(start, end, flags, vtype)); }
     }
 
+    #[inline]
     pub fn stats(&self) -> VmaMgrStats {
         let vmas: u32 = self.processes.values().map(|mm| mm.vma_count()).sum();
         let vm: u64 = self.processes.values().map(|mm| mm.total_vm).sum();

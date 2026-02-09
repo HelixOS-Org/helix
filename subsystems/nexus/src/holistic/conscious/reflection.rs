@@ -126,6 +126,7 @@ pub struct GrowthPoint {
 
 /// Aggregate reflection statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ReflectionStats {
     pub total_reflections: u64,
     pub wisdom_count: usize,
@@ -181,6 +182,7 @@ impl HolisticReflection {
     }
 
     /// Record a system-wide reflection
+    #[inline]
     pub fn reflect(
         &mut self,
         category: ReflectionCategory,
@@ -221,6 +223,7 @@ impl HolisticReflection {
     }
 
     /// Perform a comprehensive system reflection cycle
+    #[inline]
     pub fn system_reflection(&mut self) -> f32 {
         self.tick += 1;
 
@@ -402,6 +405,7 @@ impl HolisticReflection {
     }
 
     /// Compute and record the growth trajectory
+    #[inline]
     pub fn growth_trajectory(&mut self) -> f32 {
         self.tick += 1;
 

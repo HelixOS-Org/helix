@@ -51,6 +51,7 @@ impl HardwareEvent {
     }
 
     /// Event code for x86
+    #[inline]
     pub fn x86_code(&self) -> Option<u64> {
         match self {
             Self::CpuCycles => Some(0x003c),
@@ -130,6 +131,7 @@ pub enum CacheLevel {
 
 impl CacheLevel {
     /// Get level name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::L1D => "L1-dcache",
@@ -165,6 +167,7 @@ pub enum CacheResult {
 
 /// Cache event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(align(64))]
 pub struct CacheEvent {
     /// Cache level
     pub level: CacheLevel,

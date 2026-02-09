@@ -20,6 +20,7 @@ impl TraceId {
     }
 
     /// Get raw value
+    #[inline(always)]
     pub fn raw(&self) -> u64 {
         self.0
     }
@@ -47,6 +48,7 @@ impl SpanId {
     }
 
     /// Get raw value
+    #[inline(always)]
     pub fn raw(&self) -> u64 {
         self.0
     }
@@ -82,6 +84,7 @@ pub enum TraceLevel {
 
 impl TraceLevel {
     /// Get from numeric value
+    #[inline]
     pub fn from_u8(value: u8) -> Self {
         match value {
             0 => Self::Error,
@@ -93,6 +96,7 @@ impl TraceLevel {
     }
 
     /// Get name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Error => "ERROR",

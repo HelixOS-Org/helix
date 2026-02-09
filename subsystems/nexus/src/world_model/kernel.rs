@@ -8,6 +8,7 @@ use crate::world_model::world::WorldModel;
 
 /// Kernel system state for world model
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KernelSystemState {
     /// CPU usage per core
     pub cpu_usage: Vec<f64>,
@@ -40,6 +41,7 @@ impl KernelSystemState {
     }
 
     /// Convert to observation vector
+    #[inline]
     pub fn to_observation(&self) -> Vec<f64> {
         let mut obs = self.cpu_usage.clone();
         obs.push(self.memory_usage);
@@ -106,6 +108,7 @@ pub enum KernelAction {
 
 impl KernelAction {
     /// Convert to action vector
+    #[inline]
     pub fn to_vector(&self) -> Vec<f64> {
         match self {
             KernelAction::AdjustPriority => vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -174,6 +177,7 @@ impl KernelWorldModelManager {
     }
 
     /// Update with new observation
+    #[inline]
     pub fn observe(&mut self, state: KernelSystemState) {
         let obs = state.to_observation();
         self.model.observe(&obs);
@@ -207,6 +211,7 @@ impl KernelWorldModelManager {
     }
 
     /// Get optimal action
+    #[inline]
     pub fn get_optimal_action(&mut self) -> KernelAction {
         let action_vec = self.planner.plan(&self.model);
         let action = KernelAction::from_vector(&action_vec);
@@ -240,6 +245,7 @@ impl KernelWorldModelManager {
     }
 
     /// Get model confidence for state
+    #[inline(always)]
     pub fn get_confidence(&self) -> f64 {
         1.0 / (1.0 + self.model.current_state.total_uncertainty())
     }

@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -91,6 +92,7 @@ impl ResourcePartition {
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.current == 0 {
             return 0.0;
@@ -99,11 +101,13 @@ impl ResourcePartition {
     }
 
     /// Is over-provisioned?
+    #[inline(always)]
     pub fn is_over_provisioned(&self) -> bool {
         self.utilization() < 0.3 && self.current > self.minimum
     }
 
     /// Is under-provisioned?
+    #[inline(always)]
     pub fn is_under_provisioned(&self) -> bool {
         self.utilization() > 0.9
     }
@@ -145,6 +149,7 @@ impl IsolationDomain {
     }
 
     /// Add member
+    #[inline]
     pub fn add_member(&mut self, pid: u64) {
         if !self.members.contains(&pid) {
             self.members.push(pid);
@@ -152,16 +157,19 @@ impl IsolationDomain {
     }
 
     /// Remove member
+    #[inline(always)]
     pub fn remove_member(&mut self, pid: u64) {
         self.members.retain(|&p| p != pid);
     }
 
     /// Set partition
+    #[inline(always)]
     pub fn set_partition(&mut self, resource: u8, min: u64, max: u64) {
         self.partitions.insert(resource, ResourcePartition::new(min, max));
     }
 
     /// Update usage
+    #[inline]
     pub fn update_usage(&mut self, resource: u8, usage: u64) {
         if let Some(part) = self.partitions.get_mut(&resource) {
             part.usage = usage;
@@ -169,6 +177,7 @@ impl IsolationDomain {
     }
 
     /// Member count
+    #[inline(always)]
     pub fn member_count(&self) -> usize {
         self.members.len()
     }
@@ -199,9 +208,9 @@ pub struct InterferenceEvent {
 #[derive(Debug)]
 pub struct InterferenceDetector {
     /// Baseline performance per domain
-    baselines: BTreeMap<u64, f64>,
+    baselines: LinearMap<f64, 64>,
     /// Current performance per domain
-    current: BTreeMap<u64, f64>,
+    current: LinearMap<f64, 64>,
     /// Threshold for detection (%)
     pub threshold_pct: f64,
 }
@@ -209,18 +218,20 @@ pub struct InterferenceDetector {
 impl InterferenceDetector {
     pub fn new() -> Self {
         Self {
-            baselines: BTreeMap::new(),
-            current: BTreeMap::new(),
+            baselines: LinearMap::new(),
+            current: LinearMap::new(),
             threshold_pct: 10.0,
         }
     }
 
     /// Set baseline
+    #[inline(always)]
     pub fn set_baseline(&mut self, domain: u64, perf: f64) {
         self.baselines.insert(domain, perf);
     }
 
     /// Update current performance
+    #[inline(always)]
     pub fn update(&mut self, domain: u64, perf: f64) {
         self.current.insert(domain, perf);
     }
@@ -229,7 +240,7 @@ impl InterferenceDetector {
     pub fn detect(&self, now: u64) -> Vec<InterferenceEvent> {
         let mut events = Vec::new();
         for (&domain, &current) in &self.current {
-            if let Some(&baseline) = self.baselines.get(&domain) {
+            if let Some(&baseline) = self.baselines.get(domain) {
                 if baseline > 0.0 {
                     let degradation = (baseline - current) / baseline * 100.0;
                     if degradation > self.threshold_pct {
@@ -255,6 +266,7 @@ impl InterferenceDetector {
 
 /// Isolation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticIsolationStats {
     /// Active domains
     pub active_domains: usize,
@@ -290,6 +302,7 @@ impl HolisticIsolationEngine {
     }
 
     /// Create domain
+    #[inline]
     pub fn create_domain(
         &mut self,
         domain_type: IsolationDomainType,
@@ -320,6 +333,7 @@ impl HolisticIsolationEngine {
     }
 
     /// Remove from domain
+    #[inline]
     pub fn remove_from_domain(&mut self, domain_id: u64, pid: u64) {
         if let Some(domain) = self.domains.get_mut(&domain_id) {
             domain.remove_member(pid);
@@ -331,6 +345,7 @@ impl HolisticIsolationEngine {
     }
 
     /// Check for interference
+    #[inline]
     pub fn detect_interference(&mut self, now: u64) -> Vec<InterferenceEvent> {
         let events = self.detector.detect(now);
         self.stats.interference_events += events.len() as u64;
@@ -338,6 +353,7 @@ impl HolisticIsolationEngine {
     }
 
     /// Get domain
+    #[inline(always)]
     pub fn domain(&self, id: u64) -> Option<&IsolationDomain> {
         self.domains.get(&id)
     }
@@ -348,6 +364,7 @@ impl HolisticIsolationEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticIsolationStats {
         &self.stats
     }

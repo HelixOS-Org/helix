@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -142,12 +143,14 @@ impl WindowedUsage {
     }
 
     /// Record usage
+    #[inline(always)]
     pub fn record(&mut self, amount: u64, now: u64) {
         self.maybe_rotate(now);
         self.current_usage += amount;
     }
 
     /// Current usage ratio (0.0-1.0+)
+    #[inline]
     pub fn usage_ratio(&self, limit: u64) -> f64 {
         if limit == 0 {
             return 0.0;
@@ -156,6 +159,7 @@ impl WindowedUsage {
     }
 
     /// Forecast usage at end of window (linear extrapolation)
+    #[inline]
     pub fn forecast_end_of_window(&self, now: u64) -> u64 {
         let elapsed = now.saturating_sub(self.window_start_ns);
         if elapsed == 0 {
@@ -168,6 +172,7 @@ impl WindowedUsage {
 
 /// Per-process quota state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessQuota {
     /// Process ID
     pub pid: u64,
@@ -193,6 +198,7 @@ impl ProcessQuota {
     }
 
     /// Set quota
+    #[inline]
     pub fn set_quota(&mut self, def: QuotaDefinition, now: u64) {
         let key = def.resource as u8;
         let window_ns = def.window_ns;
@@ -273,6 +279,7 @@ impl ProcessQuota {
 
 /// Group quota (hierarchical)
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct GroupQuota {
     /// Group ID
     pub group_id: u64,
@@ -295,6 +302,7 @@ impl GroupQuota {
     }
 
     /// Add member
+    #[inline]
     pub fn add_member(&mut self, pid: u64) {
         if !self.members.contains(&pid) {
             self.members.push(pid);
@@ -302,6 +310,7 @@ impl GroupQuota {
     }
 
     /// Set group limit
+    #[inline]
     pub fn set_limit(&mut self, def: QuotaDefinition, now: u64) {
         let key = def.resource as u8;
         let window_ns = def.window_ns;
@@ -335,6 +344,7 @@ impl GroupQuota {
 
 /// Quota enforcer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeQuotaStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -351,13 +361,14 @@ pub struct BridgeQuotaStats {
 }
 
 /// Bridge quota enforcer
+#[repr(align(64))]
 pub struct BridgeQuotaEnforcer {
     /// Per-process quotas
     processes: BTreeMap<u64, ProcessQuota>,
     /// Group quotas
     groups: BTreeMap<u64, GroupQuota>,
     /// Process-to-group mapping
-    pid_to_group: BTreeMap<u64, u64>,
+    pid_to_group: LinearMap<u64, 64>,
     /// Stats
     stats: BridgeQuotaStats,
 }
@@ -367,12 +378,13 @@ impl BridgeQuotaEnforcer {
         Self {
             processes: BTreeMap::new(),
             groups: BTreeMap::new(),
-            pid_to_group: BTreeMap::new(),
+            pid_to_group: LinearMap::new(),
             stats: BridgeQuotaStats::default(),
         }
     }
 
     /// Set process quota
+    #[inline]
     pub fn set_process_quota(&mut self, pid: u64, def: QuotaDefinition, now: u64) {
         let proc = self.processes.entry(pid).or_insert_with(|| ProcessQuota::new(pid));
         proc.set_quota(def, now);
@@ -384,7 +396,7 @@ impl BridgeQuotaEnforcer {
         self.stats.total_checks += 1;
 
         // Check group quota first
-        if let Some(&group_id) = self.pid_to_group.get(&pid) {
+        if let Some(&group_id) = self.pid_to_group.get(pid) {
             if let Some(group) = self.groups.get_mut(&group_id) {
                 let group_action = group.record(resource, amount, now);
                 if group_action == QuotaAction::Deny {
@@ -406,12 +418,14 @@ impl BridgeQuotaEnforcer {
     }
 
     /// Create group
+    #[inline(always)]
     pub fn create_group(&mut self, group_id: u64) {
         self.groups.insert(group_id, GroupQuota::new(group_id));
         self.update_stats();
     }
 
     /// Add process to group
+    #[inline]
     pub fn add_to_group(&mut self, pid: u64, group_id: u64) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.add_member(pid);
@@ -420,6 +434,7 @@ impl BridgeQuotaEnforcer {
     }
 
     /// Set group quota
+    #[inline]
     pub fn set_group_quota(&mut self, group_id: u64, def: QuotaDefinition, now: u64) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.set_limit(def, now);
@@ -433,6 +448,7 @@ impl BridgeQuotaEnforcer {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeQuotaStats {
         &self.stats
     }

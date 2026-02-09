@@ -36,18 +36,21 @@ impl Forecaster {
     }
 
     /// Set forecast horizon
+    #[inline(always)]
     pub fn with_horizon(mut self, ticks: u64) -> Self {
         self.default_horizon = ticks;
         self
     }
 
     /// Set confidence level
+    #[inline(always)]
     pub fn with_confidence(mut self, level: f64) -> Self {
         self.confidence_level = level.clamp(0.5, 0.99);
         self
     }
 
     /// Record a value
+    #[inline]
     pub fn record(&mut self, metric: &str, value: f64) {
         let series = self
             .series
@@ -57,6 +60,7 @@ impl Forecaster {
     }
 
     /// Record a value with timestamp
+    #[inline]
     pub fn record_at(&mut self, metric: &str, timestamp: u64, value: f64) {
         let series = self
             .series
@@ -148,36 +152,43 @@ impl Forecaster {
     }
 
     /// Forecast time to exhaustion (when value reaches 100%)
+    #[inline(always)]
     pub fn time_to_exhaustion(&self, metric: &str, capacity: f64) -> Option<u64> {
         self.time_to_threshold(metric, capacity)
     }
 
     /// Get trend for a metric
+    #[inline(always)]
     pub fn get_trend(&self, metric: &str) -> Option<f64> {
         self.series.get(metric).map(|s| s.trend())
     }
 
     /// Get current value for a metric
+    #[inline(always)]
     pub fn current(&self, metric: &str) -> Option<f64> {
         self.series.get(metric).and_then(|s| s.latest())
     }
 
     /// Get series for a metric
+    #[inline(always)]
     pub fn get_series(&self, metric: &str) -> Option<&TimeSeries> {
         self.series.get(metric)
     }
 
     /// Get all metrics
+    #[inline(always)]
     pub fn metrics(&self) -> Vec<&str> {
         self.series.keys().map(|s| s.as_str()).collect()
     }
 
     /// Clear a metric
+    #[inline(always)]
     pub fn clear(&mut self, metric: &str) {
         self.series.remove(metric);
     }
 
     /// Clear all metrics
+    #[inline(always)]
     pub fn clear_all(&mut self) {
         self.series.clear();
     }

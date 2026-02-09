@@ -56,6 +56,7 @@ impl IommuUnit {
     }
 
     /// Create domain
+    #[inline]
     pub fn create_domain(&mut self, domain_type: DomainType, timestamp: u64) -> DomainId {
         let id = DomainId::new(self.next_domain_id.fetch_add(1, Ordering::Relaxed));
         let domain = IommuDomain::new(id, domain_type, self.id, timestamp);
@@ -64,16 +65,19 @@ impl IommuUnit {
     }
 
     /// Get domain
+    #[inline(always)]
     pub fn get_domain(&self, id: DomainId) -> Option<&IommuDomain> {
         self.domains.get(&id)
     }
 
     /// Get domain mutably
+    #[inline(always)]
     pub fn get_domain_mut(&mut self, id: DomainId) -> Option<&mut IommuDomain> {
         self.domains.get_mut(&id)
     }
 
     /// Attach device to domain
+    #[inline]
     pub fn attach_device(&mut self, device: DeviceId, domain_id: DomainId) -> bool {
         if let Some(domain) = self.domains.get_mut(&domain_id) {
             domain.attach_device(device);
@@ -85,32 +89,38 @@ impl IommuUnit {
     }
 
     /// Get device domain
+    #[inline(always)]
     pub fn get_device_domain(&self, device: DeviceId) -> Option<DomainId> {
         self.device_domains.get(&device).copied()
     }
 
     /// Enable translation
+    #[inline(always)]
     pub fn enable_translation(&mut self) {
         self.translation_enabled.store(true, Ordering::Relaxed);
         self.state = IommuState::Enabled;
     }
 
     /// Is translation enabled
+    #[inline(always)]
     pub fn is_translation_enabled(&self) -> bool {
         self.translation_enabled.load(Ordering::Relaxed)
     }
 
     /// Enable interrupt remapping
+    #[inline(always)]
     pub fn enable_interrupt_remap(&self) {
         self.interrupt_remap_enabled.store(true, Ordering::Relaxed);
     }
 
     /// Is interrupt remapping enabled
+    #[inline(always)]
     pub fn is_interrupt_remap_enabled(&self) -> bool {
         self.interrupt_remap_enabled.load(Ordering::Relaxed)
     }
 
     /// Get domain count
+    #[inline(always)]
     pub fn domain_count(&self) -> usize {
         self.domains.len()
     }

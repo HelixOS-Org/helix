@@ -57,6 +57,7 @@ pub struct ProcessSeccomp {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompBridgeStats {
     pub total_filters: u32,
     pub total_processes: u32,
@@ -66,6 +67,7 @@ pub struct SeccompBridgeStats {
 }
 
 /// Main bridge seccomp
+#[repr(align(64))]
 pub struct BridgeSeccomp {
     filters: BTreeMap<u64, SeccompBridgeFilter>,
     processes: BTreeMap<u64, ProcessSeccomp>,
@@ -75,6 +77,7 @@ pub struct BridgeSeccomp {
 impl BridgeSeccomp {
     pub fn new() -> Self { Self { filters: BTreeMap::new(), processes: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn install_filter(&mut self, pid: u64, default: SeccompBridgeAction) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.filters.insert(id, SeccompBridgeFilter::new(id, pid, default));
@@ -83,6 +86,7 @@ impl BridgeSeccomp {
         id
     }
 
+    #[inline]
     pub fn check_syscall(&mut self, filter_id: u64, allowed: bool) {
         if let Some(f) = self.filters.get_mut(&filter_id) {
             f.syscall_checks += 1;
@@ -90,6 +94,7 @@ impl BridgeSeccomp {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> SeccompBridgeStats {
         let checks: u64 = self.filters.values().map(|f| f.syscall_checks).sum();
         let denied: u64 = self.filters.values().map(|f| f.denied).sum();
@@ -160,6 +165,7 @@ impl SeccompV2Filter {
         }
     }
 
+    #[inline]
     pub fn add_rule(&mut self, syscall_nr: u32, action: SeccompV2Action) {
         self.rules.push(SeccompV2Rule {
             syscall_nr,
@@ -171,6 +177,7 @@ impl SeccompV2Filter {
         });
     }
 
+    #[inline]
     pub fn add_arg_rule(&mut self, syscall_nr: u32, arg_idx: u8, cmp: SeccompV2Cmp, value: u64, action: SeccompV2Action) {
         self.rules.push(SeccompV2Rule {
             syscall_nr,
@@ -217,6 +224,7 @@ impl ProcessSeccompV2 {
         }
     }
 
+    #[inline(always)]
     pub fn install_filter(&mut self, filter: SeccompV2Filter) {
         self.filters.push(filter);
     }
@@ -237,6 +245,7 @@ impl ProcessSeccompV2 {
 
 /// Statistics for seccomp V2 bridge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompV2BridgeStats {
     pub processes_filtered: u64,
     pub filters_installed: u64,
@@ -249,6 +258,7 @@ pub struct SeccompV2BridgeStats {
 
 /// Main seccomp V2 bridge manager
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeSeccompV2 {
     processes: BTreeMap<u64, ProcessSeccompV2>,
     next_filter_id: u64,
@@ -272,11 +282,13 @@ impl BridgeSeccompV2 {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.insert(pid, ProcessSeccompV2::new(pid));
         self.stats.processes_filtered += 1;
     }
 
+    #[inline]
     pub fn install_filter(&mut self, pid: u64, default: SeccompV2Action) -> Option<u64> {
         if let Some(proc) = self.processes.get_mut(&pid) {
             let id = self.next_filter_id;
@@ -304,6 +316,7 @@ impl BridgeSeccompV2 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SeccompV2BridgeStats {
         &self.stats
     }
@@ -413,6 +426,7 @@ impl SeccompV3Filter {
         }
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: SeccompV3Rule) {
         self.rules.push(rule);
         self.rules.sort_by(|a, b| b.priority.cmp(&a.priority));
@@ -434,12 +448,14 @@ impl SeccompV3Filter {
         self.default_action
     }
 
+    #[inline(always)]
     pub fn cache_hit_rate(&self) -> u64 {
         if self.total_evaluations == 0 { 0 } else { (self.cache_hits * 100) / self.total_evaluations }
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompV3BridgeStats {
     pub total_filters: u64,
     pub total_rules: u64,
@@ -448,6 +464,7 @@ pub struct SeccompV3BridgeStats {
     pub total_notifs: u64,
 }
 
+#[repr(align(64))]
 pub struct BridgeSeccompV3 {
     filters: BTreeMap<u64, SeccompV3Filter>,
     process_filters: BTreeMap<u64, Vec<u64>>,
@@ -471,6 +488,7 @@ impl BridgeSeccompV3 {
         }
     }
 
+    #[inline]
     pub fn create_filter(&mut self, default_action: SeccompV3Action) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let filter = SeccompV3Filter::new(id, default_action);
@@ -479,10 +497,12 @@ impl BridgeSeccompV3 {
         id
     }
 
+    #[inline(always)]
     pub fn attach_to_process(&mut self, filter_id: u64, pid: u64) {
         self.process_filters.entry(pid).or_insert_with(Vec::new).push(filter_id);
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SeccompV3BridgeStats {
         &self.stats
     }
@@ -517,6 +537,7 @@ pub enum SeccompV4Op {
 
 /// Seccomp v4 record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompV4Record {
     pub op: SeccompV4Op,
     pub action: SeccompV4Action,
@@ -534,6 +555,7 @@ impl SeccompV4Record {
 
 /// Seccomp v4 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompV4BridgeStats {
     pub total_ops: u64,
     pub filters_installed: u64,
@@ -553,6 +575,7 @@ impl BridgeSeccompV4 {
         Self { stats: SeccompV4BridgeStats { total_ops: 0, filters_installed: 0, user_notifs: 0, kills: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SeccompV4Record) {
         self.stats.total_ops += 1;
         match rec.op {

@@ -258,6 +258,7 @@ impl Default for ProverConfig {
 
 /// Prover statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ProverStats {
     /// Total proofs attempted
     pub proofs_attempted: u64,
@@ -381,11 +382,13 @@ impl TheoremProver {
     }
 
     /// Add axiom
+    #[inline(always)]
     pub fn add_axiom(&mut self, name: &str, formula: Formula) {
         self.axioms.insert(name.into(), formula);
     }
 
     /// Add definition
+    #[inline(always)]
     pub fn add_definition(&mut self, name: &str, term: Term) {
         self.definitions.insert(name.into(), term);
     }
@@ -951,16 +954,19 @@ impl TheoremProver {
     }
 
     /// Check if proof is complete
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.goals.is_empty() || self.goals.iter().all(|g| g.solved)
     }
 
     /// Get current goals
+    #[inline(always)]
     pub fn current_goals(&self) -> &[Goal] {
         &self.goals
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ProverStats {
         &self.stats
     }

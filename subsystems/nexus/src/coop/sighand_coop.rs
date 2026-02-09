@@ -22,6 +22,7 @@ impl SighandCoopRecord {
 
 /// Sighand coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SighandCoopStats { pub total_events: u64, pub shares: u64, pub cows: u64, pub propagations: u64 }
 
 /// Main coop sighand
@@ -30,6 +31,7 @@ pub struct CoopSighand { pub stats: SighandCoopStats }
 
 impl CoopSighand {
     pub fn new() -> Self { Self { stats: SighandCoopStats { total_events: 0, shares: 0, cows: 0, propagations: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SighandCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

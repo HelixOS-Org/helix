@@ -64,6 +64,7 @@ impl BoidFlock {
     }
 
     /// Set world bounds
+    #[inline(always)]
     pub fn with_bounds(mut self, bounds: Vec<(f64, f64)>) -> Self {
         self.bounds = bounds;
         self
@@ -425,6 +426,7 @@ impl PredatorPreyFlock {
     }
 
     /// Add predator
+    #[inline(always)]
     pub fn add_predator(&mut self, predator: Predator) {
         self.predators.push(predator);
     }

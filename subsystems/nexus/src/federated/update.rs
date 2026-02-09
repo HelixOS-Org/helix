@@ -30,11 +30,13 @@ impl ModelUpdate {
     }
 
     /// Update norm
+    #[inline(always)]
     pub fn norm(&self) -> f64 {
         libm::sqrt(self.delta.iter().map(|x| x * x).sum())
     }
 
     /// Clip update to bound
+    #[inline]
     pub fn clip(&mut self, bound: f64) {
         let norm = self.norm();
         if norm > bound {

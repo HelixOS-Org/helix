@@ -59,6 +59,7 @@ pub struct Bdf {
 
 impl Bdf {
     pub fn new(bus: u8, dev: u8, func: u8) -> Self { Self { bus, device: dev, function: func } }
+    #[inline(always)]
     pub fn as_u32(&self) -> u32 { ((self.bus as u32) << 8) | ((self.device as u32) << 3) | self.function as u32 }
 }
 
@@ -103,7 +104,9 @@ impl PciDevice {
         }
     }
 
+    #[inline(always)]
     pub fn is_bridge(&self) -> bool { self.class == PciClass::Bridge }
+    #[inline(always)]
     pub fn add_bar(&mut self, bar: PciBar) { self.bars.push(bar); }
 }
 
@@ -129,6 +132,7 @@ impl PciBus {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PciEnumStats {
     pub total_buses: u32,
     pub total_devices: u32,
@@ -149,16 +153,19 @@ pub struct HolisticPciEnum {
 impl HolisticPciEnum {
     pub fn new() -> Self { Self { devices: BTreeMap::new(), buses: BTreeMap::new() } }
 
+    #[inline]
     pub fn discover_device(&mut self, bdf: Bdf, vendor: u16, device: u16, class: u8, subclass: u8) {
         let dev = PciDevice::new(bdf, vendor, device, class, subclass);
         self.devices.insert(bdf.as_u32(), dev);
         self.buses.entry(bdf.bus).or_insert_with(|| PciBus::new(bdf.bus)).devices.push(bdf);
     }
 
+    #[inline(always)]
     pub fn get_device(&self, bdf: &Bdf) -> Option<&PciDevice> {
         self.devices.get(&bdf.as_u32())
     }
 
+    #[inline(always)]
     pub fn devices_by_class(&self, class: PciClass) -> Vec<&PciDevice> {
         self.devices.values().filter(|d| d.class == class).collect()
     }
@@ -239,11 +246,13 @@ impl PciDeviceV2 {
     pub fn new(bus: u8, dev: u8, func: u8, vid: u16, did: u16, class: PciClassV2) -> Self {
         Self { bus, device: dev, function: func, vendor_id: vid, device_id: did, class, subclass: 0, revision: 0, bars: Vec::new(), irq: None, msi_capable: false, msix_capable: false }
     }
+    #[inline(always)]
     pub fn bdf(&self) -> u32 { ((self.bus as u32) << 8) | ((self.device as u32) << 3) | (self.function as u32) }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PciEnumV2Stats {
     pub total_devices: u32,
     pub total_buses: u32,
@@ -261,17 +270,21 @@ pub struct HolisticPciEnumV2 {
 impl HolisticPciEnumV2 {
     pub fn new() -> Self { Self { devices: BTreeMap::new(), buses_scanned: 0 } }
 
+    #[inline(always)]
     pub fn add_device(&mut self, dev: PciDeviceV2) {
         let bdf = dev.bdf();
         self.devices.insert(bdf, dev);
     }
 
+    #[inline(always)]
     pub fn scan_bus(&mut self, bus: u8) { self.buses_scanned = self.buses_scanned.max(bus as u32 + 1); }
 
+    #[inline(always)]
     pub fn find_by_class(&self, class: PciClassV2) -> Vec<u32> {
         self.devices.iter().filter(|(_, d)| d.class == class).map(|(&bdf, _)| bdf).collect()
     }
 
+    #[inline]
     pub fn stats(&self) -> PciEnumV2Stats {
         let bars: u32 = self.devices.values().map(|d| d.bars.len() as u32).sum();
         let msi = self.devices.values().filter(|d| d.msi_capable).count() as u32;

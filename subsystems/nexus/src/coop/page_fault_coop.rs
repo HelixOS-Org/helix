@@ -9,6 +9,7 @@
 //! - Speculative page preparation based on group behavior
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -40,9 +41,11 @@ pub struct FaultPattern {
 }
 
 impl FaultPattern {
+    #[inline(always)]
     pub fn is_predictable(&self) -> bool {
         self.sequential_score > 0.6 || self.spatial_locality > 0.7
     }
+    #[inline]
     pub fn predict_next(&self, last_addr: u64) -> Option<u64> {
         if self.is_predictable() && self.access_stride != 0 {
             Some((last_addr as i64 + self.access_stride) as u64)
@@ -53,6 +56,7 @@ impl FaultPattern {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FaultCoopStats {
     pub faults_shared: u64,
     pub prefetch_hints: u64,
@@ -68,7 +72,7 @@ pub struct PageFaultCoopManager {
     /// pid → learned fault pattern
     patterns: BTreeMap<u64, FaultPattern>,
     /// pid → group_id
-    pid_groups: BTreeMap<u64, u64>,
+    pid_groups: LinearMap<u64, 64>,
     /// Prefetch queue: (pid, predicted_addr)
     prefetch_queue: Vec<(u64, u64)>,
     max_faults_per_group: usize,
@@ -80,13 +84,14 @@ impl PageFaultCoopManager {
         Self {
             group_faults: BTreeMap::new(),
             patterns: BTreeMap::new(),
-            pid_groups: BTreeMap::new(),
+            pid_groups: LinearMap::new(),
             prefetch_queue: Vec::new(),
             max_faults_per_group: max_faults,
             stats: FaultCoopStats::default(),
         }
     }
 
+    #[inline]
     pub fn register_group(&mut self, group_id: u64, pids: &[u64]) {
         self.group_faults.insert(group_id, Vec::new());
         for &pid in pids {
@@ -100,7 +105,7 @@ impl PageFaultCoopManager {
         let addr = record.addr;
 
         // Add to group
-        if let Some(&group_id) = self.pid_groups.get(&pid) {
+        if let Some(&group_id) = self.pid_groups.get(pid) {
             let faults = self.group_faults.entry(group_id).or_insert_with(Vec::new);
             faults.push(record);
             if faults.len() > self.max_faults_per_group {
@@ -140,7 +145,7 @@ impl PageFaultCoopManager {
     }
 
     fn generate_prefetch_hints(&mut self, pid: u64) {
-        let group_id = match self.pid_groups.get(&pid) {
+        let group_id = match self.pid_groups.get(pid) {
             Some(g) => *g,
             None => return,
         };
@@ -189,17 +194,21 @@ impl PageFaultCoopManager {
     }
 
     /// Record a prefetch hit (the prefetched page was actually accessed)
+    #[inline(always)]
     pub fn record_prefetch_hit(&mut self) {
         self.stats.prefetch_hits += 1;
     }
 
+    #[inline(always)]
     pub fn pattern(&self, pid: u64) -> Option<&FaultPattern> {
         self.patterns.get(&pid)
     }
+    #[inline(always)]
     pub fn stats(&self) -> &FaultCoopStats {
         &self.stats
     }
 
+    #[inline]
     pub fn prefetch_hit_rate(&self) -> f64 {
         if self.stats.prefetch_hints == 0 {
             return 0.0;

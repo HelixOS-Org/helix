@@ -16,6 +16,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -55,6 +56,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f64, sample: f64, alpha: f64) -> f64 {
     alpha * sample + (1.0 - alpha) * current
 }
@@ -239,8 +241,8 @@ pub struct CausalExplanation {
 struct AppCausalState {
     app_id: u64,
     relations: Vec<CausalRelation>,
-    recent_actions: Vec<(AppActionType, u64)>,
-    recent_effects: Vec<(SystemEffect, u64)>,
+    recent_actions: VecDeque<(AppActionType, u64)>,
+    recent_effects: VecDeque<(SystemEffect, u64)>,
     prediction_count: u64,
     correct_predictions: u64,
 }
@@ -250,24 +252,24 @@ impl AppCausalState {
         Self {
             app_id,
             relations: Vec::new(),
-            recent_actions: Vec::new(),
-            recent_effects: Vec::new(),
+            recent_actions: VecDeque::new(),
+            recent_effects: VecDeque::new(),
             prediction_count: 0,
             correct_predictions: 0,
         }
     }
 
     fn record_action(&mut self, action: AppActionType, tick: u64) {
-        self.recent_actions.push((action, tick));
+        self.recent_actions.push_back((action, tick));
         if self.recent_actions.len() > 64 {
-            self.recent_actions.remove(0);
+            self.recent_actions.pop_front();
         }
     }
 
     fn record_effect(&mut self, effect: SystemEffect, tick: u64) {
-        self.recent_effects.push((effect, tick));
+        self.recent_effects.push_back((effect, tick));
         if self.recent_effects.len() > 64 {
-            self.recent_effects.remove(0);
+            self.recent_effects.pop_front();
         }
         // Check for causal linkage: any recent action within 10 ticks
         for &(action, a_tick) in self.recent_actions.iter().rev() {
@@ -315,6 +317,7 @@ impl AppCausalState {
 
 /// Engine-level statistics for the causal forecast module.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CausalForecastStats {
     pub total_predictions: u64,
     pub total_relations_discovered: u64,
@@ -371,6 +374,7 @@ impl AppsCausalForecast {
     }
 
     /// Record that an application performed an action.
+    #[inline]
     pub fn observe_action(&mut self, app_id: u64, action: AppActionType) {
         self.tick += 1;
         if self.app_states.len() >= MAX_APPS && !self.app_states.contains_key(&app_id) {
@@ -398,6 +402,7 @@ impl AppsCausalForecast {
     }
 
     /// Predict the most likely system effect given an application action.
+    #[inline]
     pub fn causal_app_predict(&mut self, app_id: u64, action: AppActionType) -> Option<(SystemEffect, f64)> {
         self.stats.total_predictions += 1;
         let state = self.app_states.get(&app_id)?;
@@ -562,16 +567,19 @@ impl AppsCausalForecast {
     }
 
     /// Return a snapshot of engine statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &CausalForecastStats {
         &self.stats
     }
 
     /// Total number of tracked causal relations across all apps.
+    #[inline(always)]
     pub fn total_relations(&self) -> usize {
         self.app_states.values().map(|s| s.relations.len()).sum()
     }
 
     /// Number of tracked applications.
+    #[inline(always)]
     pub fn tracked_apps(&self) -> usize {
         self.app_states.len()
     }

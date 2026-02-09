@@ -23,6 +23,7 @@ pub type AttributeVector = Vec<f64>;
 pub type ClassId = u32;
 
 /// Euclidean distance between vectors
+#[inline]
 pub fn euclidean_distance(a: &[f64], b: &[f64]) -> f64 {
     let mut sum = 0.0;
     for (x, y) in a.iter().zip(b.iter()) {

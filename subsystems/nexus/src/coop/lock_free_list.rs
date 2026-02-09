@@ -46,6 +46,7 @@ impl LockFreeList {
         Self { nodes: Vec::new(), head_key: None, epoch: 0, insertions: 0, deletions: 0, traversals: 0, cas_failures: 0 }
     }
 
+    #[inline]
     pub fn insert(&mut self, key: u64, value_hash: u64) -> bool {
         self.epoch += 1;
         if self.nodes.iter().any(|n| n.key == key && n.state == LfNodeState::Active) { return false; }
@@ -57,6 +58,7 @@ impl LockFreeList {
         true
     }
 
+    #[inline]
     pub fn remove(&mut self, key: u64) -> bool {
         if let Some(n) = self.nodes.iter_mut().find(|n| n.key == key && n.state == LfNodeState::Active) {
             n.state = LfNodeState::Marked;
@@ -65,13 +67,16 @@ impl LockFreeList {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn contains(&mut self, key: u64) -> bool {
         self.traversals += 1;
         self.nodes.iter().any(|n| n.key == key && n.state == LfNodeState::Active)
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize { self.nodes.iter().filter(|n| n.state == LfNodeState::Active).count() }
 
+    #[inline(always)]
     pub fn cleanup(&mut self) {
         self.nodes.retain(|n| n.state == LfNodeState::Active);
     }
@@ -79,6 +84,7 @@ impl LockFreeList {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LockFreeListStats {
     pub active_nodes: u32,
     pub total_insertions: u64,
@@ -94,11 +100,16 @@ pub struct CoopLockFreeList {
 
 impl CoopLockFreeList {
     pub fn new() -> Self { Self { list: LockFreeList::new() } }
+    #[inline(always)]
     pub fn insert(&mut self, key: u64, val: u64) -> bool { self.list.insert(key, val) }
+    #[inline(always)]
     pub fn remove(&mut self, key: u64) -> bool { self.list.remove(key) }
+    #[inline(always)]
     pub fn contains(&mut self, key: u64) -> bool { self.list.contains(key) }
+    #[inline(always)]
     pub fn len(&self) -> usize { self.list.len() }
 
+    #[inline(always)]
     pub fn stats(&self) -> LockFreeListStats {
         LockFreeListStats { active_nodes: self.list.len() as u32, total_insertions: self.list.insertions, total_deletions: self.list.deletions, total_traversals: self.list.traversals, cas_failures: self.list.cas_failures }
     }

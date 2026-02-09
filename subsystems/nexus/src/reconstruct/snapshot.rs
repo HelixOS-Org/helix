@@ -8,6 +8,7 @@ use crate::core::{ComponentId, NexusTimestamp};
 
 /// A snapshot of state at a point in time
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateSnapshot {
     /// Timestamp
     pub timestamp: NexusTimestamp,
@@ -31,11 +32,13 @@ impl StateSnapshot {
     }
 
     /// Set a value
+    #[inline(always)]
     pub fn set(&mut self, key: impl Into<String>, value: Vec<u8>) {
         self.state.insert(key.into(), value);
     }
 
     /// Get a value
+    #[inline(always)]
     pub fn get(&self, key: &str) -> Option<&Vec<u8>> {
         self.state.get(key)
     }
@@ -59,6 +62,7 @@ impl StateSnapshot {
     }
 
     /// Verify checksum
+    #[inline]
     pub fn verify_checksum(&self) -> bool {
         let mut snapshot = self.clone();
         snapshot.calculate_checksum();

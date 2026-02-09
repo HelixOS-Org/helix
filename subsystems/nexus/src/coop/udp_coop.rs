@@ -2,6 +2,7 @@
 //! Coop UDP — cooperative UDP socket sharing with multicast coordination
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -33,14 +34,15 @@ pub struct SharedUdpPort {
     pub mode: CoopUdpShareMode,
     pub total_datagrams: u64,
     pub total_bytes: u64,
-    pub distribution: BTreeMap<u64, u64>,
+    pub distribution: LinearMap<u64, 64>,
 }
 
 impl SharedUdpPort {
     pub fn new(port: u16, mode: CoopUdpShareMode) -> Self {
-        Self { port, members: Vec::new(), mode, total_datagrams: 0, total_bytes: 0, distribution: BTreeMap::new() }
+        Self { port, members: Vec::new(), mode, total_datagrams: 0, total_bytes: 0, distribution: LinearMap::new() }
     }
 
+    #[inline]
     pub fn add_member(&mut self, sock_id: u64) {
         if !self.members.contains(&sock_id) {
             self.members.push(sock_id);
@@ -48,21 +50,24 @@ impl SharedUdpPort {
         }
     }
 
+    #[inline(always)]
     pub fn remove_member(&mut self, sock_id: u64) {
         self.members.retain(|&id| id != sock_id);
-        self.distribution.remove(&sock_id);
+        self.distribution.remove(sock_id);
     }
 
+    #[inline]
     pub fn dispatch(&mut self, dgram_bytes: u64, seed: u64) -> Option<u64> {
         if self.members.is_empty() { return None; }
         let idx = (seed % self.members.len() as u64) as usize;
         let target = self.members[idx];
         self.total_datagrams += 1;
         self.total_bytes += dgram_bytes;
-        *self.distribution.entry(target).or_insert(0) += 1;
+        self.distribution.add(target, 1);
         Some(target)
     }
 
+    #[inline]
     pub fn balance_score(&self) -> f64 {
         if self.members.is_empty() { return 0.0; }
         let avg = self.total_datagrams as f64 / self.members.len() as f64;
@@ -90,6 +95,7 @@ impl CoopUdpSocket {
         Self { sock_id, state: CoopUdpState::Idle, port: 0, sent: 0, received: 0, drops: 0 }
     }
 
+    #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         let total = self.received + self.drops;
         if total == 0 { 0.0 } else { self.drops as f64 / total as f64 }
@@ -98,6 +104,7 @@ impl CoopUdpSocket {
 
 /// Coop UDP stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopUdpStats {
     pub total_sockets: u64,
     pub shared_ports: u64,
@@ -122,11 +129,13 @@ impl CoopUdp {
         }
     }
 
+    #[inline(always)]
     pub fn create_socket(&mut self, sock_id: u64) {
         self.sockets.insert(sock_id, CoopUdpSocket::new(sock_id));
         self.stats.total_sockets += 1;
     }
 
+    #[inline]
     pub fn share_port(&mut self, port: u16, sock_id: u64, mode: CoopUdpShareMode) {
         let group = self.ports.entry(port).or_insert_with(|| {
             self.stats.shared_ports += 1;
@@ -158,6 +167,7 @@ impl UdpCoopV2Record {
 
 /// UDP coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UdpCoopV2Stats { pub total_events: u64, pub multicasts: u64, pub port_reuses: u64, pub bytes_pooled: u64 }
 
 /// Main coop UDP v2
@@ -166,6 +176,7 @@ pub struct CoopUdpV2 { pub stats: UdpCoopV2Stats }
 
 impl CoopUdpV2 {
     pub fn new() -> Self { Self { stats: UdpCoopV2Stats { total_events: 0, multicasts: 0, port_reuses: 0, bytes_pooled: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &UdpCoopV2Record) {
         self.stats.total_events += 1;
         match rec.event {

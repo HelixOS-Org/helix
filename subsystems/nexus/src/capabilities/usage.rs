@@ -36,17 +36,20 @@ impl PrivilegeUsage {
     }
 
     /// Record usage
+    #[inline(always)]
     pub fn record_usage(&mut self, cap: Capability, timestamp: u64) {
         *self.usage_count.entry(cap).or_insert(0) += 1;
         self.last_used.insert(cap, timestamp);
     }
 
     /// Record denial
+    #[inline(always)]
     pub fn record_denial(&mut self, cap: Capability) {
         *self.denied.entry(cap).or_insert(0) += 1;
     }
 
     /// Get unused capabilities from set
+    #[inline]
     pub fn unused_from(&self, set: &CapabilitySet) -> Vec<Capability> {
         set.iter()
             .filter(|c| !self.usage_count.contains_key(c))
@@ -54,11 +57,13 @@ impl PrivilegeUsage {
     }
 
     /// Get used capabilities
+    #[inline(always)]
     pub fn used_capabilities(&self) -> Vec<Capability> {
         self.usage_count.keys().copied().collect()
     }
 
     /// Finish profile
+    #[inline(always)]
     pub fn finish(&mut self, timestamp: u64) {
         self.profile_end = Some(timestamp);
     }
@@ -156,11 +161,13 @@ impl LeastPrivilegeAnalyzer {
     }
 
     /// Start profiling
+    #[inline(always)]
     pub fn start_profile(&mut self, pid: Pid, timestamp: u64) {
         self.profiles.insert(pid, PrivilegeUsage::new(timestamp));
     }
 
     /// Record usage
+    #[inline]
     pub fn record_usage(&mut self, pid: Pid, cap: Capability, timestamp: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_usage(cap, timestamp);
@@ -212,16 +219,19 @@ impl LeastPrivilegeAnalyzer {
     }
 
     /// Get template
+    #[inline(always)]
     pub fn get_template(&self, name: &str) -> Option<&CapabilitySet> {
         self.templates.get(name)
     }
 
     /// Add template
+    #[inline(always)]
     pub fn add_template(&mut self, name: String, caps: CapabilitySet) {
         self.templates.insert(name, caps);
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn get_profile(&self, pid: Pid) -> Option<&PrivilegeUsage> {
         self.profiles.get(&pid)
     }

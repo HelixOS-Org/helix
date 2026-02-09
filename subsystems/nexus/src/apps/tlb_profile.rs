@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -61,7 +62,7 @@ pub struct ProcessTlbProfile {
     pub dtlb_miss_rate: f64,
     pub stlb_miss_rate: f64,
     /// Distinct pages accessed (for WSS estimation)
-    distinct_pages: BTreeMap<u64, u32>,
+    distinct_pages: LinearMap<u32, 64>,
     /// Huge page hits
     pub huge_page_hits: u64,
     /// Total accesses
@@ -85,7 +86,7 @@ impl ProcessTlbProfile {
             itlb_miss_rate: 0.0,
             dtlb_miss_rate: 0.0,
             stlb_miss_rate: 0.0,
-            distinct_pages: BTreeMap::new(),
+            distinct_pages: LinearMap::new(),
             huge_page_hits: 0,
             total_accesses: 0,
             pcid: 0,
@@ -112,7 +113,7 @@ impl ProcessTlbProfile {
 
         // Track distinct pages for WSS
         let page_addr = event.address >> 12; // 4K-aligned
-        *self.distinct_pages.entry(page_addr).or_insert(0) += 1;
+        self.distinct_pages.add(page_addr, 1);
 
         self.update_miss_rates();
     }
@@ -136,27 +137,32 @@ impl ProcessTlbProfile {
     }
 
     /// Working set size estimate (pages)
+    #[inline(always)]
     pub fn wss_pages(&self) -> usize {
         self.distinct_pages.len()
     }
 
     /// Working set size estimate (bytes, assuming 4K pages)
+    #[inline(always)]
     pub fn wss_bytes(&self) -> u64 {
         self.distinct_pages.len() as u64 * 4096
     }
 
     /// Should use huge pages?
+    #[inline(always)]
     pub fn should_use_huge_pages(&self) -> bool {
         // High DTLB miss rate + large WSS
         self.dtlb_miss_rate > 0.05 && self.wss_bytes() > 4 * 1024 * 1024
     }
 
     /// Overall TLB pressure
+    #[inline(always)]
     pub fn tlb_pressure(&self) -> f64 {
         (self.dtlb_miss_rate + self.itlb_miss_rate + self.stlb_miss_rate) / 3.0
     }
 
     /// Hot pages (most accessed)
+    #[inline]
     pub fn hot_pages(&self, n: usize) -> Vec<(u64, u32)> {
         let mut pages: Vec<(u64, u32)> = self.distinct_pages.iter()
             .map(|(&addr, &count)| (addr, count))
@@ -169,6 +175,7 @@ impl ProcessTlbProfile {
 
 /// TLB profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppTlbProfilerStats {
     pub tracked_processes: usize,
     pub total_tlb_misses: u64,
@@ -191,6 +198,7 @@ impl AppTlbProfiler {
         }
     }
 
+    #[inline]
     pub fn record_event(&mut self, pid: u64, event: &TlbEvent) {
         self.processes.entry(pid)
             .or_insert_with(|| ProcessTlbProfile::new(pid))
@@ -216,6 +224,7 @@ impl AppTlbProfiler {
             .count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppTlbProfilerStats {
         &self.stats
     }

@@ -41,6 +41,7 @@ impl Default for PerformanceConfig {
 
 impl PerformanceConfig {
     /// Aggressive performance configuration
+    #[inline]
     pub fn aggressive() -> Self {
         Self {
             enable_simd: true,

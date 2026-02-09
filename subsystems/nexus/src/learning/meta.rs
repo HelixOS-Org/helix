@@ -58,21 +58,25 @@ impl MetaTask {
     }
 
     /// Add support sample
+    #[inline(always)]
     pub fn add_support(&mut self, sample: StreamingSample) {
         self.support.push(sample);
     }
 
     /// Add query sample
+    #[inline(always)]
     pub fn add_query(&mut self, sample: StreamingSample) {
         self.query.push(sample);
     }
 
     /// Get k-shot (number of support examples per class)
+    #[inline(always)]
     pub fn support_size(&self) -> usize {
         self.support.len()
     }
 
     /// Get query size
+    #[inline(always)]
     pub fn query_size(&self) -> usize {
         self.query.len()
     }
@@ -99,6 +103,7 @@ impl TaskDistribution {
     }
 
     /// Add task
+    #[inline]
     pub fn add_task(&mut self, task: MetaTask) -> TaskId {
         let id = task.id;
         self.weights.insert(id, 1.0);
@@ -107,6 +112,7 @@ impl TaskDistribution {
     }
 
     /// Create and add task
+    #[inline]
     pub fn create_task(&mut self, name: String) -> TaskId {
         let id = TaskId(self.next_id);
         self.next_id += 1;
@@ -115,11 +121,13 @@ impl TaskDistribution {
     }
 
     /// Get task
+    #[inline(always)]
     pub fn get_task(&self, id: TaskId) -> Option<&MetaTask> {
         self.tasks.get(&id)
     }
 
     /// Get task mut
+    #[inline(always)]
     pub fn get_task_mut(&mut self, id: TaskId) -> Option<&mut MetaTask> {
         self.tasks.get_mut(&id)
     }
@@ -150,6 +158,7 @@ impl TaskDistribution {
     }
 
     /// Update task weight
+    #[inline]
     pub fn update_weight(&mut self, id: TaskId, weight: f64) {
         if let Some(w) = self.weights.get_mut(&id) {
             *w = weight.max(0.0);
@@ -157,11 +166,13 @@ impl TaskDistribution {
     }
 
     /// Get task count
+    #[inline(always)]
     pub fn task_count(&self) -> usize {
         self.tasks.len()
     }
 
     /// Get all task IDs
+    #[inline(always)]
     pub fn task_ids(&self) -> Vec<TaskId> {
         self.tasks.keys().copied().collect()
     }
@@ -234,6 +245,7 @@ pub struct AdaptedModel {
 
 impl AdaptedModel {
     /// Predict with adapted model
+    #[inline]
     pub fn predict(&self, features: &[f64]) -> f64 {
         let dot: f64 = self
             .weights
@@ -454,6 +466,7 @@ impl LearnedLRAdapter {
     }
 
     /// Get learning rate for parameter
+    #[inline]
     pub fn get_lr(&self, param_idx: usize) -> f64 {
         if param_idx < self.learning_rates.len() {
             self.learning_rates[param_idx]
@@ -485,6 +498,7 @@ impl LearnedLRAdapter {
     }
 
     /// Get all learning rates
+    #[inline(always)]
     pub fn learning_rates(&self) -> &[f64] {
         &self.learning_rates
     }
@@ -545,6 +559,7 @@ impl TaskEmbedding {
     }
 
     /// Update task embedding
+    #[inline]
     pub fn update_embedding(&mut self, task_id: TaskId, gradient: &[f64], lr: f64) {
         let embedding = self
             .embeddings
@@ -602,6 +617,7 @@ impl FewShotLearner {
     }
 
     /// Register a new task
+    #[inline]
     pub fn register_task(&mut self, name: String, support: Vec<StreamingSample>) -> TaskId {
         let id = self.tasks.create_task(name);
 
@@ -615,6 +631,7 @@ impl FewShotLearner {
     }
 
     /// Adapt to task
+    #[inline]
     pub fn adapt_to_task(&mut self, task_id: TaskId) -> Option<f64> {
         let task = self.tasks.get_task(task_id)?;
         let adapted = self.maml.adapt(&task.support);
@@ -627,6 +644,7 @@ impl FewShotLearner {
     }
 
     /// Predict using current adapted model
+    #[inline(always)]
     pub fn predict(&self, features: &[f64]) -> Option<f64> {
         self.current_model.as_ref().map(|m| m.predict(features))
     }
@@ -647,6 +665,7 @@ impl FewShotLearner {
     }
 
     /// Get task count
+    #[inline(always)]
     pub fn task_count(&self) -> usize {
         self.tasks.task_count()
     }

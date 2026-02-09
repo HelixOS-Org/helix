@@ -2,7 +2,7 @@
 //!
 //! This module provides time-series analysis for predicting queue depth and overflow.
 
-use alloc::vec::Vec;
+use alloc::collections::VecDeque;
 use super::WorkQueueId;
 
 /// Queue depth history sample
@@ -19,11 +19,12 @@ pub struct DepthSample {
 }
 
 /// Queue depth predictor using time series analysis
+#[repr(align(64))]
 pub struct QueueDepthPredictor {
     /// Queue ID
     queue_id: WorkQueueId,
     /// Historical samples
-    samples: Vec<DepthSample>,
+    samples: VecDeque<DepthSample>,
     /// Maximum samples to keep
     max_samples: usize,
     /// Exponential smoothing alpha
@@ -45,7 +46,7 @@ impl QueueDepthPredictor {
     pub fn new(queue_id: WorkQueueId) -> Self {
         Self {
             queue_id,
-            samples: Vec::with_capacity(1024),
+            samples: VecDeque::with_capacity(1024),
             max_samples: 1024,
             alpha: 0.3,
             smoothed_arrival: 0.0,
@@ -79,9 +80,9 @@ impl QueueDepthPredictor {
 
         // Add sample
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
     /// Predict queue depth at future time
@@ -163,16 +164,19 @@ impl QueueDepthPredictor {
     }
 
     /// Get current prediction accuracy
+    #[inline(always)]
     pub fn accuracy(&self) -> f32 {
         self.accuracy
     }
 
     /// Get queue ID
+    #[inline(always)]
     pub fn queue_id(&self) -> WorkQueueId {
         self.queue_id
     }
 
     /// Get sample count
+    #[inline(always)]
     pub fn sample_count(&self) -> usize {
         self.samples.len()
     }

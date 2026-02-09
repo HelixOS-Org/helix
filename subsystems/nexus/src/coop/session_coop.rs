@@ -2,6 +2,7 @@
 //! NEXUS Coop — Session (cooperative session management)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -27,6 +28,7 @@ pub struct CoopSessionEntry {
 
 /// Session cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopSessionStats {
     pub total_sessions: u64,
     pub active_sessions: u64,
@@ -38,7 +40,7 @@ pub struct CoopSessionStats {
 /// Manager for cooperative session operations
 pub struct CoopSessionManager {
     sessions: BTreeMap<u64, CoopSessionEntry>,
-    pid_to_session: BTreeMap<u64, u64>,
+    pid_to_session: LinearMap<u64, 64>,
     stats: CoopSessionStats,
 }
 
@@ -46,7 +48,7 @@ impl CoopSessionManager {
     pub fn new() -> Self {
         Self {
             sessions: BTreeMap::new(),
-            pid_to_session: BTreeMap::new(),
+            pid_to_session: LinearMap::new(),
             stats: CoopSessionStats {
                 total_sessions: 0,
                 active_sessions: 0,
@@ -74,6 +76,7 @@ impl CoopSessionManager {
         sid
     }
 
+    #[inline]
     pub fn assign_tty(&mut self, sid: u64, tty: u64) -> bool {
         if let Some(session) = self.sessions.get_mut(&sid) {
             session.controlling_tty = Some(tty);
@@ -97,6 +100,7 @@ impl CoopSessionManager {
         }
     }
 
+    #[inline]
     pub fn set_foreground_pgid(&mut self, sid: u64, pgid: u64) -> bool {
         if let Some(session) = self.sessions.get_mut(&sid) {
             session.foreground_pgid = pgid;
@@ -106,6 +110,7 @@ impl CoopSessionManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopSessionStats {
         &self.stats
     }

@@ -31,9 +31,11 @@ pub struct SharedUnmapRef {
 }
 
 impl SharedUnmapRef {
+    #[inline(always)]
     pub fn can_reclaim(&self) -> bool {
         self.refcount == 0
     }
+    #[inline(always)]
     pub fn page_count(&self) -> u64 {
         self.size / 4096
     }
@@ -49,6 +51,7 @@ pub struct TlbShootdownBatch {
 }
 
 impl TlbShootdownBatch {
+    #[inline(always)]
     pub fn cost_estimate(&self) -> u64 {
         // Each IPI costs ~1μs, each page invalidation ~100ns
         self.target_cpus.len() as u64 * 1000 + self.pages.len() as u64 * 100
@@ -56,6 +59,7 @@ impl TlbShootdownBatch {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MunmapCoopStats {
     pub coordinated_unmaps: u64,
     pub deferred_unmaps: u64,
@@ -87,6 +91,7 @@ impl MunmapCoopManager {
     }
 
     /// Register a shared mapping for coordinated unmap
+    #[inline]
     pub fn register_shared(&mut self, mapping_id: u64, base: u64, size: u64, pids: Vec<u64>) {
         let refcount = pids.len() as u32;
         self.shared_refs.insert(mapping_id, SharedUnmapRef {
@@ -171,6 +176,7 @@ impl MunmapCoopManager {
     }
 
     /// Complete a TLB shootdown batch
+    #[inline]
     pub fn complete_shootdown(&mut self, batch_id: u64) {
         if let Some(batch) = self
             .shootdown_queue
@@ -200,6 +206,7 @@ impl MunmapCoopManager {
         orphan_mappings
     }
 
+    #[inline]
     pub fn reclaimable_mappings(&self) -> Vec<u64> {
         self.shared_refs
             .iter()
@@ -208,6 +215,7 @@ impl MunmapCoopManager {
             .collect()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MunmapCoopStats {
         &self.stats
     }

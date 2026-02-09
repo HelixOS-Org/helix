@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Splice operation type
@@ -29,7 +30,9 @@ impl SpliceFlags {
     pub const GIFT: u32 = 8;
 
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn is_nonblock(&self) -> bool { self.has(Self::NONBLOCK) }
 }
 
@@ -45,6 +48,7 @@ pub enum EndpointType {
 
 /// Pipe buffer page reference
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipeBuffer {
     pub page_id: u64,
     pub offset: u32,
@@ -58,6 +62,7 @@ impl PipeBuffer {
         Self { page_id, offset, len, flags: 0, ref_count: 1 }
     }
 
+    #[inline(always)]
     pub fn is_zero_copy(&self) -> bool { self.ref_count > 1 }
 }
 
@@ -89,18 +94,21 @@ impl SpliceTransfer {
         }
     }
 
+    #[inline]
     pub fn complete(&mut self, transferred: u64, pages: u32, now: u64) {
         self.transferred_bytes = transferred;
         self.pages_moved = pages;
         self.completed_at = now;
     }
 
+    #[inline]
     pub fn throughput_mbps(&self) -> f64 {
         let lat = self.completed_at.saturating_sub(self.started_at);
         if lat == 0 { return 0.0; }
         (self.transferred_bytes as f64 * 1_000_000_000.0) / (lat as f64 * 1024.0 * 1024.0)
     }
 
+    #[inline(always)]
     pub fn efficiency(&self) -> f64 {
         if self.requested_bytes == 0 { return 0.0; }
         self.transferred_bytes as f64 / self.requested_bytes as f64
@@ -109,6 +117,7 @@ impl SpliceTransfer {
 
 /// Bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SpliceBridgeStats {
     pub total_operations: u64,
     pub total_bytes: u64,
@@ -119,6 +128,7 @@ pub struct SpliceBridgeStats {
 }
 
 /// Main splice bridge
+#[repr(align(64))]
 pub struct BridgeSplice {
     history: Vec<SpliceTransfer>,
     active: BTreeMap<u64, SpliceTransfer>,
@@ -131,6 +141,7 @@ impl BridgeSplice {
         Self { history: Vec::new(), active: BTreeMap::new(), next_id: 1, max_history: 4096 }
     }
 
+    #[inline]
     pub fn begin_splice(&mut self, op: SpliceOp, src_fd: i32, dst_fd: i32, bytes: u64, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -138,6 +149,7 @@ impl BridgeSplice {
         id
     }
 
+    #[inline]
     pub fn complete_splice(&mut self, id: u64, transferred: u64, pages: u32, now: u64) -> bool {
         if let Some(mut transfer) = self.active.remove(&id) {
             transfer.complete(transferred, pages, now);
@@ -176,7 +188,9 @@ impl SpliceV2Flags {
     pub const MORE: u32 = 4;
     pub const GIFT: u32 = 8;
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn set(&mut self, f: u32) { self.0 |= f; }
+    #[inline(always)]
     pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
 }
 
@@ -192,6 +206,7 @@ pub enum SpliceV2Op {
 
 /// Pipe v2 buffer
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PipeV2Buffer {
     pub id: u64,
     pub capacity: usize,
@@ -203,7 +218,9 @@ pub struct PipeV2Buffer {
 
 impl PipeV2Buffer {
     pub fn new(id: u64, capacity: usize) -> Self { Self { id, capacity, used: 0, pages: (capacity / 4096) as u32, readers: 0, writers: 0 } }
+    #[inline(always)]
     pub fn available(&self) -> usize { self.capacity - self.used }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 { self.used as f64 / self.capacity as f64 }
 }
 
@@ -221,6 +238,7 @@ pub struct SpliceV2Transfer {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SpliceV2BridgeStats {
     pub total_pipes: u32,
     pub total_transfers: u64,
@@ -232,6 +250,7 @@ pub struct SpliceV2BridgeStats {
 }
 
 /// Main splice v2 bridge
+#[repr(align(64))]
 pub struct BridgeSpliceV2 {
     pipes: BTreeMap<u64, PipeV2Buffer>,
     transfers: Vec<SpliceV2Transfer>,
@@ -242,19 +261,23 @@ pub struct BridgeSpliceV2 {
 impl BridgeSpliceV2 {
     pub fn new() -> Self { Self { pipes: BTreeMap::new(), transfers: Vec::new(), next_pipe_id: 1, max_transfers: 4096 } }
 
+    #[inline]
     pub fn create_pipe(&mut self, capacity: usize) -> u64 {
         let id = self.next_pipe_id; self.next_pipe_id += 1;
         self.pipes.insert(id, PipeV2Buffer::new(id, capacity));
         id
     }
 
+    #[inline(always)]
     pub fn destroy_pipe(&mut self, id: u64) { self.pipes.remove(&id); }
 
+    #[inline(always)]
     pub fn record_transfer(&mut self, transfer: SpliceV2Transfer) {
         if self.transfers.len() >= self.max_transfers { self.transfers.drain(..self.max_transfers / 2); }
         self.transfers.push(transfer);
     }
 
+    #[inline]
     pub fn stats(&self) -> SpliceV2BridgeStats {
         let bytes: u64 = self.transfers.iter().map(|t| t.bytes_moved).sum();
         let splice = self.transfers.iter().filter(|t| t.op == SpliceV2Op::Splice).count() as u64;
@@ -288,6 +311,7 @@ pub enum SpliceV3Flag {
 
 /// Pipe buffer info v3
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PipeV3Buffer {
     pub pipe_id: u64,
     pub capacity: u32,
@@ -310,6 +334,7 @@ pub struct SpliceV3Transfer {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SpliceV3BridgeStats {
     pub total_splices: u64,
     pub total_tees: u64,
@@ -319,6 +344,7 @@ pub struct SpliceV3BridgeStats {
 }
 
 /// Main bridge splice v3
+#[repr(align(64))]
 pub struct BridgeSpliceV3 {
     pipe_buffers: BTreeMap<u64, PipeV3Buffer>,
     total_splices: u64,
@@ -333,10 +359,12 @@ impl BridgeSpliceV3 {
         Self { pipe_buffers: BTreeMap::new(), total_splices: 0, total_tees: 0, total_vmsplices: 0, total_bytes: 0, zero_copy_bytes: 0 }
     }
 
+    #[inline(always)]
     pub fn register_pipe(&mut self, id: u64, cap: u32) {
         self.pipe_buffers.insert(id, PipeV3Buffer { pipe_id: id, capacity: cap, used: 0, pages: 0 });
     }
 
+    #[inline]
     pub fn transfer(&mut self, xfer: &SpliceV3Transfer) {
         match xfer.op {
             SpliceV3Op::Splice => self.total_splices += 1,
@@ -347,8 +375,10 @@ impl BridgeSpliceV3 {
         if xfer.zero_copy { self.zero_copy_bytes += xfer.bytes_transferred; }
     }
 
+    #[inline(always)]
     pub fn unregister_pipe(&mut self, id: u64) { self.pipe_buffers.remove(&id); }
 
+    #[inline(always)]
     pub fn stats(&self) -> SpliceV3BridgeStats {
         SpliceV3BridgeStats { total_splices: self.total_splices, total_tees: self.total_tees, total_vmsplices: self.total_vmsplices, total_bytes: self.total_bytes, zero_copy_bytes: self.zero_copy_bytes }
     }
@@ -399,10 +429,12 @@ impl SpliceV4PageRef {
         }
     }
 
+    #[inline(always)]
     pub fn add_ref(&mut self) {
         self.ref_count += 1;
     }
 
+    #[inline(always)]
     pub fn drop_ref(&mut self) -> bool {
         self.ref_count = self.ref_count.saturating_sub(1);
         self.ref_count == 0
@@ -417,7 +449,7 @@ pub struct SpliceV4Pipe {
     pub used_pages: u32,
     pub readers: u32,
     pub writers: u32,
-    pub pages: Vec<SpliceV4PageRef>,
+    pub pages: VecDeque<SpliceV4PageRef>,
     pub bytes_spliced: u64,
     pub bytes_teed: u64,
 }
@@ -430,27 +462,30 @@ impl SpliceV4Pipe {
             used_pages: 0,
             readers: 1,
             writers: 1,
-            pages: Vec::new(),
+            pages: VecDeque::new(),
             bytes_spliced: 0,
             bytes_teed: 0,
         }
     }
 
+    #[inline(always)]
     pub fn available_pages(&self) -> u32 {
         self.max_pages.saturating_sub(self.used_pages)
     }
 
+    #[inline]
     pub fn push_page(&mut self, page: SpliceV4PageRef) -> bool {
         if self.used_pages >= self.max_pages {
             return false;
         }
         let bytes = page.length as u64;
-        self.pages.push(page);
+        self.pages.push_back(page);
         self.used_pages += 1;
         self.bytes_spliced += bytes;
         true
     }
 
+    #[inline]
     pub fn pop_page(&mut self) -> Option<SpliceV4PageRef> {
         if let Some(page) = self.pages.pop() {
             self.used_pages = self.used_pages.saturating_sub(1);
@@ -492,10 +527,12 @@ impl SpliceV4Transfer {
         }
     }
 
+    #[inline(always)]
     pub fn add_fanout_dst(&mut self, fd: i32) {
         self.dst_fds.push(fd);
     }
 
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.length > 0 && self.bytes_transferred >= self.length
     }
@@ -503,6 +540,7 @@ impl SpliceV4Transfer {
 
 /// Statistics for splice V4 bridge.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SpliceV4BridgeStats {
     pub total_splices: u64,
     pub total_tees: u64,
@@ -515,6 +553,7 @@ pub struct SpliceV4BridgeStats {
 }
 
 /// Main bridge splice V4 manager.
+#[repr(align(64))]
 pub struct BridgeSpliceV4 {
     pub pipes: BTreeMap<u64, SpliceV4Pipe>,
     pub transfers: BTreeMap<u64, SpliceV4Transfer>,
@@ -543,6 +582,7 @@ impl BridgeSpliceV4 {
         }
     }
 
+    #[inline]
     pub fn create_pipe(&mut self, max_pages: u32) -> u64 {
         let id = self.next_pipe_id;
         self.next_pipe_id += 1;
@@ -574,10 +614,12 @@ impl BridgeSpliceV4 {
         id
     }
 
+    #[inline(always)]
     pub fn pipe_count(&self) -> usize {
         self.pipes.len()
     }
 
+    #[inline(always)]
     pub fn transfer_count(&self) -> usize {
         self.transfers.len()
     }
@@ -642,10 +684,12 @@ impl SpliceV5Page {
         }
     }
 
+    #[inline(always)]
     pub fn remaining(&self) -> u32 {
         4096u32.saturating_sub(self.offset + self.len)
     }
 
+    #[inline]
     pub fn merge(&mut self, extra_len: u32) -> bool {
         if self.can_merge && self.remaining() >= extra_len {
             self.len += extra_len;
@@ -662,7 +706,7 @@ pub struct SpliceV5Pipe {
     pub pipe_id: u32,
     pub max_pages: u32,
     pub state: SpliceV5PipeState,
-    pub pages: Vec<SpliceV5Page>,
+    pub pages: VecDeque<SpliceV5Page>,
     pub total_bytes: u64,
     pub total_ops: u64,
     pub zero_copy_bytes: u64,
@@ -677,7 +721,7 @@ impl SpliceV5Pipe {
             pipe_id,
             max_pages,
             state: SpliceV5PipeState::Empty,
-            pages: Vec::new(),
+            pages: VecDeque::new(),
             total_bytes: 0,
             total_ops: 0,
             zero_copy_bytes: 0,
@@ -703,7 +747,7 @@ impl SpliceV5Pipe {
         }
         let mut page = SpliceV5Page::new(page_id, 0, bytes);
         page.dma_mapped = dma;
-        self.pages.push(page);
+        self.pages.push_back(page);
         self.total_bytes += bytes as u64;
         self.account(bytes, zero_copy, dma);
         self.update_state();
@@ -720,10 +764,11 @@ impl SpliceV5Pipe {
         }
     }
 
+    #[inline]
     pub fn splice_out(&mut self) -> u32 {
         if let Some(page) = self.pages.first() {
             let len = page.len;
-            self.pages.remove(0);
+            self.pages.pop_front();
             self.update_state();
             len
         } else {
@@ -743,6 +788,7 @@ impl SpliceV5Pipe {
         }
     }
 
+    #[inline(always)]
     pub fn zero_copy_rate(&self) -> f64 {
         if self.total_bytes == 0 { 0.0 }
         else { (self.zero_copy_bytes + self.dma_bytes) as f64 / self.total_bytes as f64 }
@@ -751,6 +797,7 @@ impl SpliceV5Pipe {
 
 /// Splice v5 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SpliceV5BridgeStats {
     pub total_ops: u64,
     pub total_bytes: u64,
@@ -761,6 +808,7 @@ pub struct SpliceV5BridgeStats {
 
 /// Main bridge splice v5
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeSpliceV5 {
     pub pipes: BTreeMap<u32, SpliceV5Pipe>,
     pub stats: SpliceV5BridgeStats,
@@ -782,6 +830,7 @@ impl BridgeSpliceV5 {
         }
     }
 
+    #[inline]
     pub fn create_pipe(&mut self, max_pages: u32) -> u32 {
         let id = self.next_pipe_id;
         self.next_pipe_id += 1;

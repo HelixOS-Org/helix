@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -81,36 +82,44 @@ impl Cpuset {
         }
     }
 
+    #[inline(always)]
     pub fn cpu_count(&self) -> usize {
         self.effective_cpus.len()
     }
 
+    #[inline(always)]
     pub fn mem_node_count(&self) -> usize {
         self.effective_mems.len()
     }
 
+    #[inline(always)]
     pub fn has_cpu(&self, cpu: u32) -> bool {
         self.effective_cpus.contains(&cpu)
     }
 
+    #[inline(always)]
     pub fn has_mem_node(&self, node: u32) -> bool {
         self.effective_mems.contains(&node)
     }
 
+    #[inline(always)]
     pub fn is_root_partition(&self) -> bool {
         self.partition == CpusetPartition::Root
     }
 
+    #[inline]
     pub fn tasks_per_cpu(&self) -> f64 {
         let cpus = self.cpu_count();
         if cpus == 0 { return 0.0; }
         self.task_count as f64 / cpus as f64
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.task_count == 0 && self.children.is_empty()
     }
 
+    #[inline]
     pub fn recalculate_effective(&mut self, parent_cpus: &[u32], parent_mems: &[u32]) {
         self.effective_cpus = self.cpus.iter()
             .filter(|c| parent_cpus.contains(c))
@@ -154,6 +163,7 @@ pub enum ViolationType {
 
 /// Cpuset stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpusetStats {
     pub total_cpusets: u32,
     pub root_partitions: u32,
@@ -167,8 +177,8 @@ pub struct CpusetStats {
 /// Main cpuset controller
 pub struct HolisticCpusetCtrl {
     cpusets: BTreeMap<u64, Cpuset>,
-    migrations: Vec<CpusetMigration>,
-    violations: Vec<CpusetViolation>,
+    migrations: VecDeque<CpusetMigration>,
+    violations: VecDeque<CpusetViolation>,
     max_history: usize,
     next_id: u64,
     stats: CpusetStats,
@@ -180,8 +190,8 @@ impl HolisticCpusetCtrl {
     pub fn new(system_cpus: Vec<u32>, system_mems: Vec<u32>) -> Self {
         Self {
             cpusets: BTreeMap::new(),
-            migrations: Vec::new(),
-            violations: Vec::new(),
+            migrations: VecDeque::new(),
+            violations: VecDeque::new(),
             max_history: 2048,
             next_id: 1,
             stats: CpusetStats {
@@ -279,22 +289,25 @@ impl HolisticCpusetCtrl {
         }
     }
 
+    #[inline]
     pub fn record_migration(&mut self, mig: CpusetMigration) {
         self.stats.migrations += 1;
         if self.migrations.len() >= self.max_history {
-            self.migrations.remove(0);
+            self.migrations.pop_front();
         }
-        self.migrations.push(mig);
+        self.migrations.push_back(mig);
     }
 
+    #[inline]
     pub fn record_violation(&mut self, vio: CpusetViolation) {
         self.stats.violations += 1;
         if self.violations.len() >= self.max_history {
-            self.violations.remove(0);
+            self.violations.pop_front();
         }
-        self.violations.push(vio);
+        self.violations.push_back(vio);
     }
 
+    #[inline]
     pub fn overloaded_cpusets(&self, threshold: f64) -> Vec<(u64, f64)> {
         self.cpusets.iter()
             .filter(|(_, cs)| cs.tasks_per_cpu() > threshold)
@@ -302,6 +315,7 @@ impl HolisticCpusetCtrl {
             .collect()
     }
 
+    #[inline]
     pub fn empty_cpusets(&self) -> Vec<u64> {
         self.cpusets.iter()
             .filter(|(_, cs)| cs.is_empty())
@@ -309,10 +323,12 @@ impl HolisticCpusetCtrl {
             .collect()
     }
 
+    #[inline(always)]
     pub fn get_cpuset(&self, id: u64) -> Option<&Cpuset> {
         self.cpusets.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CpusetStats {
         &self.stats
     }

@@ -22,6 +22,7 @@ impl ListenBridgeRecord {
 
 /// Listen bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ListenBridgeStats { pub total_events: u64, pub starts: u64, pub overflows: u64, pub peak_pending: u32 }
 
 /// Main bridge listen
@@ -30,6 +31,7 @@ pub struct BridgeListen { pub stats: ListenBridgeStats }
 
 impl BridgeListen {
     pub fn new() -> Self { Self { stats: ListenBridgeStats { total_events: 0, starts: 0, overflows: 0, peak_pending: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &ListenBridgeRecord) {
         self.stats.total_events += 1;
         match rec.event {

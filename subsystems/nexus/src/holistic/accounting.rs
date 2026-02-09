@@ -121,6 +121,7 @@ impl ResourceLedger {
     }
 
     /// Record usage
+    #[inline]
     pub fn record(&mut self, resource: AccountableResource, quantity: u64) {
         let key = resource as u8;
         *self.usage.entry(key).or_insert(0) += quantity;
@@ -131,16 +132,19 @@ impl ResourceLedger {
     }
 
     /// Usage of resource
+    #[inline(always)]
     pub fn usage_of(&self, resource: AccountableResource) -> u64 {
         self.usage.get(&(resource as u8)).copied().unwrap_or(0)
     }
 
     /// Cost of resource
+    #[inline(always)]
     pub fn cost_of(&self, resource: AccountableResource) -> f64 {
         self.costs.get(&(resource as u8)).copied().unwrap_or(0.0)
     }
 
     /// Budget utilization
+    #[inline]
     pub fn budget_utilization(&self) -> f64 {
         if let Some(budget) = self.budget {
             if budget > 0.0 {
@@ -151,6 +155,7 @@ impl ResourceLedger {
     }
 
     /// Is over budget?
+    #[inline]
     pub fn is_over_budget(&self) -> bool {
         if let Some(budget) = self.budget {
             return self.total_cost > budget;
@@ -211,11 +216,13 @@ impl AccountingPeriod {
     }
 
     /// Duration (ns)
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.end.saturating_sub(self.start)
     }
 
     /// Cost rate (per second)
+    #[inline]
     pub fn cost_rate(&self) -> f64 {
         let dur = self.duration_ns();
         if dur == 0 {
@@ -231,6 +238,7 @@ impl AccountingPeriod {
 
 /// Accounting stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticAccountingStats {
     /// Entities tracked
     pub entities: usize,
@@ -259,6 +267,7 @@ impl HolisticAccountingEngine {
     }
 
     /// Register entity
+    #[inline]
     pub fn register(&mut self, entity_id: u64, entity_type: EntityType, now: u64) {
         self.ledgers
             .entry(entity_id)
@@ -267,6 +276,7 @@ impl HolisticAccountingEngine {
     }
 
     /// Set budget
+    #[inline]
     pub fn set_budget(&mut self, entity_id: u64, budget: f64) {
         if let Some(ledger) = self.ledgers.get_mut(&entity_id) {
             ledger.budget = Some(budget);
@@ -274,6 +284,7 @@ impl HolisticAccountingEngine {
     }
 
     /// Record usage
+    #[inline]
     pub fn record(&mut self, entity_id: u64, resource: AccountableResource, quantity: u64) {
         if let Some(ledger) = self.ledgers.get_mut(&entity_id) {
             ledger.record(resource, quantity);
@@ -284,11 +295,13 @@ impl HolisticAccountingEngine {
     }
 
     /// Get ledger
+    #[inline(always)]
     pub fn ledger(&self, entity_id: u64) -> Option<&ResourceLedger> {
         self.ledgers.get(&entity_id)
     }
 
     /// Top spenders
+    #[inline]
     pub fn top_spenders(&self, limit: usize) -> Vec<(u64, f64)> {
         let mut spenders: Vec<_> = self
             .ledgers
@@ -301,6 +314,7 @@ impl HolisticAccountingEngine {
     }
 
     /// Over-budget entities
+    #[inline]
     pub fn over_budget(&self) -> Vec<(u64, f64)> {
         self.ledgers
             .values()
@@ -324,6 +338,7 @@ impl HolisticAccountingEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticAccountingStats {
         &self.stats
     }

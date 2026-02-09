@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -124,6 +125,7 @@ pub struct SynthesisValidation {
 
 /// Aggregate synthesis statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SynthesisStats {
     pub total_synthesized: u64,
     pub total_committed: u64,
@@ -144,7 +146,7 @@ pub struct SynthesisStats {
 #[derive(Debug)]
 pub struct AppsSynthesis {
     classifiers: BTreeMap<u64, ClassificationRule>,
-    history: Vec<ClassifierSnapshot>,
+    history: VecDeque<ClassifierSnapshot>,
     rng_state: u64,
     current_tick: u64,
     stats: SynthesisStats,
@@ -155,7 +157,7 @@ impl AppsSynthesis {
     pub fn new(seed: u64) -> Self {
         Self {
             classifiers: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             rng_state: seed | 1,
             current_tick: 0,
             stats: SynthesisStats::default(),
@@ -296,10 +298,10 @@ impl AppsSynthesis {
         if committed {
             // Save snapshot before committing
             if self.history.len() < MAX_HISTORY {
-                self.history.push(snapshot);
+                self.history.push_back(snapshot);
             } else {
-                self.history.remove(0);
-                self.history.push(snapshot);
+                self.history.pop_front();
+                self.history.push_back(snapshot);
             }
 
             if let Some(rule) = self.classifiers.get_mut(&rule_id) {
@@ -328,6 +330,7 @@ impl AppsSynthesis {
     }
 
     /// Validate a synthesized classifier against accuracy thresholds
+    #[inline]
     pub fn synthesis_validation(&mut self, rule_id: u64, test_accuracy: f32) -> bool {
         let rule = match self.classifiers.get_mut(&rule_id) {
             Some(r) => r,
@@ -387,6 +390,7 @@ impl AppsSynthesis {
     }
 
     /// Retire a classifier
+    #[inline]
     pub fn retire_classifier(&mut self, rule_id: u64) {
         if let Some(rule) = self.classifiers.get_mut(&rule_id) {
             rule.status = ClassifierStatus::Retired;
@@ -400,16 +404,19 @@ impl AppsSynthesis {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> SynthesisStats {
         self.stats
     }
 
     /// Get a classifier by id
+    #[inline(always)]
     pub fn classifier(&self, rule_id: u64) -> Option<&ClassificationRule> {
         self.classifiers.get(&rule_id)
     }
 
     /// List all active classifiers
+    #[inline]
     pub fn active_classifiers(&self) -> Vec<&ClassificationRule> {
         self.classifiers
             .values()

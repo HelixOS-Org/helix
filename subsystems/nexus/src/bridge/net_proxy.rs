@@ -61,6 +61,7 @@ pub enum NetSyscallType {
 
 /// Socket tracking entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketEntry {
     /// File descriptor
     pub fd: u32,
@@ -113,6 +114,7 @@ impl SocketEntry {
     }
 
     /// Record send
+    #[inline]
     pub fn record_send(&mut self, bytes: u64, now_ns: u64) {
         self.bytes_sent += bytes;
         self.send_ops += 1;
@@ -121,6 +123,7 @@ impl SocketEntry {
     }
 
     /// Record recv
+    #[inline]
     pub fn record_recv(&mut self, bytes: u64, now_ns: u64) {
         self.bytes_recv += bytes;
         self.recv_ops += 1;
@@ -129,6 +132,7 @@ impl SocketEntry {
     }
 
     /// Suggested send buffer size
+    #[inline]
     pub fn suggested_sndbuf(&self) -> u32 {
         let avg = self.avg_send_size;
         if avg > 65536.0 {
@@ -141,6 +145,7 @@ impl SocketEntry {
     }
 
     /// Suggested recv buffer size
+    #[inline]
     pub fn suggested_rcvbuf(&self) -> u32 {
         let avg = self.avg_recv_size;
         if avg > 65536.0 {
@@ -153,11 +158,13 @@ impl SocketEntry {
     }
 
     /// Is idle?
+    #[inline(always)]
     pub fn is_idle(&self, now_ns: u64, threshold_ns: u64) -> bool {
         now_ns.saturating_sub(self.last_activity_ns) > threshold_ns
     }
 
     /// Throughput estimate (bytes/sec based on total)
+    #[inline]
     pub fn throughput_estimate(&self, now_ns: u64) -> f64 {
         let elapsed = now_ns.saturating_sub(self.created_ns) as f64 / 1_000_000_000.0;
         if elapsed > 0.0 {
@@ -181,6 +188,7 @@ pub struct CoalesceOpportunity {
 
 /// Network proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeNetProxyStats {
     pub tracked_sockets: usize,
     pub active_connections: usize,
@@ -191,6 +199,7 @@ pub struct BridgeNetProxyStats {
 }
 
 /// Bridge network proxy
+#[repr(align(64))]
 pub struct BridgeNetProxy {
     /// Sockets (FD -> entry)
     sockets: BTreeMap<u64, SocketEntry>,
@@ -211,6 +220,7 @@ impl BridgeNetProxy {
     }
 
     /// Track socket creation
+    #[inline]
     pub fn track_socket(&mut self, pid: u64, fd: u32, sock_type: BridgeSocketType, now_ns: u64) {
         let key = Self::socket_key(pid, fd);
         self.sockets.insert(key, SocketEntry::new(fd, pid, sock_type, now_ns));
@@ -218,6 +228,7 @@ impl BridgeNetProxy {
     }
 
     /// Update socket state
+    #[inline]
     pub fn update_state(&mut self, pid: u64, fd: u32, state: BridgeSocketState) {
         let key = Self::socket_key(pid, fd);
         if let Some(entry) = self.sockets.get_mut(&key) {
@@ -227,6 +238,7 @@ impl BridgeNetProxy {
     }
 
     /// Record send
+    #[inline]
     pub fn record_send(&mut self, pid: u64, fd: u32, bytes: u64, now_ns: u64) {
         let key = Self::socket_key(pid, fd);
         if let Some(entry) = self.sockets.get_mut(&key) {
@@ -236,6 +248,7 @@ impl BridgeNetProxy {
     }
 
     /// Record recv
+    #[inline]
     pub fn record_recv(&mut self, pid: u64, fd: u32, bytes: u64, now_ns: u64) {
         let key = Self::socket_key(pid, fd);
         if let Some(entry) = self.sockets.get_mut(&key) {
@@ -245,6 +258,7 @@ impl BridgeNetProxy {
     }
 
     /// Remove socket
+    #[inline]
     pub fn remove_socket(&mut self, pid: u64, fd: u32) {
         let key = Self::socket_key(pid, fd);
         self.sockets.remove(&key);
@@ -267,6 +281,7 @@ impl BridgeNetProxy {
     }
 
     /// Sockets needing buffer tuning
+    #[inline]
     pub fn buffer_tune_needed(&self) -> Vec<(u32, u32, u32)> {
         self.sockets.values()
             .filter(|s| s.suggested_sndbuf() != s.sndbuf || s.suggested_rcvbuf() != s.rcvbuf)
@@ -285,6 +300,7 @@ impl BridgeNetProxy {
         self.stats.buffer_tune_needed = self.buffer_tune_needed().len();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeNetProxyStats {
         &self.stats
     }

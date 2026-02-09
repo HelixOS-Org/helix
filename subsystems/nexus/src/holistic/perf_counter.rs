@@ -49,6 +49,7 @@ pub enum CounterMode {
 
 /// A configured performance counter
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerfCounter {
     pub id: u64,
     pub event: HwEvent,
@@ -74,6 +75,7 @@ impl PerfCounter {
         }
     }
 
+    #[inline]
     pub fn read(&mut self, ts: u64) -> u64 {
         self.last_read_ts = ts;
         if self.enabled_ns > 0 && self.running_ns > 0 && self.running_ns < self.enabled_ns {
@@ -84,19 +86,24 @@ impl PerfCounter {
         }
     }
 
+    #[inline]
     pub fn update(&mut self, delta: u64, enabled_delta: u64, running_delta: u64) {
         self.value = self.value.wrapping_add(delta);
         self.enabled_ns += enabled_delta;
         self.running_ns += running_delta;
     }
 
+    #[inline(always)]
     pub fn overflow(&mut self) { self.overflows += 1; }
+    #[inline(always)]
     pub fn reset(&mut self) { self.value = 0; self.overflows = 0; self.enabled_ns = 0; self.running_ns = 0; }
+    #[inline(always)]
     pub fn multiplex_ratio(&self) -> f64 { if self.enabled_ns == 0 { 1.0 } else { self.running_ns as f64 / self.enabled_ns as f64 } }
 }
 
 /// Counter group
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterGroup {
     pub leader_id: u64,
     pub members: Vec<u64>,
@@ -106,6 +113,7 @@ pub struct CounterGroup {
 
 /// Derived metric
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DerivedMetric {
     pub name_hash: u64,
     pub value: f64,
@@ -114,6 +122,7 @@ pub struct DerivedMetric {
 
 /// Per-CPU PMU state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PmuState {
     pub cpu_id: u32,
     pub hw_counters: u32,
@@ -141,6 +150,7 @@ pub struct PerfSample {
 
 /// Perf counter stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PerfCounterStats {
     pub counters: usize,
     pub groups: usize,
@@ -152,6 +162,7 @@ pub struct PerfCounterStats {
 }
 
 /// Holistic performance counter manager
+#[repr(align(64))]
 pub struct HolisticPerfCounter {
     counters: BTreeMap<u64, PerfCounter>,
     groups: Vec<CounterGroup>,
@@ -172,24 +183,29 @@ impl HolisticPerfCounter {
         }
     }
 
+    #[inline(always)]
     pub fn add_pmu(&mut self, cpu: u32, hw_counters: u32, fixed: u32) {
         self.pmus.insert(cpu, PmuState::new(cpu, hw_counters, fixed));
     }
 
+    #[inline]
     pub fn create_counter(&mut self, event: HwEvent, mode: CounterMode) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.counters.insert(id, PerfCounter::new(id, event, mode));
         id
     }
 
+    #[inline(always)]
     pub fn bind_cpu(&mut self, counter_id: u64, cpu: u32) {
         if let Some(c) = self.counters.get_mut(&counter_id) { c.cpu = Some(cpu); }
     }
 
+    #[inline(always)]
     pub fn bind_task(&mut self, counter_id: u64, task: u64) {
         if let Some(c) = self.counters.get_mut(&counter_id) { c.task_id = Some(task); }
     }
 
+    #[inline]
     pub fn create_group(&mut self, leader: u64, members: Vec<u64>) {
         for &m in &members {
             if let Some(c) = self.counters.get_mut(&m) { c.group_leader = Some(leader); }
@@ -197,17 +213,22 @@ impl HolisticPerfCounter {
         self.groups.push(CounterGroup { leader_id: leader, members, pinned: false, exclusive: false });
     }
 
+    #[inline(always)]
     pub fn enable(&mut self, id: u64) { if let Some(c) = self.counters.get_mut(&id) { c.active = true; } }
+    #[inline(always)]
     pub fn disable(&mut self, id: u64) { if let Some(c) = self.counters.get_mut(&id) { c.active = false; } }
 
+    #[inline(always)]
     pub fn update(&mut self, id: u64, delta: u64, enabled: u64, running: u64) {
         if let Some(c) = self.counters.get_mut(&id) { c.update(delta, enabled, running); }
     }
 
+    #[inline(always)]
     pub fn read(&mut self, id: u64, ts: u64) -> Option<u64> {
         self.counters.get_mut(&id).map(|c| c.read(ts))
     }
 
+    #[inline(always)]
     pub fn record_sample(&mut self, counter_id: u64, ip: u64, pid: u64, cpu: u32, ts: u64, value: u64) {
         self.samples.push(PerfSample { counter_id, ip, pid, cpu, ts, value });
         self.stats.samples += 1;
@@ -235,14 +256,19 @@ impl HolisticPerfCounter {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.counters = self.counters.len();
         self.stats.groups = self.groups.len();
         self.stats.overflows = self.counters.values().map(|c| c.overflows).sum();
     }
 
+    #[inline(always)]
     pub fn counter(&self, id: u64) -> Option<&PerfCounter> { self.counters.get(&id) }
+    #[inline(always)]
     pub fn pmu(&self, cpu: u32) -> Option<&PmuState> { self.pmus.get(&cpu) }
+    #[inline(always)]
     pub fn stats(&self) -> &PerfCounterStats { &self.stats }
+    #[inline(always)]
     pub fn derived(&self) -> &[DerivedMetric] { &self.derived }
 }

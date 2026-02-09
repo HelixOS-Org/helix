@@ -50,6 +50,7 @@ impl SigactionRecord {
 
 /// Sigaction bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SigactionBridgeStats {
     pub total_ops: u64,
     pub handlers_set: u64,

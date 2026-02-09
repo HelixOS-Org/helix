@@ -9,8 +9,10 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // LEASE TYPES
@@ -151,11 +153,13 @@ impl Lease {
     }
 
     /// Revoke lease
+    #[inline(always)]
     pub fn revoke(&mut self) {
         self.state = LeaseState::Revoked;
     }
 
     /// Transfer to new lessee
+    #[inline]
     pub fn transfer(&mut self, new_lessee: u64, now: u64) {
         self.state = LeaseState::Transferred;
         self.lessee = new_lessee;
@@ -164,21 +168,25 @@ impl Lease {
     }
 
     /// Remaining time (ns)
+    #[inline(always)]
     pub fn remaining_ns(&self, now: u64) -> u64 {
         self.expires_at.saturating_sub(now)
     }
 
     /// Is expired (including grace)?
+    #[inline(always)]
     pub fn is_expired(&self) -> bool {
         self.state == LeaseState::Expired
     }
 
     /// Is active (including grace)?
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.state == LeaseState::Active || self.state == LeaseState::GracePeriod
     }
 
     /// Total held duration
+    #[inline(always)]
     pub fn held_ns(&self, now: u64) -> u64 {
         now.saturating_sub(self.created_at)
     }
@@ -209,11 +217,13 @@ pub struct LeaseRequest {
 
 impl LeaseRequest {
     /// Is expired?
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now > self.queued_at + self.timeout_ns
     }
 
     /// Wait time
+    #[inline(always)]
     pub fn wait_ns(&self, now: u64) -> u64 {
         now.saturating_sub(self.queued_at)
     }
@@ -225,6 +235,7 @@ impl LeaseRequest {
 
 /// Lease stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopLeaseStats {
     /// Active leases
     pub active: usize,
@@ -241,9 +252,9 @@ pub struct CoopLeaseManager {
     /// Active leases
     leases: BTreeMap<u64, Lease>,
     /// Request queue per resource
-    queues: BTreeMap<u64, Vec<LeaseRequest>>,
+    queues: BTreeMap<u64, VecDeque<LeaseRequest>>,
     /// Resource -> active lease mapping
-    resource_leases: BTreeMap<u64, u64>,
+    resource_leases: LinearMap<u64, 64>,
     /// Next id
     next_id: u64,
     /// Stats
@@ -255,7 +266,7 @@ impl CoopLeaseManager {
         Self {
             leases: BTreeMap::new(),
             queues: BTreeMap::new(),
-            resource_leases: BTreeMap::new(),
+            resource_leases: LinearMap::new(),
             next_id: 1,
             stats: CoopLeaseStats::default(),
         }
@@ -282,7 +293,7 @@ impl CoopLeaseManager {
         let key = Self::resource_key(resource, resource_id);
 
         // Check if resource is already leased
-        if let Some(&lease_id) = self.resource_leases.get(&key) {
+        if let Some(&lease_id) = self.resource_leases.get(key) {
             if let Some(lease) = self.leases.get(&lease_id) {
                 if lease.is_active() {
                     // Queue request
@@ -297,8 +308,8 @@ impl CoopLeaseManager {
                     };
                     self.queues
                         .entry(key)
-                        .or_insert_with(Vec::new)
-                        .push(request);
+                        .or_insert_with(VecDeque::new)
+                        .push_back(request);
                     self.stats.queued = self.queues.values().map(|q| q.len()).sum();
                     return Err(());
                 }
@@ -316,6 +327,7 @@ impl CoopLeaseManager {
     }
 
     /// Renew lease
+    #[inline]
     pub fn renew(&mut self, lease_id: u64, now: u64) -> bool {
         if let Some(lease) = self.leases.get_mut(&lease_id) {
             let ok = lease.renew(now);
@@ -339,7 +351,7 @@ impl CoopLeaseManager {
 
         // Try to grant to queued request
         if let Some(key) = key {
-            self.resource_leases.remove(&key);
+            self.resource_leases.remove(key);
             return self.grant_queued(key, now);
         }
         None
@@ -359,7 +371,7 @@ impl CoopLeaseManager {
         // Grant queued for expired resources
         let mut granted = Vec::new();
         for key in expired_keys {
-            self.resource_leases.remove(&key);
+            self.resource_leases.remove(key);
             if let Some(new_lease) = self.grant_queued(key, now) {
                 granted.push(new_lease);
             }
@@ -378,12 +390,12 @@ impl CoopLeaseManager {
     fn grant_queued(&mut self, key: u64, now: u64) -> Option<u64> {
         if let Some(queue) = self.queues.get_mut(&key) {
             // Sort by priority (highest first), then by queued time
-            queue.sort_by(|a, b| {
+            queue.make_contiguous().sort_by(|a, b| {
                 b.priority
                     .cmp(&a.priority)
                     .then(a.queued_at.cmp(&b.queued_at))
             });
-            if let Some(request) = queue.first() {
+            if let Some(request) = queue.front() {
                 let id = self.next_id;
                 self.next_id += 1;
                 let lease = Lease::new(
@@ -396,7 +408,7 @@ impl CoopLeaseManager {
                 );
                 self.leases.insert(id, lease);
                 self.resource_leases.insert(key, id);
-                queue.remove(0);
+                queue.pop_front();
                 return Some(id);
             }
         }
@@ -404,11 +416,13 @@ impl CoopLeaseManager {
     }
 
     /// Get lease
+    #[inline(always)]
     pub fn lease(&self, id: u64) -> Option<&Lease> {
         self.leases.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopLeaseStats {
         &self.stats
     }

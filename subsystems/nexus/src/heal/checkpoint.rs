@@ -7,6 +7,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -50,6 +51,7 @@ impl Checkpoint {
     }
 
     /// Create an incremental checkpoint
+    #[inline]
     pub fn incremental(component: ComponentId, state: Vec<u8>, parent: u64) -> Self {
         let mut cp = Self::new(component, state);
         cp.parent = Some(parent);
@@ -57,6 +59,7 @@ impl Checkpoint {
     }
 
     /// Invalidate this checkpoint
+    #[inline(always)]
     pub fn invalidate(&mut self) {
         self.valid = false;
     }
@@ -64,6 +67,7 @@ impl Checkpoint {
 
 /// Checkpoint store statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CheckpointStats {
     /// Total checkpoints
     pub total_checkpoints: usize,
@@ -80,7 +84,7 @@ pub struct CheckpointStore {
     /// Checkpoints by ID
     checkpoints: BTreeMap<u64, Checkpoint>,
     /// Latest checkpoint per component
-    latest: BTreeMap<u64, u64>, // component_id -> checkpoint_id
+    latest: LinearMap<u64, 64>, // component_id -> checkpoint_id
     /// Maximum checkpoints to keep per component
     max_per_component: usize,
     /// Maximum total checkpoints
@@ -96,7 +100,7 @@ impl CheckpointStore {
     pub fn new(max_per_component: usize, max_total: usize, max_size: usize) -> Self {
         Self {
             checkpoints: BTreeMap::new(),
-            latest: BTreeMap::new(),
+            latest: LinearMap::new(),
             max_per_component,
             max_total,
             total_size: 0,
@@ -136,11 +140,13 @@ impl CheckpointStore {
     }
 
     /// Get a checkpoint by ID
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Checkpoint> {
         self.checkpoints.get(&id).filter(|cp| cp.valid)
     }
 
     /// Get latest checkpoint for a component
+    #[inline]
     pub fn latest_for(&self, component: ComponentId) -> Option<&Checkpoint> {
         self.latest
             .get(&component.raw())
@@ -148,6 +154,7 @@ impl CheckpointStore {
     }
 
     /// Get checkpoint history for a component
+    #[inline]
     pub fn history_for(&self, component: ComponentId) -> Vec<&Checkpoint> {
         self.checkpoints
             .values()
@@ -205,6 +212,7 @@ impl CheckpointStore {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> CheckpointStats {
         CheckpointStats {
             total_checkpoints: self.checkpoints.len(),

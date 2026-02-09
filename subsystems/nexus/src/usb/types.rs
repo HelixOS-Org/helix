@@ -8,6 +8,7 @@ pub struct BusId(pub u8);
 
 impl BusId {
     /// Create new bus ID
+    #[inline(always)]
     pub const fn new(id: u8) -> Self {
         Self(id)
     }
@@ -19,6 +20,7 @@ pub struct DeviceAddress(pub u8);
 
 impl DeviceAddress {
     /// Create new address
+    #[inline(always)]
     pub const fn new(addr: u8) -> Self {
         Self(addr)
     }
@@ -35,6 +37,7 @@ pub struct UsbDeviceId {
 
 impl UsbDeviceId {
     /// Create new device ID
+    #[inline]
     pub const fn new(bus: u8, address: u8) -> Self {
         Self {
             bus: BusId::new(bus),
@@ -251,16 +254,19 @@ impl UsbClass {
     }
 
     /// Is storage class
+    #[inline(always)]
     pub fn is_storage(&self) -> bool {
         matches!(self, Self::MassStorage)
     }
 
     /// Is input device
+    #[inline(always)]
     pub fn is_input(&self) -> bool {
         matches!(self, Self::Hid)
     }
 
     /// Is network device
+    #[inline(always)]
     pub fn is_network(&self) -> bool {
         matches!(self, Self::Cdc | Self::CdcData | Self::Wireless)
     }
@@ -285,6 +291,7 @@ pub enum UsbDeviceState {
 
 impl UsbDeviceState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Attached => "attached",
@@ -297,6 +304,7 @@ impl UsbDeviceState {
     }
 
     /// Is active
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         matches!(self, Self::Configured)
     }

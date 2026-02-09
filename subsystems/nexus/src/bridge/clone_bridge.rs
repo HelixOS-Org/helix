@@ -48,6 +48,7 @@ impl CloneRequest {
         Self { id, parent_pid: parent, child_pid: 0, flags, stack_size: 0, timestamp: now, duration_ns: 0, success: false }
     }
 
+    #[inline]
     pub fn has_flag(&self, flag: CloneFlag) -> bool {
         let bit = match flag {
             CloneFlag::Vm => 0x100, CloneFlag::Fs => 0x200, CloneFlag::Files => 0x400,
@@ -62,6 +63,7 @@ impl CloneRequest {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CloneBridgeStats {
     pub total_clones: u32,
     pub successful: u32,
@@ -71,6 +73,7 @@ pub struct CloneBridgeStats {
 }
 
 /// Main clone bridge
+#[repr(align(64))]
 pub struct BridgeClone {
     requests: BTreeMap<u64, CloneRequest>,
     next_id: u64,
@@ -79,16 +82,19 @@ pub struct BridgeClone {
 impl BridgeClone {
     pub fn new() -> Self { Self { requests: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn clone_process(&mut self, parent: u64, flags: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.requests.insert(id, CloneRequest::new(id, parent, flags, now));
         id
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, id: u64, child_pid: u64, dur: u64) {
         if let Some(r) = self.requests.get_mut(&id) { r.child_pid = child_pid; r.duration_ns = dur; r.success = true; }
     }
 
+    #[inline]
     pub fn stats(&self) -> CloneBridgeStats {
         let ok = self.requests.values().filter(|r| r.success).count() as u32;
         let fail = self.requests.len() as u32 - ok;
@@ -132,6 +138,7 @@ pub struct BridgeCloneV2Request {
 
 /// Clone result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeCloneV2Result {
     pub child_pid: u64,
     pub child_tid: u64,
@@ -141,6 +148,7 @@ pub struct BridgeCloneV2Result {
 
 /// Stats for clone bridge operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeCloneV2Stats {
     pub total_clones: u64,
     pub thread_clones: u64,
@@ -151,6 +159,7 @@ pub struct BridgeCloneV2Stats {
 }
 
 /// Manager for clone bridge operations
+#[repr(align(64))]
 pub struct BridgeCloneV2Manager {
     pending: BTreeMap<u64, BridgeCloneV2Request>,
     results: Vec<BridgeCloneV2Result>,
@@ -202,6 +211,7 @@ impl BridgeCloneV2Manager {
         child_pid
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCloneV2Stats {
         &self.stats
     }

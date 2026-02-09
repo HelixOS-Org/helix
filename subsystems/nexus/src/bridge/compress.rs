@@ -78,6 +78,7 @@ impl CompressedBlock {
     }
 
     /// Compression ratio
+    #[inline]
     pub fn ratio(&self) -> f64 {
         if self.original_size == 0 {
             return 1.0;
@@ -86,6 +87,7 @@ impl CompressedBlock {
     }
 
     /// Space saved (bytes)
+    #[inline(always)]
     pub fn saved(&self) -> usize {
         self.original_size.saturating_sub(self.compressed_size)
     }
@@ -312,6 +314,7 @@ impl ZeroPageDedup {
     }
 
     /// Zero page ratio
+    #[inline]
     pub fn zero_ratio(&self) -> f64 {
         if self.pages_seen == 0 {
             return 0.0;
@@ -320,6 +323,7 @@ impl ZeroPageDedup {
     }
 
     /// Saved bytes
+    #[inline(always)]
     pub fn saved_bytes(&self) -> u64 {
         self.zero_pages * self.page_size as u64
     }
@@ -331,6 +335,7 @@ impl ZeroPageDedup {
 
 /// Compression stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CompressionStats {
     /// Total bytes in
     pub total_input: u64,
@@ -345,6 +350,7 @@ pub struct CompressionStats {
 }
 
 /// Bridge compression manager
+#[repr(align(64))]
 pub struct BridgeCompressionManager {
     /// Default level
     pub level: CompressionLevel,
@@ -367,6 +373,7 @@ impl BridgeCompressionManager {
     }
 
     /// Set method for syscall
+    #[inline(always)]
     pub fn set_method(&mut self, syscall_nr: u32, method: CompressionMethod) {
         self.syscall_methods.insert(syscall_nr, method);
     }
@@ -401,6 +408,7 @@ impl BridgeCompressionManager {
     }
 
     /// Get method for syscall
+    #[inline]
     pub fn method_for_syscall(&self, syscall_nr: u32) -> CompressionMethod {
         self.syscall_methods
             .get(&syscall_nr)
@@ -409,11 +417,13 @@ impl BridgeCompressionManager {
     }
 
     /// Zero page dedup
+    #[inline(always)]
     pub fn zero_dedup(&mut self) -> &mut ZeroPageDedup {
         &mut self.zero_dedup
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CompressionStats {
         &self.stats
     }

@@ -14,6 +14,7 @@ use super::types::EventPriority;
 // ============================================================================
 
 /// Priority event queue
+#[repr(align(64))]
 pub struct EventQueue {
     /// Queues by priority level
     queues: [Vec<NexusEvent>; 6],
@@ -37,6 +38,7 @@ impl EventQueue {
     }
 
     /// Push an event to the queue
+    #[inline]
     pub fn push(&mut self, event: NexusEvent) -> bool {
         let queue = &mut self.queues[event.priority as usize];
 
@@ -50,6 +52,7 @@ impl EventQueue {
     }
 
     /// Pop the highest priority event
+    #[inline]
     pub fn pop(&mut self) -> Option<NexusEvent> {
         // Start from highest priority
         for priority in (0..6).rev() {
@@ -62,31 +65,37 @@ impl EventQueue {
     }
 
     /// Get total pending events
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.queues.iter().map(|q| q.len()).sum()
     }
 
     /// Check if queue is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.queues.iter().all(|q| q.is_empty())
     }
 
     /// Get pending events by priority
+    #[inline(always)]
     pub fn pending_by_priority(&self, priority: EventPriority) -> usize {
         self.queues[priority as usize].len()
     }
 
     /// Get total dropped events
+    #[inline(always)]
     pub fn dropped(&self) -> u64 {
         self.dropped
     }
 
     /// Get total processed events
+    #[inline(always)]
     pub fn processed(&self) -> u64 {
         self.processed
     }
 
     /// Clear all events
+    #[inline]
     pub fn clear(&mut self) {
         for queue in &mut self.queues {
             queue.clear();

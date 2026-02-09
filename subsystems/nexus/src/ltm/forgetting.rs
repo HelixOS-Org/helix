@@ -160,6 +160,7 @@ impl Default for ForgettingConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ForgettingStats {
     /// Items tracked
     pub items_tracked: u64,
@@ -364,16 +365,19 @@ impl ForgettingManager {
     }
 
     /// Get item
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&MemoryItem> {
         self.items.get(&id)
     }
 
     /// Get strength
+    #[inline(always)]
     pub fn strength(&self, id: u64) -> Option<f64> {
         self.items.get(&id).map(|i| i.strength)
     }
 
     /// Get weak items
+    #[inline]
     pub fn weak_items(&self, threshold: f64) -> Vec<&MemoryItem> {
         self.items.values()
             .filter(|i| i.strength < threshold)
@@ -381,6 +385,7 @@ impl ForgettingManager {
     }
 
     /// Get strong items
+    #[inline]
     pub fn strong_items(&self, threshold: f64) -> Vec<&MemoryItem> {
         self.items.values()
             .filter(|i| i.strength >= threshold)
@@ -388,6 +393,7 @@ impl ForgettingManager {
     }
 
     /// Get items needing rehearsal
+    #[inline]
     pub fn needs_rehearsal(&self, since_ns: u64) -> Vec<&MemoryItem> {
         let cutoff = Timestamp::now().0.saturating_sub(since_ns);
 
@@ -397,11 +403,13 @@ impl ForgettingManager {
     }
 
     /// Get events
+    #[inline(always)]
     pub fn events(&self) -> &[ForgettingEvent] {
         &self.events
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ForgettingStats {
         &self.stats
     }
@@ -473,6 +481,7 @@ impl SpacedRepetition {
     }
 
     /// Schedule item
+    #[inline]
     pub fn schedule(&mut self, item_id: u64) {
         let item = ReviewItem {
             item_id,
@@ -485,6 +494,7 @@ impl SpacedRepetition {
     }
 
     /// Get due items
+    #[inline]
     pub fn due_items(&self) -> Vec<&ReviewItem> {
         let now = Timestamp::now();
 

@@ -35,10 +35,12 @@ pub struct MerkleNode {
 }
 
 impl MerkleNode {
+    #[inline(always)]
     pub fn leaf(key: u64, hash: u64) -> Self {
         Self { hash, level: 0, range_start: key, range_end: key, children: [0; 2], leaf_count: 1 }
     }
 
+    #[inline]
     pub fn branch(left: &MerkleNode, right: &MerkleNode) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
         h ^= left.hash; h = h.wrapping_mul(0x100000001b3);
@@ -96,15 +98,21 @@ impl RepairTask {
         }
     }
 
+    #[inline(always)]
     pub fn start(&mut self) { self.state = RepairTaskState::Running; }
+    #[inline(always)]
     pub fn complete(&mut self, keys: u32, bytes: u64, ts: u64) { self.state = RepairTaskState::Complete; self.keys_repaired = keys; self.bytes_transferred = bytes; self.end_ts = ts; }
+    #[inline(always)]
     pub fn fail(&mut self, ts: u64) { self.state = RepairTaskState::Failed; self.end_ts = ts; self.retries += 1; }
+    #[inline(always)]
     pub fn cancel(&mut self) { self.state = RepairTaskState::Cancelled; }
+    #[inline(always)]
     pub fn latency(&self) -> u64 { self.end_ts.saturating_sub(self.start_ts) }
 }
 
 /// Peer anti-entropy state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PeerEntropyState {
     pub peer_id: u64,
     pub root_hash: u64,
@@ -123,6 +131,7 @@ impl PeerEntropyState {
 
 /// Convergence metric
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConvergenceMetric {
     pub ts: u64,
     pub agreement_ratio: f64,
@@ -133,6 +142,7 @@ pub struct ConvergenceMetric {
 
 /// Anti-entropy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AntiEntropyV2Stats {
     pub peers: usize,
     pub total_syncs: u64,
@@ -167,11 +177,13 @@ impl CoopAntiEntropyV2 {
         }
     }
 
+    #[inline(always)]
     pub fn insert_key(&mut self, key: u64, value_hash: u64) {
         let node = MerkleNode::leaf(key, value_hash);
         self.local_tree.insert(key, node);
     }
 
+    #[inline]
     pub fn local_root_hash(&self) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
         for node in self.local_tree.values() {
@@ -181,10 +193,12 @@ impl CoopAntiEntropyV2 {
         h
     }
 
+    #[inline(always)]
     pub fn add_peer(&mut self, peer: u64) {
         self.peers.entry(peer).or_insert_with(|| PeerEntropyState::new(peer));
     }
 
+    #[inline]
     pub fn compare_root(&self, peer: u64, remote_hash: u64) -> bool {
         let local = self.local_root_hash();
         if let Some(p) = self.peers.get(&peer) {
@@ -225,6 +239,7 @@ impl CoopAntiEntropyV2 {
         id
     }
 
+    #[inline]
     pub fn run_next(&mut self) -> Option<u64> {
         let running = self.tasks.values().filter(|t| t.state == RepairTaskState::Running).count() as u32;
         if running >= self.max_concurrent { return None; }
@@ -250,10 +265,12 @@ impl CoopAntiEntropyV2 {
         }
     }
 
+    #[inline(always)]
     pub fn fail_repair(&mut self, task_id: u64, ts: u64) {
         if let Some(t) = self.tasks.get_mut(&task_id) { t.fail(ts); self.stats.failed_repairs += 1; }
     }
 
+    #[inline]
     pub fn record_convergence(&mut self, ts: u64) {
         let total = self.peers.len() as u32;
         let local_h = self.local_root_hash();
@@ -264,14 +281,20 @@ impl CoopAntiEntropyV2 {
         self.stats.convergence = ratio;
     }
 
+    #[inline(always)]
     pub fn recompute(&mut self) {
         self.stats.peers = self.peers.len();
         self.stats.total_syncs = self.peers.values().map(|p| p.sync_count).sum();
     }
 
+    #[inline(always)]
     pub fn peer(&self, id: u64) -> Option<&PeerEntropyState> { self.peers.get(&id) }
+    #[inline(always)]
     pub fn task(&self, id: u64) -> Option<&RepairTask> { self.tasks.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &AntiEntropyV2Stats { &self.stats }
+    #[inline(always)]
     pub fn convergence_history(&self) -> &[ConvergenceMetric] { &self.convergence_history }
+    #[inline(always)]
     pub fn key_count(&self) -> usize { self.local_tree.len() }
 }

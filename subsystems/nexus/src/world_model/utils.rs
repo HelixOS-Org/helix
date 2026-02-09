@@ -1,6 +1,7 @@
 //! Utility functions for the world model.
 
 /// LCG random number generator
+#[inline]
 pub fn lcg_next(state: u64) -> u64 {
     state
         .wrapping_mul(6364136223846793005)
@@ -8,6 +9,7 @@ pub fn lcg_next(state: u64) -> u64 {
 }
 
 /// Box-Muller transform
+#[inline]
 pub fn box_muller(seed: u64) -> f64 {
     let u1 = (seed as f64 / u64::MAX as f64).max(1e-10);
     let seed2 = lcg_next(seed);

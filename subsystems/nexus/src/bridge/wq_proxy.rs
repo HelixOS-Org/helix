@@ -71,21 +71,28 @@ impl WorkItem {
         }
     }
 
+    #[inline(always)]
     pub fn set_delayed(&mut self, delay: u64) { self.delay_ns = delay; self.state = WorkState::Delayed; }
 
+    #[inline(always)]
     pub fn start(&mut self, ts: u64) { self.state = WorkState::Running; self.start_ts = ts; }
 
+    #[inline(always)]
     pub fn complete(&mut self, ts: u64) { self.state = WorkState::Done; self.end_ts = ts; }
 
+    #[inline]
     pub fn fail(&mut self, ts: u64) {
         self.retries += 1;
         if self.retries >= self.max_retries { self.state = WorkState::Failed; self.end_ts = ts; }
         else { self.state = WorkState::Pending; }
     }
 
+    #[inline(always)]
     pub fn cancel(&mut self) { self.state = WorkState::Cancelled; }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 { if self.start_ts > self.enqueue_ts { self.start_ts - self.enqueue_ts } else { 0 } }
+    #[inline(always)]
     pub fn execution_ns(&self) -> u64 { if self.end_ts > self.start_ts { self.end_ts - self.start_ts } else { 0 } }
 }
 
@@ -115,15 +122,21 @@ impl Workqueue {
         }
     }
 
+    #[inline(always)]
     pub fn add_flag(&mut self, f: WqFlag) { if !self.flags.contains(&f) { self.flags.push(f); } }
+    #[inline(always)]
     pub fn is_unbound(&self) -> bool { self.flags.contains(&WqFlag::Unbound) }
+    #[inline(always)]
     pub fn is_high_pri(&self) -> bool { self.flags.contains(&WqFlag::HighPri) }
+    #[inline(always)]
     pub fn can_schedule(&self) -> bool { self.current_active < self.max_active }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 { if self.max_active == 0 { 0.0 } else { self.current_active as f64 / self.max_active as f64 * 100.0 } }
 }
 
 /// Per-CPU worker pool
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkerPool {
     pub cpu_id: u32,
     pub nr_workers: u32,
@@ -140,6 +153,7 @@ impl WorkerPool {
 
 /// Workqueue proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct WqProxyStats {
     pub total_wqs: usize,
     pub total_pending: u64,
@@ -151,6 +165,7 @@ pub struct WqProxyStats {
 }
 
 /// Bridge workqueue proxy
+#[repr(align(64))]
 pub struct BridgeWqProxy {
     queues: BTreeMap<u64, Workqueue>,
     items: BTreeMap<u64, WorkItem>,
@@ -165,18 +180,21 @@ impl BridgeWqProxy {
         Self { queues: BTreeMap::new(), items: BTreeMap::new(), pools: BTreeMap::new(), stats: WqProxyStats::default(), next_wq: 1, next_item: 1 }
     }
 
+    #[inline]
     pub fn create_wq(&mut self, name: String, max_active: u32) -> u64 {
         let id = self.next_wq; self.next_wq += 1;
         self.queues.insert(id, Workqueue::new(id, name, max_active));
         id
     }
 
+    #[inline]
     pub fn destroy_wq(&mut self, id: u64) {
         self.queues.remove(&id);
         let to_cancel: Vec<u64> = self.items.iter().filter(|(_, w)| w.wq_id == id).map(|(&k, _)| k).collect();
         for wid in to_cancel { self.items.remove(&wid); }
     }
 
+    #[inline]
     pub fn queue_work(&mut self, wq: u64, handler: u64, prio: WorkPriority, ts: u64) -> u64 {
         let id = self.next_item; self.next_item += 1;
         let mut item = WorkItem::new(id, wq, handler, prio);
@@ -186,6 +204,7 @@ impl BridgeWqProxy {
         id
     }
 
+    #[inline]
     pub fn queue_delayed_work(&mut self, wq: u64, handler: u64, delay: u64, ts: u64) -> u64 {
         let id = self.next_item; self.next_item += 1;
         let mut item = WorkItem::new(id, wq, handler, WorkPriority::Normal);
@@ -196,6 +215,7 @@ impl BridgeWqProxy {
         id
     }
 
+    #[inline]
     pub fn start_work(&mut self, item_id: u64, ts: u64) {
         if let Some(w) = self.items.get_mut(&item_id) {
             let wq = w.wq_id;
@@ -204,6 +224,7 @@ impl BridgeWqProxy {
         }
     }
 
+    #[inline]
     pub fn complete_work(&mut self, item_id: u64, ts: u64) {
         if let Some(w) = self.items.get_mut(&item_id) {
             let wq = w.wq_id;
@@ -212,6 +233,7 @@ impl BridgeWqProxy {
         }
     }
 
+    #[inline]
     pub fn fail_work(&mut self, item_id: u64, ts: u64) {
         if let Some(w) = self.items.get_mut(&item_id) {
             let wq = w.wq_id;
@@ -220,6 +242,7 @@ impl BridgeWqProxy {
         }
     }
 
+    #[inline]
     pub fn cancel_work(&mut self, item_id: u64) {
         if let Some(w) = self.items.get_mut(&item_id) {
             let wq = w.wq_id;
@@ -228,6 +251,7 @@ impl BridgeWqProxy {
         }
     }
 
+    #[inline(always)]
     pub fn add_pool(&mut self, cpu: u32) { self.pools.insert(cpu, WorkerPool::new(cpu)); }
 
     pub fn recompute(&mut self) {
@@ -244,7 +268,10 @@ impl BridgeWqProxy {
         }
     }
 
+    #[inline(always)]
     pub fn wq(&self, id: u64) -> Option<&Workqueue> { self.queues.get(&id) }
+    #[inline(always)]
     pub fn work(&self, id: u64) -> Option<&WorkItem> { self.items.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &WqProxyStats { &self.stats }
 }

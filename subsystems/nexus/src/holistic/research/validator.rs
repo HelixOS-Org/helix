@@ -17,6 +17,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -161,6 +162,7 @@ pub struct ValidationRecord {
 
 /// Validator statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     pub total_validations: u64,
     pub passed_count: u64,
@@ -181,7 +183,7 @@ pub struct ValidatorStats {
 pub struct HolisticDiscoveryValidator {
     records: BTreeMap<u64, ValidationRecord>,
     invariant_registry: Vec<(SystemProperty, String, f32)>,
-    baseline_metrics: BTreeMap<u64, f32>,
+    baseline_metrics: LinearMap<f32, 64>,
     rng_state: u64,
     stats: ValidatorStats,
 }
@@ -192,7 +194,7 @@ impl HolisticDiscoveryValidator {
         Self {
             records: BTreeMap::new(),
             invariant_registry: Vec::new(),
-            baseline_metrics: BTreeMap::new(),
+            baseline_metrics: LinearMap::new(),
             rng_state: seed | 1,
             stats: ValidatorStats {
                 total_validations: 0,
@@ -209,6 +211,7 @@ impl HolisticDiscoveryValidator {
     }
 
     /// Register a system invariant to be checked during validation
+    #[inline]
     pub fn register_invariant(&mut self, property: SystemProperty, desc: String, threshold: f32) {
         if self.invariant_registry.len() < MAX_INVARIANTS {
             self.invariant_registry.push((property, desc, threshold));
@@ -216,6 +219,7 @@ impl HolisticDiscoveryValidator {
     }
 
     /// Set a baseline metric value for regression testing
+    #[inline(always)]
     pub fn set_baseline(&mut self, key: u64, value: f32) {
         self.baseline_metrics.insert(key, value);
     }
@@ -325,7 +329,7 @@ impl HolisticDiscoveryValidator {
         ];
         for sub in &subsystems {
             let key = fnv1a_hash(sub.as_bytes());
-            let baseline = self.baseline_metrics.get(&key).copied().unwrap_or(0.5);
+            let baseline = self.baseline_metrics.get(key).copied().unwrap_or(0.5);
             let current = baseline + (xorshift_f32(&mut self.rng_state) - 0.5) * 0.1;
             let delta_pct = if baseline > 1e-9 {
                 ((current - baseline) / baseline) * 100.0
@@ -401,6 +405,7 @@ impl HolisticDiscoveryValidator {
     }
 
     /// Issue a validation certificate for a specific discovery
+    #[inline]
     pub fn validation_certificate(&self, discovery_id: u64) -> Option<&ValidationCertificate> {
         self.records
             .get(&discovery_id)
@@ -408,12 +413,14 @@ impl HolisticDiscoveryValidator {
     }
 
     /// Current statistics snapshot
+    #[inline(always)]
     pub fn stats(&self) -> &ValidatorStats {
         &self.stats
     }
 
     // ── private helpers ─────────────────────────────────────────────────
 
+    #[inline]
     fn update_pass_rate_ema(&mut self) {
         let total = self.stats.total_validations.max(1) as f32;
         let rate = self.stats.passed_count as f32 / total;

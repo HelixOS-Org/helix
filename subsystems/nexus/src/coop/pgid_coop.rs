@@ -2,6 +2,7 @@
 //! NEXUS Coop — PGID (cooperative process group management)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -27,6 +28,7 @@ pub struct CoopPgidEntry {
 
 /// PGID cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopPgidStats {
     pub total_groups: u64,
     pub orphaned_groups: u64,
@@ -38,7 +40,7 @@ pub struct CoopPgidStats {
 /// Manager for cooperative PGID operations
 pub struct CoopPgidManager {
     groups: BTreeMap<u64, CoopPgidEntry>,
-    pid_to_pgid: BTreeMap<u64, u64>,
+    pid_to_pgid: LinearMap<u64, 64>,
     stats: CoopPgidStats,
 }
 
@@ -46,7 +48,7 @@ impl CoopPgidManager {
     pub fn new() -> Self {
         Self {
             groups: BTreeMap::new(),
-            pid_to_pgid: BTreeMap::new(),
+            pid_to_pgid: LinearMap::new(),
             stats: CoopPgidStats {
                 total_groups: 0,
                 orphaned_groups: 0,
@@ -70,6 +72,7 @@ impl CoopPgidManager {
         self.stats.total_groups += 1;
     }
 
+    #[inline]
     pub fn join_group(&mut self, pid: u64, pgid: u64) -> bool {
         if let Some(group) = self.groups.get_mut(&pgid) {
             group.members.push(pid);
@@ -80,6 +83,7 @@ impl CoopPgidManager {
         }
     }
 
+    #[inline]
     pub fn set_foreground(&mut self, pgid: u64) -> bool {
         if let Some(group) = self.groups.get_mut(&pgid) {
             group.state = CoopPgidState::Foreground;
@@ -90,6 +94,7 @@ impl CoopPgidManager {
         }
     }
 
+    #[inline]
     pub fn orphan_group(&mut self, pgid: u64) {
         if let Some(group) = self.groups.get_mut(&pgid) {
             group.state = CoopPgidState::Orphaned;
@@ -97,6 +102,7 @@ impl CoopPgidManager {
         }
     }
 
+    #[inline]
     pub fn signal_group(&mut self, pgid: u64) -> usize {
         if let Some(group) = self.groups.get(&pgid) {
             self.stats.group_signals += 1;
@@ -106,6 +112,7 @@ impl CoopPgidManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopPgidStats {
         &self.stats
     }

@@ -57,18 +57,27 @@ impl DmaFence {
         }
     }
 
+    #[inline(always)]
     pub fn signal(&mut self, ts: u64) { self.state = FenceState::Signaled; self.signal_ts = ts; }
+    #[inline(always)]
     pub fn signal_error(&mut self, err: i32, ts: u64) { self.state = FenceState::Error; self.error_code = err; self.signal_ts = ts; }
+    #[inline(always)]
     pub fn is_signaled(&self) -> bool { self.state == FenceState::Signaled || self.state == FenceState::Error }
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 { if self.signal_ts > self.create_ts { self.signal_ts - self.create_ts } else { 0 } }
+    #[inline(always)]
     pub fn add_dep(&mut self, dep: u64) { if !self.deps.contains(&dep) { self.deps.push(dep); } }
+    #[inline(always)]
     pub fn add_waiter(&mut self, waiter: u64) { if !self.waiters.contains(&waiter) { self.waiters.push(waiter); } }
+    #[inline(always)]
     pub fn set_deadline(&mut self, ts: u64) { self.deadline_ts = ts; }
+    #[inline(always)]
     pub fn is_past_deadline(&self, now: u64) -> bool { self.deadline_ts > 0 && now > self.deadline_ts && !self.is_signaled() }
 }
 
 /// Fence context (per-device timeline)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FenceContext {
     pub id: u64,
     pub last_seqno: u64,
@@ -85,6 +94,7 @@ impl FenceContext {
         Self { id, last_seqno: 0, last_signaled_seqno: 0, pending_count: 0, total_fences: 0, total_signaled: 0, total_errors: 0, avg_latency_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn next_seqno(&mut self) -> u64 { self.last_seqno += 1; self.last_seqno }
 }
 
@@ -115,6 +125,7 @@ pub struct FenceWaitReq {
 
 /// DMA fence stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DmaFenceStats {
     pub total_fences: u64,
     pub pending_fences: usize,
@@ -128,6 +139,7 @@ pub struct DmaFenceStats {
 }
 
 /// Bridge DMA fence manager
+#[repr(align(64))]
 pub struct BridgeDmaFence {
     fences: BTreeMap<u64, DmaFence>,
     contexts: BTreeMap<u64, FenceContext>,
@@ -148,12 +160,14 @@ impl BridgeDmaFence {
         }
     }
 
+    #[inline]
     pub fn create_context(&mut self) -> u64 {
         let id = self.next_ctx; self.next_ctx += 1;
         self.contexts.insert(id, FenceContext::new(id));
         id
     }
 
+    #[inline]
     pub fn create_fence(&mut self, ctx: u64, ts: u64) -> u64 {
         let seqno = self.contexts.get_mut(&ctx).map(|c| c.next_seqno()).unwrap_or(0);
         let id = self.next_fence; self.next_fence += 1;
@@ -163,6 +177,7 @@ impl BridgeDmaFence {
         id
     }
 
+    #[inline]
     pub fn create_timeline_fence(&mut self, ctx: u64, seqno: u64, ts: u64) -> u64 {
         let id = self.next_fence; self.next_fence += 1;
         let fence = DmaFence::new(id, ctx, seqno, FenceType::Timeline, ts);
@@ -187,6 +202,7 @@ impl BridgeDmaFence {
         self.waits.retain(|w| w.fence_id != id);
     }
 
+    #[inline]
     pub fn signal_error(&mut self, id: u64, err: i32, ts: u64) {
         if let Some(f) = self.fences.get_mut(&id) {
             let ctx = f.context;
@@ -195,21 +211,25 @@ impl BridgeDmaFence {
         }
     }
 
+    #[inline(always)]
     pub fn add_dependency(&mut self, fence: u64, dep: u64) {
         if let Some(f) = self.fences.get_mut(&fence) { f.add_dep(dep); }
     }
 
+    #[inline(always)]
     pub fn wait_fence(&mut self, fence_id: u64, waiter: u64, timeout: u64, ts: u64) {
         if let Some(f) = self.fences.get_mut(&fence_id) { f.add_waiter(waiter); }
         self.waits.push(FenceWaitReq { fence_id, waiter_id: waiter, timeout_ns: timeout, start_ts: ts, interruptible: true });
     }
 
+    #[inline]
     pub fn create_sync_file(&mut self, fences: Vec<u64>, ts: u64) -> u64 {
         let id = self.next_sf; self.next_sf += 1;
         self.sync_files.insert(id, SyncFile::new(id, fences, ts));
         id
     }
 
+    #[inline(always)]
     pub fn check_deadlines(&mut self, now: u64) -> Vec<u64> {
         self.fences.values().filter(|f| f.is_past_deadline(now)).map(|f| f.id).collect()
     }
@@ -228,7 +248,10 @@ impl BridgeDmaFence {
         self.stats.contexts = self.contexts.len();
     }
 
+    #[inline(always)]
     pub fn fence(&self, id: u64) -> Option<&DmaFence> { self.fences.get(&id) }
+    #[inline(always)]
     pub fn context(&self, id: u64) -> Option<&FenceContext> { self.contexts.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &DmaFenceStats { &self.stats }
 }

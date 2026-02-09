@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -45,10 +46,12 @@ impl DispatchFlags {
     pub const ENQUEUE_WAKEUP: Self = Self(1 << 8);
     pub const ENQUEUE_HEAD: Self = Self(1 << 9);
 
+    #[inline(always)]
     pub fn has(&self, flag: Self) -> bool {
         (self.0 & flag.0) != 0
     }
 
+    #[inline(always)]
     pub fn combine(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
@@ -56,6 +59,7 @@ impl DispatchFlags {
 
 /// Per-task sched_ext state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ScxTaskState {
     pub pid: u64,
     pub dsq_id: u64,
@@ -87,11 +91,13 @@ impl ScxTaskState {
         }
     }
 
+    #[inline(always)]
     pub fn record_enqueue(&mut self, timestamp_ns: u64) {
         self.enqueue_count += 1;
         self.last_enqueue_ns = timestamp_ns;
     }
 
+    #[inline]
     pub fn record_dispatch(&mut self, timestamp_ns: u64) {
         self.dispatch_count += 1;
         if self.last_enqueue_ns > 0 {
@@ -100,16 +106,19 @@ impl ScxTaskState {
         self.last_dispatch_ns = timestamp_ns;
     }
 
+    #[inline]
     pub fn record_stop(&mut self, timestamp_ns: u64) {
         if self.last_dispatch_ns > 0 {
             self.total_runtime_ns += timestamp_ns.saturating_sub(self.last_dispatch_ns);
         }
     }
 
+    #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
         if self.dispatch_count == 0 { 0 } else { self.total_wait_ns / self.dispatch_count }
     }
 
+    #[inline(always)]
     pub fn avg_runtime_ns(&self) -> u64 {
         if self.dispatch_count == 0 { 0 } else { self.total_runtime_ns / self.dispatch_count }
     }
@@ -117,10 +126,12 @@ impl ScxTaskState {
 
 /// Dispatch queue (DSQ)
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct DispatchQueue {
     pub id: u64,
     pub name: String,
-    pub tasks: Vec<u64>,
+    /// O(1) deque — was Vec (O(n) remove(0)), now VecDeque (O(1) pop_front)
+    pub tasks: VecDeque<u64>,
     pub max_tasks: usize,
     pub fifo: bool,
     total_dispatched: u64,
@@ -133,7 +144,7 @@ impl DispatchQueue {
         Self {
             id,
             name,
-            tasks: Vec::new(),
+            tasks: VecDeque::new(),
             max_tasks: 4096,
             fifo: true,
             total_dispatched: 0,
@@ -142,14 +153,15 @@ impl DispatchQueue {
         }
     }
 
+    /// Enqueue a task. O(1) with VecDeque.
     pub fn enqueue(&mut self, pid: u64, head: bool) -> bool {
         if self.tasks.len() >= self.max_tasks {
             return false;
         }
         if head {
-            self.tasks.insert(0, pid);
+            self.tasks.push_front(pid); // O(1) — was insert(0) O(n)
         } else {
-            self.tasks.push(pid);
+            self.tasks.push_back(pid); // O(1)
         }
         self.total_dispatched += 1;
         if self.tasks.len() > self.max_depth_seen {
@@ -158,22 +170,27 @@ impl DispatchQueue {
         true
     }
 
+    /// Consume next task. O(1) — was O(n) with Vec::remove(0).
+    #[inline]
     pub fn consume(&mut self) -> Option<u64> {
         if self.tasks.is_empty() {
             return None;
         }
         self.total_consumed += 1;
-        Some(self.tasks.remove(0))
+        self.tasks.pop_front() // O(1) — was remove(0) O(4096)!
     }
 
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.tasks.len()
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.tasks.is_empty()
     }
 
+    #[inline(always)]
     pub fn throughput_ratio(&self) -> f64 {
         if self.total_dispatched == 0 { return 0.0; }
         self.total_consumed as f64 / self.total_dispatched as f64
@@ -182,6 +199,7 @@ impl DispatchQueue {
 
 /// Per-CPU sched_ext state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CpuScxState {
     pub cpu_id: u32,
     pub local_dsq_id: u64,
@@ -206,6 +224,7 @@ impl CpuScxState {
 
 /// Loaded sched_ext scheduler info
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ScxSchedulerInfo {
     pub name: String,
     pub bpf_prog_id: u64,
@@ -218,6 +237,7 @@ pub struct ScxSchedulerInfo {
 
 /// Sched_ext bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SchedExtBridgeStats {
     pub tasks_managed: u64,
     pub total_enqueues: u64,
@@ -229,6 +249,7 @@ pub struct SchedExtBridgeStats {
 }
 
 /// Main sched_ext bridge manager
+#[repr(align(64))]
 pub struct BridgeSchedExt {
     tasks: BTreeMap<u64, ScxTaskState>,
     dsqs: BTreeMap<u64, DispatchQueue>,
@@ -284,6 +305,7 @@ impl BridgeSchedExt {
         true
     }
 
+    #[inline]
     pub fn unload_scheduler(&mut self) -> bool {
         if self.scheduler.take().is_some() {
             self.stats.scheduler_switches += 1;
@@ -293,6 +315,7 @@ impl BridgeSchedExt {
         }
     }
 
+    #[inline]
     pub fn init_cpu(&mut self, cpu_id: u32) {
         let cpu = CpuScxState::new(cpu_id);
         let local_dsq = DispatchQueue::new(cpu_id as u64, alloc::format!("cpu{}", cpu_id));
@@ -301,6 +324,7 @@ impl BridgeSchedExt {
         self.stats.dsq_count += 1;
     }
 
+    #[inline]
     pub fn init_task(&mut self, pid: u64) {
         self.tasks.insert(pid, ScxTaskState::new(pid));
         self.stats.tasks_managed += 1;
@@ -324,6 +348,7 @@ impl BridgeSchedExt {
         }
     }
 
+    #[inline]
     pub fn create_dsq(&mut self, id: u64, name: String) -> bool {
         if self.dsqs.contains_key(&id) {
             return false;
@@ -391,6 +416,7 @@ impl BridgeSchedExt {
         None
     }
 
+    #[inline]
     pub fn scx_stopping(&mut self, cpu_id: u32, now_ns: u64) {
         if let Some(cpu) = self.cpu_states.get_mut(&cpu_id) {
             if let Some(pid) = cpu.current_task.take() {
@@ -401,6 +427,7 @@ impl BridgeSchedExt {
         }
     }
 
+    #[inline]
     pub fn set_task_weight(&mut self, pid: u64, weight: u32) -> bool {
         if let Some(task) = self.tasks.get_mut(&pid) {
             task.weight = weight;
@@ -410,6 +437,7 @@ impl BridgeSchedExt {
         }
     }
 
+    #[inline]
     pub fn set_task_slice(&mut self, pid: u64, slice_ns: u64) -> bool {
         if let Some(task) = self.tasks.get_mut(&pid) {
             task.slice_ns = slice_ns;
@@ -419,14 +447,17 @@ impl BridgeSchedExt {
         }
     }
 
+    #[inline(always)]
     pub fn dsq_depths(&self) -> Vec<(u64, usize)> {
         self.dsqs.iter().map(|(id, dsq)| (*id, dsq.depth())).collect()
     }
 
+    #[inline(always)]
     pub fn idle_cpus(&self) -> Vec<u32> {
         self.cpu_states.iter().filter(|(_, c)| c.idle).map(|(id, _)| *id).collect()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SchedExtBridgeStats {
         &self.stats
     }

@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Credential type
@@ -100,6 +101,7 @@ impl CredentialSet {
     }
 
     /// Check if capability is effective
+    #[inline]
     pub fn has_cap(&self, cap_bit: u8) -> bool {
         if cap_bit >= 64 {
             return false;
@@ -108,6 +110,7 @@ impl CredentialSet {
     }
 
     /// Grant capability
+    #[inline]
     pub fn grant_cap(&mut self, cap_bit: u8) {
         if cap_bit < 64 {
             self.effective_caps |= 1u64 << cap_bit;
@@ -117,6 +120,7 @@ impl CredentialSet {
     }
 
     /// Revoke capability
+    #[inline]
     pub fn revoke_cap(&mut self, cap_bit: u8) {
         if cap_bit < 64 {
             self.effective_caps &= !(1u64 << cap_bit);
@@ -125,6 +129,7 @@ impl CredentialSet {
     }
 
     /// Count effective capabilities
+    #[inline(always)]
     pub fn cap_count(&self) -> u32 {
         self.effective_caps.count_ones()
     }
@@ -142,6 +147,7 @@ impl CredentialSet {
     }
 
     /// Set security label
+    #[inline]
     pub fn set_label(&mut self, label: &str) {
         let mut hash: u64 = 0xcbf29ce484222325;
         for b in label.as_bytes() {
@@ -154,6 +160,7 @@ impl CredentialSet {
 
 /// Credential cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CredCacheEntry {
     /// Credentials
     pub creds: CredentialSet,
@@ -175,6 +182,7 @@ impl CredCacheEntry {
         }
     }
 
+    #[inline(always)]
     pub fn is_valid(&self, now_ns: u64) -> bool {
         now_ns.saturating_sub(self.cached_at_ns) < self.ttl_ns
     }
@@ -191,6 +199,7 @@ pub enum AuthzDecision {
 
 /// Credential proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeCredentialStats {
     pub cached_credentials: usize,
     pub cache_hits: u64,
@@ -201,11 +210,12 @@ pub struct BridgeCredentialStats {
 }
 
 /// Bridge credential proxy
+#[repr(align(64))]
 pub struct BridgeCredentialProxy {
     /// Credential cache (pid -> entry)
     cache: BTreeMap<u64, CredCacheEntry>,
     /// Escalation log
-    escalations: Vec<EscalationEvent>,
+    escalations: VecDeque<EscalationEvent>,
     /// Max escalation log size
     max_log: usize,
     /// Default TTL (ns)
@@ -218,7 +228,7 @@ impl BridgeCredentialProxy {
     pub fn new() -> Self {
         Self {
             cache: BTreeMap::new(),
-            escalations: Vec::new(),
+            escalations: VecDeque::new(),
             max_log: 256,
             default_ttl_ns: 5_000_000_000, // 5 seconds
             stats: BridgeCredentialStats::default(),
@@ -226,6 +236,7 @@ impl BridgeCredentialProxy {
     }
 
     /// Cache credentials for PID
+    #[inline]
     pub fn cache_creds(&mut self, pid: u64, creds: CredentialSet, now_ns: u64) {
         let entry = CredCacheEntry::new(creds, now_ns, self.default_ttl_ns);
         self.cache.insert(pid, entry);
@@ -233,6 +244,7 @@ impl BridgeCredentialProxy {
     }
 
     /// Get cached credentials
+    #[inline]
     pub fn get_creds(&mut self, pid: u64, now_ns: u64) -> Option<&CredentialSet> {
         if let Some(entry) = self.cache.get_mut(&pid) {
             if entry.is_valid(now_ns) {
@@ -269,14 +281,15 @@ impl BridgeCredentialProxy {
             self.stats.escalations_blocked += 1;
         }
         if self.escalations.len() >= self.max_log {
-            self.escalations.remove(0);
+            self.escalations.pop_front();
         }
-        self.escalations.push(EscalationEvent {
+        self.escalations.push_back(EscalationEvent {
             pid, from, to, syscall_nr, timestamp_ns: now_ns, allowed,
         });
     }
 
     /// Evict expired cache entries
+    #[inline(always)]
     pub fn evict_expired(&mut self, now_ns: u64) {
         self.cache.retain(|_, entry| entry.is_valid(now_ns));
         self.update_stats();
@@ -286,6 +299,7 @@ impl BridgeCredentialProxy {
         self.stats.cached_credentials = self.cache.len();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCredentialStats {
         &self.stats
     }

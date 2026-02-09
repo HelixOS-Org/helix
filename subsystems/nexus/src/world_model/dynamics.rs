@@ -130,6 +130,7 @@ impl TransitionModel {
     }
 
     /// Predict with residual connection
+    #[inline]
     pub fn predict_residual(&self, state: &LatentState, action: &[f64]) -> LatentState {
         let mut next = self.predict(state, action);
 

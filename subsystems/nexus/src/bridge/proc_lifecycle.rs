@@ -86,12 +86,16 @@ impl ProcEntry {
         }
     }
 
+    #[inline(always)]
     pub fn is_zombie(&self) -> bool { self.state == ProcLifecycleState::Zombie }
+    #[inline(always)]
     pub fn is_alive(&self) -> bool {
         matches!(self.state, ProcLifecycleState::Creating | ProcLifecycleState::Running)
     }
+    #[inline(always)]
     pub fn is_thread_leader(&self) -> bool { self.pid == self.tgid }
 
+    #[inline(always)]
     pub fn lifetime_ns(&self) -> u64 {
         if self.exited_ns > 0 { self.exited_ns - self.created_ns }
         else { 0 }
@@ -108,6 +112,7 @@ pub struct ProcTreeNode {
 
 /// Bridge Process Lifecycle stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeProcLifecycleStats {
     pub total_processes: usize,
     pub running: usize,
@@ -118,6 +123,7 @@ pub struct BridgeProcLifecycleStats {
 }
 
 /// Bridge Process Lifecycle Manager
+#[repr(align(64))]
 pub struct BridgeProcLifecycle {
     processes: BTreeMap<u64, ProcEntry>,
     init_pid: u64,
@@ -242,6 +248,7 @@ impl BridgeProcLifecycle {
         } else { None }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.processes.len();
         self.stats.running = self.processes.values()
@@ -250,6 +257,8 @@ impl BridgeProcLifecycle {
             .filter(|p| p.is_zombie()).count();
     }
 
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcEntry> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeProcLifecycleStats { &self.stats }
 }

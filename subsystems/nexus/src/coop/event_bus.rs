@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -62,6 +63,7 @@ impl BusEvent {
         }
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         self.ttl_ns > 0 && now > self.timestamp + self.ttl_ns
     }
@@ -76,6 +78,7 @@ pub struct SubscriberFilter {
 }
 
 impl SubscriberFilter {
+    #[inline]
     pub fn accept_all() -> Self {
         Self {
             min_priority: EventBusPriority::Low,
@@ -84,6 +87,7 @@ impl SubscriberFilter {
         }
     }
 
+    #[inline]
     pub fn matches(&self, event: &BusEvent) -> bool {
         if event.priority < self.min_priority { return false; }
         if !self.source_whitelist.is_empty() && !self.source_whitelist.contains(&event.source_id) {
@@ -121,6 +125,7 @@ impl Subscriber {
         }
     }
 
+    #[inline(always)]
     pub fn is_backpressured(&self) -> bool {
         self.pending_count as u32 >= self.max_pending
     }
@@ -159,6 +164,7 @@ pub struct DeadLetter {
 
 /// Coop event bus stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopEventBusStats {
     pub total_topics: usize,
     pub total_subscribers: usize,
@@ -182,7 +188,7 @@ pub struct CoopEventBus {
 impl CoopEventBus {
     pub fn new() -> Self {
         Self {
-            topics: BTreeMap::new(),
+            topics: LinearMap::new(),
             subscribers: BTreeMap::new(),
             dead_letters: Vec::new(),
             next_event_id: 1,
@@ -192,10 +198,12 @@ impl CoopEventBus {
         }
     }
 
+    #[inline(always)]
     pub fn create_topic(&mut self, topic_hash: u64) {
         self.topics.entry(topic_hash).or_insert_with(|| EventTopic::new(topic_hash));
     }
 
+    #[inline]
     pub fn subscribe(&mut self, subscriber_id: u64, topic_hash: u64) {
         self.subscribers.entry(subscriber_id)
             .or_insert_with(|| Subscriber::new(subscriber_id));
@@ -207,6 +215,7 @@ impl CoopEventBus {
         self.recompute();
     }
 
+    #[inline]
     pub fn unsubscribe(&mut self, subscriber_id: u64, topic_hash: u64) {
         if let Some(topic) = self.topics.get_mut(&topic_hash) {
             topic.subscribers.retain(|&s| s != subscriber_id);
@@ -258,12 +267,14 @@ impl CoopEventBus {
         event_id
     }
 
+    #[inline]
     pub fn ack(&mut self, subscriber_id: u64) {
         if let Some(sub) = self.subscribers.get_mut(&subscriber_id) {
             if sub.pending_count > 0 { sub.pending_count -= 1; }
         }
     }
 
+    #[inline]
     pub fn expire_events(&mut self, now: u64) {
         // Clean up expired retained events
         for topic in self.topics.values_mut() {
@@ -285,12 +296,14 @@ impl CoopEventBus {
             .filter(|s| s.is_backpressured()).count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopEventBusStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn topic(&self, hash: u64) -> Option<&EventTopic> {
-        self.topics.get(&hash)
+        self.topics.get(hash)
     }
 }
 
@@ -335,12 +348,15 @@ impl BusSubscriberV2 {
         Self { id, topics: Vec::new(), filter_mask: u64::MAX, received: 0, dropped: 0, queue_capacity: cap, queue_used: 0 }
     }
 
+    #[inline(always)]
     pub fn subscribe(&mut self, topic: u64) {
         if !self.topics.contains(&topic) { self.topics.push(topic); }
     }
 
+    #[inline(always)]
     pub fn unsubscribe(&mut self, topic: u64) { self.topics.retain(|&t| t != topic); }
 
+    #[inline]
     pub fn deliver(&mut self) -> bool {
         if self.queue_used >= self.queue_capacity { self.dropped += 1; return false; }
         self.queue_used += 1;
@@ -348,11 +364,13 @@ impl BusSubscriberV2 {
         true
     }
 
+    #[inline(always)]
     pub fn consume(&mut self) { if self.queue_used > 0 { self.queue_used -= 1; } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventBusV2Stats {
     pub total_subscribers: u32,
     pub total_events_published: u64,
@@ -367,7 +385,7 @@ pub struct CoopEventBusV2 {
     events_published: u64,
     total_delivered: u64,
     total_dropped: u64,
-    topics: BTreeMap<u64, u32>,
+    topics: LinearMap<u32, 64>,
     next_sub_id: u64,
     next_event_id: u64,
 }
@@ -377,15 +395,17 @@ impl CoopEventBusV2 {
         Self { subscribers: BTreeMap::new(), events_published: 0, total_delivered: 0, total_dropped: 0, topics: BTreeMap::new(), next_sub_id: 1, next_event_id: 1 }
     }
 
+    #[inline]
     pub fn add_subscriber(&mut self, cap: u32) -> u64 {
         let id = self.next_sub_id; self.next_sub_id += 1;
         self.subscribers.insert(id, BusSubscriberV2::new(id, cap));
         id
     }
 
+    #[inline(always)]
     pub fn subscribe(&mut self, sub_id: u64, topic: u64) {
         if let Some(s) = self.subscribers.get_mut(&sub_id) { s.subscribe(topic); }
-        *self.topics.entry(topic).or_insert(0) += 1;
+        self.topics.add(topic, 1);
     }
 
     pub fn publish(&mut self, topic: u64, priority: EventBusPriority, data_hash: u64, now: u64) -> u64 {
@@ -403,8 +423,10 @@ impl CoopEventBusV2 {
         eid
     }
 
+    #[inline(always)]
     pub fn remove_subscriber(&mut self, id: u64) { self.subscribers.remove(&id); }
 
+    #[inline(always)]
     pub fn stats(&self) -> EventBusV2Stats {
         EventBusV2Stats { total_subscribers: self.subscribers.len() as u32, total_events_published: self.events_published, total_delivered: self.total_delivered, total_dropped: self.total_dropped, active_topics: self.topics.len() as u32 }
     }
@@ -474,6 +496,7 @@ impl EventV3Topic {
         }
     }
 
+    #[inline]
     pub fn subscribe(&mut self, sub_id: u64, filter: u64) {
         self.subscribers.push(EventV3Subscriber {
             subscriber_id: sub_id,
@@ -484,6 +507,7 @@ impl EventV3Topic {
         });
     }
 
+    #[inline(always)]
     pub fn unsubscribe(&mut self, sub_id: u64) {
         self.subscribers.retain(|s| s.subscriber_id != sub_id);
     }
@@ -506,6 +530,7 @@ impl EventV3Topic {
 
 /// Statistics for event bus V3
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventBusV3Stats {
     pub topics_created: u64,
     pub subscriptions: u64,
@@ -526,7 +551,7 @@ pub struct CoopEventBusV3 {
 impl CoopEventBusV3 {
     pub fn new() -> Self {
         Self {
-            topics: BTreeMap::new(),
+            topics: LinearMap::new(),
             next_event_id: 1,
             stats: EventBusV3Stats {
                 topics_created: 0,
@@ -548,15 +573,17 @@ impl CoopEventBusV3 {
         h
     }
 
+    #[inline]
     pub fn create_topic(&mut self, name: &str) -> u64 {
         let hash = Self::hash_topic(name);
-        if !self.topics.contains_key(&hash) {
+        if !self.topics.contains_key(hash) {
             self.topics.insert(hash, EventV3Topic::new(hash));
             self.stats.topics_created += 1;
         }
         hash
     }
 
+    #[inline]
     pub fn subscribe(&mut self, topic: &str, sub_id: u64, filter: u64) -> bool {
         let hash = Self::hash_topic(topic);
         if let Some(t) = self.topics.get_mut(&hash) {
@@ -603,6 +630,7 @@ impl CoopEventBusV3 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &EventBusV3Stats {
         &self.stats
     }

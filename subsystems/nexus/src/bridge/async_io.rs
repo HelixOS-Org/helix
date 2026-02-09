@@ -4,7 +4,7 @@
 //! Allows the kernel to reorder, merge, and prioritize async operations
 //! based on app behavior and system load.
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 use super::syscall::{SyscallId, SyscallType};
@@ -86,21 +86,25 @@ impl AsyncIoRequest {
         }
     }
 
+    #[inline(always)]
     pub fn with_deadline(mut self, deadline: u64) -> Self {
         self.deadline = deadline;
         self
     }
 
+    #[inline(always)]
     pub fn with_pid(mut self, pid: u64) -> Self {
         self.pid = pid;
         self
     }
 
+    #[inline(always)]
     pub fn with_callback(mut self, token: u64) -> Self {
         self.callback_token = token;
         self
     }
 
+    #[inline(always)]
     pub fn has_deadline(&self) -> bool {
         self.deadline > 0
     }
@@ -126,6 +130,7 @@ pub struct AsyncCompletion {
 }
 
 impl AsyncCompletion {
+    #[inline]
     pub fn success(id: SyscallId, result: i64, bytes: usize, token: u64) -> Self {
         Self {
             id,
@@ -138,6 +143,7 @@ impl AsyncCompletion {
         }
     }
 
+    #[inline]
     pub fn failure(id: SyscallId, errno: i64, token: u64) -> Self {
         Self {
             id,
@@ -150,6 +156,7 @@ impl AsyncCompletion {
         }
     }
 
+    #[inline(always)]
     pub fn total_latency_ns(&self) -> u64 {
         self.queue_time_ns + self.execution_time_ns
     }
@@ -165,9 +172,10 @@ pub struct AsyncTicket(u64);
 
 /// The async I/O engine — manages submission, scheduling, and completion
 /// of non-blocking I/O operations.
+#[repr(align(64))]
 pub struct AsyncIoEngine {
-    /// Pending requests, ordered by priority
-    queues: [Vec<AsyncIoRequest>; 5], // One per priority level
+    /// Pending requests, ordered by priority — O(1) dequeue
+    queues: [VecDeque<AsyncIoRequest>; 5], // One per priority level
     /// In-progress requests
     in_progress: BTreeMap<u64, AsyncIoRequest>,
     /// Completed requests awaiting collection
@@ -188,7 +196,13 @@ impl AsyncIoEngine {
     /// Create a new engine with max concurrency
     pub fn new(max_concurrency: usize) -> Self {
         Self {
-            queues: [Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()],
+            queues: [
+                VecDeque::new(),
+                VecDeque::new(),
+                VecDeque::new(),
+                VecDeque::new(),
+                VecDeque::new(),
+            ],
             in_progress: BTreeMap::new(),
             completions: Vec::new(),
             max_concurrency,
@@ -215,6 +229,7 @@ impl AsyncIoEngine {
     }
 
     /// Get the status of a request by ticket
+    #[inline]
     pub fn status(&self, ticket: AsyncTicket) -> AsyncStatus {
         self.tickets
             .get(&ticket.0)
@@ -252,7 +267,7 @@ impl AsyncIoEngine {
         // Dispatch from highest priority first
         for priority in (0..5).rev() {
             while dispatched.len() < available_slots && !self.queues[priority].is_empty() {
-                let request = self.queues[priority].remove(0);
+                let request = self.queues[priority].pop_front().unwrap();
                 let id_key = request.id.0;
 
                 // Update ticket status
@@ -298,16 +313,19 @@ impl AsyncIoEngine {
     }
 
     /// Collect completed operations (drains the completion queue)
+    #[inline(always)]
     pub fn collect_completions(&mut self) -> Vec<AsyncCompletion> {
         core::mem::take(&mut self.completions)
     }
 
     /// Number of pending requests across all queues
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.queues.iter().map(|q| q.len()).sum()
     }
 
     /// Number of in-progress requests
+    #[inline(always)]
     pub fn in_progress_count(&self) -> usize {
         self.in_progress.len()
     }

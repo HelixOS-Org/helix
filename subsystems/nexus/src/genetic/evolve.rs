@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -55,7 +56,7 @@ pub struct EvolutionController {
     /// Crossover engine
     crossover: CrossoverEngine,
     /// Novelty archive (for novelty search)
-    novelty_archive: Vec<CodeGenome>,
+    novelty_archive: VecDeque<CodeGenome>,
     /// MAP-Elites grid
     map_elites_grid: BTreeMap<Vec<usize>, Individual>,
     /// Current generation
@@ -71,7 +72,7 @@ impl EvolutionController {
             strategy,
             mutation: MutationEngine::default(),
             crossover: CrossoverEngine::default(),
-            novelty_archive: Vec::new(),
+            novelty_archive: VecDeque::new(),
             map_elites_grid: BTreeMap::new(),
             generation: Generation(0),
             stats: EvolutionStats::default(),
@@ -540,13 +541,13 @@ impl EvolutionController {
 
             // Add to archive if novel enough
             if novelty > archive_threshold {
-                self.novelty_archive.push(individual.genome.clone());
+                self.novelty_archive.push_back(individual.genome.clone());
             }
         }
 
         // Limit archive size
         while self.novelty_archive.len() > 500 {
-            self.novelty_archive.remove(0);
+            self.novelty_archive.pop_front();
         }
 
         self.evolve_generational(population, fitness_fn)
@@ -675,11 +676,13 @@ impl EvolutionController {
     }
 
     /// Get current generation
+    #[inline(always)]
     pub fn generation(&self) -> Generation {
         self.generation
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &EvolutionStats {
         &self.stats
     }

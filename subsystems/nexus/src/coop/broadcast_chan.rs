@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Broadcast channel state
@@ -40,7 +41,7 @@ impl BroadcastSubscriber {
 pub struct BroadcastChannel {
     pub id: u64,
     pub state: BroadcastState,
-    pub buffer: Vec<BroadcastMsg>,
+    pub buffer: VecDeque<BroadcastMsg>,
     pub capacity: usize,
     pub subscribers: Vec<BroadcastSubscriber>,
     pub send_seq: u64,
@@ -50,9 +51,10 @@ pub struct BroadcastChannel {
 
 impl BroadcastChannel {
     pub fn new(id: u64, capacity: usize) -> Self {
-        Self { id, state: BroadcastState::Active, buffer: Vec::new(), subscribers: Vec::new(), capacity, send_seq: 0, send_count: 0, overflow_count: 0 }
+        Self { id, state: BroadcastState::Active, buffer: VecDeque::new(), subscribers: Vec::new(), capacity, send_seq: 0, send_count: 0, overflow_count: 0 }
     }
 
+    #[inline]
     pub fn subscribe(&mut self) -> u64 {
         let sub_id = self.subscribers.len() as u64 + 1;
         let mut sub = BroadcastSubscriber::new(sub_id);
@@ -61,15 +63,17 @@ impl BroadcastChannel {
         sub_id
     }
 
+    #[inline]
     pub fn send(&mut self, data_hash: u64, sender_id: u64, now: u64) -> u64 {
         self.send_seq += 1;
         let msg = BroadcastMsg { seq: self.send_seq, data_hash, sender_id, timestamp: now };
-        if self.buffer.len() >= self.capacity { self.buffer.remove(0); self.overflow_count += 1; }
-        self.buffer.push(msg);
+        if self.buffer.len() >= self.capacity { self.buffer.pop_front(); self.overflow_count += 1; }
+        self.buffer.push_back(msg);
         self.send_count += 1;
         self.send_seq
     }
 
+    #[inline]
     pub fn recv(&mut self, subscriber_id: u64) -> Option<BroadcastMsg> {
         let sub = self.subscribers.iter_mut().find(|s| s.id == subscriber_id)?;
         let msg = self.buffer.iter().find(|m| m.seq > sub.last_seen_seq)?.clone();
@@ -78,8 +82,10 @@ impl BroadcastChannel {
         Some(msg)
     }
 
+    #[inline(always)]
     pub fn close(&mut self) { self.state = BroadcastState::Closed; }
 
+    #[inline(always)]
     pub fn max_lag(&self) -> u64 {
         self.subscribers.iter().map(|s| self.send_seq.saturating_sub(s.last_seen_seq)).max().unwrap_or(0)
     }
@@ -87,6 +93,7 @@ impl BroadcastChannel {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BroadcastChanStats {
     pub total_channels: u32,
     pub total_subscribers: u32,
@@ -104,12 +111,14 @@ pub struct CoopBroadcastChan {
 impl CoopBroadcastChan {
     pub fn new() -> Self { Self { channels: Vec::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, capacity: usize) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.channels.push(BroadcastChannel::new(id, capacity));
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> BroadcastChanStats {
         let subs: u32 = self.channels.iter().map(|c| c.subscribers.len() as u32).sum();
         let sent: u64 = self.channels.iter().map(|c| c.send_count).sum();

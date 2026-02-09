@@ -48,6 +48,7 @@ impl NamespaceIntelligence {
     }
 
     /// Create namespace
+    #[inline(always)]
     pub fn create_namespace(
         &mut self,
         ns_type: NamespaceType,
@@ -61,6 +62,7 @@ impl NamespaceIntelligence {
     }
 
     /// Delete namespace
+    #[inline(always)]
     pub fn delete_namespace(&mut self, id: NamespaceId) -> bool {
         self.manager.delete_namespace(id)
     }
@@ -85,6 +87,7 @@ impl NamespaceIntelligence {
     }
 
     /// Leave namespace
+    #[inline(always)]
     pub fn leave_namespace(&mut self, pid: ProcessId, ns_id: NamespaceId) -> bool {
         self.manager.remove_process(ns_id, pid)
     }
@@ -173,41 +176,49 @@ impl NamespaceIntelligence {
     }
 
     /// Get namespace manager
+    #[inline(always)]
     pub fn manager(&self) -> &NamespaceManager {
         &self.manager
     }
 
     /// Get namespace manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut NamespaceManager {
         &mut self.manager
     }
 
     /// Get isolation analyzer
+    #[inline(always)]
     pub fn isolation_analyzer(&self) -> &IsolationAnalyzer {
         &self.isolation_analyzer
     }
 
     /// Get isolation analyzer mutably
+    #[inline(always)]
     pub fn isolation_analyzer_mut(&mut self) -> &mut IsolationAnalyzer {
         &mut self.isolation_analyzer
     }
 
     /// Get security enforcer
+    #[inline(always)]
     pub fn security_enforcer(&self) -> &SecurityEnforcer {
         &self.security_enforcer
     }
 
     /// Get security enforcer mutably
+    #[inline(always)]
     pub fn security_enforcer_mut(&mut self) -> &mut SecurityEnforcer {
         &mut self.security_enforcer
     }
 
     /// Get namespace by ID
+    #[inline(always)]
     pub fn get_namespace(&self, id: NamespaceId) -> Option<&NamespaceInfo> {
         self.manager.get_namespace(id)
     }
 
     /// Get total namespace count
+    #[inline(always)]
     pub fn namespace_count(&self) -> usize {
         self.manager.total_namespaces()
     }

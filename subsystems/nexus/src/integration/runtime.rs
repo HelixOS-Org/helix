@@ -32,6 +32,7 @@ use super::metrics::{Metric, MetricExporter, MetricValue};
 
 /// Runtime statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RuntimeStats {
     /// Total ticks
     pub tick_count: u64,
@@ -138,6 +139,7 @@ impl NexusRuntime {
     }
 
     /// Shutdown the runtime
+    #[inline(always)]
     pub fn shutdown(&mut self) -> NexusResult<()> {
         self.running.store(false, Ordering::SeqCst);
         self.core.shutdown()
@@ -269,12 +271,14 @@ impl NexusRuntime {
     }
 
     /// Emit an event
+    #[inline(always)]
     pub fn emit_event(&mut self, kind: NexusEventKind) {
         let event = NexusEvent::new(kind);
         self.events.emit(event);
     }
 
     /// Record an anomaly
+    #[inline(always)]
     pub fn record_anomaly(
         &mut self,
         metric: &str,
@@ -285,31 +289,37 @@ impl NexusRuntime {
     }
 
     /// Register a health probe
+    #[inline(always)]
     pub fn register_health_probe(&mut self, probe: Box<dyn HealthProbe>) {
         self.health_probes.push(probe);
     }
 
     /// Register a system hook
+    #[inline(always)]
     pub fn register_hook(&mut self, hook: Box<dyn SystemHook>) {
         self.hooks.push(hook);
     }
 
     /// Register a metric exporter
+    #[inline(always)]
     pub fn register_exporter(&mut self, exporter: Box<dyn MetricExporter>) {
         self.exporters.push(exporter);
     }
 
     /// Get current NEXUS level
+    #[inline(always)]
     pub fn level(&self) -> NexusLevel {
         self.core.level()
     }
 
     /// Set NEXUS level
+    #[inline(always)]
     pub fn set_level(&mut self, level: NexusLevel) {
         self.core.set_level(level);
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn state(&self) -> NexusState {
         self.core.state()
     }
@@ -376,71 +386,85 @@ impl NexusRuntime {
     // Accessors for subsystems
 
     /// Get prediction engine
+    #[inline(always)]
     pub fn prediction(&self) -> &PredictionEngine {
         &self.prediction
     }
 
     /// Get mutable prediction engine
+    #[inline(always)]
     pub fn prediction_mut(&mut self) -> &mut PredictionEngine {
         &mut self.prediction
     }
 
     /// Get healing engine
+    #[inline(always)]
     pub fn healing(&self) -> &HealingEngine {
         &self.healing
     }
 
     /// Get mutable healing engine
+    #[inline(always)]
     pub fn healing_mut(&mut self) -> &mut HealingEngine {
         &mut self.healing
     }
 
     /// Get anomaly detector
+    #[inline(always)]
     pub fn anomaly(&self) -> &AnomalyDetector {
         &self.anomaly
     }
 
     /// Get mutable anomaly detector
+    #[inline(always)]
     pub fn anomaly_mut(&mut self) -> &mut AnomalyDetector {
         &mut self.anomaly
     }
 
     /// Get chaos engine
+    #[inline(always)]
     pub fn chaos(&self) -> &ChaosEngine {
         &self.chaos
     }
 
     /// Get mutable chaos engine
+    #[inline(always)]
     pub fn chaos_mut(&mut self) -> &mut ChaosEngine {
         &mut self.chaos
     }
 
     /// Get quarantine system
+    #[inline(always)]
     pub fn quarantine(&self) -> &QuarantineSystem {
         &self.quarantine
     }
 
     /// Get mutable quarantine system
+    #[inline(always)]
     pub fn quarantine_mut(&mut self) -> &mut QuarantineSystem {
         &mut self.quarantine
     }
 
     /// Get tracer
+    #[inline(always)]
     pub fn tracer(&self) -> &crate::trace::Tracer {
         &self.tracer
     }
 
     /// Get mutable tracer
+    #[inline(always)]
     pub fn tracer_mut(&mut self) -> &mut crate::trace::Tracer {
         &mut self.tracer
     }
 
     /// Get causal tracker
+    #[inline(always)]
     pub fn causal(&self) -> &CausalTracker {
         &self.causal
     }
 
     /// Get mutable causal tracker
+    #[inline(always)]
     pub fn causal_mut(&mut self) -> &mut CausalTracker {
         &mut self.causal
     }

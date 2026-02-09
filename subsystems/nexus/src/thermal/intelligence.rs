@@ -104,11 +104,13 @@ impl ThermalIntelligence {
     }
 
     /// Register zone
+    #[inline(always)]
     pub fn register_zone(&mut self, zone: ThermalZone) {
         self.manager.register_zone(zone);
     }
 
     /// Update temperature
+    #[inline(always)]
     pub fn update_temperature(
         &mut self,
         zone_id: ThermalZoneId,
@@ -263,11 +265,13 @@ impl ThermalIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &ThermalManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut ThermalManager {
         &mut self.manager
     }

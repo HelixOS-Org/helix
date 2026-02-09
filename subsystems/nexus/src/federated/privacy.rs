@@ -36,6 +36,7 @@ impl DifferentialPrivacy {
     }
 
     /// Clip gradient
+    #[inline]
     pub fn clip(&self, gradient: &mut [f64]) {
         let norm: f64 = libm::sqrt(gradient.iter().map(|x| x * x).sum());
 
@@ -48,6 +49,7 @@ impl DifferentialPrivacy {
     }
 
     /// Add Gaussian noise
+    #[inline]
     pub fn add_noise(&mut self, gradient: &mut [f64]) {
         let noise_scale = self.clip_bound * self.noise_multiplier;
 
@@ -59,6 +61,7 @@ impl DifferentialPrivacy {
     }
 
     /// Privatize update
+    #[inline]
     pub fn privatize(&mut self, update: &mut ModelUpdate) {
         self.clip(&mut update.delta);
         self.add_noise(&mut update.delta);
@@ -78,11 +81,13 @@ impl DifferentialPrivacy {
     }
 
     /// Check if privacy budget exhausted
+    #[inline(always)]
     pub fn is_budget_exhausted(&self) -> bool {
         self.spent_epsilon >= self.target_epsilon
     }
 
     /// Get remaining privacy budget
+    #[inline(always)]
     pub fn remaining_budget(&self) -> f64 {
         (self.target_epsilon - self.spent_epsilon).max(0.0)
     }
@@ -110,6 +115,7 @@ impl DPFedAvgAggregator {
     }
 
     /// Submit update with privacy
+    #[inline]
     pub fn submit_update(&mut self, mut update: ModelUpdate) {
         if self.per_client_dp {
             self.dp.privatize(&mut update);

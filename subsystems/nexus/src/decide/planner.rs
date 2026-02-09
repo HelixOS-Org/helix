@@ -261,6 +261,7 @@ impl Default for PlannerConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PlannerStats {
     /// Goals created
     pub goals_created: u64,
@@ -315,16 +316,19 @@ impl Planner {
     }
 
     /// Register action template
+    #[inline(always)]
     pub fn register_action(&mut self, template: ActionTemplate) {
         self.action_templates.insert(template.name.clone(), template);
     }
 
     /// Set world state
+    #[inline(always)]
     pub fn set_state(&mut self, variable: &str, value: Value) {
         self.world_state.insert(variable.into(), value);
     }
 
     /// Get world state
+    #[inline(always)]
     pub fn get_state(&self, variable: &str) -> Option<&Value> {
         self.world_state.get(variable)
     }
@@ -541,16 +545,19 @@ impl Planner {
     }
 
     /// Get goal
+    #[inline(always)]
     pub fn get_goal(&self, id: u64) -> Option<&Goal> {
         self.goals.get(&id)
     }
 
     /// Get plan
+    #[inline(always)]
     pub fn get_plan(&self, id: u64) -> Option<&Plan> {
         self.plans.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PlannerStats {
         &self.stats
     }

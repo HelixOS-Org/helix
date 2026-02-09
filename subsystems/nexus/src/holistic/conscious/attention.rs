@@ -161,6 +161,7 @@ impl AttentionTarget {
     }
 
     /// Decay novelty over time
+    #[inline]
     pub fn decay_novelty(&mut self) {
         self.novelty *= SALIENCE_DECAY;
         if self.novelty < 0.01 {
@@ -209,6 +210,7 @@ pub struct FocusShiftEvent {
 
 /// Statistics for the holistic attention engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticAttentionStats {
     pub total_allocations: u64,
     pub total_focus_shifts: u64,
@@ -291,6 +293,7 @@ impl HolisticAttentionEngine {
     }
 
     /// Run the full global attention cycle: salience → rank → allocate
+    #[inline]
     pub fn global_attention(&mut self, tick: u64) {
         self.tick = tick;
         self.remaining_budget = self.global_budget;
@@ -354,6 +357,7 @@ impl HolisticAttentionEngine {
     }
 
     /// Get salience ranking — sorted list of (target_id, salience)
+    #[inline]
     pub fn salience_ranking(&self) -> Vec<(u64, f32)> {
         let mut ranking: Vec<(u64, f32)> = self
             .targets
@@ -388,6 +392,7 @@ impl HolisticAttentionEngine {
     }
 
     /// Optimize attention distribution using load feedback
+    #[inline]
     pub fn attention_optimization(&mut self) {
         let load = self.cognitive_load();
         if load.overloaded {
@@ -427,12 +432,14 @@ impl HolisticAttentionEngine {
     }
 
     /// Register a new attention target
+    #[inline(always)]
     pub fn register_target(&mut self, target: AttentionTarget) {
         self.stats.targets_registered += 1;
         self.targets.insert(target.id, target);
     }
 
     /// Retire a target
+    #[inline]
     pub fn retire_target(&mut self, target_id: u64) {
         if self.targets.remove(&target_id).is_some() {
             self.stats.targets_retired += 1;
@@ -440,26 +447,31 @@ impl HolisticAttentionEngine {
     }
 
     /// Get a specific target
+    #[inline(always)]
     pub fn get_target(&self, target_id: u64) -> Option<&AttentionTarget> {
         self.targets.get(&target_id)
     }
 
     /// Current focus target ID
+    #[inline(always)]
     pub fn current_focus_id(&self) -> u64 {
         self.current_focus
     }
 
     /// Engine statistics
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticAttentionStats {
         &self.stats
     }
 
     /// Adjust global budget
+    #[inline(always)]
     pub fn set_budget(&mut self, budget: f32) {
         self.global_budget = budget.max(MIN_ALLOCATION);
     }
 
     /// Number of registered targets
+    #[inline(always)]
     pub fn target_count(&self) -> usize {
         self.targets.len()
     }

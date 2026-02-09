@@ -65,6 +65,7 @@ pub enum TimerState {
 
 /// Single timer record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerRecord {
     /// Timer ID (FNV-1a)
     pub timer_id: u64,
@@ -113,6 +114,7 @@ impl TimerRecord {
     }
 
     /// Record fire event
+    #[inline]
     pub fn record_fire(&mut self, latency_ns: u64, now: u64) {
         self.fire_count += 1;
         self.total_latency_ns += latency_ns;
@@ -124,11 +126,13 @@ impl TimerRecord {
     }
 
     /// Record missed fire
+    #[inline(always)]
     pub fn record_missed(&mut self) {
         self.missed_fires += 1;
     }
 
     /// Average latency
+    #[inline]
     pub fn avg_latency_ns(&self) -> f64 {
         if self.fire_count == 0 {
             return 0.0;
@@ -137,6 +141,7 @@ impl TimerRecord {
     }
 
     /// Miss rate
+    #[inline]
     pub fn miss_rate(&self) -> f64 {
         let total = self.fire_count + self.missed_fires;
         if total == 0 {
@@ -146,6 +151,7 @@ impl TimerRecord {
     }
 
     /// Is coalescable (slack > 1ms)
+    #[inline(always)]
     pub fn is_coalescable(&self) -> bool {
         self.slack_ns > 1_000_000
     }
@@ -176,6 +182,7 @@ pub struct CoalesceGroup {
 
 /// Per-process timer tracking
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessTimerProfile {
     /// PID
     pub pid: u64,
@@ -204,6 +211,7 @@ impl ProcessTimerProfile {
     }
 
     /// Create timer
+    #[inline]
     pub fn create_timer(
         &mut self,
         timer_id: u64,
@@ -221,6 +229,7 @@ impl ProcessTimerProfile {
     }
 
     /// Cancel timer
+    #[inline]
     pub fn cancel_timer(&mut self, timer_id: u64) {
         if let Some(t) = self.timers.get_mut(&timer_id) {
             t.state = TimerState::Cancelled;
@@ -229,6 +238,7 @@ impl ProcessTimerProfile {
     }
 
     /// Fire timer
+    #[inline]
     pub fn fire_timer(&mut self, timer_id: u64, latency_ns: u64, now: u64) {
         if let Some(t) = self.timers.get_mut(&timer_id) {
             t.record_fire(latency_ns, now);
@@ -237,6 +247,7 @@ impl ProcessTimerProfile {
     }
 
     /// Timer rate (timers/sec)
+    #[inline]
     pub fn timer_rate(&self, elapsed_ns: u64) -> f64 {
         if elapsed_ns == 0 {
             return 0.0;
@@ -289,6 +300,7 @@ impl ProcessTimerProfile {
     }
 
     /// Count active timers
+    #[inline]
     pub fn active_count(&self) -> usize {
         self.timers
             .values()
@@ -303,6 +315,7 @@ impl ProcessTimerProfile {
 
 /// Timer wheel level stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct WheelLevelStats {
     /// Level number
     pub level: usize,
@@ -317,6 +330,7 @@ pub struct WheelLevelStats {
 }
 
 impl WheelLevelStats {
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total_slots == 0 {
             return 0.0;
@@ -331,6 +345,7 @@ impl WheelLevelStats {
 
 /// Timer profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppTimerProfilerStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -343,6 +358,7 @@ pub struct AppTimerProfilerStats {
 }
 
 /// App timer profiler
+#[repr(align(64))]
 pub struct AppTimerProfiler {
     /// Per-process profiles
     processes: BTreeMap<u64, ProcessTimerProfile>,
@@ -362,6 +378,7 @@ impl AppTimerProfiler {
     }
 
     /// Get/create process
+    #[inline]
     pub fn process(&mut self, pid: u64) -> &mut ProcessTimerProfile {
         self.processes
             .entry(pid)
@@ -369,6 +386,7 @@ impl AppTimerProfiler {
     }
 
     /// Create timer
+    #[inline]
     pub fn create_timer(
         &mut self,
         pid: u64,
@@ -386,6 +404,7 @@ impl AppTimerProfiler {
     }
 
     /// Fire timer
+    #[inline]
     pub fn fire_timer(&mut self, pid: u64, timer_id: u64, latency_ns: u64, now: u64) {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.fire_timer(timer_id, latency_ns, now);
@@ -393,12 +412,14 @@ impl AppTimerProfiler {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.update_stats();
     }
 
     /// Find all coalescing opportunities
+    #[inline]
     pub fn find_all_coalesce(&self) -> Vec<(u64, Vec<CoalesceGroup>)> {
         let mut result = Vec::new();
         for (pid, proc) in &self.processes {
@@ -419,6 +440,7 @@ impl AppTimerProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppTimerProfilerStats {
         &self.stats
     }

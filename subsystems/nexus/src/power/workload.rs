@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -14,7 +15,7 @@ use crate::math;
 /// Power-aware workload predictor
 pub struct WorkloadPredictor {
     /// CPU utilization history
-    cpu_history: Vec<(u64, f64)>, // (timestamp, utilization)
+    cpu_history: VecDeque<(u64, f64)>, // (timestamp, utilization)
     /// Predicted utilization
     predicted: f64,
     /// Prediction confidence
@@ -29,7 +30,7 @@ impl WorkloadPredictor {
     /// Create new workload predictor
     pub fn new() -> Self {
         Self {
-            cpu_history: Vec::new(),
+            cpu_history: VecDeque::new(),
             predicted: 0.5,
             confidence: 0.5,
             minute_patterns: [0.5; 60],
@@ -40,7 +41,7 @@ impl WorkloadPredictor {
     /// Record CPU utilization
     pub fn record(&mut self, utilization: f64, minute_of_hour: u8) {
         let now = NexusTimestamp::now().raw();
-        self.cpu_history.push((now, utilization));
+        self.cpu_history.push_back((now, utilization));
 
         // Update minute pattern
         let minute = (minute_of_hour % 60) as usize;
@@ -51,7 +52,7 @@ impl WorkloadPredictor {
 
         // Evict old entries
         if self.cpu_history.len() > self.max_history {
-            self.cpu_history.remove(0);
+            self.cpu_history.pop_front();
         }
     }
 
@@ -102,16 +103,19 @@ impl WorkloadPredictor {
     }
 
     /// Get predicted utilization
+    #[inline(always)]
     pub fn predict(&self) -> f64 {
         self.predicted
     }
 
     /// Get prediction for specific minute
+    #[inline(always)]
     pub fn predict_minute(&self, minute: u8) -> f64 {
         self.minute_patterns[(minute % 60) as usize]
     }
 
     /// Get confidence
+    #[inline(always)]
     pub fn confidence(&self) -> f64 {
         self.confidence
     }
@@ -145,6 +149,7 @@ impl WorkloadPredictor {
     }
 
     /// Is workload idle?
+    #[inline(always)]
     pub fn is_idle(&self) -> bool {
         self.predicted < 0.1
     }

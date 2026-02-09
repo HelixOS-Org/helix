@@ -46,6 +46,7 @@ pub struct Experience {
 
 /// State
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct State {
     /// State ID
     pub id: u64,
@@ -117,6 +118,7 @@ pub struct ReplayInfo {
 // ============================================================================
 
 /// Experience replay buffer
+#[repr(align(64))]
 pub struct ReplayBuffer {
     /// Buffer
     buffer: Vec<Experience>,
@@ -162,6 +164,7 @@ impl Default for ReplayConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ReplayStats {
     /// Experiences added
     pub experiences_added: u64,
@@ -392,26 +395,31 @@ impl ReplayBuffer {
     }
 
     /// Get experience
+    #[inline(always)]
     pub fn get(&self, index: usize) -> Option<&Experience> {
         self.buffer.get(index)
     }
 
     /// Current size
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.buffer.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
     }
 
     /// Is full
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.buffer.len() >= self.capacity
     }
 
     /// Clear buffer
+    #[inline]
     pub fn clear(&mut self) {
         self.buffer.clear();
         self.position = 0;
@@ -419,6 +427,7 @@ impl ReplayBuffer {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ReplayStats {
         &self.stats
     }
@@ -429,6 +438,7 @@ impl ReplayBuffer {
 // ============================================================================
 
 /// Multi-buffer replay for different experience types
+#[repr(align(64))]
 pub struct MultiBufferReplay {
     /// Buffers by category
     buffers: BTreeMap<String, ReplayBuffer>,
@@ -449,6 +459,7 @@ impl MultiBufferReplay {
     }
 
     /// Get or create buffer
+    #[inline]
     pub fn buffer(&mut self, category: &str) -> &mut ReplayBuffer {
         if !self.buffers.contains_key(category) {
             let buffer = ReplayBuffer::new(self.default_capacity, self.config.clone());

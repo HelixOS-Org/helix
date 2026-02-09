@@ -146,6 +146,7 @@ pub struct WisdomEntry {
 
 /// Aggregate reflection statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ReflectionStats {
     pub total_reflections: u64,
     pub avg_cycle_quality: f32,
@@ -371,6 +372,7 @@ impl AppsReflection {
     }
 
     /// Accumulate wisdom from confirmed insights
+    #[inline]
     pub fn wisdom_accumulate(&mut self, principle: &str, strength: f32) {
         self.tick += 1;
         let id = fnv1a_hash(principle.as_bytes());

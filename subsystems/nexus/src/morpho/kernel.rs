@@ -66,6 +66,7 @@ impl MorphogeneticKernel {
     }
 
     /// Inject morphogen signal (e.g., from workload)
+    #[inline]
     pub fn inject_signal(
         &mut self,
         morph_type: MorphogenType,
@@ -185,6 +186,7 @@ impl MorphogeneticKernel {
     }
 
     /// Get overall system health
+    #[inline]
     pub fn system_health(&self) -> f64 {
         if self.organs.is_empty() {
             return 0.0;
@@ -194,6 +196,7 @@ impl MorphogeneticKernel {
     }
 
     /// Get total cell count
+    #[inline(always)]
     pub fn total_cells(&self) -> usize {
         self.organs.iter().map(|o| o.cell_count()).sum::<usize>()
             + self.regeneration.stem_cells.len()

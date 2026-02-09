@@ -54,26 +54,31 @@ impl DataFlowResult {
     }
 
     /// Add entry fact
+    #[inline(always)]
     pub fn add_entry_fact(&mut self, fact: DataFlowFact) {
         self.entry_facts.push(fact);
     }
 
     /// Add exit fact
+    #[inline(always)]
     pub fn add_exit_fact(&mut self, fact: DataFlowFact) {
         self.exit_facts.push(fact);
     }
 
     /// Add fact at program point
+    #[inline(always)]
     pub fn add_fact_at(&mut self, point: u32, fact: DataFlowFact) {
         self.point_facts.entry(point).or_default().push(fact);
     }
 
     /// Get facts at program point
+    #[inline(always)]
     pub fn facts_at(&self, point: u32) -> Option<&Vec<DataFlowFact>> {
         self.point_facts.get(&point)
     }
 
     /// Check if variable is initialized at point
+    #[inline]
     pub fn is_initialized_at(&self, var: &str, point: u32) -> bool {
         self.point_facts.get(&point).is_some_and(|facts| {
             facts
@@ -83,6 +88,7 @@ impl DataFlowResult {
     }
 
     /// Check if variable is moved at point
+    #[inline]
     pub fn is_moved_at(&self, var: &str, point: u32) -> bool {
         self.point_facts.get(&point).is_some_and(|facts| {
             facts
@@ -113,6 +119,7 @@ impl DataFlowAnalyzer {
     }
 
     /// Analyze function
+    #[inline]
     pub fn analyze_function(
         &mut self,
         func_id: SymbolId,
@@ -125,16 +132,19 @@ impl DataFlowAnalyzer {
     }
 
     /// Get result for function
+    #[inline(always)]
     pub fn get_result(&self, func_id: SymbolId) -> Option<&DataFlowResult> {
         self.results.get(&func_id)
     }
 
     /// Get all results
+    #[inline(always)]
     pub fn all_results(&self) -> &BTreeMap<SymbolId, DataFlowResult> {
         &self.results
     }
 
     /// Clear results
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.results.clear();
     }

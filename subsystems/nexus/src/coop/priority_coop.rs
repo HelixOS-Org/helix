@@ -135,6 +135,7 @@ impl ProcessPriority {
     }
 
     /// Apply boost
+    #[inline]
     pub fn apply_boost(&mut self, boost: ActiveBoost, now: u64) -> bool {
         if self.boosts.len() >= self.max_boosts {
             return false;
@@ -147,12 +148,14 @@ impl ProcessPriority {
     }
 
     /// Remove expired boosts
+    #[inline(always)]
     pub fn expire_boosts(&mut self, now: u64) {
         self.boosts.retain(|b| now < b.expires_at);
         self.recalculate_effective(now);
     }
 
     /// Remove boosts from a specific grantor
+    #[inline(always)]
     pub fn remove_boosts_from(&mut self, grantor: u64, now: u64) {
         self.boosts.retain(|b| b.granted_by != grantor);
         self.recalculate_effective(now);
@@ -178,21 +181,25 @@ impl ProcessPriority {
     }
 
     /// Is currently boosted?
+    #[inline(always)]
     pub fn is_boosted(&self) -> bool {
         self.effective > self.base
     }
 
     /// Is starving?
+    #[inline(always)]
     pub fn is_starving(&self) -> bool {
         self.starvation_count >= self.starvation_threshold
     }
 
     /// Tick starvation counter
+    #[inline(always)]
     pub fn tick_starvation(&mut self) {
         self.starvation_count += 1;
     }
 
     /// Reset starvation (process ran)
+    #[inline(always)]
     pub fn reset_starvation(&mut self) {
         self.starvation_count = 0;
     }
@@ -242,6 +249,7 @@ pub enum NegotiationResult {
 
 /// Priority negotiation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopPriorityStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -280,12 +288,14 @@ impl CoopPriorityEngine {
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, base: CoopPriorityClass) {
         self.processes.insert(pid, ProcessPriority::new(pid, base));
         self.update_stats();
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.update_stats();
@@ -383,6 +393,7 @@ impl CoopPriorityEngine {
     }
 
     /// Expire all outdated boosts
+    #[inline]
     pub fn expire_all(&mut self, now: u64) {
         for proc in self.processes.values_mut() {
             proc.expire_boosts(now);
@@ -391,11 +402,13 @@ impl CoopPriorityEngine {
     }
 
     /// Get effective priority
+    #[inline(always)]
     pub fn effective_priority(&self, pid: u64) -> Option<CoopPriorityClass> {
         self.processes.get(&pid).map(|p| p.effective)
     }
 
     /// Get process state
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcessPriority> {
         self.processes.get(&pid)
     }
@@ -407,6 +420,7 @@ impl CoopPriorityEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopPriorityStats {
         &self.stats
     }
@@ -461,6 +475,7 @@ impl PriorityV2Task {
         }
     }
 
+    #[inline]
     pub fn boost(&mut self, reason: PriorityBoostReason, level: CoopPriorityLevel) {
         if level > self.effective_priority {
             self.effective_priority = level;
@@ -468,6 +483,7 @@ impl PriorityV2Task {
         self.boosts.push(reason);
     }
 
+    #[inline(always)]
     pub fn reset_boosts(&mut self) {
         self.effective_priority = self.base_priority;
         self.boosts.clear();
@@ -476,6 +492,7 @@ impl PriorityV2Task {
 
 /// Statistics for priority V2 coop
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PriorityV2CoopStats {
     pub tasks_registered: u64,
     pub boosts_applied: u64,
@@ -503,11 +520,13 @@ impl CoopPriorityV2 {
         }
     }
 
+    #[inline(always)]
     pub fn register_task(&mut self, tid: u64, priority: CoopPriorityLevel) {
         self.tasks.insert(tid, PriorityV2Task::new(tid, priority));
         self.stats.tasks_registered += 1;
     }
 
+    #[inline]
     pub fn boost(&mut self, tid: u64, reason: PriorityBoostReason, level: CoopPriorityLevel) -> bool {
         if let Some(task) = self.tasks.get_mut(&tid) {
             task.boost(reason, level);
@@ -532,12 +551,14 @@ impl CoopPriorityV2 {
         false
     }
 
+    #[inline]
     pub fn highest_priority_task(&self) -> Option<u64> {
         self.tasks.values()
             .max_by_key(|t| t.effective_priority)
             .map(|t| t.tid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PriorityV2CoopStats {
         &self.stats
     }

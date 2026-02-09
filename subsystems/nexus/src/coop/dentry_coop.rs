@@ -2,6 +2,7 @@
 //! Coop dentry — cooperative dentry cache with shared negative lookups
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -34,14 +35,19 @@ impl CoopDentryEntry {
         Self { name_hash: h, parent_hash, inode: 0, state: CoopDentryState::Positive, shared_count: 1, hits: 0, last_revalidation: 0 }
     }
 
+    #[inline(always)]
     pub fn share(&mut self) { self.shared_count += 1; self.state = CoopDentryState::Shared; }
+    #[inline(always)]
     pub fn hit(&mut self) { self.hits += 1; }
+    #[inline(always)]
     pub fn invalidate(&mut self) { self.state = CoopDentryState::Dead; }
+    #[inline(always)]
     pub fn make_negative(&mut self) { self.state = CoopDentryState::Negative; self.inode = 0; }
 }
 
 /// Coop dentry stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopDentryStats {
     pub total_lookups: u64,
     pub hits: u64,
@@ -75,12 +81,14 @@ impl CoopDentry {
         self.entries.get(&name_hash)
     }
 
+    #[inline]
     pub fn insert(&mut self, name: &[u8], parent_hash: u64, inode: u64) {
         let mut entry = CoopDentryEntry::new(name, parent_hash);
         entry.inode = inode;
         self.entries.insert(entry.name_hash, entry);
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         if self.stats.total_lookups == 0 { 0.0 } else { self.stats.hits as f64 / self.stats.total_lookups as f64 }
     }
@@ -116,6 +124,7 @@ pub struct CoopDentryV2Entry {
 
 /// Stats for dentry cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopDentryV2Stats {
     pub total_lookups: u64,
     pub cache_hits: u64,
@@ -128,7 +137,7 @@ pub struct CoopDentryV2Stats {
 /// Manager for dentry cooperative operations
 pub struct CoopDentryV2Manager {
     cache: BTreeMap<u64, CoopDentryV2Entry>,
-    name_index: BTreeMap<u64, u64>,
+    name_index: LinearMap<u64, 64>,
     stats: CoopDentryV2Stats,
     max_cache_size: usize,
 }
@@ -137,7 +146,7 @@ impl CoopDentryV2Manager {
     pub fn new() -> Self {
         Self {
             cache: BTreeMap::new(),
-            name_index: BTreeMap::new(),
+            name_index: LinearMap::new(),
             stats: CoopDentryV2Stats {
                 total_lookups: 0,
                 cache_hits: 0,
@@ -176,10 +185,11 @@ impl CoopDentryV2Manager {
         self.name_index.insert(hash, inode);
     }
 
+    #[inline]
     pub fn lookup(&mut self, name: &str, parent_inode: u64) -> Option<&CoopDentryV2Entry> {
         self.stats.total_lookups += 1;
         let hash = Self::hash_name(name, parent_inode);
-        if let Some(&inode) = self.name_index.get(&hash) {
+        if let Some(&inode) = self.name_index.get(hash) {
             self.stats.cache_hits += 1;
             self.cache.get(&inode)
         } else {
@@ -188,6 +198,7 @@ impl CoopDentryV2Manager {
         }
     }
 
+    #[inline]
     pub fn invalidate(&mut self, inode: u64) -> bool {
         if self.cache.remove(&inode).is_some() {
             self.stats.invalidations += 1;
@@ -210,6 +221,7 @@ impl CoopDentryV2Manager {
         count
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopDentryV2Stats {
         &self.stats
     }

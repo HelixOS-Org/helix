@@ -56,18 +56,22 @@ impl SharedDnsEntry {
         }
     }
 
+    #[inline]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         if self.state == CoopDnsCacheState::Pinned { return false; }
         let elapsed_sec = (now_ns.saturating_sub(self.inserted_ns)) / 1_000_000_000;
         elapsed_sec > self.ttl_sec as u64
     }
 
+    #[inline(always)]
     pub fn touch(&mut self) { self.hit_count += 1; }
 
+    #[inline(always)]
     pub fn share_with(&mut self, ns_id: u64) {
         if !self.shared_by.contains(&ns_id) { self.shared_by.push(ns_id); }
     }
 
+    #[inline]
     pub fn refresh(&mut self, new_ttl: u32, now_ns: u64) {
         self.ttl_sec = new_ttl;
         self.inserted_ns = now_ns;
@@ -92,7 +96,9 @@ impl DnsQueryTracker {
         Self { total_queries: 0, cache_hits: 0, cache_misses: 0, upstream_queries: 0, failures: 0, avg_latency_ns: 0, total_latency_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn record_hit(&mut self) { self.total_queries += 1; self.cache_hits += 1; }
+    #[inline]
     pub fn record_miss(&mut self, latency_ns: u64) {
         self.total_queries += 1;
         self.cache_misses += 1;
@@ -101,6 +107,7 @@ impl DnsQueryTracker {
         if self.upstream_queries > 0 { self.avg_latency_ns = self.total_latency_ns / self.upstream_queries; }
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         if self.total_queries == 0 { 0.0 } else { self.cache_hits as f64 / self.total_queries as f64 }
     }
@@ -108,6 +115,7 @@ impl DnsQueryTracker {
 
 /// Coop DNS stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopDnsStats {
     pub total_entries: u64,
     pub shared_entries: u64,
@@ -147,11 +155,13 @@ impl CoopDns {
         false
     }
 
+    #[inline(always)]
     pub fn insert(&mut self, entry: SharedDnsEntry) {
         self.cache.insert(entry.name_hash, entry);
         self.stats.total_entries += 1;
     }
 
+    #[inline]
     pub fn gc_expired(&mut self, now_ns: u64) -> u32 {
         let before = self.cache.len();
         self.cache.retain(|_, e| !e.is_expired(now_ns));

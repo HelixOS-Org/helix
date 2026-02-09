@@ -53,6 +53,7 @@ impl BalloonInstance {
         Self { id, state: BalloonState::Idle, target_pages: 0, current_pages: 0, max_pages: max, ranges: Vec::new(), inflate_count: 0, deflate_count: 0, total_inflated: 0, total_deflated: 0 }
     }
 
+    #[inline]
     pub fn inflate(&mut self, pfn: u64, count: u32, now: u64) {
         self.ranges.push(BalloonPageRange { start_pfn: pfn, count, inflated_at: now });
         self.current_pages += count as u64;
@@ -83,6 +84,7 @@ impl BalloonInstance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BalloonDrvStats {
     pub total_instances: u32,
     pub total_inflated_pages: u64,
@@ -99,20 +101,24 @@ pub struct HolisticBalloonDrv {
 impl HolisticBalloonDrv {
     pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, max: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.instances.insert(id, BalloonInstance::new(id, max));
         id
     }
 
+    #[inline(always)]
     pub fn inflate(&mut self, id: u64, pfn: u64, count: u32, now: u64) {
         if let Some(b) = self.instances.get_mut(&id) { b.inflate(pfn, count, now); }
     }
 
+    #[inline(always)]
     pub fn deflate(&mut self, id: u64, count: u32) -> u32 {
         if let Some(b) = self.instances.get_mut(&id) { b.deflate(count) } else { 0 }
     }
 
+    #[inline]
     pub fn stats(&self) -> BalloonDrvStats {
         let inflated: u64 = self.instances.values().map(|b| b.total_inflated).sum();
         let deflated: u64 = self.instances.values().map(|b| b.total_deflated).sum();

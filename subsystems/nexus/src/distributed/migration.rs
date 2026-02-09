@@ -30,12 +30,14 @@ static MIGRATION_COUNTER: AtomicU64 = AtomicU64::new(1);
 static TASK_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl MigrationId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(MIGRATION_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
 }
 
 impl TaskId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(TASK_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -273,6 +275,7 @@ impl Default for MigrationConfig {
 
 /// Migration statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MigrationStats {
     /// Migrations started
     pub migrations_started: u64,
@@ -302,11 +305,13 @@ impl MigrationExecutor {
     }
 
     /// Start executor
+    #[inline(always)]
     pub fn start(&self) {
         self.running.store(true, Ordering::Release);
     }
 
     /// Stop executor
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::Release);
     }
@@ -464,11 +469,13 @@ impl MigrationExecutor {
     }
 
     /// Get migration
+    #[inline(always)]
     pub fn get_migration(&self, id: MigrationId) -> Option<&Migration> {
         self.migrations.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MigrationStats {
         &self.stats
     }
@@ -649,6 +656,7 @@ impl LiveMigrationHandler {
     }
 
     /// Track dirty page
+    #[inline]
     pub fn mark_dirty(&mut self, page: usize) {
         if !self.dirty_pages.contains(&page) {
             self.dirty_pages.push(page);
@@ -656,6 +664,7 @@ impl LiveMigrationHandler {
     }
 
     /// Get pages to transfer
+    #[inline]
     pub fn pages_to_transfer(&mut self) -> Vec<usize> {
         let pages = self.dirty_pages.clone();
         self.dirty_pages.clear();
@@ -664,6 +673,7 @@ impl LiveMigrationHandler {
     }
 
     /// Should stop-and-copy?
+    #[inline(always)]
     pub fn should_stop_and_copy(&self) -> bool {
         self.iterations >= self.max_iterations || self.dirty_pages.len() < 10
     }
@@ -686,6 +696,7 @@ impl LiveMigrationHandler {
     }
 
     /// Get phase
+    #[inline(always)]
     pub fn phase(&self) -> LiveMigrationPhase {
         self.phase
     }

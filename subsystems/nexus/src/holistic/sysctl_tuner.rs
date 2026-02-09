@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -53,16 +54,19 @@ impl ParamBounds {
         Self { min_value: min, max_value: max, default_value: default, safe_min: min, safe_max: max }
     }
 
+    #[inline]
     pub fn with_safe_range(mut self, safe_min: i64, safe_max: i64) -> Self {
         self.safe_min = safe_min;
         self.safe_max = safe_max;
         self
     }
 
+    #[inline(always)]
     pub fn clamp(&self, value: i64) -> i64 {
         value.max(self.min_value).min(self.max_value)
     }
 
+    #[inline(always)]
     pub fn is_safe(&self, value: i64) -> bool {
         value >= self.safe_min && value <= self.safe_max
     }
@@ -92,6 +96,7 @@ impl SysctlParam {
         }
     }
 
+    #[inline]
     pub fn set_value(&mut self, value: i64, ts: u64) -> bool {
         let clamped = self.bounds.clamp(value);
         if clamped != self.current_value {
@@ -102,8 +107,11 @@ impl SysctlParam {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn is_default(&self) -> bool { self.current_value == self.bounds.default_value }
+    #[inline(always)]
     pub fn is_safe(&self) -> bool { self.bounds.is_safe(self.current_value) }
+    #[inline]
     pub fn deviation_pct(&self) -> f64 {
         let range = (self.bounds.max_value - self.bounds.min_value) as f64;
         if range <= 0.0 { 0.0 }
@@ -153,6 +161,7 @@ pub struct TuningRecommendation {
 
 /// Sysctl tuner stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SysctlTunerStats {
     pub total_params: usize,
     pub modified_params: usize,
@@ -167,7 +176,7 @@ pub struct SysctlTunerStats {
 /// Holistic sysctl tuner
 pub struct HolisticSysctlTuner {
     params: BTreeMap<String, SysctlParam>,
-    history: Vec<ParamChange>,
+    history: VecDeque<ParamChange>,
     max_history: usize,
     recommendations: Vec<TuningRecommendation>,
     current_profile: WorkloadProfile,
@@ -177,13 +186,14 @@ pub struct HolisticSysctlTuner {
 impl HolisticSysctlTuner {
     pub fn new() -> Self {
         Self {
-            params: BTreeMap::new(), history: Vec::new(),
+            params: BTreeMap::new(), history: VecDeque::new(),
             max_history: 1000, recommendations: Vec::new(),
             current_profile: WorkloadProfile::Balanced,
             stats: SysctlTunerStats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn register_param(&mut self, param: SysctlParam) {
         self.params.insert(param.name.clone(), param);
     }
@@ -193,12 +203,12 @@ impl HolisticSysctlTuner {
         if let Some(p) = self.params.get_mut(&name_string) {
             let old = p.current_value;
             if p.set_value(value, ts) {
-                self.history.push(ParamChange {
+                self.history.push_back(ParamChange {
                     param_name: name_string, old_value: old, new_value: p.current_value,
                     timestamp: ts, reason,
                 });
                 if self.history.len() > self.max_history {
-                    self.history.remove(0);
+                    self.history.pop_front();
                 }
                 return true;
             }
@@ -213,7 +223,7 @@ impl HolisticSysctlTuner {
                 p.current_value = change.old_value;
                 p.change_count += 1;
                 p.last_change_ts = ts;
-                self.history.push(ParamChange {
+                self.history.push_back(ParamChange {
                     param_name: name, old_value: change.new_value,
                     new_value: change.old_value, timestamp: ts, reason: ChangeReason::Rollback,
                 });
@@ -223,6 +233,7 @@ impl HolisticSysctlTuner {
         false
     }
 
+    #[inline(always)]
     pub fn set_profile(&mut self, profile: WorkloadProfile) {
         self.current_profile = profile;
     }
@@ -246,6 +257,7 @@ impl HolisticSysctlTuner {
         }
     }
 
+    #[inline]
     pub fn apply_recommendations(&mut self, ts: u64) {
         let recs: Vec<_> = self.recommendations.drain(..).collect();
         for rec in recs {
@@ -255,10 +267,12 @@ impl HolisticSysctlTuner {
         }
     }
 
+    #[inline(always)]
     pub fn params_by_category(&self, cat: ParamCategory) -> Vec<&SysctlParam> {
         self.params.values().filter(|p| p.category == cat).collect()
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_params = self.params.len();
         self.stats.modified_params = self.params.values().filter(|p| !p.is_default()).count();
@@ -271,7 +285,10 @@ impl HolisticSysctlTuner {
         self.stats.active_profile = self.current_profile as u8;
     }
 
+    #[inline(always)]
     pub fn param(&self, name: &str) -> Option<&SysctlParam> { self.params.get(&String::from(name)) }
+    #[inline(always)]
     pub fn stats(&self) -> &SysctlTunerStats { &self.stats }
+    #[inline(always)]
     pub fn history(&self) -> &[ParamChange] { &self.history }
 }

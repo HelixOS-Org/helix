@@ -106,11 +106,13 @@ impl CryptoIntelligence {
     }
 
     /// Register algorithm
+    #[inline(always)]
     pub fn register_algorithm(&mut self, name: String, alg_type: AlgorithmType) -> AlgorithmId {
         self.manager.register_algorithm(name, alg_type)
     }
 
     /// Record operation
+    #[inline(always)]
     pub fn record_operation(&self, alg_name: &str, bytes: u64) {
         self.manager.record_operation(alg_name, bytes);
     }
@@ -211,11 +213,13 @@ impl CryptoIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &CryptoManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut CryptoManager {
         &mut self.manager
     }

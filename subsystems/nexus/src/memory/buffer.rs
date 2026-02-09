@@ -22,6 +22,7 @@ use crate::types::Timestamp;
 
 /// Buffer entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BufferEntry<T> {
     /// Entry ID
     pub id: u64,
@@ -54,6 +55,7 @@ pub enum EvictionPolicy {
 
 /// Buffer statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BufferStats {
     /// Hits
     pub hits: u64,
@@ -67,6 +69,7 @@ pub struct BufferStats {
 
 impl BufferStats {
     /// Hit rate
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
         if total == 0 {
@@ -79,6 +82,7 @@ impl BufferStats {
 
 /// Buffer configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BufferConfig {
     /// Maximum capacity (entries)
     pub max_capacity: usize,
@@ -106,6 +110,7 @@ impl Default for BufferConfig {
 // ============================================================================
 
 /// Generic memory buffer
+#[repr(align(64))]
 pub struct MemoryBuffer<T: Clone> {
     /// Entries by key
     entries: BTreeMap<String, BufferEntry<T>>,
@@ -135,6 +140,7 @@ impl<T: Clone> MemoryBuffer<T> {
     }
 
     /// Get value
+    #[inline]
     pub fn get(&mut self, key: &str) -> Option<&T> {
         if let Some(entry) = self.entries.get_mut(key) {
             entry.last_accessed = Timestamp::now();
@@ -148,6 +154,7 @@ impl<T: Clone> MemoryBuffer<T> {
     }
 
     /// Get entry
+    #[inline]
     pub fn get_entry(&mut self, key: &str) -> Option<&BufferEntry<T>> {
         if let Some(entry) = self.entries.get_mut(key) {
             entry.last_accessed = Timestamp::now();
@@ -161,6 +168,7 @@ impl<T: Clone> MemoryBuffer<T> {
     }
 
     /// Put value
+    #[inline(always)]
     pub fn put(&mut self, key: &str, value: T, size: usize) -> u64 {
         self.put_with_priority(key, value, size, 1.0)
     }
@@ -210,6 +218,7 @@ impl<T: Clone> MemoryBuffer<T> {
     }
 
     /// Remove entry
+    #[inline]
     pub fn remove(&mut self, key: &str) -> Option<T> {
         if let Some(entry) = self.entries.remove(key) {
             self.current_size -= entry.size;
@@ -292,6 +301,7 @@ impl<T: Clone> MemoryBuffer<T> {
     }
 
     /// Update priority
+    #[inline]
     pub fn update_priority(&mut self, key: &str, priority: f64) {
         if let Some(entry) = self.entries.get_mut(key) {
             entry.priority = priority;
@@ -299,26 +309,31 @@ impl<T: Clone> MemoryBuffer<T> {
     }
 
     /// Contains key
+    #[inline(always)]
     pub fn contains(&self, key: &str) -> bool {
         self.entries.contains_key(key)
     }
 
     /// Current size
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
     /// Current byte size
+    #[inline(always)]
     pub fn byte_size(&self) -> usize {
         self.current_size
     }
 
     /// Clear buffer
+    #[inline]
     pub fn clear(&mut self) {
         self.entries.clear();
         self.key_order.clear();
@@ -326,11 +341,13 @@ impl<T: Clone> MemoryBuffer<T> {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &BufferStats {
         &self.stats
     }
 
     /// List keys
+    #[inline(always)]
     pub fn keys(&self) -> Vec<String> {
         self.entries.keys().cloned().collect()
     }
@@ -341,6 +358,7 @@ impl<T: Clone> MemoryBuffer<T> {
 // ============================================================================
 
 /// Fixed-size ring buffer
+#[repr(align(64))]
 pub struct RingBuffer<T: Clone> {
     /// Data
     data: Vec<Option<T>>,
@@ -372,6 +390,7 @@ impl<T: Clone> RingBuffer<T> {
     }
 
     /// Push value
+    #[inline]
     pub fn push(&mut self, value: T) {
         self.data[self.write_pos] = Some(value);
         self.write_pos = (self.write_pos + 1) % self.capacity;
@@ -384,6 +403,7 @@ impl<T: Clone> RingBuffer<T> {
     }
 
     /// Pop value
+    #[inline]
     pub fn pop(&mut self) -> Option<T> {
         if self.count == 0 {
             return None;
@@ -397,6 +417,7 @@ impl<T: Clone> RingBuffer<T> {
     }
 
     /// Peek at front
+    #[inline]
     pub fn peek(&self) -> Option<&T> {
         if self.count == 0 {
             None
@@ -406,6 +427,7 @@ impl<T: Clone> RingBuffer<T> {
     }
 
     /// Get at index
+    #[inline]
     pub fn get(&self, index: usize) -> Option<&T> {
         if index >= self.count {
             return None;
@@ -416,21 +438,25 @@ impl<T: Clone> RingBuffer<T> {
     }
 
     /// Current count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.count
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
 
     /// Is full
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.count == self.capacity
     }
 
     /// Clear
+    #[inline]
     pub fn clear(&mut self) {
         for item in &mut self.data {
             *item = None;

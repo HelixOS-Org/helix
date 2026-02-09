@@ -27,6 +27,7 @@ pub enum GateState {
 
 /// Token bucket state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TokenBucketState {
     pub tokens: f64,
     pub max_tokens: f64,
@@ -39,6 +40,7 @@ impl TokenBucketState {
         Self { tokens: max_tokens, max_tokens, refill_rate, last_refill: now }
     }
 
+    #[inline]
     pub fn refill(&mut self, now: u64) {
         let elapsed_ns = now.saturating_sub(self.last_refill);
         let elapsed_sec = elapsed_ns as f64 / 1_000_000_000.0;
@@ -47,6 +49,7 @@ impl TokenBucketState {
         self.last_refill = now;
     }
 
+    #[inline]
     pub fn try_consume(&mut self, n: f64, now: u64) -> bool {
         self.refill(now);
         if self.tokens >= n {
@@ -55,12 +58,15 @@ impl TokenBucketState {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn available(&self) -> f64 { self.tokens }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 { 1.0 - (self.tokens / self.max_tokens) }
 }
 
 /// Sliding window state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlidingWindowState {
     pub window_ns: u64,
     pub max_requests: u64,
@@ -72,6 +78,7 @@ impl SlidingWindowState {
         Self { window_ns, max_requests, timestamps: Vec::new() }
     }
 
+    #[inline]
     pub fn try_admit(&mut self, now: u64) -> bool {
         let cutoff = now.saturating_sub(self.window_ns);
         self.timestamps.retain(|&t| t >= cutoff);
@@ -80,6 +87,7 @@ impl SlidingWindowState {
         true
     }
 
+    #[inline]
     pub fn current_rate(&self, now: u64) -> f64 {
         let cutoff = now.saturating_sub(self.window_ns);
         let count = self.timestamps.iter().filter(|&&t| t >= cutoff).count();
@@ -107,6 +115,7 @@ pub struct ThrottleGateInstance {
 }
 
 impl ThrottleGateInstance {
+    #[inline]
     pub fn token_bucket(id: u64, max_tokens: f64, refill_rate: f64, now: u64) -> Self {
         Self {
             id, name_hash: id, algorithm: ThrottleAlgorithm::TokenBucket,
@@ -118,6 +127,7 @@ impl ThrottleGateInstance {
         }
     }
 
+    #[inline]
     pub fn sliding_window(id: u64, window_ns: u64, max_requests: u64, now: u64) -> Self {
         Self {
             id, name_hash: id, algorithm: ThrottleAlgorithm::SlidingWindow,
@@ -154,18 +164,22 @@ impl ThrottleGateInstance {
         }
     }
 
+    #[inline]
     pub fn throttle_ratio(&self) -> f64 {
         let total = self.total_admitted + self.total_throttled;
         if total == 0 { return 0.0; }
         self.total_throttled as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn close(&mut self) { self.state = GateState::Closed; }
+    #[inline(always)]
     pub fn open(&mut self) { self.state = GateState::Open; }
 }
 
 /// Throttle gate stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ThrottleGateStats {
     pub total_gates: u32,
     pub total_admitted: u64,
@@ -186,6 +200,7 @@ impl CoopThrottleGate {
         Self { gates: BTreeMap::new(), next_id: 1 }
     }
 
+    #[inline]
     pub fn create_token_bucket(&mut self, max_tokens: f64, refill_rate: f64, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -193,6 +208,7 @@ impl CoopThrottleGate {
         id
     }
 
+    #[inline]
     pub fn create_sliding_window(&mut self, window_ns: u64, max_requests: u64, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -200,22 +216,27 @@ impl CoopThrottleGate {
         id
     }
 
+    #[inline(always)]
     pub fn try_pass(&mut self, gate_id: u64, cost: f64, now: u64) -> bool {
         self.gates.get_mut(&gate_id).map(|g| g.try_pass(cost, now)).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn close_gate(&mut self, gate_id: u64) {
         if let Some(g) = self.gates.get_mut(&gate_id) { g.close(); }
     }
 
+    #[inline(always)]
     pub fn open_gate(&mut self, gate_id: u64) {
         if let Some(g) = self.gates.get_mut(&gate_id) { g.open(); }
     }
 
+    #[inline(always)]
     pub fn destroy_gate(&mut self, gate_id: u64) -> bool {
         self.gates.remove(&gate_id).is_some()
     }
 
+    #[inline]
     pub fn most_throttled(&self, n: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<_> = self.gates.iter()
             .filter(|(_, g)| g.total_throttled > 0)
@@ -226,6 +247,7 @@ impl CoopThrottleGate {
         v
     }
 
+    #[inline]
     pub fn stats(&self) -> ThrottleGateStats {
         let open = self.gates.values().filter(|g| g.state == GateState::Open).count() as u32;
         let throttled = self.gates.values().filter(|g| g.state == GateState::Throttled).count() as u32;

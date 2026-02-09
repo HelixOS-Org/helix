@@ -29,6 +29,7 @@ pub enum CoopDmState {
 
 /// Shared thin pool
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopThinPool {
     pub pool_id: u64,
     pub total_data_blocks: u64,
@@ -50,6 +51,7 @@ impl CoopThinPool {
         }
     }
 
+    #[inline]
     pub fn allocate(&mut self, blocks: u64) -> bool {
         if self.used_data_blocks + blocks > self.total_data_blocks {
             return false;
@@ -58,12 +60,15 @@ impl CoopThinPool {
         true
     }
 
+    #[inline(always)]
     pub fn free(&mut self, blocks: u64) {
         self.used_data_blocks = self.used_data_blocks.saturating_sub(blocks);
     }
+    #[inline(always)]
     pub fn subscribe(&mut self) {
         self.subscribers += 1;
     }
+    #[inline]
     pub fn data_usage_pct(&self) -> f64 {
         if self.total_data_blocks == 0 {
             0.0
@@ -101,10 +106,12 @@ impl CoopDmDevice {
         }
     }
 
+    #[inline(always)]
     pub fn share(&mut self) {
         self.shared_count += 1;
         self.state = CoopDmState::Shared;
     }
+    #[inline(always)]
     pub fn record_io(&mut self) {
         self.io_count += 1;
     }
@@ -112,6 +119,7 @@ impl CoopDmDevice {
 
 /// Coop DM stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopDmStats {
     pub total_devices: u64,
     pub thin_pools: u64,
@@ -141,12 +149,14 @@ impl CoopDevMapper {
         }
     }
 
+    #[inline]
     pub fn create_device(&mut self, id: u64, name: &[u8], target: CoopDmTarget, size: u64) {
         self.stats.total_devices += 1;
         self.devices
             .insert(id, CoopDmDevice::new(name, target, size));
     }
 
+    #[inline]
     pub fn create_pool(&mut self, id: u64, data_blocks: u64, meta_blocks: u64) {
         self.stats.thin_pools += 1;
         self.pools

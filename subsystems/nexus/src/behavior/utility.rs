@@ -7,6 +7,7 @@
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
@@ -35,6 +36,7 @@ impl ActionId {
 }
 
 /// Input context for utility calculations
+#[repr(align(64))]
 pub struct UtilityContext {
     pub inputs: BTreeMap<String, f64>,
     pub time: u64,
@@ -48,19 +50,23 @@ impl UtilityContext {
         }
     }
 
+    #[inline(always)]
     pub fn with_time(mut self, time: u64) -> Self {
         self.time = time;
         self
     }
 
+    #[inline(always)]
     pub fn set(&mut self, key: impl Into<String>, value: f64) {
         self.inputs.insert(key.into(), value);
     }
 
+    #[inline(always)]
     pub fn get(&self, key: &str) -> Option<f64> {
         self.inputs.get(key).copied()
     }
 
+    #[inline(always)]
     pub fn get_or(&self, key: &str, default: f64) -> f64 {
         self.inputs.get(key).copied().unwrap_or(default)
     }
@@ -152,6 +158,7 @@ impl UtilityCurve {
     }
 
     /// Create a linear curve from 0 to 1 over [min, max]
+    #[inline]
     pub fn linear_ascending(min: f64, max: f64) -> Self {
         let slope = 1.0 / (max - min);
         let intercept = -min / (max - min);
@@ -159,6 +166,7 @@ impl UtilityCurve {
     }
 
     /// Create a linear curve from 1 to 0 over [min, max]
+    #[inline]
     pub fn linear_descending(min: f64, max: f64) -> Self {
         let slope = -1.0 / (max - min);
         let intercept = max / (max - min);
@@ -197,16 +205,19 @@ impl Consideration {
         }
     }
 
+    #[inline(always)]
     pub fn with_weight(mut self, weight: f64) -> Self {
         self.weight = weight;
         self
     }
 
+    #[inline(always)]
     pub fn as_bonus(mut self) -> Self {
         self.is_bonus = true;
         self
     }
 
+    #[inline]
     pub fn evaluate(&self, ctx: &UtilityContext) -> f64 {
         let input = ctx.get_or(&self.input_key, 0.0);
         let raw_score = self.curve.evaluate(input);
@@ -251,21 +262,25 @@ impl UtilityAction {
         }
     }
 
+    #[inline(always)]
     pub fn with_consideration(mut self, consideration: Consideration) -> Self {
         self.considerations.push(consideration);
         self
     }
 
+    #[inline(always)]
     pub fn with_base_score(mut self, score: f64) -> Self {
         self.base_score = score;
         self
     }
 
+    #[inline(always)]
     pub fn with_cooldown(mut self, cooldown: u64) -> Self {
         self.cooldown = cooldown;
         self
     }
 
+    #[inline(always)]
     pub fn add_consideration(&mut self, consideration: Consideration) {
         self.considerations.push(consideration);
     }
@@ -310,16 +325,19 @@ impl UtilityAction {
         self.base_score + compensated + bonus_sum
     }
 
+    #[inline]
     pub fn execute(&mut self, ctx: &UtilityContext) {
         (self.action)(ctx);
         self.last_execution = ctx.time;
         self.execution_count += 1;
     }
 
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.is_enabled = true;
     }
 
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.is_enabled = false;
     }
@@ -362,23 +380,28 @@ impl UtilitySelector {
         }
     }
 
+    #[inline(always)]
     pub fn with_threshold(mut self, threshold: f64) -> Self {
         self.min_score_threshold = threshold;
         self
     }
 
+    #[inline(always)]
     pub fn add_action(&mut self, action: UtilityAction) {
         self.actions.push(action);
     }
 
+    #[inline(always)]
     pub fn action_count(&self) -> usize {
         self.actions.len()
     }
 
+    #[inline(always)]
     pub fn get_action(&self, id: ActionId) -> Option<&UtilityAction> {
         self.actions.iter().find(|a| a.id == id)
     }
 
+    #[inline(always)]
     pub fn get_action_mut(&mut self, id: ActionId) -> Option<&mut UtilityAction> {
         self.actions.iter_mut().find(|a| a.id == id)
     }
@@ -453,6 +476,7 @@ impl UtilitySelector {
     }
 
     /// Select and execute the best action
+    #[inline]
     pub fn select_and_execute(&mut self, ctx: &UtilityContext) -> Option<ActionId> {
         let selected = self.select(ctx)?;
 
@@ -485,7 +509,7 @@ pub struct ReasonerAI {
     name: String,
     buckets: BTreeMap<String, UtilitySelector>,
     active_bucket: Option<String>,
-    decision_history: Vec<DecisionRecord>,
+    decision_history: VecDeque<DecisionRecord>,
     max_history: usize,
 }
 
@@ -504,11 +528,12 @@ impl ReasonerAI {
             name: name.into(),
             buckets: BTreeMap::new(),
             active_bucket: None,
-            decision_history: Vec::new(),
+            decision_history: VecDeque::new(),
             max_history: 100,
         }
     }
 
+    #[inline]
     pub fn add_bucket(&mut self, name: impl Into<String>, selector: UtilitySelector) {
         let bucket_name = name.into();
         if self.active_bucket.is_none() {
@@ -517,6 +542,7 @@ impl ReasonerAI {
         self.buckets.insert(bucket_name, selector);
     }
 
+    #[inline]
     pub fn set_active_bucket(&mut self, name: &str) -> bool {
         if self.buckets.contains_key(name) {
             self.active_bucket = Some(name.to_string());
@@ -526,10 +552,12 @@ impl ReasonerAI {
         }
     }
 
+    #[inline(always)]
     pub fn get_bucket(&self, name: &str) -> Option<&UtilitySelector> {
         self.buckets.get(name)
     }
 
+    #[inline(always)]
     pub fn get_bucket_mut(&mut self, name: &str) -> Option<&mut UtilitySelector> {
         self.buckets.get_mut(name)
     }
@@ -556,9 +584,9 @@ impl ReasonerAI {
             score,
         };
 
-        self.decision_history.push(record);
+        self.decision_history.push_back(record);
         if self.decision_history.len() > self.max_history {
-            self.decision_history.remove(0);
+            self.decision_history.pop_front();
         }
 
         Some(action_id)
@@ -604,10 +632,12 @@ impl ReasonerAI {
         }
     }
 
+    #[inline(always)]
     pub fn decision_history(&self) -> &[DecisionRecord] {
         &self.decision_history
     }
 
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -736,6 +766,7 @@ pub fn create_kernel_cpu_selector() -> UtilitySelector {
 }
 
 /// Create a complete kernel reasoner AI
+#[inline]
 pub fn create_kernel_reasoner() -> ReasonerAI {
     let mut reasoner = ReasonerAI::new("KernelReasonerAI");
 

@@ -8,11 +8,13 @@ pub struct Pid(pub u32);
 
 impl Pid {
     /// Create new PID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -24,11 +26,13 @@ pub struct Uid(pub u32);
 
 impl Uid {
     /// Create new UID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -171,6 +175,7 @@ impl Capability {
     }
 
     /// Get capability number
+    #[inline(always)]
     pub fn number(&self) -> u32 {
         *self as u32
     }
@@ -253,11 +258,13 @@ impl Capability {
     }
 
     /// Is network related
+    #[inline(always)]
     pub fn is_network(&self) -> bool {
         matches!(self.category(), CapabilityCategory::Network)
     }
 
     /// Is privileged
+    #[inline(always)]
     pub fn is_privileged(&self) -> bool {
         matches!(self.risk_level(), RiskLevel::Critical | RiskLevel::High)
     }
@@ -326,6 +333,7 @@ pub enum RiskLevel {
 
 impl RiskLevel {
     /// Get level name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Minimal => "minimal",
@@ -337,6 +345,7 @@ impl RiskLevel {
     }
 
     /// Get numeric score
+    #[inline]
     pub fn score(&self) -> u8 {
         match self {
             Self::Minimal => 1,

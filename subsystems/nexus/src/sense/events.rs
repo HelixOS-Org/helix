@@ -54,18 +54,21 @@ impl RawEvent {
     }
 
     /// With sequence number
+    #[inline(always)]
     pub fn with_sequence(mut self, seq: u64) -> Self {
         self.sequence = seq;
         self
     }
 
     /// With CPU
+    #[inline(always)]
     pub fn with_cpu(mut self, cpu: u32) -> Self {
         self.cpu = cpu;
         self
     }
 
     /// With process context
+    #[inline]
     pub fn with_process(mut self, pid: u32, tid: Option<u32>) -> Self {
         self.pid = Some(pid);
         self.tid = tid;
@@ -145,11 +148,13 @@ pub struct CpuSample {
 
 impl CpuSample {
     /// Total busy time
+    #[inline(always)]
     pub fn busy_percent(&self) -> u8 {
         100u8.saturating_sub(self.idle)
     }
 
     /// Total system overhead
+    #[inline]
     pub fn overhead_percent(&self) -> u8 {
         self.system
             .saturating_add(self.irq)
@@ -188,6 +193,7 @@ pub struct MemorySample {
 
 impl MemorySample {
     /// Usage percentage
+    #[inline]
     pub fn usage_percent(&self) -> u8 {
         if self.total == 0 {
             0
@@ -197,6 +203,7 @@ impl MemorySample {
     }
 
     /// Swap usage percentage
+    #[inline]
     pub fn swap_percent(&self) -> u8 {
         if self.swap_total == 0 {
             0
@@ -206,6 +213,7 @@ impl MemorySample {
     }
 
     /// Is memory pressure high?
+    #[inline(always)]
     pub fn is_pressure_high(&self) -> bool {
         self.usage_percent() > 85 || self.major_faults > 100
     }
@@ -372,6 +380,7 @@ pub struct PageFaultEventData {
 
 /// Timer event data
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerEventData {
     /// Timer ID
     pub timer_id: u64,
@@ -518,6 +527,7 @@ pub enum SecurityEventType {
 
 /// Generic metric sample
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricSample {
     /// Metric name
     pub name: String,

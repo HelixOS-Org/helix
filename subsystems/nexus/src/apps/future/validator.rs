@@ -156,6 +156,7 @@ impl CategoryValidator {
         }
     }
 
+    #[inline]
     fn record(&mut self, pct_error: f32, bias: f32, direction_correct: bool) {
         self.record_count += 1;
         self.mape_ema = EMA_ALPHA * pct_error.abs() + (1.0 - EMA_ALPHA) * self.mape_ema;
@@ -194,6 +195,7 @@ impl CategoryValidator {
 
 /// Aggregate validation statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     pub total_validations: u64,
     pub overall_mape: f32,

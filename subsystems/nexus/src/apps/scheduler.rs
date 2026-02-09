@@ -8,7 +8,7 @@
 //! - Preemption policy recommendations
 //! - Group scheduling for related processes
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -118,13 +118,13 @@ struct ProcessSchedState {
     /// Process ID
     pid: u64,
     /// Recent CPU usage samples
-    cpu_samples: Vec<f64>,
+    cpu_samples: VecDeque<f64>,
     /// Recent I/O wait samples
-    io_wait_samples: Vec<f64>,
+    io_wait_samples: VecDeque<f64>,
     /// Recent context switch rate
-    ctx_switch_rates: Vec<f64>,
+    ctx_switch_rates: VecDeque<f64>,
     /// Recent cache miss rates
-    cache_miss_rates: Vec<f64>,
+    cache_miss_rates: VecDeque<f64>,
     /// Current CPU
     current_cpu: u32,
     /// Last NUMA node
@@ -132,9 +132,9 @@ struct ProcessSchedState {
     /// Migration count
     migrations: u64,
     /// Wakeup latency samples (µs)
-    wakeup_latencies: Vec<f64>,
+    wakeup_latencies: VecDeque<f64>,
     /// Run queue time samples (µs)
-    runqueue_times: Vec<f64>,
+    runqueue_times: VecDeque<f64>,
     /// Last hint generated
     last_hint: Option<SchedulingHint>,
     /// Last hint timestamp
@@ -145,15 +145,15 @@ impl ProcessSchedState {
     fn new(pid: u64) -> Self {
         Self {
             pid,
-            cpu_samples: Vec::new(),
-            io_wait_samples: Vec::new(),
-            ctx_switch_rates: Vec::new(),
-            cache_miss_rates: Vec::new(),
+            cpu_samples: VecDeque::new(),
+            io_wait_samples: VecDeque::new(),
+            ctx_switch_rates: VecDeque::new(),
+            cache_miss_rates: VecDeque::new(),
             current_cpu: 0,
             last_numa_node: 0,
             migrations: 0,
-            wakeup_latencies: Vec::new(),
-            runqueue_times: Vec::new(),
+            wakeup_latencies: VecDeque::new(),
+            runqueue_times: VecDeque::new(),
             last_hint: None,
             last_hint_time: 0,
         }
@@ -165,14 +165,14 @@ impl ProcessSchedState {
         Self::push_bounded(&mut self.ctx_switch_rates, ctx_switch, 30);
     }
 
-    fn push_bounded(vec: &mut Vec<f64>, value: f64, max: usize) {
-        if vec.len() >= max {
-            vec.remove(0);
+    fn push_bounded(deque: &mut VecDeque<f64>, value: f64, max: usize) {
+        if deque.len() >= max {
+            deque.pop_front();
         }
-        vec.push(value);
+        deque.push_back(value);
     }
 
-    fn avg(samples: &[f64]) -> f64 {
+    fn avg(samples: &VecDeque<f64>) -> f64 {
         if samples.is_empty() {
             0.0
         } else {
@@ -367,11 +367,13 @@ impl SchedulingAnalyzer {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.states.remove(&pid);
     }
 
     /// Processes with excessive migrations
+    #[inline]
     pub fn excessive_migrations(&self, threshold: u64) -> Vec<(u64, u64)> {
         self.states
             .iter()
@@ -381,6 +383,7 @@ impl SchedulingAnalyzer {
     }
 
     /// Number of tracked processes
+    #[inline(always)]
     pub fn tracked_count(&self) -> usize {
         self.states.len()
     }

@@ -42,26 +42,31 @@ impl Model {
     }
 
     /// Add transition
+    #[inline(always)]
     pub fn add_transition(&mut self, transition: Transition) {
         self.transitions.push(transition);
     }
 
     /// Add property
+    #[inline(always)]
     pub fn add_property(&mut self, property: Property, predicate: Predicate) {
         self.properties.push((property, predicate));
     }
 
     /// Add invariant
+    #[inline(always)]
     pub fn add_invariant(&mut self, predicate: Predicate) {
         self.invariants.push(predicate);
     }
 
     /// Get initial state
+    #[inline(always)]
     pub fn initial(&self) -> State {
         (self.initial_state)()
     }
 
     /// Get enabled transitions
+    #[inline]
     pub fn enabled_transitions(&self, state: &State) -> Vec<&Transition> {
         self.transitions
             .iter()
@@ -70,6 +75,7 @@ impl Model {
     }
 
     /// Check invariants
+    #[inline]
     pub fn check_invariants(&self, state: &State) -> Vec<&Predicate> {
         self.invariants
             .iter()
@@ -78,16 +84,19 @@ impl Model {
     }
 
     /// Get all properties
+    #[inline(always)]
     pub fn properties(&self) -> &[(Property, Predicate)] {
         &self.properties
     }
 
     /// Get all invariants
+    #[inline(always)]
     pub fn invariants(&self) -> &[Predicate] {
         &self.invariants
     }
 
     /// Get transitions count
+    #[inline(always)]
     pub fn transition_count(&self) -> usize {
         self.transitions.len()
     }

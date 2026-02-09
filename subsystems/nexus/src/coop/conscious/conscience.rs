@@ -84,6 +84,7 @@ pub enum EnforcementLevel {
 }
 
 impl EnforcementLevel {
+    #[inline]
     pub fn severity(&self) -> f32 {
         match self {
             EnforcementLevel::Advisory => 0.2,
@@ -148,6 +149,7 @@ impl ConscienceAxiom {
     }
 
     /// Record a check result
+    #[inline]
     pub fn record_check(&mut self, passed: bool, tick: u64) {
         self.check_count += 1;
         if !passed {
@@ -159,6 +161,7 @@ impl ConscienceAxiom {
     }
 
     /// Weighted violation severity
+    #[inline(always)]
     pub fn violation_severity(&self) -> f32 {
         (1.0 - self.compliance_rate) * self.weight * self.enforcement.severity()
     }
@@ -213,6 +216,7 @@ pub struct ExploitationRecord {
 // ============================================================================
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopConscienceStats {
     pub total_axioms: usize,
     pub total_checks: u64,
@@ -279,6 +283,7 @@ impl CoopConscience {
     }
 
     /// Register a new axiom
+    #[inline]
     pub fn register_axiom(
         &mut self,
         name: String,
@@ -404,6 +409,7 @@ impl CoopConscience {
     ///
     /// Takes per-process resource usage ratios. A process that consistently
     /// takes more than its fair share while others suffer is flagged.
+    #[inline]
     pub fn detect_exploitation(&mut self, usage_ratios: &BTreeMap<u64, f32>) -> Vec<u64> {
         self.tick += 1;
         let count = usage_ratios.len();
@@ -462,6 +468,7 @@ impl CoopConscience {
     ///
     /// Takes current shares and returns adjusted shares that satisfy equity
     /// constraints. Redistributes excess from over-allocated processes.
+    #[inline]
     pub fn enforce_equity(&mut self, current_shares: &BTreeMap<u64, f32>) -> BTreeMap<u64, f32> {
         self.tick += 1;
         let count = current_shares.len();
@@ -554,6 +561,7 @@ impl CoopConscience {
     // ========================================================================
 
     /// Overall moral health score of the cooperation protocol
+    #[inline]
     pub fn moral_cooperation(&mut self) -> f32 {
         let compliance = self.stats.overall_compliance;
         let equity = self.equity_ema;
@@ -610,22 +618,27 @@ impl CoopConscience {
     // QUERIES
     // ========================================================================
 
+    #[inline(always)]
     pub fn axiom(&self, id: u64) -> Option<&ConscienceAxiom> {
         self.axioms.get(&id)
     }
 
+    #[inline(always)]
     pub fn axiom_count(&self) -> usize {
         self.axioms.len()
     }
 
+    #[inline(always)]
     pub fn violation_count(&self) -> usize {
         self.violations.len()
     }
 
+    #[inline(always)]
     pub fn exploitation_count(&self) -> usize {
         self.exploitations.len()
     }
 
+    #[inline(always)]
     pub fn snapshot_stats(&self) -> CoopConscienceStats {
         self.stats.clone()
     }

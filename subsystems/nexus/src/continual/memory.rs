@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -39,6 +40,7 @@ impl MemorySample {
     }
 
     /// Update priority after replay
+    #[inline(always)]
     pub fn update_priority(&mut self, td_error: f64) {
         self.priority = libm::fabs(td_error) + 0.01; // Small epsilon for stability
         self.replay_count += 1;
@@ -76,13 +78,14 @@ impl Default for ReplayConfig {
 }
 
 /// Memory buffer for experience replay
+#[repr(align(64))]
 pub struct MemoryBuffer {
     /// Stored samples
     pub samples: Vec<MemorySample>,
     /// Configuration
     pub config: ReplayConfig,
     /// Per-task sample counts
-    pub task_counts: BTreeMap<u64, usize>,
+    pub task_counts: LinearMap<usize, 64>,
     /// Random state
     rng_state: u64,
     /// Sum tree for prioritized sampling
@@ -94,7 +97,7 @@ impl MemoryBuffer {
     pub fn new(config: ReplayConfig, seed: u64) -> Self {
         Self {
             samples: Vec::with_capacity(config.buffer_size),
-            task_counts: BTreeMap::new(),
+            task_counts: LinearMap::new(),
             priority_sum: 0.0,
             rng_state: seed,
             config,
@@ -123,7 +126,7 @@ impl MemoryBuffer {
 
         let sample_priority = self.samples.last().unwrap().priority;
         self.priority_sum += sample_priority.powf(self.config.alpha);
-        *self.task_counts.entry(task_id).or_insert(0) += 1;
+        self.task_counts.add(task_id, 1);
     }
 
     /// Sample a batch from the buffer
@@ -221,10 +224,11 @@ impl MemoryBuffer {
 
 /// Memory buffer statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BufferStats {
     pub total_samples: usize,
     pub num_tasks: usize,
-    pub task_distribution: BTreeMap<u64, usize>,
+    pub task_distribution: LinearMap<usize, 64>,
     pub avg_priority: f64,
 }
 

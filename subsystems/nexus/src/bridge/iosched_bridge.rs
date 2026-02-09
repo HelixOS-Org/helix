@@ -55,6 +55,7 @@ impl IoSchedBridgeRecord {
 
 /// IO sched bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoSchedBridgeStats {
     pub total_ops: u64,
     pub prio_sets: u64,
@@ -74,6 +75,7 @@ impl BridgeIoSched {
         Self { stats: IoSchedBridgeStats { total_ops: 0, prio_sets: 0, prio_gets: 0, scheduler_changes: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &IoSchedBridgeRecord) {
         self.stats.total_ops += 1;
         match rec.op {

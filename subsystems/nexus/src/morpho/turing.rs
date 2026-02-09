@@ -99,16 +99,19 @@ impl TuringPattern {
     }
 
     /// Get activator concentration
+    #[inline(always)]
     pub fn get_activator(&self, x: usize, y: usize, z: usize) -> f64 {
         self.activator.get(x, y, z)
     }
 
     /// Get inhibitor concentration
+    #[inline(always)]
     pub fn get_inhibitor(&self, x: usize, y: usize, z: usize) -> f64 {
         self.inhibitor.get(x, y, z)
     }
 
     /// Check if pattern has stabilized
+    #[inline(always)]
     pub fn is_stable(&self, previous_total: f64, threshold: f64) -> bool {
         let current = self.activator.total() + self.inhibitor.total();
         (current - previous_total).abs() < threshold

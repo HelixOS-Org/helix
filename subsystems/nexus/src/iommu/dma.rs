@@ -27,6 +27,7 @@ pub enum DmaDirection {
 
 impl DmaDirection {
     /// Get direction name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::ToDevice => "to_device",
@@ -86,16 +87,19 @@ impl DmaMapping {
     }
 
     /// Get end address (IOVA)
+    #[inline(always)]
     pub fn iova_end(&self) -> u64 {
         self.iova + self.size
     }
 
     /// Get end address (physical)
+    #[inline(always)]
     pub fn paddr_end(&self) -> u64 {
         self.paddr + self.size
     }
 
     /// Overlaps with another mapping
+    #[inline(always)]
     pub fn overlaps(&self, other: &DmaMapping) -> bool {
         self.iova < other.iova_end() && other.iova < self.iova_end()
     }
@@ -135,6 +139,7 @@ impl DmaMappingTracker {
     }
 
     /// Add mapping
+    #[inline]
     pub fn add_mapping(&mut self, mapping: DmaMapping) {
         self.total_mappings.fetch_add(1, Ordering::Relaxed);
         self.total_bytes.fetch_add(mapping.size, Ordering::Relaxed);
@@ -143,6 +148,7 @@ impl DmaMappingTracker {
     }
 
     /// Remove mapping by IOVA
+    #[inline]
     pub fn remove_mapping(&mut self, iova: u64) -> Option<DmaMapping> {
         if let Some(mapping) = self.mappings.remove(&iova) {
             self.total_mappings.fetch_sub(1, Ordering::Relaxed);
@@ -155,11 +161,13 @@ impl DmaMappingTracker {
     }
 
     /// Get mapping
+    #[inline(always)]
     pub fn get_mapping(&self, iova: u64) -> Option<&DmaMapping> {
         self.mappings.get(&iova)
     }
 
     /// Get mappings for device
+    #[inline]
     pub fn mappings_for_device(&self, device: DeviceId) -> Vec<&DmaMapping> {
         self.mappings
             .values()
@@ -168,26 +176,31 @@ impl DmaMappingTracker {
     }
 
     /// Get total mappings
+    #[inline(always)]
     pub fn total_mappings(&self) -> u64 {
         self.total_mappings.load(Ordering::Relaxed)
     }
 
     /// Get total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.total_bytes.load(Ordering::Relaxed)
     }
 
     /// Get map ops
+    #[inline(always)]
     pub fn map_ops(&self) -> u64 {
         self.map_ops.load(Ordering::Relaxed)
     }
 
     /// Get unmap ops
+    #[inline(always)]
     pub fn unmap_ops(&self) -> u64 {
         self.unmap_ops.load(Ordering::Relaxed)
     }
 
     /// Enable/disable
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }

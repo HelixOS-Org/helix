@@ -38,6 +38,7 @@ pub enum BridgeVfsResult {
 
 /// VFS bridge call record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct VfsBridgeRecord {
     pub call_type: BridgeVfsCall,
     pub result: BridgeVfsResult,
@@ -59,6 +60,7 @@ impl VfsBridgeRecord {
 
 /// VFS bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct VfsBridgeStats {
     pub total_calls: u64,
     pub reads: u64,
@@ -79,6 +81,7 @@ impl BridgeVfs {
         Self { stats: VfsBridgeStats { total_calls: 0, reads: 0, writes: 0, errors: 0, total_bytes: 0, total_latency_ns: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &VfsBridgeRecord) {
         self.stats.total_calls += 1;
         self.stats.total_bytes += rec.bytes;
@@ -91,6 +94,7 @@ impl BridgeVfs {
         if rec.result != BridgeVfsResult::Success { self.stats.errors += 1; }
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.stats.total_calls == 0 { 0 } else { self.stats.total_latency_ns / self.stats.total_calls }
     }
@@ -105,6 +109,7 @@ pub enum VfsV2Op { Lookup, Create, Unlink, Rename, Mkdir, Rmdir, Symlink }
 
 /// VFS v2 record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct VfsV2Record {
     pub op: VfsV2Op,
     pub inode: u64,
@@ -119,6 +124,7 @@ impl VfsV2Record {
 
 /// VFS v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct VfsV2BridgeStats { pub total_ops: u64, pub lookups: u64, pub mutations: u64, pub errors: u64 }
 
 /// Main bridge VFS v2
@@ -127,6 +133,7 @@ pub struct BridgeVfsV2 { pub stats: VfsV2BridgeStats }
 
 impl BridgeVfsV2 {
     pub fn new() -> Self { Self { stats: VfsV2BridgeStats { total_ops: 0, lookups: 0, mutations: 0, errors: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &VfsV2Record) {
         self.stats.total_ops += 1;
         match rec.op {

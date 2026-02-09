@@ -63,14 +63,23 @@ impl MemberDesc {
         }
     }
 
+    #[inline(always)]
     pub fn activate(&mut self) { self.status = MemberStatus::Active; self.suspicion_count = 0; }
+    #[inline(always)]
     pub fn suspect(&mut self) { self.suspicion_count += 1; if self.suspicion_count >= 3 { self.status = MemberStatus::Suspect; } }
+    #[inline(always)]
     pub fn mark_faulty(&mut self) { self.status = MemberStatus::Faulty; }
+    #[inline(always)]
     pub fn begin_leave(&mut self) { self.status = MemberStatus::Leaving; }
+    #[inline(always)]
     pub fn complete_leave(&mut self) { self.status = MemberStatus::Left; }
+    #[inline(always)]
     pub fn expel(&mut self) { self.status = MemberStatus::Expelled; }
+    #[inline(always)]
     pub fn heartbeat(&mut self, ts: u64) { self.last_heartbeat = ts; self.suspicion_count = 0; if self.status == MemberStatus::Suspect { self.status = MemberStatus::Active; } }
+    #[inline(always)]
     pub fn is_alive(&self) -> bool { matches!(self.status, MemberStatus::Active | MemberStatus::Joining | MemberStatus::Leaving) }
+    #[inline(always)]
     pub fn refute(&mut self) { self.incarnation += 1; self.status = MemberStatus::Active; self.suspicion_count = 0; }
 }
 
@@ -129,6 +138,7 @@ pub enum MembershipEventKind {
 
 /// Membership stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MembershipStats {
     pub total_members: usize,
     pub active: usize,
@@ -161,6 +171,7 @@ impl CoopMembershipMgr {
         }
     }
 
+    #[inline]
     pub fn join(&mut self, req: JoinRequest) -> u64 {
         let mut m = MemberDesc::new(req.member_id, req.role, req.ts, self.current_epoch);
         m.capabilities = req.capabilities;
@@ -170,6 +181,7 @@ impl CoopMembershipMgr {
         req.member_id
     }
 
+    #[inline]
     pub fn activate(&mut self, id: u64, ts: u64) {
         if let Some(m) = self.members.get_mut(&id) {
             m.activate();
@@ -177,10 +189,12 @@ impl CoopMembershipMgr {
         }
     }
 
+    #[inline(always)]
     pub fn heartbeat(&mut self, id: u64, ts: u64) {
         if let Some(m) = self.members.get_mut(&id) { m.heartbeat(ts); }
     }
 
+    #[inline]
     pub fn leave(&mut self, id: u64, ts: u64) {
         if let Some(m) = self.members.get_mut(&id) {
             m.begin_leave();
@@ -190,6 +204,7 @@ impl CoopMembershipMgr {
         }
     }
 
+    #[inline]
     pub fn expel(&mut self, id: u64, ts: u64) {
         if let Some(m) = self.members.get_mut(&id) {
             m.expel();
@@ -221,6 +236,7 @@ impl CoopMembershipMgr {
         faulted
     }
 
+    #[inline]
     pub fn advance_view(&mut self, ts: u64) {
         self.current_epoch += 1;
         let members: Vec<u64> = self.members.values().filter(|m| m.is_alive()).map(|m| m.id).collect();
@@ -230,12 +246,14 @@ impl CoopMembershipMgr {
         self.events.push(MembershipEvent { ts, kind: MembershipEventKind::ViewChanged, member_id: 0, epoch: self.current_epoch });
     }
 
+    #[inline]
     pub fn set_coordinator(&mut self, id: u64, ts: u64) {
         for m in self.members.values_mut() { if m.role == MemberRole::Coordinator { m.role = MemberRole::Regular; } }
         if let Some(m) = self.members.get_mut(&id) { m.role = MemberRole::Coordinator; }
         self.events.push(MembershipEvent { ts, kind: MembershipEventKind::CoordinatorChanged, member_id: id, epoch: self.current_epoch });
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_members = self.members.len();
         self.stats.active = self.members.values().filter(|m| m.status == MemberStatus::Active).count();
@@ -244,10 +262,16 @@ impl CoopMembershipMgr {
         self.stats.current_epoch = self.current_epoch;
     }
 
+    #[inline(always)]
     pub fn member(&self, id: u64) -> Option<&MemberDesc> { self.members.get(&id) }
+    #[inline(always)]
     pub fn current_view(&self) -> Option<&MembershipView> { self.views.last() }
+    #[inline(always)]
     pub fn stats(&self) -> &MembershipStats { &self.stats }
+    #[inline(always)]
     pub fn events(&self) -> &[MembershipEvent] { &self.events }
+    #[inline(always)]
     pub fn active_members(&self) -> Vec<u64> { self.members.values().filter(|m| m.is_alive()).map(|m| m.id).collect() }
+    #[inline(always)]
     pub fn epoch(&self) -> u64 { self.current_epoch }
 }

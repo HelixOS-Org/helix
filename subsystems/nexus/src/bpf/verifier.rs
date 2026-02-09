@@ -125,6 +125,7 @@ impl BpfVerifier {
     }
 
     /// Get stats
+    #[inline]
     pub fn stats(&self) -> (u64, u64, u64) {
         (
             self.total_verifications.load(Ordering::Relaxed),
@@ -134,21 +135,25 @@ impl BpfVerifier {
     }
 
     /// Get max instructions
+    #[inline(always)]
     pub fn max_insns(&self) -> u32 {
         self.max_insns
     }
 
     /// Set max instructions
+    #[inline(always)]
     pub fn set_max_insns(&mut self, max: u32) {
         self.max_insns = max;
     }
 
     /// Get log level
+    #[inline(always)]
     pub fn log_level(&self) -> u32 {
         self.log_level
     }
 
     /// Set log level
+    #[inline(always)]
     pub fn set_log_level(&mut self, level: u32) {
         self.log_level = level;
     }

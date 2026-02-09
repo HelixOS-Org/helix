@@ -37,6 +37,7 @@ impl NashSolver {
     }
 
     /// Find Nash equilibrium using support enumeration (small games)
+    #[inline]
     pub fn find_nash_equilibrium(&mut self, game: &Game) -> NexusResult<StrategyProfile> {
         if game.num_players != 2 {
             return self.find_nash_n_player(game);
@@ -411,6 +412,7 @@ impl EssChecker {
     }
 
     /// Find all ESS strategies
+    #[inline]
     pub fn find_all_ess(&self, game: &Game) -> Vec<StrategyId> {
         (0..game.strategies[0].len() as StrategyId)
             .filter(|&s| self.is_ess(game, s))
@@ -464,6 +466,7 @@ impl MechanismDesign {
     }
 
     /// Run the mechanism
+    #[inline]
     pub fn allocate(&self, bids: &[Bid], total_resource: f64) -> Allocation {
         match self.mechanism_type {
             MechanismType::VCG => self.vcg_allocation(bids, total_resource),
@@ -648,6 +651,7 @@ impl KernelResourceGameManager {
     }
 
     /// Create game for CPU time allocation
+    #[inline]
     pub fn create_cpu_game(&mut self, num_processes: usize, total_time: u64) {
         self.current_game = Some(Game::resource_allocation(
             num_processes,
@@ -657,6 +661,7 @@ impl KernelResourceGameManager {
     }
 
     /// Find stable resource allocation
+    #[inline]
     pub fn find_stable_allocation(&mut self) -> NexusResult<StrategyProfile> {
         let game = self
             .current_game
@@ -666,6 +671,7 @@ impl KernelResourceGameManager {
     }
 
     /// Allocate resources using mechanism
+    #[inline(always)]
     pub fn allocate_resources(&self, bids: &[Bid], total: f64) -> Allocation {
         self.mechanism.allocate(bids, total)
     }

@@ -88,12 +88,14 @@ impl TranslationEntry {
         }
     }
 
+    #[inline]
     pub fn with_arg_mapping(mut self, mapping: Vec<(u8, u8)>) -> Self {
         self.arg_mapping = mapping;
         self.needs_arg_translation = true;
         self
     }
 
+    #[inline(always)]
     pub fn with_return_translation(mut self) -> Self {
         self.needs_return_translation = true;
         self
@@ -125,6 +127,7 @@ impl TranslationEntry {
     }
 
     /// Success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.invocations == 0 {
             return 1.0;
@@ -135,6 +138,7 @@ impl TranslationEntry {
 
 /// Translation table
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TranslationTable {
     /// Target ABI
     pub target: EmulationTarget,
@@ -154,21 +158,25 @@ impl TranslationTable {
     }
 
     /// Add entry
+    #[inline(always)]
     pub fn add(&mut self, entry: TranslationEntry) {
         self.entries.insert(entry.foreign_nr, entry);
     }
 
     /// Lookup translation
+    #[inline(always)]
     pub fn lookup(&self, foreign_nr: u32) -> Option<&TranslationEntry> {
         self.entries.get(&foreign_nr)
     }
 
     /// Lookup mutable
+    #[inline(always)]
     pub fn lookup_mut(&mut self, foreign_nr: u32) -> Option<&mut TranslationEntry> {
         self.entries.get_mut(&foreign_nr)
     }
 
     /// Supported count
+    #[inline]
     pub fn supported_count(&self) -> usize {
         self.entries
             .values()
@@ -183,6 +191,7 @@ impl TranslationTable {
 
 /// Errno mapping (foreign → native)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ErrnoMapping {
     /// Target
     pub target: EmulationTarget,
@@ -202,12 +211,14 @@ impl ErrnoMapping {
     }
 
     /// Add mapping
+    #[inline(always)]
     pub fn add(&mut self, foreign: i32, native: i32) {
         self.mapping.insert(foreign, native);
         self.reverse.insert(native, foreign);
     }
 
     /// Translate foreign → native
+    #[inline]
     pub fn to_native(&self, foreign_errno: i32) -> i32 {
         self.mapping
             .get(&foreign_errno)
@@ -216,6 +227,7 @@ impl ErrnoMapping {
     }
 
     /// Translate native → foreign
+    #[inline]
     pub fn to_foreign(&self, native_errno: i32) -> i32 {
         self.reverse
             .get(&native_errno)
@@ -230,6 +242,7 @@ impl ErrnoMapping {
 
 /// Per-process emulation context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EmulationContext {
     /// Process ID
     pub pid: u64,
@@ -257,6 +270,7 @@ impl EmulationContext {
         }
     }
 
+    #[inline]
     pub fn record_call(&mut self, accuracy: EmulationAccuracy) {
         self.emulated_calls += 1;
         match accuracy {
@@ -266,6 +280,7 @@ impl EmulationContext {
         }
     }
 
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.emulated_calls == 0 {
             return 1.0;
@@ -280,6 +295,7 @@ impl EmulationContext {
 
 /// Emulation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct EmulationStats {
     /// Active contexts
     pub active_contexts: usize,
@@ -294,6 +310,7 @@ pub struct EmulationStats {
 }
 
 /// Bridge emulation manager
+#[repr(align(64))]
 pub struct BridgeEmulationManager {
     /// Translation tables (target → table)
     tables: BTreeMap<u8, TranslationTable>,
@@ -316,17 +333,20 @@ impl BridgeEmulationManager {
     }
 
     /// Register translation table
+    #[inline(always)]
     pub fn register_table(&mut self, table: TranslationTable) {
         self.tables.insert(table.target as u8, table);
         self.stats.tables_loaded = self.tables.len();
     }
 
     /// Register errno mapping
+    #[inline(always)]
     pub fn register_errno(&mut self, mapping: ErrnoMapping) {
         self.errno_maps.insert(mapping.target as u8, mapping);
     }
 
     /// Create emulation context for process
+    #[inline]
     pub fn create_context(&mut self, pid: u64, target: EmulationTarget, now: u64) {
         self.contexts
             .insert(pid, EmulationContext::new(pid, target, now));
@@ -334,6 +354,7 @@ impl BridgeEmulationManager {
     }
 
     /// Remove context
+    #[inline(always)]
     pub fn remove_context(&mut self, pid: u64) {
         self.contexts.remove(&pid);
         self.stats.active_contexts = self.contexts.len();
@@ -378,6 +399,7 @@ impl BridgeEmulationManager {
     }
 
     /// Translate errno
+    #[inline]
     pub fn translate_errno(&self, target: EmulationTarget, native_errno: i32) -> i32 {
         self.errno_maps
             .get(&(target as u8))
@@ -386,6 +408,7 @@ impl BridgeEmulationManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &EmulationStats {
         &self.stats
     }

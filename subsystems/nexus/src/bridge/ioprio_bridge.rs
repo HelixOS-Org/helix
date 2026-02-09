@@ -39,6 +39,7 @@ impl IoprioEntry {
         Self { who, who_id: id, class, data, set_at: now, io_ops: 0, io_bytes: 0 }
     }
 
+    #[inline]
     pub fn effective_priority(&self) -> u32 {
         let class_val = match self.class {
             IoprioClass::RealTime => 0,
@@ -52,6 +53,7 @@ impl IoprioEntry {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoprioBridgeStats {
     pub total_entries: u32,
     pub realtime_count: u32,
@@ -60,6 +62,7 @@ pub struct IoprioBridgeStats {
 }
 
 /// Main bridge ioprio
+#[repr(align(64))]
 pub struct BridgeIoprio {
     entries: BTreeMap<u64, IoprioEntry>,
 }
@@ -67,18 +70,23 @@ pub struct BridgeIoprio {
 impl BridgeIoprio {
     pub fn new() -> Self { Self { entries: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn set(&mut self, who: IoprioWho, id: u64, class: IoprioClass, data: u8, now: u64) {
         self.entries.insert(id, IoprioEntry::new(who, id, class, data, now));
     }
 
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&IoprioEntry> { self.entries.get(&id) }
 
+    #[inline(always)]
     pub fn record_io(&mut self, id: u64, bytes: u64) {
         if let Some(e) = self.entries.get_mut(&id) { e.io_ops += 1; e.io_bytes += bytes; }
     }
 
+    #[inline(always)]
     pub fn remove(&mut self, id: u64) { self.entries.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> IoprioBridgeStats {
         let rt = self.entries.values().filter(|e| e.class == IoprioClass::RealTime).count() as u32;
         let be = self.entries.values().filter(|e| e.class == IoprioClass::BestEffort).count() as u32;

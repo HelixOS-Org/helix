@@ -57,8 +57,10 @@ impl DmaRegion {
         Self { phys_addr: addr, size, direction: dir }
     }
 
+    #[inline(always)]
     pub fn end(&self) -> u64 { self.phys_addr + self.size }
 
+    #[inline(always)]
     pub fn overlaps(&self, other: &DmaRegion) -> bool {
         self.phys_addr < other.end() && other.phys_addr < self.end()
     }
@@ -101,17 +103,21 @@ impl DmaTransfer {
         }
     }
 
+    #[inline(always)]
     pub fn start(&mut self, now: u64) { self.started_at = now; }
 
+    #[inline(always)]
     pub fn complete(&mut self, bytes: u64, now: u64) {
         self.bytes_transferred = bytes;
         self.completed_at = now;
     }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
         if self.completed_at > 0 { self.completed_at.saturating_sub(self.submitted_at) } else { 0 }
     }
 
+    #[inline]
     pub fn throughput_mbps(&self) -> f64 {
         let lat = self.latency_ns();
         if lat == 0 { return 0.0; }
@@ -145,6 +151,7 @@ impl DmaChannel {
         }
     }
 
+    #[inline]
     pub fn submit(&mut self, transfer: DmaTransfer) -> bool {
         if self.state == DmaChannelState::Disabled || self.state == DmaChannelState::Error {
             return false;
@@ -153,6 +160,7 @@ impl DmaChannel {
         true
     }
 
+    #[inline]
     pub fn start_next(&mut self, now: u64) -> Option<u64> {
         if self.active_transfer.is_some() { return None; }
         if let Some(mut t) = self.pending.pop() {
@@ -165,6 +173,7 @@ impl DmaChannel {
         } else { None }
     }
 
+    #[inline]
     pub fn complete_active(&mut self, bytes: u64, now: u64) {
         self.active_transfer = None;
         self.state = DmaChannelState::Idle;
@@ -172,6 +181,7 @@ impl DmaChannel {
         self.total_bytes += bytes;
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.state == DmaChannelState::Active { 1.0 } else { 0.0 }
     }
@@ -179,6 +189,7 @@ impl DmaChannel {
 
 /// DMA engine stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DmaEngineStats {
     pub total_channels: u32,
     pub active_channels: u32,
@@ -201,10 +212,12 @@ impl HolisticDmaEngine {
         Self { channels: BTreeMap::new(), completed: Vec::new(), next_transfer_id: 1, max_completed: 4096 }
     }
 
+    #[inline(always)]
     pub fn add_channel(&mut self, id: u32) {
         self.channels.entry(id).or_insert_with(|| DmaChannel::new(id));
     }
 
+    #[inline]
     pub fn submit(&mut self, ch_id: u32, dir: DmaDirection, src: DmaRegion, dst: DmaRegion, now: u64) -> Option<u64> {
         let tid = self.next_transfer_id;
         self.next_transfer_id += 1;

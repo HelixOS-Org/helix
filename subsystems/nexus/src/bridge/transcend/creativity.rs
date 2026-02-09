@@ -13,6 +13,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -118,6 +119,7 @@ pub struct NoveltyReport {
 
 /// Aggregate statistics for the creativity engine.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct CreativityStats {
     pub total_solutions: u64,
     pub novel_solutions: u64,
@@ -138,7 +140,7 @@ pub struct CreativityStats {
 #[derive(Debug, Clone)]
 struct StrategyVault {
     strategies: BTreeMap<u64, KnownStrategy>,
-    param_hash_index: BTreeMap<u64, u64>, // param_hash -> strategy_id
+    param_hash_index: LinearMap<u64, 64>, // param_hash -> strategy_id
 }
 
 impl StrategyVault {
@@ -194,6 +196,7 @@ impl StrategyVault {
 /// cross-combination, and serendipity to solve optimisation problems
 /// that standard approaches cannot crack.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeCreativity {
     solutions: BTreeMap<u64, CreativeSolution>,
     vault: StrategyVault,
@@ -229,6 +232,7 @@ impl BridgeCreativity {
     }
 
     /// Register a known strategy in the vault.
+    #[inline]
     pub fn register_strategy(&mut self, name: &str, parameters: &[f32], fitness: f32) -> u64 {
         let sid = fnv1a_hash(name.as_bytes()) ^ (self.tick.wrapping_add(1));
         self.vault.add(KnownStrategy {
@@ -486,11 +490,13 @@ impl BridgeCreativity {
     }
 
     /// Number of solutions stored.
+    #[inline(always)]
     pub fn solution_count(&self) -> usize {
         self.solutions.len()
     }
 
     /// Current tick.
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }
@@ -512,6 +518,7 @@ impl BridgeCreativity {
         (avg_dist / 2.0).min(1.0)
     }
 
+    #[inline]
     fn update_emas(&mut self, novelty: f32, risk: f32, reward: f32) {
         self.novelty_ema = EMA_ALPHA * novelty + (1.0 - EMA_ALPHA) * self.novelty_ema;
         self.risk_ema = EMA_ALPHA * risk + (1.0 - EMA_ALPHA) * self.risk_ema;

@@ -32,6 +32,7 @@ impl AuditCoopRecord {
 
 /// Audit coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AuditCoopStats {
     pub total_events: u64,
     pub trail_merges: u64,
@@ -50,6 +51,7 @@ impl CoopAudit {
         Self { stats: AuditCoopStats { total_events: 0, trail_merges: 0, rule_syncs: 0, records_merged: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &AuditCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

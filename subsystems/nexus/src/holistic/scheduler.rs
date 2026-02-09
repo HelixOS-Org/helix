@@ -11,7 +11,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -39,6 +39,7 @@ pub enum GlobalSchedClass {
 
 impl GlobalSchedClass {
     /// Base time slice (microseconds)
+    #[inline]
     pub fn base_timeslice_us(&self) -> u64 {
         match self {
             Self::RealtimeFifo => u64::MAX, // Runs until yield
@@ -52,6 +53,7 @@ impl GlobalSchedClass {
     }
 
     /// Whether class is preemptible
+    #[inline]
     pub fn preemptible(&self) -> bool {
         match self {
             Self::RealtimeFifo => false,
@@ -132,6 +134,7 @@ impl ProcessSchedParams {
     }
 
     /// Effective timeslice (us)
+    #[inline]
     pub fn effective_timeslice(&self) -> u64 {
         let base = self.sched_class.base_timeslice_us();
         if base == u64::MAX {
@@ -141,6 +144,7 @@ impl ProcessSchedParams {
     }
 
     /// CPU-to-wait ratio
+    #[inline]
     pub fn cpu_ratio(&self) -> f64 {
         let total = self.cpu_time_us + self.wait_time_us;
         if total == 0 {
@@ -276,6 +280,7 @@ impl LoadBalancer {
     }
 
     /// Update core load
+    #[inline]
     pub fn update_core(&mut self, core_id: u32, load: CoreLoad) {
         if let Some(cl) = self.core_loads.get_mut(core_id as usize) {
             *cl = load;
@@ -294,6 +299,7 @@ impl LoadBalancer {
     }
 
     /// Find lightest loaded core
+    #[inline]
     pub fn lightest_core(&self) -> Option<u32> {
         self.core_loads
             .iter()
@@ -302,6 +308,7 @@ impl LoadBalancer {
     }
 
     /// Find lightest core on NUMA node
+    #[inline]
     pub fn lightest_core_on_node(&self, node: u32) -> Option<u32> {
         self.core_loads
             .iter()
@@ -354,11 +361,13 @@ impl LoadBalancer {
     }
 
     /// Core count
+    #[inline(always)]
     pub fn core_count(&self) -> usize {
         self.core_loads.len()
     }
 
     /// Get core load
+    #[inline(always)]
     pub fn get_core(&self, core_id: u32) -> Option<&CoreLoad> {
         self.core_loads.get(core_id as usize)
     }
@@ -375,7 +384,7 @@ pub struct HolisticScheduler {
     /// Load balancer
     load_balancer: LoadBalancer,
     /// Decision history
-    history: Vec<SchedRecord>,
+    history: VecDeque<SchedRecord>,
     /// Max history
     max_history: usize,
     /// Total decisions made
@@ -391,7 +400,7 @@ impl HolisticScheduler {
         Self {
             processes: BTreeMap::new(),
             load_balancer: LoadBalancer::new(num_cores),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
             total_decisions: 0,
             total_migrations: 0,
@@ -400,6 +409,7 @@ impl HolisticScheduler {
     }
 
     /// Register process
+    #[inline]
     pub fn register(&mut self, pid: u64) {
         self.processes
             .entry(pid)
@@ -407,11 +417,13 @@ impl HolisticScheduler {
     }
 
     /// Unregister process
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) {
         self.processes.remove(&pid);
     }
 
     /// Set scheduling class
+    #[inline]
     pub fn set_class(&mut self, pid: u64, class: GlobalSchedClass) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.sched_class = class;
@@ -419,6 +431,7 @@ impl HolisticScheduler {
     }
 
     /// Set nice value
+    #[inline]
     pub fn set_nice(&mut self, pid: u64, nice: i8) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.nice = nice.max(-20).min(19);
@@ -464,30 +477,34 @@ impl HolisticScheduler {
             prev_core: params.last_core,
         };
 
-        self.history.push(record);
+        self.history.push_back(record);
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         decision
     }
 
     /// Get process parameters
+    #[inline(always)]
     pub fn get_params(&self, pid: u64) -> Option<&ProcessSchedParams> {
         self.processes.get(&pid)
     }
 
     /// Get load balancer
+    #[inline(always)]
     pub fn load_balancer(&self) -> &LoadBalancer {
         &self.load_balancer
     }
 
     /// Get mutable load balancer
+    #[inline(always)]
     pub fn load_balancer_mut(&mut self) -> &mut LoadBalancer {
         &mut self.load_balancer
     }
 
     /// Process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }

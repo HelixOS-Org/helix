@@ -4,15 +4,18 @@
 
 /// Unique work queue identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct WorkQueueId(pub u64);
 
 impl WorkQueueId {
     /// Create a new work queue ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +27,13 @@ pub struct WorkId(pub u64);
 
 impl WorkId {
     /// Create a new work ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -40,11 +45,13 @@ pub struct CpuId(pub u32);
 
 impl CpuId {
     /// Create a new CPU ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -110,11 +117,13 @@ pub enum WorkPriority {
 
 impl WorkPriority {
     /// Get priority as numeric value
+    #[inline(always)]
     pub fn value(&self) -> u8 {
         *self as u8
     }
 
     /// Create from numeric value
+    #[inline]
     pub fn from_value(v: u8) -> Self {
         match v {
             0 => Self::Idle,

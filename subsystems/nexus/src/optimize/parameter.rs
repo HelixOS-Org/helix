@@ -41,22 +41,26 @@ impl OptimizationParameter {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Set value (clamped to range)
+    #[inline(always)]
     pub fn set(&mut self, value: f64) {
         self.value = value.clamp(self.min, self.max);
     }
 
     /// Reset to default
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.value = self.default;
     }
 
     /// Get normalized value (0.0 - 1.0)
+    #[inline]
     pub fn normalized(&self) -> f64 {
         if self.max == self.min {
             0.5

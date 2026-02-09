@@ -50,6 +50,7 @@ impl FisherInformation {
     }
 
     /// Store optimal parameters
+    #[inline(always)]
     pub fn set_optimal(&mut self, params: &[f64]) {
         self.optimal_params = params.to_vec();
     }
@@ -117,6 +118,7 @@ impl EwcLearner {
     }
 
     /// Enable online EWC mode
+    #[inline(always)]
     pub fn enable_online(&mut self, gamma: f64) {
         self.online = true;
         self.gamma = gamma;
@@ -146,6 +148,7 @@ impl EwcLearner {
     }
 
     /// Compute total EWC penalty
+    #[inline]
     pub fn total_penalty(&self, current_params: &[f64]) -> f64 {
         self.fishers
             .iter()

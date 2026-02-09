@@ -53,6 +53,7 @@ impl RankingWeights {
     }
 
     /// Create safety-first weights
+    #[inline]
     pub fn safety_first() -> Self {
         Self {
             urgency: 0.15,
@@ -64,6 +65,7 @@ impl RankingWeights {
     }
 
     /// Create performance-first weights
+    #[inline]
     pub fn performance_first() -> Self {
         Self {
             urgency: 0.30,
@@ -75,6 +77,7 @@ impl RankingWeights {
     }
 
     /// Create cost-conscious weights
+    #[inline]
     pub fn cost_conscious() -> Self {
         Self {
             urgency: 0.20,
@@ -86,12 +89,14 @@ impl RankingWeights {
     }
 
     /// Validate weights sum to approximately 1.0
+    #[inline(always)]
     pub fn is_normalized(&self) -> bool {
         let sum = self.urgency + self.impact + self.confidence + self.cost + self.risk;
         (sum - 1.0).abs() < 0.01
     }
 
     /// Normalize weights
+    #[inline]
     pub fn normalize(&mut self) {
         let sum = self.urgency + self.impact + self.confidence + self.cost + self.risk;
         if sum > 0.0 {
@@ -110,6 +115,7 @@ impl RankingWeights {
 
 /// Context for ranking
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RankingContext {
     /// Severity of the situation
     pub severity: Severity,
@@ -133,18 +139,21 @@ impl RankingContext {
     }
 
     /// Set time pressure
+    #[inline(always)]
     pub fn with_time_pressure(mut self, pressure: bool) -> Self {
         self.time_pressure = pressure;
         self
     }
 
     /// Set resource availability
+    #[inline(always)]
     pub fn with_resources(mut self, available: bool) -> Self {
         self.resources_available = available;
         self
     }
 
     /// Is this an emergency context?
+    #[inline(always)]
     pub fn is_emergency(&self) -> bool {
         self.severity >= Severity::Critical || self.time_pressure
     }
@@ -176,18 +185,21 @@ impl RankedOption {
     }
 
     /// Set score
+    #[inline(always)]
     pub fn with_score(mut self, score: f32) -> Self {
         self.score = score;
         self
     }
 
     /// Set policy result
+    #[inline(always)]
     pub fn with_policy(mut self, result: PolicyResult) -> Self {
         self.policy_result = Some(result);
         self
     }
 
     /// Is this option blocked by policy?
+    #[inline]
     pub fn is_blocked(&self) -> bool {
         self.policy_result
             .as_ref()
@@ -196,6 +208,7 @@ impl RankedOption {
     }
 
     /// Requires confirmation?
+    #[inline]
     pub fn requires_confirmation(&self) -> bool {
         self.policy_result
             .as_ref()
@@ -221,11 +234,13 @@ impl PriorityRanker {
     }
 
     /// Get weights
+    #[inline(always)]
     pub fn weights(&self) -> &RankingWeights {
         &self.weights
     }
 
     /// Set weights
+    #[inline(always)]
     pub fn set_weights(&mut self, weights: RankingWeights) {
         self.weights = weights;
     }
@@ -294,11 +309,13 @@ impl PriorityRanker {
     }
 
     /// Get top N options
+    #[inline(always)]
     pub fn top_n(&self, options: &[RankedOption], n: usize) -> Vec<&RankedOption> {
         options.iter().take(n).collect()
     }
 
     /// Get best option that passes policy
+    #[inline(always)]
     pub fn best_allowed<'a>(&self, options: &'a [RankedOption]) -> Option<&'a RankedOption> {
         options.iter().find(|o| !o.is_blocked())
     }

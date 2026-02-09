@@ -113,6 +113,7 @@ impl BpfIntelligence {
     }
 
     /// Load program
+    #[inline(always)]
     pub fn load_program(
         &mut self,
         name: String,
@@ -124,6 +125,7 @@ impl BpfIntelligence {
     }
 
     /// Create map
+    #[inline(always)]
     pub fn create_map(
         &mut self,
         name: String,
@@ -228,11 +230,13 @@ impl BpfIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &BpfManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut BpfManager {
         &mut self.manager
     }

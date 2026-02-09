@@ -2,7 +2,9 @@
 //!
 //! Security anomaly detection and baseline statistics.
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -88,24 +90,28 @@ impl Anomaly {
     }
 
     /// Set severity
+    #[inline(always)]
     pub fn with_severity(mut self, severity: u8) -> Self {
         self.severity = severity;
         self
     }
 
     /// Set user
+    #[inline(always)]
     pub fn with_user(mut self, user: Uid) -> Self {
         self.user = Some(user);
         self
     }
 
     /// Set process
+    #[inline(always)]
     pub fn with_process(mut self, process: Pid) -> Self {
         self.process = Some(process);
         self
     }
 
     /// Add related event
+    #[inline(always)]
     pub fn add_event(&mut self, event_id: AuditEventId) {
         self.events.push(event_id);
     }
@@ -113,13 +119,14 @@ impl Anomaly {
 
 /// Baseline statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BaselineStats {
     /// Syscall frequency
-    pub syscall_freq: BTreeMap<u32, u64>,
+    pub syscall_freq: ArrayMap<u64, 32>,
     /// User activity
-    pub user_activity: BTreeMap<u32, u64>,
+    pub user_activity: ArrayMap<u64, 32>,
     /// Failed auth attempts
-    pub failed_auth: BTreeMap<u32, u64>,
+    pub failed_auth: ArrayMap<u64, 32>,
     /// Process launches
     pub process_launches: u64,
     /// File access count
@@ -139,7 +146,7 @@ pub struct AnomalyDetector {
     /// Current statistics
     current: BaselineStats,
     /// Detected anomalies
-    anomalies: Vec<Anomaly>,
+    anomalies: VecDeque<Anomaly>,
     /// Max anomalies to track
     max_anomalies: usize,
     /// Thresholds
@@ -155,7 +162,7 @@ impl AnomalyDetector {
         Self {
             baseline: BaselineStats::default(),
             current: BaselineStats::default(),
-            anomalies: Vec::new(),
+            anomalies: VecDeque::new(),
             max_anomalies: 1000,
             priv_esc_threshold: 0.8,
             brute_force_threshold: 10,
@@ -244,23 +251,26 @@ impl AnomalyDetector {
     /// Add anomaly
     fn add_anomaly(&mut self, anomaly: Anomaly) {
         if self.anomalies.len() >= self.max_anomalies {
-            self.anomalies.remove(0);
+            self.anomalies.pop_front();
         }
-        self.anomalies.push(anomaly);
+        self.anomalies.push_back(anomaly);
     }
 
     /// Get recent anomalies
+    #[inline(always)]
     pub fn recent_anomalies(&self, count: usize) -> &[Anomaly] {
         let start = self.anomalies.len().saturating_sub(count);
         &self.anomalies[start..]
     }
 
     /// Get all anomalies
+    #[inline(always)]
     pub fn all_anomalies(&self) -> &[Anomaly] {
         &self.anomalies
     }
 
     /// Get anomalies by type
+    #[inline]
     pub fn get_by_type(&self, anomaly_type: AnomalyType) -> Vec<&Anomaly> {
         self.anomalies
             .iter()
@@ -269,31 +279,37 @@ impl AnomalyDetector {
     }
 
     /// Total anomalies
+    #[inline(always)]
     pub fn total_anomalies(&self) -> usize {
         self.anomalies.len()
     }
 
     /// Enable/disable
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }
 
     /// Set brute force threshold
+    #[inline(always)]
     pub fn set_brute_force_threshold(&mut self, threshold: u32) {
         self.brute_force_threshold = threshold;
     }
 
     /// Get baseline stats
+    #[inline(always)]
     pub fn baseline(&self) -> &BaselineStats {
         &self.baseline
     }
 
     /// Get current stats
+    #[inline(always)]
     pub fn current(&self) -> &BaselineStats {
         &self.current
     }

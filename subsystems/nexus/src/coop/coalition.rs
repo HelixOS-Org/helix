@@ -98,21 +98,25 @@ impl CoalitionMember {
     }
 
     /// Record contribution
+    #[inline(always)]
     pub fn contribute(&mut self, amount: u64) {
         self.contribution += amount;
     }
 
     /// Record benefit
+    #[inline(always)]
     pub fn receive_benefit(&mut self, amount: u64) {
         self.benefit += amount;
     }
 
     /// Net value (benefit - contribution)
+    #[inline(always)]
     pub fn net_value(&self) -> i64 {
         self.benefit as i64 - self.contribution as i64
     }
 
     /// Fair share ratio
+    #[inline]
     pub fn fairness_ratio(&self) -> f64 {
         if self.contribution == 0 {
             return if self.benefit > 0 { f64::MAX } else { 1.0 };
@@ -121,6 +125,7 @@ impl CoalitionMember {
     }
 
     /// Deactivate
+    #[inline(always)]
     pub fn deactivate(&mut self) {
         self.active = false;
     }
@@ -189,6 +194,7 @@ impl Coalition {
     }
 
     /// Remove member
+    #[inline]
     pub fn remove_member(&mut self, pid: u64) {
         if let Some(member) = self.members.get_mut(&pid) {
             member.deactivate();
@@ -216,6 +222,7 @@ impl Coalition {
     }
 
     /// Distribute benefit
+    #[inline]
     pub fn distribute(&mut self, pid: u64, amount: u64) -> bool {
         if let Some(member) = self.members.get_mut(&pid) {
             if !member.active {
@@ -257,11 +264,13 @@ impl Coalition {
     }
 
     /// Active member count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.members.values().filter(|m| m.active).count()
     }
 
     /// Leader
+    #[inline]
     pub fn leader(&self) -> Option<u64> {
         self.members
             .values()
@@ -291,6 +300,7 @@ impl Coalition {
     }
 
     /// Dissolve coalition
+    #[inline]
     pub fn dissolve(&mut self) {
         self.state = CoalitionState::Dissolving;
         for member in self.members.values_mut() {
@@ -306,6 +316,7 @@ impl Coalition {
 
 /// Coalition stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopCoalitionStats {
     /// Active coalitions
     pub active: usize,
@@ -377,6 +388,7 @@ impl CoopCoalitionManager {
     }
 
     /// Leave coalition
+    #[inline]
     pub fn leave(&mut self, coalition_id: u64, pid: u64) {
         if let Some(c) = self.coalitions.get_mut(&coalition_id) {
             c.remove_member(pid);
@@ -388,6 +400,7 @@ impl CoopCoalitionManager {
     }
 
     /// Dissolve
+    #[inline]
     pub fn dissolve(&mut self, coalition_id: u64) {
         if let Some(c) = self.coalitions.get_mut(&coalition_id) {
             c.dissolve();
@@ -396,11 +409,13 @@ impl CoopCoalitionManager {
     }
 
     /// Get coalition
+    #[inline(always)]
     pub fn coalition(&self, id: u64) -> Option<&Coalition> {
         self.coalitions.get(&id)
     }
 
     /// Coalitions for process
+    #[inline(always)]
     pub fn coalitions_for(&self, pid: u64) -> Vec<u64> {
         self.membership.get(&pid).cloned().unwrap_or_default()
     }
@@ -420,6 +435,7 @@ impl CoopCoalitionManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopCoalitionStats {
         &self.stats
     }

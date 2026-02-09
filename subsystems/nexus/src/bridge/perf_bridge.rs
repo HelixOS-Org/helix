@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -69,10 +70,12 @@ impl SampleType {
     pub const DATA_SRC: Self = Self(1 << 15);
     pub const BRANCH_STACK: Self = Self(1 << 16);
 
+    #[inline(always)]
     pub fn has(&self, flag: Self) -> bool {
         (self.0 & flag.0) != 0
     }
 
+    #[inline(always)]
     pub fn combine(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
@@ -155,7 +158,7 @@ pub struct PerfEvent {
     pub counter_value: u64,
     pub time_enabled_ns: u64,
     pub time_running_ns: u64,
-    samples: Vec<PerfSample>,
+    samples: VecDeque<PerfSample>,
     max_samples: usize,
     overflow_count: u64,
 }
@@ -171,20 +174,23 @@ impl PerfEvent {
             counter_value: 0,
             time_enabled_ns: 0,
             time_running_ns: 0,
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             max_samples: 8192,
             overflow_count: 0,
         }
     }
 
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.enabled = true;
     }
 
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.enabled = false;
     }
 
+    #[inline]
     pub fn reset(&mut self) {
         self.counter_value = 0;
         self.time_enabled_ns = 0;
@@ -192,24 +198,28 @@ impl PerfEvent {
         self.samples.clear();
     }
 
+    #[inline]
     pub fn record_sample(&mut self, sample: PerfSample) {
         if self.samples.len() >= self.max_samples {
             self.overflow_count += 1;
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
+    #[inline(always)]
     pub fn read_samples(&mut self, max: usize) -> Vec<PerfSample> {
         let count = max.min(self.samples.len());
         self.samples.drain(..count).collect()
     }
 
+    #[inline(always)]
     pub fn multiplexing_ratio(&self) -> f64 {
         if self.time_enabled_ns == 0 { return 0.0; }
         self.time_running_ns as f64 / self.time_enabled_ns as f64
     }
 
+    #[inline(always)]
     pub fn pending_samples(&self) -> usize {
         self.samples.len()
     }
@@ -217,6 +227,7 @@ impl PerfEvent {
 
 /// Per-CPU PMU state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CpuPmuState {
     pub cpu_id: u32,
     pub hw_counters_total: u32,
@@ -236,14 +247,17 @@ impl CpuPmuState {
         }
     }
 
+    #[inline(always)]
     pub fn can_schedule(&self) -> bool {
         self.hw_counters_used < self.hw_counters_total
     }
 
+    #[inline(always)]
     pub fn needs_multiplexing(&self) -> bool {
         self.multiplexing_needed
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.hw_counters_total == 0 { return 0.0; }
         self.hw_counters_used as f64 / self.hw_counters_total as f64
@@ -252,6 +266,7 @@ impl CpuPmuState {
 
 /// Perf bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerfBridgeStats {
     pub events_opened: u64,
     pub events_closed: u64,
@@ -262,6 +277,7 @@ pub struct PerfBridgeStats {
 }
 
 /// Main perf bridge manager
+#[repr(align(64))]
 pub struct BridgePerf {
     events: BTreeMap<i32, PerfEvent>,
     cpu_pmu: BTreeMap<u32, CpuPmuState>,
@@ -288,6 +304,7 @@ impl BridgePerf {
         }
     }
 
+    #[inline(always)]
     pub fn init_cpu(&mut self, cpu_id: u32, hw_counters: u32) {
         self.cpu_pmu.insert(cpu_id, CpuPmuState::new(cpu_id, hw_counters));
     }
@@ -339,6 +356,7 @@ impl BridgePerf {
         }
     }
 
+    #[inline]
     pub fn enable_event(&mut self, fd: i32) -> bool {
         if let Some(event) = self.events.get_mut(&fd) {
             event.enable();
@@ -348,6 +366,7 @@ impl BridgePerf {
         }
     }
 
+    #[inline]
     pub fn disable_event(&mut self, fd: i32) -> bool {
         if let Some(event) = self.events.get_mut(&fd) {
             event.disable();
@@ -370,12 +389,14 @@ impl BridgePerf {
         }
     }
 
+    #[inline]
     pub fn read_counter(&self, fd: i32) -> Option<(u64, u64, u64)> {
         self.events.get(&fd).map(|e| {
             (e.counter_value, e.time_enabled_ns, e.time_running_ns)
         })
     }
 
+    #[inline]
     pub fn read_samples(&mut self, fd: i32, max: usize) -> Vec<PerfSample> {
         if let Some(event) = self.events.get_mut(&fd) {
             event.read_samples(max)
@@ -384,6 +405,7 @@ impl BridgePerf {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PerfBridgeStats {
         &self.stats
     }
@@ -420,6 +442,7 @@ impl PerfV2SampleType {
     pub const WEIGHT: u64 = 1 << 14;
     pub const DATA_SRC: u64 = 1 << 15;
 
+    #[inline(always)]
     pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
 }
 
@@ -460,6 +483,7 @@ impl PerfV2Event {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerfV2BridgeStats {
     pub total_events: u32,
     pub hw_events: u32,
@@ -470,6 +494,7 @@ pub struct PerfV2BridgeStats {
 }
 
 /// Main perf v2 bridge
+#[repr(align(64))]
 pub struct BridgePerfV2 {
     events: BTreeMap<u64, PerfV2Event>,
     next_id: u64,
@@ -478,16 +503,20 @@ pub struct BridgePerfV2 {
 impl BridgePerfV2 {
     pub fn new() -> Self { Self { events: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn open_event(&mut self, attr: PerfV2Attr) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.events.insert(id, PerfV2Event::new(id, attr));
         id
     }
 
+    #[inline(always)]
     pub fn close_event(&mut self, id: u64) { self.events.remove(&id); }
 
+    #[inline(always)]
     pub fn read(&self, id: u64) -> Option<u64> { self.events.get(&id).map(|e| e.count) }
 
+    #[inline]
     pub fn stats(&self) -> PerfV2BridgeStats {
         let hw = self.events.values().filter(|e| e.attr.event_type == PerfV2EventType::Hardware).count() as u32;
         let sw = self.events.values().filter(|e| e.attr.event_type == PerfV2EventType::Software).count() as u32;
@@ -529,6 +558,7 @@ pub enum PerfV3HwEvent {
 
 /// Perf v3 counter
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PerfV3Counter {
     pub id: u64,
     pub event_type: PerfV3EventType,
@@ -547,17 +577,20 @@ impl PerfV3Counter {
         Self { id, event_type: etype, hw_event: None, cpu: -1, pid: -1, count: 0, time_enabled: 0, time_running: 0, sample_period: 0, overflow_count: 0 }
     }
 
+    #[inline]
     pub fn read(&self) -> u64 {
         if self.time_enabled == 0 { return self.count; }
         if self.time_running == 0 { return 0; }
         self.count * self.time_enabled / self.time_running
     }
 
+    #[inline(always)]
     pub fn increment(&mut self, delta: u64) { self.count += delta; }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerfV3BridgeStats {
     pub total_counters: u32,
     pub hw_counters: u32,
@@ -566,6 +599,7 @@ pub struct PerfV3BridgeStats {
 }
 
 /// Main bridge perf v3
+#[repr(align(64))]
 pub struct BridgePerfV3 {
     counters: BTreeMap<u64, PerfV3Counter>,
     next_id: u64,
@@ -574,6 +608,7 @@ pub struct BridgePerfV3 {
 impl BridgePerfV3 {
     pub fn new() -> Self { Self { counters: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn open(&mut self, etype: PerfV3EventType, cpu: i32, pid: i64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut c = PerfV3Counter::new(id, etype);
@@ -583,16 +618,20 @@ impl BridgePerfV3 {
         id
     }
 
+    #[inline(always)]
     pub fn read(&self, id: u64) -> u64 {
         if let Some(c) = self.counters.get(&id) { c.read() } else { 0 }
     }
 
+    #[inline(always)]
     pub fn increment(&mut self, id: u64, delta: u64) {
         if let Some(c) = self.counters.get_mut(&id) { c.increment(delta); }
     }
 
+    #[inline(always)]
     pub fn close(&mut self, id: u64) { self.counters.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> PerfV3BridgeStats {
         let hw = self.counters.values().filter(|c| c.event_type == PerfV3EventType::Hardware).count() as u32;
         let sw = self.counters.values().filter(|c| c.event_type == PerfV3EventType::Software).count() as u32;

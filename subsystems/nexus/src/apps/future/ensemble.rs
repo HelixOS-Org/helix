@@ -14,6 +14,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -52,6 +53,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f64, sample: f64, alpha: f64) -> f64 {
     alpha * sample + (1.0 - alpha) * current
 }
@@ -142,7 +144,7 @@ struct ModelTracker {
     weight: f64,
     prediction_count: u64,
     correct_direction_count: u64,
-    error_history: Vec<f64>,
+    error_history: VecDeque<f64>,
 }
 
 impl ModelTracker {
@@ -155,7 +157,7 @@ impl ModelTracker {
             weight: 1.0 / NUM_MODELS as f64,
             prediction_count: 0,
             correct_direction_count: 0,
-            error_history: Vec::new(),
+            error_history: VecDeque::new(),
         }
     }
 
@@ -180,9 +182,9 @@ impl ModelTracker {
         self.ema_accuracy = ema_update(self.ema_accuracy, dir_acc, EMA_ALPHA);
 
         if self.error_history.len() >= MAX_HISTORY {
-            self.error_history.remove(0);
+            self.error_history.pop_front();
         }
-        self.error_history.push(abs_error);
+        self.error_history.push_back(abs_error);
     }
 
     fn update_weight(&mut self, inv_error_sum: f64) {
@@ -218,7 +220,7 @@ struct AppEnsembleState {
     app_id: u64,
     models: [ModelTracker; NUM_MODELS],
     last_actual: f64,
-    ensemble_error_history: Vec<f64>,
+    ensemble_error_history: VecDeque<f64>,
     ensemble_ema_error: f64,
     total_ensembles: u64,
 }
@@ -234,7 +236,7 @@ impl AppEnsembleState {
                 ModelTracker::new(ModelId::Causal),
             ],
             last_actual: 0.0,
-            ensemble_error_history: Vec::new(),
+            ensemble_error_history: VecDeque::new(),
             ensemble_ema_error: 0.5,
             total_ensembles: 0,
         }
@@ -265,6 +267,7 @@ impl AppEnsembleState {
 
 /// Engine-level statistics for the ensemble module.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EnsembleStats {
     pub total_ensemble_predictions: u64,
     pub total_model_outcomes: u64,
@@ -416,6 +419,7 @@ impl AppsEnsemble {
     }
 
     /// Compute current model weights for an app.
+    #[inline]
     pub fn model_weighting(&self, app_id: u64) -> Vec<(ModelId, f64)> {
         let state = match self.app_states.get(&app_id) {
             Some(s) => s,
@@ -459,6 +463,7 @@ impl AppsEnsemble {
     }
 
     /// Public diversity measure for external callers.
+    #[inline(always)]
     pub fn diversity_measure(&self, predictions: &[ModelPrediction]) -> f64 {
         self.compute_diversity(predictions)
     }
@@ -522,16 +527,19 @@ impl AppsEnsemble {
     }
 
     /// Return a snapshot of engine statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &EnsembleStats {
         &self.stats
     }
 
     /// Number of tracked apps.
+    #[inline(always)]
     pub fn tracked_apps(&self) -> usize {
         self.app_states.len()
     }
 
     /// Global EMA-smoothed diversity.
+    #[inline(always)]
     pub fn avg_diversity(&self) -> f64 {
         self.ema_diversity
     }

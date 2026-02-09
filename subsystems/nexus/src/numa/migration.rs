@@ -49,6 +49,7 @@ pub struct MigrationCostModel {
 
 impl MigrationCostModel {
     /// Estimate time to migrate bytes
+    #[inline]
     pub fn estimate_time(&self, bytes: u64) -> u64 {
         if self.avg_bandwidth == 0.0 {
             return u64::MAX;
@@ -99,6 +100,7 @@ impl MigrationCostAnalyzer {
     }
 
     /// Update cost model
+    #[inline]
     fn update_model(&mut self, source: NodeId, dest: NodeId, bytes: u64, duration_ns: u64) {
         let key = (source, dest);
         let bandwidth = if duration_ns > 0 {
@@ -122,11 +124,13 @@ impl MigrationCostAnalyzer {
     }
 
     /// Get cost model
+    #[inline(always)]
     pub fn get_model(&self, source: NodeId, dest: NodeId) -> Option<&MigrationCostModel> {
         self.models.get(&(source, dest))
     }
 
     /// Estimate migration cost
+    #[inline]
     pub fn estimate(&self, source: NodeId, dest: NodeId, bytes: u64) -> u64 {
         if let Some(model) = self.get_model(source, dest) {
             model.estimate_time(bytes)
@@ -137,6 +141,7 @@ impl MigrationCostAnalyzer {
     }
 
     /// Is migration beneficial?
+    #[inline(always)]
     pub fn is_beneficial(
         &self,
         source: NodeId,
@@ -149,6 +154,7 @@ impl MigrationCostAnalyzer {
     }
 
     /// Get total bytes migrated
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.total_bytes.load(Ordering::Relaxed)
     }

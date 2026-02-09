@@ -2,7 +2,9 @@
 //!
 //! Predicts connection patterns.
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -11,7 +13,7 @@ use crate::core::NexusTimestamp;
 #[derive(Debug, Clone)]
 struct ConnectionPattern {
     /// Common destinations
-    common_destinations: BTreeMap<u32, u32>,
+    common_destinations: ArrayMap<u32, 32>,
     /// Common ports
     common_ports: BTreeMap<u16, u32>,
     /// Average connection rate
@@ -38,7 +40,7 @@ pub struct ConnectionPredictor {
     /// Connection patterns by source
     patterns: BTreeMap<u32, ConnectionPattern>,
     /// Recent connections
-    recent_connections: Vec<ConnectionRecord>,
+    recent_connections: VecDeque<ConnectionRecord>,
     /// Max history
     max_history: usize,
 }
@@ -48,7 +50,7 @@ impl ConnectionPredictor {
     pub fn new() -> Self {
         Self {
             patterns: BTreeMap::new(),
-            recent_connections: Vec::new(),
+            recent_connections: VecDeque::new(),
             max_history: 10000,
         }
     }
@@ -62,9 +64,9 @@ impl ConnectionPredictor {
             timestamp: NexusTimestamp::now().raw(),
         };
 
-        self.recent_connections.push(record);
+        self.recent_connections.push_back(record);
         if self.recent_connections.len() > self.max_history {
-            self.recent_connections.remove(0);
+            self.recent_connections.pop_front();
         }
 
         // Update pattern
@@ -72,7 +74,7 @@ impl ConnectionPredictor {
             .patterns
             .entry(src_ip)
             .or_insert_with(|| ConnectionPattern {
-                common_destinations: BTreeMap::new(),
+                common_destinations: ArrayMap::new(0),
                 common_ports: BTreeMap::new(),
                 avg_rate: 0.0,
                 total: 0,
@@ -158,6 +160,7 @@ impl ConnectionPredictor {
     }
 
     /// Clear all data
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.patterns.clear();
         self.recent_connections.clear();

@@ -61,18 +61,26 @@ impl HolisticSuperblock {
         }
     }
 
+    #[inline(always)]
     pub fn activate(&mut self) { self.state = SuperblockState::Active; self.mount_count += 1; }
+    #[inline(always)]
     pub fn freeze(&mut self) { self.state = SuperblockState::Frozen; }
+    #[inline(always)]
     pub fn thaw(&mut self) { self.state = SuperblockState::Active; }
 
+    #[inline(always)]
     pub fn enable_feature(&mut self, feature: SbFeature) { self.features |= 1u32 << (feature as u32); }
+    #[inline(always)]
     pub fn has_feature(&self, feature: SbFeature) -> bool { self.features & (1u32 << (feature as u32)) != 0 }
 
+    #[inline(always)]
     pub fn used_blocks(&self) -> u64 { self.total_blocks.saturating_sub(self.free_blocks) }
+    #[inline(always)]
     pub fn usage_pct(&self) -> f64 {
         if self.total_blocks == 0 { 0.0 } else { self.used_blocks() as f64 / self.total_blocks as f64 }
     }
 
+    #[inline(always)]
     pub fn inode_usage_pct(&self) -> f64 {
         if self.total_inodes == 0 { 0.0 }
         else { (self.total_inodes - self.free_inodes) as f64 / self.total_inodes as f64 }
@@ -81,6 +89,7 @@ impl HolisticSuperblock {
 
 /// Superblock holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticSbStats {
     pub total_superblocks: u64,
     pub active: u64,
@@ -104,6 +113,7 @@ impl HolisticSuperblockMgr {
         }
     }
 
+    #[inline]
     pub fn register(&mut self, sb: HolisticSuperblock) {
         self.stats.total_superblocks += 1;
         self.stats.total_capacity_blocks += sb.total_blocks;
@@ -111,6 +121,7 @@ impl HolisticSuperblockMgr {
         self.superblocks.insert(sb.sb_id, sb);
     }
 
+    #[inline]
     pub fn activate(&mut self, sb_id: u64) -> bool {
         if let Some(sb) = self.superblocks.get_mut(&sb_id) {
             sb.activate();
@@ -119,6 +130,7 @@ impl HolisticSuperblockMgr {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn overall_usage_pct(&self) -> f64 {
         if self.stats.total_capacity_blocks == 0 { 0.0 }
         else { (self.stats.total_capacity_blocks - self.stats.total_free_blocks) as f64 / self.stats.total_capacity_blocks as f64 }
@@ -159,6 +171,7 @@ pub struct HolisticSbV2Health {
 
 /// Stats for superblock analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticSbV2Stats {
     pub samples: u64,
     pub analyses: u64,
@@ -194,6 +207,7 @@ impl HolisticSuperblockV2Manager {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, metric: HolisticSbV2Metric, value: u64, sb_id: u64) {
         let sample = HolisticSbV2Sample {
             metric,
@@ -222,6 +236,7 @@ impl HolisticSuperblockV2Manager {
         &self.health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticSbV2Stats {
         &self.stats
     }

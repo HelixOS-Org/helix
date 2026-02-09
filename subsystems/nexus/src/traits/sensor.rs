@@ -131,6 +131,7 @@ impl SensorType {
     }
 
     /// Is this a hardware sensor?
+    #[inline]
     pub const fn is_hardware(&self) -> bool {
         matches!(
             self,

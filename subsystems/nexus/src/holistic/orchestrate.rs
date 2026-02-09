@@ -66,6 +66,7 @@ impl ActionPriority {
 
 /// A queued optimization action
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueuedAction {
     /// The action to perform
     pub action: OptAction,
@@ -192,6 +193,7 @@ impl Orchestrator {
     }
 
     /// Record execution result
+    #[inline]
     pub fn record_result(&mut self, result: ActionResult) {
         if result.success {
             self.succeeded += 1;
@@ -201,6 +203,7 @@ impl Orchestrator {
     }
 
     /// Drop expired actions
+    #[inline]
     pub fn drop_expired(&mut self, current_time: u64) -> usize {
         let before = self.queue.len();
         self.queue
@@ -211,21 +214,25 @@ impl Orchestrator {
     }
 
     /// Pending action count
+    #[inline(always)]
     pub fn pending_actions(&self) -> usize {
         self.queue.len()
     }
 
     /// Pause the orchestrator
+    #[inline(always)]
     pub fn pause(&mut self) {
         self.paused = true;
     }
 
     /// Resume the orchestrator
+    #[inline(always)]
     pub fn resume(&mut self) {
         self.paused = false;
     }
 
     /// Get execution statistics
+    #[inline(always)]
     pub fn stats(&self) -> (u64, u64, u64, u64) {
         (self.executed, self.succeeded, self.failed, self.dropped)
     }

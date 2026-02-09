@@ -74,6 +74,7 @@ impl BatchOutcome {
 
 /// A reflection on a single batch of operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BatchReflection {
     pub id: u64,
     pub tick: u64,
@@ -99,6 +100,7 @@ pub struct BatchReflection {
 
 /// A detected pattern in batch outcomes
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReflectionPattern {
     pub id: u64,
     pub description: String,
@@ -137,6 +139,7 @@ pub struct Lesson {
 
 /// Aggregate reflection statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ReflectionStats {
     pub total_reflections: u64,
     pub avg_quality: f32,
@@ -155,6 +158,7 @@ pub struct ReflectionStats {
 /// Performance reflection engine — converts batch experiences into patterns,
 /// lessons, and accumulated wisdom.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeReflection {
     /// Ring buffer of batch reflections
     reflections: Vec<BatchReflection>,
@@ -263,6 +267,7 @@ impl BridgeReflection {
     }
 
     /// Scan for recurring patterns in batch outcomes
+    #[inline]
     pub fn identify_pattern(&mut self) -> Vec<ReflectionPattern> {
         let mut new_patterns = Vec::new();
 
@@ -343,6 +348,7 @@ impl BridgeReflection {
     }
 
     /// Mark a lesson as applied and record its impact
+    #[inline]
     pub fn apply_insight(&mut self, lesson_id: u64, observed_improvement: f32) {
         if let Some(lesson) = self.lessons.get_mut(&lesson_id) {
             lesson.applied = true;
@@ -409,6 +415,7 @@ impl BridgeReflection {
     }
 
     /// Get the most impactful applied lessons
+    #[inline]
     pub fn top_insights(&self, count: usize) -> Vec<&Lesson> {
         let mut applied: Vec<&Lesson> = self.lessons.values().filter(|l| l.applied).collect();
         applied.sort_by(|a, b| {

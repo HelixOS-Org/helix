@@ -26,6 +26,7 @@ pub struct CoopNiceEntry {
 
 /// Nice cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopNiceStats {
     pub total_adjustments: u64,
     pub raises: u64,
@@ -54,6 +55,7 @@ impl CoopNiceManager {
         }
     }
 
+    #[inline]
     pub fn register(&mut self, pid: u64, nice: i32, class: CoopSchedClass) {
         let weight = ((20 - nice) as u32).max(1) * 50;
         let entry = CoopNiceEntry {
@@ -79,6 +81,7 @@ impl CoopNiceManager {
         }
     }
 
+    #[inline]
     pub fn change_class(&mut self, pid: u64, class: CoopSchedClass) -> bool {
         if let Some(e) = self.entries.get_mut(&pid) {
             e.sched_class = class;
@@ -89,6 +92,7 @@ impl CoopNiceManager {
         }
     }
 
+    #[inline]
     pub fn cooperative_yield(&mut self, pid: u64) {
         if let Some(e) = self.entries.get_mut(&pid) {
             e.vruntime += 1000;
@@ -96,6 +100,7 @@ impl CoopNiceManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopNiceStats {
         &self.stats
     }

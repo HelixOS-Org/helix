@@ -190,6 +190,7 @@ impl Default for PreprocessConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PreprocessStats {
     /// Inputs processed
     pub inputs_processed: u64,
@@ -459,11 +460,13 @@ impl Preprocessor {
     }
 
     /// Clear pipeline
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.pipeline.clear();
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PreprocessStats {
         &self.stats
     }
@@ -493,6 +496,7 @@ impl PipelineBuilder {
     }
 
     /// Add normalization
+    #[inline]
     pub fn normalize(mut self) -> Self {
         self.preprocessor
             .add_step("normalize", PreprocessOp::Normalize);
@@ -500,6 +504,7 @@ impl PipelineBuilder {
     }
 
     /// Add standardization
+    #[inline]
     pub fn standardize(mut self) -> Self {
         self.preprocessor
             .add_step("standardize", PreprocessOp::Standardize);
@@ -507,6 +512,7 @@ impl PipelineBuilder {
     }
 
     /// Add scaling
+    #[inline]
     pub fn scale(mut self, factor: f64) -> Self {
         self.preprocessor
             .add_step("scale", PreprocessOp::Scale { factor });
@@ -514,6 +520,7 @@ impl PipelineBuilder {
     }
 
     /// Add clipping
+    #[inline]
     pub fn clip(mut self, min: f64, max: f64) -> Self {
         self.preprocessor
             .add_step("clip", PreprocessOp::Clip { min, max });
@@ -521,12 +528,14 @@ impl PipelineBuilder {
     }
 
     /// Add log transform
+    #[inline(always)]
     pub fn log(mut self) -> Self {
         self.preprocessor.add_step("log", PreprocessOp::Log);
         self
     }
 
     /// Add moving average
+    #[inline]
     pub fn moving_average(mut self, window: usize) -> Self {
         self.preprocessor
             .add_step("moving_avg", PreprocessOp::MovingAverage { window });
@@ -534,6 +543,7 @@ impl PipelineBuilder {
     }
 
     /// Build
+    #[inline(always)]
     pub fn build(self) -> Preprocessor {
         self.preprocessor
     }

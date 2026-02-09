@@ -59,6 +59,7 @@ impl BandwidthBucket {
     }
 
     /// Refill tokens based on elapsed time
+    #[inline]
     pub fn refill(&mut self, now_ns: u64) {
         if now_ns <= self.last_refill_ns {
             return;
@@ -70,6 +71,7 @@ impl BandwidthBucket {
     }
 
     /// Try to consume tokens
+    #[inline]
     pub fn try_consume(&mut self, bytes: u64, now_ns: u64) -> bool {
         self.refill(now_ns);
         if self.tokens >= bytes {
@@ -81,6 +83,7 @@ impl BandwidthBucket {
     }
 
     /// Available tokens (including refill projection)
+    #[inline]
     pub fn available(&self, now_ns: u64) -> u64 {
         let elapsed_ns = now_ns.saturating_sub(self.last_refill_ns);
         let refill = (self.rate as u128 * elapsed_ns as u128 / 1_000_000_000u128) as u64;
@@ -88,6 +91,7 @@ impl BandwidthBucket {
     }
 
     /// Lend tokens to another process
+    #[inline]
     pub fn lend(&mut self, amount: u64) -> bool {
         if self.tokens >= amount {
             self.tokens -= amount;
@@ -99,12 +103,14 @@ impl BandwidthBucket {
     }
 
     /// Accept borrowed tokens
+    #[inline(always)]
     pub fn borrow_tokens(&mut self, amount: u64) {
         self.tokens += amount;
         self.borrowed += amount;
     }
 
     /// Utilization ratio
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 { 0.0 } else {
             1.0 - (self.tokens as f64 / self.capacity as f64)
@@ -138,6 +144,7 @@ impl ProcessBandwidth {
         }
     }
 
+    #[inline(always)]
     pub fn add_bucket(&mut self, resource: BandwidthResource, rate: u64, capacity: u64) {
         self.buckets.insert(resource as u8, BandwidthBucket::new(resource, rate, capacity));
     }
@@ -157,12 +164,14 @@ impl ProcessBandwidth {
     }
 
     /// Request bandwidth lending
+    #[inline]
     pub fn can_lend(&self, resource: BandwidthResource, amount: u64) -> bool {
         self.buckets.get(&(resource as u8))
             .map(|b| b.tokens >= amount && b.utilization() < 0.5)
             .unwrap_or(false)
     }
 
+    #[inline]
     pub fn lend(&mut self, resource: BandwidthResource, amount: u64) -> bool {
         if let Some(bucket) = self.buckets.get_mut(&(resource as u8)) {
             if bucket.lend(amount) {
@@ -173,6 +182,7 @@ impl ProcessBandwidth {
         false
     }
 
+    #[inline]
     pub fn receive_borrow(&mut self, resource: BandwidthResource, amount: u64) {
         if let Some(bucket) = self.buckets.get_mut(&(resource as u8)) {
             bucket.borrow_tokens(amount);
@@ -193,6 +203,7 @@ pub struct BandwidthTransfer {
 
 /// Bandwidth allocator stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopBandwidthStats {
     pub tracked_processes: usize,
     pub total_consumed: u64,
@@ -217,17 +228,20 @@ impl CoopBandwidthAllocator {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, priority: u8) {
         self.processes.entry(pid)
             .or_insert_with(|| ProcessBandwidth::new(pid, priority));
     }
 
+    #[inline]
     pub fn add_bucket(&mut self, pid: u64, resource: BandwidthResource, rate: u64, cap: u64) {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.add_bucket(resource, rate, cap);
         }
     }
 
+    #[inline]
     pub fn try_consume(&mut self, pid: u64, resource: BandwidthResource, bytes: u64, now_ns: u64) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             if proc.try_consume(resource, bytes, now_ns) {
@@ -295,6 +309,7 @@ impl CoopBandwidthAllocator {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopBandwidthStats {
         &self.stats
     }

@@ -82,6 +82,7 @@ impl Avc {
     }
 
     /// Invalidate entry
+    #[inline(always)]
     pub fn invalidate(
         &mut self,
         source: &SecurityContext,
@@ -93,11 +94,13 @@ impl Avc {
     }
 
     /// Clear all entries
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.entries.clear();
     }
 
     /// Get hit rate
+    #[inline]
     pub fn hit_rate(&self) -> f32 {
         let total = self.lookups.load(Ordering::Relaxed);
         if total == 0 {
@@ -107,6 +110,7 @@ impl Avc {
     }
 
     /// Get entry count
+    #[inline(always)]
     pub fn entry_count(&self) -> usize {
         self.entries.len()
     }

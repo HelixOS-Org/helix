@@ -55,16 +55,19 @@ impl GenesisSummary {
     }
 
     /// Add capability
+    #[inline(always)]
     pub fn add_capability(&mut self, capability: String) {
         self.capabilities.push(capability);
     }
 
     /// Capability count
+    #[inline(always)]
     pub fn capability_count(&self) -> usize {
         self.capabilities.len()
     }
 
     /// Is complete
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.completion_pct >= 100.0
     }

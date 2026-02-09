@@ -8,7 +8,7 @@
 //! - Compliance history and trends
 //! - Auto-adjustment recommendations
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -84,7 +84,7 @@ impl SlaBound {
                 } else {
                     ComplianceLevel::Compliant
                 }
-            }
+            },
             // For "min" metrics, lower value = worse
             SlaMetric::MinThroughput | SlaMetric::MinAvailability => {
                 if value <= self.critical {
@@ -96,7 +96,7 @@ impl SlaBound {
                 } else {
                     ComplianceLevel::Compliant
                 }
-            }
+            },
         }
     }
 }
@@ -171,6 +171,7 @@ impl Default for GracePeriod {
 
 impl GracePeriod {
     /// Get grace period for level
+    #[inline]
     pub fn for_level(&self, level: ComplianceLevel) -> u64 {
         match level {
             ComplianceLevel::Compliant => u64::MAX,
@@ -228,6 +229,7 @@ impl Default for PenaltySchedule {
 
 impl PenaltySchedule {
     /// Determine action for given points
+    #[inline]
     pub fn action_for(&self, points: u32) -> PenaltyAction {
         let mut action = PenaltyAction::None;
         for &(threshold, act) in &self.thresholds {
@@ -262,7 +264,7 @@ struct ContractCompliance {
     /// Hour marker for grace period tracking
     grace_hour_marker: u64,
     /// Compliance history (last 100 checks: 1 = compliant, 0 = violation)
-    history: Vec<u8>,
+    history: VecDeque<u8>,
     /// Max history entries
     max_history: usize,
     /// Current penalty action
@@ -282,7 +284,7 @@ impl ContractCompliance {
             penalty_points: 0,
             grace_used_this_hour: 0,
             grace_hour_marker: 0,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 100,
             current_action: PenaltyAction::None,
         }
@@ -371,10 +373,14 @@ impl ContractCompliance {
         }
 
         // Record history
-        let compliant = if worst == ComplianceLevel::Compliant { 1u8 } else { 0u8 };
-        self.history.push(compliant);
+        let compliant = if worst == ComplianceLevel::Compliant {
+            1u8
+        } else {
+            0u8
+        };
+        self.history.push_back(compliant);
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         // Update penalty action
@@ -458,12 +464,15 @@ impl ComplianceMonitor {
     }
 
     /// Register a contract for monitoring
+    #[inline(always)]
     pub fn register_contract(&mut self, contract_id: u64, pid: u64) {
-        self.contracts.entry(contract_id)
+        self.contracts
+            .entry(contract_id)
             .or_insert_with(|| ContractCompliance::new(contract_id, pid));
     }
 
     /// Add SLA bound to contract
+    #[inline]
     pub fn add_bound(&mut self, contract_id: u64, bound: SlaBound) {
         if let Some(cc) = self.contracts.get_mut(&contract_id) {
             cc.add_bound(bound);
@@ -471,6 +480,7 @@ impl ComplianceMonitor {
     }
 
     /// Set grace period for contract
+    #[inline]
     pub fn set_grace(&mut self, contract_id: u64, grace: GracePeriod) {
         if let Some(cc) = self.contracts.get_mut(&contract_id) {
             cc.grace = grace;
@@ -505,7 +515,8 @@ impl ComplianceMonitor {
         Some(ComplianceResult {
             contract_id,
             pid: cc.pid,
-            level: cc.active_violations
+            level: cc
+                .active_violations
                 .iter()
                 .map(|v| v.level)
                 .max()
@@ -518,16 +529,19 @@ impl ComplianceMonitor {
     }
 
     /// Unregister contract
+    #[inline(always)]
     pub fn unregister_contract(&mut self, contract_id: u64) {
         self.contracts.remove(&contract_id);
     }
 
     /// Unregister all contracts for a PID
+    #[inline(always)]
     pub fn unregister_pid(&mut self, pid: u64) {
         self.contracts.retain(|_, cc| cc.pid != pid);
     }
 
     /// Decay penalties for all contracts
+    #[inline]
     pub fn decay_all(&mut self, elapsed_secs: u64) {
         for cc in self.contracts.values_mut() {
             cc.decay_penalties(elapsed_secs);
@@ -535,6 +549,7 @@ impl ComplianceMonitor {
     }
 
     /// Monitored contract count
+    #[inline(always)]
     pub fn contract_count(&self) -> usize {
         self.contracts.len()
     }

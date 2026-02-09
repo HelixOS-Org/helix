@@ -60,6 +60,7 @@ impl Histogram {
     }
 
     /// Create a histogram for latency measurements
+    #[inline(always)]
     pub fn for_latency() -> Self {
         Self::new(Self::DEFAULT_LATENCY_BOUNDARIES)
     }
@@ -107,16 +108,19 @@ impl Histogram {
     }
 
     /// Get total count
+    #[inline(always)]
     pub fn count(&self) -> u64 {
         self.count.load(Ordering::Relaxed)
     }
 
     /// Get sum of all values
+    #[inline(always)]
     pub fn sum(&self) -> u64 {
         self.sum.load(Ordering::Relaxed)
     }
 
     /// Get mean value
+    #[inline]
     pub fn mean(&self) -> f64 {
         let count = self.count();
         if count == 0 {
@@ -126,6 +130,7 @@ impl Histogram {
     }
 
     /// Get minimum value
+    #[inline]
     pub fn min(&self) -> Option<u64> {
         let min = self.min.load(Ordering::Relaxed);
         if min == u64::MAX {
@@ -136,6 +141,7 @@ impl Histogram {
     }
 
     /// Get maximum value
+    #[inline]
     pub fn max(&self) -> Option<u64> {
         let max = self.max.load(Ordering::Relaxed);
         if max == 0 && self.count() == 0 {
@@ -146,6 +152,7 @@ impl Histogram {
     }
 
     /// Get bucket counts
+    #[inline]
     pub fn bucket_counts(&self) -> Vec<u64> {
         self.buckets
             .iter()
@@ -180,6 +187,7 @@ impl Histogram {
     }
 
     /// Reset all counters
+    #[inline]
     pub fn reset(&self) {
         for bucket in &self.buckets {
             bucket.store(0, Ordering::Relaxed);

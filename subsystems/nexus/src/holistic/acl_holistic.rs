@@ -45,6 +45,7 @@ impl HolisticAclEntry {
         }
     }
 
+    #[inline(always)]
     pub fn is_named(&self) -> bool {
         matches!(self.entry_type, AclEntryType::User | AclEntryType::Group)
     }
@@ -69,18 +70,23 @@ impl InodeAcl {
         }
     }
 
+    #[inline(always)]
     pub fn add_access(&mut self, entry: HolisticAclEntry) {
         self.access_acl.push(entry);
     }
+    #[inline(always)]
     pub fn add_default(&mut self, entry: HolisticAclEntry) {
         self.default_acl.push(entry);
     }
+    #[inline(always)]
     pub fn check(&mut self) {
         self.check_count += 1;
     }
+    #[inline(always)]
     pub fn has_named_entries(&self) -> bool {
         self.access_acl.iter().any(|e| e.is_named())
     }
+    #[inline(always)]
     pub fn complexity(&self) -> usize {
         self.access_acl.len() + self.default_acl.len()
     }
@@ -88,6 +94,7 @@ impl InodeAcl {
 
 /// Holistic ACL stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticAclStats {
     pub total_inodes_with_acl: u64,
     pub total_checks: u64,
@@ -115,6 +122,7 @@ impl HolisticAcl {
         }
     }
 
+    #[inline]
     pub fn set_acl(&mut self, inode: u64, acl: InodeAcl) {
         let c = acl.complexity();
         if c > self.stats.max_complexity {
@@ -126,6 +134,7 @@ impl HolisticAcl {
         self.acls.insert(inode, acl);
     }
 
+    #[inline]
     pub fn check(&mut self, inode: u64) {
         self.stats.total_checks += 1;
         if let Some(acl) = self.acls.get_mut(&inode) {

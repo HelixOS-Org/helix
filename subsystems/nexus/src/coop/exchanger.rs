@@ -40,12 +40,14 @@ impl ExchangeSlot {
         }
     }
 
+    #[inline]
     pub fn offer(&mut self, thread_id: u32, value: u64) {
         self.state = ExchangeSlotState::Offering(value);
         self.offered_value = value;
         self.offerer_id = thread_id;
     }
 
+    #[inline]
     pub fn try_exchange(&mut self, thread_id: u32, value: u64) -> Option<u64> {
         if let ExchangeSlotState::Offering(offered) = self.state {
             self.matcher_id = thread_id;
@@ -56,6 +58,7 @@ impl ExchangeSlot {
         } else { None }
     }
 
+    #[inline]
     pub fn collect(&mut self) -> Option<u64> {
         if self.state == ExchangeSlotState::Matched {
             self.state = ExchangeSlotState::Empty;
@@ -63,7 +66,9 @@ impl ExchangeSlot {
         } else { None }
     }
 
+    #[inline(always)]
     pub fn cancel(&mut self) { self.state = ExchangeSlotState::Cancelled; }
+    #[inline(always)]
     pub fn reset(&mut self) { self.state = ExchangeSlotState::Empty; }
 }
 
@@ -79,12 +84,14 @@ impl ExchangerArena {
         Self { slots, size }
     }
 
+    #[inline(always)]
     pub fn total_exchanges(&self) -> u64 {
         self.slots.iter().map(|s| s.exchanges).sum()
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExchangerStats {
     pub total_offers: u64,
     pub total_exchanges: u64,
@@ -132,10 +139,12 @@ impl CoopExchanger {
         ExchangeResult::Busy
     }
 
+    #[inline(always)]
     pub fn success_rate(&self) -> u64 {
         if self.stats.total_offers == 0 { 0 }
         else { (self.stats.total_exchanges * 100) / self.stats.total_offers }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ExchangerStats { &self.stats }
 }

@@ -26,6 +26,7 @@ pub enum LatencyType {
 
 impl LatencyType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::IrqOff => "irq_off",
@@ -84,11 +85,13 @@ impl LatencyRecord {
     }
 
     /// Duration in microseconds
+    #[inline(always)]
     pub fn duration_us(&self) -> u64 {
         self.duration_ns / 1000
     }
 
     /// Duration in milliseconds
+    #[inline(always)]
     pub fn duration_ms(&self) -> f64 {
         self.duration_ns as f64 / 1_000_000.0
     }
@@ -96,6 +99,7 @@ impl LatencyRecord {
 
 /// Latency stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LatencyStats {
     /// Count
     pub count: u64,
@@ -119,6 +123,7 @@ impl LatencyStats {
     }
 
     /// Record latency
+    #[inline]
     pub fn record(&mut self, latency_ns: u64) {
         self.count += 1;
         self.total_ns += latency_ns;
@@ -131,6 +136,7 @@ impl LatencyStats {
     }
 
     /// Average latency
+    #[inline]
     pub fn avg_ns(&self) -> u64 {
         if self.count == 0 {
             return 0;

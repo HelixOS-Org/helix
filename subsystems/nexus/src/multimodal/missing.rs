@@ -30,6 +30,7 @@ impl MissingModalityHandler {
     }
 
     /// Set learned default for a modality
+    #[inline(always)]
     pub fn set_default(&mut self, modality: ModalityType, default: Vec<f64>) {
         self.defaults.insert(modality, default);
     }

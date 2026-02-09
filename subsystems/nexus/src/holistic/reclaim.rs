@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -86,6 +87,7 @@ pub enum ReclaimZoneType {
 
 /// Memory zone state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ZoneState {
     /// Zone type
     pub zone_type: ReclaimZoneType,
@@ -132,11 +134,13 @@ impl ZoneState {
     }
 
     /// Is below low watermark?
+    #[inline(always)]
     pub fn below_low(&self) -> bool {
         self.free_pages < self.low_wmark
     }
 
     /// Is below min watermark?
+    #[inline(always)]
     pub fn below_min(&self) -> bool {
         self.free_pages < self.min_wmark
     }
@@ -157,6 +161,7 @@ impl ZoneState {
     }
 
     /// Free ratio
+    #[inline]
     pub fn free_ratio(&self) -> f64 {
         if self.total_pages == 0 {
             return 0.0;
@@ -165,6 +170,7 @@ impl ZoneState {
     }
 
     /// Pages needed to reach high watermark
+    #[inline(always)]
     pub fn deficit(&self) -> u64 {
         self.high_wmark.saturating_sub(self.free_pages)
     }
@@ -210,11 +216,13 @@ impl ProcessReclaimable {
     }
 
     /// Total reclaimable
+    #[inline(always)]
     pub fn total_reclaimable(&self) -> u64 {
         self.file_pages + self.slab_reclaimable
     }
 
     /// Total swappable
+    #[inline(always)]
     pub fn total_swappable(&self) -> u64 {
         self.anon_pages
     }
@@ -258,6 +266,7 @@ impl OomKiller {
     }
 
     /// Select victim
+    #[inline]
     pub fn select_victim(&self, candidates: &[OomCandidate]) -> Option<u64> {
         candidates.iter()
             .max_by_key(|c| c.score)
@@ -265,11 +274,13 @@ impl OomKiller {
     }
 
     /// Can kill now?
+    #[inline(always)]
     pub fn can_kill(&self, now: u64) -> bool {
         now.saturating_sub(self.last_kill) >= self.cooldown_ns
     }
 
     /// Record kill
+    #[inline(always)]
     pub fn record_kill(&mut self, now: u64) {
         self.total_kills += 1;
         self.last_kill = now;
@@ -282,6 +293,7 @@ impl OomKiller {
 
 /// Reclamation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticReclaimStats {
     /// Total zones
     pub total_zones: usize,
@@ -321,17 +333,20 @@ impl HolisticReclaimEngine {
     }
 
     /// Add zone
+    #[inline(always)]
     pub fn add_zone(&mut self, zone: ZoneState) {
         self.zones.push(zone);
         self.update_stats();
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register_process(&mut self, proc: ProcessReclaimable) {
         self.processes.insert(proc.pid, proc);
     }
 
     /// Update zone state
+    #[inline]
     pub fn update_zone(&mut self, index: usize, free_pages: u64) {
         if let Some(zone) = self.zones.get_mut(index) {
             zone.free_pages = free_pages;
@@ -378,6 +393,7 @@ impl HolisticReclaimEngine {
     }
 
     /// Record reclaimed pages
+    #[inline(always)]
     pub fn record_reclaimed(&mut self, pages: u64) {
         self.total_reclaimed += pages;
         self.update_stats();
@@ -399,6 +415,7 @@ impl HolisticReclaimEngine {
     }
 
     /// System urgency (max across zones)
+    #[inline]
     pub fn system_urgency(&self) -> ReclaimUrgency {
         self.zones.iter()
             .map(|z| z.urgency())
@@ -416,6 +433,7 @@ impl HolisticReclaimEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticReclaimStats {
         &self.stats
     }
@@ -492,6 +510,7 @@ impl ZoneWatermarks {
         }
     }
 
+    #[inline]
     pub fn urgency(&self) -> ReclaimUrgency {
         if self.free_pages <= self.min_pages {
             ReclaimUrgency::Critical
@@ -504,6 +523,7 @@ impl ZoneWatermarks {
         }
     }
 
+    #[inline(always)]
     pub fn reclaimable_estimate(&self) -> u64 {
         self.file_pages + self.slab_reclaimable
     }
@@ -536,11 +556,13 @@ impl CgroupMemPressure {
         }
     }
 
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
         if self.memory_limit == 0 { return 0.0; }
         self.memory_usage as f64 / self.memory_limit as f64
     }
 
+    #[inline(always)]
     pub fn is_near_limit(&self) -> bool {
         self.usage_ratio() > 0.9
     }
@@ -555,7 +577,7 @@ pub struct WorkingSetEstimatorV2 {
     pub working_set_pages: u64,
     pub growth_rate: f64,
     pub decay_factor: f64,
-    samples: Vec<(u64, u64)>, // (timestamp_ns, accessed)
+    samples: VecDeque<(u64, u64)>, // (timestamp_ns, accessed)
 }
 
 impl WorkingSetEstimatorV2 {
@@ -567,7 +589,7 @@ impl WorkingSetEstimatorV2 {
             working_set_pages: 0,
             growth_rate: 0.0,
             decay_factor: 0.95,
-            samples: Vec::new(),
+            samples: VecDeque::new(),
         }
     }
 
@@ -581,9 +603,9 @@ impl WorkingSetEstimatorV2 {
         self.working_set_pages = ((self.working_set_pages as f64 * self.decay_factor)
             + (estimated as f64 * (1.0 - self.decay_factor))) as u64;
 
-        self.samples.push((ts, accessed));
+        self.samples.push_back((ts, accessed));
         if self.samples.len() > 64 {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
 
         // Compute growth rate
@@ -594,7 +616,9 @@ impl WorkingSetEstimatorV2 {
         }
     }
 
+    #[inline(always)]
     pub fn is_growing(&self) -> bool { self.growth_rate > 0.05 }
+    #[inline(always)]
     pub fn is_shrinking(&self) -> bool { self.growth_rate < -0.05 }
 }
 
@@ -611,6 +635,7 @@ pub struct ReclaimEvent {
 
 /// Holistic Memory Reclaim V2 stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticReclaimV2Stats {
     pub total_reclaims: u64,
     pub total_pages_reclaimed: u64,
@@ -625,7 +650,7 @@ pub struct HolisticReclaimV2 {
     zones: BTreeMap<u32, ZoneWatermarks>,
     cgroups: BTreeMap<u64, CgroupMemPressure>,
     working_sets: BTreeMap<u64, WorkingSetEstimatorV2>,
-    events: Vec<ReclaimEvent>,
+    events: VecDeque<ReclaimEvent>,
     max_events: usize,
     stats: HolisticReclaimV2Stats,
 }
@@ -636,26 +661,30 @@ impl HolisticReclaimV2 {
             zones: BTreeMap::new(),
             cgroups: BTreeMap::new(),
             working_sets: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events,
             stats: HolisticReclaimV2Stats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn add_zone(&mut self, zone: ZoneWatermarks) {
         self.zones.insert(zone.zone_id, zone);
     }
 
+    #[inline(always)]
     pub fn add_cgroup(&mut self, cg: CgroupMemPressure) {
         self.cgroups.insert(cg.cgroup_id, cg);
     }
 
+    #[inline]
     pub fn update_working_set(&mut self, pid: u64, ts: u64, total: u64, accessed: u64) {
         self.working_sets.entry(pid)
             .or_insert_with(|| WorkingSetEstimatorV2::new(pid))
             .record_sample(ts, total, accessed);
     }
 
+    #[inline]
     pub fn global_urgency(&self) -> ReclaimUrgency {
         self.zones.values()
             .map(|z| z.urgency())
@@ -664,6 +693,7 @@ impl HolisticReclaimV2 {
     }
 
     /// Determine which cgroups need reclaim
+    #[inline]
     pub fn cgroups_needing_reclaim(&self) -> Vec<u64> {
         self.cgroups.values()
             .filter(|cg| cg.is_near_limit())
@@ -683,19 +713,22 @@ impl HolisticReclaimV2 {
         self.stats.avg_efficiency = self.stats.avg_efficiency * 0.9 + eff * 0.1;
         self.stats.current_urgency = self.global_urgency() as u8;
 
-        self.events.push(event);
+        self.events.push_back(event);
         while self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
     }
 
+    #[inline(always)]
     pub fn total_free_pages(&self) -> u64 {
         self.zones.values().map(|z| z.free_pages).sum()
     }
 
+    #[inline(always)]
     pub fn total_reclaimable(&self) -> u64 {
         self.zones.values().map(|z| z.reclaimable_estimate()).sum()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticReclaimV2Stats { &self.stats }
 }

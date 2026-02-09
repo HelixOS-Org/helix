@@ -10,6 +10,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -215,7 +216,7 @@ pub struct AnomalyDetector {
     /// Sensitivity (0-1)
     pub sensitivity: f64,
     /// Historical data for learning
-    history: Vec<f64>,
+    history: VecDeque<f64>,
     /// Statistics
     mean: f64,
     std_dev: f64,
@@ -260,6 +261,7 @@ impl Default for InsightConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct InsightStats {
     /// Total insights generated
     pub total_generated: u64,
@@ -360,11 +362,13 @@ impl InsightEngine {
     }
 
     /// Add a pattern
+    #[inline(always)]
     pub fn add_pattern(&mut self, pattern: Pattern) {
         self.patterns.push(pattern);
     }
 
     /// Add an anomaly detector
+    #[inline(always)]
     pub fn add_detector(&mut self, detector: AnomalyDetector) {
         self.detectors.push(detector);
     }
@@ -509,11 +513,13 @@ impl InsightEngine {
     }
 
     /// Get insight
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Insight> {
         self.insights.get(&id)
     }
 
     /// Get insights by category
+    #[inline]
     pub fn by_category(&self, category: InsightCategory) -> Vec<&Insight> {
         self.insights
             .values()
@@ -522,6 +528,7 @@ impl InsightEngine {
     }
 
     /// Get insights by severity
+    #[inline]
     pub fn by_severity(&self, min_severity: InsightSeverity) -> Vec<&Insight> {
         self.insights
             .values()
@@ -530,6 +537,7 @@ impl InsightEngine {
     }
 
     /// Get new insights
+    #[inline]
     pub fn new_insights(&self) -> Vec<&Insight> {
         self.insights
             .values()
@@ -538,6 +546,7 @@ impl InsightEngine {
     }
 
     /// Update insight status
+    #[inline]
     pub fn update_status(&mut self, id: u64, status: InsightStatus) {
         if let Some(insight) = self.insights.get_mut(&id) {
             insight.status = status;
@@ -545,6 +554,7 @@ impl InsightEngine {
     }
 
     /// Add recommendation
+    #[inline]
     pub fn add_recommendation(&mut self, id: u64, recommendation: &str) {
         if let Some(insight) = self.insights.get_mut(&id) {
             insight.recommendations.push(recommendation.into());
@@ -552,6 +562,7 @@ impl InsightEngine {
     }
 
     /// Add tags
+    #[inline]
     pub fn add_tags(&mut self, id: u64, tags: &[&str]) {
         if let Some(insight) = self.insights.get_mut(&id) {
             for tag in tags {
@@ -563,11 +574,13 @@ impl InsightEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &InsightStats {
         &self.stats
     }
 
     /// Get insight count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.insights.len()
     }
@@ -581,7 +594,7 @@ impl AnomalyDetector {
             name: name.into(),
             method,
             sensitivity,
-            history: Vec::new(),
+            history: VecDeque::new(),
             mean: 0.0,
             std_dev: 1.0,
         }
@@ -589,11 +602,11 @@ impl AnomalyDetector {
 
     /// Update with new value
     pub fn update(&mut self, value: f64) {
-        self.history.push(value);
+        self.history.push_back(value);
 
         // Keep last 100 values
         if self.history.len() > 100 {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         // Update statistics

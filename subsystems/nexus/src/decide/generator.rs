@@ -44,18 +44,21 @@ impl GenerationRule {
     }
 
     /// Set conclusion types
+    #[inline(always)]
     pub fn for_types(mut self, types: Vec<ConclusionType>) -> Self {
         self.applies_to = types;
         self
     }
 
     /// Set actions
+    #[inline(always)]
     pub fn with_actions(mut self, actions: Vec<ActionType>) -> Self {
         self.actions = actions;
         self
     }
 
     /// Check if rule applies to conclusion
+    #[inline(always)]
     pub fn applies(&self, conclusion: &Conclusion) -> bool {
         self.applies_to.contains(&conclusion.conclusion_type)
             && conclusion.severity >= self.min_severity
@@ -134,11 +137,13 @@ impl OptionGenerator {
     }
 
     /// Add custom rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: GenerationRule) {
         self.rules.push(rule);
     }
 
     /// Clear all rules
+    #[inline(always)]
     pub fn clear_rules(&mut self) {
         self.rules.clear();
     }
@@ -299,11 +304,13 @@ impl OptionGenerator {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> u64 {
         self.options_generated.load(Ordering::Relaxed)
     }
 
     /// Get rule count
+    #[inline(always)]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }

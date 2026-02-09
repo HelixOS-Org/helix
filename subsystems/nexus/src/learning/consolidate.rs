@@ -175,6 +175,7 @@ impl Default for ConsolidationConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ConsolidationStats {
     /// Traces created
     pub traces_created: u64,
@@ -222,6 +223,7 @@ impl ConsolidationEngine {
     }
 
     /// Add fact
+    #[inline]
     pub fn add_fact(
         &mut self,
         subject: &str,
@@ -240,6 +242,7 @@ impl ConsolidationEngine {
     }
 
     /// Add skill
+    #[inline]
     pub fn add_skill(&mut self, name: &str, proficiency: f64) -> u64 {
         let skill = Skill {
             name: name.into(),
@@ -251,6 +254,7 @@ impl ConsolidationEngine {
     }
 
     /// Add concept
+    #[inline]
     pub fn add_concept(&mut self, name: &str, features: Vec<String>) -> u64 {
         let concept = ConceptInfo {
             name: name.into(),
@@ -291,6 +295,7 @@ impl ConsolidationEngine {
     }
 
     /// Rehearse trace
+    #[inline]
     pub fn rehearse(&mut self, trace_id: u64) {
         if let Some(trace) = self.traces.get_mut(&trace_id) {
             trace.rehearsals += 1;
@@ -449,16 +454,19 @@ impl ConsolidationEngine {
     }
 
     /// Get trace
+    #[inline(always)]
     pub fn get_trace(&self, id: u64) -> Option<&MemoryTrace> {
         self.traces.get(&id)
     }
 
     /// Get memory
+    #[inline(always)]
     pub fn get_memory(&self, id: u64) -> Option<&ConsolidatedMemory> {
         self.memories.get(&id)
     }
 
     /// Get strong traces
+    #[inline]
     pub fn strong_traces(&self, min_strength: f64) -> Vec<&MemoryTrace> {
         self.traces
             .values()
@@ -467,6 +475,7 @@ impl ConsolidationEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ConsolidationStats {
         &self.stats
     }

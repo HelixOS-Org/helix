@@ -12,7 +12,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -146,6 +148,7 @@ pub struct RankedHypothesis {
 
 /// Aggregate hypothesis engine statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct HypothesisStats {
     pub total_generated: u64,
     pub total_confirmed: u64,
@@ -165,17 +168,17 @@ pub struct HypothesisStats {
 /// Tracks recent anomalies and detects recurring patterns
 #[derive(Debug)]
 struct AnomalyTracker {
-    anomalies: Vec<Anomaly>,
-    type_counts: BTreeMap<u64, u64>,
-    pattern_hashes: BTreeMap<u64, u32>,
+    anomalies: VecDeque<Anomaly>,
+    type_counts: LinearMap<u64, 64>,
+    pattern_hashes: LinearMap<u32, 64>,
 }
 
 impl AnomalyTracker {
     fn new() -> Self {
         Self {
-            anomalies: Vec::new(),
-            type_counts: BTreeMap::new(),
-            pattern_hashes: BTreeMap::new(),
+            anomalies: VecDeque::new(),
+            type_counts: LinearMap::new(),
+            pattern_hashes: LinearMap::new(),
         }
     }
 
@@ -188,9 +191,9 @@ impl AnomalyTracker {
         let freq = self.pattern_hashes.entry(pattern).or_insert(0);
         *freq += 1;
 
-        self.anomalies.push(anomaly);
+        self.anomalies.push_back(anomaly);
         if self.anomalies.len() > MAX_ANOMALIES {
-            self.anomalies.remove(0);
+            self.anomalies.pop_front();
         }
     }
 
@@ -212,6 +215,7 @@ impl AnomalyTracker {
 
 /// Autonomous hypothesis generation and lifecycle management
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeHypothesisEngine {
     hypotheses: BTreeMap<u64, Hypothesis>,
     anomaly_tracker: AnomalyTracker,
@@ -397,6 +401,7 @@ impl BridgeHypothesisEngine {
     }
 
     /// Compute testability score for a hypothesis
+    #[inline]
     pub fn testability_score(&self, hypothesis_id: u64) -> f32 {
         self.hypotheses
             .get(&hypothesis_id)
@@ -485,6 +490,7 @@ impl BridgeHypothesisEngine {
     }
 
     /// Set test criteria for a hypothesis
+    #[inline]
     pub fn set_test_criteria(&mut self, hypothesis_id: u64, criteria: TestCriteria) -> bool {
         if let Some(h) = self.hypotheses.get_mut(&hypothesis_id) {
             h.test_criteria = Some(criteria);
@@ -495,11 +501,13 @@ impl BridgeHypothesisEngine {
     }
 
     /// Get a hypothesis by ID
+    #[inline(always)]
     pub fn get_hypothesis(&self, hypothesis_id: u64) -> Option<&Hypothesis> {
         self.hypotheses.get(&hypothesis_id)
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> HypothesisStats {
         self.stats
     }

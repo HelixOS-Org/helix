@@ -83,15 +83,19 @@ impl RaftNode {
         }
     }
 
+    #[inline(always)]
     pub fn last_idx(&self) -> u64 { self.log.last().map(|e| e.index).unwrap_or(self.snap_last_idx) }
+    #[inline(always)]
     pub fn last_term(&self) -> u64 { self.log.last().map(|e| e.term).unwrap_or(self.snap_last_term) }
 
+    #[inline]
     pub fn append(&mut self, hash: u64, sz: u32, ts: u64) -> u64 {
         let idx = self.last_idx() + 1;
         self.log.push(RaftLogEntry { index: idx, term: self.term, data_hash: hash, size: sz, ts, committed: false });
         idx
     }
 
+    #[inline]
     pub fn start_election(&mut self, ts: u64) {
         self.term += 1;
         self.role = RaftRole::Candidate;
@@ -100,6 +104,7 @@ impl RaftNode {
         self.last_hb = ts;
     }
 
+    #[inline]
     pub fn become_leader(&mut self) {
         self.role = RaftRole::Leader;
         self.leader = Some(self.id);
@@ -107,6 +112,7 @@ impl RaftNode {
         for p in self.peers.values_mut() { p.next_idx = last + 1; p.match_idx = 0; }
     }
 
+    #[inline]
     pub fn step_down(&mut self, term: u64, leader: Option<u64>) {
         self.role = RaftRole::Follower;
         self.term = term;
@@ -115,6 +121,7 @@ impl RaftNode {
         self.leader = leader;
     }
 
+    #[inline]
     pub fn compact(&mut self, through: u64) {
         if let Some(e) = self.log.iter().find(|e| e.index == through) {
             self.snap_last_idx = e.index;
@@ -138,12 +145,15 @@ impl RaftNode {
         }
     }
 
+    #[inline(always)]
     pub fn is_leader(&self) -> bool { self.role == RaftRole::Leader }
+    #[inline(always)]
     pub fn quorum(&self) -> usize { (self.peers.len() + 1) / 2 + 1 }
 }
 
 /// Stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopRaftStats {
     pub nodes: usize,
     pub leaders: usize,
@@ -161,20 +171,24 @@ pub struct CoopRaftEngine {
 impl CoopRaftEngine {
     pub fn new() -> Self { Self { nodes: BTreeMap::new(), stats: CoopRaftStats::default() } }
 
+    #[inline(always)]
     pub fn add_node(&mut self, id: u64, timeout: u64) {
         self.nodes.entry(id).or_insert_with(|| RaftNode::new(id, timeout));
     }
 
+    #[inline(always)]
     pub fn add_peer(&mut self, node: u64, peer: u64) {
         if let Some(n) = self.nodes.get_mut(&node) { n.peers.entry(peer).or_insert_with(|| RaftPeer::new(peer)); }
     }
 
+    #[inline]
     pub fn propose(&mut self, node: u64, hash: u64, sz: u32, ts: u64) -> Option<u64> {
         let n = self.nodes.get_mut(&node)?;
         if !n.is_leader() { return None; }
         Some(n.append(hash, sz, ts))
     }
 
+    #[inline]
     pub fn tick(&mut self, node: u64, ts: u64) {
         if let Some(n) = self.nodes.get_mut(&node) {
             if n.role != RaftRole::Leader && ts.saturating_sub(n.last_hb) >= n.election_timeout {
@@ -183,6 +197,7 @@ impl CoopRaftEngine {
         }
     }
 
+    #[inline]
     pub fn vote(&mut self, node: u64, voter: u64, term: u64, granted: bool) {
         if let Some(n) = self.nodes.get_mut(&node) {
             if n.role != RaftRole::Candidate { return; }
@@ -191,8 +206,10 @@ impl CoopRaftEngine {
         }
     }
 
+    #[inline(always)]
     pub fn commit(&mut self, node: u64) { if let Some(n) = self.nodes.get_mut(&node) { n.try_commit(); } }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.nodes = self.nodes.len();
         self.stats.leaders = self.nodes.values().filter(|n| n.is_leader()).count();
@@ -201,6 +218,8 @@ impl CoopRaftEngine {
         self.stats.max_term = self.nodes.values().map(|n| n.term).max().unwrap_or(0);
     }
 
+    #[inline(always)]
     pub fn node(&self, id: u64) -> Option<&RaftNode> { self.nodes.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &CoopRaftStats { &self.stats }
 }

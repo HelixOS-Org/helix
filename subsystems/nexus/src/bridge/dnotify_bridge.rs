@@ -19,9 +19,13 @@ impl DnotifyMask {
     pub const ATTRIB: u32 = 1 << 5;
 
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn all() -> Self { Self(0x3F) }
+    #[inline(always)]
     pub fn set(&mut self, flag: u32) { self.0 |= flag; }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.0 & flag != 0 }
+    #[inline(always)]
     pub fn matches(&self, event: u32) -> bool { self.0 & event != 0 }
 }
 
@@ -43,6 +47,7 @@ impl DnotifyWatch {
         Self { id, dir_fd: fd, dir_inode: inode, mask, owner_pid: pid, signal: 29, events_delivered: 0, created_at: now }
     }
 
+    #[inline(always)]
     pub fn deliver(&mut self, event_mask: u32) -> bool {
         if self.mask.matches(event_mask) { self.events_delivered += 1; true } else { false }
     }
@@ -59,6 +64,7 @@ pub struct DnotifyEvent {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DnotifyBridgeStats {
     pub total_watches: u32,
     pub total_events: u64,
@@ -67,6 +73,7 @@ pub struct DnotifyBridgeStats {
 }
 
 /// Main dnotify bridge
+#[repr(align(64))]
 pub struct BridgeDnotify {
     watches: BTreeMap<u64, DnotifyWatch>,
     events: Vec<DnotifyEvent>,
@@ -77,12 +84,14 @@ pub struct BridgeDnotify {
 impl BridgeDnotify {
     pub fn new() -> Self { Self { watches: BTreeMap::new(), events: Vec::new(), next_id: 1, max_events: 4096 } }
 
+    #[inline]
     pub fn add_watch(&mut self, fd: i32, inode: u64, mask: DnotifyMask, pid: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.watches.insert(id, DnotifyWatch::new(id, fd, inode, mask, pid, now));
         id
     }
 
+    #[inline(always)]
     pub fn remove_watch(&mut self, id: u64) { self.watches.remove(&id); }
 
     pub fn notify(&mut self, inode: u64, event_mask: u32, filename_hash: u64, now: u64) {
@@ -98,6 +107,7 @@ impl BridgeDnotify {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> DnotifyBridgeStats {
         let dirs: u32 = {
             let mut inodes = Vec::new();

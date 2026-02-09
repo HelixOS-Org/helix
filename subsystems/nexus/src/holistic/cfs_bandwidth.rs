@@ -34,17 +34,20 @@ impl CfsBwGroup {
         Self { id, quota_ns, period_ns, runtime_remaining: quota_ns, state: CfsBwState::Running, nr_throttled: 0, throttled_time_ns: 0, nr_periods: 0, nr_burst: 0, burst_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn consume(&mut self, ns: u64) {
         if ns >= self.runtime_remaining { self.runtime_remaining = 0; self.state = CfsBwState::Throttled; self.nr_throttled += 1; }
         else { self.runtime_remaining -= ns; }
     }
 
+    #[inline]
     pub fn refill(&mut self) {
         self.runtime_remaining = self.quota_ns;
         self.nr_periods += 1;
         if self.state == CfsBwState::Throttled { self.state = CfsBwState::Running; }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.quota_ns == 0 { 0.0 } else { 1.0 - self.runtime_remaining as f64 / self.quota_ns as f64 }
     }
@@ -52,6 +55,7 @@ impl CfsBwGroup {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CfsBandwidthStats {
     pub total_groups: u32,
     pub throttled_groups: u32,
@@ -68,12 +72,16 @@ pub struct HolisticCfsBandwidth {
 impl HolisticCfsBandwidth {
     pub fn new() -> Self { Self { groups: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn add_group(&mut self, id: u64, quota_ns: u64, period_ns: u64) { self.groups.insert(id, CfsBwGroup::new(id, quota_ns, period_ns)); }
 
+    #[inline(always)]
     pub fn consume(&mut self, id: u64, ns: u64) { if let Some(g) = self.groups.get_mut(&id) { g.consume(ns); } }
 
+    #[inline(always)]
     pub fn tick(&mut self) { for g in self.groups.values_mut() { g.refill(); } }
 
+    #[inline]
     pub fn stats(&self) -> CfsBandwidthStats {
         let throttled = self.groups.values().filter(|g| g.state == CfsBwState::Throttled).count() as u32;
         let events: u64 = self.groups.values().map(|g| g.nr_throttled).sum();
@@ -114,6 +122,7 @@ impl CfsBwV2Group {
         Self { id, quota_us: quota, period_us: period, runtime_us: 0, state: CfsBwV2State::Active, nr_throttled: 0, throttled_time_us: 0, nr_periods: 0, burst_us: 0 }
     }
 
+    #[inline]
     pub fn consume(&mut self, us: u64) {
         self.runtime_us += us;
         if self.runtime_us >= self.quota_us + self.burst_us {
@@ -122,6 +131,7 @@ impl CfsBwV2Group {
         }
     }
 
+    #[inline]
     pub fn reset_period(&mut self) {
         if self.state == CfsBwV2State::Throttled {
             self.throttled_time_us += self.runtime_us.saturating_sub(self.quota_us);
@@ -131,6 +141,7 @@ impl CfsBwV2Group {
         self.nr_periods += 1;
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.quota_us == 0 { return 0.0; }
         self.runtime_us as f64 / self.quota_us as f64
@@ -139,6 +150,7 @@ impl CfsBwV2Group {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CfsBwV2Stats {
     pub total_groups: u32,
     pub throttled: u32,
@@ -155,22 +167,27 @@ pub struct HolisticCfsBandwidthV2 {
 impl HolisticCfsBandwidthV2 {
     pub fn new() -> Self { Self { groups: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, quota: u64, period: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.groups.insert(id, CfsBwV2Group::new(id, quota, period));
         id
     }
 
+    #[inline(always)]
     pub fn consume(&mut self, id: u64, us: u64) {
         if let Some(g) = self.groups.get_mut(&id) { g.consume(us); }
     }
 
+    #[inline(always)]
     pub fn tick_period(&mut self) {
         for g in self.groups.values_mut() { g.reset_period(); }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, id: u64) { self.groups.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> CfsBwV2Stats {
         let throttled = self.groups.values().filter(|g| g.state == CfsBwV2State::Throttled).count() as u32;
         let tot_throt: u64 = self.groups.values().map(|g| g.nr_throttled).sum();

@@ -40,6 +40,7 @@ pub struct ShutdownRecord {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketShutdownState {
     pub fd: u64,
     pub read_shut: bool,
@@ -59,6 +60,7 @@ impl SocketShutdownState {
         }
     }
 
+    #[inline]
     pub fn shutdown(&mut self, how: ShutdownHow) {
         match how {
             ShutdownHow::Read => self.read_shut = true,
@@ -70,11 +72,14 @@ impl SocketShutdownState {
         }
     }
 
+    #[inline(always)]
     pub fn is_fully_shut(&self) -> bool { self.read_shut && self.write_shut }
+    #[inline(always)]
     pub fn is_half_shut(&self) -> bool { self.read_shut ^ self.write_shut }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ShutdownAppStats {
     pub total_shutdowns: u64,
     pub read_shutdowns: u64,
@@ -103,6 +108,7 @@ impl AppShutdown {
         }
     }
 
+    #[inline(always)]
     pub fn register_socket(&mut self, fd: u64) {
         self.sockets.insert(fd, SocketShutdownState::new(fd));
     }
@@ -128,6 +134,7 @@ impl AppShutdown {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ShutdownAppStats { &self.stats }
 }
 
@@ -152,6 +159,7 @@ impl ShutdownV2Request {
 
 /// Shutdown v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ShutdownV2AppStats { pub total_shutdowns: u64, pub reads_shut: u64, pub writes_shut: u64, pub both_shut: u64 }
 
 /// Main app shutdown v2
@@ -160,6 +168,7 @@ pub struct AppShutdownV2 { pub stats: ShutdownV2AppStats }
 
 impl AppShutdownV2 {
     pub fn new() -> Self { Self { stats: ShutdownV2AppStats { total_shutdowns: 0, reads_shut: 0, writes_shut: 0, both_shut: 0 } } }
+    #[inline]
     pub fn shutdown(&mut self, req: &ShutdownV2Request) {
         self.stats.total_shutdowns += 1;
         match req.how {

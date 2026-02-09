@@ -32,6 +32,7 @@ impl SigqueueRecord {
 
 /// Sigqueue bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SigqueueBridgeStats {
     pub total_ops: u64,
     pub queued: u64,
@@ -50,6 +51,7 @@ impl BridgeSigqueue {
         Self { stats: SigqueueBridgeStats { total_ops: 0, queued: 0, queue_full: 0, denied: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SigqueueRecord) {
         self.stats.total_ops += 1;
         match rec.result {

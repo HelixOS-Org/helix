@@ -30,6 +30,7 @@ impl KeyringHolisticFinding {
         Self { metric, score: 0, total_keys: 0, expired_keys: 0, orphaned_keys: 0, quota_used_pct: 0 }
     }
 
+    #[inline]
     pub fn health_score(&self) -> f64 {
         if self.total_keys == 0 { return 1.0; }
         let healthy = self.total_keys.saturating_sub(self.expired_keys + self.orphaned_keys);
@@ -39,6 +40,7 @@ impl KeyringHolisticFinding {
 
 /// Keyring holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KeyringHolisticStats {
     pub total_analyses: u64,
     pub expiry_warnings: u64,
@@ -57,6 +59,7 @@ impl HolisticKeyring {
         Self { stats: KeyringHolisticStats { total_analyses: 0, expiry_warnings: 0, orphan_detections: 0, quota_alerts: 0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &KeyringHolisticFinding) {
         self.stats.total_analyses += 1;
         if finding.expired_keys > 0 { self.stats.expiry_warnings += 1; }

@@ -16,6 +16,7 @@ use crate::math;
 
 /// Cached file information
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CachedFileInfo {
     /// Inode
     pub inode: Inode,
@@ -36,6 +37,7 @@ pub struct CachedFileInfo {
 // ============================================================================
 
 /// Analyzes page cache usage
+#[repr(align(64))]
 pub struct PageCacheAnalyzer {
     /// Cached files
     cached_files: BTreeMap<Inode, CachedFileInfo>,
@@ -62,6 +64,7 @@ impl PageCacheAnalyzer {
     }
 
     /// Record cache hit
+    #[inline]
     pub fn record_hit(&mut self, inode: Inode) {
         self.hits.fetch_add(1, Ordering::Relaxed);
 
@@ -75,6 +78,7 @@ impl PageCacheAnalyzer {
     }
 
     /// Record cache miss
+    #[inline(always)]
     pub fn record_miss(&mut self, inode: Inode) {
         let _ = inode; // Used for tracking in more advanced implementations
         self.misses.fetch_add(1, Ordering::Relaxed);
@@ -97,6 +101,7 @@ impl PageCacheAnalyzer {
     }
 
     /// Remove from cache
+    #[inline]
     pub fn remove_from_cache(&mut self, inode: Inode) {
         if let Some(info) = self.cached_files.remove(&inode) {
             self.total_cache_size -= info.cached_pages as u64 * 4096;
@@ -120,6 +125,7 @@ impl PageCacheAnalyzer {
     }
 
     /// Get eviction candidates
+    #[inline]
     pub fn eviction_candidates(&self, count: usize) -> Vec<Inode> {
         let mut files: Vec<_> = self.cached_files.iter().collect();
         files.sort_by(|a, b| a.1.priority.partial_cmp(&b.1.priority).unwrap());
@@ -128,6 +134,7 @@ impl PageCacheAnalyzer {
     }
 
     /// Get cache hit rate
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let hits = self.hits.load(Ordering::Relaxed);
         let misses = self.misses.load(Ordering::Relaxed);
@@ -141,6 +148,7 @@ impl PageCacheAnalyzer {
     }
 
     /// Get cache fill ratio
+    #[inline]
     pub fn fill_ratio(&self) -> f64 {
         if self.cache_capacity == 0 {
             0.0
@@ -150,6 +158,7 @@ impl PageCacheAnalyzer {
     }
 
     /// Get hottest files in cache
+    #[inline]
     pub fn hottest_files(&self, n: usize) -> Vec<&CachedFileInfo> {
         let mut files: Vec<_> = self.cached_files.values().collect();
         files.sort_by(|a, b| b.priority.partial_cmp(&a.priority).unwrap());

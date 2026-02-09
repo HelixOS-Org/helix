@@ -69,17 +69,20 @@ impl Observation {
     }
 
     /// Set a value
+    #[inline(always)]
     pub fn set(&mut self, var: VarId, value: f64) -> &mut Self {
         self.values.insert(var, value);
         self
     }
 
     /// Get a value
+    #[inline(always)]
     pub fn get(&self, var: VarId) -> Option<f64> {
         self.values.get(&var).copied()
     }
 
     /// Check if has variable
+    #[inline(always)]
     pub fn has(&self, var: VarId) -> bool {
         self.values.contains_key(&var)
     }
@@ -113,6 +116,7 @@ impl Dataset {
     }
 
     /// Add observation
+    #[inline]
     pub fn add(&mut self, obs: Observation) {
         for &var in obs.values.keys() {
             self.variables.insert(var);
@@ -121,31 +125,37 @@ impl Dataset {
     }
 
     /// Set variable name
+    #[inline(always)]
     pub fn set_var_name(&mut self, var: VarId, name: String) {
         self.var_names.insert(var, name);
     }
 
     /// Get variable name
+    #[inline(always)]
     pub fn get_var_name(&self, var: VarId) -> Option<&String> {
         self.var_names.get(&var)
     }
 
     /// Get all variables
+    #[inline(always)]
     pub fn variables(&self) -> &BTreeSet<VarId> {
         &self.variables
     }
 
     /// Get sample count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.observations.len()
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.observations.is_empty()
     }
 
     /// Get values for a variable
+    #[inline]
     pub fn get_values(&self, var: VarId) -> Vec<f64> {
         self.observations
             .iter()
@@ -168,6 +178,7 @@ impl Dataset {
     }
 
     /// Calculate mean for variable
+    #[inline]
     pub fn mean(&self, var: VarId) -> Option<f64> {
         let values = self.get_values(var);
         if values.is_empty() {
@@ -177,6 +188,7 @@ impl Dataset {
     }
 
     /// Calculate variance for variable
+    #[inline]
     pub fn variance(&self, var: VarId) -> Option<f64> {
         let values = self.get_values(var);
         if values.len() < 2 {
@@ -213,6 +225,7 @@ impl Dataset {
     }
 
     /// Calculate Pearson correlation
+    #[inline]
     pub fn correlation(&self, x: VarId, y: VarId) -> Option<f64> {
         let cov = self.covariance(x, y)?;
         let var_x = self.variance(x)?;
@@ -280,12 +293,14 @@ impl IndependenceTester {
     }
 
     /// Set test type
+    #[inline(always)]
     pub fn with_test(mut self, test_type: IndependenceTest) -> Self {
         self.test_type = test_type;
         self
     }
 
     /// Test if X and Y are conditionally independent given Z
+    #[inline]
     pub fn test(
         &self,
         data: &Dataset,
@@ -581,11 +596,13 @@ impl PCResult {
     }
 
     /// Check if there's an edge between x and y
+    #[inline(always)]
     pub fn has_edge(&self, x: VarId, y: VarId) -> bool {
         self.skeleton.contains(&SkeletonEdge::new(x, y))
     }
 
     /// Check if x -> y is oriented
+    #[inline(always)]
     pub fn is_directed(&self, from: VarId, to: VarId) -> bool {
         self.oriented.contains(&(from, to))
     }
@@ -607,6 +624,7 @@ impl PCResult {
     }
 
     /// Get parents of a variable (oriented edges pointing to it)
+    #[inline]
     pub fn parents(&self, x: VarId) -> Vec<VarId> {
         self.oriented
             .iter()
@@ -615,6 +633,7 @@ impl PCResult {
     }
 
     /// Get children of a variable
+    #[inline]
     pub fn children(&self, x: VarId) -> Vec<VarId> {
         self.oriented
             .iter()
@@ -644,6 +663,7 @@ impl PCAlgorithm {
     }
 
     /// Set maximum conditioning size
+    #[inline(always)]
     pub fn with_max_cond_size(mut self, size: usize) -> Self {
         self.max_cond_size = size;
         self
@@ -1210,6 +1230,7 @@ impl<'a> DoCalculus<'a> {
 
 /// A counterfactual query
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualQuery {
     /// What we observed (evidence)
     pub evidence: Observation,
@@ -1221,6 +1242,7 @@ pub struct CounterfactualQuery {
 
 /// Counterfactual result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualResult {
     /// Query
     pub query: CounterfactualQuery,
@@ -1233,6 +1255,7 @@ pub struct CounterfactualResult {
 }
 
 /// Counterfactual reasoner
+#[repr(align(64))]
 pub struct CounterfactualReasoner<'a> {
     /// Causal graph
     graph: &'a PCResult,

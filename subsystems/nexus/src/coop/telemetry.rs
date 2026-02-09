@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -59,6 +60,7 @@ pub enum SamplingDecision {
 
 /// Trace context (W3C-like)
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct TraceContext {
     /// Trace ID (high bits)
     pub trace_id_high: u64,
@@ -88,7 +90,7 @@ pub struct TraceSpan {
     /// Status
     pub status: SpanStatus,
     /// Attributes
-    pub attributes: BTreeMap<u64, u64>,
+    pub attributes: LinearMap<u64, 64>,
     /// Events count
     pub events: u32,
 }
@@ -102,18 +104,20 @@ impl TraceSpan {
             start_ns: now,
             end_ns: 0,
             status: SpanStatus::Unset,
-            attributes: BTreeMap::new(),
+            attributes: LinearMap::new(),
             events: 0,
         }
     }
 
     /// End span
+    #[inline(always)]
     pub fn end(&mut self, status: SpanStatus, now: u64) {
         self.end_ns = now;
         self.status = status;
     }
 
     /// Duration (ns)
+    #[inline]
     pub fn duration_ns(&self) -> u64 {
         if self.end_ns == 0 {
             return 0;
@@ -122,11 +126,13 @@ impl TraceSpan {
     }
 
     /// Is root span
+    #[inline(always)]
     pub fn is_root(&self) -> bool {
         self.context.parent_span_id == 0
     }
 
     /// Set attribute
+    #[inline(always)]
     pub fn set_attribute(&mut self, key_hash: u64, value: u64) {
         self.attributes.insert(key_hash, value);
     }
@@ -138,6 +144,7 @@ impl TraceSpan {
 
 /// Metric data point
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricPoint {
     /// Metric name hash (FNV-1a)
     pub name_hash: u64,
@@ -148,11 +155,12 @@ pub struct MetricPoint {
     /// Timestamp (ns)
     pub timestamp_ns: u64,
     /// Labels (key_hash -> value_hash)
-    pub labels: BTreeMap<u64, u64>,
+    pub labels: LinearMap<u64, 64>,
 }
 
 /// Metric aggregation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricAggregation {
     /// Name hash
     pub name_hash: u64,
@@ -169,7 +177,7 @@ pub struct MetricAggregation {
     /// EMA
     pub ema: f64,
     /// Histogram buckets (boundary -> count)
-    pub buckets: BTreeMap<u64, u64>,
+    pub buckets: LinearMap<u64, 64>,
 }
 
 impl MetricAggregation {
@@ -182,11 +190,12 @@ impl MetricAggregation {
             min: f64::MAX,
             max: f64::MIN,
             ema: 0.0,
-            buckets: BTreeMap::new(),
+            buckets: LinearMap::new(),
         }
     }
 
     /// Record value
+    #[inline]
     pub fn record(&mut self, value: f64) {
         self.count += 1;
         self.sum += value;
@@ -202,11 +211,12 @@ impl MetricAggregation {
         if self.kind == MetricKind::Histogram {
             let bucket = if value <= 0.0 { 0 } else { value as u64 };
             let bucket_key = bucket.next_power_of_two();
-            *self.buckets.entry(bucket_key).or_insert(0) += 1;
+            self.buckets.add(bucket_key, 1);
         }
     }
 
     /// Mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.count == 0 {
             return 0.0;
@@ -293,6 +303,7 @@ impl AdaptiveSampler {
 
 /// Telemetry V2 stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopTelemetryV2Stats {
     /// Active spans
     pub active_spans: usize,
@@ -372,6 +383,7 @@ impl CoopTelemetryV2 {
     }
 
     /// End span
+    #[inline]
     pub fn end_span(&mut self, span_id: u64, status: SpanStatus, now: u64) {
         if let Some(span) = self.spans.get_mut(&span_id) {
             span.end(status, now);
@@ -380,6 +392,7 @@ impl CoopTelemetryV2 {
     }
 
     /// Record metric
+    #[inline]
     pub fn record_metric(&mut self, name: &str, kind: MetricKind, value: f64, _now: u64) {
         let mut hash: u64 = 0xcbf29ce484222325;
         for b in name.as_bytes() {
@@ -393,6 +406,7 @@ impl CoopTelemetryV2 {
     }
 
     /// Cleanup completed spans
+    #[inline(always)]
     pub fn cleanup_completed(&mut self) {
         self.spans.retain(|_, s| s.end_ns == 0);
         self.update_stats();
@@ -405,6 +419,7 @@ impl CoopTelemetryV2 {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopTelemetryV2Stats {
         &self.stats
     }

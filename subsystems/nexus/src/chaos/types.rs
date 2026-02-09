@@ -65,6 +65,7 @@ impl FaultType {
     }
 
     /// Is this fault potentially destructive?
+    #[inline(always)]
     pub fn is_destructive(&self) -> bool {
         matches!(self, Self::Panic | Self::Corruption | Self::Hang)
     }

@@ -84,11 +84,13 @@ impl VmaProxyEntry {
     }
 
     /// Size in bytes
+    #[inline(always)]
     pub fn size(&self) -> u64 {
         self.end.saturating_sub(self.start)
     }
 
     /// Can merge with adjacent VMA?
+    #[inline]
     pub fn can_merge_with(&self, other: &VmaProxyEntry) -> bool {
         self.prot == other.prot
             && self.anonymous == other.anonymous
@@ -97,6 +99,7 @@ impl VmaProxyEntry {
     }
 
     /// Fault rate (faults per access)
+    #[inline]
     pub fn fault_rate(&self) -> f64 {
         if self.accesses == 0 {
             return 0.0;
@@ -107,6 +110,7 @@ impl VmaProxyEntry {
 
 /// Memory operation record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MemOpRecord {
     /// Operation
     pub op: MemOp,
@@ -137,6 +141,7 @@ pub struct ThpRecommendation {
 
 /// Per-process memory proxy
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessMemProxy {
     /// PID
     pub pid: u64,
@@ -170,6 +175,7 @@ impl ProcessMemProxy {
     }
 
     /// Record mmap
+    #[inline]
     pub fn record_mmap(&mut self, start: u64, size: u64, prot: u8, now_ns: u64) {
         let end = start + size;
         let vma = VmaProxyEntry::new(start, end, prot, now_ns);
@@ -180,6 +186,7 @@ impl ProcessMemProxy {
     }
 
     /// Record munmap
+    #[inline]
     pub fn record_munmap(&mut self, start: u64, size: u64, now_ns: u64) {
         self.vmas.remove(&start);
         self.total_mapped = self.total_mapped.saturating_sub(size);
@@ -188,6 +195,7 @@ impl ProcessMemProxy {
     }
 
     /// Record page fault on VMA
+    #[inline]
     pub fn record_fault(&mut self, address: u64, now_ns: u64) {
         // Find containing VMA
         for vma in self.vmas.values_mut() {
@@ -213,6 +221,7 @@ impl ProcessMemProxy {
     }
 
     /// Find merge opportunities
+    #[inline]
     pub fn merge_opportunities(&self) -> Vec<(u64, u64)> {
         let mut opportunities = Vec::new();
         let vma_list: Vec<&VmaProxyEntry> = self.vmas.values().collect();
@@ -241,6 +250,7 @@ impl ProcessMemProxy {
     }
 
     /// VMA count
+    #[inline(always)]
     pub fn vma_count(&self) -> usize {
         self.vmas.len()
     }
@@ -248,6 +258,7 @@ impl ProcessMemProxy {
 
 /// Memory proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeMemoryProxyStats {
     pub tracked_processes: usize,
     pub total_vmas: usize,
@@ -257,6 +268,7 @@ pub struct BridgeMemoryProxyStats {
 }
 
 /// Bridge memory proxy
+#[repr(align(64))]
 pub struct BridgeMemoryProxy {
     /// Per-process proxies
     processes: BTreeMap<u64, ProcessMemProxy>,
@@ -273,17 +285,20 @@ impl BridgeMemoryProxy {
     }
 
     /// Get or create process proxy
+    #[inline(always)]
     pub fn get_process(&mut self, pid: u64) -> &mut ProcessMemProxy {
         self.processes.entry(pid).or_insert_with(|| ProcessMemProxy::new(pid))
     }
 
     /// Record mmap
+    #[inline(always)]
     pub fn record_mmap(&mut self, pid: u64, start: u64, size: u64, prot: u8, now_ns: u64) {
         self.get_process(pid).record_mmap(start, size, prot, now_ns);
         self.update_stats();
     }
 
     /// Record munmap
+    #[inline]
     pub fn record_munmap(&mut self, pid: u64, start: u64, size: u64, now_ns: u64) {
         if let Some(proc_proxy) = self.processes.get_mut(&pid) {
             proc_proxy.record_munmap(start, size, now_ns);
@@ -303,6 +318,7 @@ impl BridgeMemoryProxy {
             .sum();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeMemoryProxyStats {
         &self.stats
     }

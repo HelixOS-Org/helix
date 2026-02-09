@@ -23,6 +23,7 @@ pub enum HugePageSize {
 }
 
 impl HugePageSize {
+    #[inline]
     pub fn bytes(&self) -> u64 {
         match self {
             Self::Size2M => 2 * 1024 * 1024,
@@ -33,10 +34,12 @@ impl HugePageSize {
         }
     }
 
+    #[inline(always)]
     pub fn small_pages(&self) -> u64 {
         self.bytes() / 4096
     }
 
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Size2M => "2M",
@@ -63,6 +66,7 @@ pub enum ReservationState {
 
 /// A huge page pool for a given size
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct HugePagePool {
     pub size: HugePageSize,
     pub total_pages: u64,
@@ -90,24 +94,29 @@ impl HugePagePool {
         }
     }
 
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.free_pages.saturating_sub(self.reserved_pages)
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total_pages == 0 { return 0.0; }
         let used = self.total_pages.saturating_sub(self.free_pages);
         used as f64 / self.total_pages as f64
     }
 
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.total_pages * self.size.bytes()
     }
 
+    #[inline(always)]
     pub fn free_bytes(&self) -> u64 {
         self.free_pages * self.size.bytes()
     }
 
+    #[inline(always)]
     pub fn can_allocate(&self, count: u64) -> bool {
         self.available() >= count || self.surplus_pages + count <= self.max_surplus
     }
@@ -130,6 +139,7 @@ impl HugePagePool {
         allocated
     }
 
+    #[inline]
     pub fn release(&mut self, count: u64) {
         let release_surplus = count.min(self.surplus_pages);
         let release_normal = count.saturating_sub(release_surplus);
@@ -140,6 +150,7 @@ impl HugePagePool {
         self.free_count += count;
     }
 
+    #[inline]
     pub fn failure_rate(&self) -> f64 {
         let total = self.alloc_count + self.alloc_failures;
         if total == 0 { return 0.0; }
@@ -183,6 +194,7 @@ impl ProcessReservation {
         true
     }
 
+    #[inline(always)]
     pub fn fulfillment_ratio(&self) -> f64 {
         if self.reserved == 0 { return 1.0; }
         self.allocated as f64 / self.reserved as f64
@@ -208,10 +220,12 @@ pub struct HugetlbCgroupLimit {
 }
 
 impl HugetlbCgroupLimit {
+    #[inline(always)]
     pub fn remaining(&self) -> u64 {
         self.limit_pages.saturating_sub(self.current_pages)
     }
 
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
         if self.limit_pages == 0 { return 0.0; }
         self.current_pages as f64 / self.limit_pages as f64
@@ -220,6 +234,7 @@ impl HugetlbCgroupLimit {
 
 /// Hugetlb bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HugetlbStats {
     pub total_huge_bytes: u64,
     pub free_huge_bytes: u64,
@@ -231,6 +246,7 @@ pub struct HugetlbStats {
 }
 
 /// Main hugetlb bridge manager
+#[repr(align(64))]
 pub struct BridgeHugetlb {
     pools: BTreeMap<u8, HugePagePool>,
     reservations: Vec<ProcessReservation>,
@@ -268,6 +284,7 @@ impl BridgeHugetlb {
         }
     }
 
+    #[inline]
     pub fn init_pool(&mut self, size: HugePageSize, count: u64) {
         let pool = HugePagePool::new(size, count);
         self.stats.total_huge_bytes += pool.total_bytes();
@@ -354,6 +371,7 @@ impl BridgeHugetlb {
         }
     }
 
+    #[inline]
     pub fn fulfill_reservation(&mut self, pid: u64, size: HugePageSize) -> bool {
         for res in &mut self.reservations {
             if res.pid == pid && res.size == size && res.state != ReservationState::Fulfilled {
@@ -384,16 +402,19 @@ impl BridgeHugetlb {
         });
     }
 
+    #[inline]
     pub fn pool_info(&self, size: HugePageSize) -> Option<(u64, u64, f64)> {
         self.pools.get(&Self::size_key(size)).map(|p| {
             (p.total_pages, p.free_pages, p.utilization())
         })
     }
 
+    #[inline(always)]
     pub fn total_reserved_bytes(&self) -> u64 {
         self.reservations.iter().map(|r| r.reserved * r.size.bytes()).sum()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HugetlbStats {
         &self.stats
     }

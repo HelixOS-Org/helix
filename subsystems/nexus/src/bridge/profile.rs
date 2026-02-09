@@ -4,7 +4,9 @@
 //! resource usage, and I/O characteristics. Builds rich profiles
 //! that drive optimization decisions.
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -39,6 +41,7 @@ pub enum AppClass {
 
 impl AppClass {
     /// Whether this class benefits from syscall prediction
+    #[inline]
     pub fn benefits_from_prediction(&self) -> bool {
         matches!(
             self,
@@ -47,6 +50,7 @@ impl AppClass {
     }
 
     /// Whether this class benefits from batching
+    #[inline]
     pub fn benefits_from_batching(&self) -> bool {
         matches!(
             self,
@@ -55,6 +59,7 @@ impl AppClass {
     }
 
     /// Whether this class is latency-sensitive
+    #[inline(always)]
     pub fn is_latency_sensitive(&self) -> bool {
         matches!(self, Self::Interactive | Self::RealTime)
     }
@@ -66,6 +71,7 @@ impl AppClass {
 
 /// Observed resource usage pattern
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ResourceUsagePattern {
     /// Average CPU usage (0.0 - 1.0)
     pub avg_cpu: f64,
@@ -135,9 +141,10 @@ impl ResourceUsagePattern {
 
 /// Detailed behavior observations for a process
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppBehavior {
     /// Syscall type frequency distribution
-    pub syscall_freq: BTreeMap<u64, u64>,
+    pub syscall_freq: LinearMap<u64, 64>,
     /// Total syscalls observed
     pub total_syscalls: u64,
     /// Average data size per I/O syscall
@@ -163,7 +170,7 @@ pub struct AppBehavior {
 impl AppBehavior {
     pub fn new() -> Self {
         Self {
-            syscall_freq: BTreeMap::new(),
+            syscall_freq: LinearMap::new(),
             total_syscalls: 0,
             avg_io_size: 0,
             sequential_reads: false,
@@ -193,6 +200,7 @@ impl AppBehavior {
     }
 
     /// I/O ratio (fraction of syscalls that are I/O)
+    #[inline]
     pub fn io_ratio(&self) -> f64 {
         let io_types = [0u64, 1, 2, 3, 8, 4, 78, 74, 16]; // read, write, open, close, seek, stat, readdir, fsync, ioctl
         let io_count: u64 = io_types
@@ -203,6 +211,7 @@ impl AppBehavior {
     }
 
     /// Network ratio
+    #[inline]
     pub fn network_ratio(&self) -> f64 {
         let net_types = [41u64, 49, 50, 43, 42, 44, 45]; // socket, bind, listen, accept, connect, send, recv
         let net_count: u64 = net_types
@@ -213,6 +222,7 @@ impl AppBehavior {
     }
 
     /// Memory ratio
+    #[inline]
     pub fn memory_ratio(&self) -> f64 {
         let mem_types = [9u64, 11, 10, 12]; // mmap, munmap, mprotect, brk
         let mem_count: u64 = mem_types
@@ -266,9 +276,10 @@ pub struct ProfileRecommendation {
 // ============================================================================
 
 /// The profiler — observes syscall patterns and builds application profiles.
+#[repr(align(64))]
 pub struct AppProfiler {
     /// Syscall type observations
-    syscall_counts: BTreeMap<u64, u64>,
+    syscall_counts: LinearMap<u64, 64>,
     /// Total syscalls observed
     total_syscalls: u64,
     /// Total I/O data size
@@ -276,7 +287,7 @@ pub struct AppProfiler {
     /// I/O syscall count (for average size)
     io_syscall_count: u64,
     /// Recent syscall types (for sequence detection)
-    recent_types: Vec<SyscallType>,
+    recent_types: VecDeque<SyscallType>,
     /// Max recent history
     max_recent: usize,
     /// Last syscall timestamp
@@ -289,7 +300,7 @@ impl AppProfiler {
     /// Create a new profiler
     pub fn new(max_recent: usize) -> Self {
         Self {
-            syscall_counts: BTreeMap::new(),
+            syscall_counts: LinearMap::new(),
             total_syscalls: 0,
             total_io_bytes: 0,
             io_syscall_count: 0,
@@ -303,7 +314,7 @@ impl AppProfiler {
     /// Record a syscall observation
     pub fn record_syscall(&mut self, syscall_type: SyscallType, data_size: usize) {
         let key = syscall_type.from_number_reverse_pub();
-        *self.syscall_counts.entry(key).or_insert(0) += 1;
+        self.syscall_counts.add(key, 1);
         self.total_syscalls += 1;
 
         if syscall_type.is_io() {
@@ -313,12 +324,13 @@ impl AppProfiler {
 
         // Track recent types
         if self.recent_types.len() >= self.max_recent {
-            self.recent_types.remove(0);
+            self.recent_types.pop_front();
         }
-        self.recent_types.push(syscall_type);
+        self.recent_types.push_back(syscall_type);
     }
 
     /// Record a timestamp for inter-syscall timing
+    #[inline]
     pub fn record_timestamp(&mut self, timestamp: u64) {
         if self.last_timestamp > 0 && timestamp > self.last_timestamp {
             let delta = timestamp - self.last_timestamp;
@@ -377,7 +389,7 @@ impl AppProfiler {
         }
 
         // Detect mmap usage
-        behavior.uses_mmap = self.syscall_counts.get(&9).copied().unwrap_or(0) > 0;
+        behavior.uses_mmap = self.syscall_counts.get(9).copied().unwrap_or(0) > 0;
 
         // Inter-syscall timing
         if !self.inter_times.is_empty() {
@@ -512,6 +524,7 @@ impl AppProfiler {
     }
 
     /// Reset the profiler
+    #[inline]
     pub fn reset(&mut self) {
         self.syscall_counts.clear();
         self.total_syscalls = 0;

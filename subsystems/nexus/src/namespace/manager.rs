@@ -63,6 +63,7 @@ impl NamespaceManager {
     }
 
     /// Allocate namespace ID
+    #[inline(always)]
     pub fn allocate_id(&self) -> NamespaceId {
         NamespaceId::new(self.next_id.fetch_add(1, Ordering::Relaxed))
     }
@@ -148,26 +149,31 @@ impl NamespaceManager {
     }
 
     /// Get namespace
+    #[inline(always)]
     pub fn get_namespace(&self, id: NamespaceId) -> Option<&NamespaceInfo> {
         self.namespaces.get(&id)
     }
 
     /// Get namespace mutably
+    #[inline(always)]
     pub fn get_namespace_mut(&mut self, id: NamespaceId) -> Option<&mut NamespaceInfo> {
         self.namespaces.get_mut(&id)
     }
 
     /// Get user namespace info
+    #[inline(always)]
     pub fn get_user_ns(&self, id: NamespaceId) -> Option<&UserNamespaceInfo> {
         self.user_ns_info.get(&id)
     }
 
     /// Get PID namespace info
+    #[inline(always)]
     pub fn get_pid_ns(&self, id: NamespaceId) -> Option<&PidNamespaceInfo> {
         self.pid_ns_info.get(&id)
     }
 
     /// Get network namespace info
+    #[inline(always)]
     pub fn get_net_ns(&self, id: NamespaceId) -> Option<&NetNamespaceInfo> {
         self.net_ns_info.get(&id)
     }
@@ -210,6 +216,7 @@ impl NamespaceManager {
     }
 
     /// Get process namespaces
+    #[inline(always)]
     pub fn get_process_namespaces(
         &self,
         pid: ProcessId,
@@ -218,6 +225,7 @@ impl NamespaceManager {
     }
 
     /// Get namespaces by type
+    #[inline]
     pub fn get_by_type(&self, ns_type: NamespaceType) -> Vec<&NamespaceInfo> {
         self.by_type
             .get(&ns_type)
@@ -230,21 +238,25 @@ impl NamespaceManager {
     }
 
     /// Count namespaces by type
+    #[inline(always)]
     pub fn count_by_type(&self, ns_type: NamespaceType) -> usize {
         self.by_type.get(&ns_type).map(|v| v.len()).unwrap_or(0)
     }
 
     /// Get total namespaces
+    #[inline(always)]
     pub fn total_namespaces(&self) -> usize {
         self.namespaces.len()
     }
 
     /// Get total created
+    #[inline(always)]
     pub fn total_created(&self) -> u64 {
         self.total_created.load(Ordering::Relaxed)
     }
 
     /// Get total destroyed
+    #[inline(always)]
     pub fn total_destroyed(&self) -> u64 {
         self.total_destroyed.load(Ordering::Relaxed)
     }

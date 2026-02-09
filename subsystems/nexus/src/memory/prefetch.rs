@@ -143,6 +143,7 @@ impl PrefetchPredictor {
     }
 
     /// Get accuracy
+    #[inline]
     pub fn accuracy(&self) -> f64 {
         let hits = self.hits.load(Ordering::Relaxed);
         let misses = self.misses.load(Ordering::Relaxed);
@@ -155,6 +156,7 @@ impl PrefetchPredictor {
     }
 
     /// Get current pattern
+    #[inline(always)]
     pub fn current_pattern(&self) -> (AccessPattern, f64) {
         self.detector.detect_pattern()
     }

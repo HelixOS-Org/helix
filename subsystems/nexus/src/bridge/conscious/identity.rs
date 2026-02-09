@@ -114,6 +114,7 @@ pub enum EvolutionType {
 
 /// Aggregate identity statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct IdentityStats {
     pub capability_count: usize,
     pub nascent_count: usize,
@@ -134,6 +135,7 @@ pub struct IdentityStats {
 /// Bridge identity: what the bridge IS, what it CAN DO, and how it has
 /// evolved over time. Provides a stable fingerprint and version tracking.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeIdentity {
     /// Declared capabilities (keyed by FNV hash)
     capabilities: BTreeMap<u64, DeclaredCapability>,
@@ -240,6 +242,7 @@ impl BridgeIdentity {
     }
 
     /// Compute a fingerprint of all current capabilities
+    #[inline]
     pub fn capability_fingerprint(&mut self) -> u64 {
         if self.tick == self.fingerprint_tick && self.cached_fingerprint != 0 {
             return self.cached_fingerprint;
@@ -265,6 +268,7 @@ impl BridgeIdentity {
     }
 
     /// Full evolution history
+    #[inline(always)]
     pub fn evolution_history(&self) -> &[EvolutionEvent] {
         &self.evolution_log
     }
@@ -401,6 +405,7 @@ impl BridgeIdentity {
     }
 
     /// List all capabilities sorted by maturity (highest first)
+    #[inline]
     pub fn capability_roster(&self) -> Vec<(String, CapabilityMaturity, f32)> {
         let mut roster: Vec<(String, CapabilityMaturity, f32)> = self
             .capabilities

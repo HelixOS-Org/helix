@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -86,6 +87,7 @@ impl Default for RetryConfig {
 
 impl RetryConfig {
     /// Compute backoff for attempt N
+    #[inline]
     pub fn backoff_us(&self, attempt: u32) -> u64 {
         let mut delay = self.initial_backoff_us;
         for _ in 0..attempt {
@@ -165,6 +167,7 @@ impl SyscallFallbackChain {
         }
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: FallbackRule) {
         self.rules.push(rule);
         self.rules.sort_by(|a, b| b.priority.cmp(&a.priority));
@@ -195,6 +198,7 @@ impl SyscallFallbackChain {
 
 /// Retry state for in-progress fallback
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RetryState {
     /// Syscall number
     pub syscall_nr: u32,
@@ -251,6 +255,7 @@ pub struct EmulationEntry {
 }
 
 /// Emulation registry
+#[repr(align(64))]
 pub struct EmulationRegistry {
     /// Available emulations
     entries: BTreeMap<u32, EmulationEntry>,
@@ -266,10 +271,12 @@ impl EmulationRegistry {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, entry: EmulationEntry) {
         self.entries.insert(entry.syscall_nr, entry);
     }
 
+    #[inline]
     pub fn lookup(&mut self, syscall_nr: u32) -> Option<&EmulationEntry> {
         let entry = self.entries.get(&syscall_nr);
         if entry.is_some() {
@@ -278,6 +285,7 @@ impl EmulationRegistry {
         entry
     }
 
+    #[inline(always)]
     pub fn has_emulation(&self, syscall_nr: u32) -> bool {
         self.entries.contains_key(&syscall_nr)
     }
@@ -289,6 +297,7 @@ impl EmulationRegistry {
 
 /// Fallback statistics per syscall
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FallbackStats {
     /// Total fallback invocations
     pub total_invocations: u64,
@@ -334,6 +343,7 @@ pub enum FallbackAlertType {
 // ============================================================================
 
 /// Main fallback engine
+#[repr(align(64))]
 pub struct FallbackEngine {
     /// Per-syscall fallback chains
     chains: BTreeMap<u32, SyscallFallbackChain>,
@@ -344,7 +354,7 @@ pub struct FallbackEngine {
     /// Stats per syscall
     stats: BTreeMap<u32, FallbackStats>,
     /// Alerts
-    alerts: Vec<FallbackAlert>,
+    alerts: VecDeque<FallbackAlert>,
     /// Max alerts
     max_alerts: usize,
     /// Global fallback invocations
@@ -360,7 +370,7 @@ impl FallbackEngine {
             emulation: EmulationRegistry::new(),
             active_retries: BTreeMap::new(),
             stats: BTreeMap::new(),
-            alerts: Vec::new(),
+            alerts: VecDeque::new(),
             max_alerts: 200,
             total_fallbacks: 0,
             total_success: 0,
@@ -368,11 +378,13 @@ impl FallbackEngine {
     }
 
     /// Register fallback chain
+    #[inline(always)]
     pub fn register_chain(&mut self, chain: SyscallFallbackChain) {
         self.chains.insert(chain.syscall_nr, chain);
     }
 
     /// Register emulation
+    #[inline(always)]
     pub fn register_emulation(&mut self, entry: EmulationEntry) {
         self.emulation.register(entry);
     }
@@ -434,6 +446,7 @@ impl FallbackEngine {
     }
 
     /// Record fallback success
+    #[inline]
     pub fn record_success(&mut self, syscall_nr: u32, pid: u64) {
         self.total_success += 1;
         if let Some(stats) = self.stats.get_mut(&syscall_nr) {
@@ -443,6 +456,7 @@ impl FallbackEngine {
     }
 
     /// Record fallback failure
+    #[inline]
     pub fn record_failure(&mut self, syscall_nr: u32, pid: u64) {
         if let Some(stats) = self.stats.get_mut(&syscall_nr) {
             stats.failed += 1;
@@ -451,6 +465,7 @@ impl FallbackEngine {
     }
 
     /// Get success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.total_fallbacks == 0 {
             return 1.0;
@@ -459,19 +474,22 @@ impl FallbackEngine {
     }
 
     /// Get stats for syscall
+    #[inline(always)]
     pub fn stats(&self, syscall_nr: u32) -> Option<&FallbackStats> {
         self.stats.get(&syscall_nr)
     }
 
     /// Add alert
+    #[inline]
     pub fn add_alert(&mut self, alert: FallbackAlert) {
-        self.alerts.push(alert);
+        self.alerts.push_back(alert);
         if self.alerts.len() > self.max_alerts {
-            self.alerts.remove(0);
+            self.alerts.pop_front();
         }
     }
 
     /// Active retry count
+    #[inline(always)]
     pub fn active_retries(&self) -> usize {
         self.active_retries.len()
     }

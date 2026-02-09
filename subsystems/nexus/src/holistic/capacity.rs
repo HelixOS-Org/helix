@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -56,7 +57,7 @@ pub struct ResourceCapacity {
     /// Reserved (committed but not yet used)
     pub reserved: u64,
     /// Usage history (for trend analysis)
-    history: Vec<UsageSample>,
+    history: VecDeque<UsageSample>,
     /// Max history entries
     max_history: usize,
 }
@@ -77,17 +78,19 @@ impl ResourceCapacity {
             total,
             used: 0,
             reserved: 0,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1440, // 24 hours at 1-minute intervals
         }
     }
 
     /// Available capacity
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.total.saturating_sub(self.used).saturating_sub(self.reserved)
     }
 
     /// Utilization (0.0 - 1.0)
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total == 0 {
             return 0.0;
@@ -96,6 +99,7 @@ impl ResourceCapacity {
     }
 
     /// Committed ratio (used + reserved)
+    #[inline]
     pub fn committed_ratio(&self) -> f64 {
         if self.total == 0 {
             return 0.0;
@@ -104,6 +108,7 @@ impl ResourceCapacity {
     }
 
     /// Headroom (percent available)
+    #[inline]
     pub fn headroom(&self) -> f64 {
         if self.total == 0 {
             return 0.0;
@@ -112,14 +117,15 @@ impl ResourceCapacity {
     }
 
     /// Record usage sample
+    #[inline]
     pub fn record(&mut self, used: u64, timestamp: u64) {
         self.used = used;
-        self.history.push(UsageSample {
+        self.history.push_back(UsageSample {
             value: used,
             timestamp,
         });
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
@@ -165,6 +171,7 @@ impl ResourceCapacity {
     }
 
     /// Peak usage in history
+    #[inline]
     pub fn peak_usage(&self) -> u64 {
         self.history
             .iter()
@@ -174,6 +181,7 @@ impl ResourceCapacity {
     }
 
     /// Average usage
+    #[inline]
     pub fn avg_usage(&self) -> f64 {
         if self.history.is_empty() {
             return self.used as f64;
@@ -302,12 +310,14 @@ impl CapacityPlanner {
     }
 
     /// Add resource to track
+    #[inline(always)]
     pub fn add_resource(&mut self, resource: CapacityResource, total: u64) {
         self.resources
             .insert(resource as u8, ResourceCapacity::new(resource, total));
     }
 
     /// Update resource usage
+    #[inline]
     pub fn update(&mut self, resource: CapacityResource, used: u64, timestamp: u64) {
         if let Some(rc) = self.resources.get_mut(&(resource as u8)) {
             rc.record(used, timestamp);
@@ -315,6 +325,7 @@ impl CapacityPlanner {
     }
 
     /// Update reserved
+    #[inline]
     pub fn update_reserved(&mut self, resource: CapacityResource, reserved: u64) {
         if let Some(rc) = self.resources.get_mut(&(resource as u8)) {
             rc.reserved = reserved;
@@ -451,16 +462,19 @@ impl CapacityPlanner {
     }
 
     /// Get resource capacity
+    #[inline(always)]
     pub fn get_resource(&self, resource: CapacityResource) -> Option<&ResourceCapacity> {
         self.resources.get(&(resource as u8))
     }
 
     /// Resource count
+    #[inline(always)]
     pub fn resource_count(&self) -> usize {
         self.resources.len()
     }
 
     /// Get recommendations
+    #[inline(always)]
     pub fn recommendations(&self) -> &[ScalingRecommendation] {
         &self.recommendations
     }

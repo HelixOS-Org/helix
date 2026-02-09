@@ -41,6 +41,7 @@ impl KMeans {
     }
 
     /// Set max iterations
+    #[inline(always)]
     pub fn with_max_iter(mut self, max_iter: usize) -> Self {
         self.max_iter = max_iter;
         self
@@ -159,6 +160,7 @@ impl KMeans {
     }
 
     /// Predict cluster for new sample
+    #[inline]
     pub fn predict(&self, sample: &[f64]) -> Option<usize> {
         if !self.fitted {
             return None;
@@ -167,16 +169,19 @@ impl KMeans {
     }
 
     /// Get centroids
+    #[inline(always)]
     pub fn centroids(&self) -> &[Vec<f64>] {
         &self.centroids
     }
 
     /// Get cluster assignments
+    #[inline(always)]
     pub fn labels(&self) -> &[usize] {
         &self.assignments
     }
 
     /// Get inertia
+    #[inline(always)]
     pub fn inertia(&self) -> f64 {
         self.inertia
     }

@@ -61,6 +61,7 @@ impl ProcEntry {
         }
     }
 
+    #[inline]
     pub fn read(&mut self, offset: usize, len: usize) -> &[u8] {
         self.read_count += 1;
         let end = (offset + len).min(self.data.len());
@@ -68,6 +69,7 @@ impl ProcEntry {
         &self.data[offset..end]
     }
 
+    #[inline]
     pub fn write(&mut self, data: &[u8]) -> bool {
         if self.mode & 0o200 == 0 { return false; }
         self.data = data.into();
@@ -76,12 +78,15 @@ impl ProcEntry {
         true
     }
 
+    #[inline(always)]
     pub fn set_data(&mut self, data: Vec<u8>) { self.data = data; self.data_gen += 1; }
+    #[inline(always)]
     pub fn size(&self) -> usize { self.data.len() }
 }
 
 /// Per-process proc state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessProcState {
     pub pid: u64,
     pub cmdline: String,
@@ -109,6 +114,7 @@ pub enum ProcAccessResult {
 
 /// Proc bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ProcfsBridgeStats {
     pub total_entries: usize,
     pub per_process_entries: usize,
@@ -119,6 +125,7 @@ pub struct ProcfsBridgeStats {
 }
 
 /// Bridge procfs proxy
+#[repr(align(64))]
 pub struct BridgeProcfsBridge {
     entries: BTreeMap<u64, ProcEntry>,
     processes: BTreeMap<u64, ProcessProcState>,
@@ -133,6 +140,7 @@ impl BridgeProcfsBridge {
         Self { entries, processes: BTreeMap::new(), stats: ProcfsBridgeStats::default(), next_id: 1 }
     }
 
+    #[inline]
     pub fn register_entry(&mut self, name: String, etype: ProcEntryType, ns: ProcNamespace, parent: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let entry = ProcEntry::new(id, name, etype, ns, Some(parent));
@@ -141,6 +149,7 @@ impl BridgeProcfsBridge {
         id
     }
 
+    #[inline]
     pub fn unregister_entry(&mut self, id: u64) -> bool {
         if id == 0 { return false; }
         let parent = self.entries.get(&id).and_then(|e| e.parent_id);
@@ -151,36 +160,44 @@ impl BridgeProcfsBridge {
         true
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64, cmdline: String) {
         self.processes.insert(pid, ProcessProcState::new(pid, cmdline));
     }
 
+    #[inline]
     pub fn unregister_process(&mut self, pid: u64) {
         if let Some(p) = self.processes.remove(&pid) {
             for eid in &p.entry_ids { self.entries.remove(eid); }
         }
     }
 
+    #[inline(always)]
     pub fn update_process_status(&mut self, pid: u64, status: Vec<u8>) {
         if let Some(p) = self.processes.get_mut(&pid) { p.status_data = status; }
     }
 
+    #[inline(always)]
     pub fn update_process_stat(&mut self, pid: u64, stat: Vec<u8>) {
         if let Some(p) = self.processes.get_mut(&pid) { p.stat_data = stat; }
     }
 
+    #[inline(always)]
     pub fn read_entry(&mut self, id: u64, offset: usize, len: usize) -> Option<Vec<u8>> {
         self.entries.get_mut(&id).map(|e| e.read(offset, len).to_vec())
     }
 
+    #[inline(always)]
     pub fn write_entry(&mut self, id: u64, data: &[u8]) -> bool {
         self.entries.get_mut(&id).map(|e| e.write(data)).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn set_entry_data(&mut self, id: u64, data: Vec<u8>) {
         if let Some(e) = self.entries.get_mut(&id) { e.set_data(data); }
     }
 
+    #[inline]
     pub fn check_access(&self, id: u64, uid: u32, want_write: bool) -> ProcAccessResult {
         if let Some(e) = self.entries.get(&id) {
             if want_write && e.mode & 0o200 == 0 { return ProcAccessResult::Denied; }
@@ -190,8 +207,10 @@ impl BridgeProcfsBridge {
         } else { ProcAccessResult::Denied }
     }
 
+    #[inline(always)]
     pub fn list_children(&self, id: u64) -> Vec<u64> { self.entries.get(&id).map(|e| e.children.clone()).unwrap_or_default() }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_entries = self.entries.len();
         self.stats.per_process_entries = self.processes.values().map(|p| p.entry_ids.len()).sum();
@@ -200,7 +219,10 @@ impl BridgeProcfsBridge {
         self.stats.total_data_bytes = self.entries.values().map(|e| e.data.len() as u64).sum();
     }
 
+    #[inline(always)]
     pub fn entry(&self, id: u64) -> Option<&ProcEntry> { self.entries.get(&id) }
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcessProcState> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &ProcfsBridgeStats { &self.stats }
 }

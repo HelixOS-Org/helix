@@ -28,6 +28,7 @@ impl Strategy {
     }
 
     /// Pure strategy for resource request
+    #[inline]
     pub fn resource_request(id: StrategyId, amount: f64) -> Self {
         Self::new(
             id,
@@ -37,11 +38,13 @@ impl Strategy {
     }
 
     /// Cooperation strategy
+    #[inline(always)]
     pub fn cooperate(id: StrategyId) -> Self {
         Self::new(id, "cooperate", alloc::vec![1.0])
     }
 
     /// Defection strategy
+    #[inline(always)]
     pub fn defect(id: StrategyId) -> Self {
         Self::new(id, "defect", alloc::vec![0.0])
     }
@@ -56,6 +59,7 @@ pub struct MixedStrategy {
 
 impl MixedStrategy {
     /// Create a pure strategy (probability 1 on one strategy)
+    #[inline]
     pub fn pure(strategy_idx: usize, num_strategies: usize) -> Self {
         let mut probs = alloc::vec![0.0; num_strategies];
         if strategy_idx < num_strategies {
@@ -67,6 +71,7 @@ impl MixedStrategy {
     }
 
     /// Create uniform mixed strategy
+    #[inline]
     pub fn uniform(num_strategies: usize) -> Self {
         let prob = 1.0 / num_strategies as f64;
         Self {
@@ -90,6 +95,7 @@ impl MixedStrategy {
     }
 
     /// Sample a pure strategy from mixed
+    #[inline]
     pub fn sample(&self, random: f64) -> usize {
         let mut cumulative = 0.0;
         for (i, &p) in self.probabilities.iter().enumerate() {
@@ -102,6 +108,7 @@ impl MixedStrategy {
     }
 
     /// Get support (strategies with non-zero probability)
+    #[inline]
     pub fn support(&self) -> Vec<usize> {
         self.probabilities
             .iter()

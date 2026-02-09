@@ -33,6 +33,7 @@ impl SandboxHolisticFinding {
 
 /// Sandboxing holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SandboxHolisticStats {
     pub total_analyses: u64,
     pub weak_sandboxes: u64,
@@ -51,6 +52,7 @@ impl HolisticSandboxing {
         Self { stats: SandboxHolisticStats { total_analyses: 0, weak_sandboxes: 0, escape_risks: 0, avg_layers: 0.0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &SandboxHolisticFinding) {
         self.stats.total_analyses += 1;
         if finding.sandbox_layers < 2 { self.stats.weak_sandboxes += 1; }

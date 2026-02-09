@@ -57,6 +57,7 @@ pub enum AwarenessState {
 
 /// A perception channel — one dimension of awareness
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerceptionChannel {
     pub name: String,
     pub id: u64,
@@ -108,6 +109,7 @@ pub struct ConsciousnessDimensions {
 
 impl ConsciousnessDimensions {
     /// Weighted aggregate score
+    #[inline]
     pub fn composite(&self) -> f32 {
         self.perception * 0.15
             + self.attention * 0.15
@@ -124,6 +126,7 @@ impl ConsciousnessDimensions {
 
 /// Aggregate awareness statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct AwarenessStats {
     pub current_state: u8,
     pub consciousness_score: f32,
@@ -142,6 +145,7 @@ pub struct AwarenessStats {
 /// Self-awareness state machine: Dormant → Aware → Reflective → Transcendent.
 /// Tracks continuous consciousness score across multiple dimensions.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeAwareness {
     /// Current awareness state
     state: AwarenessState,
@@ -184,6 +188,7 @@ impl BridgeAwareness {
     }
 
     /// Current awareness level
+    #[inline(always)]
     pub fn awareness_level(&self) -> AwarenessState {
         self.state
     }
@@ -228,6 +233,7 @@ impl BridgeAwareness {
     }
 
     /// Update a perception channel with new sensory data
+    #[inline]
     pub fn perception_update(&mut self, channel_name: &str, signal: f32, noise: f32) {
         self.tick += 1;
         let id = fnv1a_hash(channel_name.as_bytes());
@@ -263,6 +269,7 @@ impl BridgeAwareness {
     }
 
     /// Set attention focus on a target
+    #[inline]
     pub fn attention_focus(&mut self, target: &str, intensity: f32) {
         self.tick += 1;
         let id = fnv1a_hash(target.as_bytes());
@@ -311,6 +318,7 @@ impl BridgeAwareness {
     }
 
     /// Update consciousness dimensions from external module feedback
+    #[inline]
     pub fn update_dimensions(
         &mut self,
         memory: f32,
@@ -330,11 +338,13 @@ impl BridgeAwareness {
     }
 
     /// Composite consciousness score (0.0 – 1.0)
+    #[inline(always)]
     pub fn consciousness_score(&self) -> f32 {
         self.consciousness_ema
     }
 
     /// Recompute perception and attention dimensions, then update EMA
+    #[inline]
     fn recompute_dimensions(&mut self) {
         // Perception = average channel fidelity
         if !self.perceptions.is_empty() {

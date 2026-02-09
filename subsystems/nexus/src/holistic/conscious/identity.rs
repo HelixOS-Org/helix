@@ -84,6 +84,7 @@ pub struct LegacyEntry {
 
 /// The kernel's purpose statement
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PurposeStatement {
     pub primary: String,
     pub secondary: String,
@@ -121,6 +122,7 @@ pub struct FullIdentity {
 
 /// Aggregate identity statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct IdentityStats {
     pub capability_count: usize,
     pub principle_count: usize,
@@ -189,6 +191,7 @@ impl HolisticIdentity {
     }
 
     /// Declare a kernel capability
+    #[inline]
     pub fn declare_capability(
         &mut self,
         name: String,
@@ -257,6 +260,7 @@ impl HolisticIdentity {
     }
 
     /// Update adherence to a principle
+    #[inline]
     pub fn update_adherence(&mut self, principle_id: u64, adherence: f32) {
         if let Some(p) = self.principles.get_mut(&principle_id) {
             p.adherence_score =
@@ -285,11 +289,13 @@ impl HolisticIdentity {
     }
 
     /// Get the purpose statement
+    #[inline(always)]
     pub fn purpose_statement(&self) -> &PurposeStatement {
         &self.purpose
     }
 
     /// Get the complete capability declaration
+    #[inline]
     pub fn capability_declaration(&self) -> Vec<(u64, String, f32, f32)> {
         self.capabilities
             .values()
@@ -298,6 +304,7 @@ impl HolisticIdentity {
     }
 
     /// Get the philosophical foundation
+    #[inline]
     pub fn philosophical_foundation(&self) -> Vec<(u64, String, f32, f32)> {
         self.principles
             .values()
@@ -306,6 +313,7 @@ impl HolisticIdentity {
     }
 
     /// Get the legacy statement: achievements and their impact
+    #[inline]
     pub fn legacy_statement(&self) -> Vec<(String, f32)> {
         self.legacy
             .iter()
@@ -344,6 +352,7 @@ impl HolisticIdentity {
     }
 
     /// Recompute identity coherence
+    #[inline]
     fn recompute_coherence(&mut self) -> f32 {
         let cap_strength = self.strength_ema;
         let adherence = self.adherence_ema;

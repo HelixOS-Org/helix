@@ -53,6 +53,7 @@ impl QuantumAnnealingEngine {
     }
 
     /// Set number of Trotter slices
+    #[inline(always)]
     pub fn with_trotter_slices(mut self, slices: usize) -> Self {
         self.num_slices = slices;
         self

@@ -57,6 +57,7 @@ pub enum UsbIssueType {
 
 impl UsbIssueType {
     /// Get issue type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::NoDriver => "no_driver",
@@ -98,6 +99,7 @@ pub enum UsbAction {
 
 impl UsbAction {
     /// Get action name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::InstallDriver => "install_driver",
@@ -124,11 +126,13 @@ impl UsbIntelligence {
     }
 
     /// Register bus
+    #[inline(always)]
     pub fn register_bus(&mut self, bus: UsbBus) {
         self.manager.register_bus(bus);
     }
 
     /// Register device
+    #[inline(always)]
     pub fn register_device(&mut self, bus_id: BusId, device: UsbDevice) {
         self.manager.register_device(bus_id, device);
     }
@@ -241,11 +245,13 @@ impl UsbIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &UsbManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut UsbManager {
         &mut self.manager
     }

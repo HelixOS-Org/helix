@@ -43,6 +43,7 @@ impl TokenBucket {
     }
 
     /// Try to consume tokens
+    #[inline]
     pub fn try_consume(&mut self, tokens: u64) -> bool {
         self.refill();
 
@@ -70,6 +71,7 @@ impl TokenBucket {
     }
 
     /// Refill tokens
+    #[inline]
     pub fn refill(&mut self) {
         let now = Timestamp::now();
         let elapsed = now.elapsed_since(self.last_refill);
@@ -80,11 +82,13 @@ impl TokenBucket {
     }
 
     /// Get current tokens
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.tokens as u64
     }
 
     /// Get fill percentage
+    #[inline(always)]
     pub fn fill_percentage(&self) -> f64 {
         self.tokens / self.capacity as f64
     }
@@ -112,6 +116,7 @@ impl SlidingWindow {
     }
 
     /// Try to record a request
+    #[inline]
     pub fn try_acquire(&mut self) -> bool {
         let now = Timestamp::now();
         self.cleanup(now);
@@ -125,12 +130,14 @@ impl SlidingWindow {
     }
 
     /// Get remaining requests in window
+    #[inline(always)]
     pub fn remaining(&mut self) -> u64 {
         self.cleanup(Timestamp::now());
         self.max_requests - self.requests.len() as u64
     }
 
     /// Get reset time (when oldest request expires)
+    #[inline(always)]
     pub fn reset_time(&self) -> Option<u64> {
         self.requests.first().map(|t| t.raw() + self.window_ns)
     }
@@ -142,6 +149,7 @@ impl SlidingWindow {
     }
 
     /// Get current request count
+    #[inline(always)]
     pub fn current_count(&self) -> usize {
         self.requests.len()
     }
@@ -172,6 +180,7 @@ impl LeakyBucket {
     }
 
     /// Try to add water (request)
+    #[inline]
     pub fn try_add(&mut self, amount: u64) -> bool {
         self.leak();
 
@@ -184,6 +193,7 @@ impl LeakyBucket {
     }
 
     /// Leak water
+    #[inline]
     pub fn leak(&mut self) {
         let now = Timestamp::now();
         let elapsed = now.elapsed_since(self.last_update);
@@ -194,6 +204,7 @@ impl LeakyBucket {
     }
 
     /// Get current fill level
+    #[inline(always)]
     pub fn fill_level(&self) -> f64 {
         self.level / self.capacity as f64
     }
@@ -252,6 +263,7 @@ pub struct ThrottleEntry {
 
 /// Throttle statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ThrottleStats {
     /// Total requests
     pub total_requests: u64,
@@ -417,6 +429,7 @@ pub struct ThrottleManager {
 
 /// Manager statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ThrottleManagerStats {
     /// Total requests
     pub total_requests: u64,
@@ -441,6 +454,7 @@ impl ThrottleManager {
     }
 
     /// Create a throttle
+    #[inline]
     pub fn create(&mut self, config: ThrottleConfig, owner: DomainId) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let name = config.name.clone();
@@ -454,6 +468,7 @@ impl ThrottleManager {
     }
 
     /// Delete a throttle
+    #[inline]
     pub fn delete(&mut self, id: u64) -> bool {
         if let Some(entry) = self.throttles.remove(&id) {
             self.by_name.remove(&entry.config.name);
@@ -465,12 +480,14 @@ impl ThrottleManager {
     }
 
     /// Set global throttle
+    #[inline(always)]
     pub fn set_global(&mut self, config: ThrottleConfig) {
         let entry = ThrottleEntry::new(0, config, DomainId::new(0));
         self.global = Some(entry);
     }
 
     /// Clear global throttle
+    #[inline(always)]
     pub fn clear_global(&mut self) {
         self.global = None;
     }
@@ -503,6 +520,7 @@ impl ThrottleManager {
     }
 
     /// Try to acquire by name
+    #[inline]
     pub fn try_acquire_by_name(&mut self, name: &str) -> bool {
         if let Some(&id) = self.by_name.get(name) {
             self.try_acquire(id)
@@ -512,16 +530,19 @@ impl ThrottleManager {
     }
 
     /// Get throttle
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&ThrottleEntry> {
         self.throttles.get(&id)
     }
 
     /// Get throttle by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&ThrottleEntry> {
         self.by_name.get(name).and_then(|id| self.throttles.get(id))
     }
 
     /// Get remaining for throttle
+    #[inline]
     pub fn remaining(&mut self, id: u64) -> u64 {
         self.throttles
             .get_mut(&id)
@@ -530,6 +551,7 @@ impl ThrottleManager {
     }
 
     /// Get throttles by owner
+    #[inline]
     pub fn by_owner(&self, owner: DomainId) -> Vec<&ThrottleEntry> {
         self.throttles
             .values()
@@ -538,11 +560,13 @@ impl ThrottleManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ThrottleManagerStats {
         &self.stats
     }
 
     /// Get all throttles
+    #[inline(always)]
     pub fn all(&self) -> Vec<&ThrottleEntry> {
         self.throttles.values().collect()
     }

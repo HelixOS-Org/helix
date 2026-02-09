@@ -170,6 +170,7 @@ impl KnowledgeItem {
     }
 
     /// Record an access and update frequency EMA
+    #[inline]
     pub fn record_access(&mut self, tick: u64) {
         self.access_count += 1;
         self.last_access_tick = tick;
@@ -177,6 +178,7 @@ impl KnowledgeItem {
     }
 
     /// Decay access frequency
+    #[inline]
     pub fn decay(&mut self) {
         self.access_frequency *= ACCESS_DECAY;
         if self.access_frequency < IMPORTANCE_FLOOR {
@@ -185,16 +187,19 @@ impl KnowledgeItem {
     }
 
     /// Effective value: importance * access_frequency * confidence
+    #[inline(always)]
     pub fn effective_value(&self) -> f32 {
         self.importance * (0.3 + 0.7 * self.access_frequency) * self.confidence
     }
 
     /// Whether this item should be forgotten
+    #[inline(always)]
     pub fn should_forget(&self) -> bool {
         self.effective_value() < FORGET_THRESHOLD && !self.compressed
     }
 
     /// Whether this item should be compressed
+    #[inline(always)]
     pub fn should_compress(&self) -> bool {
         self.effective_value() < COMPRESS_THRESHOLD && !self.compressed
     }
@@ -271,6 +276,7 @@ pub struct PalaceTour {
 
 /// Memory palace statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticMemoryPalaceStats {
     pub total_stored: u64,
     pub total_recalled: u64,
@@ -456,6 +462,7 @@ impl HolisticMemoryPalace {
     }
 
     /// Knowledge completeness: how populated is the palace?
+    #[inline]
     pub fn knowledge_completeness(&self) -> f32 {
         let wing_coverage = self.wing_rooms.values().filter(|r| !r.is_empty()).count() as f32
             / KnowledgeWing::all().len() as f32;
@@ -496,11 +503,13 @@ impl HolisticMemoryPalace {
     }
 
     /// Take a tour of the palace — get a high-level summary
+    #[inline(always)]
     pub fn palace_tour(&self) -> PalaceTour {
         self.grand_palace()
     }
 
     /// Decay all item access frequencies
+    #[inline]
     pub fn decay_all(&mut self) {
         for item in self.items.values_mut() {
             item.decay();
@@ -508,16 +517,19 @@ impl HolisticMemoryPalace {
     }
 
     /// Get item count
+    #[inline(always)]
     pub fn item_count(&self) -> usize {
         self.items.len()
     }
 
     /// Get room count
+    #[inline(always)]
     pub fn room_count(&self) -> usize {
         self.rooms.len()
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticMemoryPalaceStats {
         &self.stats
     }

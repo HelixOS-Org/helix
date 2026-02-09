@@ -73,24 +73,29 @@ impl Concept {
         }
     }
 
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = Some(desc.into());
         self
     }
 
+    #[inline(always)]
     pub fn with_embedding(mut self, embedding_id: EmbeddingId) -> Self {
         self.embedding = Some(embedding_id);
         self
     }
 
+    #[inline(always)]
     pub fn add_synonym(&mut self, synonym: impl Into<String>) {
         self.synonyms.push(synonym.into());
     }
 
+    #[inline(always)]
     pub fn add_example(&mut self, example: impl Into<String>) {
         self.examples.push(example.into());
     }
 
+    #[inline(always)]
     pub fn has_embedding(&self) -> bool {
         self.embedding.is_some()
     }
@@ -154,16 +159,19 @@ impl ConceptRelation {
         }
     }
 
+    #[inline(always)]
     pub fn with_strength(mut self, strength: f32) -> Self {
         self.strength = strength.clamp(0.0, 1.0);
         self
     }
 
+    #[inline(always)]
     pub fn bidirectional(mut self) -> Self {
         self.bidirectional = true;
         self
     }
 
+    #[inline(always)]
     pub fn with_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.metadata.insert(key.into(), value.into());
         self
@@ -196,6 +204,7 @@ impl ConceptSpace {
         }
     }
 
+    #[inline(always)]
     pub fn with_embedding_space(mut self, space: EmbeddingSpace) -> Self {
         self.embedding_space = Some(space);
         self
@@ -224,11 +233,13 @@ impl ConceptSpace {
     }
 
     /// Get concept by ID
+    #[inline(always)]
     pub fn get(&self, id: ConceptId) -> Option<&Concept> {
         self.concepts.get(&id)
     }
 
     /// Get concept by name
+    #[inline]
     pub fn get_by_name(&self, name: &str) -> Option<&Concept> {
         self.name_index
             .get(name)
@@ -236,11 +247,13 @@ impl ConceptSpace {
     }
 
     /// Add a relation between concepts
+    #[inline(always)]
     pub fn add_relation(&mut self, relation: ConceptRelation) {
         self.relations.push(relation);
     }
 
     /// Get all relations for a concept
+    #[inline]
     pub fn get_relations(&self, concept_id: ConceptId) -> Vec<&ConceptRelation> {
         self.relations
             .iter()
@@ -249,6 +262,7 @@ impl ConceptSpace {
     }
 
     /// Get relations of specific type
+    #[inline]
     pub fn get_relations_of_type(
         &self,
         concept_id: ConceptId,
@@ -280,6 +294,7 @@ impl ConceptSpace {
     }
 
     /// Find parents (Is-A targets)
+    #[inline]
     pub fn get_parents(&self, concept_id: ConceptId) -> Vec<ConceptId> {
         self.get_relations_of_type(concept_id, ConceptRelationType::IsA)
             .into_iter()
@@ -288,6 +303,7 @@ impl ConceptSpace {
     }
 
     /// Find children (Is-A sources)
+    #[inline]
     pub fn get_children(&self, concept_id: ConceptId) -> Vec<ConceptId> {
         self.relations
             .iter()
@@ -366,6 +382,7 @@ impl ConceptSpace {
     }
 
     /// Find common ancestors of two concepts
+    #[inline]
     pub fn common_ancestors(&self, a: ConceptId, b: ConceptId) -> Vec<ConceptId> {
         let ancestors_a = self.all_ancestors(a);
         let ancestors_b = self.all_ancestors(b);
@@ -390,14 +407,17 @@ impl ConceptSpace {
     }
 
     /// Concept count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.concepts.len()
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.concepts.is_empty()
     }
 
+    #[inline(always)]
     pub fn relation_count(&self) -> usize {
         self.relations.len()
     }
@@ -464,26 +484,32 @@ impl ConceptHierarchy {
         }
     }
 
+    #[inline(always)]
     pub fn roots(&self) -> &[ConceptId] {
         &self.roots
     }
 
+    #[inline(always)]
     pub fn get_children(&self, id: ConceptId) -> &[ConceptId] {
         self.children.get(&id).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
+    #[inline(always)]
     pub fn get_parent(&self, id: ConceptId) -> Option<ConceptId> {
         self.parents.get(&id).copied()
     }
 
+    #[inline(always)]
     pub fn get_depth(&self, id: ConceptId) -> Option<usize> {
         self.depths.get(&id).copied()
     }
 
+    #[inline(always)]
     pub fn is_leaf(&self, id: ConceptId) -> bool {
         !self.children.contains_key(&id)
     }
 
+    #[inline(always)]
     pub fn is_root(&self, id: ConceptId) -> bool {
         !self.parents.contains_key(&id)
     }
@@ -519,6 +545,7 @@ impl ConceptHierarchy {
     }
 
     /// Semantic distance based on hierarchy
+    #[inline]
     pub fn semantic_distance(&self, a: ConceptId, b: ConceptId) -> Option<usize> {
         let lca = self.lca(a, b)?;
         let depth_lca = self.get_depth(lca)?;

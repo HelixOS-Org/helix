@@ -63,6 +63,7 @@ pub enum DeviceType {
 
 impl DeviceType {
     /// Get typical latency in microseconds
+    #[inline]
     pub fn typical_latency_us(&self) -> u64 {
         match self {
             Self::Hdd => 5000,
@@ -76,6 +77,7 @@ impl DeviceType {
     }
 
     /// Get typical bandwidth in MB/s
+    #[inline]
     pub fn typical_bandwidth_mbs(&self) -> u64 {
         match self {
             Self::Hdd => 150,
@@ -89,6 +91,7 @@ impl DeviceType {
     }
 
     /// Is sequential access preferred?
+    #[inline(always)]
     pub fn prefers_sequential(&self) -> bool {
         matches!(self, Self::Hdd)
     }

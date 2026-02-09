@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// I/O scheduler policy
@@ -48,31 +49,35 @@ impl IoRequest {
 
 /// Scheduler queue
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct SchedQueue {
-    pub requests: Vec<IoRequest>,
+    pub requests: VecDeque<IoRequest>,
     pub policy: IoSchedPolicy,
     pub dispatched: u64,
     pub merged: u64,
 }
 
 impl SchedQueue {
-    pub fn new(policy: IoSchedPolicy) -> Self { Self { requests: Vec::new(), policy, dispatched: 0, merged: 0 } }
+    pub fn new(policy: IoSchedPolicy) -> Self { Self { requests: VecDeque::new(), policy, dispatched: 0, merged: 0 } }
 
-    pub fn enqueue(&mut self, req: IoRequest) { self.requests.push(req); }
+    #[inline(always)]
+    pub fn enqueue(&mut self, req: IoRequest) { self.requests.push_back(req); }
 
+    #[inline]
     pub fn dispatch(&mut self) -> Option<IoRequest> {
         if self.requests.is_empty() { return None; }
         self.dispatched += 1;
         match self.policy {
-            IoSchedPolicy::Deadline => { self.requests.sort_by_key(|r| r.deadline_ns); Some(self.requests.remove(0)) }
-            IoSchedPolicy::Noop => Some(self.requests.remove(0)),
-            _ => { self.requests.sort_by_key(|r| r.sector); Some(self.requests.remove(0)) }
+            IoSchedPolicy::Deadline => { self.requests.sort_by_key(|r| r.deadline_ns); self.requests.pop_front() }
+            IoSchedPolicy::Noop => self.requests.pop_front(),
+            _ => { self.requests.sort_by_key(|r| r.sector); self.requests.pop_front() }
         }
     }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoSchedStats {
     pub policy: IoSchedPolicy,
     pub pending_requests: u32,
@@ -87,10 +92,14 @@ pub struct HolisticIoSched {
 
 impl HolisticIoSched {
     pub fn new() -> Self { Self { queues: BTreeMap::new() } }
+    #[inline(always)]
     pub fn add_queue(&mut self, id: u32, policy: IoSchedPolicy) { self.queues.insert(id, SchedQueue::new(policy)); }
+    #[inline(always)]
     pub fn enqueue(&mut self, queue_id: u32, req: IoRequest) { if let Some(q) = self.queues.get_mut(&queue_id) { q.enqueue(req); } }
+    #[inline(always)]
     pub fn dispatch(&mut self, queue_id: u32) -> Option<IoRequest> { self.queues.get_mut(&queue_id).and_then(|q| q.dispatch()) }
 
+    #[inline(always)]
     pub fn stats(&self) -> Vec<IoSchedStats> {
         self.queues.values().map(|q| IoSchedStats { policy: q.policy, pending_requests: q.requests.len() as u32, total_dispatched: q.dispatched, total_merged: q.merged }).collect()
     }

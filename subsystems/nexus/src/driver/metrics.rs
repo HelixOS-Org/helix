@@ -6,6 +6,7 @@
 
 /// Driver performance metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DriverMetrics {
     /// Total operations
     pub total_ops: u64,
@@ -51,6 +52,7 @@ impl DriverMetrics {
     }
 
     /// Get success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.total_ops == 0 {
             1.0
@@ -60,11 +62,13 @@ impl DriverMetrics {
     }
 
     /// Get failure rate
+    #[inline(always)]
     pub fn failure_rate(&self) -> f64 {
         1.0 - self.success_rate()
     }
 
     /// Get operations per second
+    #[inline]
     pub fn ops_per_second(&self, uptime_ns: u64) -> f64 {
         if uptime_ns == 0 {
             0.0

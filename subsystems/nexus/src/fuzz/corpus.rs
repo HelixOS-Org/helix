@@ -74,6 +74,7 @@ impl Corpus {
     }
 
     /// Get best input
+    #[inline]
     pub fn best(&self) -> Option<&FuzzInput> {
         self.inputs.values().max_by(|a, b| {
             a.score
@@ -83,31 +84,37 @@ impl Corpus {
     }
 
     /// Get input by ID
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&FuzzInput> {
         self.inputs.get(&id)
     }
 
     /// Get mutable input
+    #[inline(always)]
     pub fn get_mut(&mut self, id: u64) -> Option<&mut FuzzInput> {
         self.inputs.get_mut(&id)
     }
 
     /// Get all inputs
+    #[inline(always)]
     pub fn all(&self) -> impl Iterator<Item = &FuzzInput> {
         self.inputs.values()
     }
 
     /// Get size
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.inputs.len()
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.inputs.is_empty()
     }
 
     /// Clear
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.inputs.clear();
         self.coverage_set.clear();

@@ -8,7 +8,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -121,6 +123,7 @@ pub struct EarlyAdaptation {
 
 /// Rolling statistics for the precognition engine.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct PrecognitionStats {
     pub shifts_detected: u64,
     pub erosions_detected: u64,
@@ -151,7 +154,7 @@ impl PrecognitionStats {
 #[derive(Clone, Debug)]
 struct TrustTracker {
     partner_id: u64,
-    trust_history: Vec<u64>,
+    trust_history: VecDeque<u64>,
     ema_trust: u64,
     ema_delta: i64,
     consecutive_drops: u32,
@@ -162,17 +165,17 @@ struct TrustTracker {
 #[derive(Clone, Debug)]
 struct ContentionAccumulator {
     resource_id: u64,
-    pressure_history: Vec<u64>,
+    pressure_history: VecDeque<u64>,
     ema_pressure: u64,
     ema_acceleration: i64,
-    processes_seen: BTreeMap<u64, u64>,
+    processes_seen: LinearMap<u64, 64>,
 }
 
 /// Internal climate signal aggregator.
 #[derive(Clone, Debug)]
 struct ClimateSignal {
     signal_hash: u64,
-    values: Vec<u64>,
+    values: VecDeque<u64>,
     ema_value: u64,
     ema_trend: i64,
     activated_at: u64,
@@ -193,7 +196,7 @@ pub struct CoopPrecognition {
     contention_accumulators: BTreeMap<u64, ContentionAccumulator>,
     climate_signals: BTreeMap<u64, ClimateSignal>,
     phase_state: PhaseState,
-    signal_history: Vec<PrecognitionSignal>,
+    signal_history: VecDeque<PrecognitionSignal>,
     stats: PrecognitionStats,
     rng_state: u64,
     current_tick: u64,
@@ -215,7 +218,7 @@ impl CoopPrecognition {
                 phase_stability: 500,
                 transition_signals: Vec::new(),
             },
-            signal_history: Vec::new(),
+            signal_history: VecDeque::new(),
             stats: PrecognitionStats::new(),
             rng_state: seed ^ 0xF8EC_0671_C00F_0001,
             current_tick: 0,
@@ -229,7 +232,7 @@ impl CoopPrecognition {
     pub fn feed_trust(&mut self, partner_id: u64, trust_value: u64) {
         let tracker = self.trust_trackers.entry(partner_id).or_insert_with(|| TrustTracker {
             partner_id,
-            trust_history: Vec::new(),
+            trust_history: VecDeque::new(),
             ema_trust: trust_value,
             ema_delta: 0,
             consecutive_drops: 0,
@@ -253,7 +256,7 @@ impl CoopPrecognition {
         }
 
         if tracker.trust_history.len() > self.max_history {
-            tracker.trust_history.remove(0);
+            tracker.trust_history.pop_front().unwrap();
         }
 
         self.emit_trust_signal(partner_id, tracker.ema_delta, tracker.consecutive_drops);
@@ -263,10 +266,10 @@ impl CoopPrecognition {
     pub fn feed_contention(&mut self, resource_id: u64, pressure: u64, process_id: u64) {
         let acc = self.contention_accumulators.entry(resource_id).or_insert_with(|| ContentionAccumulator {
             resource_id,
-            pressure_history: Vec::new(),
+            pressure_history: VecDeque::new(),
             ema_pressure: pressure,
             ema_acceleration: 0,
-            processes_seen: BTreeMap::new(),
+            processes_seen: LinearMap::new(),
         });
 
         let prev = acc.ema_pressure;
@@ -279,7 +282,7 @@ impl CoopPrecognition {
         *acc.processes_seen.entry(process_id).or_insert(0) += 1;
 
         if acc.pressure_history.len() > self.max_history {
-            acc.pressure_history.remove(0);
+            acc.pressure_history.pop_front().unwrap();
         }
 
         self.emit_contention_signal(resource_id, acc.ema_pressure, acc.ema_acceleration);
@@ -498,9 +501,9 @@ impl CoopPrecognition {
             actionable,
         };
 
-        self.signal_history.push(signal.clone());
+        self.signal_history.push_back(signal.clone());
         if self.signal_history.len() > self.max_history {
-            self.signal_history.remove(0);
+            self.signal_history.pop_front();
         }
 
         self.stats.signals_generated = self.stats.signals_generated.saturating_add(1);
@@ -565,11 +568,13 @@ impl CoopPrecognition {
     }
 
     /// Advance the internal tick.
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.current_tick = self.current_tick.wrapping_add(1);
     }
 
     /// Retrieve current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &PrecognitionStats {
         &self.stats
     }
@@ -584,7 +589,7 @@ impl CoopPrecognition {
 
         let signal = self.climate_signals.entry(sig_hash).or_insert_with(|| ClimateSignal {
             signal_hash: sig_hash,
-            values: Vec::new(),
+            values: VecDeque::new(),
             ema_value: 500,
             ema_trend: 0,
             activated_at: self.current_tick,
@@ -601,7 +606,7 @@ impl CoopPrecognition {
         signal.ema_trend = (signal.ema_trend.saturating_mul(800) + delta.saturating_mul(200)) / 1000;
 
         if signal.values.len() > 64 {
-            signal.values.remove(0);
+            signal.values.pop_front().unwrap();
         }
 
         if consecutive_drops > 2 {
@@ -617,7 +622,7 @@ impl CoopPrecognition {
 
         let signal = self.climate_signals.entry(sig_hash).or_insert_with(|| ClimateSignal {
             signal_hash: sig_hash,
-            values: Vec::new(),
+            values: VecDeque::new(),
             ema_value: 500,
             ema_trend: 0,
             activated_at: self.current_tick,
@@ -629,7 +634,7 @@ impl CoopPrecognition {
             + acceleration.saturating_mul(200)) / 1000;
 
         if signal.values.len() > 64 {
-            signal.values.remove(0);
+            signal.values.pop_front().unwrap();
         }
     }
 

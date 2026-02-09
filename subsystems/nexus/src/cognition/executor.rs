@@ -10,6 +10,7 @@ use alloc::vec;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -148,6 +149,7 @@ pub enum BackoffType {
 
 /// Execution state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ExecutionState {
     /// Task ID
     pub task_id: u64,
@@ -226,6 +228,7 @@ pub struct ExecutionError {
 
 /// Execution metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ExecutionMetrics {
     /// CPU time (ns)
     pub cpu_time_ns: u64,
@@ -246,7 +249,7 @@ pub struct ExecutionMetrics {
 /// Cognitive executor
 pub struct CognitiveExecutor {
     /// Pending tasks
-    pending: Vec<ExecutableTask>,
+    pending: VecDeque<ExecutableTask>,
     /// Waiting tasks (for dependencies)
     waiting: BTreeMap<u64, ExecutableTask>,
     /// Running tasks
@@ -294,6 +297,7 @@ impl Default for ExecutorConfig {
 
 /// Executor statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ExecutorStats {
     /// Tasks submitted
     pub submitted: u64,
@@ -315,7 +319,7 @@ impl CognitiveExecutor {
     /// Create new executor
     pub fn new(config: ExecutorConfig) -> Self {
         Self {
-            pending: Vec::new(),
+            pending: VecDeque::new(),
             waiting: BTreeMap::new(),
             running: BTreeMap::new(),
             completed: BTreeMap::new(),
@@ -360,7 +364,7 @@ impl CognitiveExecutor {
         let deps_satisfied = dependencies.iter().all(|d| self.outputs.contains_key(d));
 
         if deps_satisfied {
-            self.pending.push(task);
+            self.pending.push_back(task);
         } else {
             self.waiting.insert(id, task);
         }
@@ -382,7 +386,7 @@ impl CognitiveExecutor {
         // Sort by priority
         self.pending.sort_by(|a, b| b.priority.cmp(&a.priority));
 
-        let task = self.pending.remove(0);
+        let task = self.pending.pop_front().unwrap();
         let id = task.id;
 
         let state = ExecutionState {
@@ -402,6 +406,7 @@ impl CognitiveExecutor {
     }
 
     /// Update task progress
+    #[inline]
     pub fn update_progress(&mut self, task_id: u64, progress: u32) -> Result<(), &'static str> {
         let state = self.running.get_mut(&task_id).ok_or("Task not running")?;
 
@@ -461,7 +466,7 @@ impl CognitiveExecutor {
 
             // Re-queue
             if let Some(task) = task {
-                self.pending.push(task.clone());
+                self.pending.push_back(task.clone());
             }
 
             self.running.insert(task_id, state);
@@ -567,7 +572,7 @@ impl CognitiveExecutor {
 
         for id in ready {
             if let Some(task) = self.waiting.remove(&id) {
-                self.pending.push(task);
+                self.pending.push_back(task);
             }
         }
     }
@@ -579,6 +584,7 @@ impl CognitiveExecutor {
     }
 
     /// Get task state
+    #[inline]
     pub fn get_state(&self, task_id: u64) -> Option<&ExecutionState> {
         self.running
             .get(&task_id)
@@ -586,36 +592,43 @@ impl CognitiveExecutor {
     }
 
     /// Get running tasks
+    #[inline(always)]
     pub fn running_tasks(&self) -> Vec<u64> {
         self.running.keys().copied().collect()
     }
 
     /// Get pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }
 
     /// Get running count
+    #[inline(always)]
     pub fn running_count(&self) -> usize {
         self.running.len()
     }
 
     /// Pause executor
+    #[inline(always)]
     pub fn pause(&self) {
         self.running_flag.store(false, Ordering::Release);
     }
 
     /// Resume executor
+    #[inline(always)]
     pub fn resume(&self) {
         self.running_flag.store(true, Ordering::Release);
     }
 
     /// Is running
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running_flag.load(Ordering::Acquire)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ExecutorStats {
         &self.stats
     }

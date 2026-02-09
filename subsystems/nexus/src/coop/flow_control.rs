@@ -35,6 +35,7 @@ pub enum CongestionSignal {
 
 /// Credit counter for flow control
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CreditCounter {
     pub credits: i64,
     pub max_credits: i64,
@@ -50,10 +51,12 @@ impl CreditCounter {
         Self { credits: max, max_credits: max, min_credits: 0, refill_rate, last_refill_ts: 0, consumed_total: 0, refilled_total: 0 }
     }
 
+    #[inline(always)]
     pub fn consume(&mut self, amount: i64) -> bool {
         if self.credits >= amount { self.credits -= amount; self.consumed_total += amount as u64; true } else { false }
     }
 
+    #[inline]
     pub fn refill(&mut self, now: u64) {
         let elapsed_ns = now.saturating_sub(self.last_refill_ts);
         let refill = (self.refill_rate as f64 * (elapsed_ns as f64 / 1_000_000_000.0)) as i64;
@@ -64,6 +67,7 @@ impl CreditCounter {
         }
     }
 
+    #[inline(always)]
     pub fn available_pct(&self) -> f64 {
         if self.max_credits == 0 { return 0.0; }
         (self.credits as f64 / self.max_credits as f64) * 100.0
@@ -95,6 +99,7 @@ impl CongestionWindow {
         }
     }
 
+    #[inline]
     pub fn on_ack(&mut self, acked: u32) {
         self.acked_bytes += acked as u64;
         if self.in_slow_start {
@@ -107,6 +112,7 @@ impl CongestionWindow {
         }
     }
 
+    #[inline]
     pub fn on_loss(&mut self) {
         self.ssthresh = (self.cwnd / 2).max(self.min_cwnd);
         self.cwnd = self.ssthresh;
@@ -114,6 +120,7 @@ impl CongestionWindow {
         self.lost_bytes += 1;
     }
 
+    #[inline]
     pub fn update_rtt(&mut self, rtt_ns: u64) {
         self.rtt_ns = rtt_ns;
         if rtt_ns < self.min_rtt_ns { self.min_rtt_ns = rtt_ns; }
@@ -122,6 +129,7 @@ impl CongestionWindow {
         else { self.srtt_ns = (self.srtt_ns * 7 + rtt_ns) / 8; }
     }
 
+    #[inline(always)]
     pub fn can_send(&self, bytes: u64) -> bool {
         self.bytes_in_flight + bytes <= self.cwnd as u64
     }
@@ -157,6 +165,7 @@ impl FlowChannel {
         }
     }
 
+    #[inline]
     pub fn send(&mut self, bytes: u64, ts: u64) -> bool {
         if !self.credits.consume(bytes as i64) { self.state = FlowState::Throttled; return false; }
         if !self.cwnd.can_send(bytes) { self.state = FlowState::Congested; return false; }
@@ -168,22 +177,27 @@ impl FlowChannel {
         true
     }
 
+    #[inline]
     pub fn ack(&mut self, bytes: u32, rtt_ns: u64) {
         self.cwnd.on_ack(bytes);
         self.cwnd.update_rtt(rtt_ns);
         self.cwnd.bytes_in_flight = self.cwnd.bytes_in_flight.saturating_sub(bytes as u64);
     }
 
+    #[inline(always)]
     pub fn loss(&mut self) { self.cwnd.on_loss(); }
 
+    #[inline]
     pub fn recv(&mut self, bytes: u64, ts: u64) {
         self.bytes_recv += bytes;
         self.msgs_recv += 1;
         self.last_activity_ts = ts;
     }
 
+    #[inline(always)]
     pub fn tick(&mut self, now: u64) { self.credits.refill(now); }
 
+    #[inline(always)]
     pub fn throughput_bps(&self, now: u64) -> f64 {
         let elapsed = now.saturating_sub(self.created_ts);
         if elapsed == 0 { 0.0 } else { self.bytes_sent as f64 / (elapsed as f64 / 1_000_000_000.0) }
@@ -192,6 +206,7 @@ impl FlowChannel {
 
 /// Flow control stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FlowControlStats {
     pub total_channels: usize,
     pub active_channels: usize,
@@ -216,24 +231,29 @@ impl CoopFlowControl {
         Self { channels: BTreeMap::new(), stats: FlowControlStats::default(), next_id: 1 }
     }
 
+    #[inline]
     pub fn create_channel(&mut self, src: u64, dst: u64, max_credits: i64, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.channels.insert(id, FlowChannel::new(id, src, dst, max_credits, ts));
         id
     }
 
+    #[inline(always)]
     pub fn send(&mut self, ch_id: u64, bytes: u64, ts: u64) -> bool {
         if let Some(ch) = self.channels.get_mut(&ch_id) { ch.send(bytes, ts) } else { false }
     }
 
+    #[inline(always)]
     pub fn ack(&mut self, ch_id: u64, bytes: u32, rtt_ns: u64) {
         if let Some(ch) = self.channels.get_mut(&ch_id) { ch.ack(bytes, rtt_ns); }
     }
 
+    #[inline(always)]
     pub fn recv(&mut self, ch_id: u64, bytes: u64, ts: u64) {
         if let Some(ch) = self.channels.get_mut(&ch_id) { ch.recv(bytes, ts); }
     }
 
+    #[inline(always)]
     pub fn tick(&mut self, now: u64) {
         for ch in self.channels.values_mut() { ch.tick(now); }
     }
@@ -253,6 +273,8 @@ impl CoopFlowControl {
         }
     }
 
+    #[inline(always)]
     pub fn channel(&self, id: u64) -> Option<&FlowChannel> { self.channels.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &FlowControlStats { &self.stats }
 }

@@ -67,6 +67,7 @@ impl ThreadEpochInfo {
         }
     }
 
+    #[inline]
     pub fn enter_quiescent(&mut self, now_ns: u64) {
         if self.pin_count == 0 {
             self.state = EpochState::Quiescent;
@@ -75,15 +76,18 @@ impl ThreadEpochInfo {
         }
     }
 
+    #[inline(always)]
     pub fn exit_quiescent(&mut self) {
         self.state = EpochState::Active;
     }
 
+    #[inline(always)]
     pub fn pin(&mut self) {
         self.pin_count += 1;
         self.state = EpochState::Pinned;
     }
 
+    #[inline]
     pub fn unpin(&mut self) {
         if self.pin_count > 0 {
             self.pin_count -= 1;
@@ -93,6 +97,7 @@ impl ThreadEpochInfo {
         }
     }
 
+    #[inline(always)]
     pub fn record_fence(&mut self) {
         self.fence_count += 1;
     }
@@ -124,14 +129,17 @@ impl GracePeriod {
         }
     }
 
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.completed_ns.is_some()
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, now_ns: u64) {
         self.completed_ns = Some(now_ns);
     }
 
+    #[inline]
     pub fn duration_ns(&self) -> u64 {
         match self.completed_ns {
             Some(end) => end - self.started_ns,
@@ -181,16 +189,19 @@ impl BarrierGroup {
         }
     }
 
+    #[inline]
     pub fn reset(&mut self) {
         self.arrived.clear();
         self.arrived_count = 0;
         self.completed_ns = None;
     }
 
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.arrived_count >= self.expected_count
     }
 
+    #[inline(always)]
     pub fn waiting_count(&self) -> u32 {
         self.expected_count - self.arrived_count
     }
@@ -198,6 +209,7 @@ impl BarrierGroup {
 
 /// Fence protocol stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopFenceProtoStats {
     pub tracked_threads: usize,
     pub current_epoch: u64,
@@ -234,18 +246,21 @@ impl CoopFenceProtocol {
         }
     }
 
+    #[inline]
     pub fn register_thread(&mut self, tid: u64) {
         self.threads
             .entry(tid)
             .or_insert_with(|| ThreadEpochInfo::new(tid));
     }
 
+    #[inline]
     pub fn record_fence(&mut self, tid: u64, _fence_type: FenceType) {
         if let Some(thread) = self.threads.get_mut(&tid) {
             thread.record_fence();
         }
     }
 
+    #[inline]
     pub fn enter_quiescent(&mut self, tid: u64, now_ns: u64) {
         if let Some(thread) = self.threads.get_mut(&tid) {
             thread.enter_quiescent(now_ns);
@@ -253,18 +268,21 @@ impl CoopFenceProtocol {
         self.try_advance_epoch(now_ns);
     }
 
+    #[inline]
     pub fn exit_quiescent(&mut self, tid: u64) {
         if let Some(thread) = self.threads.get_mut(&tid) {
             thread.exit_quiescent();
         }
     }
 
+    #[inline]
     pub fn pin(&mut self, tid: u64) {
         if let Some(thread) = self.threads.get_mut(&tid) {
             thread.pin();
         }
     }
 
+    #[inline]
     pub fn unpin(&mut self, tid: u64) {
         if let Some(thread) = self.threads.get_mut(&tid) {
             thread.unpin();
@@ -296,6 +314,7 @@ impl CoopFenceProtocol {
     }
 
     /// Start a new grace period
+    #[inline]
     pub fn start_grace_period(&mut self, now_ns: u64) -> u64 {
         let id = self.next_gp_id;
         self.next_gp_id += 1;
@@ -306,12 +325,14 @@ impl CoopFenceProtocol {
     }
 
     /// Create a barrier group
+    #[inline(always)]
     pub fn create_barrier(&mut self, barrier_id: u64, expected: u32, now_ns: u64) {
         self.barriers
             .insert(barrier_id, BarrierGroup::new(barrier_id, expected, now_ns));
     }
 
     /// Arrive at barrier
+    #[inline]
     pub fn barrier_arrive(&mut self, barrier_id: u64, tid: u64, now_ns: u64) -> bool {
         if let Some(barrier) = self.barriers.get_mut(&barrier_id) {
             barrier.arrive(tid, now_ns)
@@ -337,6 +358,7 @@ impl CoopFenceProtocol {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopFenceProtoStats {
         &self.stats
     }

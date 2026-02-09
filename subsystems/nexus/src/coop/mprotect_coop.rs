@@ -22,6 +22,7 @@ pub enum ProtDomain {
 }
 
 impl ProtDomain {
+    #[inline]
     pub fn trust_level(&self) -> u32 {
         match self {
             Self::Kernel => 4,
@@ -32,6 +33,7 @@ impl ProtDomain {
         }
     }
 
+    #[inline(always)]
     pub fn can_share_with(&self, other: &Self) -> bool {
         (self.trust_level() as i32 - other.trust_level() as i32).unsigned_abs() <= 1
     }
@@ -67,6 +69,7 @@ pub struct EscalationEvent {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MprotectCoopStats {
     pub domain_assignments: u64,
     pub shared_guards_created: u64,
@@ -95,6 +98,7 @@ impl MprotectCoopManager {
         }
     }
 
+    #[inline]
     pub fn assign_domain(&mut self, pid: u64, domain: ProtDomain, pku_key: Option<u32>) {
         self.domains.insert(pid, ProtDomainEntry {
             pid,
@@ -108,6 +112,7 @@ impl MprotectCoopManager {
     }
 
     /// Check if two processes can share a memory region
+    #[inline]
     pub fn can_share(&self, pid_a: u64, pid_b: u64) -> bool {
         let da = match self.domains.get(&pid_a) {
             Some(d) => d,
@@ -148,6 +153,7 @@ impl MprotectCoopManager {
     }
 
     /// Record a W^X violation
+    #[inline]
     pub fn record_wx_violation(&mut self, pid: u64) {
         if let Some(d) = self.domains.get_mut(&pid) {
             d.wx_violations += 1;
@@ -197,9 +203,11 @@ impl MprotectCoopManager {
         granted
     }
 
+    #[inline(always)]
     pub fn domain(&self, pid: u64) -> Option<&ProtDomainEntry> {
         self.domains.get(&pid)
     }
+    #[inline(always)]
     pub fn stats(&self) -> &MprotectCoopStats {
         &self.stats
     }

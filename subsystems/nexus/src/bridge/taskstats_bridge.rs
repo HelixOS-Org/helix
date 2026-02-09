@@ -46,16 +46,19 @@ impl TaskstatsCpuAccounting {
         }
     }
 
+    #[inline(always)]
     pub fn total_cpu_ns(&self) -> u64 {
         self.utime_ns + self.stime_ns + self.guest_time_ns
     }
 
+    #[inline]
     pub fn total_delay_ns(&self) -> u64 {
         self.blkio_delay_ns + self.swapin_delay_ns + self.freepages_delay_ns
             + self.thrashing_delay_ns + self.compact_delay_ns
             + self.wpcopy_delay_ns + self.irq_delay_ns
     }
 
+    #[inline]
     pub fn cpu_efficiency_pct(&self) -> u64 {
         let total = self.total_cpu_ns() + self.total_delay_ns();
         if total == 0 { 100 }
@@ -83,14 +86,17 @@ impl TaskstatsIoAccounting {
         }
     }
 
+    #[inline(always)]
     pub fn total_io_bytes(&self) -> u64 {
         self.read_bytes + self.write_bytes
     }
 
+    #[inline(always)]
     pub fn avg_read_size(&self) -> u64 {
         if self.read_syscalls == 0 { 0 } else { self.read_bytes / self.read_syscalls }
     }
 
+    #[inline(always)]
     pub fn avg_write_size(&self) -> u64 {
         if self.write_syscalls == 0 { 0 } else { self.write_bytes / self.write_syscalls }
     }
@@ -118,6 +124,7 @@ impl TaskstatsMemAccounting {
         }
     }
 
+    #[inline(always)]
     pub fn major_fault_rate(&self) -> u64 {
         if self.nr_page_faults == 0 { 0 }
         else { (self.nr_major_faults * 100) / self.nr_page_faults }
@@ -125,6 +132,7 @@ impl TaskstatsMemAccounting {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TaskstatsEntry {
     pub pid: u64,
     pub tgid: u64,
@@ -148,6 +156,7 @@ impl TaskstatsEntry {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TaskstatsBridgeStats {
     pub total_tasks_tracked: u64,
     pub total_queries: u64,
@@ -156,6 +165,7 @@ pub struct TaskstatsBridgeStats {
     pub total_io_bytes: u64,
 }
 
+#[repr(align(64))]
 pub struct BridgeTaskstats {
     entries: BTreeMap<u64, TaskstatsEntry>,
     tgid_members: BTreeMap<u64, Vec<u64>>,
@@ -177,17 +187,20 @@ impl BridgeTaskstats {
         }
     }
 
+    #[inline]
     pub fn register_task(&mut self, pid: u64, tgid: u64) {
         self.entries.insert(pid, TaskstatsEntry::new(pid, tgid));
         self.tgid_members.entry(tgid).or_insert_with(Vec::new).push(pid);
         self.stats.total_tasks_tracked += 1;
     }
 
+    #[inline(always)]
     pub fn get_stats(&mut self, pid: u64) -> Option<&TaskstatsEntry> {
         self.stats.total_queries += 1;
         self.entries.get(&pid)
     }
 
+    #[inline]
     pub fn record_exit(&mut self, pid: u64, exit_code: i32) {
         if let Some(entry) = self.entries.get_mut(&pid) {
             entry.exit_code = Some(exit_code);
@@ -195,6 +208,7 @@ impl BridgeTaskstats {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &TaskstatsBridgeStats {
         &self.stats
     }

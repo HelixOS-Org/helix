@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -84,6 +85,7 @@ impl SyscallCost {
     }
 
     /// Total weighted cost
+    #[inline(always)]
     pub fn total_cost(&self) -> u64 {
         self.cpu_ns + self.memory_bytes / 1024 + self.io_bytes / 512
     }
@@ -95,6 +97,7 @@ impl SyscallCost {
 
 /// Cost model for syscall pricing
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CostModel {
     /// Cost per ns of CPU
     pub cpu_cost_per_ns: f64,
@@ -107,10 +110,11 @@ pub struct CostModel {
     /// Cost per context switch
     pub context_switch_cost: f64,
     /// Per-syscall overrides
-    overrides: BTreeMap<u32, f64>,
+    overrides: ArrayMap<f64, 32>,
 }
 
 impl CostModel {
+    #[inline]
     pub fn default_model() -> Self {
         Self {
             cpu_cost_per_ns: 1.0,
@@ -118,16 +122,18 @@ impl CostModel {
             io_cost_per_byte: 0.01,
             page_fault_cost: 1000.0,
             context_switch_cost: 5000.0,
-            overrides: BTreeMap::new(),
+            overrides: ArrayMap::new(0.0),
         }
     }
 
     /// Set override for specific syscall
+    #[inline(always)]
     pub fn set_override(&mut self, syscall_nr: u32, multiplier: f64) {
         self.overrides.insert(syscall_nr, multiplier);
     }
 
     /// Calculate cost
+    #[inline]
     pub fn calculate(&self, cost: &SyscallCost) -> f64 {
         let base = cost.cpu_ns as f64 * self.cpu_cost_per_ns
             + cost.memory_bytes as f64 * self.memory_cost_per_byte
@@ -144,6 +150,7 @@ impl CostModel {
 
 /// Per-resource counter
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ResourceCounter {
     /// Total usage
     pub total: u64,
@@ -155,12 +162,14 @@ pub struct ResourceCounter {
 
 impl ResourceCounter {
     /// Record usage
+    #[inline(always)]
     pub fn record(&mut self, amount: u64, now: u64) {
         self.total += amount;
         self.window_usage += amount;
     }
 
     /// Reset window
+    #[inline(always)]
     pub fn reset_window(&mut self, now: u64) {
         self.window_usage = 0;
         self.window_start = now;
@@ -169,6 +178,7 @@ impl ResourceCounter {
 
 /// Process accounting record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessAccount {
     /// Process id
     pub pid: u64,
@@ -181,7 +191,7 @@ pub struct ProcessAccount {
     /// Budget limit (None = unlimited)
     pub budget: Option<f64>,
     /// Syscall counts
-    pub syscall_counts: BTreeMap<u32, u64>,
+    pub syscall_counts: ArrayMap<u64, 32>,
     /// Total syscalls
     pub total_syscalls: u64,
 }
@@ -194,12 +204,13 @@ impl ProcessAccount {
             total_cost: 0.0,
             window_cost: 0.0,
             budget: None,
-            syscall_counts: BTreeMap::new(),
+            syscall_counts: ArrayMap::new(0),
             total_syscalls: 0,
         }
     }
 
     /// Record resource usage
+    #[inline]
     pub fn record_resource(&mut self, resource: AccountingResource, amount: u64, now: u64) {
         let counter = self
             .resources
@@ -209,19 +220,22 @@ impl ProcessAccount {
     }
 
     /// Record cost
+    #[inline]
     pub fn record_cost(&mut self, cost: f64, syscall_nr: u32) {
         self.total_cost += cost;
         self.window_cost += cost;
-        *self.syscall_counts.entry(syscall_nr).or_insert(0) += 1;
+        self.syscall_counts.add(syscall_nr as usize, 1);
         self.total_syscalls += 1;
     }
 
     /// Is over budget?
+    #[inline(always)]
     pub fn is_over_budget(&self) -> bool {
         self.budget.map(|b| self.window_cost > b).unwrap_or(false)
     }
 
     /// Budget utilization
+    #[inline]
     pub fn budget_utilization(&self) -> Option<f64> {
         self.budget.map(|b| {
             if b > 0.0 {
@@ -233,6 +247,7 @@ impl ProcessAccount {
     }
 
     /// Top syscalls by cost
+    #[inline]
     pub fn top_syscalls(&self, count: usize) -> Vec<(u32, u64)> {
         let mut entries: Vec<(u32, u64)> = self.syscall_counts.iter().map(|(&k, &v)| (k, v)).collect();
         entries.sort_by(|a, b| b.1.cmp(&a.1));
@@ -241,6 +256,7 @@ impl ProcessAccount {
     }
 
     /// Reset window
+    #[inline]
     pub fn reset_window(&mut self, now: u64) {
         self.window_cost = 0.0;
         for counter in self.resources.values_mut() {
@@ -255,6 +271,7 @@ impl ProcessAccount {
 
 /// Accounting stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeAccountingStats {
     /// Processes tracked
     pub processes: usize,
@@ -267,6 +284,7 @@ pub struct BridgeAccountingStats {
 }
 
 /// Bridge accounting engine
+#[repr(align(64))]
 pub struct BridgeAccountingEngine {
     /// Process accounts
     accounts: BTreeMap<u64, ProcessAccount>,
@@ -286,11 +304,13 @@ impl BridgeAccountingEngine {
     }
 
     /// Set cost model
+    #[inline(always)]
     pub fn set_model(&mut self, model: CostModel) {
         self.model = model;
     }
 
     /// Set budget
+    #[inline]
     pub fn set_budget(&mut self, pid: u64, budget: f64) {
         let account = self
             .accounts
@@ -328,11 +348,13 @@ impl BridgeAccountingEngine {
     }
 
     /// Get account
+    #[inline(always)]
     pub fn account(&self, pid: u64) -> Option<&ProcessAccount> {
         self.accounts.get(&pid)
     }
 
     /// Top spenders
+    #[inline]
     pub fn top_spenders(&self, count: usize) -> Vec<(u64, f64)> {
         let mut spenders: Vec<(u64, f64)> = self
             .accounts
@@ -345,6 +367,7 @@ impl BridgeAccountingEngine {
     }
 
     /// Over-budget processes
+    #[inline]
     pub fn over_budget_processes(&self) -> Vec<u64> {
         self.accounts
             .values()
@@ -354,6 +377,7 @@ impl BridgeAccountingEngine {
     }
 
     /// Reset all windows
+    #[inline]
     pub fn reset_windows(&mut self, now: u64) {
         for account in self.accounts.values_mut() {
             account.reset_window(now);
@@ -361,6 +385,7 @@ impl BridgeAccountingEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeAccountingStats {
         &self.stats
     }

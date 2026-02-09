@@ -151,6 +151,7 @@ pub struct CorrelationResult {
 
 /// Hypothesis engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HypothesisStats {
     pub total_hypotheses: u64,
     pub active_count: u64,
@@ -382,6 +383,7 @@ impl HolisticHypothesisEngine {
     }
 
     /// Current statistics snapshot
+    #[inline(always)]
     pub fn stats(&self) -> &HypothesisStats {
         &self.stats
     }
@@ -406,6 +408,7 @@ impl HolisticHypothesisEngine {
 
     // ── private helpers ─────────────────────────────────────────────────
 
+    #[inline]
     fn refresh_counts(&mut self) {
         let mut active = 0u64;
         let mut confirmed = 0u64;

@@ -8,6 +8,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
@@ -133,7 +134,7 @@ pub struct QueryResult {
 #[derive(Debug, Clone)]
 pub struct ActivationResult {
     /// Activated concepts
-    pub activated: BTreeMap<u64, f64>,
+    pub activated: LinearMap<f64, 64>,
     /// Iterations
     pub iterations: u32,
 }
@@ -186,6 +187,7 @@ impl Default for SemanticConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SemanticStats {
     /// Concepts stored
     pub concepts_stored: u64,
@@ -239,6 +241,7 @@ impl SemanticStore {
     }
 
     /// Set attribute
+    #[inline]
     pub fn set_attribute(&mut self, concept_id: u64, key: &str, value: AttributeValue) {
         if let Some(concept) = self.concepts.get_mut(&concept_id) {
             concept.attributes.insert(key.into(), value);
@@ -419,7 +422,7 @@ impl SemanticStore {
 
     /// Spreading activation
     pub fn spread_activation(&mut self, source_id: u64, initial_activation: f64) -> ActivationResult {
-        let mut activated: BTreeMap<u64, f64> = BTreeMap::new();
+        let mut activated: LinearMap<f64, 64> = BTreeMap::new();
         activated.insert(source_id, initial_activation);
 
         let mut to_process = vec![(source_id, initial_activation)];
@@ -466,6 +469,7 @@ impl SemanticStore {
     }
 
     /// Decay all activations
+    #[inline]
     pub fn decay_activations(&mut self) {
         for concept in self.concepts.values_mut() {
             concept.activation *= self.config.activation_decay;
@@ -473,17 +477,20 @@ impl SemanticStore {
     }
 
     /// Get concept
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Concept> {
         self.concepts.get(&id)
     }
 
     /// Get by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&Concept> {
         let id = self.name_index.get(name)?;
         self.concepts.get(id)
     }
 
     /// Get related concepts
+    #[inline]
     pub fn get_related(&self, id: u64, relation_type: Option<RelationType>) -> Vec<&Concept> {
         let concept = match self.concepts.get(&id) {
             Some(c) => c,
@@ -497,6 +504,7 @@ impl SemanticStore {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SemanticStats {
         &self.stats
     }

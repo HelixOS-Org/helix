@@ -126,6 +126,7 @@ struct DetectionRecord {
 
 /// Breakthrough detection statistics.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct BreakthroughStats {
     pub total_candidates: u64,
     pub confirmed_breakthroughs: u64,
@@ -153,6 +154,7 @@ struct KnownDimension {
 // ============================================================================
 
 /// Detects genuine breakthroughs in bridge research.
+#[repr(align(64))]
 pub struct BridgeBreakthroughDetector {
     breakthroughs: BTreeMap<u64, Breakthrough>,
     candidates: BTreeMap<u64, Candidate>,
@@ -243,6 +245,7 @@ impl BridgeBreakthroughDetector {
     }
 
     /// Add evidence to a candidate.
+    #[inline]
     pub fn add_evidence(&mut self, candidate_id: u64, measurement: f32) {
         if let Some(c) = self.candidates.get_mut(&candidate_id) {
             c.evidence_pieces.push(measurement);
@@ -350,6 +353,7 @@ impl BridgeBreakthroughDetector {
     }
 
     /// Compute the magnitude of a potential breakthrough.
+    #[inline]
     pub fn breakthrough_magnitude(&self, candidate_id: u64) -> f32 {
         match self.candidates.get(&candidate_id) {
             Some(c) => self.breakthrough_magnitude_internal(c.improvement_ratio, c.evidence_pieces.len()),
@@ -358,11 +362,13 @@ impl BridgeBreakthroughDetector {
     }
 
     /// Assess the novelty of a discovery description.
+    #[inline(always)]
     pub fn novelty_assessment(&self, description: &str) -> f32 {
         self.novelty_assessment_internal(description)
     }
 
     /// Estimate the downstream impact of a breakthrough.
+    #[inline]
     pub fn impact_estimation(&self, breakthrough_id: u64) -> f32 {
         match self.breakthroughs.get(&breakthrough_id) {
             Some(bt) => bt.impact,
@@ -371,11 +377,13 @@ impl BridgeBreakthroughDetector {
     }
 
     /// Get the history of all confirmed breakthroughs.
+    #[inline(always)]
     pub fn breakthrough_history(&self) -> Vec<&Breakthrough> {
         self.breakthroughs.values().collect()
     }
 
     /// Compute the current breakthrough rate (breakthroughs per candidate).
+    #[inline]
     pub fn breakthrough_rate(&self) -> f32 {
         if self.stats.total_candidates == 0 {
             return 0.0;
@@ -384,16 +392,19 @@ impl BridgeBreakthroughDetector {
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &BreakthroughStats {
         &self.stats
     }
 
     /// Number of confirmed breakthroughs.
+    #[inline(always)]
     pub fn breakthrough_count(&self) -> usize {
         self.breakthroughs.len()
     }
 
     /// Current performance baseline.
+    #[inline(always)]
     pub fn current_baseline(&self) -> f32 {
         self.current_baseline
     }

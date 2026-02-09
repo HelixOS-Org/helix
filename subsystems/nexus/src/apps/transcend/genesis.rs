@@ -115,6 +115,7 @@ pub struct WorkloadObservation {
 
 /// Statistics for the genesis engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct GenesisStats {
     pub total_strategies: u64,
     pub total_classifiers: u64,
@@ -263,6 +264,7 @@ impl AppsGenesis {
     }
 
     /// Apply a classifier to a workload sample and return the result.
+    #[inline]
     pub fn classify_with(
         &mut self,
         classifier_id: u64,
@@ -301,6 +303,7 @@ impl AppsGenesis {
     }
 
     /// Record strategy application result (success = true/false).
+    #[inline]
     pub fn record_strategy_result(&mut self, strategy_id: u64, success: bool) {
         if let Some(s) = self.strategies.get_mut(&strategy_id) {
             s.times_applied += 1;
@@ -311,16 +314,19 @@ impl AppsGenesis {
     }
 
     /// Return a summary of genesis capabilities created.
+    #[inline(always)]
     pub fn genesis_capability(&self) -> &[GenesisCapability] {
         &self.capabilities
     }
 
     /// Return the total count of capabilities created.
+    #[inline(always)]
     pub fn capability_count(&self) -> u64 {
         self.capabilities.len() as u64
     }
 
     /// Return current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &GenesisStats {
         &self.stats
     }

@@ -16,6 +16,7 @@ use alloc::vec::Vec;
 pub enum SwapDeviceType { SSD, HDD, NVMe, ZRAM, Network }
 
 impl SwapDeviceType {
+    #[inline]
     pub fn latency_estimate_ns(&self) -> u64 {
         match self {
             Self::NVMe => 10_000,
@@ -40,15 +41,19 @@ pub struct SwapDevice {
 }
 
 impl SwapDevice {
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.total_slots == 0 { return 0.0; }
         self.used_slots as f64 / self.total_slots as f64
     }
+    #[inline(always)]
     pub fn free_slots(&self) -> u64 { self.total_slots.saturating_sub(self.used_slots) }
+    #[inline(always)]
     pub fn is_congested(&self) -> bool { self.io_queue_depth > 32 }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ZswapGlobalStats {
     pub pool_size_bytes: u64,
     pub stored_pages: u64,
@@ -59,10 +64,12 @@ pub struct ZswapGlobalStats {
 }
 
 impl ZswapGlobalStats {
+    #[inline(always)]
     pub fn compression_ratio(&self) -> f64 {
         if self.compressed_bytes == 0 { return 1.0; }
         self.original_bytes as f64 / self.compressed_bytes as f64
     }
+    #[inline(always)]
     pub fn pool_utilization(&self) -> f64 {
         if self.pool_size_bytes == 0 { return 0.0; }
         self.compressed_bytes as f64 / self.pool_size_bytes as f64
@@ -70,6 +77,7 @@ impl ZswapGlobalStats {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SwapHolisticStats {
     pub total_swap_space: u64,
     pub total_used: u64,
@@ -102,6 +110,7 @@ impl SwapHolisticManager {
         }
     }
 
+    #[inline]
     pub fn add_device(&mut self, device: SwapDevice) {
         self.stats.total_swap_space += device.total_slots;
         self.stats.total_devices += 1;
@@ -123,6 +132,7 @@ impl SwapHolisticManager {
     }
 
     /// Balance swap reads across devices
+    #[inline]
     pub fn select_device_for_read(&self) -> Option<u64> {
         self.devices.iter()
             .filter(|(_, d)| d.used_slots > 0 && !d.is_congested())
@@ -131,6 +141,7 @@ impl SwapHolisticManager {
     }
 
     /// Update device usage
+    #[inline]
     pub fn update_usage(&mut self, device_id: u64, used_delta: i64, now: u64) {
         if let Some(dev) = self.devices.get_mut(&device_id) {
             if used_delta > 0 { dev.used_slots += used_delta as u64; }
@@ -144,6 +155,7 @@ impl SwapHolisticManager {
     }
 
     /// Update zswap statistics
+    #[inline(always)]
     pub fn update_zswap(&mut self, zswap: ZswapGlobalStats) {
         self.stats.global_compression_ratio = zswap.compression_ratio();
         self.zswap = zswap;
@@ -167,12 +179,16 @@ impl SwapHolisticManager {
     }
 
     /// Global swap utilization
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.stats.total_swap_space == 0 { return 0.0; }
         self.stats.total_used as f64 / self.stats.total_swap_space as f64
     }
 
+    #[inline(always)]
     pub fn device(&self, id: u64) -> Option<&SwapDevice> { self.devices.get(&id) }
+    #[inline(always)]
     pub fn zswap_stats(&self) -> &ZswapGlobalStats { &self.zswap }
+    #[inline(always)]
     pub fn stats(&self) -> &SwapHolisticStats { &self.stats }
 }

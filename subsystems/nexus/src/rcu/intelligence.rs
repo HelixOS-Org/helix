@@ -151,6 +151,7 @@ impl RcuIntelligence {
     }
 
     /// Register CPU
+    #[inline]
     pub fn register_cpu(&mut self, cpu_id: CpuId) {
         self.reader_tracker.register_cpu(cpu_id);
         for domain in self.domains.values_mut() {
@@ -187,6 +188,7 @@ impl RcuIntelligence {
     }
 
     /// Record quiescent state for CPU
+    #[inline]
     pub fn record_quiescent_state(
         &mut self,
         domain_id: RcuDomainId,
@@ -250,6 +252,7 @@ impl RcuIntelligence {
     }
 
     /// Register callback
+    #[inline]
     pub fn register_callback(&mut self, domain_id: RcuDomainId, callback: CallbackInfo) {
         if let Some(coalescer) = self.callback_coalescers.get_mut(&domain_id) {
             coalescer.add_callback(callback);
@@ -260,6 +263,7 @@ impl RcuIntelligence {
     }
 
     /// Process callbacks
+    #[inline]
     pub fn process_callbacks(&mut self, domain_id: RcuDomainId, count: u64) {
         if let Some(domain) = self.domains.get_mut(&domain_id) {
             domain.pending_callbacks = domain.pending_callbacks.saturating_sub(count);
@@ -269,11 +273,13 @@ impl RcuIntelligence {
     }
 
     /// Record critical section entry
+    #[inline(always)]
     pub fn record_cs_entry(&mut self, cpu_id: CpuId, timestamp_ns: u64) {
         self.reader_tracker.record_cs_entry(cpu_id, timestamp_ns);
     }
 
     /// Record critical section exit
+    #[inline(always)]
     pub fn record_cs_exit(&mut self, cpu_id: CpuId, timestamp_ns: u64) {
         self.reader_tracker.record_cs_exit(cpu_id, timestamp_ns);
     }
@@ -416,6 +422,7 @@ impl RcuIntelligence {
     }
 
     /// Predict grace period duration
+    #[inline]
     pub fn predict_gp_duration(&self, domain_id: RcuDomainId, expedited: bool) -> Option<u64> {
         let domain = self.domains.get(&domain_id)?;
         let predictor = self.gp_predictors.get(&domain_id)?;
@@ -423,41 +430,49 @@ impl RcuIntelligence {
     }
 
     /// Get domain info
+    #[inline(always)]
     pub fn get_domain(&self, domain_id: RcuDomainId) -> Option<&RcuDomainInfo> {
         self.domains.get(&domain_id)
     }
 
     /// Get configurator
+    #[inline(always)]
     pub fn configurator(&self) -> &AdaptiveConfigurator {
         &self.configurator
     }
 
     /// Get configurator mutably
+    #[inline(always)]
     pub fn configurator_mut(&mut self) -> &mut AdaptiveConfigurator {
         &mut self.configurator
     }
 
     /// Get reader tracker
+    #[inline(always)]
     pub fn reader_tracker(&self) -> &ReaderTracker {
         &self.reader_tracker
     }
 
     /// Get reader tracker mutably
+    #[inline(always)]
     pub fn reader_tracker_mut(&mut self) -> &mut ReaderTracker {
         &mut self.reader_tracker
     }
 
     /// Get total callbacks processed
+    #[inline(always)]
     pub fn total_callbacks_processed(&self) -> u64 {
         self.total_callbacks_processed.load(Ordering::Relaxed)
     }
 
     /// Get total grace periods completed
+    #[inline(always)]
     pub fn total_gps_completed(&self) -> u64 {
         self.total_gps_completed.load(Ordering::Relaxed)
     }
 
     /// Get domain count
+    #[inline(always)]
     pub fn domain_count(&self) -> usize {
         self.domains.len()
     }

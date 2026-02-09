@@ -44,6 +44,7 @@ impl IommuAllocDomain {
         Self { id, regions: Vec::new(), next_iova: base_iova, total_mapped: 0, map_count: 0, unmap_count: 0, faults: 0 }
     }
 
+    #[inline]
     pub fn map(&mut self, phys: u64, size: u64, dev: u64, mt: IommuMapType) -> u64 {
         let iova = self.next_iova;
         self.next_iova += size;
@@ -53,6 +54,7 @@ impl IommuAllocDomain {
         iova
     }
 
+    #[inline]
     pub fn unmap(&mut self, iova: u64) -> bool {
         if let Some(idx) = self.regions.iter().position(|r| r.iova_start == iova) {
             let reg = self.regions.remove(idx);
@@ -65,6 +67,7 @@ impl IommuAllocDomain {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IommuAllocStats {
     pub total_domains: u32,
     pub total_regions: u32,
@@ -83,12 +86,14 @@ pub struct HolisticIommuAlloc {
 impl HolisticIommuAlloc {
     pub fn new() -> Self { Self { domains: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create_domain(&mut self, base_iova: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.domains.insert(id, IommuAllocDomain::new(id, base_iova));
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> IommuAllocStats {
         let regions: u32 = self.domains.values().map(|d| d.regions.len() as u32).sum();
         let mapped: u64 = self.domains.values().map(|d| d.total_mapped).sum();

@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Async syscall state
@@ -75,7 +76,7 @@ pub struct CqEntry {
 /// Ring buffer for SQ/CQ
 #[derive(Debug, Clone)]
 pub struct Ring<T: Clone> {
-    pub entries: Vec<T>,
+    pub entries: VecDeque<T>,
     pub head: u32,
     pub tail: u32,
     pub capacity: u32,
@@ -84,36 +85,41 @@ pub struct Ring<T: Clone> {
 impl<T: Clone> Ring<T> {
     pub fn new(capacity: u32) -> Self {
         Self {
-            entries: Vec::new(),
+            entries: VecDeque::new(),
             head: 0,
             tail: 0,
             capacity,
         }
     }
 
+    #[inline(always)]
     pub fn len(&self) -> u32 {
         self.tail.wrapping_sub(self.head)
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.head == self.tail
     }
 
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.len() >= self.capacity
     }
 
+    #[inline]
     pub fn push(&mut self, entry: T) -> bool {
         if self.is_full() { return false; }
-        self.entries.push(entry);
+        self.entries.push_back(entry);
         self.tail = self.tail.wrapping_add(1);
         true
     }
 
+    #[inline]
     pub fn pop(&mut self) -> Option<T> {
         if self.is_empty() { return None; }
         if self.entries.is_empty() { return None; }
-        let entry = self.entries.remove(0);
+        let entry = self.entries.pop_front().unwrap();
         self.head = self.head.wrapping_add(1);
         Some(entry)
     }
@@ -121,6 +127,7 @@ impl<T: Clone> Ring<T> {
 
 /// Per-thread async context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AsyncContext {
     pub thread_id: u64,
     pub sq: Ring<SqEntry>,
@@ -146,6 +153,7 @@ impl AsyncContext {
         }
     }
 
+    #[inline]
     pub fn submit(&mut self, entry: SqEntry) -> bool {
         if self.sq.push(entry) {
             self.total_submitted += 1;
@@ -167,6 +175,7 @@ impl AsyncContext {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn reap(&mut self) -> Option<CqEntry> {
         self.cq.pop()
     }
@@ -186,6 +195,7 @@ pub struct InFlightSyscall {
 
 /// Async syscall engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeAsyncSyscallStats {
     pub active_contexts: usize,
     pub total_in_flight: u32,
@@ -197,6 +207,7 @@ pub struct BridgeAsyncSyscallStats {
 }
 
 /// Bridge Async Syscall Engine
+#[repr(align(64))]
 pub struct BridgeAsyncSyscall {
     contexts: BTreeMap<u64, AsyncContext>,
     in_flight: BTreeMap<u64, InFlightSyscall>,
@@ -220,6 +231,7 @@ impl BridgeAsyncSyscall {
         }
     }
 
+    #[inline]
     pub fn create_context(&mut self, thread_id: u64) {
         self.contexts.insert(thread_id, AsyncContext::new(
             thread_id, self.default_sq_size, self.default_cq_size));
@@ -347,6 +359,7 @@ impl BridgeAsyncSyscall {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeAsyncSyscallStats {
         &self.stats
     }

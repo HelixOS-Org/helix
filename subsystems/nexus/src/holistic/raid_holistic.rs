@@ -55,8 +55,11 @@ impl RaidDisk {
         Self { disk_id, state: RaidDiskState::Active, sectors, read_errors: 0, write_errors: 0, corrected_errors: 0 }
     }
 
+    #[inline(always)]
     pub fn fail(&mut self) { self.state = RaidDiskState::Faulty; }
+    #[inline(always)]
     pub fn start_rebuild(&mut self) { self.state = RaidDiskState::Rebuilding; }
+    #[inline(always)]
     pub fn total_errors(&self) -> u64 { self.read_errors + self.write_errors }
 }
 
@@ -85,6 +88,7 @@ impl RaidArray {
         }
     }
 
+    #[inline]
     pub fn add_disk(&mut self, disk: RaidDisk) {
         self.total_sectors += disk.sectors;
         self.disks.push(disk);
@@ -104,6 +108,7 @@ impl RaidArray {
         };
     }
 
+    #[inline]
     pub fn fail_disk(&mut self, idx: usize) {
         if idx < self.disks.len() {
             self.disks[idx].fail();
@@ -112,6 +117,7 @@ impl RaidArray {
         }
     }
 
+    #[inline]
     pub fn redundancy(&self) -> u32 {
         match self.level {
             RaidLevel::Raid0 | RaidLevel::Linear | RaidLevel::Jbod => 0,
@@ -125,6 +131,7 @@ impl RaidArray {
 
 /// RAID holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticRaidStats {
     pub total_arrays: u64,
     pub degraded_arrays: u64,
@@ -148,12 +155,14 @@ impl HolisticRaid {
         }
     }
 
+    #[inline]
     pub fn create_array(&mut self, array: RaidArray) {
         self.stats.total_arrays += 1;
         self.stats.total_disks += array.disks.len() as u64;
         self.arrays.insert(array.array_id, array);
     }
 
+    #[inline]
     pub fn start_rebuild(&mut self, array_id: u64) -> bool {
         if let Some(array) = self.arrays.get_mut(&array_id) {
             if array.state == RaidState::Degraded {

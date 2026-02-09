@@ -31,6 +31,7 @@ pub enum DentryBridgeResult {
 
 /// Dentry bridge record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DentryBridgeRecord {
     pub op: DentryBridgeOp,
     pub result: DentryBridgeResult,
@@ -50,6 +51,7 @@ impl DentryBridgeRecord {
 
 /// Dentry bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DentryBridgeStats {
     pub total_ops: u64,
     pub lookups: u64,
@@ -85,6 +87,7 @@ impl BridgeDentry {
         }
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         if self.stats.lookups == 0 { 0.0 } else { self.stats.cache_hits as f64 / self.stats.lookups as f64 }
     }
@@ -112,6 +115,7 @@ impl DentryV2Record {
 
 /// Dentry v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DentryV2BridgeStats { pub total_events: u64, pub hits: u64, pub misses: u64, pub invalidations: u64 }
 
 /// Main bridge dentry v2
@@ -120,6 +124,7 @@ pub struct BridgeDentryV2 { pub stats: DentryV2BridgeStats }
 
 impl BridgeDentryV2 {
     pub fn new() -> Self { Self { stats: DentryV2BridgeStats { total_events: 0, hits: 0, misses: 0, invalidations: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &DentryV2Record) {
         self.stats.total_events += 1;
         match rec.event {

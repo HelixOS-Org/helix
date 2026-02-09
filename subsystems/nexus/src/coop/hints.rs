@@ -27,6 +27,7 @@ pub enum PressureLevel {
 
 impl PressureLevel {
     /// Numeric severity (0-100)
+    #[inline]
     pub fn severity(&self) -> u8 {
         match self {
             Self::None => 0,
@@ -105,22 +106,26 @@ impl AppHint {
         }
     }
 
+    #[inline(always)]
     pub fn with_duration(mut self, ms: u64) -> Self {
         self.duration_ms = ms;
         self
     }
 
+    #[inline(always)]
     pub fn with_magnitude(mut self, mag: f64) -> Self {
         self.magnitude = mag.clamp(0.0, 1.0);
         self
     }
 
+    #[inline(always)]
     pub fn with_priority(mut self, prio: u8) -> Self {
         self.priority = prio;
         self
     }
 
     /// Whether this hint has expired
+    #[inline]
     pub fn is_expired(&self, current_time: u64) -> bool {
         if self.duration_ms == 0 {
             return false; // indefinite
@@ -262,6 +267,7 @@ impl HintBus {
     }
 
     /// Submit a kernel advisory
+    #[inline]
     pub fn submit_advisory(&mut self, advisory: KernelAdvisory) -> bool {
         self.total_advisories += 1;
         if self.advisories.len() >= MAX_PENDING_ADVISORIES {
@@ -274,6 +280,7 @@ impl HintBus {
     }
 
     /// Drain all pending hints
+    #[inline(always)]
     pub fn drain_hints(&mut self) -> Vec<AppHint> {
         self.hints.drain(..).collect()
     }
@@ -294,16 +301,19 @@ impl HintBus {
     }
 
     /// Get pending hint count
+    #[inline(always)]
     pub fn pending_hints(&self) -> usize {
         self.hints.len()
     }
 
     /// Get pending advisory count
+    #[inline(always)]
     pub fn pending_advisories(&self) -> usize {
         self.advisories.len()
     }
 
     /// Purge expired hints
+    #[inline]
     pub fn purge_expired(&mut self, current_time: u64) -> usize {
         let before = self.hints.len();
         self.hints.retain(|h| !h.is_expired(current_time));
@@ -311,6 +321,7 @@ impl HintBus {
     }
 
     /// Get bus statistics
+    #[inline]
     pub fn stats(&self) -> (u64, u64, u64, u64) {
         (
             self.total_hints,

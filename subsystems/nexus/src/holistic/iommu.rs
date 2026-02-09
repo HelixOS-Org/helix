@@ -39,11 +39,13 @@ impl IommuDomain {
         Self { id, domain_type: dtype, mappings: BTreeMap::new(), total_mapped: 0, total_unmapped: 0, page_faults: 0 }
     }
 
+    #[inline(always)]
     pub fn map(&mut self, iova: u64, phys: u64, size: u64, prot: u32) {
         self.mappings.insert(iova, IommuMapping { iova, phys_addr: phys, size, prot });
         self.total_mapped += size;
     }
 
+    #[inline]
     pub fn unmap(&mut self, iova: u64) -> Option<u64> {
         if let Some(m) = self.mappings.remove(&iova) {
             self.total_unmapped += m.size;
@@ -62,6 +64,7 @@ pub struct IommuDevice {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IommuStats {
     pub total_domains: u32,
     pub total_devices: u32,
@@ -79,24 +82,29 @@ pub struct HolisticIommu {
 impl HolisticIommu {
     pub fn new() -> Self { Self { domains: BTreeMap::new(), devices: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create_domain(&mut self, dtype: IommuDomainType) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.domains.insert(id, IommuDomain::new(id, dtype));
         id
     }
 
+    #[inline(always)]
     pub fn attach_device(&mut self, dev_id: u32, domain: u64, group: u32) {
         self.devices.insert(dev_id, IommuDevice { dev_id, domain_id: domain, group_id: group });
     }
 
+    #[inline(always)]
     pub fn map(&mut self, domain: u64, iova: u64, phys: u64, size: u64, prot: u32) {
         if let Some(d) = self.domains.get_mut(&domain) { d.map(iova, phys, size, prot); }
     }
 
+    #[inline(always)]
     pub fn unmap(&mut self, domain: u64, iova: u64) {
         if let Some(d) = self.domains.get_mut(&domain) { d.unmap(iova); }
     }
 
+    #[inline]
     pub fn stats(&self) -> IommuStats {
         let mapped: u64 = self.domains.values().map(|d| d.total_mapped - d.total_unmapped).sum();
         let faults: u64 = self.domains.values().map(|d| d.page_faults).sum();
@@ -153,19 +161,23 @@ impl IommuDomain {
         }
     }
 
+    #[inline(always)]
     pub fn attach_device(&mut self, bdf: u64) {
         if !self.devices.contains(&bdf) { self.devices.push(bdf); }
     }
 
+    #[inline(always)]
     pub fn map(&mut self, iova: u64, paddr: u64, size: u64, flags: u32) {
         self.mappings.insert(iova, IoMapping { iova, paddr, size, flags });
         self.total_mapped_bytes += size;
     }
 
+    #[inline(always)]
     pub fn unmap(&mut self, iova: u64) -> Option<u64> {
         self.mappings.remove(&iova).map(|m| { self.total_mapped_bytes -= m.size; m.size })
     }
 
+    #[inline]
     pub fn translate(&self, iova: u64) -> Option<u64> {
         for m in self.mappings.values() {
             if iova >= m.iova && iova < m.iova + m.size {
@@ -207,6 +219,7 @@ pub enum IommuFaultType {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IommuV2Stats {
     pub total_domains: u32,
     pub total_devices: u32,
@@ -230,6 +243,7 @@ impl HolisticIommuV2 {
         Self { iommu_type, domains: BTreeMap::new(), faults: Vec::new(), next_domain_id: 1, total_faults: 0 }
     }
 
+    #[inline]
     pub fn create_domain(&mut self, dtype: IommuDomainType, level: IoptLevel) -> u64 {
         let id = self.next_domain_id;
         self.next_domain_id += 1;
@@ -237,18 +251,22 @@ impl HolisticIommuV2 {
         id
     }
 
+    #[inline(always)]
     pub fn attach(&mut self, domain: u64, bdf: u64) {
         if let Some(d) = self.domains.get_mut(&domain) { d.attach_device(bdf); }
     }
 
+    #[inline(always)]
     pub fn map_iova(&mut self, domain: u64, iova: u64, paddr: u64, size: u64, flags: u32) {
         if let Some(d) = self.domains.get_mut(&domain) { d.map(iova, paddr, size, flags); }
     }
 
+    #[inline(always)]
     pub fn unmap_iova(&mut self, domain: u64, iova: u64) -> Option<u64> {
         self.domains.get_mut(&domain)?.unmap(iova)
     }
 
+    #[inline]
     pub fn report_fault(&mut self, fault: IommuFault) {
         if let Some(d) = self.domains.get_mut(&fault.domain_id) { d.fault_count += 1; }
         self.total_faults += 1;
@@ -256,6 +274,7 @@ impl HolisticIommuV2 {
         self.faults.push(fault);
     }
 
+    #[inline]
     pub fn stats(&self) -> IommuV2Stats {
         let devices: u32 = self.domains.values().map(|d| d.devices.len() as u32).sum();
         let mappings: u64 = self.domains.values().map(|d| d.mappings.len() as u64).sum();

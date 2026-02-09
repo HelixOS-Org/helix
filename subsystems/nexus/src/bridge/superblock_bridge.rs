@@ -30,6 +30,7 @@ pub enum SbBridgeResult {
 
 /// Superblock bridge record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SbBridgeRecord {
     pub op: SbBridgeOp,
     pub result: SbBridgeResult,
@@ -46,6 +47,7 @@ impl SbBridgeRecord {
         Self { op, result: SbBridgeResult::Success, dev_id, total_blocks: 0, free_blocks: 0, total_inodes: 0, free_inodes: 0, latency_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn usage_pct(&self) -> f64 {
         if self.total_blocks == 0 { 0.0 } else { (self.total_blocks - self.free_blocks) as f64 / self.total_blocks as f64 }
     }
@@ -53,6 +55,7 @@ impl SbBridgeRecord {
 
 /// Superblock bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SbBridgeStats {
     pub total_ops: u64,
     pub statfs_calls: u64,
@@ -72,6 +75,7 @@ impl BridgeSuperblock {
         Self { stats: SbBridgeStats { total_ops: 0, statfs_calls: 0, syncs: 0, freezes: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SbBridgeRecord) {
         self.stats.total_ops += 1;
         match rec.op {
@@ -107,6 +111,7 @@ impl SuperblockV2Record {
 
 /// Superblock v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SuperblockV2BridgeStats { pub total_events: u64, pub syncs: u64, pub freezes: u64, pub remounts: u64 }
 
 /// Main bridge superblock v2
@@ -115,6 +120,7 @@ pub struct BridgeSuperblockV2 { pub stats: SuperblockV2BridgeStats }
 
 impl BridgeSuperblockV2 {
     pub fn new() -> Self { Self { stats: SuperblockV2BridgeStats { total_events: 0, syncs: 0, freezes: 0, remounts: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SuperblockV2Record) {
         self.stats.total_events += 1;
         match rec.event {

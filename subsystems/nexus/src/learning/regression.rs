@@ -32,6 +32,7 @@ pub enum MetricType {
 
 impl MetricType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Latency => "latency",
@@ -45,6 +46,7 @@ impl MetricType {
     }
 
     /// Is higher better
+    #[inline(always)]
     pub fn higher_is_better(&self) -> bool {
         matches!(self, Self::Throughput | Self::Accuracy | Self::SuccessRate)
     }
@@ -52,6 +54,7 @@ impl MetricType {
 
 /// Metric sample
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct MetricSample {
     /// Timestamp
     pub timestamp: Timestamp,
@@ -61,6 +64,7 @@ pub struct MetricSample {
 
 /// Metric history
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricHistory {
     /// Metric type
     pub metric_type: MetricType,
@@ -87,6 +91,7 @@ impl MetricHistory {
     }
 
     /// Add sample
+    #[inline]
     pub fn add_sample(&mut self, timestamp: u64, value: f32) {
         self.samples.push(MetricSample {
             timestamp: Timestamp::new(timestamp),
@@ -119,6 +124,7 @@ impl MetricHistory {
     }
 
     /// Recent mean
+    #[inline]
     pub fn recent_mean(&self, window: usize) -> f32 {
         let start = self.samples.len().saturating_sub(window);
         let recent = &self.samples[start..];
@@ -156,6 +162,7 @@ pub enum RegressionSeverity {
 
 impl RegressionSeverity {
     /// From z-score
+    #[inline]
     pub fn from_zscore(zscore: f32) -> Option<Self> {
         match zscore.abs() {
             z if z >= 5.0 => Some(Self::Critical),
@@ -211,17 +218,20 @@ impl RegressionDetector {
     }
 
     /// Set threshold
+    #[inline(always)]
     pub fn set_threshold(&mut self, threshold: f32) {
         self.threshold = threshold.max(0.5);
     }
 
     /// Add metric
+    #[inline(always)]
     pub fn add_metric(&mut self, name: &str, metric_type: MetricType) {
         self.metrics
             .insert(String::from(name), MetricHistory::new(metric_type));
     }
 
     /// Record value
+    #[inline]
     pub fn record(&mut self, name: &str, value: f32, timestamp: u64) {
         if let Some(history) = self.metrics.get_mut(name) {
             history.add_sample(timestamp, value);
@@ -273,11 +283,13 @@ impl RegressionDetector {
     }
 
     /// Regression count
+    #[inline(always)]
     pub fn regression_count(&self) -> usize {
         self.regressions.len()
     }
 
     /// Recent regressions
+    #[inline(always)]
     pub fn recent_regressions(&self, limit: usize) -> &[RegressionEvent] {
         let start = self.regressions.len().saturating_sub(limit);
         &self.regressions[start..]

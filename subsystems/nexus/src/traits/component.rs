@@ -69,21 +69,25 @@ pub enum ComponentStatus {
 
 impl ComponentStatus {
     /// Is the component operational
+    #[inline(always)]
     pub const fn is_operational(&self) -> bool {
         matches!(self, Self::Ready | Self::Running | Self::Degraded)
     }
 
     /// Is the component stopped or failed
+    #[inline(always)]
     pub const fn is_terminal(&self) -> bool {
         matches!(self, Self::Stopped | Self::Failed)
     }
 
     /// Is the component transitioning
+    #[inline(always)]
     pub const fn is_transitioning(&self) -> bool {
         matches!(self, Self::Initializing | Self::ShuttingDown)
     }
 
     /// Can be started
+    #[inline(always)]
     pub const fn can_start(&self) -> bool {
         matches!(self, Self::Ready | Self::Stopped | Self::Uninitialized)
     }

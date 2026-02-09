@@ -203,6 +203,7 @@ impl CoopEvent {
         }
     }
 
+    #[inline]
     pub fn with_params(mut self, p1: u64, p2: u64) -> Self {
         self.param1 = p1;
         self.param2 = p2;
@@ -233,6 +234,7 @@ pub struct EventFilter {
 
 impl EventFilter {
     /// Match everything
+    #[inline]
     pub fn all() -> Self {
         Self {
             categories: Vec::new(),
@@ -243,6 +245,7 @@ impl EventFilter {
     }
 
     /// Match specific category
+    #[inline]
     pub fn category(cat: EventCategory) -> Self {
         let mut f = Self::all();
         f.categories.push(cat);
@@ -366,6 +369,7 @@ impl EventHistory {
 
 /// Event statistics per category
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CategoryStats {
     /// Total events
     pub total: u64,
@@ -453,6 +457,7 @@ impl CoopEventBus {
     }
 
     /// Unsubscribe
+    #[inline]
     pub fn unsubscribe(&mut self, id: SubscriptionId) {
         if let Some(sub) = self.subscriptions.remove(&id.0) {
             if let Some(pids) = self.pid_subscriptions.get_mut(&sub.subscriber_pid) {
@@ -462,6 +467,7 @@ impl CoopEventBus {
     }
 
     /// Unsubscribe all for PID
+    #[inline]
     pub fn unsubscribe_all(&mut self, pid: u64) {
         if let Some(sub_ids) = self.pid_subscriptions.remove(&pid) {
             for id in sub_ids {
@@ -542,6 +548,7 @@ impl CoopEventBus {
     }
 
     /// Poll events for a subscriber
+    #[inline]
     pub fn poll(&mut self, pid: u64, max_events: usize) -> Vec<CoopEvent> {
         let queue = match self.pending.get_mut(&pid) {
             Some(q) => q,
@@ -555,21 +562,25 @@ impl CoopEventBus {
     }
 
     /// Pending events for a subscriber
+    #[inline(always)]
     pub fn pending_count(&self, pid: u64) -> usize {
         self.pending.get(&pid).map_or(0, |q| q.len())
     }
 
     /// Get recent events from history
+    #[inline(always)]
     pub fn recent_events(&self, count: usize) -> Vec<&CoopEvent> {
         self.history.recent(count)
     }
 
     /// Count events of type in history
+    #[inline(always)]
     pub fn count_event_type(&self, event_type: EventType) -> u64 {
         self.history.count_by_type(event_type)
     }
 
     /// Category event count
+    #[inline]
     pub fn category_count(&self, category: EventCategory) -> u64 {
         self.category_counts
             .get(&(category as u8))
@@ -578,11 +589,13 @@ impl CoopEventBus {
     }
 
     /// Subscription count
+    #[inline(always)]
     pub fn subscription_count(&self) -> usize {
         self.subscriptions.len()
     }
 
     /// Total events in history
+    #[inline(always)]
     pub fn history_total(&self) -> u64 {
         self.history.total
     }

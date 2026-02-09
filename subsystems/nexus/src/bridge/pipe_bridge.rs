@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Pipe state
@@ -25,6 +26,7 @@ pub enum PipeState {
 
 /// Pipe buffer page
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipeBuffer {
     pub page_index: u32,
     pub offset: u32,
@@ -36,6 +38,7 @@ impl PipeBuffer {
     pub fn new(page: u32, offset: u32, len: u32) -> Self {
         Self { page_index: page, offset, len, flags: 0 }
     }
+    #[inline(always)]
     pub fn remaining(&self) -> u32 { 4096u32.saturating_sub(self.offset + self.len) }
 }
 
@@ -74,6 +77,7 @@ impl PipeInstance {
         }
     }
 
+    #[inline(always)]
     pub fn capacity_bytes(&self) -> u64 { self.capacity_pages as u64 * 4096 }
 
     pub fn write(&mut self, bytes: u64, ts: u64) -> bool {
@@ -108,6 +112,7 @@ impl PipeInstance {
         actual
     }
 
+    #[inline]
     pub fn close_reader(&mut self) {
         self.state = match self.state {
             PipeState::Open => PipeState::ReadClosed,
@@ -116,6 +121,7 @@ impl PipeInstance {
         };
     }
 
+    #[inline]
     pub fn close_writer(&mut self) {
         self.state = match self.state {
             PipeState::Open => PipeState::WriteClosed,
@@ -124,13 +130,16 @@ impl PipeInstance {
         };
     }
 
+    #[inline(always)]
     pub fn set_capacity(&mut self, pages: u32) { self.capacity_pages = pages.max(1); }
 
+    #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
         let cap = self.capacity_bytes();
         if cap == 0 { 0.0 } else { self.bytes_buffered as f64 / cap as f64 }
     }
 
+    #[inline(always)]
     pub fn throughput_bps(&self, current_ts: u64) -> f64 {
         let elapsed = current_ts.saturating_sub(self.created_ts);
         if elapsed == 0 { 0.0 } else { self.total_bytes_written as f64 / (elapsed as f64 / 1_000_000_000.0) }
@@ -150,6 +159,7 @@ pub struct SpliceRecord {
 
 /// Pipe bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PipeBridgeStats {
     pub total_pipes: usize,
     pub active_pipes: usize,
@@ -164,9 +174,10 @@ pub struct PipeBridgeStats {
 }
 
 /// Bridge pipe manager
+#[repr(align(64))]
 pub struct BridgePipeBridge {
     pipes: BTreeMap<u64, PipeInstance>,
-    splice_history: Vec<SpliceRecord>,
+    splice_history: VecDeque<SpliceRecord>,
     max_splice_history: usize,
     next_id: u64,
     stats: PipeBridgeStats,
@@ -175,12 +186,13 @@ pub struct BridgePipeBridge {
 impl BridgePipeBridge {
     pub fn new() -> Self {
         Self {
-            pipes: BTreeMap::new(), splice_history: Vec::new(),
+            pipes: BTreeMap::new(), splice_history: VecDeque::new(),
             max_splice_history: 512, next_id: 1,
             stats: PipeBridgeStats::default(),
         }
     }
 
+    #[inline]
     pub fn create_pipe(&mut self, reader: u64, writer: u64, ts: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -188,27 +200,33 @@ impl BridgePipeBridge {
         id
     }
 
+    #[inline(always)]
     pub fn write(&mut self, pipe_id: u64, bytes: u64, ts: u64) -> bool {
         if let Some(p) = self.pipes.get_mut(&pipe_id) { p.write(bytes, ts) } else { false }
     }
 
+    #[inline(always)]
     pub fn read(&mut self, pipe_id: u64, bytes: u64, ts: u64) -> u64 {
         if let Some(p) = self.pipes.get_mut(&pipe_id) { p.read(bytes, ts) } else { 0 }
     }
 
+    #[inline(always)]
     pub fn splice(&mut self, src_fd: i32, dst_fd: i32, bytes: u64, flags: u32, ts: u64) {
-        self.splice_history.push(SpliceRecord { src_fd, dst_fd, bytes, flags, timestamp: ts, zero_copy: flags & 0x4 != 0 });
-        if self.splice_history.len() > self.max_splice_history { self.splice_history.remove(0); }
+        self.splice_history.push_back(SpliceRecord { src_fd, dst_fd, bytes, flags, timestamp: ts, zero_copy: flags & 0x4 != 0 });
+        if self.splice_history.len() > self.max_splice_history { self.splice_history.pop_front(); }
     }
 
+    #[inline(always)]
     pub fn close_reader(&mut self, pipe_id: u64) {
         if let Some(p) = self.pipes.get_mut(&pipe_id) { p.close_reader(); }
     }
 
+    #[inline(always)]
     pub fn close_writer(&mut self, pipe_id: u64) {
         if let Some(p) = self.pipes.get_mut(&pipe_id) { p.close_writer(); }
     }
 
+    #[inline(always)]
     pub fn set_capacity(&mut self, pipe_id: u64, pages: u32) {
         if let Some(p) = self.pipes.get_mut(&pipe_id) { p.set_capacity(pages); }
     }
@@ -227,7 +245,9 @@ impl BridgePipeBridge {
         self.stats.avg_fill_ratio = if fills.is_empty() { 0.0 } else { fills.iter().sum::<f64>() / fills.len() as f64 };
     }
 
+    #[inline(always)]
     pub fn pipe(&self, id: u64) -> Option<&PipeInstance> { self.pipes.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &PipeBridgeStats { &self.stats }
 }
 
@@ -274,6 +294,7 @@ impl PipeV2Record {
 
 /// Pipe v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipeV2BridgeStats {
     pub total_ops: u64,
     pub pipes_created: u64,
@@ -292,6 +313,7 @@ impl BridgePipeV2 {
         Self { stats: PipeV2BridgeStats { total_ops: 0, pipes_created: 0, bytes_transferred: 0, splices: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &PipeV2Record) {
         self.stats.total_ops += 1;
         match rec.op {

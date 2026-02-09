@@ -9,6 +9,7 @@
 //! - Shared memory bandwidth monitoring
 
 extern crate alloc;
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -24,9 +25,11 @@ pub struct GlobalShmSegment {
 }
 
 impl GlobalShmSegment {
+    #[inline(always)]
     pub fn is_orphan(&self, now: u64, threshold: u64) -> bool {
         self.attach_count == 0 && now.saturating_sub(self.last_access) > threshold
     }
+    #[inline(always)]
     pub fn is_hot(&self, bw_threshold: u64) -> bool {
         self.bandwidth_bps > bw_threshold
     }
@@ -37,15 +40,17 @@ pub struct NumaPlacement {
     pub segment_id: u64,
     pub current_node: u32,
     pub optimal_node: u32,
-    pub access_from_nodes: BTreeMap<u32, u64>, // node → access_count
+    pub access_from_nodes: ArrayMap<u64, 32>, // node → access_count
     pub migration_cost: u64,
 }
 
 impl NumaPlacement {
+    #[inline(always)]
     pub fn should_migrate(&self) -> bool {
         self.current_node != self.optimal_node
             && self.migration_cost < self.total_remote_accesses() * 200 // remote access cost
     }
+    #[inline]
     pub fn total_remote_accesses(&self) -> u64 {
         self.access_from_nodes.iter()
             .filter(|(&n, _)| n != self.current_node)
@@ -55,6 +60,7 @@ impl NumaPlacement {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ShmHolisticStats {
     pub total_segments: u64,
     pub total_bytes: u64,
@@ -85,6 +91,7 @@ impl ShmHolisticManager {
         }
     }
 
+    #[inline]
     pub fn register_segment(&mut self, seg: GlobalShmSegment) {
         let hash = seg.content_hash;
         let id = seg.segment_id;
@@ -95,6 +102,7 @@ impl ShmHolisticManager {
     }
 
     /// Find segments with identical content
+    #[inline]
     pub fn find_duplicates(&self) -> Vec<(u64, Vec<u64>)> {
         self.content_index.iter()
             .filter(|(_, ids)| ids.len() > 1)
@@ -121,6 +129,7 @@ impl ShmHolisticManager {
     }
 
     /// Analyze NUMA placement for all segments
+    #[inline]
     pub fn analyze_numa(&mut self) -> Vec<u64> {
         let mut misplaced = Vec::new();
         for (id, placement) in &self.placements {
@@ -133,6 +142,7 @@ impl ShmHolisticManager {
     }
 
     /// Update bandwidth measurement for a segment
+    #[inline]
     pub fn update_bandwidth(&mut self, segment_id: u64, bps: u64) {
         if let Some(seg) = self.segments.get_mut(&segment_id) {
             seg.bandwidth_bps = seg.bandwidth_bps / 2 + bps / 2; // EMA
@@ -145,7 +155,7 @@ impl ShmHolisticManager {
     pub fn record_numa_access(&mut self, segment_id: u64, from_node: u32) {
         let placement = self.placements.entry(segment_id).or_insert(NumaPlacement {
             segment_id, current_node: 0, optimal_node: 0,
-            access_from_nodes: BTreeMap::new(), migration_cost: 0,
+            access_from_nodes: ArrayMap::new(0), migration_cost: 0,
         });
         *placement.access_from_nodes.entry(from_node).or_insert(0) += 1;
         // Recompute optimal: node with most accesses
@@ -156,6 +166,8 @@ impl ShmHolisticManager {
         }
     }
 
+    #[inline(always)]
     pub fn segment(&self, id: u64) -> Option<&GlobalShmSegment> { self.segments.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &ShmHolisticStats { &self.stats }
 }

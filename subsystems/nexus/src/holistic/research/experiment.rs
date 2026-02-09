@@ -155,6 +155,7 @@ pub struct SignificanceEntry {
 
 /// Experiment engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExperimentStats {
     pub total_experiments: u64,
     pub running_count: u64,
@@ -343,6 +344,7 @@ impl HolisticExperiment {
     }
 
     /// Compute main effects for each factor
+    #[inline]
     pub fn main_effects(&mut self, exp_id: u64) -> Vec<MainEffect> {
         let exp = match self.experiments.get_mut(&exp_id) {
             Some(e) => e,
@@ -458,6 +460,7 @@ impl HolisticExperiment {
     }
 
     /// Current statistics snapshot
+    #[inline(always)]
     pub fn stats(&self) -> &ExperimentStats {
         &self.stats
     }

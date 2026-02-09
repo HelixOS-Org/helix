@@ -45,6 +45,7 @@ impl CgroupIoDeviceId {
         Self { major, minor }
     }
 
+    #[inline(always)]
     pub fn dev_number(&self) -> u64 {
         ((self.major as u64) << 20) | (self.minor as u64)
     }
@@ -75,6 +76,7 @@ impl CgroupIoDeviceLimit {
         }
     }
 
+    #[inline]
     pub fn is_limited(&self) -> bool {
         self.read_bps_max != u64::MAX
             || self.write_bps_max != u64::MAX
@@ -139,10 +141,12 @@ impl CgroupIoAccounting {
         }
     }
 
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.bytes_read + self.bytes_written + self.bytes_discarded
     }
 
+    #[inline(always)]
     pub fn total_iops(&self) -> u64 {
         self.ios_read + self.ios_written + self.ios_discarded
     }
@@ -177,6 +181,7 @@ impl CgroupIoInstance {
         }
     }
 
+    #[inline(always)]
     pub fn set_device_limit(&mut self, limit: CgroupIoDeviceLimit) {
         let dev_num = limit.device.dev_number();
         self.device_limits.insert(dev_num, limit);
@@ -198,6 +203,7 @@ impl CgroupIoInstance {
 
 /// Statistics for the holistic cgroup I/O controller.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupIoStats {
     pub total_cgroups: u64,
     pub total_device_limits: u64,
@@ -247,6 +253,7 @@ impl HolisticCgroupIo {
         id
     }
 
+    #[inline]
     pub fn set_policy(&mut self, cgroup_id: u64, policy: CgroupIoPolicy) -> bool {
         if let Some(cg) = self.cgroups.get_mut(&cgroup_id) {
             cg.policy = policy;
@@ -257,6 +264,7 @@ impl HolisticCgroupIo {
         }
     }
 
+    #[inline]
     pub fn record_io(
         &mut self,
         cgroup_id: u64,
@@ -274,6 +282,7 @@ impl HolisticCgroupIo {
         }
     }
 
+    #[inline(always)]
     pub fn cgroup_count(&self) -> usize {
         self.cgroups.len()
     }

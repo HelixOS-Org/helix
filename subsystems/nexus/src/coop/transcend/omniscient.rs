@@ -108,6 +108,7 @@ pub struct ContentionZone {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct OmniscientStats {
     pub total_edges: usize,
     pub total_flows: usize,
@@ -217,6 +218,7 @@ impl CoopOmniscient {
         self.trust_sum = sum;
     }
 
+    #[inline(always)]
     pub fn trust_graph_complete(&self) -> BTreeMap<u64, TrustEdge> {
         self.trust_edges.clone()
     }
@@ -257,6 +259,7 @@ impl CoopOmniscient {
         self.utilisation_sum = sum;
     }
 
+    #[inline(always)]
     pub fn resource_flow_map(&self) -> BTreeMap<u64, ResourceFlow> {
         self.resource_flows.clone()
     }
@@ -297,6 +300,7 @@ impl CoopOmniscient {
         self.severity_sum = sum;
     }
 
+    #[inline(always)]
     pub fn contention_atlas(&self) -> BTreeMap<u64, ContentionZone> {
         self.contention_zones.clone()
     }
@@ -321,6 +325,7 @@ impl CoopOmniscient {
 
     // -- total knowledge ----------------------------------------------------
 
+    #[inline(always)]
     pub fn total_cooperation_knowledge(&self) -> OmniscientStats {
         self.stats.clone()
     }
@@ -378,6 +383,7 @@ impl CoopOmniscient {
 
     // -- random probe (for fuzz / stress testing) ---------------------------
 
+    #[inline]
     pub fn random_probe(&mut self) -> u64 {
         let r = xorshift64(&mut self.rng_state);
         let scope = r % 3;

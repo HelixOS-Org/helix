@@ -121,6 +121,7 @@ pub struct FilterStage {
 }
 
 impl FilterStage {
+    #[inline]
     pub fn new<F>(name: &str, predicate: F) -> Self
     where
         F: Fn(&PipelineData) -> bool + Send + Sync + 'static,
@@ -153,6 +154,7 @@ pub struct TransformStage {
 }
 
 impl TransformStage {
+    #[inline]
     pub fn new<F>(name: &str, transform: F) -> Self
     where
         F: Fn(PipelineData) -> PipelineData + Send + Sync + 'static,
@@ -183,6 +185,7 @@ pub struct AggregateStage {
 }
 
 impl AggregateStage {
+    #[inline]
     pub fn new<F>(name: &str, threshold: usize, aggregator: F) -> Self
     where
         F: Fn(Vec<PipelineData>) -> PipelineData + Send + Sync + 'static,
@@ -196,6 +199,7 @@ impl AggregateStage {
     }
 
     /// Force flush buffer
+    #[inline]
     pub fn flush(&mut self) -> Option<PipelineData> {
         if self.buffer.is_empty() {
             None
@@ -230,6 +234,7 @@ pub struct BranchStage {
 }
 
 impl BranchStage {
+    #[inline]
     pub fn new<F>(name: &str, router: F) -> Self
     where
         F: Fn(&PipelineData) -> usize + Send + Sync + 'static,
@@ -273,6 +278,7 @@ pub struct Pipeline {
 
 /// Pipeline statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PipelineStats {
     /// Items processed
     pub items_processed: u64,
@@ -301,6 +307,7 @@ impl Pipeline {
     }
 
     /// Add a stage
+    #[inline(always)]
     pub fn add_stage(&mut self, stage: Box<dyn PipelineStage>) {
         self.stages.push(stage);
     }
@@ -374,36 +381,43 @@ impl Pipeline {
     }
 
     /// Get pipeline ID
+    #[inline(always)]
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// Get pipeline name
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Get stage count
+    #[inline(always)]
     pub fn stage_count(&self) -> usize {
         self.stages.len()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PipelineStats {
         &self.stats
     }
 
     /// Enable/disable pipeline
+    #[inline(always)]
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
 
     /// Check if enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }
 
     /// Reset statistics
+    #[inline(always)]
     pub fn reset_stats(&mut self) {
         self.stats = PipelineStats::default();
     }
@@ -434,6 +448,7 @@ impl PipelineManager {
     }
 
     /// Create a new pipeline
+    #[inline]
     pub fn create_pipeline(&mut self, name: &str) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let pipeline = Pipeline::new(id, name);
@@ -442,16 +457,19 @@ impl PipelineManager {
     }
 
     /// Get pipeline
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Pipeline> {
         self.pipelines.get(&id)
     }
 
     /// Get mutable pipeline
+    #[inline(always)]
     pub fn get_mut(&mut self, id: u64) -> Option<&mut Pipeline> {
         self.pipelines.get_mut(&id)
     }
 
     /// Add stage to pipeline
+    #[inline]
     pub fn add_stage(&mut self, pipeline_id: u64, stage: Box<dyn PipelineStage>) -> bool {
         if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
             pipeline.add_stage(stage);
@@ -462,16 +480,19 @@ impl PipelineManager {
     }
 
     /// Route a topic to a pipeline
+    #[inline(always)]
     pub fn route(&mut self, topic: &str, pipeline_id: u64) {
         self.routes.insert(topic.into(), pipeline_id);
     }
 
     /// Get pipeline for topic
+    #[inline(always)]
     pub fn get_route(&self, topic: &str) -> Option<u64> {
         self.routes.get(topic).copied()
     }
 
     /// Process data through appropriate pipeline
+    #[inline]
     pub fn process(&mut self, topic: &str, data: PipelineData) -> Vec<PipelineData> {
         if let Some(&pipeline_id) = self.routes.get(topic) {
             if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
@@ -482,6 +503,7 @@ impl PipelineManager {
     }
 
     /// Get all pipeline stats
+    #[inline]
     pub fn all_stats(&self) -> BTreeMap<u64, &PipelineStats> {
         self.pipelines
             .iter()
@@ -490,6 +512,7 @@ impl PipelineManager {
     }
 
     /// Remove pipeline
+    #[inline(always)]
     pub fn remove(&mut self, id: u64) -> bool {
         self.pipelines.remove(&id).is_some()
     }

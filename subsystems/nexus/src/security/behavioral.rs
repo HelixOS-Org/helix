@@ -1,5 +1,6 @@
 //! Behavioral profiling and anomaly detection.
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -15,7 +16,7 @@ pub struct BehavioralProfile {
     /// Process ID
     pub process_id: u64,
     /// Normal syscall frequencies
-    pub syscall_baseline: BTreeMap<u32, f64>,
+    pub syscall_baseline: ArrayMap<f64, 32>,
     /// Normal memory usage
     pub memory_baseline: MemoryBaseline,
     /// Normal file access patterns
@@ -86,6 +87,7 @@ impl BehavioralProfile {
     }
 
     /// Update syscall baseline
+    #[inline]
     pub fn update_syscall(&mut self, syscall_num: u32, count: u64, total_calls: u64) {
         let freq = count as f64 / total_calls as f64;
         let entry = self.syscall_baseline.entry(syscall_num).or_insert(freq);
@@ -96,8 +98,9 @@ impl BehavioralProfile {
     }
 
     /// Check if syscall pattern is anomalous
+    #[inline]
     pub fn is_syscall_anomalous(&self, syscall_num: u32, current_freq: f64) -> bool {
-        if let Some(&baseline_freq) = self.syscall_baseline.get(&syscall_num) {
+        if let Some(&baseline_freq) = self.syscall_baseline.try_get(syscall_num as usize) {
             // Anomalous if more than 3x baseline
             current_freq > baseline_freq * 3.0
         } else {
@@ -107,6 +110,7 @@ impl BehavioralProfile {
     }
 
     /// Check if memory usage is anomalous
+    #[inline]
     pub fn is_memory_anomalous(&self, current_heap: u64) -> bool {
         if self.samples < 100 {
             return false;
@@ -169,7 +173,7 @@ impl BehavioralProfile {
 #[derive(Debug, Clone, Default)]
 pub struct CurrentBehavior {
     /// Syscall frequencies
-    pub syscall_freq: BTreeMap<u32, f64>,
+    pub syscall_freq: ArrayMap<f64, 32>,
     /// Current heap size
     pub heap_size: u64,
     /// Current bandwidth out

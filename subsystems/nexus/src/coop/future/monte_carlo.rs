@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -106,6 +107,7 @@ pub struct RiskBucket {
 
 /// Rolling statistics for Monte Carlo analysis.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct MonteCarloStats {
     pub total_samples: u64,
     pub total_runs: u64,
@@ -153,7 +155,7 @@ struct ScenarioParams {
 /// Monte Carlo cooperation futures engine.
 pub struct CoopMonteCarlo {
     strategies: BTreeMap<u64, StrategyDef>,
-    sample_cache: Vec<ScenarioSample>,
+    sample_cache: VecDeque<ScenarioSample>,
     reward_history: BTreeMap<u64, Vec<u64>>,
     stats: MonteCarloStats,
     rng_state: u64,
@@ -166,7 +168,7 @@ impl CoopMonteCarlo {
     pub fn new(seed: u64) -> Self {
         Self {
             strategies: BTreeMap::new(),
-            sample_cache: Vec::new(),
+            sample_cache: VecDeque::new(),
             reward_history: BTreeMap::new(),
             stats: MonteCarloStats::new(),
             rng_state: seed | 1,
@@ -176,6 +178,7 @@ impl CoopMonteCarlo {
     }
 
     /// Register a cooperation strategy for evaluation.
+    #[inline]
     pub fn register_strategy(
         &mut self,
         name: &str,
@@ -269,9 +272,9 @@ impl CoopMonteCarlo {
         };
 
         if self.sample_cache.len() >= self.max_cache {
-            self.sample_cache.remove(0);
+            self.sample_cache.pop_front();
         }
-        self.sample_cache.push(sample.clone());
+        self.sample_cache.push_back(sample.clone());
         sample
     }
 
@@ -327,7 +330,7 @@ impl CoopMonteCarlo {
             .entry(strategy_hash)
             .or_insert_with(Vec::new);
         if rewards.len() >= self.max_reward_history {
-            rewards.remove(0);
+            rewards.pop_front();
         }
         rewards.push(success_rate);
 
@@ -534,6 +537,7 @@ impl CoopMonteCarlo {
     }
 
     /// Get the current statistics snapshot.
+    #[inline(always)]
     pub fn stats(&self) -> &MonteCarloStats {
         &self.stats
     }

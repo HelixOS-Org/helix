@@ -76,21 +76,25 @@ impl TimeSlot {
     }
 
     /// Duration
+    #[inline(always)]
     pub fn duration(&self) -> u64 {
         self.end.saturating_sub(self.start)
     }
 
     /// Overlaps with another slot
+    #[inline(always)]
     pub fn overlaps(&self, other: &TimeSlot) -> bool {
         self.start < other.end && other.start < self.end
     }
 
     /// Contains a timestamp
+    #[inline(always)]
     pub fn contains(&self, timestamp: u64) -> bool {
         timestamp >= self.start && timestamp < self.end
     }
 
     /// Merge with another overlapping slot
+    #[inline]
     pub fn merge(&self, other: &TimeSlot) -> TimeSlot {
         TimeSlot {
             start: self.start.min(other.start),
@@ -153,6 +157,7 @@ impl TimelineReservation {
     }
 
     /// Generate next periodic slot
+    #[inline]
     pub fn next_periodic_slot(&self) -> Option<TimeSlot> {
         if self.reservation_type != ReservationType::Periodic || self.period_ns == 0 {
             return None;
@@ -165,6 +170,7 @@ impl TimelineReservation {
     }
 
     /// Is active at timestamp
+    #[inline(always)]
     pub fn is_active_at(&self, timestamp: u64) -> bool {
         self.state == ReservationState::Active && self.slot.contains(timestamp)
     }
@@ -198,18 +204,21 @@ impl ResourceTimeline {
     }
 
     /// Add reservation
+    #[inline(always)]
     pub fn add_reservation(&mut self, id: u64, duration_ns: u64) {
         self.reservations.push(id);
         self.total_reserved_ns += duration_ns;
     }
 
     /// Remove reservation
+    #[inline(always)]
     pub fn remove_reservation(&mut self, id: u64, duration_ns: u64) {
         self.reservations.retain(|&r| r != id);
         self.total_reserved_ns = self.total_reserved_ns.saturating_sub(duration_ns);
     }
 
     /// Reservation count
+    #[inline(always)]
     pub fn reservation_count(&self) -> usize {
         self.reservations.len()
     }
@@ -238,6 +247,7 @@ pub struct TimelineConflict {
 
 impl TimelineConflict {
     /// Overlap duration
+    #[inline(always)]
     pub fn overlap_duration(&self) -> u64 {
         self.overlap_end.saturating_sub(self.overlap_start)
     }
@@ -249,6 +259,7 @@ impl TimelineConflict {
 
 /// Timeline manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopTimelineStats {
     /// Active reservations
     pub active_reservations: usize,
@@ -323,6 +334,7 @@ impl CoopTimelineManager {
     }
 
     /// Activate reservation
+    #[inline]
     pub fn activate(&mut self, id: u64) {
         if let Some(r) = self.reservations.get_mut(&id) {
             r.state = ReservationState::Active;
@@ -331,6 +343,7 @@ impl CoopTimelineManager {
     }
 
     /// Complete reservation
+    #[inline]
     pub fn complete(&mut self, id: u64) {
         if let Some(r) = self.reservations.get_mut(&id) {
             r.state = ReservationState::Completed;
@@ -339,6 +352,7 @@ impl CoopTimelineManager {
     }
 
     /// Cancel reservation
+    #[inline]
     pub fn cancel(&mut self, id: u64) {
         if let Some(r) = self.reservations.get_mut(&id) {
             r.state = ReservationState::Cancelled;
@@ -389,6 +403,7 @@ impl CoopTimelineManager {
     }
 
     /// Get active reservations at timestamp
+    #[inline]
     pub fn active_at(&self, resource: TimelineResource, instance: u32, timestamp: u64) -> Vec<&TimelineReservation> {
         self.reservations
             .values()
@@ -409,11 +424,13 @@ impl CoopTimelineManager {
     }
 
     /// Get reservation
+    #[inline(always)]
     pub fn reservation(&self, id: u64) -> Option<&TimelineReservation> {
         self.reservations.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopTimelineStats {
         &self.stats
     }

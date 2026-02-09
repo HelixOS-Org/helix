@@ -127,34 +127,40 @@ impl Span {
     }
 
     /// Create a root span
+    #[inline(always)]
     pub fn root(name: &'static str) -> Self {
         Self::new(name, TraceId::new(), None)
     }
 
     /// Create a child span
+    #[inline(always)]
     pub fn child(&self, name: &'static str) -> Self {
         Self::new(name, self.trace_id, Some(self.id))
     }
 
     /// Set component
+    #[inline(always)]
     pub fn with_component(mut self, component: ComponentId) -> Self {
         self.component = Some(component);
         self
     }
 
     /// Set level
+    #[inline(always)]
     pub fn with_level(mut self, level: TraceLevel) -> Self {
         self.level = level;
         self
     }
 
     /// Add attribute
+    #[inline(always)]
     pub fn with_attribute(mut self, key: impl Into<String>, value: impl Into<SpanValue>) -> Self {
         self.attributes.push((key.into(), value.into()));
         self
     }
 
     /// Add an event
+    #[inline]
     pub fn add_event(&mut self, name: &'static str) {
         self.events.push(SpanEvent {
             name,
@@ -164,6 +170,7 @@ impl Span {
     }
 
     /// End the span
+    #[inline]
     pub fn end(&mut self) {
         if self.end.is_none() {
             self.end = Some(NexusTimestamp::now());
@@ -171,6 +178,7 @@ impl Span {
     }
 
     /// Get duration in cycles
+    #[inline]
     pub fn duration(&self) -> u64 {
         match self.end {
             Some(end) => end.duration_since(self.start),
@@ -179,6 +187,7 @@ impl Span {
     }
 
     /// Is span ended?
+    #[inline(always)]
     pub fn is_ended(&self) -> bool {
         self.end.is_some()
     }

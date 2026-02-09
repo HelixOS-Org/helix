@@ -22,6 +22,7 @@ impl ConnectionHolisticRecord {
 
 /// Connection holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConnectionHolisticStats { pub total_samples: u64, pub zombies: u64, pub orphaned: u64, pub peak_active: u32 }
 
 /// Main holistic connection
@@ -30,6 +31,7 @@ pub struct HolisticConnection { pub stats: ConnectionHolisticStats }
 
 impl HolisticConnection {
     pub fn new() -> Self { Self { stats: ConnectionHolisticStats { total_samples: 0, zombies: 0, orphaned: 0, peak_active: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &ConnectionHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.health {

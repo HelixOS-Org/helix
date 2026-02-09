@@ -44,6 +44,7 @@ impl NexusEvent {
     }
 
     /// Create with specific priority
+    #[inline]
     pub fn with_priority(kind: NexusEventKind, priority: EventPriority) -> Self {
         Self {
             priority,
@@ -52,18 +53,21 @@ impl NexusEvent {
     }
 
     /// Set source component
+    #[inline(always)]
     pub fn from_component(mut self, component: ComponentId) -> Self {
         self.source = Some(component);
         self
     }
 
     /// Set correlation ID
+    #[inline(always)]
     pub fn with_correlation(mut self, correlation_id: u64) -> Self {
         self.correlation_id = Some(correlation_id);
         self
     }
 
     /// Set parent event
+    #[inline(always)]
     pub fn with_parent(mut self, parent: EventId) -> Self {
         self.parent_id = Some(parent);
         self
@@ -94,11 +98,13 @@ impl NexusEvent {
     }
 
     /// Check if this is a critical event
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.priority >= EventPriority::Critical
     }
 
     /// Check if this is a prediction event
+    #[inline]
     pub fn is_prediction(&self) -> bool {
         matches!(
             self.kind,
@@ -111,6 +117,7 @@ impl NexusEvent {
     }
 
     /// Check if this is a healing event
+    #[inline]
     pub fn is_healing(&self) -> bool {
         matches!(
             self.kind,

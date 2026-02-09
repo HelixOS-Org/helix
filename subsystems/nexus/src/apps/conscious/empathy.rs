@@ -177,6 +177,7 @@ impl EmpathyProfile {
         }
     }
 
+    #[inline]
     fn update_needs(
         &mut self,
         latency: f32,
@@ -222,6 +223,7 @@ impl EmpathyProfile {
         }
     }
 
+    #[inline]
     fn update_satisfaction(&mut self, actual_satisfaction: f32) {
         self.satisfaction =
             EMA_ALPHA * actual_satisfaction + (1.0 - EMA_ALPHA) * self.satisfaction;
@@ -237,6 +239,7 @@ impl EmpathyProfile {
         self.happiness_score = 0.6 * self.satisfaction + 0.4 * self.confidence;
     }
 
+    #[inline]
     fn update_confidence(&mut self) {
         // Confidence grows with observations and prediction accuracy
         let obs_factor = 1.0 - 1.0 / (1.0 + self.observations as f32 * 0.05);
@@ -246,6 +249,7 @@ impl EmpathyProfile {
         self.confidence = self.confidence.clamp(0.0, 1.0);
     }
 
+    #[inline]
     fn evaluate_prediction_accuracy(&mut self) {
         let sim = self.prev_prediction.cosine_similarity(&self.inferred_needs);
         self.prediction_accuracy =
@@ -293,6 +297,7 @@ impl EmpathyProfile {
 
 /// Aggregate empathy engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EmpathyStats {
     pub total_apps: usize,
     pub mean_satisfaction: f32,
@@ -369,38 +374,45 @@ impl AppsEmpathyEngine {
     }
 
     /// Infer what an app needs right now
+    #[inline(always)]
     pub fn infer_app_needs(&self, app_id: u64) -> Option<&NeedVector> {
         self.profiles.get(&app_id).map(|p| &p.inferred_needs)
     }
 
     /// Get the satisfaction model for an app
+    #[inline(always)]
     pub fn satisfaction_model(&self, app_id: u64) -> Option<(f32, f32)> {
         let profile = self.profiles.get(&app_id)?;
         Some((profile.satisfaction, profile.satisfaction_trend()))
     }
 
     /// Predict what an app will need next tick
+    #[inline(always)]
     pub fn need_prediction(&mut self, app_id: u64) -> Option<NeedVector> {
         let profile = self.profiles.get_mut(&app_id)?;
         Some(profile.predict_next_needs())
     }
 
     /// How accurate have our empathy predictions been for this app?
+    #[inline(always)]
     pub fn empathy_accuracy(&self, app_id: u64) -> Option<f32> {
         self.profiles.get(&app_id).map(|p| p.prediction_accuracy)
     }
 
     /// Compute a happiness score for an app
+    #[inline(always)]
     pub fn app_happiness_score(&self, app_id: u64) -> Option<f32> {
         self.profiles.get(&app_id).map(|p| p.happiness_score)
     }
 
     /// Get the full empathy profile
+    #[inline(always)]
     pub fn profile(&self, app_id: u64) -> Option<&EmpathyProfile> {
         self.profiles.get(&app_id)
     }
 
     /// List all unhappy apps (satisfaction below threshold)
+    #[inline]
     pub fn unhappy_apps(&self) -> Vec<(u64, f32)> {
         let mut result = Vec::new();
         for (id, profile) in &self.profiles {
@@ -413,6 +425,7 @@ impl AppsEmpathyEngine {
     }
 
     /// List all happy apps
+    #[inline]
     pub fn happy_apps(&self) -> Vec<(u64, f32)> {
         let mut result = Vec::new();
         for (id, profile) in &self.profiles {
@@ -487,6 +500,7 @@ impl AppsEmpathyEngine {
     }
 
     /// Decay satisfaction over time
+    #[inline]
     pub fn decay(&mut self) {
         for (_, p) in self.profiles.iter_mut() {
             p.satisfaction *= PREDICTION_DECAY;

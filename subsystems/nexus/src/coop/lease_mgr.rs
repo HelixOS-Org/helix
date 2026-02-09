@@ -61,14 +61,17 @@ impl ResourceLease {
         }
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now >= self.expires_at
     }
 
+    #[inline(always)]
     pub fn remaining_ns(&self, now: u64) -> u64 {
         self.expires_at.saturating_sub(now)
     }
 
+    #[inline]
     pub fn renew(&mut self, now: u64) -> bool {
         if self.state != LeaseState::Active { return false; }
         if self.renewals >= self.max_renewals { return false; }
@@ -77,18 +80,22 @@ impl ResourceLease {
         true
     }
 
+    #[inline(always)]
     pub fn revoke(&mut self) {
         self.state = LeaseState::Revoked;
     }
 
+    #[inline(always)]
     pub fn suspend(&mut self) {
         self.state = LeaseState::Suspended;
     }
 
+    #[inline(always)]
     pub fn held_time(&self, now: u64) -> u64 {
         now.saturating_sub(self.granted_at)
     }
 
+    #[inline]
     pub fn utilization(&self, now: u64) -> f64 {
         let elapsed = self.held_time(now);
         let total = self.duration_ns * (self.renewals as u64 + 1);
@@ -110,6 +117,7 @@ pub struct LeaseRequest {
 
 /// Resource lease state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ResourceLeaseState {
     pub resource_id: u64,
     pub active_leases: Vec<ResourceLease>,
@@ -129,16 +137,19 @@ impl ResourceLeaseState {
         }
     }
 
+    #[inline(always)]
     pub fn has_exclusive(&self) -> bool {
         self.active_leases.iter().any(|l| l.lease_type == LeaseType::Exclusive && l.state == LeaseState::Active)
     }
 
+    #[inline]
     pub fn shared_count(&self) -> u32 {
         self.active_leases.iter()
             .filter(|l| l.lease_type == LeaseType::Shared && l.state == LeaseState::Active)
             .count() as u32
     }
 
+    #[inline]
     pub fn can_grant(&self, ltype: LeaseType) -> bool {
         match ltype {
             LeaseType::Exclusive | LeaseType::WriteOnly => {
@@ -170,6 +181,7 @@ impl ResourceLeaseState {
 
 /// Lease manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LeaseMgrStats {
     pub tracked_resources: u32,
     pub active_leases: u64,
@@ -199,6 +211,7 @@ impl CoopLeaseMgr {
         }
     }
 
+    #[inline]
     pub fn ensure_resource(&mut self, resource_id: u64) {
         if !self.resources.contains_key(&resource_id) {
             self.resources.insert(resource_id, ResourceLeaseState::new(resource_id, self.default_max_shared));
@@ -229,6 +242,7 @@ impl CoopLeaseMgr {
         }
     }
 
+    #[inline]
     pub fn release_lease(&mut self, resource_id: u64, lease_id: u64) -> bool {
         if let Some(res) = self.resources.get_mut(&resource_id) {
             let before = res.active_leases.len();
@@ -250,6 +264,7 @@ impl CoopLeaseMgr {
         false
     }
 
+    #[inline]
     pub fn tick(&mut self, now: u64) -> u32 {
         let mut total_expired = 0u32;
         for res in self.resources.values_mut() {
@@ -328,15 +343,19 @@ impl LeaseRecord {
         }
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool { now >= self.expiry_ts }
 
+    #[inline(always)]
     pub fn remaining_ns(&self, now: u64) -> u64 { self.expiry_ts.saturating_sub(now) }
 
+    #[inline(always)]
     pub fn remaining_pct(&self, now: u64) -> f64 {
         if self.ttl_ns == 0 { return 0.0; }
         (self.remaining_ns(now) as f64 / self.ttl_ns as f64) * 100.0
     }
 
+    #[inline]
     pub fn renew(&mut self, now: u64) -> bool {
         if self.state == LeaseState::Revoked || self.state == LeaseState::Expired { return false; }
         if self.renewal_count >= self.max_renewals { return false; }
@@ -348,15 +367,18 @@ impl LeaseRecord {
         true
     }
 
+    #[inline(always)]
     pub fn revoke(&mut self) {
         self.state = LeaseState::Revoked;
         self.epoch += 1;
     }
 
+    #[inline(always)]
     pub fn delegate(&mut self, to_node: u64) {
         self.delegated_to.push(to_node);
     }
 
+    #[inline(always)]
     pub fn should_renew(&self, now: u64) -> bool {
         self.state == LeaseState::Active && self.remaining_pct(now) < 30.0
     }
@@ -399,6 +421,7 @@ pub enum LeaseEventType {
 
 /// Lease manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LeaseMgrStats {
     pub total_leases: usize,
     pub active_leases: usize,
@@ -433,6 +456,7 @@ impl CoopLeaseMgrV2 {
         hash
     }
 
+    #[inline]
     pub fn grant(&mut self, resource: String, ltype: LeaseType, node: u64, holder: u64, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let lease = LeaseRecord::new(id, resource, ltype, node, holder, ts, self.default_ttl_ns);
@@ -442,6 +466,7 @@ impl CoopLeaseMgrV2 {
         id
     }
 
+    #[inline]
     pub fn renew(&mut self, lease_id: u64, now: u64) -> bool {
         if let Some(lease) = self.leases.get_mut(&lease_id) {
             if lease.renew(now) {
@@ -453,6 +478,7 @@ impl CoopLeaseMgrV2 {
         false
     }
 
+    #[inline]
     pub fn revoke(&mut self, lease_id: u64, now: u64) {
         if let Some(lease) = self.leases.get_mut(&lease_id) {
             let node = lease.holder_node;
@@ -478,6 +504,7 @@ impl CoopLeaseMgrV2 {
         false
     }
 
+    #[inline]
     pub fn expire_stale(&mut self, now: u64) {
         for lease in self.leases.values_mut() {
             if lease.state == LeaseState::Active && lease.is_expired(now) {
@@ -487,15 +514,18 @@ impl CoopLeaseMgrV2 {
         }
     }
 
+    #[inline(always)]
     pub fn find_renewable(&self, now: u64) -> Vec<u64> {
         self.leases.iter().filter(|(_, l)| l.should_renew(now)).map(|(&id, _)| id).collect()
     }
 
+    #[inline(always)]
     pub fn request(&mut self, resource: String, ltype: LeaseType, node: u64, requester: u64, ttl: u64, priority: u32, ts: u64) {
         let id = self.next_id; self.next_id += 1;
         self.pending.push(LeaseRequest { id, resource_name: resource, lease_type: ltype, requester_node: node, requester_id: requester, requested_ttl_ns: ttl, priority, timestamp: ts });
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_leases = self.leases.len();
         self.stats.active_leases = self.leases.values().filter(|l| l.state == LeaseState::Active).count();
@@ -504,6 +534,8 @@ impl CoopLeaseMgrV2 {
         self.stats.pending_requests = self.pending.len();
     }
 
+    #[inline(always)]
     pub fn lease(&self, id: u64) -> Option<&LeaseRecord> { self.leases.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &LeaseMgrStats { &self.stats }
 }

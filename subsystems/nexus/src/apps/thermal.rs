@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -143,6 +145,7 @@ impl CoreHeatMap {
     }
 
     /// Record contribution
+    #[inline]
     pub fn record(&mut self, core: u32, pid: u64, mw: u32) {
         let core_map = self
             .core_contributions
@@ -152,6 +155,7 @@ impl CoreHeatMap {
     }
 
     /// Update temperatures
+    #[inline]
     pub fn update_temps(&mut self, temps: &[(u32, MilliCelsius)]) {
         for &(core, temp) in temps {
             self.core_temps.insert(core, temp);
@@ -162,6 +166,7 @@ impl CoreHeatMap {
     }
 
     /// Get top heat contributors for a core
+    #[inline]
     pub fn top_contributors(&self, core: u32, n: usize) -> Vec<(u64, u32)> {
         let empty = BTreeMap::new();
         let contribs = self.core_contributions.get(&core).unwrap_or(&empty);
@@ -172,6 +177,7 @@ impl CoreHeatMap {
     }
 
     /// Temperature spread (max - min)
+    #[inline]
     pub fn temperature_spread(&self) -> MilliCelsius {
         let max = self.core_temps.values().max().copied().unwrap_or(0);
         let min = self.core_temps.values().min().copied().unwrap_or(0);
@@ -231,7 +237,7 @@ pub struct ThermalBudget {
     /// Currently allocated (mW)
     pub allocated_mw: u32,
     /// Per-process allocation
-    pub process_budgets: BTreeMap<u64, u32>,
+    pub process_budgets: LinearMap<u32, 64>,
 }
 
 impl ThermalBudget {
@@ -239,21 +245,23 @@ impl ThermalBudget {
         Self {
             system_budget_mw,
             allocated_mw: 0,
-            process_budgets: BTreeMap::new(),
+            process_budgets: LinearMap::new(),
         }
     }
 
     /// Remaining budget
+    #[inline(always)]
     pub fn remaining(&self) -> u32 {
         self.system_budget_mw.saturating_sub(self.allocated_mw)
     }
 
     /// Allocate budget to process
+    #[inline]
     pub fn allocate(&mut self, pid: u64, mw: u32) -> bool {
         if mw > self.remaining() {
             return false;
         }
-        let existing = self.process_budgets.get(&pid).copied().unwrap_or(0);
+        let existing = self.process_budgets.get(pid).copied().unwrap_or(0);
         self.allocated_mw = self.allocated_mw.saturating_sub(existing);
         self.process_budgets.insert(pid, mw);
         self.allocated_mw += mw;
@@ -261,13 +269,15 @@ impl ThermalBudget {
     }
 
     /// Release budget
+    #[inline]
     pub fn release(&mut self, pid: u64) {
-        if let Some(mw) = self.process_budgets.remove(&pid) {
+        if let Some(mw) = self.process_budgets.remove(pid) {
             self.allocated_mw = self.allocated_mw.saturating_sub(mw);
         }
     }
 
     /// Is process over budget
+    #[inline]
     pub fn is_over_budget(&self, pid: u64, current_mw: u32) -> bool {
         self.process_budgets
             .get(&pid)
@@ -303,6 +313,7 @@ pub struct ThrottleEvent {
 
 /// Thermal analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppThermalStats {
     /// Total processes tracked
     pub tracked: usize,
@@ -368,7 +379,7 @@ impl AppThermalAnalyzer {
         let samples = self.heat_samples.entry(pid).or_insert_with(Vec::new);
         samples.push(contrib);
         if samples.len() > self.max_samples {
-            samples.remove(0);
+            samples.pop_front();
         }
     }
 
@@ -390,6 +401,7 @@ impl AppThermalAnalyzer {
     }
 
     /// Record throttle event
+    #[inline]
     pub fn record_throttle(&mut self, event: ThrottleEvent) {
         // Update affected process profiles
         for &pid in &event.affected_pids {
@@ -470,6 +482,7 @@ impl AppThermalAnalyzer {
     }
 
     /// Allocate thermal budget
+    #[inline]
     pub fn allocate_budget(&mut self, pid: u64, mw: u32) -> bool {
         let result = self.budget.allocate(pid, mw);
         if self.budget.system_budget_mw > 0 {
@@ -481,26 +494,31 @@ impl AppThermalAnalyzer {
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn state(&self) -> ThermalState {
         self.state
     }
 
     /// Get core heat map
+    #[inline(always)]
     pub fn core_map(&self) -> &CoreHeatMap {
         &self.core_map
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessThermalProfile> {
         self.profiles.get(&pid)
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn thermal_stats(&self) -> &AppThermalStats {
         &self.stats
     }
 
     /// Unregister
+    #[inline]
     pub fn unregister(&mut self, pid: u64) {
         self.heat_samples.remove(&pid);
         self.profiles.remove(&pid);

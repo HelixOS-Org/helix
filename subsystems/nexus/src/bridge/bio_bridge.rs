@@ -31,6 +31,7 @@ pub enum BioBridgeResult {
 
 /// BIO bridge record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BioBridgeRecord {
     pub op: BioBridgeOp,
     pub result: BioBridgeResult,
@@ -46,11 +47,13 @@ impl BioBridgeRecord {
         Self { op, result: BioBridgeResult::Success, sector, nr_sectors, device_id: 0, is_write, latency_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn bytes(&self) -> u64 { self.nr_sectors as u64 * 512 }
 }
 
 /// BIO bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BioBridgeStats {
     pub total_ops: u64,
     pub submits: u64,
@@ -87,6 +90,7 @@ impl BridgeBio {
         if rec.result != BioBridgeResult::Success { self.stats.errors += 1; }
     }
 
+    #[inline(always)]
     pub fn merge_rate(&self) -> f64 {
         if self.stats.submits == 0 { 0.0 } else { self.stats.merges as f64 / self.stats.submits as f64 }
     }

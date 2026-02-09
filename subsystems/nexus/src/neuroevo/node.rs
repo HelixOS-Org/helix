@@ -54,16 +54,19 @@ impl NodeGene {
     }
 
     /// Create an input node
+    #[inline(always)]
     pub fn input(id: NodeId) -> Self {
         Self::new(id, NodeType::Input, ActivationFunction::Identity)
     }
 
     /// Create an output node
+    #[inline(always)]
     pub fn output(id: NodeId, activation: ActivationFunction) -> Self {
         Self::new(id, NodeType::Output, activation)
     }
 
     /// Create a hidden node
+    #[inline(always)]
     pub fn hidden(id: NodeId, activation: ActivationFunction) -> Self {
         Self::new(id, NodeType::Hidden, activation)
     }

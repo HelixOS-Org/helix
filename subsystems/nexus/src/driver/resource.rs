@@ -1,6 +1,7 @@
 //! Driver resource tracking.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::DriverId;
@@ -104,6 +105,7 @@ impl DriverResourceTracker {
     }
 
     /// Set limits for driver
+    #[inline(always)]
     pub fn set_limits(&mut self, driver_id: DriverId, limits: ResourceLimits) {
         self.limits.insert(driver_id, limits);
     }
@@ -128,7 +130,7 @@ impl DriverResourceTracker {
         let snapshots = self.snapshots.entry(driver_id).or_default();
         snapshots.push(snapshot);
         if snapshots.len() > self.max_snapshots {
-            snapshots.remove(0);
+            snapshots.pop_front();
         }
 
         // Check violations
@@ -209,6 +211,7 @@ impl DriverResourceTracker {
     }
 
     /// Get violations for driver
+    #[inline]
     pub fn get_violations(&self, driver_id: DriverId) -> Vec<&ResourceViolation> {
         self.violations
             .iter()
@@ -217,6 +220,7 @@ impl DriverResourceTracker {
     }
 
     /// Get all violations
+    #[inline(always)]
     pub fn all_violations(&self) -> &[ResourceViolation] {
         &self.violations
     }

@@ -9,7 +9,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -73,6 +75,7 @@ pub enum SyscallCostClass {
 
 /// Per-syscall counter
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallCounter {
     /// Syscall number
     pub number: u32,
@@ -120,6 +123,7 @@ impl SyscallCounter {
     }
 
     /// Average latency
+    #[inline]
     pub fn avg_latency_ns(&self) -> f64 {
         if self.count == 0 {
             return 0.0;
@@ -128,6 +132,7 @@ impl SyscallCounter {
     }
 
     /// Variance
+    #[inline]
     pub fn variance(&self) -> f64 {
         if self.count < 2 {
             return 0.0;
@@ -137,6 +142,7 @@ impl SyscallCounter {
     }
 
     /// Std deviation
+    #[inline]
     pub fn std_dev(&self) -> f64 {
         let var = self.variance();
         if var <= 0.0 {
@@ -146,6 +152,7 @@ impl SyscallCounter {
     }
 
     /// Error rate
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         if self.count == 0 {
             return 0.0;
@@ -192,11 +199,11 @@ pub enum PatternType {
 #[derive(Debug, Clone)]
 pub struct PatternDetector {
     /// Recent syscalls
-    recent: Vec<u32>,
+    recent: VecDeque<u32>,
     /// Max window
     max_window: usize,
     /// N-gram counts (hash -> count)
-    ngram_counts: BTreeMap<u64, u64>,
+    ngram_counts: LinearMap<u64, 64>,
     /// N-gram to sequence
     ngram_sequences: BTreeMap<u64, Vec<u32>>,
     /// N-gram size
@@ -206,9 +213,9 @@ pub struct PatternDetector {
 impl PatternDetector {
     pub fn new(ngram_size: usize) -> Self {
         Self {
-            recent: Vec::new(),
+            recent: VecDeque::new(),
             max_window: 256,
-            ngram_counts: BTreeMap::new(),
+            ngram_counts: LinearMap::new(),
             ngram_sequences: BTreeMap::new(),
             ngram_size,
         }
@@ -216,16 +223,16 @@ impl PatternDetector {
 
     /// Record syscall
     pub fn record(&mut self, syscall: u32) {
-        self.recent.push(syscall);
+        self.recent.push_back(syscall);
         if self.recent.len() > self.max_window {
-            self.recent.remove(0);
+            self.recent.pop_front();
         }
 
         if self.recent.len() >= self.ngram_size {
             let start = self.recent.len() - self.ngram_size;
             let gram = &self.recent[start..];
             let hash = self.hash_sequence(gram);
-            *self.ngram_counts.entry(hash).or_insert(0) += 1;
+            self.ngram_counts.add(hash, 1);
             self.ngram_sequences
                 .entry(hash)
                 .or_insert_with(|| gram.to_vec());
@@ -302,6 +309,7 @@ pub enum BottleneckType {
 
 /// Syscall profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppSyscallProfileStats {
     /// Tracked processes
     pub process_count: usize,
@@ -345,6 +353,7 @@ impl ProcessSyscallProfile {
     }
 
     /// Record syscall
+    #[inline]
     pub fn record(&mut self, number: u32, category: SyscallCategory, latency_ns: u64, error: bool) {
         let counter = self
             .counters
@@ -421,6 +430,7 @@ impl AppSyscallProfiler {
     }
 
     /// Register syscall descriptor
+    #[inline(always)]
     pub fn register_syscall(&mut self, desc: SyscallDescriptor) {
         self.descriptors.insert(desc.number, desc);
     }
@@ -457,11 +467,13 @@ impl AppSyscallProfiler {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessSyscallProfile> {
         self.profiles.get(&pid)
     }
 
     /// Find bottlenecks for process
+    #[inline]
     pub fn find_bottlenecks(&self, pid: u64) -> Vec<SyscallBottleneck> {
         self.profiles
             .get(&pid)
@@ -470,6 +482,7 @@ impl AppSyscallProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppSyscallProfileStats {
         &self.stats
     }

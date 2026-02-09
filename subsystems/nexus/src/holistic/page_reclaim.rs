@@ -42,11 +42,13 @@ impl ReclaimZone {
         Self { zone_id: id, inactive_anon: 0, active_anon: 0, inactive_file: 0, active_file: 0, unevictable: 0, pages_scanned: 0, pages_reclaimed: 0, scan_priority: 12 }
     }
 
+    #[inline(always)]
     pub fn reclaim(&mut self, scanned: u64, reclaimed: u64) {
         self.pages_scanned += scanned;
         self.pages_reclaimed += reclaimed;
     }
 
+    #[inline(always)]
     pub fn total_reclaimable(&self) -> u64 {
         self.inactive_anon + self.inactive_file
     }
@@ -54,6 +56,7 @@ impl ReclaimZone {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PageReclaimStats {
     pub total_zones: u32,
     pub total_scanned: u64,
@@ -68,8 +71,10 @@ pub struct HolisticPageReclaim {
 
 impl HolisticPageReclaim {
     pub fn new() -> Self { Self { zones: BTreeMap::new() } }
+    #[inline(always)]
     pub fn add_zone(&mut self, id: u32) { self.zones.insert(id, ReclaimZone::new(id)); }
 
+    #[inline]
     pub fn update_lru(&mut self, zone: u32, lru: LruListType, count: u64) {
         if let Some(z) = self.zones.get_mut(&zone) {
             match lru {
@@ -82,10 +87,12 @@ impl HolisticPageReclaim {
         }
     }
 
+    #[inline(always)]
     pub fn reclaim(&mut self, zone: u32, scanned: u64, reclaimed: u64) {
         if let Some(z) = self.zones.get_mut(&zone) { z.reclaim(scanned, reclaimed); }
     }
 
+    #[inline]
     pub fn stats(&self) -> PageReclaimStats {
         let scanned: u64 = self.zones.values().map(|z| z.pages_scanned).sum();
         let reclaimed: u64 = self.zones.values().map(|z| z.pages_reclaimed).sum();

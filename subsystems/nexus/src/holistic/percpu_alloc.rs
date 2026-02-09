@@ -41,6 +41,7 @@ impl PercpuChunk {
         Self { id, base_addr: base, total_size: size, used_size: 0, nr_allocs: 0, state: PercpuChunkState::Free, allocs: Vec::new(), nr_cpus: cpus }
     }
 
+    #[inline]
     pub fn allocate(&mut self, size: u32, owner: u64, now: u64) -> Option<u32> {
         if self.used_size + size > self.total_size { return None; }
         let offset = self.used_size;
@@ -51,6 +52,7 @@ impl PercpuChunk {
         Some(offset)
     }
 
+    #[inline]
     pub fn free(&mut self, offset: u32) {
         if let Some(pos) = self.allocs.iter().position(|a| a.offset == offset) {
             let size = self.allocs[pos].size;
@@ -67,6 +69,7 @@ impl PercpuChunk {
         else { self.state = PercpuChunkState::Partial; }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.total_size == 0 { 0.0 } else { self.used_size as f64 / self.total_size as f64 }
     }
@@ -74,6 +77,7 @@ impl PercpuChunk {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PercpuAllocStats {
     pub total_chunks: u32,
     pub total_allocs: u32,
@@ -92,23 +96,28 @@ pub struct HolisticPercpuAlloc {
 impl HolisticPercpuAlloc {
     pub fn new(cpus: u32) -> Self { Self { chunks: BTreeMap::new(), next_id: 1, nr_cpus: cpus } }
 
+    #[inline]
     pub fn create_chunk(&mut self, base: u64, size: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.chunks.insert(id, PercpuChunk::new(id, base, size, self.nr_cpus));
         id
     }
 
+    #[inline(always)]
     pub fn allocate(&mut self, chunk_id: u64, size: u32, owner: u64, now: u64) -> Option<u32> {
         if let Some(c) = self.chunks.get_mut(&chunk_id) { c.allocate(size, owner, now) }
         else { None }
     }
 
+    #[inline(always)]
     pub fn free(&mut self, chunk_id: u64, offset: u32) {
         if let Some(c) = self.chunks.get_mut(&chunk_id) { c.free(offset); }
     }
 
+    #[inline(always)]
     pub fn destroy_chunk(&mut self, id: u64) { self.chunks.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> PercpuAllocStats {
         let allocs: u32 = self.chunks.values().map(|c| c.nr_allocs).sum();
         let used: u64 = self.chunks.values().map(|c| c.used_size as u64).sum();
@@ -191,6 +200,7 @@ impl PercpuV2Chunk {
         Some(addr)
     }
 
+    #[inline]
     pub fn populate_page(&mut self) -> bool {
         if self.populated_pages < self.total_pages {
             self.populated_pages += 1;
@@ -200,6 +210,7 @@ impl PercpuV2Chunk {
         }
     }
 
+    #[inline]
     pub fn depopulate_page(&mut self) -> bool {
         if self.populated_pages > 0 {
             self.populated_pages -= 1;
@@ -212,6 +223,7 @@ impl PercpuV2Chunk {
         }
     }
 
+    #[inline]
     pub fn utilization_percent(&self) -> f64 {
         if self.size == 0 {
             return 0.0;
@@ -242,6 +254,7 @@ impl PercpuV2Group {
         }
     }
 
+    #[inline]
     pub fn add_chunk(&mut self, chunk_id: u64, size: u64) {
         self.chunk_ids.push(chunk_id);
         self.total_size += size;
@@ -251,6 +264,7 @@ impl PercpuV2Group {
 
 /// Statistics for the per-CPU allocator V2.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PercpuAllocV2Stats {
     pub total_chunks: u64,
     pub total_groups: u64,
@@ -295,6 +309,7 @@ impl HolisticPercpuAllocV2 {
         }
     }
 
+    #[inline]
     pub fn create_chunk(&mut self, base_addr: u64, size: usize, cpu_id: u32) -> u64 {
         let id = self.next_chunk_id;
         self.next_chunk_id += 1;
@@ -306,6 +321,7 @@ impl HolisticPercpuAllocV2 {
         id
     }
 
+    #[inline]
     pub fn create_group(&mut self, numa_node: u32) -> u64 {
         let id = self.next_group_id;
         self.next_group_id += 1;
@@ -315,6 +331,7 @@ impl HolisticPercpuAllocV2 {
         id
     }
 
+    #[inline]
     pub fn alloc_percpu(&mut self, size: usize) -> Option<u64> {
         for chunk in self.chunks.values_mut() {
             if let Some(addr) = chunk.try_alloc(size) {
@@ -344,10 +361,12 @@ impl HolisticPercpuAllocV2 {
         }
     }
 
+    #[inline(always)]
     pub fn chunk_count(&self) -> usize {
         self.chunks.len()
     }
 
+    #[inline(always)]
     pub fn group_count(&self) -> usize {
         self.groups.len()
     }

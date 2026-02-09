@@ -42,6 +42,7 @@ impl MergeTask {
         Self { id, level, left_start: ls, left_end: le, right_start: rs, right_end: re, state: SortState::Idle, comparisons: 0, swaps: 0 }
     }
 
+    #[inline(always)]
     pub fn elements(&self) -> usize {
         (self.left_end - self.left_start) + (self.right_end - self.right_start)
     }
@@ -126,11 +127,13 @@ impl SortSession {
         true
     }
 
+    #[inline(always)]
     pub fn is_complete(&self) -> bool { self.tasks.iter().all(|t| t.state == SortState::Complete) }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MergeSortStats {
     pub total_sessions: u32,
     pub active_sessions: u32,
@@ -148,6 +151,7 @@ pub struct CoopMergeSort {
 impl CoopMergeSort {
     pub fn new() -> Self { Self { sessions: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn start_sort(&mut self, data: Vec<u64>, order: SortOrder, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -157,6 +161,7 @@ impl CoopMergeSort {
         id
     }
 
+    #[inline]
     pub fn step(&mut self, session_id: u64) -> bool {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             let next = session.tasks.iter().position(|t| t.state == SortState::Idle);
@@ -165,6 +170,7 @@ impl CoopMergeSort {
         } else { false }
     }
 
+    #[inline]
     pub fn stats(&self) -> MergeSortStats {
         let active = self.sessions.values().filter(|s| !s.is_complete()).count() as u32;
         let comps: u64 = self.sessions.values().map(|s| s.total_comparisons).sum();

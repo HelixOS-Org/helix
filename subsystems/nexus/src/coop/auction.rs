@@ -164,6 +164,7 @@ impl Auction {
     }
 
     /// Highest bid
+    #[inline(always)]
     pub fn highest_bid(&self) -> Option<&Bid> {
         self.bids.iter().max_by_key(|b| b.amount)
     }
@@ -211,6 +212,7 @@ impl Auction {
     }
 
     /// Check deadline
+    #[inline]
     pub fn check_deadline(&mut self, now: u64) -> bool {
         if now >= self.deadline && self.state == AuctionState::Open {
             return true;
@@ -219,11 +221,13 @@ impl Auction {
     }
 
     /// Bid count
+    #[inline(always)]
     pub fn bid_count(&self) -> usize {
         self.bids.len()
     }
 
     /// Unique bidders
+    #[inline]
     pub fn unique_bidders(&self) -> usize {
         let mut seen = Vec::new();
         for bid in &self.bids {
@@ -272,6 +276,7 @@ impl AuctionBudget {
     }
 
     /// Spend credits
+    #[inline]
     pub fn spend(&mut self, amount: u64) -> bool {
         if amount > self.credits {
             return false;
@@ -296,6 +301,7 @@ impl AuctionBudget {
     }
 
     /// Win rate
+    #[inline]
     pub fn win_rate(&self) -> f64 {
         let total = self.wins + self.losses;
         if total == 0 {
@@ -311,6 +317,7 @@ impl AuctionBudget {
 
 /// Auction stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopAuctionStats {
     /// Active auctions
     pub active: usize,
@@ -351,6 +358,7 @@ impl CoopAuctionManager {
     }
 
     /// Set budget for process
+    #[inline]
     pub fn set_budget(&mut self, pid: u64, credits: u64) {
         self.budgets
             .entry(pid)
@@ -359,6 +367,7 @@ impl CoopAuctionManager {
     }
 
     /// Create auction
+    #[inline]
     pub fn create_auction(
         &mut self,
         auction_type: AuctionType,
@@ -433,6 +442,7 @@ impl CoopAuctionManager {
     }
 
     /// Refresh budgets
+    #[inline]
     pub fn refresh_budgets(&mut self, now: u64) {
         for budget in self.budgets.values_mut() {
             budget.refresh(now);
@@ -448,6 +458,7 @@ impl CoopAuctionManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopAuctionStats {
         &self.stats
     }

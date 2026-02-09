@@ -32,6 +32,7 @@ pub struct TxId(pub u64);
 static TX_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl TxId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(TX_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -166,6 +167,7 @@ impl LeaderElection {
     }
 
     /// Handle leader announcement
+    #[inline]
     pub fn handle_leader(&mut self, leader: NodeId, epoch: EpochId) {
         if epoch >= self.epoch {
             self.epoch = epoch;
@@ -176,6 +178,7 @@ impl LeaderElection {
     }
 
     /// Handle heartbeat
+    #[inline]
     pub fn handle_heartbeat(&mut self, from: NodeId, epoch: EpochId) {
         if epoch >= self.epoch && Some(from) == self.leader {
             self.last_heartbeat.store(0, Ordering::Relaxed);
@@ -223,11 +226,13 @@ impl LeaderElection {
     }
 
     /// Get current leader
+    #[inline(always)]
     pub fn leader(&self) -> Option<NodeId> {
         self.leader
     }
 
     /// Is this node the leader?
+    #[inline(always)]
     pub fn is_leader(&self) -> bool {
         self.leader == Some(self.node_id)
     }
@@ -278,6 +283,7 @@ pub struct TwoPhaseCommit {
 
 /// Transaction state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TransactionState {
     /// Transaction ID
     pub id: TxId,
@@ -515,6 +521,7 @@ impl TwoPhaseCommit {
     }
 
     /// Get transaction state
+    #[inline(always)]
     pub fn get_transaction(&self, tx_id: TxId) -> Option<&TransactionState> {
         self.transactions.get(&tx_id)
     }
@@ -713,6 +720,7 @@ impl Paxos {
     }
 
     /// Get chosen value
+    #[inline(always)]
     pub fn chosen(&self) -> Option<&Vec<u8>> {
         self.chosen.as_ref()
     }
@@ -820,6 +828,7 @@ impl Barrier {
     }
 
     /// Handle release
+    #[inline]
     pub fn handle_release(&mut self, barrier_id: u64) {
         if barrier_id == self.barrier_id {
             self.released = true;
@@ -827,11 +836,13 @@ impl Barrier {
     }
 
     /// Is barrier released?
+    #[inline(always)]
     pub fn is_released(&self) -> bool {
         self.released
     }
 
     /// Reset for next barrier
+    #[inline]
     pub fn reset(&mut self) {
         self.barrier_id += 1;
         self.arrived.clear();

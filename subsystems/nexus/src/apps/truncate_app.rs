@@ -30,13 +30,17 @@ impl TruncateOp {
         Self { id, target: tt, fd_or_path_hash: target, old_size: old, new_size: new, pid, timestamp: now, success: false }
     }
 
+    #[inline(always)]
     pub fn size_delta(&self) -> i64 { self.new_size as i64 - self.old_size as i64 }
+    #[inline(always)]
     pub fn is_shrink(&self) -> bool { self.new_size < self.old_size }
+    #[inline(always)]
     pub fn is_extend(&self) -> bool { self.new_size > self.old_size }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TruncateAppStats {
     pub total_ops: u32,
     pub successful: u32,
@@ -56,16 +60,19 @@ pub struct AppTruncate {
 impl AppTruncate {
     pub fn new() -> Self { Self { ops: Vec::new(), next_id: 1 } }
 
+    #[inline]
     pub fn truncate(&mut self, tt: TruncateType, target: u64, old: u64, new: u64, pid: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.ops.push(TruncateOp::new(id, tt, target, old, new, pid, now));
         id
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, id: u64) {
         if let Some(op) = self.ops.iter_mut().find(|o| o.id == id) { op.success = true; }
     }
 
+    #[inline]
     pub fn stats(&self) -> TruncateAppStats {
         let ok = self.ops.iter().filter(|o| o.success).count() as u32;
         let fail = self.ops.len() as u32 - ok;
@@ -137,6 +144,7 @@ impl TruncateV2Record {
         }
     }
 
+    #[inline(always)]
     pub fn size_delta(&self) -> i64 {
         self.new_size as i64 - self.old_size as i64
     }
@@ -144,6 +152,7 @@ impl TruncateV2Record {
 
 /// Per-file truncate tracking.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FileTruncateV2State {
     pub inode: u64,
     pub current_size: u64,
@@ -167,11 +176,13 @@ impl FileTruncateV2State {
         }
     }
 
+    #[inline(always)]
     pub fn apply_truncate(&mut self, new_size: u64) {
         self.current_size = new_size;
         self.truncate_count += 1;
     }
 
+    #[inline]
     pub fn apply_punch_hole(&mut self, offset: u64, length: u64) {
         let end = offset + length;
         if end <= self.current_size {
@@ -180,6 +191,7 @@ impl FileTruncateV2State {
         self.punch_hole_count += 1;
     }
 
+    #[inline]
     pub fn sparseness_ratio(&self) -> f64 {
         if self.current_size == 0 {
             return 0.0;
@@ -190,6 +202,7 @@ impl FileTruncateV2State {
 
 /// Statistics for truncate V2 app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TruncateV2AppStats {
     pub total_truncates: u64,
     pub total_fallocates: u64,
@@ -273,6 +286,7 @@ impl AppTruncateV2 {
         id
     }
 
+    #[inline(always)]
     pub fn file_count(&self) -> usize {
         self.files.len()
     }
@@ -350,15 +364,21 @@ impl TruncateV3Record {
         }
     }
 
+    #[inline(always)]
     pub fn is_shrink(&self) -> bool { self.new_size < self.old_size }
+    #[inline(always)]
     pub fn is_grow(&self) -> bool { self.new_size > self.old_size }
+    #[inline(always)]
     pub fn is_zero_range(&self) -> bool { self.mode == TruncateV3Mode::FallocZeroRange }
+    #[inline(always)]
     pub fn size_delta(&self) -> i64 { self.new_size as i64 - self.old_size as i64 }
+    #[inline(always)]
     pub fn net_blocks(&self) -> i64 { self.blocks_allocated as i64 - self.blocks_freed as i64 }
 }
 
 /// Truncate v3 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TruncateV3AppStats {
     pub total_ops: u64,
     pub shrink_ops: u64,
@@ -410,6 +430,7 @@ impl AppTruncateV3 {
         }
     }
 
+    #[inline(always)]
     pub fn net_block_change(&self) -> i64 {
         self.stats.total_blocks_allocated as i64 - self.stats.total_blocks_freed as i64
     }

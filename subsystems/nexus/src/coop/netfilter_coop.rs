@@ -22,6 +22,7 @@ impl NetfilterCoopRecord {
 
 /// Netfilter coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetfilterCoopStats { pub total_events: u64, pub shared_rules: u64, pub optimized: u64, pub syncs: u64 }
 
 /// Main coop netfilter
@@ -30,6 +31,7 @@ pub struct CoopNetfilter { pub stats: NetfilterCoopStats }
 
 impl CoopNetfilter {
     pub fn new() -> Self { Self { stats: NetfilterCoopStats { total_events: 0, shared_rules: 0, optimized: 0, syncs: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &NetfilterCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

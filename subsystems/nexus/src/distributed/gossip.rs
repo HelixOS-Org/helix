@@ -7,6 +7,7 @@
 extern crate alloc;
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -25,6 +26,7 @@ pub struct GossipId(pub u64);
 static GOSSIP_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl GossipId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(GOSSIP_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -85,11 +87,12 @@ pub enum GossipMode {
 // ============================================================================
 
 /// Local gossip state
+#[repr(align(64))]
 pub struct GossipState {
     /// Local entries
     entries: BTreeMap<String, GossipEntry>,
     /// Seen message IDs (to prevent duplicates)
-    seen_messages: Vec<GossipId>,
+    seen_messages: VecDeque<GossipId>,
     /// Max seen messages to track
     max_seen: usize,
     /// Node ID
@@ -101,7 +104,7 @@ impl GossipState {
     pub fn new(node_id: NodeId) -> Self {
         Self {
             entries: BTreeMap::new(),
-            seen_messages: Vec::new(),
+            seen_messages: VecDeque::new(),
             max_seen: 1000,
             node_id,
         }
@@ -127,6 +130,7 @@ impl GossipState {
     }
 
     /// Get value
+    #[inline(always)]
     pub fn get(&self, key: &str) -> Option<&Vec<u8>> {
         self.entries.get(key).map(|e| &e.value)
     }
@@ -155,21 +159,24 @@ impl GossipState {
     }
 
     /// Check if message already seen
+    #[inline(always)]
     pub fn is_seen(&self, id: GossipId) -> bool {
         self.seen_messages.contains(&id)
     }
 
     /// Mark message as seen
+    #[inline]
     pub fn mark_seen(&mut self, id: GossipId) {
         if !self.seen_messages.contains(&id) {
-            self.seen_messages.push(id);
+            self.seen_messages.push_back(id);
             if self.seen_messages.len() > self.max_seen {
-                self.seen_messages.remove(0);
+                self.seen_messages.pop_front();
             }
         }
     }
 
     /// Get digest
+    #[inline]
     pub fn digest(&self) -> GossipDigest {
         GossipDigest {
             entries: self
@@ -199,6 +206,7 @@ impl GossipState {
     }
 
     /// Get all entries
+    #[inline(always)]
     pub fn all_entries(&self) -> Vec<GossipEntry> {
         self.entries.values().cloned().collect()
     }
@@ -272,6 +280,7 @@ impl WeightedSelector {
         }
     }
 
+    #[inline(always)]
     pub fn record_gossip(&mut self, peer: NodeId, time: u64) {
         self.last_gossip.insert(peer, time);
     }
@@ -351,6 +360,7 @@ impl Default for GossipConfig {
 
 /// Gossip statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct GossipStats {
     /// Messages sent
     pub messages_sent: u64,
@@ -378,6 +388,7 @@ impl GossipEngine {
     }
 
     /// Add peer
+    #[inline]
     pub fn add_peer(&mut self, peer: NodeId) {
         if !self.peers.contains(&peer) && peer != self.node_id {
             self.peers.push(peer);
@@ -385,16 +396,19 @@ impl GossipEngine {
     }
 
     /// Remove peer
+    #[inline(always)]
     pub fn remove_peer(&mut self, peer: NodeId) {
         self.peers.retain(|&p| p != peer);
     }
 
     /// Set value
+    #[inline(always)]
     pub fn set(&mut self, key: impl Into<String>, value: Vec<u8>) {
         self.state.set(key.into(), value);
     }
 
     /// Get value
+    #[inline(always)]
     pub fn get(&self, key: &str) -> Option<&Vec<u8>> {
         self.state.get(key)
     }
@@ -427,6 +441,7 @@ impl GossipEngine {
     }
 
     /// Select targets for gossip
+    #[inline(always)]
     pub fn select_targets(&self) -> Vec<NodeId> {
         self.selector
             .select(self.node_id, &self.peers, self.config.fanout)
@@ -472,6 +487,7 @@ impl GossipEngine {
     }
 
     /// Run one gossip round
+    #[inline]
     pub fn gossip_round(&mut self) -> (Vec<NodeId>, GossipMessage) {
         let targets = self.select_targets();
         let message = self.create_message();
@@ -511,16 +527,19 @@ impl GossipEngine {
     }
 
     /// Set peer selector
+    #[inline(always)]
     pub fn set_selector(&mut self, selector: Box<dyn PeerSelector>) {
         self.selector = selector;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &GossipStats {
         &self.stats
     }
 
     /// Get peers
+    #[inline(always)]
     pub fn peers(&self) -> &[NodeId] {
         &self.peers
     }
@@ -538,6 +557,7 @@ impl Default for GossipEngine {
 
 /// G-Counter (grow-only counter)
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct GCounter {
     /// Per-node counts
     counts: BTreeMap<NodeId, u64>,
@@ -548,14 +568,17 @@ impl GCounter {
         Self::default()
     }
 
+    #[inline(always)]
     pub fn increment(&mut self, node: NodeId) {
         *self.counts.entry(node).or_insert(0) += 1;
     }
 
+    #[inline(always)]
     pub fn value(&self) -> u64 {
         self.counts.values().sum()
     }
 
+    #[inline]
     pub fn merge(&mut self, other: &GCounter) {
         for (&node, &count) in &other.counts {
             let entry = self.counts.entry(node).or_insert(0);
@@ -584,6 +607,7 @@ impl<T: Clone + Default> LWWRegister<T> {
         }
     }
 
+    #[inline]
     pub fn set(&mut self, value: T, node: NodeId, timestamp: u64) {
         if timestamp > self.timestamp || (timestamp == self.timestamp && node.0 > self.writer.0) {
             self.value = value;
@@ -592,10 +616,12 @@ impl<T: Clone + Default> LWWRegister<T> {
         }
     }
 
+    #[inline(always)]
     pub fn value(&self) -> &T {
         &self.value
     }
 
+    #[inline]
     pub fn merge(&mut self, other: &LWWRegister<T>) {
         if other.timestamp > self.timestamp
             || (other.timestamp == self.timestamp && other.writer.0 > self.writer.0)
@@ -634,6 +660,7 @@ impl<T: Clone + Ord> ORSet<T> {
         }
     }
 
+    #[inline]
     pub fn add(&mut self, element: T, node: NodeId, timestamp: u64) {
         self.elements
             .entry(element)
@@ -641,6 +668,7 @@ impl<T: Clone + Ord> ORSet<T> {
             .push((node, timestamp));
     }
 
+    #[inline]
     pub fn remove(&mut self, element: &T) {
         if let Some(tags) = self.elements.remove(element) {
             self.tombstones
@@ -650,10 +678,12 @@ impl<T: Clone + Ord> ORSet<T> {
         }
     }
 
+    #[inline(always)]
     pub fn contains(&self, element: &T) -> bool {
         self.elements.contains_key(element)
     }
 
+    #[inline(always)]
     pub fn elements(&self) -> Vec<&T> {
         self.elements.keys().collect()
     }

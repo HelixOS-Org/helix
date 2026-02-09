@@ -45,11 +45,13 @@ impl BdiWriteback {
         Self { bdi_id: id, state: WritebackState::Idle, dirty_pages: 0, writeback_pages: 0, reclaimable_pages: 0, bandwidth_bps: 0, dirty_thresh: 40, bg_thresh: 10, total_written: 0, total_writebacks: 0 }
     }
 
+    #[inline(always)]
     pub fn mark_dirty(&mut self, count: u64) {
         self.dirty_pages += count;
         self.update_state();
     }
 
+    #[inline]
     pub fn writeback(&mut self, count: u64) {
         let wb = count.min(self.dirty_pages);
         self.dirty_pages -= wb;
@@ -57,6 +59,7 @@ impl BdiWriteback {
         self.total_writebacks += 1;
     }
 
+    #[inline]
     pub fn complete_writeback(&mut self, count: u64) {
         let done = count.min(self.writeback_pages);
         self.writeback_pages -= done;
@@ -75,6 +78,7 @@ impl BdiWriteback {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DirtyWritebackStats {
     pub total_bdis: u32,
     pub total_dirty_pages: u64,
@@ -92,24 +96,29 @@ pub struct HolisticDirtyWriteback {
 impl HolisticDirtyWriteback {
     pub fn new() -> Self { Self { bdis: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn register_bdi(&mut self) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.bdis.insert(id, BdiWriteback::new(id));
         id
     }
 
+    #[inline(always)]
     pub fn mark_dirty(&mut self, bdi: u64, count: u64) {
         if let Some(b) = self.bdis.get_mut(&bdi) { b.mark_dirty(count); }
     }
 
+    #[inline(always)]
     pub fn writeback(&mut self, bdi: u64, count: u64) {
         if let Some(b) = self.bdis.get_mut(&bdi) { b.writeback(count); }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, bdi: u64, count: u64) {
         if let Some(b) = self.bdis.get_mut(&bdi) { b.complete_writeback(count); }
     }
 
+    #[inline]
     pub fn stats(&self) -> DirtyWritebackStats {
         let dirty: u64 = self.bdis.values().map(|b| b.dirty_pages).sum();
         let wb: u64 = self.bdis.values().map(|b| b.writeback_pages).sum();

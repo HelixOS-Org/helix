@@ -96,37 +96,44 @@ impl BpfMapInfo {
     }
 
     /// Record lookup
+    #[inline(always)]
     pub fn record_lookup(&self) {
         self.lookup_count.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record update
+    #[inline(always)]
     pub fn record_update(&self) {
         self.update_count.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record delete
+    #[inline(always)]
     pub fn record_delete(&self) {
         self.delete_count.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get lookup count
+    #[inline(always)]
     pub fn get_lookup_count(&self) -> u64 {
         self.lookup_count.load(Ordering::Relaxed)
     }
 
     /// Get update count
+    #[inline(always)]
     pub fn get_update_count(&self) -> u64 {
         self.update_count.load(Ordering::Relaxed)
     }
 
     /// Get fill ratio
+    #[inline(always)]
     pub fn fill_ratio(&self) -> f32 {
         let current = self.current_entries.load(Ordering::Relaxed);
         current as f32 / self.max_entries as f32
     }
 
     /// Estimated memory usage
+    #[inline]
     pub fn estimated_memory(&self) -> u64 {
         let entry_size = self.key_size as u64 + self.value_size as u64;
         let entries = self.current_entries.load(Ordering::Relaxed);

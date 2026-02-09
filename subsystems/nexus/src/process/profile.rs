@@ -67,6 +67,7 @@ impl ProcessProfile {
     }
 
     /// Update profile with new metrics
+    #[inline]
     pub fn update(&mut self, metrics: &ProcessMetrics, previous: Option<&ProcessMetrics>) {
         self.sample_count += 1;
         self.last_update = NexusTimestamp::now();
@@ -143,11 +144,13 @@ impl ProcessProfile {
     }
 
     /// Get expected CPU usage
+    #[inline(always)]
     pub fn expected_cpu(&self) -> f64 {
         self.avg_cpu_usage
     }
 
     /// Get expected memory
+    #[inline(always)]
     pub fn expected_memory(&self) -> u64 {
         self.avg_memory as u64
     }

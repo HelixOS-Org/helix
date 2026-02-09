@@ -41,11 +41,13 @@ impl ReaderInfo {
     }
 
     /// Check if in critical section
+    #[inline(always)]
     pub fn in_critical_section(&self) -> bool {
         self.nesting_depth > 0
     }
 
     /// Get average critical section duration
+    #[inline]
     pub fn avg_cs_duration_ns(&self) -> u64 {
         if self.cs_count == 0 {
             return 0;
@@ -87,6 +89,7 @@ impl ReaderTracker {
     }
 
     /// Register CPU
+    #[inline]
     pub fn register_cpu(&mut self, cpu_id: CpuId) {
         self.readers
             .entry(cpu_id)
@@ -95,6 +98,7 @@ impl ReaderTracker {
     }
 
     /// Unregister CPU
+    #[inline(always)]
     pub fn unregister_cpu(&mut self, cpu_id: CpuId) {
         self.readers.remove(&cpu_id);
         self.online_cpus = self.online_cpus.saturating_sub(1);
@@ -134,6 +138,7 @@ impl ReaderTracker {
     }
 
     /// Record quiescent state
+    #[inline]
     pub fn record_qs(&mut self, cpu_id: CpuId, timestamp_ns: u64) {
         if let Some(reader) = self.readers.get_mut(&cpu_id) {
             reader.last_qs_ns = timestamp_ns;
@@ -142,6 +147,7 @@ impl ReaderTracker {
     }
 
     /// Record extended quiescent state entry
+    #[inline]
     pub fn record_eqs_entry(&mut self, cpu_id: CpuId, timestamp_ns: u64) {
         if let Some(reader) = self.readers.get_mut(&cpu_id) {
             reader.in_eqs = true;
@@ -150,6 +156,7 @@ impl ReaderTracker {
     }
 
     /// Record extended quiescent state exit
+    #[inline]
     pub fn record_eqs_exit(&mut self, cpu_id: CpuId, timestamp_ns: u64) {
         if let Some(reader) = self.readers.get_mut(&cpu_id) {
             reader.in_eqs = false;
@@ -158,6 +165,7 @@ impl ReaderTracker {
     }
 
     /// Get CPUs that have passed quiescent state since timestamp
+    #[inline]
     pub fn get_qs_cpus(&self, since_ns: u64) -> Vec<CpuId> {
         self.readers
             .iter()
@@ -167,6 +175,7 @@ impl ReaderTracker {
     }
 
     /// Get CPUs still in critical section
+    #[inline]
     pub fn get_blocking_cpus(&self) -> Vec<CpuId> {
         self.readers
             .iter()
@@ -176,26 +185,31 @@ impl ReaderTracker {
     }
 
     /// Get reader info for CPU
+    #[inline(always)]
     pub fn get_reader(&self, cpu_id: CpuId) -> Option<&ReaderInfo> {
         self.readers.get(&cpu_id)
     }
 
     /// Get online CPU count
+    #[inline(always)]
     pub fn online_cpu_count(&self) -> u32 {
         self.online_cpus
     }
 
     /// Get long critical section count
+    #[inline(always)]
     pub fn long_cs_count(&self) -> u64 {
         self.long_cs_count.load(Ordering::Relaxed)
     }
 
     /// Get maximum nesting depth observed
+    #[inline(always)]
     pub fn max_nesting_depth(&self) -> u32 {
         self.max_nesting_depth
     }
 
     /// Set long CS threshold
+    #[inline(always)]
     pub fn set_long_cs_threshold(&mut self, threshold_ns: u64) {
         self.long_cs_threshold_ns = threshold_ns;
     }

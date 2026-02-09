@@ -9,6 +9,7 @@ use crate::core::NexusTimestamp;
 
 /// Cache entry with metadata
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheEntry {
     /// Entry key
     pub key: CacheKey,
@@ -48,6 +49,7 @@ impl CacheEntry {
     }
 
     /// Record access
+    #[inline]
     pub fn access(&mut self) {
         self.access_count += 1;
         self.last_access = NexusTimestamp::now();
@@ -60,21 +62,25 @@ impl CacheEntry {
     }
 
     /// Get age in ticks
+    #[inline(always)]
     pub fn age_ticks(&self) -> u64 {
         NexusTimestamp::now().duration_since(self.first_access)
     }
 
     /// Get time since last access
+    #[inline(always)]
     pub fn idle_ticks(&self) -> u64 {
         NexusTimestamp::now().duration_since(self.last_access)
     }
 
     /// Is entry hot (frequently accessed)?
+    #[inline(always)]
     pub fn is_hot(&self) -> bool {
         self.frequency > 10.0 && self.idle_ticks() < 1_000_000_000
     }
 
     /// Is entry cold (rarely accessed)?
+    #[inline(always)]
     pub fn is_cold(&self) -> bool {
         self.frequency < 1.0 || self.idle_ticks() > 10_000_000_000
     }

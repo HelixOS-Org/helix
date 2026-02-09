@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -146,7 +147,7 @@ impl Proposal {
             proposal_type,
             state: ProposalState::Draft,
             eligible_voters: voters,
-            votes: BTreeMap::new(),
+            votes: LinearMap::new(),
             algorithm,
             quorum,
             threshold,
@@ -157,6 +158,7 @@ impl Proposal {
     }
 
     /// Open for voting
+    #[inline]
     pub fn open(&mut self) {
         if self.state == ProposalState::Draft {
             self.state = ProposalState::Open;
@@ -184,6 +186,7 @@ impl Proposal {
     }
 
     /// Participation rate
+    #[inline]
     pub fn participation(&self) -> f64 {
         if self.eligible_voters.is_empty() {
             return 0.0;
@@ -192,6 +195,7 @@ impl Proposal {
     }
 
     /// Check if quorum is reached
+    #[inline(always)]
     pub fn has_quorum(&self) -> bool {
         self.participation() >= self.quorum
     }
@@ -249,6 +253,7 @@ impl Proposal {
     }
 
     /// Check expiry
+    #[inline]
     pub fn check_expiry(&mut self, now: u64) {
         if now >= self.deadline && self.state == ProposalState::Open {
             self.tally();
@@ -265,6 +270,7 @@ impl Proposal {
 
 /// Consensus stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopConsensusStats {
     /// Active proposals
     pub active_proposals: usize,
@@ -285,7 +291,7 @@ pub struct CoopConsensusManager {
     /// Proposals
     proposals: BTreeMap<u64, Proposal>,
     /// Voter weights
-    voter_weights: BTreeMap<u64, f64>,
+    voter_weights: LinearMap<f64, 64>,
     /// Next proposal ID
     next_id: u64,
     /// Stats
@@ -296,18 +302,20 @@ impl CoopConsensusManager {
     pub fn new() -> Self {
         Self {
             proposals: BTreeMap::new(),
-            voter_weights: BTreeMap::new(),
+            voter_weights: LinearMap::new(),
             next_id: 1,
             stats: CoopConsensusStats::default(),
         }
     }
 
     /// Set voter weight
+    #[inline(always)]
     pub fn set_voter_weight(&mut self, pid: u64, weight: f64) {
         self.voter_weights.insert(pid, weight);
     }
 
     /// Create proposal
+    #[inline]
     pub fn create_proposal(
         &mut self,
         proposer: u64,
@@ -326,6 +334,7 @@ impl CoopConsensusManager {
     }
 
     /// Open proposal
+    #[inline]
     pub fn open_proposal(&mut self, id: u64) {
         if let Some(p) = self.proposals.get_mut(&id) {
             p.open();
@@ -334,8 +343,9 @@ impl CoopConsensusManager {
     }
 
     /// Vote on proposal
+    #[inline]
     pub fn vote(&mut self, proposal_id: u64, voter: u64, vote: VoteType, now: u64) -> bool {
-        let weight = self.voter_weights.get(&voter).copied().unwrap_or(1.0);
+        let weight = self.voter_weights.get(voter).copied().unwrap_or(1.0);
         if let Some(proposal) = self.proposals.get_mut(&proposal_id) {
             return proposal.cast_vote(voter, vote, weight, now);
         }
@@ -343,6 +353,7 @@ impl CoopConsensusManager {
     }
 
     /// Finalize proposal
+    #[inline]
     pub fn finalize(&mut self, proposal_id: u64) -> Option<ProposalState> {
         let state = self.proposals.get_mut(&proposal_id)?.tally();
         match state {
@@ -355,6 +366,7 @@ impl CoopConsensusManager {
     }
 
     /// Process expirations
+    #[inline]
     pub fn process_expirations(&mut self, now: u64) {
         for proposal in self.proposals.values_mut() {
             let old = proposal.state;
@@ -391,11 +403,13 @@ impl CoopConsensusManager {
     }
 
     /// Get proposal
+    #[inline(always)]
     pub fn proposal(&self, id: u64) -> Option<&Proposal> {
         self.proposals.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopConsensusStats {
         &self.stats
     }
@@ -516,6 +530,7 @@ impl RaftNode {
     }
 
     /// Add peer
+    #[inline]
     pub fn add_peer(&mut self, pid: u64) {
         if !self.peers.contains(&pid) && pid != self.pid {
             self.peers.push(pid);
@@ -523,6 +538,7 @@ impl RaftNode {
     }
 
     /// Start election
+    #[inline]
     pub fn start_election(&mut self, now: u64) {
         self.current_term += 1;
         self.state = RaftState::Candidate;
@@ -532,6 +548,7 @@ impl RaftNode {
     }
 
     /// Receive vote
+    #[inline]
     pub fn receive_vote(&mut self, _from: u64, term: u64, granted: bool) {
         if term != self.current_term || self.state != RaftState::Candidate {
             return;
@@ -557,6 +574,7 @@ impl RaftNode {
     }
 
     /// Step down to follower
+    #[inline]
     pub fn step_down(&mut self, new_term: u64) {
         if new_term > self.current_term {
             self.current_term = new_term;
@@ -584,6 +602,7 @@ impl RaftNode {
     }
 
     /// Commit up to index
+    #[inline]
     pub fn commit_up_to(&mut self, index: u64) {
         self.commit_index = index;
         for entry in &mut self.log {
@@ -594,6 +613,7 @@ impl RaftNode {
     }
 
     /// Apply committed entries
+    #[inline]
     pub fn apply(&mut self) -> Vec<u64> {
         let mut applied = Vec::new();
         while self.last_applied < self.commit_index {
@@ -604,12 +624,14 @@ impl RaftNode {
     }
 
     /// Election timeout?
+    #[inline(always)]
     pub fn election_timeout(&self, now: u64) -> bool {
         self.state != RaftState::Leader &&
         now.saturating_sub(self.last_heartbeat_ns) > self.heartbeat_timeout_ns
     }
 
     /// Heartbeat (from leader)
+    #[inline]
     pub fn receive_heartbeat(&mut self, leader: u64, term: u64, now: u64) {
         if term >= self.current_term {
             self.current_term = term;
@@ -636,7 +658,7 @@ pub struct TwoPhaseTransaction {
     /// Phase
     pub phase: TwoPhaseState,
     /// Votes (pid -> committed)
-    pub votes: BTreeMap<u64, bool>,
+    pub votes: LinearMap<bool, 64>,
     /// Start time
     pub start_ns: u64,
     /// Timeout (ns)
@@ -650,28 +672,32 @@ impl TwoPhaseTransaction {
             coordinator,
             participants,
             phase: TwoPhaseState::Prepare,
-            votes: BTreeMap::new(),
+            votes: LinearMap::new(),
             start_ns: now,
             timeout_ns: 5_000_000_000, // 5s
         }
     }
 
     /// Record vote from participant
+    #[inline(always)]
     pub fn record_vote(&mut self, pid: u64, commit: bool) {
         self.votes.insert(pid, commit);
     }
 
     /// All voted?
+    #[inline(always)]
     pub fn all_voted(&self) -> bool {
         self.participants.iter().all(|p| self.votes.contains_key(p))
     }
 
     /// Can commit? (all voted yes)
+    #[inline(always)]
     pub fn can_commit(&self) -> bool {
         self.all_voted() && self.votes.values().all(|&v| v)
     }
 
     /// Decide
+    #[inline]
     pub fn decide(&mut self) -> TwoPhaseState {
         if self.can_commit() {
             self.phase = TwoPhaseState::Commit;
@@ -682,6 +708,7 @@ impl TwoPhaseTransaction {
     }
 
     /// Is timed out
+    #[inline(always)]
     pub fn is_timed_out(&self, now: u64) -> bool {
         now.saturating_sub(self.start_ns) > self.timeout_ns
     }
@@ -693,6 +720,7 @@ impl TwoPhaseTransaction {
 
 /// Consensus V2 stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopConsensusV2Stats {
     /// Raft nodes
     pub raft_nodes: usize,
@@ -731,11 +759,13 @@ impl CoopConsensusV2 {
     }
 
     /// Register raft node
+    #[inline(always)]
     pub fn register_node(&mut self, pid: u64) -> &mut RaftNode {
         self.raft_nodes.entry(pid).or_insert_with(|| RaftNode::new(pid))
     }
 
     /// Trigger election for node
+    #[inline]
     pub fn trigger_election(&mut self, pid: u64, now: u64) {
         if let Some(node) = self.raft_nodes.get_mut(&pid) {
             node.start_election(now);
@@ -744,6 +774,7 @@ impl CoopConsensusV2 {
     }
 
     /// Begin 2PC transaction
+    #[inline]
     pub fn begin_2pc(&mut self, coordinator: u64, participants: Vec<u64>, now: u64) -> u64 {
         let txn_id = self.next_txn_id;
         self.next_txn_id += 1;
@@ -753,6 +784,7 @@ impl CoopConsensusV2 {
     }
 
     /// Vote on 2PC
+    #[inline]
     pub fn vote_2pc(&mut self, txn_id: u64, pid: u64, commit: bool) {
         if let Some(txn) = self.transactions.get_mut(&txn_id) {
             txn.record_vote(pid, commit);
@@ -776,6 +808,7 @@ impl CoopConsensusV2 {
     }
 
     /// Remove node
+    #[inline(always)]
     pub fn remove_node(&mut self, pid: u64) {
         self.raft_nodes.remove(&pid);
         self.update_stats();
@@ -792,6 +825,7 @@ impl CoopConsensusV2 {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopConsensusV2Stats {
         &self.stats
     }
@@ -868,9 +902,9 @@ pub struct ConsensusNode {
     pub commit_index: u64,
     pub last_applied: u64,
     /// Leader-specific: next index for each follower
-    next_index: BTreeMap<u64, u64>,
+    next_index: LinearMap<u64, 64>,
     /// Leader-specific: match index for each follower
-    match_index: BTreeMap<u64, u64>,
+    match_index: LinearMap<u64, 64>,
     /// Leader ID (as known by follower)
     pub leader_id: Option<u64>,
     /// Election timeout
@@ -891,8 +925,8 @@ impl ConsensusNode {
             log: Vec::new(),
             commit_index: 0,
             last_applied: 0,
-            next_index: BTreeMap::new(),
-            match_index: BTreeMap::new(),
+            next_index: LinearMap::new(),
+            match_index: LinearMap::new(),
             leader_id: None,
             election_timeout_ns: 150_000_000, // 150ms
             last_heartbeat_ns: 0,
@@ -901,15 +935,18 @@ impl ConsensusNode {
         }
     }
 
+    #[inline(always)]
     pub fn last_log_index(&self) -> u64 {
         self.log.last().map(|e| e.index).unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn last_log_term(&self) -> u64 {
         self.log.last().map(|e| e.term).unwrap_or(0)
     }
 
     /// Majority threshold
+    #[inline(always)]
     pub fn majority(&self) -> u32 {
         self.cluster_size / 2 + 1
     }
@@ -1065,17 +1102,20 @@ impl ConsensusNode {
     }
 
     /// Check if election timeout elapsed
+    #[inline(always)]
     pub fn election_timeout_elapsed(&self, now_ns: u64) -> bool {
         self.role != ConsensusRole::Leader
             && now_ns.saturating_sub(self.last_heartbeat_ns) > self.election_timeout_ns
     }
 
     /// Log length
+    #[inline(always)]
     pub fn log_len(&self) -> usize {
         self.log.len()
     }
 
     /// Committed entries
+    #[inline(always)]
     pub fn committed_count(&self) -> u64 {
         self.log.iter().filter(|e| e.committed).count() as u64
     }
@@ -1083,6 +1123,7 @@ impl ConsensusNode {
 
 /// Consensus cluster stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopConsensusV3Stats {
     pub node_count: usize,
     pub leader_id: Option<u64>,
@@ -1108,6 +1149,7 @@ impl CoopConsensusV3 {
         }
     }
 
+    #[inline]
     pub fn add_node(&mut self, node_id: u64) {
         let cluster_size = (self.nodes.len() + 1) as u32;
         self.nodes
@@ -1153,6 +1195,7 @@ impl CoopConsensusV3 {
         self.stats.elections_held = self.elections_held;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopConsensusV3Stats {
         &self.stats
     }

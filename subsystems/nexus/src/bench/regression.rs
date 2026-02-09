@@ -36,11 +36,13 @@ impl RegressionTracker {
     }
 
     /// Set baseline
+    #[inline(always)]
     pub fn set_baseline(&mut self, result: BenchmarkResult) {
         self.baselines.insert(result.name.clone(), result);
     }
 
     /// Set baselines from suite result
+    #[inline]
     pub fn set_baselines(&mut self, suite_result: &SuiteResult) {
         for result in &suite_result.results {
             self.set_baseline(result.clone());
@@ -65,6 +67,7 @@ impl RegressionTracker {
     }
 
     /// Check all results from a suite
+    #[inline]
     pub fn check_suite(&self, suite_result: &SuiteResult) -> Vec<RegressionReport> {
         let mut regressions = Vec::new();
 
@@ -78,11 +81,13 @@ impl RegressionTracker {
     }
 
     /// Get threshold
+    #[inline(always)]
     pub fn threshold(&self) -> f64 {
         self.threshold
     }
 
     /// Set threshold
+    #[inline(always)]
     pub fn set_threshold(&mut self, threshold: f64) {
         self.threshold = threshold;
     }
@@ -109,6 +114,7 @@ pub struct RegressionReport {
 
 impl RegressionReport {
     /// Get summary
+    #[inline]
     pub fn summary(&self) -> String {
         format!(
             "REGRESSION: {} - {:.1}x slower (was {:.0} cycles, now {:.0} cycles, threshold {:.0}%)",
@@ -146,6 +152,7 @@ pub fn quick_bench(name: &str, iterations: u64, mut func: impl FnMut()) -> Bench
 }
 
 /// Measure a single execution
+#[inline]
 pub fn measure<R>(mut func: impl FnMut() -> R) -> (R, u64) {
     let start = NexusTimestamp::now();
     let result = func();

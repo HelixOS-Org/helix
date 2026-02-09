@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -55,6 +56,7 @@ pub struct VmaPerms {
 }
 
 impl VmaPerms {
+    #[inline]
     pub fn rwx() -> Self {
         Self {
             read: true,
@@ -64,6 +66,7 @@ impl VmaPerms {
         }
     }
 
+    #[inline]
     pub fn rw() -> Self {
         Self {
             read: true,
@@ -73,6 +76,7 @@ impl VmaPerms {
         }
     }
 
+    #[inline]
     pub fn rx() -> Self {
         Self {
             read: true,
@@ -82,6 +86,7 @@ impl VmaPerms {
         }
     }
 
+    #[inline]
     pub fn ro() -> Self {
         Self {
             read: true,
@@ -92,6 +97,7 @@ impl VmaPerms {
     }
 
     /// Security: writable + executable is dangerous
+    #[inline(always)]
     pub fn is_wx(&self) -> bool {
         self.write && self.exec
     }
@@ -138,7 +144,7 @@ pub struct VmaEntry {
     /// Dirty pages
     pub dirty_pages: u64,
     /// Size samples for growth tracking
-    size_samples: Vec<u64>,
+    size_samples: VecDeque<u64>,
 }
 
 impl VmaEntry {
@@ -154,16 +160,18 @@ impl VmaEntry {
             page_faults: 0,
             swapped_pages: 0,
             dirty_pages: 0,
-            size_samples: Vec::new(),
+            size_samples: VecDeque::new(),
         }
     }
 
     /// Size in bytes
+    #[inline(always)]
     pub fn size(&self) -> u64 {
         self.end.saturating_sub(self.start)
     }
 
     /// Residency ratio
+    #[inline]
     pub fn residency(&self) -> f64 {
         if self.total_pages == 0 {
             return 0.0;
@@ -172,17 +180,19 @@ impl VmaEntry {
     }
 
     /// Record page fault
+    #[inline(always)]
     pub fn record_fault(&mut self) {
         self.page_faults += 1;
     }
 
     /// Sample size for growth tracking
+    #[inline]
     pub fn sample_size(&mut self) {
         let sz = self.size();
         if self.size_samples.len() >= 64 {
-            self.size_samples.remove(0);
+            self.size_samples.pop_front();
         }
-        self.size_samples.push(sz);
+        self.size_samples.push_back(sz);
     }
 
     /// Detect growth pattern
@@ -226,6 +236,7 @@ impl VmaEntry {
     }
 
     /// Can merge with adjacent VMA
+    #[inline]
     pub fn can_merge_with(&self, other: &VmaEntry) -> bool {
         self.end == other.start
             && self.vma_type == other.vma_type
@@ -287,6 +298,7 @@ impl ProcessVmaTracker {
     }
 
     /// Add VMA
+    #[inline]
     pub fn add_vma(&mut self, start: u64, end: u64, vma_type: VmaType, perms: VmaPerms) {
         let entry = VmaEntry::new(start, end, vma_type, perms);
         if perms.is_wx() {
@@ -296,6 +308,7 @@ impl ProcessVmaTracker {
     }
 
     /// Remove VMA
+    #[inline]
     pub fn remove_vma(&mut self, start: u64) {
         if let Some(v) = self.vmas.remove(&start) {
             if v.perms.is_wx() && self.wx_regions > 0 {
@@ -305,6 +318,7 @@ impl ProcessVmaTracker {
     }
 
     /// Record fault to VMA containing address
+    #[inline]
     pub fn record_fault(&mut self, addr: u64) {
         self.total_faults += 1;
         // Find VMA containing addr
@@ -361,6 +375,7 @@ impl ProcessVmaTracker {
     }
 
     /// Heap VMAs
+    #[inline]
     pub fn heap_size(&self) -> u64 {
         self.vmas
             .values()
@@ -370,6 +385,7 @@ impl ProcessVmaTracker {
     }
 
     /// Stack VMAs
+    #[inline]
     pub fn stack_size(&self) -> u64 {
         self.vmas
             .values()
@@ -385,6 +401,7 @@ impl ProcessVmaTracker {
 
 /// VMA tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppVmaTrackerStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -413,6 +430,7 @@ impl AppVmaTracker {
     }
 
     /// Get/create process
+    #[inline]
     pub fn process(&mut self, pid: u64) -> &mut ProcessVmaTracker {
         self.processes
             .entry(pid)
@@ -420,6 +438,7 @@ impl AppVmaTracker {
     }
 
     /// Add VMA
+    #[inline]
     pub fn add_vma(&mut self, pid: u64, start: u64, end: u64, vma_type: VmaType, perms: VmaPerms) {
         let proc = self
             .processes
@@ -430,6 +449,7 @@ impl AppVmaTracker {
     }
 
     /// Record fault
+    #[inline]
     pub fn record_fault(&mut self, pid: u64, addr: u64) {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.record_fault(addr);
@@ -438,6 +458,7 @@ impl AppVmaTracker {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.update_stats();
@@ -450,6 +471,7 @@ impl AppVmaTracker {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppVmaTrackerStats {
         &self.stats
     }

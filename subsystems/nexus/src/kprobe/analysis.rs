@@ -52,6 +52,7 @@ pub enum KprobeIssueType {
 
 impl KprobeIssueType {
     /// Get issue type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::HighOverhead => "high_overhead",
@@ -91,6 +92,7 @@ pub enum KprobeAction {
 
 impl KprobeAction {
     /// Get action name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::RemoveUnused => "remove_unused",

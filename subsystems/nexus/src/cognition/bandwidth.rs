@@ -136,6 +136,7 @@ impl Default for BandwidthConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BandwidthStats {
     /// Total requests received
     pub total_requests: u64,
@@ -191,6 +192,7 @@ impl BandwidthManager {
     }
 
     /// Unregister a domain
+    #[inline(always)]
     pub fn unregister_domain(&mut self, domain_id: DomainId) {
         self.allocations.remove(&domain_id);
         self.recalculate_allocations();
@@ -351,22 +353,26 @@ impl BandwidthManager {
     }
 
     /// Get allocation for domain
+    #[inline(always)]
     pub fn get_allocation(&self, domain_id: DomainId) -> Option<&BandwidthAllocation> {
         self.allocations.get(&domain_id)
     }
 
     /// Get total available bandwidth
+    #[inline(always)]
     pub fn total_available(&self) -> u64 {
         let used: u64 = self.allocations.values().map(|a| a.current_usage).sum();
         self.total_bandwidth.saturating_sub(used)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &BandwidthStats {
         &self.stats
     }
 
     /// Get current tick
+    #[inline(always)]
     pub fn current_tick(&self) -> u64 {
         self.current_tick
     }
@@ -400,6 +406,7 @@ impl BandwidthThrottle {
     }
 
     /// Check if can proceed
+    #[inline]
     pub fn can_proceed(&mut self, cycles: u64) -> bool {
         let now = Timestamp::now();
 
@@ -413,16 +420,19 @@ impl BandwidthThrottle {
     }
 
     /// Record usage
+    #[inline(always)]
     pub fn record(&mut self, cycles: u64) {
         self.window_usage += cycles;
     }
 
     /// Get remaining budget
+    #[inline(always)]
     pub fn remaining(&self) -> u64 {
         self.max_rate.saturating_sub(self.window_usage)
     }
 
     /// Get utilization
+    #[inline]
     pub fn utilization(&self) -> f32 {
         if self.max_rate > 0 {
             self.window_usage as f32 / self.max_rate as f32

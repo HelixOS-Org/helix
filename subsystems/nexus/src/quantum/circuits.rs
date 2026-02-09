@@ -31,6 +31,7 @@ pub struct Instruction {
 
 impl Instruction {
     /// Create new single-qubit instruction
+    #[inline]
     pub fn single(gate: GateType, qubit: usize) -> Self {
         Self {
             gate,
@@ -40,6 +41,7 @@ impl Instruction {
     }
 
     /// Create new two-qubit instruction
+    #[inline]
     pub fn two_qubit(gate: GateType, q1: usize, q2: usize) -> Self {
         Self {
             gate,
@@ -49,6 +51,7 @@ impl Instruction {
     }
 
     /// Create new parametric instruction
+    #[inline]
     pub fn parametric(gate: GateType, qubit: usize, theta: f64) -> Self {
         Self {
             gate,
@@ -58,11 +61,13 @@ impl Instruction {
     }
 
     /// Create CNOT instruction
+    #[inline(always)]
     pub fn cnot(control: usize, target: usize) -> Self {
         Self::two_qubit(GateType::CX, control, target)
     }
 
     /// Create Toffoli instruction
+    #[inline]
     pub fn toffoli(ctrl1: usize, ctrl2: usize, target: usize) -> Self {
         Self {
             gate: GateType::CCX,
@@ -98,6 +103,7 @@ impl QuantumCircuit {
     }
 
     /// Create circuit with capacity
+    #[inline]
     pub fn with_capacity(n_qubits: usize, capacity: usize) -> Self {
         Self {
             n_qubits,
@@ -107,11 +113,13 @@ impl QuantumCircuit {
     }
 
     /// Get number of qubits
+    #[inline(always)]
     pub fn num_qubits(&self) -> usize {
         self.n_qubits
     }
 
     /// Get number of gates
+    #[inline(always)]
     pub fn num_gates(&self) -> usize {
         self.instructions.len()
     }
@@ -123,84 +131,98 @@ impl QuantumCircuit {
     }
 
     /// Add X gate
+    #[inline(always)]
     pub fn x(&mut self, qubit: usize) -> &mut Self {
         self.add_instruction(Instruction::single(GateType::X, qubit));
         self
     }
 
     /// Add Y gate
+    #[inline(always)]
     pub fn y(&mut self, qubit: usize) -> &mut Self {
         self.add_instruction(Instruction::single(GateType::Y, qubit));
         self
     }
 
     /// Add Z gate
+    #[inline(always)]
     pub fn z(&mut self, qubit: usize) -> &mut Self {
         self.add_instruction(Instruction::single(GateType::Z, qubit));
         self
     }
 
     /// Add Hadamard gate
+    #[inline(always)]
     pub fn h(&mut self, qubit: usize) -> &mut Self {
         self.add_instruction(Instruction::single(GateType::H, qubit));
         self
     }
 
     /// Add S gate
+    #[inline(always)]
     pub fn s(&mut self, qubit: usize) -> &mut Self {
         self.add_instruction(Instruction::single(GateType::S, qubit));
         self
     }
 
     /// Add T gate
+    #[inline(always)]
     pub fn t(&mut self, qubit: usize) -> &mut Self {
         self.add_instruction(Instruction::single(GateType::T, qubit));
         self
     }
 
     /// Add Rx rotation
+    #[inline(always)]
     pub fn rx(&mut self, qubit: usize, theta: f64) -> &mut Self {
         self.add_instruction(Instruction::parametric(GateType::Rx, qubit, theta));
         self
     }
 
     /// Add Ry rotation
+    #[inline(always)]
     pub fn ry(&mut self, qubit: usize, theta: f64) -> &mut Self {
         self.add_instruction(Instruction::parametric(GateType::Ry, qubit, theta));
         self
     }
 
     /// Add Rz rotation
+    #[inline(always)]
     pub fn rz(&mut self, qubit: usize, theta: f64) -> &mut Self {
         self.add_instruction(Instruction::parametric(GateType::Rz, qubit, theta));
         self
     }
 
     /// Add CNOT gate
+    #[inline(always)]
     pub fn cnot(&mut self, control: usize, target: usize) -> &mut Self {
         self.add_instruction(Instruction::cnot(control, target));
         self
     }
 
     /// Add CZ gate
+    #[inline(always)]
     pub fn cz(&mut self, q1: usize, q2: usize) -> &mut Self {
         self.add_instruction(Instruction::two_qubit(GateType::CZ, q1, q2));
         self
     }
 
     /// Add SWAP gate
+    #[inline(always)]
     pub fn swap(&mut self, q1: usize, q2: usize) -> &mut Self {
         self.add_instruction(Instruction::two_qubit(GateType::SWAP, q1, q2));
         self
     }
 
     /// Add Toffoli gate
+    #[inline(always)]
     pub fn ccx(&mut self, ctrl1: usize, ctrl2: usize, target: usize) -> &mut Self {
         self.add_instruction(Instruction::toffoli(ctrl1, ctrl2, target));
         self
     }
 
     /// Append another circuit
+    #[inline]
     pub fn append(&mut self, other: &QuantumCircuit) -> &mut Self {
         for inst in &other.instructions {
             self.instructions.push(inst.clone());
@@ -242,6 +264,7 @@ impl QuantumCircuit {
     }
 
     /// Clear all instructions
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.instructions.clear();
         self.depth_cache = Some(0);
@@ -306,11 +329,13 @@ impl CircuitExecutor {
     }
 
     /// Create executor from existing state
+    #[inline(always)]
     pub fn from_state(state: StateVector) -> Self {
         Self { state }
     }
 
     /// Reset to |0...0⟩
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.state = StateVector::new(self.state.n_qubits);
     }
@@ -383,6 +408,7 @@ impl CircuitExecutor {
     }
 
     /// Execute entire circuit
+    #[inline]
     pub fn execute(&mut self, circuit: &QuantumCircuit) {
         for inst in &circuit.instructions {
             self.execute_instruction(inst);
@@ -390,11 +416,13 @@ impl CircuitExecutor {
     }
 
     /// Get probability of measuring specific outcome
+    #[inline(always)]
     pub fn probability(&self, outcome: usize) -> f64 {
         self.state.probability(outcome)
     }
 
     /// Get all probabilities
+    #[inline]
     pub fn probabilities(&self) -> Vec<f64> {
         (0..self.state.dimension())
             .map(|i| self.probability(i))
@@ -447,6 +475,7 @@ impl CircuitExecutor {
 // ============================================================================
 
 /// Create GHZ state circuit
+#[inline]
 pub fn ghz_circuit(n_qubits: usize) -> QuantumCircuit {
     let mut circuit = QuantumCircuit::new(n_qubits);
 

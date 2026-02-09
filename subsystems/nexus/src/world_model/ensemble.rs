@@ -134,6 +134,7 @@ impl EnsembleWorldModel {
     }
 
     /// Get total epistemic uncertainty
+    #[inline(always)]
     pub fn total_epistemic_uncertainty(&self) -> f64 {
         self.epistemic_uncertainty.iter().sum()
     }

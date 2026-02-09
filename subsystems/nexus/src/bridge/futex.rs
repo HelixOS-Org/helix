@@ -9,8 +9,10 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Futex operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,6 +44,7 @@ pub enum FutexContention {
 
 /// Futex address entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FutexEntry {
     /// Futex address (userspace virtual)
     pub address: u64,
@@ -85,6 +88,7 @@ impl FutexEntry {
     }
 
     /// Record wait
+    #[inline]
     pub fn record_wait(&mut self, now_ns: u64) {
         self.waiters += 1;
         if self.waiters > self.peak_waiters {
@@ -95,6 +99,7 @@ impl FutexEntry {
     }
 
     /// Record wake
+    #[inline]
     pub fn record_wake(&mut self, count: u32, now_ns: u64) {
         let woken = count.min(self.waiters);
         self.waiters = self.waiters.saturating_sub(woken);
@@ -103,6 +108,7 @@ impl FutexEntry {
     }
 
     /// Record wait completion (with latency)
+    #[inline(always)]
     pub fn record_wait_complete(&mut self, wait_ns: u64) {
         self.total_wait_ns += wait_ns;
         self.avg_wait_ema_ns = 0.8 * self.avg_wait_ema_ns + 0.2 * wait_ns as f64;
@@ -121,17 +127,19 @@ impl FutexEntry {
                 } else {
                     FutexContention::High
                 }
-            }
+            },
         }
     }
 
     /// Should spin instead of sleep?
+    #[inline(always)]
     pub fn should_spin(&self) -> bool {
         // Spin if avg wait is very short (<1µs) and low contention
         self.avg_wait_ema_ns < 1000.0 && self.waiters < 3
     }
 
     /// Wakeup efficiency (wakes / waits)
+    #[inline]
     pub fn wakeup_efficiency(&self) -> f64 {
         if self.total_waits == 0 {
             return 1.0;
@@ -153,6 +161,7 @@ pub struct FutexDeadlockHint {
 
 /// Futex proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeFutexStats {
     pub tracked_futexes: usize,
     pub total_waiters: u32,
@@ -164,11 +173,12 @@ pub struct BridgeFutexStats {
 }
 
 /// Bridge futex proxy
+#[repr(align(64))]
 pub struct BridgeFutexProxy {
     /// Tracked futexes (address -> entry)
     futexes: BTreeMap<u64, FutexEntry>,
     /// Wait chains (pid -> futex address being waited on)
-    wait_chains: BTreeMap<u64, u64>,
+    wait_chains: LinearMap<u64, 64>,
     /// Stats
     stats: BridgeFutexStats,
 }
@@ -177,14 +187,17 @@ impl BridgeFutexProxy {
     pub fn new() -> Self {
         Self {
             futexes: BTreeMap::new(),
-            wait_chains: BTreeMap::new(),
+            wait_chains: LinearMap::new(),
             stats: BridgeFutexStats::default(),
         }
     }
 
     /// Record futex wait
+    #[inline]
     pub fn record_wait(&mut self, address: u64, pid: u64, now_ns: u64) {
-        let entry = self.futexes.entry(address)
+        let entry = self
+            .futexes
+            .entry(address)
             .or_insert_with(|| FutexEntry::new(address));
         entry.record_wait(now_ns);
         self.wait_chains.insert(pid, address);
@@ -192,25 +205,31 @@ impl BridgeFutexProxy {
     }
 
     /// Record futex wake
+    #[inline]
     pub fn record_wake(&mut self, address: u64, count: u32, now_ns: u64) {
         if let Some(entry) = self.futexes.get_mut(&address) {
             entry.record_wake(count, now_ns);
         }
         // Clean up wait chains for woken PIDs
-        self.wait_chains.retain(|_, addr| *addr != address || count == 0);
+        self.wait_chains
+            .retain(|_, addr| *addr != address || count == 0);
         self.update_stats();
     }
 
     /// Get spin recommendation
+    #[inline]
     pub fn should_spin(&self, address: u64) -> bool {
-        self.futexes.get(&address)
+        self.futexes
+            .get(&address)
             .map(|e| e.should_spin())
             .unwrap_or(false)
     }
 
     /// Get contention level
+    #[inline]
     pub fn contention(&self, address: u64) -> FutexContention {
-        self.futexes.get(&address)
+        self.futexes
+            .get(&address)
             .map(|e| e.contention())
             .unwrap_or(FutexContention::None)
     }
@@ -223,7 +242,7 @@ impl BridgeFutexProxy {
             if let Some(entry) = self.futexes.get(&addr) {
                 if let Some(owner) = entry.owner_pid {
                     if owner != pid {
-                        if let Some(&owner_waiting_on) = self.wait_chains.get(&owner) {
+                        if let Some(&owner_waiting_on) = self.wait_chains.get(owner) {
                             // Owner is also waiting - potential deadlock
                             if let Some(other_entry) = self.futexes.get(&owner_waiting_on) {
                                 if other_entry.owner_pid == Some(pid) {
@@ -243,8 +262,11 @@ impl BridgeFutexProxy {
     }
 
     /// Hot futexes (most contended)
+    #[inline]
     pub fn hot_futexes(&self, n: usize) -> Vec<(u64, u32)> {
-        let mut entries: Vec<(u64, u32)> = self.futexes.iter()
+        let mut entries: Vec<(u64, u32)> = self
+            .futexes
+            .iter()
             .map(|(&addr, e)| (addr, e.waiters))
             .collect();
         entries.sort_by(|a, b| b.1.cmp(&a.1));
@@ -255,21 +277,34 @@ impl BridgeFutexProxy {
     fn update_stats(&mut self) {
         self.stats.tracked_futexes = self.futexes.len();
         self.stats.total_waiters = self.futexes.values().map(|e| e.waiters).sum();
-        self.stats.high_contention = self.futexes.values()
-            .filter(|e| matches!(e.contention(), FutexContention::High | FutexContention::Convoy))
+        self.stats.high_contention = self
+            .futexes
+            .values()
+            .filter(|e| {
+                matches!(
+                    e.contention(),
+                    FutexContention::High | FutexContention::Convoy
+                )
+            })
             .count();
-        self.stats.convoy_detected = self.futexes.values()
+        self.stats.convoy_detected = self
+            .futexes
+            .values()
             .filter(|e| matches!(e.contention(), FutexContention::Convoy))
             .count();
         if !self.futexes.is_empty() {
-            self.stats.avg_wait_ns = self.futexes.values()
+            self.stats.avg_wait_ns = self
+                .futexes
+                .values()
                 .map(|e| e.avg_wait_ema_ns)
-                .sum::<f64>() / self.futexes.len() as f64;
+                .sum::<f64>()
+                / self.futexes.len() as f64;
         }
         self.stats.total_waits = self.futexes.values().map(|e| e.total_waits).sum();
         self.stats.total_wakes = self.futexes.values().map(|e| e.total_wakes).sum();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeFutexStats {
         &self.stats
     }
@@ -310,6 +345,7 @@ pub enum WaiterPriority {
 }
 
 impl WaiterPriority {
+    #[inline]
     pub fn as_value(&self) -> u32 {
         match self {
             Self::Realtime(p) => *p as u32,
@@ -344,16 +380,19 @@ impl FutexWaiter {
         }
     }
 
+    #[inline(always)]
     pub fn with_bitset(mut self, bitset: u32) -> Self {
         self.bitset = bitset;
         self
     }
 
+    #[inline(always)]
     pub fn with_deadline(mut self, deadline_ns: u64) -> Self {
         self.deadline_ns = Some(deadline_ns);
         self
     }
 
+    #[inline]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         if let Some(deadline) = self.deadline_ns {
             now_ns >= deadline
@@ -362,6 +401,7 @@ impl FutexWaiter {
         }
     }
 
+    #[inline(always)]
     pub fn wait_duration_ns(&self, now_ns: u64) -> u64 {
         now_ns.saturating_sub(self.enqueue_ns)
     }
@@ -371,7 +411,7 @@ impl FutexWaiter {
 #[derive(Debug)]
 pub struct FutexBucket {
     pub address: u64,
-    pub waiters: Vec<FutexWaiter>,
+    pub waiters: VecDeque<FutexWaiter>,
     pub pi_owner: Option<u64>,
     total_waits: u64,
     total_wakes: u64,
@@ -383,7 +423,7 @@ impl FutexBucket {
     pub fn new(address: u64) -> Self {
         Self {
             address,
-            waiters: Vec::new(),
+            waiters: VecDeque::new(),
             pi_owner: None,
             total_waits: 0,
             total_wakes: 0,
@@ -392,24 +432,29 @@ impl FutexBucket {
         }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, waiter: FutexWaiter) {
         self.total_waits += 1;
-        self.waiters.push(waiter);
+        self.waiters.push_back(waiter);
         if self.waiters.len() > self.max_waiters {
             self.max_waiters = self.waiters.len();
         }
         // Sort by priority (lower value = higher priority)
-        self.waiters.sort_by_key(|w| w.priority.as_value());
+        self.waiters
+            .make_contiguous()
+            .sort_by_key(|w| w.priority.as_value());
     }
 
+    #[inline]
     pub fn wake_one(&mut self) -> Option<FutexWaiter> {
         if self.waiters.is_empty() {
             return None;
         }
         self.total_wakes += 1;
-        Some(self.waiters.remove(0))
+        self.waiters.pop_front()
     }
 
+    #[inline]
     pub fn wake_n(&mut self, n: usize) -> Vec<FutexWaiter> {
         let count = n.min(self.waiters.len());
         let woken: Vec<FutexWaiter> = self.waiters.drain(..count).collect();
@@ -422,7 +467,7 @@ impl FutexBucket {
         let mut i = 0;
         while i < self.waiters.len() && woken.len() < max {
             if self.waiters[i].bitset & bitset != 0 {
-                woken.push(self.waiters.remove(i));
+                woken.push(self.waiters.remove(i).unwrap());
             } else {
                 i += 1;
             }
@@ -436,7 +481,7 @@ impl FutexBucket {
         let mut i = 0;
         while i < self.waiters.len() {
             if self.waiters[i].is_expired(now_ns) {
-                expired.push(self.waiters.remove(i));
+                expired.push(self.waiters.remove(i).unwrap());
             } else {
                 i += 1;
             }
@@ -445,10 +490,12 @@ impl FutexBucket {
         expired
     }
 
+    #[inline(always)]
     pub fn waiter_count(&self) -> usize {
         self.waiters.len()
     }
 
+    #[inline]
     pub fn contention_score(&self) -> f64 {
         if self.total_waits == 0 {
             return 0.0;
@@ -477,6 +524,7 @@ pub struct WaitvEntry {
 
 /// Futex v2 stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FutexV2Stats {
     pub total_waits: u64,
     pub total_wakes: u64,
@@ -489,6 +537,7 @@ pub struct FutexV2Stats {
 }
 
 /// Main bridge futex v2 manager
+#[repr(align(64))]
 pub struct BridgeFutexV2 {
     buckets: BTreeMap<u64, FutexBucket>,
     pi_chains: Vec<PiChainEntry>,
@@ -537,17 +586,15 @@ impl BridgeFutexV2 {
         self.buckets.get_mut(&key).unwrap()
     }
 
-    pub fn futex_wait(
-        &mut self,
-        addr: u64,
-        waiter: FutexWaiter,
-    ) -> bool {
+    #[inline]
+    pub fn futex_wait(&mut self, addr: u64, waiter: FutexWaiter) -> bool {
         let bucket = self.get_or_create_bucket(addr);
         bucket.enqueue(waiter);
         self.stats.total_waits += 1;
         true
     }
 
+    #[inline]
     pub fn futex_wake(&mut self, addr: u64, count: usize) -> Vec<FutexWaiter> {
         let key = self.hash_addr(addr);
         if let Some(bucket) = self.buckets.get_mut(&key) {
@@ -559,6 +606,7 @@ impl BridgeFutexV2 {
         }
     }
 
+    #[inline]
     pub fn futex_wake_bitset(&mut self, addr: u64, bitset: u32, max: usize) -> Vec<FutexWaiter> {
         let key = self.hash_addr(addr);
         if let Some(bucket) = self.buckets.get_mut(&key) {
@@ -619,7 +667,11 @@ impl BridgeFutexV2 {
                 futex_addr: addr,
             };
             self.pi_chains.push(entry);
-            let depth = self.pi_chains.iter().filter(|c| c.futex_addr == addr).count() as u32;
+            let depth = self
+                .pi_chains
+                .iter()
+                .filter(|c| c.futex_addr == addr)
+                .count() as u32;
             if depth > self.stats.pi_chains_max_depth {
                 self.stats.pi_chains_max_depth = depth;
             }
@@ -643,7 +695,8 @@ impl BridgeFutexV2 {
                 bucket.pi_owner = None;
             }
             // Clean up PI chains
-            self.pi_chains.retain(|c| c.futex_addr != addr || c.holder_tid != tid);
+            self.pi_chains
+                .retain(|c| c.futex_addr != addr || c.holder_tid != tid);
             self.stats.total_wakes += 1;
             next
         } else {
@@ -651,6 +704,7 @@ impl BridgeFutexV2 {
         }
     }
 
+    #[inline]
     pub fn futex_waitv(&mut self, entries: &[WaitvEntry], waiter: FutexWaiter) -> usize {
         let mut enqueued = 0;
         for entry in entries {
@@ -663,6 +717,7 @@ impl BridgeFutexV2 {
         enqueued
     }
 
+    #[inline]
     pub fn expire_all(&mut self, now_ns: u64) -> Vec<FutexWaiter> {
         let mut all_expired = Vec::new();
         for bucket in self.buckets.values_mut() {
@@ -673,8 +728,10 @@ impl BridgeFutexV2 {
         all_expired
     }
 
+    #[inline]
     pub fn contention_hotspots(&self, top_n: usize) -> Vec<(u64, f64)> {
-        let mut scores: Vec<(u64, f64)> = self.buckets
+        let mut scores: Vec<(u64, f64)> = self
+            .buckets
             .iter()
             .map(|(k, b)| (*k, b.contention_score()))
             .filter(|(_, s)| *s > 0.0)
@@ -684,6 +741,7 @@ impl BridgeFutexV2 {
         scores
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &FutexV2Stats {
         &self.stats
     }
@@ -761,7 +819,14 @@ impl FutexV3Instance {
         }
     }
 
-    pub fn add_waiter(&mut self, thread_id: u64, bitset: u32, priority: u32, tick: u64, timeout: u64) {
+    pub fn add_waiter(
+        &mut self,
+        thread_id: u64,
+        bitset: u32,
+        priority: u32,
+        tick: u64,
+        timeout: u64,
+    ) {
         let waiter = FutexV3Waiter {
             thread_id,
             state: FutexV3WaiterState::Waiting,
@@ -789,7 +854,12 @@ impl FutexV3Instance {
         woken
     }
 
-    pub fn requeue(&mut self, target: &mut FutexV3Instance, wake_count: usize, requeue_count: usize) -> (u64, u64) {
+    pub fn requeue(
+        &mut self,
+        target: &mut FutexV3Instance,
+        wake_count: usize,
+        requeue_count: usize,
+    ) -> (u64, u64) {
         let mut woken = 0u64;
         let mut requeued = 0u64;
         let mut to_requeue = Vec::new();
@@ -813,17 +883,23 @@ impl FutexV3Instance {
             target.waiters.push(w);
         }
 
-        self.waiters.retain(|w| w.state == FutexV3WaiterState::Waiting);
+        self.waiters
+            .retain(|w| w.state == FutexV3WaiterState::Waiting);
         (woken, requeued)
     }
 
+    #[inline(always)]
     pub fn waiting_count(&self) -> usize {
-        self.waiters.iter().filter(|w| w.state == FutexV3WaiterState::Waiting).count()
+        self.waiters
+            .iter()
+            .filter(|w| w.state == FutexV3WaiterState::Waiting)
+            .count()
     }
 }
 
 /// Futex V3 bridge statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FutexV3Stats {
     pub total_waits: u64,
     pub total_wakes: u64,
@@ -836,6 +912,7 @@ pub struct FutexV3Stats {
 
 /// Main futex V3 bridge manager
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeFutexV3 {
     futexes: BTreeMap<u64, FutexV3Instance>,
     stats: FutexV3Stats,
@@ -857,16 +934,33 @@ impl BridgeFutexV3 {
         }
     }
 
+    #[inline]
     pub fn get_or_create(&mut self, addr: u64, value: u32, pid: u64) -> &mut FutexV3Instance {
         if !self.futexes.contains_key(&addr) {
-            let key = FutexV3Key { address: addr, offset: 0, is_shared: false, owner_pid: pid };
+            let key = FutexV3Key {
+                address: addr,
+                offset: 0,
+                is_shared: false,
+                owner_pid: pid,
+            };
             self.futexes.insert(addr, FutexV3Instance::new(key, value));
             self.stats.active_futexes += 1;
         }
         self.futexes.get_mut(&addr).unwrap()
     }
 
-    pub fn wait(&mut self, addr: u64, expected: u32, tid: u64, bitset: u32, priority: u32, tick: u64, timeout: u64, pid: u64) -> bool {
+    #[inline]
+    pub fn wait(
+        &mut self,
+        addr: u64,
+        expected: u32,
+        tid: u64,
+        bitset: u32,
+        priority: u32,
+        tick: u64,
+        timeout: u64,
+        pid: u64,
+    ) -> bool {
         let futex = self.get_or_create(addr, expected, pid);
         if futex.value != expected {
             return false;
@@ -876,6 +970,7 @@ impl BridgeFutexV3 {
         true
     }
 
+    #[inline]
     pub fn wake(&mut self, addr: u64, count: usize, bitset: u32) -> u64 {
         if let Some(futex) = self.futexes.get_mut(&addr) {
             let woken = futex.wake(count, bitset);
@@ -886,6 +981,7 @@ impl BridgeFutexV3 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &FutexV3Stats {
         &self.stats
     }

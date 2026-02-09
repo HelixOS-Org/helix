@@ -148,6 +148,7 @@ pub struct ConstraintDef {
 
 impl ConstraintDef {
     /// Check if value satisfies constraint
+    #[inline]
     pub fn satisfied(&self, value: f64) -> bool {
         match self.constraint_type {
             ConstraintType::LessEqual => value <= self.bound,
@@ -243,6 +244,7 @@ impl ParetoFront {
     }
 
     /// Add solution, maintaining non-dominated set
+    #[inline]
     pub fn add(&mut self, solution: OptSolution) {
         // Remove dominated solutions
         self.solutions.retain(|s| !solution.dominates(s));
@@ -254,11 +256,13 @@ impl ParetoFront {
     }
 
     /// Size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.solutions.len()
     }
 
     /// Best by weighted score
+    #[inline]
     pub fn best_weighted(&self) -> Option<&OptSolution> {
         self.solutions
             .iter()
@@ -272,6 +276,7 @@ impl ParetoFront {
 
 /// Optimization stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticOptimizationStats {
     /// Objectives defined
     pub objectives: usize,
@@ -316,18 +321,21 @@ impl HolisticOptimizationEngine {
     }
 
     /// Add objective
+    #[inline(always)]
     pub fn add_objective(&mut self, objective: ObjectiveDef) {
         self.objectives.push(objective);
         self.stats.objectives = self.objectives.len();
     }
 
     /// Add constraint
+    #[inline(always)]
     pub fn add_constraint(&mut self, constraint: ConstraintDef) {
         self.constraints.push(constraint);
         self.stats.constraints = self.constraints.len();
     }
 
     /// Update objective's current value
+    #[inline]
     pub fn update_objective(&mut self, obj: OptimizationObjective, value: f64) {
         for o in &mut self.objectives {
             if o.objective == obj {
@@ -429,6 +437,7 @@ impl HolisticOptimizationEngine {
     }
 
     /// Current objectives satisfaction
+    #[inline]
     pub fn satisfaction_report(&self) -> Vec<(OptimizationObjective, f64)> {
         self.objectives
             .iter()
@@ -437,16 +446,19 @@ impl HolisticOptimizationEngine {
     }
 
     /// Pareto front
+    #[inline(always)]
     pub fn pareto_front(&self) -> &ParetoFront {
         &self.pareto
     }
 
     /// Best solution
+    #[inline(always)]
     pub fn best(&self) -> Option<&OptSolution> {
         self.best_solution.as_ref()
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticOptimizationStats {
         &self.stats
     }

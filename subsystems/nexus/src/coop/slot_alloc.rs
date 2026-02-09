@@ -62,16 +62,20 @@ impl TimeSlot {
         }
     }
 
+    #[inline(always)]
     pub fn usable_ns(&self) -> u64 { self.duration_ns.saturating_sub(self.guard_ns) }
 
+    #[inline]
     pub fn assign(&mut self, node: u64, priority: SlotPriority) {
         self.owner_node = Some(node);
         self.priority = priority;
         self.state = SlotState::Assigned;
     }
 
+    #[inline(always)]
     pub fn activate(&mut self) { self.state = SlotState::Active; }
 
+    #[inline]
     pub fn release(&mut self) {
         self.owner_node = None;
         self.state = SlotState::Free;
@@ -79,16 +83,19 @@ impl TimeSlot {
         self.borrowed_to = None;
     }
 
+    #[inline(always)]
     pub fn lend_to(&mut self, borrower: u64) {
         self.borrowed_to = Some(borrower);
         self.state = SlotState::Borrowed;
     }
 
+    #[inline(always)]
     pub fn borrow_from(&mut self, lender: u64) {
         self.borrowed_from = Some(lender);
         self.state = SlotState::Borrowed;
     }
 
+    #[inline]
     pub fn record_usage(&mut self, used: u64) {
         self.used_ns += used;
         let usable = self.usable_ns();
@@ -96,6 +103,7 @@ impl TimeSlot {
         self.utilization = if usable == 0 { 0.0 } else { used as f64 / usable as f64 };
     }
 
+    #[inline(always)]
     pub fn end_ns(&self) -> u64 { self.offset_ns + self.duration_ns }
 }
 
@@ -115,6 +123,7 @@ impl SlotFrame {
         Self { id, period_ns, slots: Vec::new(), total_slots: num_slots, assigned_slots: 0, epoch: 0 }
     }
 
+    #[inline(always)]
     pub fn slot_duration(&self) -> u64 {
         if self.total_slots == 0 { return 0; }
         self.period_ns / self.total_slots as u64
@@ -143,6 +152,7 @@ impl NodeAllocation {
         }
     }
 
+    #[inline(always)]
     pub fn fair_share(&self, total_weight: u32, total_slots: u32) -> u32 {
         if total_weight == 0 { return 0; }
         ((self.weight as u64 * total_slots as u64) / total_weight as u64) as u32
@@ -151,6 +161,7 @@ impl NodeAllocation {
 
 /// Slot allocator stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SlotAllocStats {
     pub total_frames: usize,
     pub total_slots: usize,
@@ -191,10 +202,12 @@ impl CoopSlotAllocator {
         frame_id
     }
 
+    #[inline(always)]
     pub fn add_node(&mut self, node_id: u64, weight: u32) {
         self.nodes.entry(node_id).or_insert_with(|| NodeAllocation::new(node_id, weight));
     }
 
+    #[inline]
     pub fn assign_slot(&mut self, slot_id: u64, node_id: u64, priority: SlotPriority) -> bool {
         if let Some(slot) = self.slots.get_mut(&slot_id) {
             if slot.state != SlotState::Free { return false; }
@@ -205,6 +218,7 @@ impl CoopSlotAllocator {
         false
     }
 
+    #[inline]
     pub fn release_slot(&mut self, slot_id: u64) {
         if let Some(slot) = self.slots.get_mut(&slot_id) {
             let owner = slot.owner_node;
@@ -215,6 +229,7 @@ impl CoopSlotAllocator {
         }
     }
 
+    #[inline]
     pub fn lend_slot(&mut self, slot_id: u64, borrower: u64) -> bool {
         if let Some(slot) = self.slots.get_mut(&slot_id) {
             if slot.state != SlotState::Assigned { return false; }
@@ -227,6 +242,7 @@ impl CoopSlotAllocator {
         false
     }
 
+    #[inline(always)]
     pub fn record_usage(&mut self, slot_id: u64, used_ns: u64) {
         if let Some(slot) = self.slots.get_mut(&slot_id) { slot.record_usage(used_ns); }
     }
@@ -264,7 +280,10 @@ impl CoopSlotAllocator {
         self.stats.total_wasted_ns = self.slots.values().map(|s| s.wasted_ns).sum();
     }
 
+    #[inline(always)]
     pub fn slot(&self, id: u64) -> Option<&TimeSlot> { self.slots.get(&id) }
+    #[inline(always)]
     pub fn frame(&self, id: u64) -> Option<&SlotFrame> { self.frames.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &SlotAllocStats { &self.stats }
 }

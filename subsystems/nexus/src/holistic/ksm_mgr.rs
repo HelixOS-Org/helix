@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -41,6 +42,7 @@ pub struct StableNode {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KsmMgrStats {
     pub total_pages: u32,
     pub stable_nodes: u32,
@@ -62,6 +64,7 @@ pub struct HolisticKsmMgr {
 impl HolisticKsmMgr {
     pub fn new(page_size: u64) -> Self { Self { pages: Vec::new(), stable_tree: BTreeMap::new(), full_scans: 0, page_size } }
 
+    #[inline(always)]
     pub fn register_page(&mut self, pfn: u64, hash: u64) { self.pages.push(KsmPage::new(pfn, hash)); }
 
     pub fn scan(&mut self) {
@@ -77,7 +80,7 @@ impl HolisticKsmMgr {
             }
         }
         // promote unstable to stable
-        let mut hash_counts: BTreeMap<u64, u32> = BTreeMap::new();
+        let mut hash_counts: LinearMap<u32, 64> = BTreeMap::new();
         for p in self.pages.iter().filter(|p| p.state == KsmPageState::Unstable) {
             *hash_counts.entry(p.hash).or_insert(0) += 1;
         }
@@ -90,6 +93,7 @@ impl HolisticKsmMgr {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> KsmMgrStats {
         let sharing: u64 = self.stable_tree.values().map(|n| n.merged_count as u64).sum();
         let shared = self.stable_tree.len() as u64;

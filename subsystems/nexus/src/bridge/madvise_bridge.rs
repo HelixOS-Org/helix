@@ -10,16 +10,19 @@ pub enum BridgeMadviseAdvice { Normal, Random, Sequential, WillNeed, DontNeed, F
 
 /// Madvise record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeMadviseRecord { pub addr: u64, pub length: u64, pub advice: BridgeMadviseAdvice }
 
 /// Madvise stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeMadviseStats {
     pub total_ops: u64, pub dontneed: u64, pub willneed: u64, pub hugepage_hints: u64,
     pub mergeable_hints: u64, pub total_affected_bytes: u64,
 }
 
 /// Manager for madvise bridge
+#[repr(align(64))]
 pub struct BridgeMadviseManager {
     history: Vec<BridgeMadviseRecord>,
     stats: BridgeMadviseStats,
@@ -43,5 +46,6 @@ impl BridgeMadviseManager {
         self.history.push(BridgeMadviseRecord { addr, length, advice });
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeMadviseStats { &self.stats }
 }

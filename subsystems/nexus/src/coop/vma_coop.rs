@@ -9,6 +9,7 @@
 //! - Memory layout templates for process families
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -32,12 +33,15 @@ pub struct CoopVma {
 }
 
 impl CoopVma {
+    #[inline(always)]
     pub fn size(&self) -> u64 {
         self.end.saturating_sub(self.start)
     }
+    #[inline(always)]
     pub fn pages(&self) -> u64 {
         self.size() / 4096
     }
+    #[inline(always)]
     pub fn is_shared(&self) -> bool {
         !self.shared_with.is_empty()
     }
@@ -52,6 +56,7 @@ pub struct LayoutTemplate {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct VmaCoopStats {
     pub shared_vmas: u64,
     pub inheritance_copies: u64,
@@ -66,7 +71,7 @@ pub struct VmaCoopManager {
     /// template_hash → LayoutTemplate
     templates: BTreeMap<u64, LayoutTemplate>,
     /// pid → group_id mapping
-    pid_groups: BTreeMap<u64, u64>,
+    pid_groups: LinearMap<u64, 64>,
     stats: VmaCoopStats,
 }
 
@@ -75,11 +80,12 @@ impl VmaCoopManager {
         Self {
             group_vmas: BTreeMap::new(),
             templates: BTreeMap::new(),
-            pid_groups: BTreeMap::new(),
+            pid_groups: LinearMap::new(),
             stats: VmaCoopStats::default(),
         }
     }
 
+    #[inline]
     pub fn create_group(&mut self, group_id: u64, pids: &[u64]) {
         self.group_vmas.insert(group_id, Vec::new());
         for &pid in pids {
@@ -87,6 +93,7 @@ impl VmaCoopManager {
         }
     }
 
+    #[inline]
     pub fn add_vma(&mut self, group_id: u64, vma: CoopVma) {
         if vma.is_shared() {
             self.stats.shared_vmas += 1;
@@ -122,7 +129,7 @@ impl VmaCoopManager {
         parent_pid: u64,
         child_pid: u64,
     ) -> Vec<(u64, u64, VmaInheritance)> {
-        let group_id = match self.pid_groups.get(&parent_pid) {
+        let group_id = match self.pid_groups.get(parent_pid) {
             Some(g) => *g,
             None => return Vec::new(),
         };
@@ -156,12 +163,14 @@ impl VmaCoopManager {
     }
 
     /// Register a layout template learned from a process family
+    #[inline(always)]
     pub fn register_template(&mut self, name_hash: u64, template: LayoutTemplate) {
         self.templates.insert(name_hash, template);
         self.stats.layout_templates += 1;
     }
 
     /// Apply a known template to a new process
+    #[inline]
     pub fn apply_template(&mut self, name_hash: u64) -> Option<&LayoutTemplate> {
         if let Some(t) = self.templates.get_mut(&name_hash) {
             t.usage_count += 1;
@@ -171,6 +180,7 @@ impl VmaCoopManager {
         }
     }
 
+    #[inline]
     pub fn group_vmas(&self, group_id: u64) -> &[CoopVma] {
         self.group_vmas
             .get(&group_id)
@@ -178,6 +188,7 @@ impl VmaCoopManager {
             .unwrap_or(&[])
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &VmaCoopStats {
         &self.stats
     }

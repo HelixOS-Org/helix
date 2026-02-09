@@ -73,27 +73,32 @@ impl RateLimit {
     }
 
     /// With burst allowance
+    #[inline(always)]
     pub fn with_burst(mut self, burst: u32) -> Self {
         self.burst = burst;
         self
     }
 
     /// Is at limit?
+    #[inline(always)]
     pub fn is_at_limit(&self) -> bool {
         self.current >= self.max_ops + self.burst
     }
 
     /// Remaining capacity
+    #[inline(always)]
     pub fn remaining(&self) -> u32 {
         (self.max_ops + self.burst).saturating_sub(self.current)
     }
 
     /// Record an operation
+    #[inline(always)]
     pub fn record(&mut self) {
         self.current = self.current.saturating_add(1);
     }
 
     /// Reset counter (on period rollover)
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.current = 0;
     }
@@ -152,16 +157,19 @@ pub enum TransactionState {
 
 impl TransactionState {
     /// Is transaction still active?
+    #[inline(always)]
     pub const fn is_active(&self) -> bool {
         matches!(self, Self::Active)
     }
 
     /// Is transaction completed (committed or rolled back)?
+    #[inline(always)]
     pub const fn is_completed(&self) -> bool {
         matches!(self, Self::Committed | Self::RolledBack)
     }
 
     /// Is transaction in terminal state?
+    #[inline(always)]
     pub const fn is_terminal(&self) -> bool {
         matches!(self, Self::Committed | Self::RolledBack | Self::Failed)
     }
@@ -207,23 +215,27 @@ pub struct AuditFilter {
 
 impl AuditFilter {
     /// Create empty filter (match all)
+    #[inline(always)]
     pub fn all() -> Self {
         Self::default()
     }
 
     /// Filter by time range
+    #[inline(always)]
     pub fn in_range(mut self, range: TimeRange) -> Self {
         self.time_range = Some(range);
         self
     }
 
     /// Filter by entry type
+    #[inline(always)]
     pub fn of_type(mut self, entry_type: AuditEntryType) -> Self {
         self.entry_types.push(entry_type);
         self
     }
 
     /// Limit results
+    #[inline(always)]
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
@@ -262,12 +274,14 @@ impl AuditEntry {
     }
 
     /// Add association
+    #[inline(always)]
     pub fn with_association(mut self, association: impl Into<String>) -> Self {
         self.associations.push(association.into());
         self
     }
 
     /// Add metadata
+    #[inline(always)]
     pub fn with_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.metadata.push((key.into(), value.into()));
         self
@@ -295,6 +309,7 @@ pub enum AuditEntryType {
 
 impl AuditEntryType {
     /// Get type name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Decision => "decision",

@@ -63,6 +63,7 @@ pub enum PrefetchHint {
 
 /// LLC partition for a process/group
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CachePartitionEntry {
     /// Owner PID (0 = group)
     pub owner: u64,
@@ -97,6 +98,7 @@ impl CachePartitionEntry {
     }
 
     /// Record access
+    #[inline]
     pub fn record_access(&mut self, hit: bool) {
         self.accesses += 1;
         if !hit {
@@ -109,6 +111,7 @@ impl CachePartitionEntry {
     }
 
     /// Partition share
+    #[inline]
     pub fn share(&self) -> f64 {
         if self.total_ways == 0 {
             return 0.0;
@@ -117,6 +120,7 @@ impl CachePartitionEntry {
     }
 
     /// Utility: miss rate improvement per additional way
+    #[inline]
     pub fn marginal_utility(&self) -> f64 {
         // Rough model: miss_rate ~ C / ways^alpha
         // Marginal = alpha * miss_rate / ways
@@ -168,6 +172,7 @@ impl PageClassifier {
     }
 
     /// Record access
+    #[inline]
     pub fn record_access(&mut self, pfn: u64, owner: u64, now: u64) {
         let entry = self.pages.entry(pfn).or_insert(PageClassification {
             pfn,
@@ -199,6 +204,7 @@ impl PageClassifier {
     }
 
     /// Get cold pages (eviction candidates)
+    #[inline]
     pub fn cold_pages(&self, limit: usize) -> Vec<u64> {
         let mut cold: Vec<&PageClassification> = self.pages.values()
             .filter(|p| matches!(p.temperature, PageTemp::Cold | PageTemp::Frozen))
@@ -208,6 +214,7 @@ impl PageClassifier {
     }
 
     /// Count by temperature
+    #[inline]
     pub fn temperature_distribution(&self) -> BTreeMap<u8, usize> {
         let mut dist = BTreeMap::new();
         for page in self.pages.values() {
@@ -223,6 +230,7 @@ impl PageClassifier {
 
 /// Cache manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticCacheManagerStats {
     /// Partitions
     pub partitions: usize,
@@ -237,6 +245,7 @@ pub struct HolisticCacheManagerStats {
 }
 
 /// Holistic cache manager
+#[repr(align(64))]
 pub struct HolisticCacheManager {
     /// Partitions
     partitions: BTreeMap<u64, CachePartitionEntry>,
@@ -262,12 +271,14 @@ impl HolisticCacheManager {
     }
 
     /// Create partition
+    #[inline(always)]
     pub fn create_partition(&mut self, owner: u64, ways: u32) {
         self.partitions.insert(owner, CachePartitionEntry::new(owner, ways, self.total_ways));
         self.update_stats();
     }
 
     /// Record cache access
+    #[inline]
     pub fn record_access(&mut self, owner: u64, pfn: u64, hit: bool, now: u64) {
         if let Some(part) = self.partitions.get_mut(&owner) {
             part.record_access(hit);
@@ -317,6 +328,7 @@ impl HolisticCacheManager {
     }
 
     /// Remove partition
+    #[inline(always)]
     pub fn remove_partition(&mut self, owner: u64) {
         self.partitions.remove(&owner);
         self.update_stats();
@@ -337,6 +349,7 @@ impl HolisticCacheManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCacheManagerStats {
         &self.stats
     }

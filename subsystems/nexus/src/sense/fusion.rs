@@ -180,6 +180,7 @@ impl Default for FusionConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FusionStats {
     /// Inputs received
     pub inputs_received: u64,
@@ -203,11 +204,13 @@ impl FusionEngine {
     }
 
     /// Register sensor
+    #[inline(always)]
     pub fn register_sensor(&mut self, sensor: SensorModel) {
         self.sensors.insert(sensor.sensor_id.clone(), sensor);
     }
 
     /// Add input
+    #[inline]
     pub fn add_input(&mut self, input: SensorInput) -> u64 {
         let id = input.id;
         self.inputs.insert(id, input);
@@ -324,7 +327,7 @@ impl FusionEngine {
         match &input.data {
             SensorData::Vector(v) => {
                 for (i, val) in v.iter().enumerate() {
-                    features.insert(format!("dim_{}", i), *val);
+                    features.insert(crate::fast::fast_hash::FastHasher::new().write_str("dim_").write_u64(i as u64).finish(), *val);
                 }
             }
 
@@ -464,11 +467,13 @@ impl FusionEngine {
     }
 
     /// Get perception
+    #[inline(always)]
     pub fn get_perception(&self, id: u64) -> Option<&FusedPerception> {
         self.perceptions.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &FusionStats {
         &self.stats
     }

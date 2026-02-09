@@ -51,6 +51,7 @@ pub struct DeadlineParams {
 }
 
 impl DeadlineParams {
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.period_ns == 0 {
             return 0.0;
@@ -59,6 +60,7 @@ impl DeadlineParams {
     }
 
     /// Density (runtime / deadline)
+    #[inline]
     pub fn density(&self) -> f64 {
         if self.deadline_ns == 0 {
             return 0.0;
@@ -69,6 +71,7 @@ impl DeadlineParams {
 
 /// Tracked deadline task state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DeadlineTaskState {
     pub params: DeadlineParams,
     pub absolute_deadline: u64,
@@ -101,6 +104,7 @@ impl DeadlineTaskState {
     }
 
     /// Miss ratio
+    #[inline]
     pub fn miss_ratio(&self) -> f64 {
         let total = self.deadlines_met + self.deadlines_missed;
         if total == 0 {
@@ -110,6 +114,7 @@ impl DeadlineTaskState {
     }
 
     /// Consume runtime
+    #[inline]
     pub fn consume(&mut self, ns: u64) {
         if ns > self.remaining_runtime_ns {
             let overrun = ns - self.remaining_runtime_ns;
@@ -162,6 +167,7 @@ pub struct SlackInfo {
 
 /// Holistic Deadline Manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticDeadlineMgrStats {
     pub total_dl_tasks: usize,
     pub hard_rt_tasks: usize,
@@ -195,6 +201,7 @@ impl HolisticDeadlineMgr {
     }
 
     /// Total system utilization
+    #[inline(always)]
     pub fn total_utilization(&self) -> f64 {
         self.tasks.values().map(|t| t.params.utilization()).sum()
     }
@@ -225,6 +232,7 @@ impl HolisticDeadlineMgr {
     }
 
     /// Remove a DL task
+    #[inline]
     pub fn remove(&mut self, task_id: u64) -> bool {
         let removed = self.tasks.remove(&task_id).is_some();
         if removed {
@@ -234,6 +242,7 @@ impl HolisticDeadlineMgr {
     }
 
     /// Consume runtime for a task
+    #[inline]
     pub fn consume_runtime(&mut self, task_id: u64, ns: u64) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.consume(ns);
@@ -241,6 +250,7 @@ impl HolisticDeadlineMgr {
     }
 
     /// Advance period for a task
+    #[inline]
     pub fn tick_period(&mut self, task_id: u64, now: u64) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.new_period(now);
@@ -249,6 +259,7 @@ impl HolisticDeadlineMgr {
     }
 
     /// Get EDF ordering (earliest deadline first)
+    #[inline]
     pub fn edf_order(&self) -> Vec<u64> {
         let mut entries: Vec<(u64, u64)> = self
             .tasks
@@ -284,6 +295,7 @@ impl HolisticDeadlineMgr {
     }
 
     /// Get tasks that missed their deadline
+    #[inline]
     pub fn missed_tasks(&self) -> Vec<u64> {
         self.tasks
             .iter()
@@ -314,10 +326,12 @@ impl HolisticDeadlineMgr {
         self.stats.admissions_rejected = self.total_rejected;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticDeadlineMgrStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn task(&self, task_id: u64) -> Option<&DeadlineTaskState> {
         self.tasks.get(&task_id)
     }

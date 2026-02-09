@@ -8,6 +8,7 @@
 //! - Resource abuse prevention
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
@@ -86,6 +87,7 @@ pub enum ConstraintType {
 
 impl ConstraintType {
     /// Check if a value satisfies this constraint
+    #[inline]
     pub fn check(&self, value: u64) -> bool {
         match *self {
             Self::Equals(v) => value == v,
@@ -118,11 +120,13 @@ impl SecurityRule {
         }
     }
 
+    #[inline(always)]
     pub fn with_constraint(mut self, constraint: ArgConstraint) -> Self {
         self.arg_constraints.push(constraint);
         self
     }
 
+    #[inline(always)]
     pub fn with_priority(mut self, priority: u8) -> Self {
         self.priority = priority;
         self
@@ -218,6 +222,7 @@ impl ProcessRateState {
 }
 
 /// Rate limiter
+#[repr(align(64))]
 pub struct RateLimiter {
     /// Configuration
     config: RateLimitConfig,
@@ -242,6 +247,7 @@ impl RateLimiter {
     }
 
     /// Set a per-type rate limit
+    #[inline(always)]
     pub fn set_type_limit(&mut self, syscall_type: SyscallType, max_per_window: u64) {
         self.type_limits.insert(syscall_type as u8, max_per_window);
     }
@@ -299,11 +305,13 @@ impl RateLimiter {
     }
 
     /// Remove process state
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> (u64, u64) {
         (self.total_allowed, self.total_rate_limited)
     }
@@ -352,11 +360,12 @@ pub struct AnomalyEvent {
 }
 
 /// Syscall anomaly detector
+#[repr(align(64))]
 pub struct SyscallAnomalyDetector {
     /// Per-process normal behavior profiles
     profiles: BTreeMap<u64, SyscallBehaviorProfile>,
     /// Detected anomalies
-    anomalies: Vec<AnomalyEvent>,
+    anomalies: VecDeque<AnomalyEvent>,
     /// Max anomalies to store
     max_anomalies: usize,
     /// Detection sensitivity (0.0 = lenient, 1.0 = strict)
@@ -415,7 +424,7 @@ impl SyscallAnomalyDetector {
     pub fn new(sensitivity: f64) -> Self {
         Self {
             profiles: BTreeMap::new(),
-            anomalies: Vec::new(),
+            anomalies: VecDeque::new(),
             max_anomalies: 1024,
             sensitivity: sensitivity.clamp(0.0, 1.0),
         }
@@ -493,31 +502,35 @@ impl SyscallAnomalyDetector {
         // Store anomalies
         for event in &events {
             if self.anomalies.len() >= self.max_anomalies {
-                self.anomalies.remove(0);
+                self.anomalies.pop_front();
             }
-            self.anomalies.push(event.clone());
+            self.anomalies.push_back(event.clone());
         }
 
         events
     }
 
     /// Get recent anomalies for a process
+    #[inline(always)]
     pub fn anomalies_for(&self, pid: u64) -> Vec<&AnomalyEvent> {
         self.anomalies.iter().filter(|a| a.pid == pid).collect()
     }
 
     /// Get all recent anomalies
+    #[inline(always)]
     pub fn recent_anomalies(&self, count: usize) -> &[AnomalyEvent] {
         let start = self.anomalies.len().saturating_sub(count);
         &self.anomalies[start..]
     }
 
     /// Remove process profile
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
     }
 
     /// Total anomalies detected
+    #[inline(always)]
     pub fn total_anomalies(&self) -> usize {
         self.anomalies.len()
     }
@@ -556,6 +569,7 @@ impl SecurityEngine {
     }
 
     /// Add a security rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: SecurityRule) {
         self.rules.push(rule);
         self.rules.sort_by_key(|r| r.priority);
@@ -616,16 +630,19 @@ impl SecurityEngine {
     }
 
     /// Get the rate limiter
+    #[inline(always)]
     pub fn rate_limiter(&mut self) -> &mut RateLimiter {
         &mut self.rate_limiter
     }
 
     /// Get the anomaly detector
+    #[inline(always)]
     pub fn anomaly_detector(&mut self) -> &mut SyscallAnomalyDetector {
         &mut self.anomaly_detector
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> (u64, u64, u64) {
         (self.total_checks, self.total_blocks, self.total_alerts)
     }

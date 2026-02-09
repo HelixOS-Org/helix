@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -42,6 +43,7 @@ impl SplitLockEvent {
         Self { tid, addr, size, issue, ip, timestamp: now, bus_lock_cycles: 0 }
     }
 
+    #[inline]
     pub fn is_cacheline_split(&self) -> bool {
         let cl_start = self.addr & !63;
         let end = self.addr + self.size as u64;
@@ -51,29 +53,33 @@ impl SplitLockEvent {
 
 /// Per-thread tracking
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ThreadSplitLockState {
     pub tid: u64,
     pub events: u64,
     pub throttle_count: u64,
     pub last_event: u64,
-    pub hotspot_ips: BTreeMap<u64, u64>,
+    pub hotspot_ips: LinearMap<u64, 64>,
 }
 
 impl ThreadSplitLockState {
     pub fn new(tid: u64) -> Self {
-        Self { tid, events: 0, throttle_count: 0, last_event: 0, hotspot_ips: BTreeMap::new() }
+        Self { tid, events: 0, throttle_count: 0, last_event: 0, hotspot_ips: LinearMap::new() }
     }
 
+    #[inline]
     pub fn record(&mut self, ip: u64, now: u64) {
         self.events += 1;
         self.last_event = now;
-        *self.hotspot_ips.entry(ip).or_insert(0) += 1;
+        self.hotspot_ips.add(ip, 1);
     }
 
+    #[inline(always)]
     pub fn top_hotspot(&self) -> Option<(u64, u64)> {
         self.hotspot_ips.iter().max_by_key(|&(_, &count)| count).map(|(&ip, &count)| (ip, count))
     }
 
+    #[inline(always)]
     pub fn event_rate(&self, window_ns: u64, now: u64) -> f64 {
         if now.saturating_sub(self.last_event) > window_ns { return 0.0; }
         self.events as f64
@@ -90,15 +96,18 @@ pub struct SplitLockPolicy {
 }
 
 impl SplitLockPolicy {
+    #[inline(always)]
     pub fn default_policy() -> Self {
         Self { action: SplitLockAction::Throttle, threshold_per_sec: 100, throttle_ns: 1_000_000, exempt_tids: Vec::new() }
     }
 
+    #[inline(always)]
     pub fn is_exempt(&self, tid: u64) -> bool { self.exempt_tids.contains(&tid) }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SplitLockStats {
     pub total_events: u64,
     pub threads_affected: u32,
@@ -125,6 +134,7 @@ impl CoopSplitLock {
         }
     }
 
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: SplitLockPolicy) { self.policy = policy; }
 
     pub fn report(&mut self, event: SplitLockEvent) -> SplitLockAction {
@@ -153,6 +163,7 @@ impl CoopSplitLock {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> SplitLockStats {
         let total: u64 = self.threads.values().map(|t| t.events).sum();
         let throttled: u64 = self.threads.values().map(|t| t.throttle_count).sum();

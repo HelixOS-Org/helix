@@ -55,6 +55,7 @@ impl TelemetryRegistry {
     }
 
     /// Register time series
+    #[inline]
     pub fn register_series(&mut self, name: impl Into<String>, max_points: usize) {
         let name = name.into();
         self.series
@@ -62,12 +63,14 @@ impl TelemetryRegistry {
     }
 
     /// Register histogram
+    #[inline(always)]
     pub fn register_histogram(&mut self, name: impl Into<String>) {
         self.histograms
             .insert(name.into(), TelemetryHistogram::new());
     }
 
     /// Record to time series
+    #[inline]
     pub fn record(&mut self, name: &str, value: f64) {
         if !self.enabled.load(Ordering::Relaxed) {
             return;
@@ -80,6 +83,7 @@ impl TelemetryRegistry {
     }
 
     /// Observe histogram value
+    #[inline]
     pub fn observe(&mut self, name: &str, value: f64) {
         if !self.enabled.load(Ordering::Relaxed) {
             return;
@@ -92,6 +96,7 @@ impl TelemetryRegistry {
     }
 
     /// Increment counter
+    #[inline]
     pub fn inc_counter(&mut self, name: &str) {
         if !self.enabled.load(Ordering::Relaxed) {
             return;
@@ -102,6 +107,7 @@ impl TelemetryRegistry {
     }
 
     /// Add to counter
+    #[inline]
     pub fn add_counter(&mut self, name: &str, amount: u64) {
         if !self.enabled.load(Ordering::Relaxed) {
             return;
@@ -112,6 +118,7 @@ impl TelemetryRegistry {
     }
 
     /// Set gauge
+    #[inline]
     pub fn set_gauge(&mut self, name: &str, value: f64) {
         if !self.enabled.load(Ordering::Relaxed) {
             return;
@@ -122,26 +129,31 @@ impl TelemetryRegistry {
     }
 
     /// Get time series
+    #[inline(always)]
     pub fn get_series(&self, name: &str) -> Option<&TimeSeries> {
         self.series.get(name)
     }
 
     /// Get histogram
+    #[inline(always)]
     pub fn get_histogram(&self, name: &str) -> Option<&TelemetryHistogram> {
         self.histograms.get(name)
     }
 
     /// Get counter
+    #[inline(always)]
     pub fn get_counter(&self, name: &str) -> Option<u64> {
         self.counters.get(name).copied()
     }
 
     /// Get gauge
+    #[inline(always)]
     pub fn get_gauge(&self, name: &str) -> Option<f64> {
         self.gauges.get(name).copied()
     }
 
     /// Add alert rule
+    #[inline(always)]
     pub fn add_alert_rule(&mut self, rule: AlertRule) {
         self.alert_rules.push(rule);
     }
@@ -204,6 +216,7 @@ impl TelemetryRegistry {
     }
 
     /// Get firing alerts
+    #[inline]
     pub fn firing_alerts(&self) -> Vec<&Alert> {
         self.active_alerts
             .iter()
@@ -212,16 +225,19 @@ impl TelemetryRegistry {
     }
 
     /// Get all alerts
+    #[inline(always)]
     pub fn all_alerts(&self) -> &[Alert] {
         &self.active_alerts
     }
 
     /// Enable registry
+    #[inline(always)]
     pub fn enable(&self) {
         self.enabled.store(true, Ordering::SeqCst);
     }
 
     /// Disable registry
+    #[inline(always)]
     pub fn disable(&self) {
         self.enabled.store(false, Ordering::SeqCst);
     }
@@ -296,6 +312,7 @@ impl Default for TelemetryRegistry {
 
 /// Telemetry statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TelemetryStats {
     /// Number of time series
     pub series_count: usize,

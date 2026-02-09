@@ -42,6 +42,7 @@ impl RateMeter {
     }
 
     /// Record an event
+    #[inline(always)]
     pub fn mark(&self) {
         let index = self.current_index.load(Ordering::Relaxed) as usize % self.window_size;
         self.samples[index].fetch_add(1, Ordering::Relaxed);
@@ -85,6 +86,7 @@ impl RateMeter {
     }
 
     /// Get total events in window
+    #[inline(always)]
     pub fn total(&self) -> u64 {
         self.samples.iter().map(|s| s.load(Ordering::Relaxed)).sum()
     }

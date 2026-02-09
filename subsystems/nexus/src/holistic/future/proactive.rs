@@ -12,6 +12,8 @@
 
 extern crate alloc;
 
+use crate::fast::fast_hash::FastHasher;
+
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -157,6 +159,7 @@ pub struct SavingsEntry {
 
 /// Aggregate proactive optimization statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ProactiveStats {
     pub total_actions: u64,
     pub total_prewarms: u64,
@@ -216,6 +219,7 @@ impl HolisticProactive {
     }
 
     /// Execute a global preemptive action across subsystems
+    #[inline]
     pub fn global_preemptive_action(
         &mut self,
         domain: ActionDomain,
@@ -321,7 +325,7 @@ impl HolisticProactive {
         self.total_balances += 1;
 
         let improvement = (load_fraction * 0.8).clamp(0.0, 1.0);
-        let id = fnv1a_hash(format!("bal-{:?}-{:?}-{}", from, to, self.tick).as_bytes())
+        let id = FastHasher::new().feed_str("bal-").feed_u64(from as u64).feed_str("-").feed_u64(to as u64).feed_str("-").feed_u64(self.tick as u64).finish()
             ^ xorshift64(&mut self.rng_state);
 
         let record = BalanceRecord {
@@ -352,7 +356,7 @@ impl HolisticProactive {
         let frag_after = (fragmentation_level * (1.0 - 0.7)).clamp(0.0, 1.0);
         let contiguous = pages_to_move * 3 / 4;
 
-        let id = fnv1a_hash(format!("defrag-{:?}-{}", domain, self.tick).as_bytes())
+        let id = FastHasher::new().feed_str("defrag-").feed_u64(domain as u64).feed_str("-").feed_u64(self.tick as u64).finish()
             ^ xorshift64(&mut self.rng_state);
 
         let record = DefragRecord {
@@ -393,7 +397,7 @@ impl HolisticProactive {
         let mitigation = actions_taken.len() as f32 * 0.2;
         let risk_after = (current_risk - mitigation).clamp(0.0, 1.0);
 
-        let id = fnv1a_hash(format!("cascade-{:?}-{}", trigger_domain, self.tick).as_bytes())
+        let id = FastHasher::new().feed_str("cascade-").feed_u64(trigger_domain as u64).feed_str("-").feed_u64(self.tick as u64).finish()
             ^ xorshift64(&mut self.rng_state);
 
         let record = CascadePreventionRecord {
@@ -440,6 +444,7 @@ impl HolisticProactive {
     }
 
     /// Record the outcome of a previously-executed proactive action
+    #[inline]
     pub fn record_outcome(&mut self, action_id: u64, outcome: f32, savings: SavingsEntry) {
         if let Some(action) = self.actions.get_mut(&action_id) {
             action.outcome_score = outcome.clamp(0.0, 1.0);
@@ -456,6 +461,7 @@ impl HolisticProactive {
     }
 
     /// Gather aggregate statistics
+    #[inline(always)]
     pub fn stats(&self) -> ProactiveStats {
         self.savings_aggregation()
     }

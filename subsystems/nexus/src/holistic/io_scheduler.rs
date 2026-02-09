@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -102,6 +103,7 @@ impl IoRequest {
     }
 
     /// Check if two requests can be merged (adjacent sectors, same direction)
+    #[inline]
     pub fn can_merge(&self, other: &IoRequest) -> bool {
         if self.direction != other.direction {
             return false;
@@ -136,6 +138,7 @@ impl IoRequest {
     }
 
     /// Size in bytes (assuming 512-byte sectors)
+    #[inline(always)]
     pub fn size_bytes(&self) -> u64 {
         self.count as u64 * 512
     }
@@ -147,6 +150,7 @@ impl IoRequest {
 
 /// Per-device IO queue
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct DeviceQueue {
     /// Device ID hash (FNV-1a)
     pub device_hash: u64,
@@ -155,9 +159,9 @@ pub struct DeviceQueue {
     /// Scheduling algorithm
     pub algorithm: IoSchedAlgo,
     /// Read queue
-    read_queue: Vec<IoRequest>,
+    read_queue: VecDeque<IoRequest>,
     /// Write queue
-    write_queue: Vec<IoRequest>,
+    write_queue: VecDeque<IoRequest>,
     /// Max queue depth
     pub max_depth: usize,
     /// Bandwidth limit (bytes/sec, 0 = unlimited)
@@ -197,8 +201,8 @@ impl DeviceQueue {
             device_hash: hash,
             device_type,
             algorithm,
-            read_queue: Vec::new(),
-            write_queue: Vec::new(),
+            read_queue: VecDeque::new(),
+            write_queue: VecDeque::new(),
             max_depth,
             bandwidth_limit: 0,
             throughput_ema: 0.0,
@@ -261,12 +265,12 @@ impl DeviceQueue {
             if other.is_empty() {
                 return None;
             }
-            let req = other.remove(0);
+            let req = other.pop_front().unwrap();
             self.dispatched += 1;
             return Some(req);
         }
 
-        let req = queue.remove(0);
+        let req = queue.pop_front().unwrap();
         self.dispatched += 1;
         Some(req)
     }
@@ -279,6 +283,7 @@ impl DeviceQueue {
     }
 
     /// Record completion
+    #[inline]
     pub fn record_completion(&mut self, latency_ns: u64, bytes: u64) {
         self.latency_ema = 0.9 * self.latency_ema + 0.1 * latency_ns as f64;
         let elapsed_sec = latency_ns as f64 / 1_000_000_000.0;
@@ -289,11 +294,13 @@ impl DeviceQueue {
     }
 
     /// Queue depth
+    #[inline(always)]
     pub fn queue_depth(&self) -> usize {
         self.read_queue.len() + self.write_queue.len()
     }
 
     /// Utilization ratio
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.max_depth == 0 {
             return 0.0;
@@ -308,6 +315,7 @@ impl DeviceQueue {
 
 /// IO scheduler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticIoSchedulerStats {
     /// Device count
     pub device_count: usize,
@@ -341,6 +349,7 @@ impl HolisticIoScheduler {
     }
 
     /// Register device
+    #[inline]
     pub fn register_device(&mut self, name: &str, dev_type: IoDeviceType) -> u64 {
         let queue = DeviceQueue::new(name, dev_type);
         let hash = queue.device_hash;
@@ -364,6 +373,7 @@ impl HolisticIoScheduler {
     }
 
     /// Dispatch next request from device
+    #[inline]
     pub fn dispatch(&mut self, device_hash: u64, now_ns: u64) -> Option<IoRequest> {
         if let Some(queue) = self.devices.get_mut(&device_hash) {
             let result = queue.dispatch(now_ns);
@@ -390,6 +400,7 @@ impl HolisticIoScheduler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticIoSchedulerStats {
         &self.stats
     }

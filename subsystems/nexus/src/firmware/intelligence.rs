@@ -113,6 +113,7 @@ impl FirmwareIntelligence {
     }
 
     /// Initialize with firmware type
+    #[inline]
     pub fn initialize(&mut self, firmware_type: FirmwareType, boot_timestamp: u64) {
         self.firmware_type = firmware_type;
         self.boot_timestamp = boot_timestamp;
@@ -125,46 +126,55 @@ impl FirmwareIntelligence {
     }
 
     /// Get firmware type
+    #[inline(always)]
     pub fn firmware_type(&self) -> FirmwareType {
         self.firmware_type
     }
 
     /// Get ACPI parser
+    #[inline(always)]
     pub fn acpi_parser(&self) -> &AcpiParser {
         &self.acpi_parser
     }
 
     /// Get ACPI parser mutably
+    #[inline(always)]
     pub fn acpi_parser_mut(&mut self) -> &mut AcpiParser {
         &mut self.acpi_parser
     }
 
     /// Get UEFI runtime services
+    #[inline(always)]
     pub fn uefi_runtime(&self) -> &UefiRuntimeServices {
         &self.uefi_runtime
     }
 
     /// Get UEFI runtime services mutably
+    #[inline(always)]
     pub fn uefi_runtime_mut(&mut self) -> &mut UefiRuntimeServices {
         &mut self.uefi_runtime
     }
 
     /// Get SMBIOS parser
+    #[inline(always)]
     pub fn smbios_parser(&self) -> &SmbiosParser {
         &self.smbios_parser
     }
 
     /// Get SMBIOS parser mutably
+    #[inline(always)]
     pub fn smbios_parser_mut(&mut self) -> &mut SmbiosParser {
         &mut self.smbios_parser
     }
 
     /// Get update manager
+    #[inline(always)]
     pub fn update_manager(&self) -> &FirmwareUpdateManager {
         &self.update_manager
     }
 
     /// Get update manager mutably
+    #[inline(always)]
     pub fn update_manager_mut(&mut self) -> &mut FirmwareUpdateManager {
         &mut self.update_manager
     }
@@ -264,11 +274,13 @@ impl FirmwareIntelligence {
     }
 
     /// Check if initialized
+    #[inline(always)]
     pub fn is_initialized(&self) -> bool {
         self.initialized
     }
 
     /// Get boot timestamp
+    #[inline(always)]
     pub fn boot_timestamp(&self) -> u64 {
         self.boot_timestamp
     }

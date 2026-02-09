@@ -25,23 +25,27 @@ impl ErrorChain {
     }
 
     /// Add context to the chain
+    #[inline(always)]
     pub fn context(mut self, msg: impl Into<String>) -> Self {
         self.context.push(msg.into());
         self
     }
 
     /// Chain another error
+    #[inline(always)]
     pub fn chain(mut self, error: NexusError) -> Self {
         self.errors.push(error);
         self
     }
 
     /// Get the root cause
+    #[inline(always)]
     pub fn root_cause(&self) -> Option<&NexusError> {
         self.errors.last()
     }
 
     /// Get the most recent error
+    #[inline(always)]
     pub fn current(&self) -> Option<&NexusError> {
         self.errors.first()
     }

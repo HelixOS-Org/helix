@@ -18,6 +18,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -99,6 +100,7 @@ impl FlowLevel {
 
 /// The bridge's subjective experience state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QualiaState {
     pub processing_smoothness: f32,
     pub flow_state: f32,
@@ -123,6 +125,7 @@ impl QualiaState {
 
 /// A raw metric channel feeding into qualia computation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricChannel {
     pub name: String,
     pub name_hash: u64,
@@ -198,6 +201,7 @@ pub struct ExperienceSnapshot {
 
 /// Qualia engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QualiaStats {
     pub total_updates: u64,
     pub avg_smoothness: f32,
@@ -218,10 +222,11 @@ pub struct QualiaStats {
 
 /// Subjective experience engine for bridge operational quality
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeQualiaEngine {
     channels: BTreeMap<u64, MetricChannel>,
-    snapshots: Vec<ExperienceSnapshot>,
-    history: Vec<QualiaState>,
+    snapshots: VecDeque<ExperienceSnapshot>,
+    history: VecDeque<QualiaState>,
     smoothness_ema: f32,
     flow_ema: f32,
     friction_ema: f32,
@@ -240,8 +245,8 @@ impl BridgeQualiaEngine {
     pub fn new() -> Self {
         Self {
             channels: BTreeMap::new(),
-            snapshots: Vec::new(),
-            history: Vec::new(),
+            snapshots: VecDeque::new(),
+            history: VecDeque::new(),
             smoothness_ema: 0.5,
             flow_ema: 0.5,
             friction_ema: 0.0,
@@ -257,6 +262,7 @@ impl BridgeQualiaEngine {
     }
 
     /// Register a metric channel
+    #[inline]
     pub fn register_channel(&mut self, name: &str, dimension: QualiaDimension) {
         if self.channels.len() < MAX_METRIC_CHANNELS {
             let channel = MetricChannel::new(name, dimension);
@@ -382,9 +388,9 @@ impl BridgeQualiaEngine {
         };
         let overall = state.compute_overall();
         if self.history.len() >= MAX_EXPERIENCE_HISTORY {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(QualiaState {
+        self.history.push_back(QualiaState {
             overall_quality: overall,
             ..state
         });
@@ -402,12 +408,13 @@ impl BridgeQualiaEngine {
             flow_level,
         };
         if self.snapshots.len() >= MAX_SNAPSHOTS {
-            self.snapshots.remove(0);
+            self.snapshots.pop_front();
         }
-        self.snapshots.push(snap);
+        self.snapshots.push_back(snap);
     }
 
     /// Overall experience quality score
+    #[inline]
     pub fn experience_quality(&self) -> f32 {
         let positive = self.smoothness_ema * 0.3 + self.flow_ema * 0.3 + self.harmony_ema * 0.2;
         let negative = self.friction_ema * 0.2;
@@ -415,16 +422,19 @@ impl BridgeQualiaEngine {
     }
 
     /// Current flow state
+    #[inline(always)]
     pub fn flow_state(&self) -> (FlowLevel, f32) {
         (FlowLevel::from_score(self.flow_ema), self.flow_ema)
     }
 
     /// Current friction score
+    #[inline(always)]
     pub fn friction_score(&self) -> f32 {
         self.friction_ema
     }
 
     /// Current harmony index
+    #[inline(always)]
     pub fn harmony_index(&self) -> f32 {
         self.harmony_ema
     }
@@ -495,11 +505,13 @@ impl BridgeQualiaEngine {
     }
 
     /// Is the bridge in a flow state?
+    #[inline(always)]
     pub fn is_flowing(&self) -> bool {
         self.flow_ema >= FLOW_THRESHOLD_LOW
     }
 
     /// Is friction at a warning level?
+    #[inline(always)]
     pub fn friction_warning(&self) -> bool {
         self.friction_ema >= FRICTION_WARNING
     }
@@ -522,6 +534,7 @@ impl BridgeQualiaEngine {
     }
 
     /// Reset the qualia engine
+    #[inline]
     pub fn reset(&mut self) {
         self.channels.clear();
         self.snapshots.clear();

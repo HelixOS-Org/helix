@@ -23,6 +23,7 @@ use crate::types::Timestamp;
 
 /// Decision context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DecisionContext {
     /// Context ID
     pub id: u64,
@@ -244,6 +245,7 @@ impl Default for StrategyConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct StrategyStats {
     /// Decisions made
     pub decisions_made: u64,
@@ -701,6 +703,7 @@ impl StrategyEngine {
     }
 
     /// Add rule
+    #[inline]
     pub fn add_rule(&mut self, name: &str, condition: RuleCondition, selection: RuleSelection) {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         self.rules.push(DecisionRule {
@@ -712,11 +715,13 @@ impl StrategyEngine {
     }
 
     /// Get result
+    #[inline(always)]
     pub fn get_result(&self, context_id: u64) -> Option<&DecisionResult> {
         self.results.get(&context_id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &StrategyStats {
         &self.stats
     }

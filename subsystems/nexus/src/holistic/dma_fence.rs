@@ -48,25 +48,31 @@ impl DmaFence {
         }
     }
 
+    #[inline(always)]
     pub fn signal(&mut self, now: u64) {
         self.state = FenceState::Signaled;
         self.signaled_at = now;
     }
 
+    #[inline]
     pub fn error(&mut self, code: i32, now: u64) {
         self.state = FenceState::Error;
         self.error_code = code;
         self.signaled_at = now;
     }
 
+    #[inline(always)]
     pub fn add_waiter(&mut self, tid: u64) { self.waiters.push(tid); }
 
+    #[inline(always)]
     pub fn is_signaled(&self) -> bool { self.state == FenceState::Signaled }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
         if self.signaled_at > 0 { self.signaled_at - self.created_at } else { 0 }
     }
 
+    #[inline]
     pub fn check_timeout(&mut self, now: u64) -> bool {
         if self.deadline_ns > 0 && now > self.deadline_ns && self.state == FenceState::Unsignaled {
             self.state = FenceState::TimedOut;
@@ -90,6 +96,7 @@ impl TimelineFence {
         Self { id, context, current_value: 0, fences: Vec::new() }
     }
 
+    #[inline]
     pub fn advance(&mut self, value: u64, now: u64) {
         self.current_value = value;
         for f in &mut self.fences {
@@ -99,6 +106,7 @@ impl TimelineFence {
         }
     }
 
+    #[inline]
     pub fn add_point(&mut self, seqno: u64, now: u64) -> u64 {
         let fence_id = self.fences.len() as u64;
         self.fences.push(DmaFence::new(fence_id, self.context, seqno, FenceType::Timeline, now));
@@ -116,6 +124,7 @@ pub struct SyncFile {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DmaFenceStats {
     pub total_fences: u32,
     pub signaled: u32,
@@ -139,6 +148,7 @@ impl HolisticDmaFence {
         Self { fences: BTreeMap::new(), timelines: BTreeMap::new(), sync_files: BTreeMap::new(), next_id: 1 }
     }
 
+    #[inline]
     pub fn create_fence(&mut self, context: u64, seqno: u64, ftype: FenceType, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -146,10 +156,12 @@ impl HolisticDmaFence {
         id
     }
 
+    #[inline(always)]
     pub fn signal_fence(&mut self, id: u64, now: u64) {
         if let Some(f) = self.fences.get_mut(&id) { f.signal(now); }
     }
 
+    #[inline]
     pub fn create_timeline(&mut self, context: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -157,6 +169,7 @@ impl HolisticDmaFence {
         id
     }
 
+    #[inline(always)]
     pub fn advance_timeline(&mut self, id: u64, value: u64, now: u64) {
         if let Some(t) = self.timelines.get_mut(&id) { t.advance(value, now); }
     }

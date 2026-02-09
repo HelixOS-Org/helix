@@ -14,6 +14,7 @@ pub struct BlockId(pub u32);
 
 impl BlockId {
     /// Create new block ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
@@ -47,21 +48,25 @@ impl BasicBlock {
     }
 
     /// Add instruction
+    #[inline(always)]
     pub fn add_instruction(&mut self, instr: u32) {
         self.instructions.push(instr);
     }
 
     /// Set terminator
+    #[inline(always)]
     pub fn set_terminator(&mut self, terminator: Terminator) {
         self.terminator = terminator;
     }
 
     /// Check if block is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.instructions.is_empty()
     }
 
     /// Get instruction count
+    #[inline(always)]
     pub fn instruction_count(&self) -> usize {
         self.instructions.len()
     }
@@ -112,6 +117,7 @@ impl Terminator {
     }
 
     /// Check if terminator is conditional
+    #[inline(always)]
     pub fn is_conditional(&self) -> bool {
         matches!(self, Self::Branch { .. } | Self::Switch { .. })
     }
@@ -149,6 +155,7 @@ impl ControlFlowGraph {
     }
 
     /// Create new block
+    #[inline]
     pub fn create_block(&mut self) -> BlockId {
         let id = BlockId(self.block_counter);
         self.block_counter += 1;
@@ -171,6 +178,7 @@ impl ControlFlowGraph {
     }
 
     /// Remove edge
+    #[inline]
     pub fn remove_edge(&mut self, from: BlockId, to: BlockId) {
         if let Some(block) = self.blocks.get_mut(&from) {
             block.successors.retain(|&b| b != to);
@@ -181,26 +189,31 @@ impl ControlFlowGraph {
     }
 
     /// Get block
+    #[inline(always)]
     pub fn get_block(&self, id: BlockId) -> Option<&BasicBlock> {
         self.blocks.get(&id)
     }
 
     /// Get block mutably
+    #[inline(always)]
     pub fn get_block_mut(&mut self, id: BlockId) -> Option<&mut BasicBlock> {
         self.blocks.get_mut(&id)
     }
 
     /// Block count
+    #[inline(always)]
     pub fn block_count(&self) -> usize {
         self.blocks.len()
     }
 
     /// Get all block IDs in order
+    #[inline(always)]
     pub fn block_ids(&self) -> Vec<BlockId> {
         self.blocks.keys().copied().collect()
     }
 
     /// Get dominators (simplified)
+    #[inline]
     pub fn dominators(&self) -> BTreeMap<BlockId, Vec<BlockId>> {
         // Simplified dominator calculation
         let mut doms = BTreeMap::new();
@@ -211,6 +224,7 @@ impl ControlFlowGraph {
     }
 
     /// Get post-dominators
+    #[inline]
     pub fn post_dominators(&self) -> BTreeMap<BlockId, Vec<BlockId>> {
         // Simplified post-dominator calculation
         let mut pdoms = BTreeMap::new();

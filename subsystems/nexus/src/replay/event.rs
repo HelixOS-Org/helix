@@ -41,18 +41,21 @@ impl ReplayEvent {
     }
 
     /// Set CPU
+    #[inline(always)]
     pub fn with_cpu(mut self, cpu: u32) -> Self {
         self.cpu = cpu;
         self
     }
 
     /// Set task
+    #[inline(always)]
     pub fn with_task(mut self, task: u64) -> Self {
         self.task = task;
         self
     }
 
     /// Set data
+    #[inline(always)]
     pub fn with_data(mut self, data: EventData) -> Self {
         self.data = data;
         self

@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 
 /// A latent state vector (compressed representation)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LatentState {
     /// State vector
     pub z: Vec<f64>,
@@ -45,11 +46,13 @@ impl LatentState {
     }
 
     /// Dimensionality
+    #[inline(always)]
     pub fn dim(&self) -> usize {
         self.z.len()
     }
 
     /// Sample from distribution (for stochastic models)
+    #[inline]
     pub fn sample(&self, noise: &[f64]) -> Vec<f64> {
         self.z
             .iter()
@@ -60,11 +63,13 @@ impl LatentState {
     }
 
     /// Total uncertainty (sum of variances)
+    #[inline(always)]
     pub fn total_uncertainty(&self) -> f64 {
         self.uncertainty.iter().sum()
     }
 
     /// Distance to another state
+    #[inline]
     pub fn distance(&self, other: &LatentState) -> f64 {
         let sum_sq: f64 = self
             .z

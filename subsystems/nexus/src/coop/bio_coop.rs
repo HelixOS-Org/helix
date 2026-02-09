@@ -52,6 +52,7 @@ impl CoopBioRequest {
         }
     }
 
+    #[inline]
     pub fn merge(&mut self, other: &CoopBioRequest) -> bool {
         if self.bio_type != other.bio_type || self.device_id != other.device_id {
             return false;
@@ -64,12 +65,15 @@ impl CoopBioRequest {
         false
     }
 
+    #[inline(always)]
     pub fn share(&mut self) {
         self.shared_count += 1;
     }
+    #[inline(always)]
     pub fn complete(&mut self) {
         self.state = CoopBioState::Completed;
     }
+    #[inline(always)]
     pub fn bytes(&self) -> u64 {
         self.nr_sectors as u64 * 512
     }
@@ -77,6 +81,7 @@ impl CoopBioRequest {
 
 /// Coop BIO stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopBioStats {
     pub total_requests: u64,
     pub merges: u64,
@@ -106,6 +111,7 @@ impl CoopBio {
         }
     }
 
+    #[inline]
     pub fn submit(&mut self, req: &CoopBioRequest) {
         self.stats.total_requests += 1;
         self.stats.total_bytes += req.bytes();
@@ -115,6 +121,7 @@ impl CoopBio {
         }
     }
 
+    #[inline]
     pub fn complete(&mut self, success: bool) {
         if success {
             self.stats.completions += 1;
@@ -123,6 +130,7 @@ impl CoopBio {
         }
     }
 
+    #[inline]
     pub fn merge_rate(&self) -> f64 {
         if self.stats.total_requests == 0 {
             0.0

@@ -45,9 +45,11 @@ impl XattrUsagePattern {
         }
     }
 
+    #[inline(always)]
     pub fn record_get(&mut self) {
         self.get_count += 1;
     }
+    #[inline]
     pub fn record_set(&mut self, size: u32) {
         self.set_count += 1;
         self.total_value_bytes += size as u64;
@@ -59,6 +61,7 @@ impl XattrUsagePattern {
 
 /// Holistic xattr stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticXattrStats {
     pub total_ops: u64,
     pub by_ns: BTreeMap<HolisticXattrNs, u64>,

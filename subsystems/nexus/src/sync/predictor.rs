@@ -3,7 +3,7 @@
 //! Predicts lock wait times using linear regression.
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
+use alloc::collections::VecDeque;
 
 use super::LockId;
 use crate::core::NexusTimestamp;
@@ -37,7 +37,7 @@ pub struct WaitTimePredictor {
     /// Models per lock
     models: BTreeMap<LockId, WaitTimeModel>,
     /// Samples
-    samples: BTreeMap<LockId, Vec<WaitSample>>,
+    samples: BTreeMap<LockId, VecDeque<WaitSample>>,
     /// Max samples
     max_samples: usize,
 }
@@ -61,9 +61,9 @@ impl WaitTimePredictor {
         };
 
         let samples = self.samples.entry(lock_id).or_default();
-        samples.push(sample);
+        samples.push_back(sample);
         if samples.len() > self.max_samples {
-            samples.remove(0);
+            samples.pop_front();
         }
 
         self.update_model(lock_id);
@@ -108,6 +108,7 @@ impl WaitTimePredictor {
     }
 
     /// Predict wait time
+    #[inline]
     pub fn predict(&self, lock_id: LockId, waiters: u32) -> f64 {
         if let Some(model) = self.models.get(&lock_id) {
             model.base_wait_ns + model.wait_per_waiter_ns * waiters as f64
@@ -118,6 +119,7 @@ impl WaitTimePredictor {
     }
 
     /// Get model
+    #[inline(always)]
     pub fn get_model(&self, lock_id: LockId) -> Option<&WaitTimeModel> {
         self.models.get(&lock_id)
     }

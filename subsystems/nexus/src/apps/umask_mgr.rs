@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Standard umask permission bits
@@ -17,25 +18,35 @@ impl UmaskValue {
     pub const RESTRICTIVE: Self = Self(0o027);
     pub const GROUP_WRITE: Self = Self(0o002);
 
+    #[inline(always)]
     pub fn owner_bits(&self) -> u32 { (self.0 >> 6) & 0o7 }
+    #[inline(always)]
     pub fn group_bits(&self) -> u32 { (self.0 >> 3) & 0o7 }
+    #[inline(always)]
     pub fn other_bits(&self) -> u32 { self.0 & 0o7 }
 
+    #[inline(always)]
     pub fn apply_to_file(&self, mode: u32) -> u32 {
         mode & !self.0 & 0o777
     }
 
+    #[inline(always)]
     pub fn apply_to_dir(&self, mode: u32) -> u32 {
         mode & !self.0 & 0o777
     }
 
+    #[inline(always)]
     pub fn is_secure(&self) -> bool {
         self.group_bits() == 7 && self.other_bits() == 7
     }
 
+    #[inline(always)]
     pub fn blocks_world_read(&self) -> bool { self.0 & 0o004 != 0 }
+    #[inline(always)]
     pub fn blocks_world_write(&self) -> bool { self.0 & 0o002 != 0 }
+    #[inline(always)]
     pub fn blocks_world_exec(&self) -> bool { self.0 & 0o001 != 0 }
+    #[inline(always)]
     pub fn blocks_group_write(&self) -> bool { self.0 & 0o020 != 0 }
 }
 
@@ -50,6 +61,7 @@ pub struct UmaskChangeEvent {
 
 /// Per-process umask state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessUmaskState {
     pub pid: u32,
     pub current_mask: UmaskValue,
@@ -68,6 +80,7 @@ impl ProcessUmaskState {
         }
     }
 
+    #[inline]
     pub fn set_mask(&mut self, new_mask: UmaskValue, now: u64) -> UmaskValue {
         let old = self.current_mask;
         self.current_mask = new_mask;
@@ -76,15 +89,19 @@ impl ProcessUmaskState {
         old
     }
 
+    #[inline(always)]
     pub fn effective_file_mode(&self, requested: u32) -> u32 {
         self.current_mask.apply_to_file(requested)
     }
 
+    #[inline(always)]
     pub fn effective_dir_mode(&self, requested: u32) -> u32 {
         self.current_mask.apply_to_dir(requested)
     }
 
+    #[inline(always)]
     pub fn record_file_create(&mut self) { self.file_creates += 1; }
+    #[inline(always)]
     pub fn record_dir_create(&mut self) { self.dir_creates += 1; }
 }
 
@@ -98,6 +115,7 @@ pub enum UmaskSecurityLevel {
 }
 
 impl UmaskSecurityLevel {
+    #[inline]
     pub fn assess(mask: UmaskValue) -> Self {
         let other = mask.other_bits();
         let group = mask.group_bits();
@@ -118,6 +136,7 @@ pub struct UmaskPolicy {
 }
 
 impl UmaskPolicy {
+    #[inline(always)]
     pub fn check(&self, mask: UmaskValue) -> bool {
         (mask.0 & self.min_mask.0) == self.min_mask.0
     }
@@ -125,6 +144,7 @@ impl UmaskPolicy {
 
 /// Umask manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UmaskMgrStats {
     pub tracked_processes: u32,
     pub total_changes: u64,
@@ -137,7 +157,7 @@ pub struct UmaskMgrStats {
 /// Main umask manager
 pub struct AppUmaskMgr {
     processes: BTreeMap<u32, ProcessUmaskState>,
-    events: Vec<UmaskChangeEvent>,
+    events: VecDeque<UmaskChangeEvent>,
     max_events: usize,
     policies: Vec<UmaskPolicy>,
     default_mask: UmaskValue,
@@ -147,17 +167,19 @@ pub struct AppUmaskMgr {
 impl AppUmaskMgr {
     pub fn new(default_mask: UmaskValue) -> Self {
         Self {
-            processes: BTreeMap::new(), events: Vec::new(),
+            processes: BTreeMap::new(), events: VecDeque::new(),
             max_events: 2048, policies: Vec::new(),
             default_mask, policy_violations: 0,
         }
     }
 
+    #[inline(always)]
     pub fn create_process(&mut self, pid: u32, mask: Option<UmaskValue>) {
         let m = mask.unwrap_or(self.default_mask);
         self.processes.insert(pid, ProcessUmaskState::new(pid, m));
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u32) -> bool {
         self.processes.remove(&pid).is_some()
     }
@@ -173,15 +195,17 @@ impl AppUmaskMgr {
         let state = self.processes.get_mut(&pid)?;
         let old = state.set_mask(new_mask, now);
 
-        if self.events.len() >= self.max_events { self.events.remove(0); }
-        self.events.push(UmaskChangeEvent { pid, old_mask: old, new_mask: new_mask, timestamp: now });
+        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        self.events.push_back(UmaskChangeEvent { pid, old_mask: old, new_mask: new_mask, timestamp: now });
         Some(old)
     }
 
+    #[inline(always)]
     pub fn get_umask(&self, pid: u32) -> Option<UmaskValue> {
         self.processes.get(&pid).map(|s| s.current_mask)
     }
 
+    #[inline]
     pub fn apply_file_mode(&mut self, pid: u32, requested: u32) -> u32 {
         if let Some(state) = self.processes.get_mut(&pid) {
             state.record_file_create();
@@ -191,6 +215,7 @@ impl AppUmaskMgr {
         }
     }
 
+    #[inline]
     pub fn apply_dir_mode(&mut self, pid: u32, requested: u32) -> u32 {
         if let Some(state) = self.processes.get_mut(&pid) {
             state.record_dir_create();
@@ -200,6 +225,7 @@ impl AppUmaskMgr {
         }
     }
 
+    #[inline]
     pub fn fork_umask(&mut self, parent: u32, child: u32) -> bool {
         if let Some(parent_state) = self.processes.get(&parent) {
             let mask = parent_state.current_mask;
@@ -208,10 +234,12 @@ impl AppUmaskMgr {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn add_policy(&mut self, policy: UmaskPolicy) {
         self.policies.push(policy);
     }
 
+    #[inline]
     pub fn insecure_processes(&self) -> Vec<(u32, UmaskValue, UmaskSecurityLevel)> {
         self.processes.iter()
             .filter_map(|(&pid, state)| {

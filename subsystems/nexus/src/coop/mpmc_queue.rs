@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Queue state
@@ -24,10 +25,11 @@ pub struct MpmcEntry {
 
 /// MPMC queue instance
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct MpmcQueue {
     pub id: u64,
     pub state: MpmcState,
-    pub buffer: Vec<MpmcEntry>,
+    pub buffer: VecDeque<MpmcEntry>,
     pub capacity: usize,
     pub head: u64,
     pub tail: u64,
@@ -41,31 +43,37 @@ pub struct MpmcQueue {
 
 impl MpmcQueue {
     pub fn new(id: u64, capacity: usize) -> Self {
-        Self { id, state: MpmcState::Active, buffer: Vec::new(), capacity, head: 0, tail: 0, producers: 0, consumers: 0, enqueue_count: 0, dequeue_count: 0, full_count: 0, empty_count: 0 }
+        Self { id, state: MpmcState::Active, buffer: VecDeque::new(), capacity, head: 0, tail: 0, producers: 0, consumers: 0, enqueue_count: 0, dequeue_count: 0, full_count: 0, empty_count: 0 }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, data_hash: u64, producer: u64, now: u64) -> bool {
         if self.buffer.len() >= self.capacity { self.full_count += 1; return false; }
         self.tail += 1;
-        self.buffer.push(MpmcEntry { seq: self.tail, data_hash, producer_id: producer, timestamp: now });
+        self.buffer.push_back(MpmcEntry { seq: self.tail, data_hash, producer_id: producer, timestamp: now });
         self.enqueue_count += 1;
         true
     }
 
+    #[inline]
     pub fn dequeue(&mut self) -> Option<MpmcEntry> {
         if self.buffer.is_empty() { self.empty_count += 1; return None; }
         self.head += 1;
         self.dequeue_count += 1;
-        Some(self.buffer.remove(0))
+        self.buffer.pop_front()
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize { self.buffer.len() }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 { self.buffer.len() as f64 / self.capacity as f64 }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.buffer.is_empty() }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MpmcQueueStats {
     pub total_queues: u32,
     pub total_entries: u32,
@@ -76,6 +84,7 @@ pub struct MpmcQueueStats {
 }
 
 /// Main MPMC queue manager
+#[repr(align(64))]
 pub struct CoopMpmcQueue {
     queues: Vec<MpmcQueue>,
     next_id: u64,
@@ -84,12 +93,14 @@ pub struct CoopMpmcQueue {
 impl CoopMpmcQueue {
     pub fn new() -> Self { Self { queues: Vec::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, capacity: usize) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.queues.push(MpmcQueue::new(id, capacity));
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> MpmcQueueStats {
         let entries: u32 = self.queues.iter().map(|q| q.len() as u32).sum();
         let enqueued: u64 = self.queues.iter().map(|q| q.enqueue_count).sum();

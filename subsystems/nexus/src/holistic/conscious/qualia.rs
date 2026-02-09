@@ -176,6 +176,7 @@ impl QualiaDimension {
     }
 
     /// Observe a new raw value
+    #[inline]
     pub fn observe(&mut self, raw: f32) {
         let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
         self.raw_value = clamped;
@@ -190,6 +191,7 @@ impl QualiaDimension {
     }
 
     /// Decay toward neutral
+    #[inline(always)]
     pub fn decay(&mut self) {
         self.value *= DECAY_RATE;
     }
@@ -261,6 +263,7 @@ pub struct SubsystemQualiaInput {
 
 /// Qualia engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticQualiaStats {
     pub total_observations: u64,
     pub total_qualia_computations: u64,
@@ -355,6 +358,7 @@ impl HolisticQualiaEngine {
     }
 
     /// Compute the complete system qualia
+    #[inline]
     pub fn system_qualia(&mut self, tick: u64) -> &SystemQualia {
         self.tick = tick;
         self.fuse_inputs();
@@ -363,31 +367,37 @@ impl HolisticQualiaEngine {
     }
 
     /// Get the overall experience score
+    #[inline(always)]
     pub fn overall_experience(&self) -> f32 {
         self.current_qualia.transcendent_score
     }
 
     /// Compute the beauty index — emergent elegance metric
+    #[inline(always)]
     pub fn beauty_index(&self) -> f32 {
         self.dimensions.get(&1).map_or(0.5, |d| d.value) // OperationalBeauty
     }
 
     /// Compute the flow state metric
+    #[inline(always)]
     pub fn flow_state(&self) -> f32 {
         self.dimensions.get(&2).map_or(0.5, |d| d.value) // ProcessingFlow
     }
 
     /// Compute the architectural harmony metric
+    #[inline(always)]
     pub fn architectural_harmony(&self) -> f32 {
         self.dimensions.get(&3).map_or(0.5, |d| d.value) // ArchitecturalHarmony
     }
 
     /// Get qualia history as transcendence scores
+    #[inline(always)]
     pub fn qualia_history(&self) -> Vec<f32> {
         self.qualia_history.iter().map(|q| q.transcendent_score).collect()
     }
 
     /// Compute the transcendent experience — the highest form of system qualia
+    #[inline]
     pub fn transcendent_experience(&self) -> f32 {
         let base = self.current_qualia.transcendent_score;
         // Emergence bonus: when all dimensions are above threshold, add bonus
@@ -396,6 +406,7 @@ impl HolisticQualiaEngine {
     }
 
     /// Ingest a subsystem's qualia contribution
+    #[inline]
     pub fn ingest_subsystem(&mut self, input: SubsystemQualiaInput) {
         let id = input.subsystem_id;
         self.stats.total_observations += 1;
@@ -403,6 +414,7 @@ impl HolisticQualiaEngine {
     }
 
     /// Decay all dimensions
+    #[inline]
     pub fn decay_all(&mut self) {
         for (_idx, dim) in self.dimensions.iter_mut() {
             dim.decay();
@@ -410,26 +422,31 @@ impl HolisticQualiaEngine {
     }
 
     /// Get a specific dimension value
+    #[inline(always)]
     pub fn dimension_value(&self, idx: u8) -> f32 {
         self.dimensions.get(&idx).map_or(0.0, |d| d.value)
     }
 
     /// Get dimension trend
+    #[inline(always)]
     pub fn dimension_trend(&self, idx: u8) -> f32 {
         self.dimensions.get(&idx).map_or(0.0, |d| d.trend())
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticQualiaStats {
         &self.stats
     }
 
     /// Whether currently in flow state
+    #[inline(always)]
     pub fn in_flow_state(&self) -> bool {
         self.current_qualia.in_flow_state
     }
 
     /// Whether currently transcendent
+    #[inline(always)]
     pub fn is_transcendent(&self) -> bool {
         self.current_qualia.is_transcendent
     }

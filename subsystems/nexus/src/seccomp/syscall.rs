@@ -8,11 +8,13 @@ pub struct SyscallNum(pub u32);
 
 impl SyscallNum {
     /// Create new syscall number
+    #[inline(always)]
     pub const fn new(num: u32) -> Self {
         Self(num)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -144,6 +146,7 @@ pub enum RiskLevel {
 
 impl RiskLevel {
     /// Get level name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Safe => "safe",
@@ -155,6 +158,7 @@ impl RiskLevel {
     }
 
     /// Get numeric score
+    #[inline]
     pub fn score(&self) -> u8 {
         match self {
             Self::Safe => 0,
@@ -185,6 +189,7 @@ pub struct SyscallInfo {
 
 impl SyscallInfo {
     /// Create new syscall info
+    #[inline]
     pub const fn new(
         num: SyscallNum,
         name: &'static str,

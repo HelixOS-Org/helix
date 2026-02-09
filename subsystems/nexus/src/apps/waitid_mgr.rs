@@ -31,7 +31,9 @@ impl WaitOptions {
     pub const CLONE: u32 = 0x80000000;
 
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn is_nohang(&self) -> bool { self.has(Self::NOHANG) }
 }
 
@@ -76,6 +78,7 @@ impl WaiterEntry {
         }
     }
 
+    #[inline]
     pub fn matches(&self, child_pid: u64, pgid: u64) -> bool {
         match self.id_type {
             WaitIdType::Pid => self.target_id == child_pid,
@@ -85,11 +88,13 @@ impl WaiterEntry {
         }
     }
 
+    #[inline(always)]
     pub fn satisfy(&mut self, info: WaitSiginfo) {
         self.satisfied = true;
         self.result = Some(info);
     }
 
+    #[inline(always)]
     pub fn wait_time(&self, now: u64) -> u64 { now.saturating_sub(self.enqueued_at) }
 }
 
@@ -114,11 +119,13 @@ impl ZombieEntry {
         }
     }
 
+    #[inline(always)]
     pub fn zombie_time(&self, now: u64) -> u64 { now.saturating_sub(self.exit_time) }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WaitIdMgrStats {
     pub total_waiters: u32,
     pub satisfied_waiters: u32,
@@ -170,6 +177,7 @@ impl AppWaitIdMgr {
         None
     }
 
+    #[inline]
     pub fn exit_child(&mut self, child_pid: u64, parent: u64, pgid: u64, status: ExitStatus, now: u64) {
         self.zombies.insert(child_pid, ZombieEntry::new(child_pid, parent, pgid, status, now));
 
@@ -181,6 +189,7 @@ impl AppWaitIdMgr {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> WaitIdMgrStats {
         let satisfied = self.waiters.iter().filter(|w| w.satisfied).count() as u32;
         let reaped = self.zombies.values().filter(|z| z.reaped).count() as u32;

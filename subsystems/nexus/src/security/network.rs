@@ -195,6 +195,7 @@ impl NetworkSecurityMonitor {
     }
 
     /// Block destination
+    #[inline]
     pub fn block_destination(&mut self, hash: u64) {
         if !self.blocked_destinations.contains(&hash) {
             self.blocked_destinations.push(hash);
@@ -202,6 +203,7 @@ impl NetworkSecurityMonitor {
     }
 
     /// Set thresholds
+    #[inline(always)]
     pub fn set_thresholds(&mut self, thresholds: NetworkThresholds) {
         self.thresholds = thresholds;
     }

@@ -38,27 +38,32 @@ impl NexusError {
     }
 
     /// Not initialized error
+    #[inline(always)]
     pub fn not_initialized() -> Self {
         Self::new(ErrorCode::NotInitialized, "not initialized")
     }
 
     /// Operation failed error
+    #[inline(always)]
     pub fn operation_failed() -> Self {
         Self::new(ErrorCode::Unknown, "operation failed")
     }
 
     /// With domain
+    #[inline(always)]
     pub fn with_domain(mut self, domain: DomainId) -> Self {
         self.domain = Some(domain);
         self
     }
 
     /// Is recoverable?
+    #[inline(always)]
     pub fn is_recoverable(&self) -> bool {
         self.code.is_recoverable()
     }
 
     /// Is critical?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.code.is_critical()
     }
@@ -192,6 +197,7 @@ pub enum ErrorCode {
 
 impl ErrorCode {
     /// Is this error recoverable?
+    #[inline]
     pub const fn is_recoverable(&self) -> bool {
         matches!(
             self,
@@ -204,6 +210,7 @@ impl ErrorCode {
     }
 
     /// Is this error critical?
+    #[inline]
     pub const fn is_critical(&self) -> bool {
         matches!(
             self,

@@ -143,6 +143,7 @@ impl ScalePattern {
         }
     }
 
+    #[inline]
     fn update(&mut self, value: f32, tick: u64) {
         let old_avg = self.avg_value;
         self.avg_value = EMA_ALPHA * value + (1.0 - EMA_ALPHA) * self.avg_value;
@@ -188,6 +189,7 @@ impl ProcessHorizon {
         (resource as u32) << 8 | (scale as u32)
     }
 
+    #[inline]
     fn record(&mut self, obs: &ResourceObservation) {
         for si in 0..NUM_SCALES {
             let key = Self::resource_key(obs.resource, HorizonScale::from_index(si));
@@ -217,6 +219,7 @@ impl ProcessHorizon {
 
 /// Predicted future application state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppStatePrediction {
     pub process_id: u64,
     pub target_tick: u64,
@@ -251,6 +254,7 @@ pub struct DemandPoint {
 
 /// Aggregate horizon prediction statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct HorizonStats {
     pub total_observations: u64,
     pub total_predictions: u64,
@@ -311,6 +315,7 @@ impl AppsHorizonPredictor {
     }
 
     /// Predict future application state at a target tick
+    #[inline]
     pub fn predict_app_state(&mut self, process_id: u64, target_tick: u64) -> AppStatePrediction {
         self.total_predictions += 1;
         let ticks_ahead = target_tick.saturating_sub(self.tick);
@@ -404,6 +409,7 @@ impl AppsHorizonPredictor {
     }
 
     /// Predict the phase transition for a process
+    #[inline]
     pub fn phase_prediction(&self, process_id: u64) -> (AppPhase, f32) {
         if let Some(proc) = self.processes.get(&process_id) {
             let next = self.extrapolate_phase(proc, 6_000);
@@ -444,6 +450,7 @@ impl AppsHorizonPredictor {
     }
 
     /// Compute overall horizon confidence by scale
+    #[inline]
     pub fn horizon_confidence(&self) -> Vec<(HorizonScale, f32, u64)> {
         let mut result = Vec::new();
         for si in 0..NUM_SCALES {
@@ -455,6 +462,7 @@ impl AppsHorizonPredictor {
     }
 
     /// Validate a past prediction against actual observation
+    #[inline]
     pub fn validate_prediction(&mut self, scale_idx: usize, predicted: f32, actual: f32) {
         if scale_idx < NUM_SCALES {
             let error = (predicted - actual).abs() / (actual.abs() + 1.0);
@@ -464,6 +472,7 @@ impl AppsHorizonPredictor {
     }
 
     /// Validate a phase prediction against actual phase
+    #[inline]
     pub fn validate_phase(&mut self, predicted: AppPhase, actual: AppPhase) {
         let correct = if predicted == actual { 1.0 } else { 0.0 };
         self.phase_accuracy_ema = EMA_ALPHA * correct + (1.0 - EMA_ALPHA) * self.phase_accuracy_ema;

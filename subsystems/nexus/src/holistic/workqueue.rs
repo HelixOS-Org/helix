@@ -45,12 +45,15 @@ impl WorkItem {
         Self { id, handler_hash: handler, state: WorkItemState::Pending, priority: prio, cpu_bound: None, submit_time: now, start_time: 0, complete_time: 0, delay_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 { self.start_time.saturating_sub(self.submit_time) }
+    #[inline(always)]
     pub fn exec_time_ns(&self) -> u64 { self.complete_time.saturating_sub(self.start_time) }
 }
 
 /// Worker pool
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct WorkerPool {
     pub id: u32,
     pub cpu: Option<u32>,
@@ -65,8 +68,10 @@ impl WorkerPool {
         Self { id, cpu, nr_workers: workers, nr_idle: workers, items: Vec::new(), total_executed: 0 }
     }
 
+    #[inline(always)]
     pub fn enqueue(&mut self, item: WorkItem) { self.items.push(item); }
 
+    #[inline]
     pub fn dequeue(&mut self, now: u64) -> Option<u64> {
         if let Some(item) = self.items.iter_mut().find(|i| i.state == WorkItemState::Pending) {
             item.state = WorkItemState::Running;
@@ -76,6 +81,7 @@ impl WorkerPool {
         } else { None }
     }
 
+    #[inline]
     pub fn complete(&mut self, id: u64, now: u64) {
         if let Some(item) = self.items.iter_mut().find(|i| i.id == id) {
             item.state = WorkItemState::Completed;
@@ -88,6 +94,7 @@ impl WorkerPool {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkqueueStats {
     pub total_pools: u32,
     pub total_pending: u32,
@@ -104,10 +111,13 @@ pub struct HolisticWorkqueue {
 impl HolisticWorkqueue {
     pub fn new() -> Self { Self { pools: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn create_pool(&mut self, id: u32, cpu: Option<u32>, workers: u32) { self.pools.insert(id, WorkerPool::new(id, cpu, workers)); }
 
+    #[inline(always)]
     pub fn enqueue(&mut self, pool_id: u32, item: WorkItem) { if let Some(p) = self.pools.get_mut(&pool_id) { p.enqueue(item); } }
 
+    #[inline]
     pub fn stats(&self) -> WorkqueueStats {
         let pending: u32 = self.pools.values().flat_map(|p| p.items.iter()).filter(|i| i.state == WorkItemState::Pending).count() as u32;
         let running: u32 = self.pools.values().flat_map(|p| p.items.iter()).filter(|i| i.state == WorkItemState::Running).count() as u32;
@@ -208,6 +218,7 @@ impl WqV2WorkItem {
         }
     }
 
+    #[inline]
     pub fn latency(&self) -> u64 {
         if self.complete_time > self.start_time {
             self.complete_time - self.start_time
@@ -216,6 +227,7 @@ impl WqV2WorkItem {
         }
     }
 
+    #[inline]
     pub fn wait_time(&self) -> u64 {
         if self.start_time > self.enqueue_time {
             self.start_time - self.enqueue_time
@@ -227,6 +239,7 @@ impl WqV2WorkItem {
 
 /// Worker pool for a NUMA node.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WqV2WorkerPool {
     pub pool_id: u32,
     pub numa_node: u32,
@@ -252,6 +265,7 @@ impl WqV2WorkerPool {
         }
     }
 
+    #[inline]
     pub fn try_dispatch(&mut self) -> bool {
         if self.idle_workers > 0 && self.pending_work > 0 {
             self.idle_workers -= 1;
@@ -263,6 +277,7 @@ impl WqV2WorkerPool {
         }
     }
 
+    #[inline]
     pub fn complete_work(&mut self) {
         if self.active_workers > 0 {
             self.active_workers -= 1;
@@ -271,6 +286,7 @@ impl WqV2WorkerPool {
         }
     }
 
+    #[inline]
     pub fn utilization_percent(&self) -> f64 {
         if self.max_workers == 0 {
             return 0.0;
@@ -310,6 +326,7 @@ impl WqV2Instance {
         }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, mut item: WqV2WorkItem) -> u64 {
         if self.wq_type == WqV2Type::Ordered {
             self.ordered_sequence += 1;
@@ -322,6 +339,7 @@ impl WqV2Instance {
         id
     }
 
+    #[inline]
     pub fn pending_count(&self) -> usize {
         self.items
             .iter()
@@ -332,6 +350,7 @@ impl WqV2Instance {
 
 /// Statistics for the workqueue V2 manager.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkqueueV2Stats {
     pub total_workqueues: u64,
     pub total_pools: u64,
@@ -372,6 +391,7 @@ impl HolisticWorkqueueV2 {
         }
     }
 
+    #[inline]
     pub fn create_workqueue(&mut self, name: String, wq_type: WqV2Type) -> u64 {
         let id = self.next_wq_id;
         self.next_wq_id += 1;
@@ -381,6 +401,7 @@ impl HolisticWorkqueueV2 {
         id
     }
 
+    #[inline]
     pub fn create_pool(&mut self, pool_id: u32, numa_node: u32, max_workers: u32) {
         let pool = WqV2WorkerPool::new(pool_id, numa_node, max_workers);
         self.pools.insert(pool_id, pool);
@@ -405,10 +426,12 @@ impl HolisticWorkqueueV2 {
         }
     }
 
+    #[inline(always)]
     pub fn workqueue_count(&self) -> usize {
         self.workqueues.len()
     }
 
+    #[inline(always)]
     pub fn pool_count(&self) -> usize {
         self.pools.len()
     }

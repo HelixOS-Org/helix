@@ -33,6 +33,7 @@ pub struct Architecture {
 
 /// Architecture performance metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ArchitectureMetrics {
     /// Validation accuracy
     pub accuracy: f64,
@@ -69,11 +70,13 @@ impl Architecture {
     }
 
     /// Total parameter count
+    #[inline(always)]
     pub fn total_params(&self) -> usize {
         self.cells.iter().map(|c| c.param_count()).sum()
     }
 
     /// Total FLOPs
+    #[inline(always)]
     pub fn total_flops(&self) -> u64 {
         self.cells.iter().map(|c| c.estimated_flops()).sum()
     }

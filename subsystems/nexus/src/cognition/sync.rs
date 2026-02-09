@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -75,21 +76,25 @@ impl CognitiveBarrier {
     }
 
     /// Check if barrier is open
+    #[inline(always)]
     pub fn is_open(&self) -> bool {
         self.open.load(Ordering::Acquire)
     }
 
     /// Get arrived count
+    #[inline(always)]
     pub fn arrived_count(&self) -> usize {
         self.arrived.len()
     }
 
     /// Get expected count
+    #[inline(always)]
     pub fn expected(&self) -> usize {
         self.expected
     }
 
     /// Get who is missing
+    #[inline]
     pub fn missing(&self, all: &[DomainId]) -> Vec<DomainId> {
         all.iter()
             .filter(|d| !self.arrived.contains(d))
@@ -98,6 +103,7 @@ impl CognitiveBarrier {
     }
 
     /// Reset for next generation
+    #[inline]
     pub fn reset(&mut self) {
         self.arrived.clear();
         self.open.store(false, Ordering::Release);
@@ -105,16 +111,19 @@ impl CognitiveBarrier {
     }
 
     /// Get current generation
+    #[inline(always)]
     pub fn generation(&self) -> u64 {
         self.generation.load(Ordering::Relaxed)
     }
 
     /// Get barrier ID
+    #[inline(always)]
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// Get barrier name
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -146,7 +155,7 @@ pub struct CognitiveSemaphore {
     /// Current count
     count: AtomicU64,
     /// Waiters
-    waiters: Vec<DomainId>,
+    waiters: VecDeque<DomainId>,
     /// Holders
     holders: Vec<(DomainId, u32)>,
 }
@@ -159,7 +168,7 @@ impl CognitiveSemaphore {
             name: name.into(),
             max_count: count,
             count: AtomicU64::new(count as u64),
-            waiters: Vec::new(),
+            waiters: VecDeque::new(),
             holders: Vec::new(),
         }
     }
@@ -191,7 +200,7 @@ impl CognitiveSemaphore {
 
         // Add to waiters
         if !self.waiters.contains(&domain) {
-            self.waiters.push(domain);
+            self.waiters.push_back(domain);
         }
 
         false
@@ -214,7 +223,7 @@ impl CognitiveSemaphore {
                 // Wake waiters if possible
                 if new_count > 0 && !self.waiters.is_empty() {
                     // Signal first waiter
-                    self.waiters.remove(0);
+                    self.waiters.pop_front();
                 }
 
                 return true;
@@ -225,21 +234,25 @@ impl CognitiveSemaphore {
     }
 
     /// Get available count
+    #[inline(always)]
     pub fn available(&self) -> u32 {
         self.count.load(Ordering::Acquire) as u32
     }
 
     /// Get waiter count
+    #[inline(always)]
     pub fn waiter_count(&self) -> usize {
         self.waiters.len()
     }
 
     /// Get holders
+    #[inline(always)]
     pub fn holders(&self) -> &[(DomainId, u32)] {
         &self.holders
     }
 
     /// Get ID
+    #[inline(always)]
     pub fn id(&self) -> u64 {
         self.id
     }
@@ -260,9 +273,9 @@ pub struct CognitiveRwLock {
     /// Writer
     writer: Option<DomainId>,
     /// Read waiters
-    read_waiters: Vec<DomainId>,
+    read_waiters: VecDeque<DomainId>,
     /// Write waiters
-    write_waiters: Vec<DomainId>,
+    write_waiters: VecDeque<DomainId>,
     /// Prefer writers
     prefer_writers: bool,
 }
@@ -275,8 +288,8 @@ impl CognitiveRwLock {
             name: name.into(),
             readers: Vec::new(),
             writer: None,
-            read_waiters: Vec::new(),
-            write_waiters: Vec::new(),
+            read_waiters: VecDeque::new(),
+            write_waiters: VecDeque::new(),
             prefer_writers,
         }
     }
@@ -302,6 +315,7 @@ impl CognitiveRwLock {
     }
 
     /// Try to acquire write lock
+    #[inline]
     pub fn try_write(&mut self, domain: DomainId) -> bool {
         // Can't write if there's a writer or readers
         if self.writer.is_some() || !self.readers.is_empty() {
@@ -313,6 +327,7 @@ impl CognitiveRwLock {
     }
 
     /// Acquire read (adds to waiters if can't acquire)
+    #[inline]
     pub fn read(&mut self, domain: DomainId) -> bool {
         if self.try_read(domain) {
             return true;
@@ -326,13 +341,14 @@ impl CognitiveRwLock {
     }
 
     /// Acquire write (adds to waiters if can't acquire)
+    #[inline]
     pub fn write(&mut self, domain: DomainId) -> bool {
         if self.try_write(domain) {
             return true;
         }
 
         if !self.write_waiters.contains(&domain) {
-            self.write_waiters.push(domain);
+            self.write_waiters.push_back(domain);
         }
 
         false
@@ -345,7 +361,7 @@ impl CognitiveRwLock {
 
             // Wake a writer if no more readers
             if self.readers.is_empty() && !self.write_waiters.is_empty() {
-                let waiter = self.write_waiters.remove(0);
+                let waiter = self.write_waiters.pop_front().unwrap();
                 self.writer = Some(waiter);
             }
 
@@ -362,13 +378,13 @@ impl CognitiveRwLock {
 
             // Wake writers first (if prefer_writers) or readers
             if self.prefer_writers && !self.write_waiters.is_empty() {
-                let waiter = self.write_waiters.remove(0);
+                let waiter = self.write_waiters.pop_front().unwrap();
                 self.writer = Some(waiter);
             } else if !self.read_waiters.is_empty() {
                 // Wake all readers
                 self.readers.append(&mut self.read_waiters);
             } else if !self.write_waiters.is_empty() {
-                let waiter = self.write_waiters.remove(0);
+                let waiter = self.write_waiters.pop_front().unwrap();
                 self.writer = Some(waiter);
             }
 
@@ -379,21 +395,25 @@ impl CognitiveRwLock {
     }
 
     /// Check if locked for reading
+    #[inline(always)]
     pub fn is_read_locked(&self) -> bool {
         !self.readers.is_empty()
     }
 
     /// Check if locked for writing
+    #[inline(always)]
     pub fn is_write_locked(&self) -> bool {
         self.writer.is_some()
     }
 
     /// Get reader count
+    #[inline(always)]
     pub fn reader_count(&self) -> usize {
         self.readers.len()
     }
 
     /// Get ID
+    #[inline(always)]
     pub fn id(&self) -> u64 {
         self.id
     }
@@ -410,7 +430,7 @@ pub struct CognitiveCondVar {
     /// Name
     name: String,
     /// Waiters
-    waiters: Vec<DomainId>,
+    waiters: VecDeque<DomainId>,
     /// Signal count
     signals: u64,
 }
@@ -421,45 +441,51 @@ impl CognitiveCondVar {
         Self {
             id,
             name: name.into(),
-            waiters: Vec::new(),
+            waiters: VecDeque::new(),
             signals: 0,
         }
     }
 
     /// Wait on condition
+    #[inline]
     pub fn wait(&mut self, domain: DomainId) {
         if !self.waiters.contains(&domain) {
-            self.waiters.push(domain);
+            self.waiters.push_back(domain);
         }
     }
 
     /// Signal one waiter
+    #[inline]
     pub fn signal(&mut self) -> Option<DomainId> {
         self.signals += 1;
         if !self.waiters.is_empty() {
-            Some(self.waiters.remove(0))
+            self.waiters.pop_front()
         } else {
             None
         }
     }
 
     /// Signal all waiters
+    #[inline(always)]
     pub fn broadcast(&mut self) -> Vec<DomainId> {
         self.signals += 1;
         core::mem::take(&mut self.waiters)
     }
 
     /// Get waiter count
+    #[inline(always)]
     pub fn waiter_count(&self) -> usize {
         self.waiters.len()
     }
 
     /// Get signal count
+    #[inline(always)]
     pub fn signal_count(&self) -> u64 {
         self.signals
     }
 
     /// Get ID
+    #[inline(always)]
     pub fn id(&self) -> u64 {
         self.id
     }
@@ -487,6 +513,7 @@ pub struct SyncManager {
 
 /// Sync statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SyncStats {
     /// Total barriers created
     pub barriers_created: u64,
@@ -520,6 +547,7 @@ impl SyncManager {
     // === Barriers ===
 
     /// Create a barrier
+    #[inline]
     pub fn create_barrier(&mut self, name: &str, expected: usize) -> u64 {
         let id = self.next_id();
         let barrier = CognitiveBarrier::new(id, name, expected);
@@ -529,6 +557,7 @@ impl SyncManager {
     }
 
     /// Arrive at barrier
+    #[inline]
     pub fn barrier_arrive(&mut self, barrier_id: u64, domain: DomainId) -> Option<BarrierResult> {
         let barrier = self.barriers.get_mut(&barrier_id)?;
         let result = barrier.arrive(domain);
@@ -539,6 +568,7 @@ impl SyncManager {
     }
 
     /// Reset barrier
+    #[inline]
     pub fn barrier_reset(&mut self, barrier_id: u64) {
         if let Some(barrier) = self.barriers.get_mut(&barrier_id) {
             barrier.reset();
@@ -546,6 +576,7 @@ impl SyncManager {
     }
 
     /// Get barrier
+    #[inline(always)]
     pub fn get_barrier(&self, barrier_id: u64) -> Option<&CognitiveBarrier> {
         self.barriers.get(&barrier_id)
     }
@@ -553,6 +584,7 @@ impl SyncManager {
     // === Semaphores ===
 
     /// Create a semaphore
+    #[inline]
     pub fn create_semaphore(&mut self, name: &str, count: u32) -> u64 {
         let id = self.next_id();
         let sem = CognitiveSemaphore::new(id, name, count);
@@ -561,6 +593,7 @@ impl SyncManager {
     }
 
     /// Try acquire semaphore
+    #[inline]
     pub fn semaphore_try_acquire(&mut self, sem_id: u64, domain: DomainId, count: u32) -> bool {
         if let Some(sem) = self.semaphores.get_mut(&sem_id) {
             if sem.try_acquire(domain, count) {
@@ -572,6 +605,7 @@ impl SyncManager {
     }
 
     /// Release semaphore
+    #[inline]
     pub fn semaphore_release(&mut self, sem_id: u64, domain: DomainId, count: u32) -> bool {
         self.semaphores
             .get_mut(&sem_id)
@@ -580,6 +614,7 @@ impl SyncManager {
     }
 
     /// Get semaphore
+    #[inline(always)]
     pub fn get_semaphore(&self, sem_id: u64) -> Option<&CognitiveSemaphore> {
         self.semaphores.get(&sem_id)
     }
@@ -587,6 +622,7 @@ impl SyncManager {
     // === RwLocks ===
 
     /// Create a rwlock
+    #[inline]
     pub fn create_rwlock(&mut self, name: &str, prefer_writers: bool) -> u64 {
         let id = self.next_id();
         let lock = CognitiveRwLock::new(id, name, prefer_writers);
@@ -595,6 +631,7 @@ impl SyncManager {
     }
 
     /// Try read lock
+    #[inline]
     pub fn rwlock_try_read(&mut self, lock_id: u64, domain: DomainId) -> bool {
         if let Some(lock) = self.rwlocks.get_mut(&lock_id) {
             if lock.try_read(domain) {
@@ -606,6 +643,7 @@ impl SyncManager {
     }
 
     /// Try write lock
+    #[inline]
     pub fn rwlock_try_write(&mut self, lock_id: u64, domain: DomainId) -> bool {
         if let Some(lock) = self.rwlocks.get_mut(&lock_id) {
             if lock.try_write(domain) {
@@ -617,6 +655,7 @@ impl SyncManager {
     }
 
     /// Release read lock
+    #[inline]
     pub fn rwlock_release_read(&mut self, lock_id: u64, domain: DomainId) -> bool {
         self.rwlocks
             .get_mut(&lock_id)
@@ -625,6 +664,7 @@ impl SyncManager {
     }
 
     /// Release write lock
+    #[inline]
     pub fn rwlock_release_write(&mut self, lock_id: u64, domain: DomainId) -> bool {
         self.rwlocks
             .get_mut(&lock_id)
@@ -633,6 +673,7 @@ impl SyncManager {
     }
 
     /// Get rwlock
+    #[inline(always)]
     pub fn get_rwlock(&self, lock_id: u64) -> Option<&CognitiveRwLock> {
         self.rwlocks.get(&lock_id)
     }
@@ -640,6 +681,7 @@ impl SyncManager {
     // === CondVars ===
 
     /// Create a condvar
+    #[inline]
     pub fn create_condvar(&mut self, name: &str) -> u64 {
         let id = self.next_id();
         let cv = CognitiveCondVar::new(id, name);
@@ -648,6 +690,7 @@ impl SyncManager {
     }
 
     /// Wait on condvar
+    #[inline]
     pub fn condvar_wait(&mut self, cv_id: u64, domain: DomainId) {
         if let Some(cv) = self.condvars.get_mut(&cv_id) {
             cv.wait(domain);
@@ -655,6 +698,7 @@ impl SyncManager {
     }
 
     /// Signal condvar
+    #[inline]
     pub fn condvar_signal(&mut self, cv_id: u64) -> Option<DomainId> {
         if let Some(cv) = self.condvars.get_mut(&cv_id) {
             self.stats.signals += 1;
@@ -664,6 +708,7 @@ impl SyncManager {
     }
 
     /// Broadcast condvar
+    #[inline]
     pub fn condvar_broadcast(&mut self, cv_id: u64) -> Vec<DomainId> {
         if let Some(cv) = self.condvars.get_mut(&cv_id) {
             self.stats.signals += 1;
@@ -673,6 +718,7 @@ impl SyncManager {
     }
 
     /// Get condvar
+    #[inline(always)]
     pub fn get_condvar(&self, cv_id: u64) -> Option<&CognitiveCondVar> {
         self.condvars.get(&cv_id)
     }
@@ -680,26 +726,31 @@ impl SyncManager {
     // === Cleanup ===
 
     /// Delete barrier
+    #[inline(always)]
     pub fn delete_barrier(&mut self, id: u64) -> bool {
         self.barriers.remove(&id).is_some()
     }
 
     /// Delete semaphore
+    #[inline(always)]
     pub fn delete_semaphore(&mut self, id: u64) -> bool {
         self.semaphores.remove(&id).is_some()
     }
 
     /// Delete rwlock
+    #[inline(always)]
     pub fn delete_rwlock(&mut self, id: u64) -> bool {
         self.rwlocks.remove(&id).is_some()
     }
 
     /// Delete condvar
+    #[inline(always)]
     pub fn delete_condvar(&mut self, id: u64) -> bool {
         self.condvars.remove(&id).is_some()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SyncStats {
         &self.stats
     }

@@ -8,7 +8,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -111,6 +113,7 @@ pub struct EnsembleQuality {
 
 /// Rolling statistics for the ensemble engine.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct EnsembleStats {
     pub ensemble_predictions: u64,
     pub model_selections: u64,
@@ -144,8 +147,8 @@ struct ModelTracker {
     weight: u64,
     ema_accuracy: u64,
     prediction_count: u64,
-    error_history: Vec<u64>,
-    last_predictions: BTreeMap<u64, u64>,
+    error_history: VecDeque<u64>,
+    last_predictions: LinearMap<u64, 64>,
 }
 
 /// Internal record for an ensemble outcome.
@@ -161,7 +164,7 @@ struct EnsembleOutcome {
 /// Multi-model ensemble engine for cooperation prediction.
 pub struct CoopEnsemble {
     models: BTreeMap<ModelType, ModelTracker>,
-    outcomes: Vec<EnsembleOutcome>,
+    outcomes: VecDeque<EnsembleOutcome>,
     domain_best: BTreeMap<u64, ModelType>,
     stats: EnsembleStats,
     rng_state: u64,
@@ -186,14 +189,14 @@ impl CoopEnsemble {
                 weight: 250,
                 ema_accuracy: 500,
                 prediction_count: 0,
-                error_history: Vec::new(),
-                last_predictions: BTreeMap::new(),
+                error_history: VecDeque::new(),
+                last_predictions: LinearMap::new(),
             });
         }
 
         Self {
             models,
-            outcomes: Vec::new(),
+            outcomes: VecDeque::new(),
             domain_best: BTreeMap::new(),
             stats: EnsembleStats::new(),
             rng_state: seed ^ 0xE75E_B1E0_C00P_0001,
@@ -204,6 +207,7 @@ impl CoopEnsemble {
     }
 
     /// Feed a sub-model prediction for a target.
+    #[inline]
     pub fn feed_prediction(
         &mut self,
         model_type: ModelType,
@@ -247,14 +251,14 @@ impl CoopEnsemble {
                 tracker.ema_accuracy = ema_update(tracker.ema_accuracy, accuracy, 200, 1000);
                 tracker.error_history.push(error);
                 if tracker.error_history.len() > 128 {
-                    tracker.error_history.remove(0);
+                    tracker.error_history.pop_front().unwrap();
                 }
             }
         }
 
         self.rebalance_weights();
 
-        self.outcomes.push(EnsembleOutcome {
+        self.outcomes.push_back(EnsembleOutcome {
             target_id,
             ensemble_pred,
             actual_value,
@@ -262,7 +266,7 @@ impl CoopEnsemble {
             model_errors,
         });
         if self.outcomes.len() > self.max_outcomes {
-            self.outcomes.remove(0);
+            self.outcomes.pop_front();
         }
     }
 
@@ -422,6 +426,7 @@ impl CoopEnsemble {
     }
 
     /// Identify the best predictor overall.
+    #[inline]
     pub fn best_predictor(&self) -> (ModelType, u64) {
         self.models.iter()
             .max_by_key(|(_, t)| t.ema_accuracy)
@@ -462,11 +467,13 @@ impl CoopEnsemble {
     }
 
     /// Advance the internal tick.
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.current_tick = self.current_tick.wrapping_add(1);
     }
 
     /// Retrieve current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &EnsembleStats {
         &self.stats
     }

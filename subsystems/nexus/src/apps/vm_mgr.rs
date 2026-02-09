@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Page fault type
@@ -83,10 +84,14 @@ impl AppMemRegion {
         }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end - self.start }
+    #[inline(always)]
     pub fn page_count(&self) -> u64 { self.size() / 4096 }
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool { addr >= self.start && addr < self.end }
 
+    #[inline]
     pub fn residency(&self) -> f64 {
         let pages = self.page_count();
         if pages == 0 { return 0.0; }
@@ -106,17 +111,18 @@ pub struct WorkingSetEstimate {
 
 /// Per-app VM state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppVmState {
     pub process_id: u64,
     pub regions: Vec<AppMemRegion>,
     pub total_mapped_pages: u64,
     pub total_resident_pages: u64,
-    pub fault_history: Vec<PageFaultRecord>,
+    pub fault_history: VecDeque<PageFaultRecord>,
     pub max_fault_history: usize,
     pub minor_faults: u64,
     pub major_faults: u64,
     pub cow_faults: u64,
-    pub wss_estimates: Vec<WorkingSetEstimate>,
+    pub wss_estimates: VecDeque<WorkingSetEstimate>,
     pub peak_rss_pages: u64,
 }
 
@@ -127,16 +133,17 @@ impl AppVmState {
             regions: Vec::new(),
             total_mapped_pages: 0,
             total_resident_pages: 0,
-            fault_history: Vec::new(),
+            fault_history: VecDeque::new(),
             max_fault_history: max_history,
             minor_faults: 0,
             major_faults: 0,
             cow_faults: 0,
-            wss_estimates: Vec::new(),
+            wss_estimates: VecDeque::new(),
             peak_rss_pages: 0,
         }
     }
 
+    #[inline(always)]
     pub fn add_region(&mut self, region: AppMemRegion) {
         self.total_mapped_pages += region.page_count();
         self.regions.push(region);
@@ -155,11 +162,11 @@ impl AppVmState {
             region.resident_pages += 1;
         }
 
-        self.fault_history.push(PageFaultRecord {
+        self.fault_history.push_back(PageFaultRecord {
             address: addr, fault_type, latency_ns: latency, timestamp_ns: ts,
         });
         while self.fault_history.len() > self.max_fault_history {
-            self.fault_history.remove(0);
+            self.fault_history.pop_front();
         }
     }
 
@@ -194,10 +201,11 @@ impl AppVmState {
             estimated_wss_pages: accessed.len() as u64,
             growth_rate: 0.0,
         };
-        self.wss_estimates.push(est);
-        if self.wss_estimates.len() > 64 { self.wss_estimates.remove(0); }
+        self.wss_estimates.push_back(est);
+        if self.wss_estimates.len() > 64 { self.wss_estimates.pop_front(); }
     }
 
+    #[inline]
     pub fn update_totals(&mut self) {
         self.total_resident_pages = self.regions.iter().map(|r| r.resident_pages).sum();
         if self.total_resident_pages > self.peak_rss_pages {
@@ -205,6 +213,7 @@ impl AppVmState {
         }
     }
 
+    #[inline(always)]
     pub fn fault_rate(&self, window_faults: u64, window_ns: u64) -> f64 {
         if window_ns == 0 { return 0.0; }
         window_faults as f64 / (window_ns as f64 / 1_000_000_000.0)
@@ -213,6 +222,7 @@ impl AppVmState {
 
 /// Apps VM manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsVmMgrStats {
     pub total_processes: usize,
     pub total_regions: usize,
@@ -236,30 +246,37 @@ impl AppsVmMgr {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, max_history: usize) {
         self.states.entry(pid).or_insert_with(|| AppVmState::new(pid, max_history));
     }
 
+    #[inline(always)]
     pub fn add_region(&mut self, pid: u64, region: AppMemRegion) {
         if let Some(state) = self.states.get_mut(&pid) { state.add_region(region); }
     }
 
+    #[inline]
     pub fn record_fault(&mut self, pid: u64, addr: u64, ftype: PageFaultType, latency: u64, ts: u64) {
         if let Some(state) = self.states.get_mut(&pid) {
             state.record_fault(addr, ftype, latency, ts);
         }
     }
 
+    #[inline(always)]
     pub fn apply_madvise(&mut self, pid: u64, addr: u64, hint: MadviseHint) {
         if let Some(state) = self.states.get_mut(&pid) { state.apply_madvise(addr, hint); }
     }
 
+    #[inline(always)]
     pub fn estimate_all_wss(&mut self, ts: u64) {
         for state in self.states.values_mut() { state.estimate_wss(ts); }
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.states.len();
         self.stats.total_regions = self.states.values().map(|s| s.regions.len()).sum();
@@ -269,6 +286,8 @@ impl AppsVmMgr {
         self.stats.total_major_faults = self.states.values().map(|s| s.major_faults).sum();
     }
 
+    #[inline(always)]
     pub fn app_state(&self, pid: u64) -> Option<&AppVmState> { self.states.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsVmMgrStats { &self.stats }
 }

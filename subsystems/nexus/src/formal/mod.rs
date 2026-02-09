@@ -104,16 +104,19 @@ pub enum LtlFormula {
 
 impl LtlFormula {
     /// Create globally formula: □φ
+    #[inline(always)]
     pub fn always(phi: LtlFormula) -> Self {
         LtlFormula::Globally(Box::new(phi))
     }
 
     /// Create finally formula: ◇φ
+    #[inline(always)]
     pub fn eventually(phi: LtlFormula) -> Self {
         LtlFormula::Finally(Box::new(phi))
     }
 
     /// Create response pattern: □(p → ◇q)
+    #[inline]
     pub fn response(p: &str, q: &str) -> Self {
         LtlFormula::always(LtlFormula::Implies(
             Box::new(LtlFormula::Atom(String::from(p))),
@@ -122,16 +125,19 @@ impl LtlFormula {
     }
 
     /// Create invariant pattern: □p
+    #[inline(always)]
     pub fn invariant(p: &str) -> Self {
         LtlFormula::always(LtlFormula::Atom(String::from(p)))
     }
 
     /// Create absence pattern: □¬p
+    #[inline(always)]
     pub fn absence(p: &str) -> Self {
         LtlFormula::always(LtlFormula::Not(Box::new(LtlFormula::Atom(String::from(p)))))
     }
 
     /// Negate the formula
+    #[inline(always)]
     pub fn negate(&self) -> Self {
         LtlFormula::Not(Box::new(self.clone()))
     }
@@ -139,6 +145,7 @@ impl LtlFormula {
 
 /// Transition system state
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(align(64))]
 pub struct State {
     /// State variables
     pub variables: BTreeMap<String, i64>,
@@ -151,11 +158,13 @@ impl State {
     }
 
     /// Set variable
+    #[inline(always)]
     pub fn set(&mut self, name: &str, value: i64) {
         self.variables.insert(String::from(name), value);
     }
 
     /// Get variable
+    #[inline(always)]
     pub fn get(&self, name: &str) -> Option<i64> {
         self.variables.get(name).copied()
     }
@@ -246,6 +255,7 @@ impl BoundedModelChecker {
     }
 
     /// Check liveness property (simplified)
+    #[inline(always)]
     pub fn check_liveness(&self, _property: &LtlFormula, k: usize) -> BmcResult {
         // Simplified: just check up to bound
         BmcResult::Unknown(k)
@@ -265,6 +275,7 @@ pub enum BmcResult {
 
 /// Symbolic state for symbolic execution
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SymbolicState {
     /// Symbolic variables
     pub variables: BTreeMap<String, SmtTerm>,
@@ -281,11 +292,13 @@ impl SymbolicState {
     }
 
     /// Add path constraint
+    #[inline(always)]
     pub fn add_constraint(&mut self, constraint: SmtTerm) {
         self.path_condition.push(constraint);
     }
 
     /// Fork state
+    #[inline(always)]
     pub fn fork(&self) -> Self {
         self.clone()
     }
@@ -309,6 +322,7 @@ impl SymbolicExecutor {
     }
 
     /// Add symbolic variable
+    #[inline]
     pub fn add_symbolic_var(&mut self, name: &str, sort: SmtSort) {
         self.solver.declare(name, sort.clone());
         self.initial
@@ -317,6 +331,7 @@ impl SymbolicExecutor {
     }
 
     /// Check if path is feasible
+    #[inline]
     pub fn is_feasible(&self, state: &SymbolicState) -> bool {
         let mut solver = SmtSolver::new();
 
@@ -328,6 +343,7 @@ impl SymbolicExecutor {
     }
 
     /// Execute symbolically (returns terminal states)
+    #[inline(always)]
     pub fn execute(&mut self, _max_depth: usize) -> Vec<SymbolicState> {
         // Simplified: just return initial state
         vec![self.initial.clone()]
@@ -356,6 +372,7 @@ pub struct IntervalDomain {
 
 impl IntervalDomain {
     /// Top (all values)
+    #[inline]
     pub fn top() -> Self {
         Self {
             lo: i64::MIN,
@@ -364,6 +381,7 @@ impl IntervalDomain {
     }
 
     /// Bottom (no values)
+    #[inline]
     pub fn bottom() -> Self {
         Self {
             lo: i64::MAX,
@@ -372,11 +390,13 @@ impl IntervalDomain {
     }
 
     /// Constant
+    #[inline(always)]
     pub fn constant(c: i64) -> Self {
         Self { lo: c, hi: c }
     }
 
     /// Join (least upper bound)
+    #[inline]
     pub fn join(&self, other: &Self) -> Self {
         Self {
             lo: self.lo.min(other.lo),
@@ -385,6 +405,7 @@ impl IntervalDomain {
     }
 
     /// Meet (greatest lower bound)
+    #[inline]
     pub fn meet(&self, other: &Self) -> Self {
         Self {
             lo: self.lo.max(other.lo),
@@ -409,6 +430,7 @@ impl IntervalDomain {
     }
 
     /// Addition
+    #[inline]
     pub fn add(&self, other: &Self) -> Self {
         Self {
             lo: self.lo.saturating_add(other.lo),
@@ -417,6 +439,7 @@ impl IntervalDomain {
     }
 
     /// Subtraction
+    #[inline]
     pub fn sub(&self, other: &Self) -> Self {
         Self {
             lo: self.lo.saturating_sub(other.hi),
@@ -425,11 +448,13 @@ impl IntervalDomain {
     }
 
     /// Contains value
+    #[inline(always)]
     pub fn contains(&self, value: i64) -> bool {
         self.lo <= value && value <= self.hi
     }
 
     /// Is bottom
+    #[inline(always)]
     pub fn is_bottom(&self) -> bool {
         self.lo > self.hi
     }
@@ -450,6 +475,7 @@ pub enum SignDomain {
 
 impl SignDomain {
     /// Join
+    #[inline]
     pub fn join(&self, other: &Self) -> Self {
         match (self, other) {
             (Self::Bottom, x) | (x, Self::Bottom) => *x,
@@ -463,6 +489,7 @@ impl SignDomain {
     }
 
     /// Abstract multiplication
+    #[inline]
     pub fn mul(&self, other: &Self) -> Self {
         match (self, other) {
             (Self::Bottom, _) | (_, Self::Bottom) => Self::Bottom,
@@ -494,6 +521,7 @@ impl OctagonDomain {
     }
 
     /// Set constraint: x_i - x_j <= c
+    #[inline]
     pub fn set_bound(&mut self, i: usize, j: usize, c: i64) {
         if i < self.bounds.len() && j < self.bounds.len() {
             self.bounds[i][j] = self.bounds[i][j].min(c);
@@ -516,6 +544,7 @@ impl OctagonDomain {
     }
 
     /// Check consistency
+    #[inline]
     pub fn is_consistent(&self) -> bool {
         for i in 0..self.bounds.len() {
             if self.bounds[i][i] < 0 {
@@ -564,6 +593,7 @@ impl KernelVerifier {
     }
 
     /// Verify bounds: lo <= x <= hi
+    #[inline]
     pub fn verify_bounds(&mut self, _var: &str, lo: i64, hi: i64) -> bool {
         let domain = IntervalDomain { lo, hi };
 
@@ -572,21 +602,25 @@ impl KernelVerifier {
     }
 
     /// Add invariant
+    #[inline(always)]
     pub fn add_invariant(&mut self, inv: SmtTerm) {
         self.invariants.push(inv);
     }
 
     /// Record verified property
+    #[inline(always)]
     pub fn record_verified(&mut self, property: String) {
         self.verified.push(property);
     }
 
     /// Record counterexample
+    #[inline(always)]
     pub fn record_counterexample(&mut self, property: String, trace: Vec<State>) {
         self.counterexamples.push((property, trace));
     }
 
     /// Get verification summary
+    #[inline]
     pub fn summary(&self) -> VerificationSummary {
         VerificationSummary {
             verified_count: self.verified.len(),

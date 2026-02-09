@@ -45,6 +45,7 @@ impl CausalGraph {
     }
 
     /// Add a node
+    #[inline]
     pub fn add_node(&mut self, node: CausalNode) -> u64 {
         let id = node.id;
 
@@ -58,6 +59,7 @@ impl CausalGraph {
     }
 
     /// Add an edge
+    #[inline]
     pub fn add_edge(&mut self, edge: CausalEdge) {
         let from = edge.from;
         let to = edge.to;
@@ -70,6 +72,7 @@ impl CausalGraph {
     }
 
     /// Add causal link between two nodes
+    #[inline]
     pub fn link(&mut self, from: u64, to: u64, edge_type: CausalEdgeType) {
         if let (Some(from_node), Some(to_node)) = (self.nodes.get(&from), self.nodes.get(&to)) {
             let latency = to_node.timestamp.duration_since(from_node.timestamp);
@@ -89,31 +92,37 @@ impl CausalGraph {
     }
 
     /// Get a node by ID
+    #[inline(always)]
     pub fn get_node(&self, id: u64) -> Option<&CausalNode> {
         self.nodes.get(&id)
     }
 
     /// Get all nodes
+    #[inline(always)]
     pub fn nodes(&self) -> impl Iterator<Item = &CausalNode> {
         self.nodes.values()
     }
 
     /// Get all edges
+    #[inline(always)]
     pub fn edges(&self) -> &[CausalEdge] {
         &self.edges
     }
 
     /// Get root nodes
+    #[inline(always)]
     pub fn roots(&self) -> &[u64] {
         &self.roots
     }
 
     /// Get error nodes
+    #[inline(always)]
     pub fn error_nodes(&self) -> &[u64] {
         &self.error_nodes
     }
 
     /// Get children of a node
+    #[inline]
     pub fn children(&self, node_id: u64) -> &[u64] {
         self.adjacency
             .get(&node_id)
@@ -122,6 +131,7 @@ impl CausalGraph {
     }
 
     /// Get parents of a node
+    #[inline]
     pub fn parents(&self, node_id: u64) -> &[u64] {
         self.reverse_adjacency
             .get(&node_id)
@@ -219,6 +229,7 @@ impl CausalGraph {
     }
 
     /// Get all paths from any root to a specific node
+    #[inline]
     pub fn all_paths_to(&self, target: u64) -> Vec<Vec<u64>> {
         let mut all_paths = Vec::new();
 
@@ -275,16 +286,19 @@ impl CausalGraph {
     }
 
     /// Get node count
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
 
     /// Get edge count
+    #[inline(always)]
     pub fn edge_count(&self) -> usize {
         self.edges.len()
     }
 
     /// Clear the graph
+    #[inline]
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.edges.clear();

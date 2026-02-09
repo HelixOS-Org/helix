@@ -38,18 +38,21 @@ static ROUND_COUNTER: AtomicU64 = AtomicU64::new(1);
 static AGGREGATION_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl ModelId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(MODEL_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
 }
 
 impl RoundId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(ROUND_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
 }
 
 impl AggregationId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(AGGREGATION_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -237,6 +240,7 @@ pub struct Regularization {
 
 /// Model metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ModelMetrics {
     /// Loss
     pub loss: f64,
@@ -634,6 +638,7 @@ impl Default for FederatedConfig {
 
 /// Federated statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FederatedStats {
     /// Rounds completed
     pub rounds_completed: u64,
@@ -661,16 +666,19 @@ impl FederatedEngine {
     }
 
     /// Start the engine
+    #[inline(always)]
     pub fn start(&self) {
         self.running.store(true, Ordering::Release);
     }
 
     /// Stop the engine
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::Release);
     }
 
     /// Register a model
+    #[inline]
     pub fn register_model(&mut self, model: FederatedModel) -> ModelId {
         let id = model.id;
         self.models.insert(id, model);
@@ -767,21 +775,25 @@ impl FederatedEngine {
     }
 
     /// Set aggregation strategy
+    #[inline(always)]
     pub fn set_aggregator(&mut self, aggregator: Box<dyn Aggregator>) {
         self.aggregator = aggregator;
     }
 
     /// Get model
+    #[inline(always)]
     pub fn get_model(&self, id: ModelId) -> Option<&FederatedModel> {
         self.models.get(&id)
     }
 
     /// Get round
+    #[inline(always)]
     pub fn get_round(&self, id: RoundId) -> Option<&TrainingRound> {
         self.rounds.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &FederatedStats {
         &self.stats
     }

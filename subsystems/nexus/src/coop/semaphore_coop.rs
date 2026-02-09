@@ -22,6 +22,7 @@ impl SemCoopRecord {
 
 /// Semaphore coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemCoopStats { pub total_events: u64, pub deadlocks: u64, pub inherits: u64, pub coalesced: u64 }
 
 /// Main coop semaphore
@@ -30,6 +31,7 @@ pub struct CoopSemaphore { pub stats: SemCoopStats }
 
 impl CoopSemaphore {
     pub fn new() -> Self { Self { stats: SemCoopStats { total_events: 0, deadlocks: 0, inherits: 0, coalesced: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SemCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

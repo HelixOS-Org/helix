@@ -96,6 +96,7 @@ pub enum ConfigValue {
 }
 
 impl ConfigValue {
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Self::Bool(b) => Some(*b),
@@ -103,6 +104,7 @@ impl ConfigValue {
         }
     }
 
+    #[inline]
     pub fn as_int(&self) -> Option<i64> {
         match self {
             Self::Int(i) => Some(*i),
@@ -110,6 +112,7 @@ impl ConfigValue {
         }
     }
 
+    #[inline]
     pub fn as_string(&self) -> Option<&str> {
         match self {
             Self::String(s) => Some(s),
@@ -303,6 +306,7 @@ impl PipelineBuilder {
         }
     }
 
+    #[inline]
     pub fn add_stage(
         mut self,
         name: &str,
@@ -319,6 +323,7 @@ impl PipelineBuilder {
         self
     }
 
+    #[inline]
     pub fn connect(mut self, from_stage: &str, from_output: &str, to_stage: &str, to_input: &str) -> Self {
         if let Some(stage) = self.stages.iter_mut().find(|s| s.name == to_stage) {
             stage.inputs.push(StageInput {
@@ -330,16 +335,19 @@ impl PipelineBuilder {
         self
     }
 
+    #[inline(always)]
     pub fn with_error_handling(mut self, handling: ErrorHandling) -> Self {
         self.error_handling = handling;
         self
     }
 
+    #[inline(always)]
     pub fn with_parallelism(mut self, parallelism: u32) -> Self {
         self.parallelism = parallelism;
         self
     }
 
+    #[inline]
     pub fn build(self, id: u64) -> PipelineDefinition {
         PipelineDefinition {
             id,
@@ -403,6 +411,7 @@ impl Default for FactoryConfig {
 
 /// Factory statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FactoryStats {
     /// Templates registered
     pub templates: u64,
@@ -468,11 +477,13 @@ impl CognitiveFactory {
     }
 
     /// Get template
+    #[inline(always)]
     pub fn get_template(&self, id: u64) -> Option<&ComponentTemplate> {
         self.templates.get(&id)
     }
 
     /// Get template by name
+    #[inline(always)]
     pub fn get_template_by_name(&self, name: &str) -> Option<&ComponentTemplate> {
         let id = self.templates_by_name.get(name)?;
         self.templates.get(id)
@@ -559,6 +570,7 @@ impl CognitiveFactory {
     }
 
     /// Destroy instance
+    #[inline]
     pub fn destroy(&mut self, id: ComponentId) -> Result<(), &'static str> {
         let instance = self.instances.remove(&id)
             .ok_or("Instance not found")?;
@@ -571,6 +583,7 @@ impl CognitiveFactory {
     }
 
     /// Get instance
+    #[inline(always)]
     pub fn get_instance(&self, id: ComponentId) -> Option<&ComponentInstance> {
         self.instances.get(&id)
     }
@@ -598,6 +611,7 @@ impl CognitiveFactory {
     }
 
     /// Get pipeline
+    #[inline(always)]
     pub fn get_pipeline(&self, id: u64) -> Option<&PipelineDefinition> {
         self.pipelines.get(&id)
     }
@@ -626,6 +640,7 @@ impl CognitiveFactory {
     }
 
     /// List templates by type
+    #[inline]
     pub fn templates_by_type(&self, component_type: ComponentType) -> Vec<&ComponentTemplate> {
         self.templates.values()
             .filter(|t| t.component_type == component_type)
@@ -633,6 +648,7 @@ impl CognitiveFactory {
     }
 
     /// List running instances
+    #[inline]
     pub fn running_instances(&self) -> Vec<&ComponentInstance> {
         self.instances.values()
             .filter(|i| i.status == InstanceStatus::Running)
@@ -640,6 +656,7 @@ impl CognitiveFactory {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &FactoryStats {
         &self.stats
     }

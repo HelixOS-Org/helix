@@ -20,6 +20,7 @@ pub enum TrafficClass {
 }
 
 impl TrafficClass {
+    #[inline]
     pub fn dscp_value(&self) -> u8 {
         match self {
             Self::BestEffort => 0,
@@ -32,6 +33,7 @@ impl TrafficClass {
         }
     }
 
+    #[inline]
     pub fn priority(&self) -> u8 {
         match self {
             Self::Scavenger => 0,
@@ -75,6 +77,7 @@ impl ClassifyMatch {
         }
     }
 
+    #[inline]
     pub fn matches_port(&self, src: u16, dst: u16) -> bool {
         if let Some((lo, hi)) = self.src_port {
             if src < lo || src > hi { return false; }
@@ -115,6 +118,7 @@ impl ClassifyRule {
         }
     }
 
+    #[inline(always)]
     pub fn avg_packet_size(&self) -> u64 {
         if self.hit_count == 0 { return 0; }
         self.bytes_matched / self.hit_count
@@ -123,6 +127,7 @@ impl ClassifyRule {
 
 /// Per-class statistics
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ClassStats {
     pub traffic_class: TrafficClass,
     pub packets: u64,
@@ -143,11 +148,13 @@ impl ClassStats {
         }
     }
 
+    #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         if self.packets == 0 { return 0.0; }
         self.drops as f64 / self.packets as f64
     }
 
+    #[inline(always)]
     pub fn avg_packet_size(&self) -> u64 {
         if self.packets == 0 { return 0; }
         self.bytes / self.packets
@@ -169,16 +176,19 @@ pub struct FlowEntry {
 }
 
 impl FlowEntry {
+    #[inline(always)]
     pub fn duration(&self) -> u64 {
         self.last_seen.saturating_sub(self.first_seen)
     }
 
+    #[inline]
     pub fn rate_bps(&self) -> u64 {
         let dur_s = self.duration() / 1_000_000;
         if dur_s == 0 { return self.bytes * 8; }
         (self.bytes * 8) / dur_s
     }
 
+    #[inline(always)]
     pub fn is_idle(&self, now: u64, timeout: u64) -> bool {
         now.saturating_sub(self.last_seen) > timeout
     }
@@ -186,6 +196,7 @@ impl FlowEntry {
 
 /// Classifier stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetClassifierStats {
     pub total_rules: u32,
     pub active_rules: u32,
@@ -221,6 +232,7 @@ impl HolisticNetClassifier {
         }
     }
 
+    #[inline]
     pub fn add_rule(&mut self, mut rule: ClassifyRule) -> u32 {
         let id = self.next_rule_id;
         self.next_rule_id += 1;
@@ -231,6 +243,7 @@ impl HolisticNetClassifier {
         id
     }
 
+    #[inline]
     pub fn remove_rule(&mut self, id: u32) -> bool {
         if let Some(rule) = self.rules.remove(&id) {
             self.stats.total_rules -= 1;
@@ -308,6 +321,7 @@ impl HolisticNetClassifier {
         }
     }
 
+    #[inline]
     pub fn expire_flows(&mut self, now: u64, timeout: u64) -> u64 {
         let before = self.flows.len();
         self.flows.retain(|_, f| !f.is_idle(now, timeout));
@@ -316,6 +330,7 @@ impl HolisticNetClassifier {
         removed as u64
     }
 
+    #[inline]
     pub fn top_flows(&self, n: usize) -> Vec<(u64, u64)> {
         let mut v: Vec<_> = self.flows.iter()
             .map(|(&h, f)| (h, f.bytes))
@@ -325,6 +340,7 @@ impl HolisticNetClassifier {
         v
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &NetClassifierStats {
         &self.stats
     }

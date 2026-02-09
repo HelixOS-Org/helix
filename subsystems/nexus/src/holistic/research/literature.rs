@@ -156,6 +156,7 @@ pub struct WisdomRule {
 
 /// State of knowledge summary
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateOfKnowledge {
     pub total_items: usize,
     pub domain_coverage: Vec<(KnowledgeDomain, f32)>,
@@ -167,6 +168,7 @@ pub struct StateOfKnowledge {
 
 /// Literature statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LiteratureStats {
     pub total_items: u64,
     pub domains_covered: u64,
@@ -441,6 +443,7 @@ impl HolisticLiterature {
     }
 
     /// Current statistics snapshot
+    #[inline(always)]
     pub fn stats(&self) -> &LiteratureStats {
         &self.stats
     }
@@ -460,6 +463,7 @@ impl HolisticLiterature {
         }
     }
 
+    #[inline]
     fn refresh_stats(&mut self, _tick: u64) {
         self.stats.total_items = self.items.len() as u64;
         self.stats.domains_covered = self.domain_item_count.len() as u64;

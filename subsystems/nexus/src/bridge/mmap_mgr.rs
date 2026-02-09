@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// VMA permission flags
@@ -23,9 +24,13 @@ pub struct VmaPerms {
 }
 
 impl VmaPerms {
+    #[inline(always)]
     pub fn rwx() -> Self { Self { read: true, write: true, exec: true, shared: false } }
+    #[inline(always)]
     pub fn rw() -> Self { Self { read: true, write: true, exec: false, shared: false } }
+    #[inline(always)]
     pub fn ro() -> Self { Self { read: true, write: false, exec: false, shared: false } }
+    #[inline(always)]
     pub fn rx() -> Self { Self { read: true, write: false, exec: true, shared: false } }
 }
 
@@ -77,16 +82,22 @@ impl Vma {
         }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end - self.start }
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool { addr >= self.start && addr < self.end }
 
+    #[inline(always)]
     pub fn residency_ratio(&self) -> f64 {
         if self.page_count == 0 { return 0.0; }
         self.resident_pages as f64 / self.page_count as f64
     }
 
+    #[inline(always)]
     pub fn is_writable(&self) -> bool { self.perms.write }
+    #[inline(always)]
     pub fn is_executable(&self) -> bool { self.perms.exec }
+    #[inline(always)]
     pub fn is_shared(&self) -> bool { self.perms.shared }
 }
 
@@ -123,20 +134,24 @@ impl ProcessAddrSpace {
         }
     }
 
+    #[inline]
     pub fn add_vma(&mut self, vma: Vma) {
         self.total_mapped += vma.size();
         self.total_resident += vma.resident_pages * 4096;
         self.vmas.push(vma);
     }
 
+    #[inline(always)]
     pub fn find_vma(&self, addr: u64) -> Option<&Vma> {
         self.vmas.iter().find(|v| v.contains(addr))
     }
 
+    #[inline(always)]
     pub fn find_vma_mut(&mut self, addr: u64) -> Option<&mut Vma> {
         self.vmas.iter_mut().find(|v| v.contains(addr))
     }
 
+    #[inline]
     pub fn remove_vma(&mut self, start: u64) -> Option<Vma> {
         if let Some(idx) = self.vmas.iter().position(|v| v.start == start) {
             let vma = self.vmas.remove(idx);
@@ -145,6 +160,7 @@ impl ProcessAddrSpace {
         } else { None }
     }
 
+    #[inline(always)]
     pub fn vma_count(&self) -> usize { self.vmas.len() }
 
     pub fn fragmentation(&self) -> f64 {
@@ -188,6 +204,7 @@ pub enum MmapEventType {
 
 /// Bridge Memory Mapping stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeMmapMgrStats {
     pub total_processes: usize,
     pub total_vmas: usize,
@@ -197,9 +214,10 @@ pub struct BridgeMmapMgrStats {
 }
 
 /// Bridge Memory Mapping Manager
+#[repr(align(64))]
 pub struct BridgeMmapMgr {
     spaces: BTreeMap<u64, ProcessAddrSpace>,
-    events: Vec<MmapEvent>,
+    events: VecDeque<MmapEvent>,
     max_events: usize,
     stats: BridgeMmapMgrStats,
 }
@@ -208,12 +226,13 @@ impl BridgeMmapMgr {
     pub fn new(max_events: usize) -> Self {
         Self {
             spaces: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events,
             stats: BridgeMmapMgrStats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.spaces.entry(pid)
             .or_insert_with(|| ProcessAddrSpace::new(pid));
@@ -237,6 +256,7 @@ impl BridgeMmapMgr {
         actual_addr
     }
 
+    #[inline]
     pub fn munmap(&mut self, pid: u64, addr: u64, now: u64) -> bool {
         if let Some(space) = self.spaces.get_mut(&pid) {
             if let Some(vma) = space.remove_vma(addr) {
@@ -248,6 +268,7 @@ impl BridgeMmapMgr {
         false
     }
 
+    #[inline]
     pub fn mprotect(&mut self, pid: u64, addr: u64, new_perms: VmaPerms, now: u64) -> bool {
         if let Some(space) = self.spaces.get_mut(&pid) {
             if let Some(vma) = space.find_vma_mut(addr) {
@@ -260,6 +281,7 @@ impl BridgeMmapMgr {
         false
     }
 
+    #[inline]
     pub fn record_cow_fault(&mut self, pid: u64, addr: u64) {
         if let Some(space) = self.spaces.get_mut(&pid) {
             space.cow_faults += 1;
@@ -270,7 +292,7 @@ impl BridgeMmapMgr {
     }
 
     fn emit_event(&mut self, pid: u64, etype: MmapEventType, addr: u64, size: u64, ts: u64) {
-        self.events.push(MmapEvent {
+        self.events.push_back(MmapEvent {
             process_id: pid,
             event_type: etype,
             addr,
@@ -278,10 +300,11 @@ impl BridgeMmapMgr {
             timestamp_ns: ts,
         });
         while self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.spaces.len();
         self.stats.total_vmas = self.spaces.values().map(|s| s.vma_count()).sum();
@@ -290,7 +313,9 @@ impl BridgeMmapMgr {
         self.stats.total_cow_faults = self.spaces.values().map(|s| s.cow_faults).sum();
     }
 
+    #[inline(always)]
     pub fn addr_space(&self, pid: u64) -> Option<&ProcessAddrSpace> { self.spaces.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeMmapMgrStats { &self.stats }
 }
 
@@ -354,6 +379,7 @@ pub struct MmapV2Region {
 
 /// A process's virtual memory map
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MmapV2Space {
     pub pid: u64,
     pub regions: BTreeMap<u64, MmapV2Region>,
@@ -396,6 +422,7 @@ impl MmapV2Space {
         addr
     }
 
+    #[inline]
     pub fn unmap_region(&mut self, addr: u64) -> Option<MmapV2Region> {
         if let Some(region) = self.regions.remove(&addr) {
             self.total_mapped -= region.length;
@@ -406,6 +433,7 @@ impl MmapV2Space {
         }
     }
 
+    #[inline]
     pub fn protect(&mut self, addr: u64, prot: MmapV2Prot) -> bool {
         if let Some(region) = self.regions.get_mut(&addr) {
             region.prot = prot;
@@ -415,6 +443,7 @@ impl MmapV2Space {
         }
     }
 
+    #[inline]
     pub fn fault(&mut self, addr: u64) -> bool {
         for (start, region) in self.regions.iter_mut() {
             if addr >= *start && addr < *start + region.length {
@@ -430,6 +459,7 @@ impl MmapV2Space {
 
 /// Statistics for mmap V2 manager
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MmapV2Stats {
     pub total_maps: u64,
     pub total_unmaps: u64,
@@ -442,6 +472,7 @@ pub struct MmapV2Stats {
 
 /// Main mmap V2 bridge manager
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeMmapV2 {
     spaces: BTreeMap<u64, MmapV2Space>,
     stats: MmapV2Stats,
@@ -463,11 +494,13 @@ impl BridgeMmapV2 {
         }
     }
 
+    #[inline(always)]
     pub fn create_space(&mut self, pid: u64, mmap_base: u64, stack_top: u64) {
         self.spaces.insert(pid, MmapV2Space::new(pid, mmap_base, stack_top));
         self.stats.spaces_created += 1;
     }
 
+    #[inline]
     pub fn mmap(&mut self, pid: u64, addr: u64, length: u64, prot: MmapV2Prot, map_type: MmapV2Type, flags: u32, tick: u64) -> Option<u64> {
         if let Some(space) = self.spaces.get_mut(&pid) {
             let result = space.map_region(addr, length, prot, map_type, flags, tick);
@@ -479,6 +512,7 @@ impl BridgeMmapV2 {
         }
     }
 
+    #[inline]
     pub fn munmap(&mut self, pid: u64, addr: u64) -> bool {
         if let Some(space) = self.spaces.get_mut(&pid) {
             if space.unmap_region(addr).is_some() {
@@ -489,6 +523,7 @@ impl BridgeMmapV2 {
         false
     }
 
+    #[inline]
     pub fn page_fault(&mut self, pid: u64, addr: u64) -> bool {
         if let Some(space) = self.spaces.get_mut(&pid) {
             if space.fault(addr) {
@@ -499,6 +534,7 @@ impl BridgeMmapV2 {
         false
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MmapV2Stats {
         &self.stats
     }

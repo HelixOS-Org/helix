@@ -33,6 +33,7 @@ impl RouteKey {
     }
 
     /// Convert to u64 for BTreeMap
+    #[inline(always)]
     pub fn to_u64(&self) -> u64 {
         ((self.source as u64) << 32) | (self.target as u64)
     }
@@ -66,6 +67,7 @@ impl Router {
     }
 
     /// Create router with all valid channels pre-initialized
+    #[inline]
     pub fn with_all_channels() -> Self {
         let mut router = Self::new();
         router.initialize_all_channels();
@@ -73,6 +75,7 @@ impl Router {
     }
 
     /// Initialize all valid channels
+    #[inline]
     pub fn initialize_all_channels(&mut self) {
         let domains = Domain::cognitive_domains();
 
@@ -86,6 +89,7 @@ impl Router {
     }
 
     /// Create channel for route
+    #[inline]
     pub fn create_channel(&mut self, source: Domain, target: Domain) -> StreamId {
         let key = RouteKey::new(source, target).to_u64();
         if let Some(existing) = self.channels.get(&key) {
@@ -99,6 +103,7 @@ impl Router {
     }
 
     /// Create channel with specific capacity
+    #[inline]
     pub fn create_channel_with_capacity(
         &mut self,
         source: Domain,
@@ -117,12 +122,14 @@ impl Router {
     }
 
     /// Get channel
+    #[inline(always)]
     pub fn get_channel(&mut self, source: Domain, target: Domain) -> Option<&mut Channel> {
         let key = RouteKey::new(source, target).to_u64();
         self.channels.get_mut(&key)
     }
 
     /// Get channel (immutable)
+    #[inline(always)]
     pub fn get_channel_ref(&self, source: Domain, target: Domain) -> Option<&Channel> {
         let key = RouteKey::new(source, target).to_u64();
         self.channels.get(&key)
@@ -189,6 +196,7 @@ impl Router {
     }
 
     /// Close all channels
+    #[inline]
     pub fn close_all(&self) {
         for channel in self.channels.values() {
             channel.close();
@@ -196,6 +204,7 @@ impl Router {
     }
 
     /// Reopen all channels
+    #[inline]
     pub fn reopen_all(&self) {
         for channel in self.channels.values() {
             channel.reopen();
@@ -203,6 +212,7 @@ impl Router {
     }
 
     /// Expire messages in all channels
+    #[inline]
     pub fn expire_all(&mut self, now: Timestamp) -> usize {
         let mut total = 0;
         for channel in self.channels.values_mut() {
@@ -228,6 +238,7 @@ impl Router {
     }
 
     /// Reset all stats
+    #[inline]
     pub fn reset_stats(&self) {
         self.total_routed.store(0, Ordering::Relaxed);
         self.failed_routes.store(0, Ordering::Relaxed);
@@ -250,6 +261,7 @@ impl Default for Router {
 
 /// Router statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RouterStats {
     /// Total channels
     pub total_channels: u64,
@@ -265,11 +277,13 @@ pub struct RouterStats {
 
 impl RouterStats {
     /// Get total pending messages
+    #[inline(always)]
     pub fn total_pending(&self) -> u64 {
         self.channel_stats.iter().map(|s| s.pending).sum()
     }
 
     /// Get overall drop rate
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.total_routed + self.dropped;
         if total == 0 {

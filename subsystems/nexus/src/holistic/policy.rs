@@ -151,12 +151,14 @@ impl PolicyRule {
         }
     }
 
+    #[inline(always)]
     pub fn with_cooldown(mut self, ms: u64) -> Self {
         self.cooldown_ms = ms;
         self
     }
 
     /// Check if the rule should fire
+    #[inline]
     pub fn should_fire(&self, snapshot: &SystemSnapshot, current_time: u64) -> bool {
         self.enabled
             && current_time.saturating_sub(self.last_triggered) >= self.cooldown_ms
@@ -164,6 +166,7 @@ impl PolicyRule {
     }
 
     /// Fire the rule and return the action
+    #[inline]
     pub fn fire(&mut self, current_time: u64) -> OptAction {
         self.last_triggered = current_time;
         self.fire_count += 1;
@@ -266,6 +269,7 @@ impl PolicyEngine {
     }
 
     /// Add a policy rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: PolicyRule) {
         self.rules.push(rule);
     }
@@ -292,11 +296,13 @@ impl PolicyEngine {
     }
 
     /// Number of registered rules
+    #[inline(always)]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }
 
     /// Get evaluation statistics
+    #[inline(always)]
     pub fn stats(&self) -> (u64, u64) {
         (self.evaluations, self.actions_generated)
     }

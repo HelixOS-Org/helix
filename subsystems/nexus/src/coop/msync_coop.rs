@@ -40,9 +40,11 @@ pub struct SyncBarrier {
 }
 
 impl SyncBarrier {
+    #[inline(always)]
     pub fn all_arrived(&self) -> bool {
         self.arrived.len() >= self.participants.len()
     }
+    #[inline]
     pub fn progress(&self) -> f64 {
         if self.participants.is_empty() {
             return 1.0;
@@ -63,18 +65,21 @@ pub struct DirtyRegion {
 }
 
 impl DirtyRegion {
+    #[inline]
     pub fn dirty_ratio(&self) -> f64 {
         if self.total_pages == 0 {
             return 0.0;
         }
         self.dirty_pages as f64 / self.total_pages as f64
     }
+    #[inline(always)]
     pub fn needs_flush(&self, threshold: f64, max_age: u64, now: u64) -> bool {
         self.dirty_ratio() > threshold || now.saturating_sub(self.last_flush) > max_age
     }
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MsyncCoopStats {
     pub barriers_created: u64,
     pub barriers_completed: u64,
@@ -146,6 +151,7 @@ impl MsyncCoopManager {
     }
 
     /// Advance barrier phase after flush
+    #[inline]
     pub fn complete_barrier(&mut self, barrier_id: u64) {
         if let Some(barrier) = self.barriers.get_mut(&barrier_id) {
             barrier.phase = SyncPhase::Complete;
@@ -168,6 +174,7 @@ impl MsyncCoopManager {
     }
 
     /// Find regions that need flushing
+    #[inline]
     pub fn regions_needing_flush(&self, now: u64) -> Vec<u64> {
         self.dirty_regions
             .iter()
@@ -193,6 +200,7 @@ impl MsyncCoopManager {
     }
 
     /// Update vector clock for causal consistency
+    #[inline(always)]
     pub fn tick_clock(&mut self, pid: u64) {
         let clock = self.vector_clocks.entry(pid).or_insert_with(BTreeMap::new);
         *clock.entry(pid).or_insert(0) += 1;
@@ -224,9 +232,11 @@ impl MsyncCoopManager {
         all_leq && some_lt
     }
 
+    #[inline(always)]
     pub fn barrier(&self, id: u64) -> Option<&SyncBarrier> {
         self.barriers.get(&id)
     }
+    #[inline(always)]
     pub fn stats(&self) -> &MsyncCoopStats {
         &self.stats
     }

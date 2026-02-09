@@ -42,6 +42,7 @@ fn fnv1a_hash(data: &[u8]) -> u64 {
 
 /// How the bridge allocates attention across decision types
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AttentionSlice {
     pub category: String,
     pub category_id: u64,
@@ -59,6 +60,7 @@ pub struct AttentionSlice {
 
 /// A detected cognitive blind spot
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BlindSpot {
     pub id: u64,
     pub description: String,
@@ -108,6 +110,7 @@ impl MetaLearningState {
         }
     }
 
+    #[inline]
     fn record_episode(&mut self, quality_improvement: f32) {
         self.episodes += 1;
         self.prev_learning_rate = self.learning_rate;
@@ -141,6 +144,7 @@ impl MetaLearningState {
 
 /// Aggregate statistics about the meta-cognitive layer
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct MetaCognitionStats {
     pub attention_categories: usize,
     pub blind_spots_detected: usize,
@@ -159,6 +163,7 @@ pub struct MetaCognitionStats {
 /// Thinks about bridge thinking — attention allocation, blind spot detection,
 /// meta-learning rate tracking, and reasoning optimization.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeMetaCognition {
     /// Attention allocation by category (keyed by FNV hash)
     attention: BTreeMap<u64, AttentionSlice>,
@@ -190,6 +195,7 @@ impl BridgeMetaCognition {
     }
 
     /// Record attention spent on a category
+    #[inline]
     pub fn analyze_attention(&mut self, category: &str, cycles_spent: u64, decision_quality: f32) {
         self.tick += 1;
         self.total_cycles += cycles_spent;
@@ -228,6 +234,7 @@ impl BridgeMetaCognition {
     }
 
     /// Detect a blind spot — an area where the bridge lacks awareness
+    #[inline]
     pub fn detect_blind_spot(
         &mut self,
         description: &str,
@@ -254,6 +261,7 @@ impl BridgeMetaCognition {
     }
 
     /// Acknowledge a blind spot (bridge is now aware of it)
+    #[inline]
     pub fn acknowledge_blind_spot(&mut self, id: u64) {
         if let Some(spot) = self.blind_spots.get_mut(&id) {
             spot.acknowledged = true;
@@ -263,6 +271,7 @@ impl BridgeMetaCognition {
     }
 
     /// Trigger a meta-learning step: the bridge reflects on its own learning
+    #[inline(always)]
     pub fn meta_learn(&mut self, quality_improvement: f32) {
         self.meta_learning.record_episode(quality_improvement);
     }

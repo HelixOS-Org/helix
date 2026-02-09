@@ -1,5 +1,6 @@
 //! Workload classification.
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::{TaskFeatures, WorkloadType};
@@ -9,11 +10,12 @@ use super::types::{TaskFeatures, WorkloadType};
 // ============================================================================
 
 /// Workload classifier using decision boundaries
+#[repr(align(64))]
 pub struct WorkloadClassifier {
     /// Classification thresholds
     thresholds: ClassificationThresholds,
     /// Classification history for learning
-    history: Vec<(TaskFeatures, WorkloadType)>,
+    history: VecDeque<(TaskFeatures, WorkloadType)>,
     /// Max history size
     max_history: usize,
     /// Enable learning
@@ -47,7 +49,7 @@ impl WorkloadClassifier {
     pub fn new() -> Self {
         Self {
             thresholds: ClassificationThresholds::default(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 10000,
             learning_enabled: true,
         }
@@ -116,10 +118,10 @@ impl WorkloadClassifier {
             return;
         }
 
-        self.history.push((features, actual));
+        self.history.push_back((features, actual));
 
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         if self.history.len() % 100 == 0 {
@@ -164,16 +166,19 @@ impl WorkloadClassifier {
     }
 
     /// Enable learning
+    #[inline(always)]
     pub fn enable_learning(&mut self) {
         self.learning_enabled = true;
     }
 
     /// Disable learning
+    #[inline(always)]
     pub fn disable_learning(&mut self) {
         self.learning_enabled = false;
     }
 
     /// Get history size
+    #[inline(always)]
     pub fn history_size(&self) -> usize {
         self.history.len()
     }

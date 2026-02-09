@@ -63,6 +63,7 @@ impl ModuleParam {
         Self { name, ptype, value: default, description: desc, mode: 0o644, modified: false }
     }
 
+    #[inline(always)]
     pub fn set(&mut self, val: String) { self.value = val; self.modified = true; }
 }
 
@@ -78,6 +79,7 @@ pub struct ModuleSymbol {
 
 /// Module descriptor
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ModuleDesc {
     pub id: u64,
     pub name: String,
@@ -106,9 +108,13 @@ impl ModuleDesc {
         }
     }
 
+    #[inline(always)]
     pub fn is_live(&self) -> bool { self.state == ModuleState::Live }
+    #[inline(always)]
     pub fn can_unload(&self) -> bool { self.refcount == 0 && self.dependents.is_empty() && self.state == ModuleState::Live }
+    #[inline(always)]
     pub fn add_dep(&mut self, dep: u64) { if !self.deps.contains(&dep) { self.deps.push(dep); } }
+    #[inline(always)]
     pub fn add_taint(&mut self, t: ModuleTaint) { if !self.taints.contains(&t) { self.taints.push(t); } }
 }
 
@@ -143,6 +149,7 @@ pub enum ModuleEventKind {
 
 /// Module bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ModuleBridgeStats {
     pub total_modules: usize,
     pub live_modules: usize,
@@ -154,6 +161,7 @@ pub struct ModuleBridgeStats {
 }
 
 /// Bridge module manager
+#[repr(align(64))]
 pub struct BridgeModuleBridge {
     modules: BTreeMap<u64, ModuleDesc>,
     symbols: BTreeMap<String, ModuleSymbol>,
@@ -167,6 +175,7 @@ impl BridgeModuleBridge {
         Self { modules: BTreeMap::new(), symbols: BTreeMap::new(), events: Vec::new(), stats: ModuleBridgeStats::default(), next_id: 1 }
     }
 
+    #[inline]
     pub fn load_module(&mut self, name: String, version: String, size: u64, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut m = ModuleDesc::new(id, name, version);
@@ -178,11 +187,13 @@ impl BridgeModuleBridge {
         id
     }
 
+    #[inline(always)]
     pub fn init_complete(&mut self, id: u64, ts: u64) {
         if let Some(m) = self.modules.get_mut(&id) { m.state = ModuleState::Live; }
         self.events.push(ModuleEvent { module_id: id, kind: ModuleEventKind::Init, ts, result: 0 });
     }
 
+    #[inline]
     pub fn unload_module(&mut self, id: u64, ts: u64) -> bool {
         let can = self.modules.get(&id).map(|m| m.can_unload()).unwrap_or(false);
         if !can { self.events.push(ModuleEvent { module_id: id, kind: ModuleEventKind::Unload, ts, result: -1 }); return false; }
@@ -194,19 +205,23 @@ impl BridgeModuleBridge {
         true
     }
 
+    #[inline]
     pub fn export_symbol(&mut self, mod_id: u64, name: String, addr: u64, gpl: bool, crc: u32) {
         let sym = ModuleSymbol { name: name.clone(), address: addr, module_id: mod_id, is_gpl: gpl, crc };
         if let Some(m) = self.modules.get_mut(&mod_id) { m.exported_syms.push(name.clone()); }
         self.symbols.insert(name, sym);
     }
 
+    #[inline(always)]
     pub fn resolve_symbol(&self, name: &str) -> Option<&ModuleSymbol> { self.symbols.get(name) }
 
+    #[inline(always)]
     pub fn add_dependency(&mut self, mod_id: u64, dep_id: u64) {
         if let Some(m) = self.modules.get_mut(&mod_id) { m.add_dep(dep_id); }
         if let Some(d) = self.modules.get_mut(&dep_id) { d.dependents.push(mod_id); d.refcount += 1; }
     }
 
+    #[inline]
     pub fn set_param(&mut self, mod_id: u64, param: &str, val: String, ts: u64) {
         if let Some(m) = self.modules.get_mut(&mod_id) {
             for p in m.params.iter_mut() { if p.name == param { p.set(val); break; } }
@@ -214,6 +229,7 @@ impl BridgeModuleBridge {
         self.events.push(ModuleEvent { module_id: mod_id, kind: ModuleEventKind::ParamChange, ts, result: 0 });
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_modules = self.modules.len();
         self.stats.live_modules = self.modules.values().filter(|m| m.is_live()).count();
@@ -224,6 +240,8 @@ impl BridgeModuleBridge {
         self.stats.tainted = self.modules.values().any(|m| !m.taints.is_empty());
     }
 
+    #[inline(always)]
     pub fn module(&self, id: u64) -> Option<&ModuleDesc> { self.modules.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &ModuleBridgeStats { &self.stats }
 }

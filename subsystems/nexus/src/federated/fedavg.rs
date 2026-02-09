@@ -34,11 +34,13 @@ impl FedAvgAggregator {
     }
 
     /// Submit a client update
+    #[inline(always)]
     pub fn submit_update(&mut self, update: ModelUpdate) {
         self.pending_updates.push(update);
     }
 
     /// Check if ready to aggregate
+    #[inline(always)]
     pub fn ready_to_aggregate(&self) -> bool {
         self.pending_updates.len() >= self.min_updates
     }
@@ -90,6 +92,7 @@ impl FedAvgAggregator {
     }
 
     /// Get current global model
+    #[inline(always)]
     pub fn get_global_model(&self) -> &FederatedModel {
         &self.global_model
     }

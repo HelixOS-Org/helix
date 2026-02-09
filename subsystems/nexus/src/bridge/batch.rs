@@ -42,18 +42,21 @@ impl BatchEntry {
     }
 
     /// Set the submission timestamp
+    #[inline(always)]
     pub fn with_timestamp(mut self, ts: u64) -> Self {
         self.submitted_at = ts;
         self
     }
 
     /// Set the deadline
+    #[inline(always)]
     pub fn with_deadline(mut self, deadline: u64) -> Self {
         self.deadline = deadline;
         self
     }
 
     /// Set the pid
+    #[inline(always)]
     pub fn with_pid(mut self, pid: u64) -> Self {
         self.pid = pid;
         self
@@ -62,6 +65,7 @@ impl BatchEntry {
 
 /// A group of batched syscalls that will be executed as one
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BatchGroup {
     /// The merged syscall type
     pub syscall_type: SyscallType,
@@ -88,6 +92,7 @@ impl BatchGroup {
     }
 
     /// Add an entry to the batch
+    #[inline]
     pub fn add(&mut self, entry: BatchEntry) {
         self.total_data_size += entry.data_size;
         if entry.deadline < self.earliest_deadline {
@@ -98,11 +103,13 @@ impl BatchGroup {
     }
 
     /// Number of entries in this batch
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.entries.len()
     }
 
     /// Whether this batch is worth merging (saves more than overhead)
+    #[inline(always)]
     pub fn is_worthwhile(&self) -> bool {
         self.entries.len() >= 2 && self.estimated_savings_ns > 500
     }
@@ -132,6 +139,7 @@ pub enum BatchDecision {
 
 /// Statistics about batching performance
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BatchStats {
     /// Total entries submitted
     pub total_submitted: u64,
@@ -148,6 +156,7 @@ pub struct BatchStats {
 }
 
 impl BatchStats {
+    #[inline]
     pub fn batching_rate(&self) -> f64 {
         if self.total_submitted == 0 {
             return 0.0;
@@ -313,11 +322,13 @@ impl BatchOptimizer {
     }
 
     /// Get batching statistics
+    #[inline(always)]
     pub fn stats(&self) -> &BatchStats {
         &self.stats
     }
 
     /// Current total pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.queues.iter().map(|(_, q)| q.len()).sum()
     }

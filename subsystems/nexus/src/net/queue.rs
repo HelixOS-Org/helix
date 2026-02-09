@@ -78,6 +78,7 @@ pub enum TrafficPattern {
 
 impl TrafficPattern {
     /// Get pattern name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::ReceiveHeavy => "rx_heavy",

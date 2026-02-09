@@ -26,6 +26,7 @@ impl WaitIdOptions {
     pub const WEXITED: u32 = 4;
     pub const WCONTINUED: u32 = 8;
     pub const WNOWAIT: u32 = 16;
+    #[inline(always)]
     pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
 }
 
@@ -51,6 +52,7 @@ pub struct WaitIdSiginfo {
 
 /// Process wait state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessWaitState {
     pub pid: u64,
     pub children: Vec<u64>,
@@ -62,11 +64,13 @@ pub struct ProcessWaitState {
 
 impl ProcessWaitState {
     pub fn new(pid: u64) -> Self { Self { pid, children: Vec::new(), wait_count: 0, collected_count: 0, nohang_count: 0, zombie_children: 0 } }
+    #[inline(always)]
     pub fn add_child(&mut self, child: u64) { self.children.push(child); }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WaitIdAppStats {
     pub tracked_processes: u32,
     pub total_waits: u64,
@@ -84,8 +88,10 @@ pub struct AppWaitId {
 
 impl AppWaitId {
     pub fn new() -> Self { Self { processes: BTreeMap::new(), events: Vec::new(), max_events: 4096 } }
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessWaitState::new(pid)); }
 
+    #[inline]
     pub fn waitid(&mut self, pid: u64, id_type: WaitIdType, options: WaitIdOptions) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.wait_count += 1;
@@ -93,12 +99,14 @@ impl AppWaitId {
         }
     }
 
+    #[inline]
     pub fn collect(&mut self, parent: u64, info: WaitIdSiginfo) {
         if let Some(p) = self.processes.get_mut(&parent) { p.collected_count += 1; }
         if self.events.len() >= self.max_events { self.events.drain(..self.max_events / 2); }
         self.events.push(info);
     }
 
+    #[inline]
     pub fn stats(&self) -> WaitIdAppStats {
         let waits: u64 = self.processes.values().map(|p| p.wait_count).sum();
         let collected: u64 = self.processes.values().map(|p| p.collected_count).sum();

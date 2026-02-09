@@ -27,6 +27,7 @@ impl TreiberNode {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TreiberStackState {
     pub head_tag: u64,
     pub size: u64,
@@ -47,6 +48,7 @@ impl TreiberStackState {
         }
     }
 
+    #[inline]
     pub fn push(&mut self) {
         self.size += 1;
         self.push_count += 1;
@@ -54,6 +56,7 @@ impl TreiberStackState {
         if self.size > self.max_size { self.max_size = self.size; }
     }
 
+    #[inline]
     pub fn pop(&mut self) -> bool {
         if self.size == 0 { return false; }
         self.size -= 1;
@@ -62,8 +65,10 @@ impl TreiberStackState {
         true
     }
 
+    #[inline(always)]
     pub fn record_cas_fail(&mut self) { self.cas_failures += 1; }
 
+    #[inline(always)]
     pub fn contention_rate(&self) -> u64 {
         let total = self.push_count + self.pop_count;
         if total == 0 { 0 } else { (self.cas_failures * 100) / total }
@@ -71,6 +76,7 @@ impl TreiberStackState {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TreiberStackStats {
     pub total_stacks: u64,
     pub total_pushes: u64,
@@ -96,6 +102,7 @@ impl CoopTreiberStack {
         }
     }
 
+    #[inline]
     pub fn create_stack(&mut self) -> usize {
         let idx = self.stacks.len();
         self.stacks.push(TreiberStackState::new());
@@ -103,6 +110,7 @@ impl CoopTreiberStack {
         idx
     }
 
+    #[inline]
     pub fn push(&mut self, stack_idx: usize) {
         if let Some(s) = self.stacks.get_mut(stack_idx) {
             s.push();
@@ -110,6 +118,7 @@ impl CoopTreiberStack {
         }
     }
 
+    #[inline]
     pub fn pop(&mut self, stack_idx: usize) -> TreiberOpResult {
         if let Some(s) = self.stacks.get_mut(stack_idx) {
             if s.pop() {
@@ -122,5 +131,6 @@ impl CoopTreiberStack {
         } else { TreiberOpResult::Empty }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &TreiberStackStats { &self.stats }
 }

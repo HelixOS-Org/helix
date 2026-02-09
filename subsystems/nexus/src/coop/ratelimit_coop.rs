@@ -97,6 +97,7 @@ impl CoopTokenBucket {
     }
 
     /// Try consume tokens
+    #[inline]
     pub fn try_consume(&mut self, count: f64, now: u64) -> bool {
         self.refill(now);
         if self.tokens >= count {
@@ -108,6 +109,7 @@ impl CoopTokenBucket {
     }
 
     /// Time until tokens available (ns)
+    #[inline]
     pub fn time_until_available(&self, count: f64) -> u64 {
         if self.tokens >= count {
             return 0;
@@ -118,6 +120,7 @@ impl CoopTokenBucket {
     }
 
     /// Fill ratio
+    #[inline]
     pub fn fill_ratio(&self) -> f64 {
         if self.max_tokens <= 0.0 {
             return 0.0;
@@ -165,11 +168,13 @@ impl CoopSlidingWindow {
     }
 
     /// Current count
+    #[inline(always)]
     pub fn count(&self) -> u64 {
         self.events.len() as u64
     }
 
     /// Usage ratio
+    #[inline]
     pub fn usage_ratio(&self) -> f64 {
         if self.max_events == 0 {
             return 0.0;
@@ -178,6 +183,7 @@ impl CoopSlidingWindow {
     }
 
     /// Events per second
+    #[inline]
     pub fn rate(&self, now: u64) -> f64 {
         let cutoff = now.saturating_sub(self.window_ns);
         let recent = self.events.iter().filter(|&&t| t >= cutoff).count();
@@ -210,6 +216,7 @@ pub struct RateLimitConfig {
 
 /// Per-process rate state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessRateState {
     /// Process id
     pub pid: u64,
@@ -250,6 +257,7 @@ impl ProcessRateState {
     }
 
     /// Denial rate
+    #[inline]
     pub fn denial_rate(&self) -> f64 {
         let total = self.total_allowed + self.total_denied;
         if total == 0 {
@@ -289,12 +297,14 @@ impl RateLimitGroup {
     }
 
     /// Add member
+    #[inline(always)]
     pub fn add_member(&mut self, pid: u64) {
         let state = ProcessRateState::new(pid, &self.config);
         self.members.insert(pid, state);
     }
 
     /// Remove member
+    #[inline(always)]
     pub fn remove_member(&mut self, pid: u64) {
         self.members.remove(&pid);
     }
@@ -316,6 +326,7 @@ impl RateLimitGroup {
 
 /// Rate limit stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopRateLimitStats {
     /// Total groups
     pub total_groups: usize,
@@ -347,6 +358,7 @@ impl CoopRateLimitManager {
     }
 
     /// Create group
+    #[inline]
     pub fn create_group(&mut self, config: RateLimitConfig) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -357,6 +369,7 @@ impl CoopRateLimitManager {
     }
 
     /// Add process to group
+    #[inline]
     pub fn add_to_group(&mut self, group_id: u64, pid: u64) -> bool {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.add_member(pid);
@@ -386,6 +399,7 @@ impl CoopRateLimitManager {
     }
 
     /// Remove group
+    #[inline(always)]
     pub fn remove_group(&mut self, group_id: u64) {
         self.groups.remove(&group_id);
         self.update_stats();
@@ -397,6 +411,7 @@ impl CoopRateLimitManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopRateLimitStats {
         &self.stats
     }

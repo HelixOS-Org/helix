@@ -57,6 +57,7 @@ pub struct GroupSacrifice {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OomCoopStats {
     pub shed_requests_sent: u64,
     pub shed_pages_freed: u64,
@@ -90,10 +91,12 @@ impl OomCoopManager {
         }
     }
 
+    #[inline(always)]
     pub fn register_group(&mut self, group_id: u64, members: Vec<(u64, u64)>) {
         self.groups.insert(group_id, members);
     }
 
+    #[inline(always)]
     pub fn set_phase(&mut self, phase: OomPhase) {
         self.phase = phase;
     }
@@ -125,6 +128,7 @@ impl OomCoopManager {
     }
 
     /// Process a shed response from a member
+    #[inline]
     pub fn process_shed_response(&mut self, response: ShedResponse) {
         if response.success {
             self.stats.shed_pages_freed += response.pages_freed;
@@ -133,6 +137,7 @@ impl OomCoopManager {
     }
 
     /// A process donates memory pages to another
+    #[inline]
     pub fn donate_memory(&mut self, donor: u64, recipient: u64, pages: u64, now: u64) {
         self.donations.push(MemDonation {
             donor_pid: donor,
@@ -196,15 +201,18 @@ impl OomCoopManager {
     }
 
     /// Notify group of a kill for recovery coordination
+    #[inline]
     pub fn notify_kill(&mut self, group_id: u64, killed_pid: u64) {
         if let Some(members) = self.groups.get_mut(&group_id) {
             members.retain(|&(p, _)| p != killed_pid);
         }
     }
 
+    #[inline(always)]
     pub fn phase(&self) -> OomPhase {
         self.phase
     }
+    #[inline(always)]
     pub fn stats(&self) -> &OomCoopStats {
         &self.stats
     }

@@ -58,6 +58,7 @@ impl IntegrityRecord {
 
 /// Integrity bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IntegrityBridgeStats {
     pub total_ops: u64,
     pub measurements: u64,

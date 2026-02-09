@@ -185,6 +185,7 @@ impl Default for LtmConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LtmStats {
     /// Total memories
     pub total_memories: u64,
@@ -283,6 +284,7 @@ impl LtmStore {
     }
 
     /// Update memory
+    #[inline]
     pub fn update(&mut self, id: u64, content: MemoryContent) -> bool {
         if let Some(memory) = self.memories.get_mut(&id) {
             memory.content = content;
@@ -311,6 +313,7 @@ impl LtmStore {
     }
 
     /// Query by type
+    #[inline]
     pub fn by_type(&self, memory_type: LtmType) -> Vec<&LongTermMemory> {
         self.type_index.get(&memory_type)
             .map(|ids| {
@@ -322,6 +325,7 @@ impl LtmStore {
     }
 
     /// Query by tag
+    #[inline]
     pub fn by_tag(&self, tag: &str) -> Vec<&LongTermMemory> {
         self.tag_index.get(tag)
             .map(|ids| {
@@ -333,6 +337,7 @@ impl LtmStore {
     }
 
     /// Get most important
+    #[inline]
     pub fn most_important(&self, count: usize) -> Vec<&LongTermMemory> {
         self.importance_index.iter()
             .take(count)
@@ -421,11 +426,13 @@ impl LtmStore {
     }
 
     /// Get memory
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&LongTermMemory> {
         self.memories.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &LtmStats {
         &self.stats
     }

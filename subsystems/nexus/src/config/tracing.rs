@@ -41,6 +41,7 @@ impl Default for TracingConfig {
 
 impl TracingConfig {
     /// Minimal tracing configuration
+    #[inline]
     pub fn minimal() -> Self {
         Self {
             enabled: true,
@@ -54,6 +55,7 @@ impl TracingConfig {
     }
 
     /// Full tracing configuration
+    #[inline]
     pub fn full() -> Self {
         Self {
             enabled: true,

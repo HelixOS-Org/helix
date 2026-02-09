@@ -49,6 +49,7 @@ impl KernelContinualLearner {
     }
 
     /// Start a kernel learning task
+    #[inline]
     pub fn start_kernel_task(&mut self, task_type: KernelLearningTask, name: String) -> u64 {
         let task_id = self.manager.start_task(name);
         self.task_types.insert(task_id, task_type);
@@ -56,6 +57,7 @@ impl KernelContinualLearner {
     }
 
     /// Record baseline performance
+    #[inline(always)]
     pub fn record_baseline(&mut self, task_type: KernelLearningTask, performance: f64) {
         self.baselines.insert(task_type, performance);
     }
@@ -103,6 +105,7 @@ impl KernelContinualLearner {
     }
 
     /// Check if catastrophic forgetting is occurring
+    #[inline]
     pub fn detect_forgetting(&self, threshold: f64) -> Vec<u64> {
         self.manager
             .history

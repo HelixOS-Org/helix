@@ -53,21 +53,26 @@ impl SlabPage {
         }
     }
 
+    #[inline(always)]
     pub fn free_objects(&self) -> u32 {
         self.objects_total.saturating_sub(self.objects_used)
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.objects_total == 0 { return 0.0; }
         self.objects_used as f64 / self.objects_total as f64
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.objects_used == 0 }
+    #[inline(always)]
     pub fn is_full(&self) -> bool { self.objects_used >= self.objects_total }
 }
 
 /// Slab cache descriptor
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlabCache {
     pub name: String,
     pub name_hash: u64,
@@ -125,27 +130,32 @@ impl SlabCache {
         }
     }
 
+    #[inline]
     pub fn fragmentation(&self) -> f64 {
         if self.total_objects == 0 { return 0.0; }
         let wasted = self.total_objects - self.active_objects;
         wasted as f64 / self.total_objects as f64
     }
 
+    #[inline(always)]
     pub fn memory_used_bytes(&self) -> u64 {
         self.active_objects * self.object_size as u64
     }
 
+    #[inline(always)]
     pub fn memory_wasted_bytes(&self) -> u64 {
         let total = self.total_objects * self.object_size as u64;
         total.saturating_sub(self.memory_used_bytes())
     }
 
+    #[inline]
     pub fn numa_locality_ratio(&self) -> f64 {
         let total = self.numa_local_allocs + self.numa_remote_allocs;
         if total == 0 { return 1.0; }
         self.numa_local_allocs as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn reclaimable_pages(&self) -> u64 {
         if !self.reclaimable { return 0; }
         self.free_slabs
@@ -164,6 +174,7 @@ pub struct MergeCandidate {
 
 /// Holistic Slab Optimizer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticSlabStats {
     pub total_caches: usize,
     pub total_slab_pages: u64,
@@ -189,10 +200,12 @@ impl HolisticSlabOptimizer {
         }
     }
 
+    #[inline(always)]
     pub fn register_cache(&mut self, cache: SlabCache) {
         self.caches.insert(cache.name_hash, cache);
     }
 
+    #[inline]
     pub fn update_cache(&mut self, name_hash: u64, active: u64, total: u64, slabs: u64) {
         if let Some(cache) = self.caches.get_mut(&name_hash) {
             cache.active_objects = active;
@@ -232,6 +245,7 @@ impl HolisticSlabOptimizer {
     }
 
     /// Get caches by fragmentation (worst first)
+    #[inline]
     pub fn fragmented_caches(&self, min_frag: f64) -> Vec<u64> {
         let mut entries: Vec<(u64, f64)> = self.caches.iter()
             .filter(|(_, c)| c.fragmentation() >= min_frag)
@@ -254,6 +268,8 @@ impl HolisticSlabOptimizer {
         self.stats.merge_candidates = self.merge_candidates.len();
     }
 
+    #[inline(always)]
     pub fn cache(&self, hash: u64) -> Option<&SlabCache> { self.caches.get(&hash) }
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticSlabStats { &self.stats }
 }

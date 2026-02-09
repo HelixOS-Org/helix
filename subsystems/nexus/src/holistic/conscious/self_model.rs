@@ -132,6 +132,7 @@ pub struct TrajectoryPoint {
 
 /// Aggregate self-model statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SelfModelStats {
     pub total_capabilities: usize,
     pub total_limitations: usize,
@@ -184,6 +185,7 @@ impl HolisticSelfModel {
     }
 
     /// Register a unified capability from any subsystem
+    #[inline]
     pub fn register_capability(
         &mut self,
         name: String,
@@ -330,6 +332,7 @@ impl HolisticSelfModel {
     }
 
     /// Produce the full capability matrix: domain → list of capabilities
+    #[inline]
     pub fn capability_matrix(&self) -> BTreeMap<u8, Vec<(u64, f32, f32)>> {
         let mut matrix: BTreeMap<u8, Vec<(u64, f32, f32)>> = BTreeMap::new();
         for cap in self.capabilities.values() {
@@ -342,6 +345,7 @@ impl HolisticSelfModel {
     }
 
     /// Map all known limitations by domain
+    #[inline]
     pub fn limitation_map(&self) -> BTreeMap<u8, Vec<(u64, f32, bool)>> {
         let mut map: BTreeMap<u8, Vec<(u64, f32, bool)>> = BTreeMap::new();
         for lim in self.limitations.values() {
@@ -355,6 +359,7 @@ impl HolisticSelfModel {
     }
 
     /// Current performance envelope boundaries
+    #[inline(always)]
     pub fn performance_envelope(&self) -> Vec<EnvelopeBound> {
         self.envelope.values().cloned().collect()
     }
@@ -377,6 +382,7 @@ impl HolisticSelfModel {
     }
 
     /// Check self-model consistency across subsystems
+    #[inline]
     pub fn self_consistency_check(&mut self) -> f32 {
         if self.subsystem_scores.len() < 2 {
             self.consistency_ema = 1.0;
@@ -403,11 +409,13 @@ impl HolisticSelfModel {
     }
 
     /// Get the trajectory history for plotting improvement over time
+    #[inline(always)]
     pub fn trajectory_history(&self) -> &[TrajectoryPoint] {
         &self.trajectory
     }
 
     /// Get per-subsystem scores
+    #[inline(always)]
     pub fn subsystem_scores(&self) -> &BTreeMap<u8, f32> {
         &self.subsystem_scores
     }

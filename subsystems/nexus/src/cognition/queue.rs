@@ -21,6 +21,7 @@ use crate::types::{DomainId, Timestamp};
 
 /// Queue item
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueueItem<T> {
     /// Item ID
     pub id: u64,
@@ -53,6 +54,7 @@ pub enum QueuePolicy {
 
 /// Queue configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueueConfig {
     /// Queue name
     pub name: String,
@@ -99,6 +101,7 @@ pub enum OverflowPolicy {
 // ============================================================================
 
 /// A cognitive processing queue
+#[repr(align(64))]
 pub struct CognitiveQueue<T: Clone> {
     /// Queue ID
     id: u64,
@@ -120,6 +123,7 @@ pub struct CognitiveQueue<T: Clone> {
 
 /// Queue statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct QueueStats {
     /// Total items enqueued
     pub total_enqueued: u64,
@@ -288,6 +292,7 @@ impl<T: Clone> CognitiveQueue<T> {
     }
 
     /// Peek at front item
+    #[inline(always)]
     pub fn peek(&self) -> Option<&QueueItem<T>> {
         self.items.front()
     }
@@ -353,41 +358,49 @@ impl<T: Clone> CognitiveQueue<T> {
     }
 
     /// Get queue ID
+    #[inline(always)]
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// Get queue name
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.config.name
     }
 
     /// Get queue length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.items.len()
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
     }
 
     /// Get retry queue length
+    #[inline(always)]
     pub fn retry_len(&self) -> usize {
         self.retry_queue.len()
     }
 
     /// Set overflow policy
+    #[inline(always)]
     pub fn set_overflow_policy(&mut self, policy: OverflowPolicy) {
         self.overflow_policy = policy;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &QueueStats {
         &self.stats
     }
 
     /// Clear the queue
+    #[inline]
     pub fn clear(&mut self) {
         self.items.clear();
         self.retry_queue.clear();
@@ -395,6 +408,7 @@ impl<T: Clone> CognitiveQueue<T> {
     }
 
     /// Get items by source
+    #[inline(always)]
     pub fn items_by_source(&self, source: DomainId) -> Vec<&QueueItem<T>> {
         self.items.iter().filter(|i| i.source == source).collect()
     }
@@ -405,6 +419,7 @@ impl<T: Clone> CognitiveQueue<T> {
 // ============================================================================
 
 /// Manages multiple queues
+#[repr(align(64))]
 pub struct QueueManager {
     /// Queue registry (type-erased via names)
     queues: BTreeMap<String, QueueInfo>,
@@ -414,6 +429,7 @@ pub struct QueueManager {
 
 /// Queue information
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueueInfo {
     /// Queue ID
     pub id: u64,
@@ -453,16 +469,19 @@ impl QueueManager {
     }
 
     /// Unregister a queue
+    #[inline(always)]
     pub fn unregister(&mut self, name: &str) -> bool {
         self.queues.remove(name).is_some()
     }
 
     /// Get queue info
+    #[inline(always)]
     pub fn get_info(&self, name: &str) -> Option<&QueueInfo> {
         self.queues.get(name)
     }
 
     /// List all queues
+    #[inline(always)]
     pub fn list(&self) -> Vec<&QueueInfo> {
         self.queues.values().collect()
     }
@@ -479,6 +498,7 @@ impl Default for QueueManager {
 // ============================================================================
 
 /// Multi-level feedback queue
+#[repr(align(64))]
 pub struct MultiLevelQueue<T: Clone> {
     /// Levels
     levels: Vec<CognitiveQueue<T>>,
@@ -517,6 +537,7 @@ impl<T: Clone> MultiLevelQueue<T> {
     }
 
     /// Enqueue to highest priority level
+    #[inline]
     pub fn enqueue(&mut self, data: T, source: DomainId) -> Result<u64, &'static str> {
         if self.levels.is_empty() {
             return Err("No levels configured");
@@ -552,33 +573,39 @@ impl<T: Clone> MultiLevelQueue<T> {
     }
 
     /// Demote an item to lower priority level
+    #[inline(always)]
     pub fn demote(&mut self, item: QueueItem<T>, from_level: usize) -> Result<u64, &'static str> {
         let next_level = (from_level + 1).min(self.levels.len() - 1);
         self.levels[next_level].enqueue(item.data, item.source, item.priority)
     }
 
     /// Promote an item to higher priority level
+    #[inline(always)]
     pub fn promote(&mut self, item: QueueItem<T>, from_level: usize) -> Result<u64, &'static str> {
         let prev_level = from_level.saturating_sub(1);
         self.levels[prev_level].enqueue(item.data, item.source, item.priority)
     }
 
     /// Get level count
+    #[inline(always)]
     pub fn level_count(&self) -> usize {
         self.levels.len()
     }
 
     /// Get total items
+    #[inline(always)]
     pub fn total_items(&self) -> usize {
         self.levels.iter().map(|l| l.len()).sum()
     }
 
     /// Get items per level
+    #[inline(always)]
     pub fn items_per_level(&self) -> Vec<usize> {
         self.levels.iter().map(|l| l.len()).collect()
     }
 
     /// Tick all levels
+    #[inline]
     pub fn tick(&mut self) {
         for level in &mut self.levels {
             level.tick();

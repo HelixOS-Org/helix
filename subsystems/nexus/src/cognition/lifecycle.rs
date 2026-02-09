@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -48,11 +49,13 @@ pub enum LifecycleState {
 
 impl LifecycleState {
     /// Check if operational
+    #[inline(always)]
     pub fn is_operational(&self) -> bool {
         matches!(self, Self::Running | Self::Paused)
     }
 
     /// Check if terminal
+    #[inline(always)]
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Stopped | Self::Failed | Self::Destroyed)
     }
@@ -75,6 +78,7 @@ impl LifecycleState {
     }
 
     /// Check if transition is valid
+    #[inline(always)]
     pub fn can_transition_to(&self, next: LifecycleState) -> bool {
         self.valid_transitions().contains(&next)
     }
@@ -134,7 +138,7 @@ pub struct ComponentLifecycle {
     /// Creation time
     pub created: Timestamp,
     /// Transition history
-    pub history: Vec<LifecycleEvent>,
+    pub history: VecDeque<LifecycleEvent>,
     /// Failure count
     pub failure_count: u32,
     /// Last error
@@ -147,16 +151,19 @@ pub struct ComponentLifecycle {
 
 impl ComponentLifecycle {
     /// Get state duration
+    #[inline(always)]
     pub fn state_duration(&self) -> u64 {
         Timestamp::now().elapsed_since(self.state_since)
     }
 
     /// Get uptime
+    #[inline(always)]
     pub fn uptime(&self) -> u64 {
         Timestamp::now().elapsed_since(self.created)
     }
 
     /// Check if all dependencies are running
+    #[inline]
     pub fn dependencies_satisfied(&self, manager: &LifecycleManager) -> bool {
         self.dependencies.iter().all(|dep| {
             manager.get_state(*dep)
@@ -230,6 +237,7 @@ impl Default for LifecycleConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LifecycleStats {
     /// Total components created
     pub total_created: u64,
@@ -276,7 +284,7 @@ impl LifecycleManager {
             state: LifecycleState::Uninitialized,
             state_since: now,
             created: now,
-            history: Vec::new(),
+            history: VecDeque::new(),
             failure_count: 0,
             last_error: None,
             dependencies,
@@ -328,7 +336,7 @@ impl LifecycleManager {
 
         // Update history
         if component.history.len() >= self.config.max_history {
-            component.history.remove(0);
+            component.history.pop_front().unwrap();
         }
         component.history.push(event);
 
@@ -350,6 +358,7 @@ impl LifecycleManager {
     }
 
     /// Initialize a component
+    #[inline]
     pub fn initialize(&mut self, id: u64) -> Result<(), &'static str> {
         self.transition(id, LifecycleState::Initializing, "Starting initialization")?;
         // In real implementation, run initialization logic
@@ -395,16 +404,19 @@ impl LifecycleManager {
     }
 
     /// Pause a component
+    #[inline(always)]
     pub fn pause(&mut self, id: u64) -> Result<(), &'static str> {
         self.transition(id, LifecycleState::Paused, "Component paused")
     }
 
     /// Resume a component
+    #[inline(always)]
     pub fn resume(&mut self, id: u64) -> Result<(), &'static str> {
         self.transition(id, LifecycleState::Running, "Component resumed")
     }
 
     /// Fail a component
+    #[inline(always)]
     pub fn fail(&mut self, id: u64, reason: &str) -> Result<(), &'static str> {
         self.transition(id, LifecycleState::Failed, reason)
     }
@@ -447,21 +459,25 @@ impl LifecycleManager {
     }
 
     /// Get component state
+    #[inline(always)]
     pub fn get_state(&self, id: u64) -> Option<LifecycleState> {
         self.components.get(&id).map(|c| c.state)
     }
 
     /// Get component
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&ComponentLifecycle> {
         self.components.get(&id)
     }
 
     /// Get component by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&ComponentLifecycle> {
         self.by_name.get(name).and_then(|id| self.components.get(id))
     }
 
     /// Get components in state
+    #[inline]
     pub fn in_state(&self, state: LifecycleState) -> Vec<&ComponentLifecycle> {
         self.components.values()
             .filter(|c| c.state == state)
@@ -469,6 +485,7 @@ impl LifecycleManager {
     }
 
     /// Get components by owner
+    #[inline]
     pub fn by_owner(&self, owner: DomainId) -> Vec<&ComponentLifecycle> {
         self.components.values()
             .filter(|c| c.owner == owner)
@@ -495,6 +512,7 @@ impl LifecycleManager {
     }
 
     /// Get startup order (topological sort)
+    #[inline]
     pub fn startup_order(&self) -> Vec<u64> {
         let mut order = Vec::new();
         let mut visited = BTreeMap::new();
@@ -528,6 +546,7 @@ impl LifecycleManager {
     }
 
     /// Get shutdown order (reverse of startup)
+    #[inline]
     pub fn shutdown_order(&self) -> Vec<u64> {
         let mut order = self.startup_order();
         order.reverse();
@@ -546,11 +565,13 @@ impl LifecycleManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &LifecycleStats {
         &self.stats
     }
 
     /// Get component count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.components.len()
     }

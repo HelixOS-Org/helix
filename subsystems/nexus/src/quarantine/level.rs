@@ -30,6 +30,7 @@ pub enum QuarantineLevel {
 
 impl QuarantineLevel {
     /// Get from numeric value
+    #[inline]
     pub fn from_u8(value: u8) -> Self {
         match value {
             0 => Self::Monitored,
@@ -41,6 +42,7 @@ impl QuarantineLevel {
     }
 
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Monitored => "Monitored",
@@ -52,11 +54,13 @@ impl QuarantineLevel {
     }
 
     /// Can component still process requests?
+    #[inline(always)]
     pub fn can_process(&self) -> bool {
         matches!(self, Self::Monitored | Self::Degraded | Self::Restricted)
     }
 
     /// Can component communicate with others?
+    #[inline(always)]
     pub fn can_communicate(&self) -> bool {
         matches!(self, Self::Monitored | Self::Degraded)
     }

@@ -114,6 +114,7 @@ pub enum ExecutionPriority {
 
 /// Context that flows through the pipeline
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipelineContext {
     /// Unique request ID
     pub request_id: u64,
@@ -181,17 +182,20 @@ impl PipelineContext {
     }
 
     /// Record entering a stage
+    #[inline(always)]
     pub fn enter_stage(&mut self, stage: PipelineStage, timestamp_ns: u64) {
         self.current_stage = stage;
         self.stage_times[stage as usize] = timestamp_ns;
     }
 
     /// Total pipeline latency so far
+    #[inline(always)]
     pub fn elapsed_ns(&self, current_time_ns: u64) -> u64 {
         current_time_ns.saturating_sub(self.entry_time_ns)
     }
 
     /// Latency of a specific stage
+    #[inline]
     pub fn stage_latency_ns(&self, stage: PipelineStage) -> u64 {
         let idx = stage as usize;
         if idx + 1 < 8 && self.stage_times[idx + 1] > 0 {
@@ -202,6 +206,7 @@ impl PipelineContext {
     }
 
     /// Add an annotation
+    #[inline(always)]
     pub fn annotate(&mut self, stage: PipelineStage, message: String) {
         self.annotations.push(PipelineAnnotation { stage, message });
     }
@@ -220,6 +225,7 @@ pub struct PipelineAnnotation {
 
 /// Per-stage statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct StageStats {
     /// Total invocations
     pub invocations: u64,
@@ -254,6 +260,7 @@ impl StageStats {
         }
     }
 
+    #[inline]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.invocations == 0 {
             0
@@ -265,6 +272,7 @@ impl StageStats {
 
 /// Global pipeline statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipelineStats {
     /// Per-stage stats
     pub stages: [StageStats; 8],
@@ -317,6 +325,7 @@ impl PipelineStats {
     }
 
     /// Cache hit rate
+    #[inline]
     pub fn cache_hit_rate(&self) -> f64 {
         if self.total_processed == 0 {
             0.0
@@ -326,6 +335,7 @@ impl PipelineStats {
     }
 
     /// Transform rate
+    #[inline]
     pub fn transform_rate(&self) -> f64 {
         if self.total_processed == 0 {
             0.0
@@ -341,6 +351,7 @@ impl PipelineStats {
 
 /// Pipeline configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipelineConfig {
     /// Maximum pipeline latency before fast-path (ns)
     pub max_latency_ns: u64,
@@ -420,6 +431,7 @@ impl SyscallPipeline {
     }
 
     /// Determine which stages to skip based on config
+    #[inline]
     pub fn should_skip(&self, stage: PipelineStage) -> bool {
         match stage {
             PipelineStage::Analyze => !self.config.enable_analysis,
@@ -431,27 +443,32 @@ impl SyscallPipeline {
     }
 
     /// Record pipeline completion
+    #[inline(always)]
     pub fn complete(&mut self, ctx: &PipelineContext, end_time_ns: u64) {
         self.stats.record_completion(ctx, end_time_ns);
         self.active_count = self.active_count.saturating_sub(1);
     }
 
     /// Record a stage result
+    #[inline(always)]
     pub fn record_stage(&mut self, stage: PipelineStage, latency_ns: u64, decision: StageDecision) {
         self.stats.stages[stage as usize].record(latency_ns, decision);
     }
 
     /// Get pipeline statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PipelineStats {
         &self.stats
     }
 
     /// Get active context count
+    #[inline(always)]
     pub fn active_count(&self) -> u64 {
         self.active_count
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &PipelineConfig {
         &self.config
     }

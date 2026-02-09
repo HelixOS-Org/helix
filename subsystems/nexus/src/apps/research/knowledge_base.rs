@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -132,6 +134,7 @@ pub struct CompletenessReport {
 
 /// Engine-level stats.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct KnowledgeStats {
     pub entries_stored: u64,
     pub queries_served: u64,
@@ -184,6 +187,7 @@ impl AppsKnowledgeBase {
     // ── Primary API ────────────────────────────────────────────────────
 
     /// Store a validated finding as a knowledge entry.
+    #[inline]
     pub fn store_finding(
         &mut self,
         title: &str,
@@ -218,7 +222,7 @@ impl AppsKnowledgeBase {
             let list = self.tag_index.entry(tag.clone()).or_insert_with(Vec::new);
             list.push(id);
             if list.len() > MAX_ENTRIES {
-                list.remove(0);
+                list.pop_front();
             }
         }
 
@@ -227,7 +231,7 @@ impl AppsKnowledgeBase {
         let cat_list = self.category_index.entry(cat_key).or_insert_with(Vec::new);
         cat_list.push(id);
         if cat_list.len() > MAX_ENTRIES {
-            cat_list.remove(0);
+            cat_list.pop_front();
         }
 
         self.stats.ema_confidence =
@@ -253,7 +257,7 @@ impl AppsKnowledgeBase {
         self.stats.queries_served += 1;
 
         let limit = max_results.min(MAX_QUERY_RESULTS);
-        let mut candidate_scores: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut candidate_scores: LinearMap<f32, 64> = BTreeMap::new();
 
         // Score entries by tag overlap
         for tag in tags {
@@ -317,6 +321,7 @@ impl AppsKnowledgeBase {
     }
 
     /// Access the pattern library — returns all cataloged behavior patterns.
+    #[inline(always)]
     pub fn pattern_library(&self) -> Vec<BehaviorPattern> {
         self.patterns.values().cloned().collect()
     }
@@ -404,6 +409,7 @@ impl AppsKnowledgeBase {
     }
 
     /// Run knowledge base maintenance — prune stale, decay relevance.
+    #[inline]
     pub fn knowledge_maintenance(&mut self) -> usize {
         self.stats.maintenance_runs += 1;
         self.last_maintenance = self.tick;
@@ -452,6 +458,7 @@ impl AppsKnowledgeBase {
     }
 
     /// Return engine stats.
+    #[inline(always)]
     pub fn stats(&self) -> &KnowledgeStats {
         &self.stats
     }

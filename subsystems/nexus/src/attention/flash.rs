@@ -39,6 +39,7 @@ impl FlashAttention {
     }
 
     /// Set block sizes
+    #[inline]
     pub fn with_block_size(mut self, q_size: usize, kv_size: usize) -> Self {
         self.block_size_q = q_size;
         self.block_size_kv = kv_size;
@@ -368,6 +369,7 @@ impl PagedAttention {
     }
 
     /// Free all pages for sequence
+    #[inline]
     pub fn free_sequence(&mut self, seq_id: usize) {
         if seq_id < self.page_tables.len() {
             for entry in &self.page_tables[seq_id] {
@@ -432,6 +434,7 @@ impl PagedAttention {
     }
 
     /// Get sequence length
+    #[inline]
     pub fn sequence_length(&self, seq_id: usize) -> usize {
         self.page_tables
             .get(seq_id)

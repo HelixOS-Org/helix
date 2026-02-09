@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -90,9 +91,9 @@ pub struct PropagationResult {
     /// Output value
     pub output: UncertainValue,
     /// Sensitivity
-    pub sensitivity: BTreeMap<u64, f64>,
+    pub sensitivity: LinearMap<f64, 64>,
     /// Contribution
-    pub contribution: BTreeMap<u64, f64>,
+    pub contribution: LinearMap<f64, 64>,
 }
 
 /// Sensitivity info
@@ -147,6 +148,7 @@ impl Default for UncertaintyConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct UncertaintyStats {
     /// Values created
     pub values_created: u64,
@@ -252,6 +254,7 @@ impl UncertaintyEngine {
     }
 
     /// Add source
+    #[inline]
     pub fn add_source(
         &mut self,
         value_id: u64,
@@ -462,11 +465,13 @@ impl UncertaintyEngine {
     }
 
     /// Get value
+    #[inline(always)]
     pub fn get_value(&self, id: u64) -> Option<&UncertainValue> {
         self.values.get(&id)
     }
 
     /// Get confidence interval
+    #[inline]
     pub fn confidence_interval(&self, id: u64, level: f64) -> Option<(f64, f64)> {
         let value = self.values.get(&id)?;
         let variance = self.variance(id)?;
@@ -477,6 +482,7 @@ impl UncertaintyEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &UncertaintyStats {
         &self.stats
     }

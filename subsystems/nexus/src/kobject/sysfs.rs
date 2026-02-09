@@ -62,6 +62,7 @@ pub struct SysfsDirEntry {
 
 impl SysfsDirEntry {
     /// Create new directory entry
+    #[inline]
     pub fn new_dir(name: String, path: String, kobject: KobjectId) -> Self {
         Self {
             name,
@@ -75,6 +76,7 @@ impl SysfsDirEntry {
     }
 
     /// Create new symlink
+    #[inline]
     pub fn new_link(name: String, path: String, target: String) -> Self {
         Self {
             name,
@@ -118,6 +120,7 @@ impl SysfsManager {
     }
 
     /// Add directory
+    #[inline]
     pub fn add_directory(&mut self, path: String, kobject: KobjectId) {
         let name = path.rsplit('/').next().unwrap_or("").to_string();
         let entry = SysfsDirEntry::new_dir(name, path.clone(), kobject);
@@ -129,6 +132,7 @@ impl SysfsManager {
     }
 
     /// Add symlink
+    #[inline]
     pub fn add_symlink(&mut self, path: String, target: String) {
         let name = path.rsplit('/').next().unwrap_or("").to_string();
         let entry = SysfsDirEntry::new_link(name, path.clone(), target);
@@ -138,6 +142,7 @@ impl SysfsManager {
     }
 
     /// Add attribute to directory
+    #[inline]
     pub fn add_attribute(&mut self, dir_path: &str, attr: SysfsAttribute) {
         if let Some(entry) = self.entries.get_mut(dir_path) {
             entry.attributes.push(attr);
@@ -146,6 +151,7 @@ impl SysfsManager {
     }
 
     /// Remove entry
+    #[inline]
     pub fn remove_entry(&mut self, path: &str) {
         if let Some(entry) = self.entries.remove(path) {
             if let Some(kobject) = entry.kobject {
@@ -156,16 +162,19 @@ impl SysfsManager {
     }
 
     /// Get entry by path
+    #[inline(always)]
     pub fn get_entry(&self, path: &str) -> Option<&SysfsDirEntry> {
         self.entries.get(path)
     }
 
     /// Get path for kobject
+    #[inline(always)]
     pub fn get_path(&self, kobject: KobjectId) -> Option<&str> {
         self.kobject_to_path.get(&kobject).map(|s| s.as_str())
     }
 
     /// Get kobject for path
+    #[inline(always)]
     pub fn get_kobject(&self, path: &str) -> Option<KobjectId> {
         self.path_to_kobject.get(path).copied()
     }
@@ -187,16 +196,19 @@ impl SysfsManager {
     }
 
     /// Get total directory count
+    #[inline(always)]
     pub fn dir_count(&self) -> u64 {
         self.total_dirs.load(Ordering::Relaxed)
     }
 
     /// Get total symlink count
+    #[inline(always)]
     pub fn link_count(&self) -> u64 {
         self.total_links.load(Ordering::Relaxed)
     }
 
     /// Get total attribute count
+    #[inline(always)]
     pub fn attr_count(&self) -> u64 {
         self.total_attrs.load(Ordering::Relaxed)
     }

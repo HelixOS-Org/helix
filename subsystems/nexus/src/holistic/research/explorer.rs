@@ -150,6 +150,7 @@ pub struct EmergentProperty {
 
 /// Exploration statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExplorerStats {
     pub generation: u64,
     pub population_size: u64,
@@ -344,12 +345,14 @@ impl HolisticExplorer {
     }
 
     /// Return the current exploration frontier log
+    #[inline(always)]
     pub fn exploration_frontier(&self) -> &[(u64, f32)] {
         let limit = self.frontier_log.len().min(FRONTIER_CAPACITY);
         &self.frontier_log[self.frontier_log.len() - limit..]
     }
 
     /// Current statistics snapshot
+    #[inline(always)]
     pub fn stats(&self) -> &ExplorerStats {
         &self.stats
     }
@@ -388,6 +391,7 @@ impl HolisticExplorer {
         }
     }
 
+    #[inline]
     fn evaluate_all(&mut self, tick: u64) {
         let mut best = self.stats.best_fitness;
         for ind in self.population.iter_mut() {

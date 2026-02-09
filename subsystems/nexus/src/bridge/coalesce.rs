@@ -265,6 +265,7 @@ impl CoalesceWindow {
     }
 
     /// Reset window for reuse
+    #[inline]
     pub fn reset(&mut self) {
         self.pending.clear();
         self.total_size = 0;
@@ -273,11 +274,13 @@ impl CoalesceWindow {
     }
 
     /// Pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }
 
     /// State
+    #[inline(always)]
     pub fn state(&self) -> CoalesceState {
         self.state
     }
@@ -348,6 +351,7 @@ pub fn merge_io(a: &PendingSyscall, b: &PendingSyscall) -> Option<PendingSyscall
 
 /// Coalescing statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoalesceStats {
     /// Total syscalls seen
     pub total_seen: u64,
@@ -364,6 +368,7 @@ pub struct CoalesceStats {
 }
 
 /// Main coalescing engine
+#[repr(align(64))]
 pub struct CoalesceEngine {
     /// Per-process, per-category windows
     windows: BTreeMap<(u64, u8), CoalesceWindow>,
@@ -389,6 +394,7 @@ impl CoalesceEngine {
     }
 
     /// Set configuration for category
+    #[inline(always)]
     pub fn configure(&mut self, category: CoalesceCategory, config: WindowConfig) {
         self.configs.insert(category as u8, config);
     }
@@ -480,6 +486,7 @@ impl CoalesceEngine {
     }
 
     /// Window count
+    #[inline]
     pub fn active_windows(&self) -> usize {
         self.windows
             .values()

@@ -260,17 +260,20 @@ impl Advisory {
     }
 
     /// Check if expired
+    #[inline(always)]
     pub fn is_expired(&self, current_time: u64) -> bool {
         self.expires_at > 0 && current_time > self.expires_at
     }
 
     /// Set expiry
+    #[inline(always)]
     pub fn with_expiry(mut self, duration_ms: u64) -> Self {
         self.expires_at = self.timestamp + duration_ms;
         self
     }
 
     /// Set parameters
+    #[inline]
     pub fn with_params(mut self, p1: u64, p2: u64) -> Self {
         self.param1 = p1;
         self.param2 = p2;
@@ -278,6 +281,7 @@ impl Advisory {
     }
 
     /// Require acknowledgment
+    #[inline(always)]
     pub fn require_ack(mut self) -> Self {
         self.ack_required = true;
         self
@@ -486,11 +490,13 @@ impl AdvisoryEngine {
     }
 
     /// Register a process
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.queues.entry(pid).or_insert_with(|| ProcessAdvisoryQueue::new(pid));
     }
 
     /// Unregister a process
+    #[inline]
     pub fn unregister_process(&mut self, pid: u64) {
         self.queues.remove(&pid);
         // Clean up coalescing state
@@ -498,6 +504,7 @@ impl AdvisoryEngine {
     }
 
     /// Set subscription for a process
+    #[inline]
     pub fn set_subscription(&mut self, pid: u64, sub: AdvisorySubscription) {
         if let Some(queue) = self.queues.get_mut(&pid) {
             queue.subscription = sub;
@@ -559,6 +566,7 @@ impl AdvisoryEngine {
     }
 
     /// Deliver next advisory for a process
+    #[inline]
     pub fn deliver(&mut self, pid: u64) -> Option<Advisory> {
         let queue = self.queues.get_mut(&pid)?;
         let adv = queue.dequeue()?;
@@ -593,6 +601,7 @@ impl AdvisoryEngine {
     }
 
     /// Cleanup expired advisories across all queues
+    #[inline]
     pub fn cleanup_expired(&mut self, current_time: u64) {
         for queue in self.queues.values_mut() {
             queue.cleanup_expired(current_time);
@@ -600,6 +609,7 @@ impl AdvisoryEngine {
     }
 
     /// Pending advisory count for a process
+    #[inline]
     pub fn pending_count(&self, pid: u64) -> usize {
         self.queues
             .get(&pid)
@@ -607,11 +617,13 @@ impl AdvisoryEngine {
     }
 
     /// Total pending across all processes
+    #[inline(always)]
     pub fn total_pending(&self) -> usize {
         self.queues.values().map(|q| q.pending_count()).sum()
     }
 
     /// Registered process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.queues.len()
     }

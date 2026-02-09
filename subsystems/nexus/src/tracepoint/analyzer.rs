@@ -3,6 +3,7 @@
 //! Statistics collection and tracepoint management.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -26,6 +27,7 @@ pub struct TraceSample {
 
 /// Tracepoint statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TraceStats {
     /// Tracepoint ID
     pub tracepoint_id: TracepointId,
@@ -82,6 +84,7 @@ impl TraceStats {
     }
 
     /// Update events per second
+    #[inline]
     pub fn update_rate(&mut self, events_in_period: u64, period_ns: u64) {
         if period_ns > 0 {
             self.events_per_second =
@@ -95,7 +98,7 @@ pub struct PerformanceAnalyzer {
     /// Per-tracepoint stats
     stats: BTreeMap<TracepointId, TraceStats>,
     /// Recent samples
-    samples: Vec<TraceSample>,
+    samples: VecDeque<TraceSample>,
     /// Max samples
     max_samples: usize,
     /// Global stats
@@ -134,32 +137,37 @@ impl PerformanceAnalyzer {
 
         // Store sample
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
     /// Get stats for tracepoint
+    #[inline(always)]
     pub fn get_stats(&self, tracepoint_id: TracepointId) -> Option<&TraceStats> {
         self.stats.get(&tracepoint_id)
     }
 
     /// Get all stats
+    #[inline(always)]
     pub fn all_stats(&self) -> impl Iterator<Item = &TraceStats> {
         self.stats.values()
     }
 
     /// Get global event count
+    #[inline(always)]
     pub fn global_events(&self) -> u64 {
         self.global_events.load(Ordering::Relaxed)
     }
 
     /// Get global bytes
+    #[inline(always)]
     pub fn global_bytes(&self) -> u64 {
         self.global_bytes.load(Ordering::Relaxed)
     }
 
     /// Get events per second (global)
+    #[inline]
     pub fn global_events_per_second(&self, current_time: u64) -> f32 {
         let elapsed = current_time.saturating_sub(self.start_time);
         if elapsed == 0 {
@@ -169,6 +177,7 @@ impl PerformanceAnalyzer {
     }
 
     /// Find hottest tracepoints
+    #[inline]
     pub fn hottest_tracepoints(&self, limit: usize) -> Vec<&TraceStats> {
         let mut sorted: Vec<_> = self.stats.values().collect();
         sorted.sort_by(|a, b| b.total_events.cmp(&a.total_events));
@@ -176,6 +185,7 @@ impl PerformanceAnalyzer {
     }
 
     /// Find slowest tracepoints
+    #[inline]
     pub fn slowest_tracepoints(&self, limit: usize) -> Vec<&TraceStats> {
         let mut sorted: Vec<_> = self.stats.values().collect();
         sorted.sort_by(|a, b| {
@@ -187,6 +197,7 @@ impl PerformanceAnalyzer {
     }
 
     /// Get recent samples
+    #[inline(always)]
     pub fn recent_samples(&self, count: usize) -> &[TraceSample] {
         let start = self.samples.len().saturating_sub(count);
         &self.samples[start..]
@@ -226,11 +237,13 @@ impl TracepointManager {
     }
 
     /// Allocate tracepoint ID
+    #[inline(always)]
     pub fn allocate_id(&self) -> TracepointId {
         TracepointId::new(self.next_id.fetch_add(1, Ordering::Relaxed))
     }
 
     /// Allocate event ID
+    #[inline(always)]
     pub fn allocate_event_id(&self) -> super::EventId {
         super::EventId::new(self.next_event_id.fetch_add(1, Ordering::Relaxed))
     }
@@ -274,16 +287,19 @@ impl TracepointManager {
     }
 
     /// Get tracepoint
+    #[inline(always)]
     pub fn get(&self, id: TracepointId) -> Option<&TracepointDef> {
         self.tracepoints.get(&id)
     }
 
     /// Get tracepoint mutably
+    #[inline(always)]
     pub fn get_mut(&mut self, id: TracepointId) -> Option<&mut TracepointDef> {
         self.tracepoints.get_mut(&id)
     }
 
     /// Get by name
+    #[inline]
     pub fn get_by_name(&self, name: &str) -> Option<&TracepointDef> {
         self.by_name
             .get(name)
@@ -291,6 +307,7 @@ impl TracepointManager {
     }
 
     /// Get by subsystem
+    #[inline]
     pub fn get_by_subsystem(&self, subsystem: TracepointSubsystem) -> Vec<&TracepointDef> {
         self.by_subsystem
             .get(&subsystem)
@@ -303,6 +320,7 @@ impl TracepointManager {
     }
 
     /// Enable tracepoint
+    #[inline]
     pub fn enable(&mut self, id: TracepointId) -> bool {
         if let Some(def) = self.tracepoints.get_mut(&id) {
             if !def.is_enabled() {
@@ -315,6 +333,7 @@ impl TracepointManager {
     }
 
     /// Disable tracepoint
+    #[inline]
     pub fn disable(&mut self, id: TracepointId) -> bool {
         if let Some(def) = self.tracepoints.get_mut(&id) {
             if def.is_enabled() {
@@ -327,16 +346,19 @@ impl TracepointManager {
     }
 
     /// Get active count
+    #[inline(always)]
     pub fn active_count(&self) -> u32 {
         self.active_count
     }
 
     /// Get total registered
+    #[inline(always)]
     pub fn total_registered(&self) -> u64 {
         self.total_registered.load(Ordering::Relaxed)
     }
 
     /// Get all tracepoints
+    #[inline(always)]
     pub fn all(&self) -> impl Iterator<Item = &TracepointDef> {
         self.tracepoints.values()
     }

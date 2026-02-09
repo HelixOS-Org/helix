@@ -9,6 +9,7 @@
 //! - Cooperative lock release negotiation
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -21,6 +22,7 @@ pub enum LockTier {
 }
 
 impl LockTier {
+    #[inline]
     pub fn quota_fraction(&self) -> f64 {
         match self {
             Self::Realtime => 0.40,
@@ -42,9 +44,11 @@ pub struct LockAllocation {
 }
 
 impl LockAllocation {
+    #[inline(always)]
     pub fn over_quota(&self) -> bool {
         self.locked_pages > self.quota_pages
     }
+    #[inline(always)]
     pub fn excess_pages(&self) -> u64 {
         self.locked_pages.saturating_sub(self.quota_pages)
     }
@@ -60,6 +64,7 @@ pub struct LockConflict {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MlockCoopStats {
     pub allocations: u64,
     pub preemptions: u64,
@@ -72,7 +77,7 @@ pub struct MlockCoopStats {
 pub struct MlockCoopManager {
     allocations: BTreeMap<u64, LockAllocation>,
     /// group_id → aggregated lock usage
-    group_usage: BTreeMap<u64, u64>,
+    group_usage: LinearMap<u64, 64>,
     conflicts: Vec<LockConflict>,
     system_lock_limit: u64,
     stats: MlockCoopStats,
@@ -82,7 +87,7 @@ impl MlockCoopManager {
     pub fn new(system_lock_limit: u64) -> Self {
         Self {
             allocations: BTreeMap::new(),
-            group_usage: BTreeMap::new(),
+            group_usage: LinearMap::new(),
             conflicts: Vec::new(),
             system_lock_limit,
             stats: MlockCoopStats::default(),
@@ -90,6 +95,7 @@ impl MlockCoopManager {
     }
 
     /// Register a process with its lock tier
+    #[inline]
     pub fn register(&mut self, pid: u64, group_id: u64, tier: LockTier) {
         let quota = (self.system_lock_limit as f64 * tier.quota_fraction()) as u64;
         self.allocations.insert(pid, LockAllocation {
@@ -137,6 +143,7 @@ impl MlockCoopManager {
     }
 
     /// Release locked pages
+    #[inline]
     pub fn release_lock(&mut self, pid: u64, pages: u64) {
         if let Some(a) = self.allocations.get_mut(&pid) {
             let freed = pages.min(a.locked_pages);
@@ -191,6 +198,7 @@ impl MlockCoopManager {
     }
 
     /// Find processes over their quota that should be asked to release
+    #[inline]
     pub fn over_quota_processes(&self) -> Vec<(u64, u64)> {
         self.allocations
             .values()
@@ -199,9 +207,11 @@ impl MlockCoopManager {
             .collect()
     }
 
+    #[inline(always)]
     pub fn allocation(&self, pid: u64) -> Option<&LockAllocation> {
         self.allocations.get(&pid)
     }
+    #[inline(always)]
     pub fn stats(&self) -> &MlockCoopStats {
         &self.stats
     }

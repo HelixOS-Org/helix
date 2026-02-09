@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::multimodal::fusion::LateFusion;
@@ -24,7 +25,7 @@ pub struct KernelMultimodalManager {
     /// Modality importance scores
     pub importance_scores: BTreeMap<ModalityType, f64>,
     /// Recent fusion outputs
-    pub fusion_history: Vec<Vec<f64>>,
+    pub fusion_history: VecDeque<Vec<f64>>,
     /// Maximum history size
     max_history: usize,
 }
@@ -52,25 +53,27 @@ impl KernelMultimodalManager {
             late_fusion: LateFusion::new(&dims, DEFAULT_HIDDEN_DIM, 12345),
             missing_handler: MissingModalityHandler::new(MissingModalityStrategy::LearnedDefault),
             importance_scores: BTreeMap::new(),
-            fusion_history: Vec::new(),
+            fusion_history: VecDeque::new(),
             max_history: 100,
         }
     }
 
     /// Fuse multimodal input
+    #[inline]
     pub fn fuse(&mut self, input: &MultimodalInput) -> Vec<f64> {
         let fused = self.transformer.forward(input);
 
         // Store in history
         if self.fusion_history.len() >= self.max_history {
-            self.fusion_history.remove(0);
+            self.fusion_history.pop_front();
         }
-        self.fusion_history.push(fused.clone());
+        self.fusion_history.push_back(fused.clone());
 
         fused
     }
 
     /// Get modality importance
+    #[inline]
     pub fn get_importance(&self, modality: ModalityType) -> f64 {
         self.importance_scores
             .get(&modality)
@@ -79,6 +82,7 @@ impl KernelMultimodalManager {
     }
 
     /// Update modality importance based on prediction quality
+    #[inline(always)]
     pub fn update_importance(&mut self, modality: ModalityType, quality_delta: f64) {
         let current = self.importance_scores.entry(modality).or_insert(1.0);
         *current = (*current + quality_delta * 0.1).clamp(0.1, 2.0);
@@ -114,6 +118,7 @@ impl Default for KernelMultimodalManager {
 
 /// Multimodal statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MultimodalStats {
     /// Number of modalities
     pub num_modalities: usize,

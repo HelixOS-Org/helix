@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -140,7 +141,7 @@ pub struct AdaptationEngine {
     /// Strategies
     strategies: BTreeMap<u64, Strategy>,
     /// Feedback history
-    feedback: Vec<Feedback>,
+    feedback: VecDeque<Feedback>,
     /// Rules
     rules: BTreeMap<u64, AdaptationRule>,
     /// Failure counters
@@ -181,6 +182,7 @@ impl Default for AdaptationConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AdaptationStats {
     /// Strategies created
     pub strategies_created: u64,
@@ -195,7 +197,7 @@ impl AdaptationEngine {
     pub fn new(config: AdaptationConfig) -> Self {
         Self {
             strategies: BTreeMap::new(),
-            feedback: Vec::new(),
+            feedback: VecDeque::new(),
             rules: BTreeMap::new(),
             failure_counters: BTreeMap::new(),
             active_strategy: BTreeMap::new(),
@@ -233,6 +235,7 @@ impl AdaptationEngine {
     }
 
     /// Set parameter
+    #[inline]
     pub fn set_parameter(&mut self, strategy_id: u64, param: &str, value: f64) {
         if let Some(strategy) = self.strategies.get_mut(&strategy_id) {
             strategy.parameters.insert(param.into(), value);
@@ -240,12 +243,14 @@ impl AdaptationEngine {
     }
 
     /// Get active strategy
+    #[inline(always)]
     pub fn active(&self, domain: &str) -> Option<&Strategy> {
         let id = self.active_strategy.get(domain)?;
         self.strategies.get(id)
     }
 
     /// Use strategy
+    #[inline]
     pub fn use_strategy(&mut self, strategy_id: u64) {
         if let Some(strategy) = self.strategies.get_mut(&strategy_id) {
             strategy.uses += 1;
@@ -295,12 +300,12 @@ impl AdaptationEngine {
             timestamp: Timestamp::now(),
         };
 
-        self.feedback.push(feedback);
+        self.feedback.push_back(feedback);
         self.stats.feedback_received += 1;
 
         // Limit history
         while self.feedback.len() > self.config.max_history {
-            self.feedback.remove(0);
+            self.feedback.pop_front();
         }
 
         // Update failure counter
@@ -486,11 +491,13 @@ impl AdaptationEngine {
     }
 
     /// Get strategy
+    #[inline(always)]
     pub fn get_strategy(&self, id: u64) -> Option<&Strategy> {
         self.strategies.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &AdaptationStats {
         &self.stats
     }

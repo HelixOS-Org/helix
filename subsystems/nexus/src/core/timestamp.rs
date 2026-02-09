@@ -6,21 +6,25 @@ pub struct NexusTimestamp(u64);
 
 impl NexusTimestamp {
     /// Create a new timestamp
+    #[inline(always)]
     pub const fn new(ticks: u64) -> Self {
         Self(ticks)
     }
 
     /// Create from raw ticks (alias for new)
+    #[inline(always)]
     pub const fn from_ticks(ticks: u64) -> Self {
         Self(ticks)
     }
 
     /// Get raw ticks
+    #[inline(always)]
     pub const fn ticks(&self) -> u64 {
         self.0
     }
 
     /// Get raw value (alias for ticks)
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -74,11 +78,13 @@ impl NexusTimestamp {
     }
 
     /// Duration since another timestamp
+    #[inline(always)]
     pub fn duration_since(&self, earlier: Self) -> u64 {
         self.0.saturating_sub(earlier.0)
     }
 
     /// Convert to nanoseconds (approximate)
+    #[inline(always)]
     pub fn to_nanos(&self, frequency_ghz: f64) -> u64 {
         (self.0 as f64 / frequency_ghz) as u64
     }

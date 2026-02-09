@@ -16,6 +16,7 @@ pub enum BackoffStrategy {
 
 /// Backoff state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BackoffState {
     pub strategy: BackoffStrategy,
     pub base_ns: u64,
@@ -67,17 +68,20 @@ impl BackoffState {
         Some(delay.min(self.max_ns))
     }
 
+    #[inline]
     pub fn reset(&mut self) {
         self.attempt = 0;
         self.current_ns = self.base_ns;
         self.prev_ns = self.base_ns;
     }
 
+    #[inline(always)]
     pub fn exhausted(&self) -> bool { self.attempt >= self.max_attempts }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BackoffStats {
     pub total_backoffs: u64,
     pub total_resets: u64,
@@ -98,20 +102,26 @@ pub struct CoopBackoff {
 impl CoopBackoff {
     pub fn new() -> Self { Self { active: 0, total_backoffs: 0, total_resets: 0, total_exhaustions: 0, total_attempts: 0, total_sessions: 0 } }
 
+    #[inline]
     pub fn create_state(&mut self, strategy: BackoffStrategy, base: u64, max: u64, max_att: u32) -> BackoffState {
         self.active += 1;
         self.total_sessions += 1;
         BackoffState::new(strategy, base, max, max_att)
     }
 
+    #[inline(always)]
     pub fn record_backoff(&mut self) { self.total_backoffs += 1; self.total_attempts += 1; }
 
+    #[inline(always)]
     pub fn record_reset(&mut self) { self.total_resets += 1; }
 
+    #[inline(always)]
     pub fn record_exhaustion(&mut self) { self.total_exhaustions += 1; }
 
+    #[inline(always)]
     pub fn release(&mut self) { if self.active > 0 { self.active -= 1; } }
 
+    #[inline(always)]
     pub fn stats(&self) -> BackoffStats {
         let avg = if self.total_sessions == 0 { 0.0 } else { self.total_attempts as f64 / self.total_sessions as f64 };
         BackoffStats { total_backoffs: self.total_backoffs, total_resets: self.total_resets, total_exhaustions: self.total_exhaustions, avg_attempts: avg }

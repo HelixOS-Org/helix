@@ -66,11 +66,13 @@ impl SgList {
         Self { id, entries: Vec::new(), total_bytes: 0, direction: dir, mapped: false }
     }
 
+    #[inline(always)]
     pub fn add_entry(&mut self, phys: u64, len: u32, offset: u32) {
         self.entries.push(SgEntry { phys_addr: phys, length: len, dma_addr: 0, offset });
         self.total_bytes += len as u64;
     }
 
+    #[inline]
     pub fn map_dma(&mut self, base_dma: u64) {
         let mut addr = base_dma;
         for e in &mut self.entries {
@@ -80,11 +82,13 @@ impl SgList {
         self.mapped = true;
     }
 
+    #[inline(always)]
     pub fn entry_count(&self) -> usize { self.entries.len() }
 }
 
 /// DMA buffer
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DmaBuffer {
     pub id: u64,
     pub phys_addr: u64,
@@ -140,6 +144,7 @@ pub enum DmaTransferStatus {
 
 /// Per-zone DMA state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DmaZoneState {
     pub zone: DmaZone,
     pub total_pages: u64,
@@ -153,16 +158,20 @@ impl DmaZoneState {
         Self { zone, total_pages: total, free_pages: total, allocated_pages: 0, bounce_pages: 0 }
     }
 
+    #[inline(always)]
     pub fn allocate(&mut self, pages: u64) -> bool {
         if self.free_pages >= pages { self.free_pages -= pages; self.allocated_pages += pages; true } else { false }
     }
 
+    #[inline(always)]
     pub fn free(&mut self, pages: u64) { self.allocated_pages = self.allocated_pages.saturating_sub(pages); self.free_pages += pages; }
+    #[inline(always)]
     pub fn usage(&self) -> f64 { if self.total_pages == 0 { 0.0 } else { self.allocated_pages as f64 / self.total_pages as f64 } }
 }
 
 /// DMA stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DmaStats {
     pub buffers: usize,
     pub sg_lists: usize,
@@ -197,10 +206,12 @@ impl HolisticDmaMgr {
         }
     }
 
+    #[inline(always)]
     pub fn init_zone(&mut self, zone: DmaZone, total_pages: u64) {
         self.zones.insert(zone as u8, DmaZoneState::new(zone, total_pages));
     }
 
+    #[inline]
     pub fn alloc_buffer(&mut self, phys: u64, virt: u64, dma: u64, size: u64, zone: DmaZone, coh: DmaCoherency, owner: u64, ts: u64) -> Option<u64> {
         let pages = (size + 4095) / 4096;
         if let Some(z) = self.zones.get_mut(&(zone as u8)) { if !z.allocate(pages) { return None; } }
@@ -210,6 +221,7 @@ impl HolisticDmaMgr {
         Some(id)
     }
 
+    #[inline]
     pub fn free_buffer(&mut self, id: u64) {
         if let Some(buf) = self.buffers.remove(&id) {
             let pages = (buf.size + 4095) / 4096;
@@ -218,6 +230,7 @@ impl HolisticDmaMgr {
         }
     }
 
+    #[inline]
     pub fn alloc_bounce(&mut self, phys: u64, virt: u64, dma: u64, size: u64, zone: DmaZone, owner: u64, ts: u64) -> Option<u64> {
         let id = self.alloc_buffer(phys, virt, dma, size, zone, DmaCoherency::Coherent, owner, ts)?;
         if let Some(buf) = self.buffers.get_mut(&id) { buf.is_bounce = true; }
@@ -226,24 +239,29 @@ impl HolisticDmaMgr {
         Some(id)
     }
 
+    #[inline]
     pub fn create_sg(&mut self, dir: DmaDirection) -> u64 {
         let id = self.next_sg_id; self.next_sg_id += 1;
         self.sg_lists.insert(id, SgList::new(id, dir));
         id
     }
 
+    #[inline(always)]
     pub fn add_sg_entry(&mut self, sg_id: u64, phys: u64, len: u32, offset: u32) {
         if let Some(sg) = self.sg_lists.get_mut(&sg_id) { sg.add_entry(phys, len, offset); }
     }
 
+    #[inline(always)]
     pub fn map_sg(&mut self, sg_id: u64, base_dma: u64) {
         if let Some(sg) = self.sg_lists.get_mut(&sg_id) { sg.map_dma(base_dma); }
     }
 
+    #[inline(always)]
     pub fn add_iommu_mapping(&mut self, iova: u64, phys: u64, size: u64, domain: u64, read: bool, write: bool) {
         self.iommu.push(IommuMapping { iova, phys_addr: phys, size, domain_id: domain, prot_read: read, prot_write: write });
     }
 
+    #[inline]
     pub fn start_transfer(&mut self, buf_id: u64, dir: DmaDirection, device: u64, ts: u64) -> u64 {
         let id = self.next_xfer_id; self.next_xfer_id += 1;
         let bytes = self.buffers.get(&buf_id).map(|b| b.size).unwrap_or(0);
@@ -252,6 +270,7 @@ impl HolisticDmaMgr {
         id
     }
 
+    #[inline]
     pub fn complete_transfer(&mut self, xfer_id: u64, ts: u64) {
         if let Some(x) = self.transfers.iter_mut().find(|x| x.id == xfer_id) {
             x.status = DmaTransferStatus::Complete;
@@ -260,6 +279,7 @@ impl HolisticDmaMgr {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.buffers = self.buffers.len();
         self.stats.sg_lists = self.sg_lists.len();
@@ -267,8 +287,12 @@ impl HolisticDmaMgr {
         self.stats.errors = self.transfers.iter().filter(|x| x.status == DmaTransferStatus::Error).count() as u64;
     }
 
+    #[inline(always)]
     pub fn buffer(&self, id: u64) -> Option<&DmaBuffer> { self.buffers.get(&id) }
+    #[inline(always)]
     pub fn sg(&self, id: u64) -> Option<&SgList> { self.sg_lists.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &DmaStats { &self.stats }
+    #[inline(always)]
     pub fn zone(&self, z: DmaZone) -> Option<&DmaZoneState> { self.zones.get(&(z as u8)) }
 }

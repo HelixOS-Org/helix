@@ -42,18 +42,21 @@ impl SandboxGuard {
     ///
     /// # Safety
     /// Enabling the sandbox allows dangerous operations.
+    #[inline(always)]
     pub unsafe fn enable(&mut self) {
         self.enabled = true;
         SANDBOX_ENABLED.store(true, Ordering::SeqCst);
     }
 
     /// Disable the sandbox
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.enabled = false;
         SANDBOX_ENABLED.store(false, Ordering::SeqCst);
     }
 
     /// Grant a capability with a permission level
+    #[inline]
     pub fn grant(&mut self, capability: SandboxCapability, level: PermissionLevel) {
         // Remove existing grant for this capability
         self.capabilities.retain(|(c, _)| *c != capability);
@@ -61,11 +64,13 @@ impl SandboxGuard {
     }
 
     /// Revoke a capability
+    #[inline(always)]
     pub fn revoke(&mut self, capability: SandboxCapability) {
         self.capabilities.retain(|(c, _)| *c != capability);
     }
 
     /// Check if operation is permitted
+    #[inline]
     pub fn check(&self, capability: SandboxCapability, required_level: PermissionLevel) -> bool {
         if !self.enabled {
             return false;
@@ -144,12 +149,14 @@ impl SandboxGuard {
     }
 
     /// Get recent audit events
+    #[inline(always)]
     pub fn recent_events(&self, count: usize) -> &[AuditEvent] {
         let start = self.audit_log.len().saturating_sub(count);
         &self.audit_log[start..]
     }
 
     /// Reset rate limit (call periodically)
+    #[inline(always)]
     pub fn reset_rate_limit(&mut self) {
         self.rate_limit_remaining = MAX_OPERATIONS_PER_WINDOW;
     }

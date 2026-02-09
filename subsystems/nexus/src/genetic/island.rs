@@ -49,6 +49,7 @@ impl Island {
     }
 
     /// Add neighbor
+    #[inline]
     pub fn add_neighbor(&mut self, neighbor: IslandId) {
         if !self.neighbors.contains(&neighbor) {
             self.neighbors.push(neighbor);
@@ -56,6 +57,7 @@ impl Island {
     }
 
     /// Get best individual
+    #[inline(always)]
     pub fn best(&self) -> Option<&Individual> {
         self.population.best()
     }
@@ -192,6 +194,7 @@ pub struct IslandManager {
 
 /// Island statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IslandStats {
     /// Total migrations
     pub migrations: u64,
@@ -469,16 +472,19 @@ impl IslandManager {
     }
 
     /// Get island
+    #[inline(always)]
     pub fn get(&self, id: IslandId) -> Option<&Island> {
         self.islands.get(&id)
     }
 
     /// Get island (mutable)
+    #[inline(always)]
     pub fn get_mut(&mut self, id: IslandId) -> Option<&mut Island> {
         self.islands.get_mut(&id)
     }
 
     /// Get all islands
+    #[inline(always)]
     pub fn islands(&self) -> impl Iterator<Item = &Island> {
         self.islands.values()
     }
@@ -504,6 +510,7 @@ impl IslandManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &IslandStats {
         &self.stats
     }

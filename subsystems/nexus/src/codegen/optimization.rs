@@ -114,6 +114,7 @@ pub struct SuperoptResult {
 
 /// Search statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SearchStats {
     /// Sequences explored
     pub sequences_explored: u64,
@@ -216,6 +217,7 @@ impl Default for OptConfig {
 
 /// Optimization statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OptStats {
     /// Total optimizations
     pub total_optimizations: u64,
@@ -725,6 +727,7 @@ impl OptimizationEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &OptStats {
         &self.stats
     }

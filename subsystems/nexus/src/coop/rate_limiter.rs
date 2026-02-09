@@ -52,6 +52,7 @@ impl TokenBucket {
         }
     }
 
+    #[inline]
     pub fn refill(&mut self, now_ns: u64) {
         if now_ns <= self.last_refill_ns { return; }
         let elapsed_ns = now_ns - self.last_refill_ns;
@@ -61,6 +62,7 @@ impl TokenBucket {
         self.last_refill_ns = now_ns;
     }
 
+    #[inline]
     pub fn try_consume(&mut self, count: u64, now_ns: u64) -> bool {
         self.refill(now_ns);
         if self.tokens >= count {
@@ -69,8 +71,10 @@ impl TokenBucket {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn available(&self) -> u64 { self.tokens }
 
+    #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
         if self.capacity == 0 { return 0.0; }
         self.tokens as f64 / self.capacity as f64
@@ -79,6 +83,7 @@ impl TokenBucket {
 
 /// Sliding window counter
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlidingWindowCounter {
     pub window_ns: u64,
     pub max_requests: u64,
@@ -96,6 +101,7 @@ impl SlidingWindowCounter {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, now_ns: u64, count: u64) {
         // Prune old entries
         let cutoff = now_ns.saturating_sub(self.window_ns);
@@ -104,6 +110,7 @@ impl SlidingWindowCounter {
         self.total_counted += count;
     }
 
+    #[inline]
     pub fn current_count(&self, now_ns: u64) -> u64 {
         let cutoff = now_ns.saturating_sub(self.window_ns);
         self.slots.iter()
@@ -112,10 +119,12 @@ impl SlidingWindowCounter {
             .sum()
     }
 
+    #[inline(always)]
     pub fn is_exceeded(&self, now_ns: u64) -> bool {
         self.current_count(now_ns) >= self.max_requests
     }
 
+    #[inline(always)]
     pub fn remaining(&self, now_ns: u64) -> u64 {
         self.max_requests.saturating_sub(self.current_count(now_ns))
     }
@@ -123,6 +132,7 @@ impl SlidingWindowCounter {
 
 /// Per-consumer rate state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConsumerRateState {
     pub consumer_id: u64,
     pub bucket: TokenBucket,
@@ -148,12 +158,14 @@ impl ConsumerRateState {
         }
     }
 
+    #[inline]
     pub fn throttle_ratio(&self) -> f64 {
         let total = self.total_allowed + self.total_throttled + self.total_dropped;
         if total == 0 { return 0.0; }
         self.total_throttled as f64 / total as f64
     }
 
+    #[inline]
     pub fn drop_ratio(&self) -> f64 {
         let total = self.total_allowed + self.total_throttled + self.total_dropped;
         if total == 0 { return 0.0; }
@@ -183,6 +195,7 @@ impl CoopRateLimiter {
         }
     }
 
+    #[inline]
     pub fn register_consumer(
         &mut self,
         consumer_id: u64,
@@ -285,15 +298,18 @@ impl CoopRateLimiter {
         }
     }
 
+    #[inline(always)]
     pub fn consumer(&self, id: u64) -> Option<&ConsumerRateState> {
         self.consumers.get(&id)
     }
 
+    #[inline(always)]
     pub fn global_throttle_ratio(&self) -> f64 {
         if self.total_requests == 0 { return 0.0; }
         self.total_throttled as f64 / self.total_requests as f64
     }
 
+    #[inline(always)]
     pub fn global_fill_ratio(&self) -> f64 {
         self.global_bucket.fill_ratio()
     }

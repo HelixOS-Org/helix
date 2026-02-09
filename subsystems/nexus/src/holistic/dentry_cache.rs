@@ -31,6 +31,7 @@ pub enum DentryType {
 
 /// A cached directory entry.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DentryCacheEntry {
     pub dentry_id: u64,
     pub parent_id: Option<u64>,
@@ -71,10 +72,12 @@ impl DentryCacheEntry {
         }
     }
 
+    #[inline(always)]
     pub fn is_negative(&self) -> bool {
         self.state == DentryState::Negative
     }
 
+    #[inline(always)]
     pub fn touch(&mut self, timestamp: u64) {
         self.lru_timestamp = timestamp;
         self.lookup_count += 1;
@@ -83,6 +86,7 @@ impl DentryCacheEntry {
 
 /// Statistics for dentry cache.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DentryCacheStats {
     pub total_entries: u64,
     pub positive_entries: u64,
@@ -95,6 +99,7 @@ pub struct DentryCacheStats {
 }
 
 /// Main holistic dentry cache manager.
+#[repr(align(64))]
 pub struct HolisticDentryCache {
     pub entries: BTreeMap<u64, DentryCacheEntry>,
     pub hash_index: BTreeMap<u64, Vec<u64>>, // name_hash → [dentry_ids]
@@ -162,6 +167,7 @@ impl HolisticDentryCache {
         None
     }
 
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         if self.stats.lookups == 0 {
             return 0.0;
@@ -169,6 +175,7 @@ impl HolisticDentryCache {
         self.stats.cache_hits as f64 / self.stats.lookups as f64
     }
 
+    #[inline(always)]
     pub fn entry_count(&self) -> usize {
         self.entries.len()
     }

@@ -3,6 +3,7 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Coop IO priority
@@ -44,16 +45,19 @@ impl CoopIoRequest {
         }
     }
 
+    #[inline]
     pub fn donate_priority(&mut self, prio: CoopIoPrio) {
         if prio < self.priority {
             self.donated_prio = Some(prio);
         }
     }
 
+    #[inline(always)]
     pub fn effective_priority(&self) -> CoopIoPrio {
         self.donated_prio.unwrap_or(self.priority)
     }
 
+    #[inline(always)]
     pub fn wait_ns(&self) -> u64 {
         self.dispatch_ns.saturating_sub(self.enqueue_ns)
     }
@@ -61,6 +65,7 @@ impl CoopIoRequest {
 
 /// Coop IO scheduler stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopIoSchedStats {
     pub total_requests: u64,
     pub dispatched: u64,
@@ -88,6 +93,7 @@ impl CoopIoSched {
         }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, req: CoopIoRequest) {
         self.stats.total_requests += 1;
         if req.donated_prio.is_some() {
@@ -97,10 +103,11 @@ impl CoopIoSched {
         self.queues.entry(prio).or_insert_with(Vec::new).push(req);
     }
 
+    #[inline]
     pub fn dispatch(&mut self) -> Option<CoopIoRequest> {
         for (_prio, queue) in self.queues.iter_mut() {
             if !queue.is_empty() {
-                let req = queue.remove(0);
+                let req = queue.pop_front().unwrap();
                 self.stats.dispatched += 1;
                 self.stats.total_wait_ns += req.wait_ns();
                 return Some(req);
@@ -109,6 +116,7 @@ impl CoopIoSched {
         None
     }
 
+    #[inline]
     pub fn avg_wait_ns(&self) -> u64 {
         if self.stats.dispatched == 0 {
             0

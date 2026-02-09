@@ -8,11 +8,13 @@ pub struct SyscallNum(pub u32);
 
 impl SyscallNum {
     /// Create new syscall number
+    #[inline(always)]
     pub const fn new(num: u32) -> Self {
         Self(num)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -80,11 +82,13 @@ impl SyscallInfo {
     }
 
     /// Was syscall successful
+    #[inline(always)]
     pub fn is_success(&self) -> bool {
         self.exit >= 0
     }
 
     /// Set arguments
+    #[inline]
     pub fn with_args(mut self, a0: u64, a1: u64, a2: u64, a3: u64, a4: u64) -> Self {
         self.a0 = a0;
         self.a1 = a1;
@@ -95,6 +99,7 @@ impl SyscallInfo {
     }
 
     /// Set exit value
+    #[inline(always)]
     pub fn with_exit(mut self, exit: i64) -> Self {
         self.exit = exit;
         self

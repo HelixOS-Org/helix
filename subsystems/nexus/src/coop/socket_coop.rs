@@ -2,6 +2,7 @@
 //! Coop socket — cooperative socket sharing with SO_REUSEPORT and load balancing
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -43,14 +44,15 @@ pub struct CoopSocketGroup {
     pub lb_mode: CoopLbMode,
     pub rr_index: u64,
     pub total_dispatched: u64,
-    pub weights: BTreeMap<u64, u32>,
+    pub weights: LinearMap<u32, 64>,
 }
 
 impl CoopSocketGroup {
     pub fn new(group_id: u64, lb_mode: CoopLbMode) -> Self {
-        Self { group_id, members: Vec::new(), lb_mode, rr_index: 0, total_dispatched: 0, weights: BTreeMap::new() }
+        Self { group_id, members: Vec::new(), lb_mode, rr_index: 0, total_dispatched: 0, weights: LinearMap::new() }
     }
 
+    #[inline]
     pub fn add_member(&mut self, sock_id: u64, weight: u32) {
         if !self.members.contains(&sock_id) {
             self.members.push(sock_id);
@@ -58,9 +60,10 @@ impl CoopSocketGroup {
         }
     }
 
+    #[inline(always)]
     pub fn remove_member(&mut self, sock_id: u64) {
         self.members.retain(|&id| id != sock_id);
-        self.weights.remove(&sock_id);
+        self.weights.remove(sock_id);
     }
 
     pub fn dispatch(&mut self, hash_seed: u64) -> Option<u64> {
@@ -98,6 +101,7 @@ impl CoopSocketInstance {
         Self { sock_id, sock_type, state: CoopSocketState::Created, group_id: None, connections_handled: 0, bytes_transferred: 0 }
     }
 
+    #[inline(always)]
     pub fn join_group(&mut self, group_id: u64) {
         self.group_id = Some(group_id);
         self.state = CoopSocketState::Shared;
@@ -106,6 +110,7 @@ impl CoopSocketInstance {
 
 /// Coop socket stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopSocketStats {
     pub total_sockets: u64,
     pub total_groups: u64,
@@ -130,16 +135,19 @@ impl CoopSocket {
         }
     }
 
+    #[inline(always)]
     pub fn create_socket(&mut self, sock_id: u64, sock_type: CoopSocketType) {
         self.sockets.insert(sock_id, CoopSocketInstance::new(sock_id, sock_type));
         self.stats.total_sockets += 1;
     }
 
+    #[inline(always)]
     pub fn create_group(&mut self, group_id: u64, mode: CoopLbMode) {
         self.groups.insert(group_id, CoopSocketGroup::new(group_id, mode));
         self.stats.total_groups += 1;
     }
 
+    #[inline]
     pub fn join(&mut self, sock_id: u64, group_id: u64) -> bool {
         if let Some(sock) = self.sockets.get_mut(&sock_id) {
             sock.join_group(group_id);
@@ -161,6 +169,7 @@ pub enum SocketPoolCoopEvent { PoolShare, FdMigrate, SocketRecycle, LoadBalance 
 
 /// Socket pool coop record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketPoolCoopRecord {
     pub event: SocketPoolCoopEvent,
     pub pool_size: u32,
@@ -174,6 +183,7 @@ impl SocketPoolCoopRecord {
 
 /// Socket pool coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketPoolCoopStats { pub total_events: u64, pub shares: u64, pub migrations: u64, pub recycled: u64 }
 
 /// Main coop socket v2
@@ -182,6 +192,7 @@ pub struct CoopSocketV2 { pub stats: SocketPoolCoopStats }
 
 impl CoopSocketV2 {
     pub fn new() -> Self { Self { stats: SocketPoolCoopStats { total_events: 0, shares: 0, migrations: 0, recycled: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SocketPoolCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

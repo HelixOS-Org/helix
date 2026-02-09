@@ -147,11 +147,13 @@ impl Substitution {
     }
 
     /// Add mapping
+    #[inline(always)]
     pub fn insert(&mut self, var: u64, ty: Type) {
         self.mappings.insert(var, ty);
     }
 
     /// Get mapping
+    #[inline(always)]
     pub fn get(&self, var: u64) -> Option<&Type> {
         self.mappings.get(&var)
     }
@@ -249,16 +251,19 @@ impl TypeEnv {
     }
 
     /// Extend environment
+    #[inline(always)]
     pub fn extend(&mut self, name: String, scheme: TypeScheme) {
         self.bindings.insert(name, scheme);
     }
 
     /// Lookup variable
+    #[inline(always)]
     pub fn lookup(&self, name: &str) -> Option<&TypeScheme> {
         self.bindings.get(name)
     }
 
     /// Remove binding
+    #[inline(always)]
     pub fn remove(&mut self, name: &str) {
         self.bindings.remove(name);
     }
@@ -284,6 +289,7 @@ pub struct TypeInferencer {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct InferenceStats {
     /// Variables created
     pub vars_created: u64,
@@ -321,11 +327,13 @@ impl TypeInferencer {
     }
 
     /// Create fresh type variable
+    #[inline(always)]
     pub fn fresh_var(&self) -> Type {
         Type::Var(self.next_var.fetch_add(1, Ordering::Relaxed))
     }
 
     /// Add constraint
+    #[inline(always)]
     pub fn add_constraint(&mut self, constraint: Constraint) {
         self.constraints.push(constraint);
     }
@@ -473,6 +481,7 @@ impl TypeInferencer {
     }
 
     /// Generalize type in environment
+    #[inline]
     pub fn generalize(&self, ty: &Type) -> TypeScheme {
         // Find free type variables
         let free_vars = self.free_vars(ty);
@@ -524,6 +533,7 @@ impl TypeInferencer {
     }
 
     /// Instantiate type scheme
+    #[inline]
     pub fn instantiate(&self, scheme: &TypeScheme) -> Type {
         let mut ty = scheme.ty.clone();
         for &var in &scheme.vars {
@@ -534,11 +544,13 @@ impl TypeInferencer {
     }
 
     /// Get resolved type
+    #[inline(always)]
     pub fn resolve(&self, ty: &Type) -> Type {
         self.substitution.apply(ty)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &InferenceStats {
         &self.stats
     }

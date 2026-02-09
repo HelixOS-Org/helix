@@ -3,7 +3,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -27,6 +29,7 @@ pub enum DomainLevel {
 }
 
 impl DomainLevel {
+    #[inline]
     pub fn balance_interval_ms(&self) -> u64 {
         match self {
             Self::Smt => 1,
@@ -39,6 +42,7 @@ impl DomainLevel {
         }
     }
 
+    #[inline]
     pub fn migration_cost_ns(&self) -> u64 {
         match self {
             Self::Smt => 500,
@@ -69,10 +73,12 @@ impl DomainFlags {
     pub const PREFER_SIBLING: Self = Self(0x200);
     pub const OVERLAP: Self = Self(0x400);
 
+    #[inline(always)]
     pub fn contains(&self, flag: Self) -> bool {
         self.0 & flag.0 != 0
     }
 
+    #[inline(always)]
     pub fn count_set(&self) -> u32 {
         self.0.count_ones()
     }
@@ -100,19 +106,23 @@ impl SchedGroup {
         }
     }
 
+    #[inline(always)]
     pub fn avg_load(&self) -> u64 {
         if self.group_weight == 0 { return 0; }
         self.load / self.group_weight as u64
     }
 
+    #[inline(always)]
     pub fn is_idle(&self) -> bool {
         self.nr_running == 0
     }
 
+    #[inline(always)]
     pub fn is_overloaded(&self) -> bool {
         self.nr_running as u64 > self.capacity
     }
 
+    #[inline(always)]
     pub fn imbalance_vs(&self, other: &SchedGroup) -> i64 {
         self.avg_load() as i64 - other.avg_load() as i64
     }
@@ -171,28 +181,34 @@ impl SchedDomain {
         }
     }
 
+    #[inline(always)]
     pub fn cpu_count(&self) -> usize {
         self.span.len()
     }
 
+    #[inline(always)]
     pub fn group_count(&self) -> usize {
         self.groups.len()
     }
 
+    #[inline]
     pub fn balance_success_rate(&self) -> f64 {
         let total = self.balance_count;
         if total == 0 { return 1.0; }
         1.0 - (self.balance_failed as f64 / total as f64)
     }
 
+    #[inline(always)]
     pub fn busiest_group(&self) -> Option<&SchedGroup> {
         self.groups.iter().max_by_key(|g| g.load)
     }
 
+    #[inline(always)]
     pub fn idlest_group(&self) -> Option<&SchedGroup> {
         self.groups.iter().min_by_key(|g| g.load)
     }
 
+    #[inline]
     pub fn load_imbalance(&self) -> u64 {
         if let (Some(busiest), Some(idlest)) = (self.busiest_group(), self.idlest_group()) {
             busiest.avg_load().saturating_sub(idlest.avg_load())
@@ -201,10 +217,12 @@ impl SchedDomain {
         }
     }
 
+    #[inline(always)]
     pub fn total_load(&self) -> u64 {
         self.groups.iter().map(|g| g.load).sum()
     }
 
+    #[inline(always)]
     pub fn total_capacity(&self) -> u64 {
         self.groups.iter().map(|g| g.capacity).sum()
     }
@@ -235,6 +253,7 @@ pub enum BalanceReason {
 
 /// Sched domains stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SchedDomainsStats {
     pub total_domains: u32,
     pub total_groups: u32,
@@ -247,8 +266,8 @@ pub struct SchedDomainsStats {
 /// Main scheduler domains manager
 pub struct HolisticSchedDomains {
     domains: BTreeMap<u32, SchedDomain>,
-    cpu_to_leaf: BTreeMap<u32, u32>,
-    history: Vec<BalanceDecision>,
+    cpu_to_leaf: ArrayMap<u32, 32>,
+    history: VecDeque<BalanceDecision>,
     max_history: usize,
     next_id: u32,
     stats: SchedDomainsStats,
@@ -258,8 +277,8 @@ impl HolisticSchedDomains {
     pub fn new() -> Self {
         Self {
             domains: BTreeMap::new(),
-            cpu_to_leaf: BTreeMap::new(),
-            history: Vec::new(),
+            cpu_to_leaf: ArrayMap::new(0),
+            history: VecDeque::new(),
             max_history: 2048,
             next_id: 1,
             stats: SchedDomainsStats {
@@ -297,14 +316,15 @@ impl HolisticSchedDomains {
             d.balance_count += 1;
         }
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(decision);
+        self.history.push_back(decision);
     }
 
+    #[inline]
     pub fn domain_chain(&self, cpu: u32) -> Vec<u32> {
         let mut chain = Vec::new();
-        if let Some(&leaf) = self.cpu_to_leaf.get(&cpu) {
+        if let Some(&leaf) = self.cpu_to_leaf.try_get(cpu as usize) {
             let mut cur = Some(leaf);
             while let Some(id) = cur {
                 chain.push(id);
@@ -314,6 +334,7 @@ impl HolisticSchedDomains {
         chain
     }
 
+    #[inline]
     pub fn most_imbalanced(&self, n: usize) -> Vec<(u32, u64)> {
         let mut v: Vec<_> = self.domains.iter()
             .map(|(&id, d)| (id, d.load_imbalance()))
@@ -323,10 +344,12 @@ impl HolisticSchedDomains {
         v
     }
 
+    #[inline(always)]
     pub fn get_domain(&self, id: u32) -> Option<&SchedDomain> {
         self.domains.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SchedDomainsStats {
         &self.stats
     }

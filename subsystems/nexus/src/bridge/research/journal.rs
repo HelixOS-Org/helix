@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -119,6 +120,7 @@ pub struct CitationEdge {
 
 /// Aggregate journal statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct JournalStats {
     pub total_entries: u64,
     pub total_published: u64,
@@ -186,7 +188,7 @@ impl TermIndex {
     }
 
     fn search(&self, query: &str) -> BTreeMap<u64, u32> {
-        let mut scores: BTreeMap<u64, u32> = BTreeMap::new();
+        let mut scores: LinearMap<u32, 64> = BTreeMap::new();
         let bytes = query.as_bytes();
         let mut start = 0;
         for i in 0..=bytes.len() {
@@ -220,6 +222,7 @@ impl TermIndex {
 
 /// Research journal and publication engine
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeJournal {
     entries: BTreeMap<u64, JournalEntry>,
     term_index: TermIndex,
@@ -376,6 +379,7 @@ impl BridgeJournal {
     }
 
     /// Compute impact score for an entry based on citation count and downstream effects
+    #[inline]
     pub fn impact_score(&mut self, entry_id: u64) -> f32 {
         let entry = match self.entries.get(&entry_id) {
             Some(e) => e,
@@ -412,11 +416,13 @@ impl BridgeJournal {
     }
 
     /// Build and return the citation graph
+    #[inline(always)]
     pub fn citation_graph(&self) -> Vec<CitationEdge> {
         self.citation_edges.clone()
     }
 
     /// Get total citation count for an entry
+    #[inline]
     pub fn citation_count(&self, entry_id: u64) -> u64 {
         self.entries
             .get(&entry_id)
@@ -460,11 +466,13 @@ impl BridgeJournal {
     }
 
     /// Get an entry by ID
+    #[inline(always)]
     pub fn get_entry(&self, entry_id: u64) -> Option<&JournalEntry> {
         self.entries.get(&entry_id)
     }
 
     /// Retract a publication
+    #[inline]
     pub fn retract(&mut self, entry_id: u64) -> bool {
         if let Some(e) = self.entries.get_mut(&entry_id) {
             e.status = PublicationStatus::Retracted;
@@ -498,6 +506,7 @@ impl BridgeJournal {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> JournalStats {
         self.stats
     }

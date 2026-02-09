@@ -10,6 +10,7 @@
 //! - Fork-exec patterns
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
@@ -118,11 +119,13 @@ impl PatternTemplate {
         }
     }
 
+    #[inline(always)]
     pub fn add(mut self, elem: PatternElement) -> Self {
         self.sequence.push(elem);
         self
     }
 
+    #[inline(always)]
     pub fn with_min_confidence(mut self, c: f64) -> Self {
         self.min_confidence = c;
         self
@@ -209,6 +212,7 @@ struct MatchState {
 }
 
 /// Pattern matcher engine
+#[repr(align(64))]
 pub struct PatternMatcher {
     /// Pattern templates
     templates: Vec<PatternTemplate>,
@@ -226,26 +230,26 @@ pub struct PatternMatcher {
 #[derive(Debug, Clone)]
 struct SyscallHistory {
     /// Recent syscall types
-    types: Vec<SyscallType>,
+    types: VecDeque<SyscallType>,
     /// Timestamps
-    timestamps: Vec<u64>,
+    timestamps: VecDeque<u64>,
 }
 
 impl SyscallHistory {
     fn new() -> Self {
         Self {
-            types: Vec::new(),
-            timestamps: Vec::new(),
+            types: VecDeque::new(),
+            timestamps: VecDeque::new(),
         }
     }
 
     fn push(&mut self, syscall_type: SyscallType, timestamp: u64, max: usize) {
         if self.types.len() >= max {
-            self.types.remove(0);
-            self.timestamps.remove(0);
+            self.types.pop_front();
+            self.timestamps.pop_front();
         }
-        self.types.push(syscall_type);
-        self.timestamps.push(timestamp);
+        self.types.push_back(syscall_type);
+        self.timestamps.push_back(timestamp);
     }
 }
 
@@ -261,6 +265,7 @@ impl PatternMatcher {
     }
 
     /// Add a custom pattern template
+    #[inline(always)]
     pub fn add_template(&mut self, template: PatternTemplate) {
         self.templates.push(template);
     }
@@ -433,6 +438,7 @@ impl PatternMatcher {
     }
 
     /// Get most recently detected pattern for a process
+    #[inline(always)]
     pub fn get_pattern(&self, pid: u64) -> Option<&[PatternMatch]> {
         self.detected.get(&pid).map(|v| v.as_slice())
     }
@@ -452,12 +458,14 @@ impl PatternMatcher {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.histories.remove(&pid);
         self.detected.remove(&pid);
     }
 
     /// Number of tracked processes
+    #[inline(always)]
     pub fn tracked_processes(&self) -> usize {
         self.histories.len()
     }
@@ -468,6 +476,7 @@ impl PatternMatcher {
 // ============================================================================
 
 /// N-gram frequency analyzer for pattern discovery
+#[repr(align(64))]
 pub struct NgramAnalyzer {
     /// Bigrams (2-gram)
     bigrams: BTreeMap<(u8, u8), u64>,
@@ -519,6 +528,7 @@ impl NgramAnalyzer {
     }
 
     /// Top N bigrams
+    #[inline]
     pub fn top_bigrams(&self, n: usize) -> Vec<((u8, u8), u64)> {
         let mut items: Vec<_> = self.bigrams.iter().map(|(&k, &v)| (k, v)).collect();
         items.sort_by(|a, b| b.1.cmp(&a.1));
@@ -527,6 +537,7 @@ impl NgramAnalyzer {
     }
 
     /// Top N trigrams
+    #[inline]
     pub fn top_trigrams(&self, n: usize) -> Vec<((u8, u8, u8), u64)> {
         let mut items: Vec<_> = self.trigrams.iter().map(|(&k, &v)| (k, v)).collect();
         items.sort_by(|a, b| b.1.cmp(&a.1));
@@ -535,6 +546,7 @@ impl NgramAnalyzer {
     }
 
     /// Top N quadgrams
+    #[inline]
     pub fn top_quadgrams(&self, n: usize) -> Vec<((u8, u8, u8, u8), u64)> {
         let mut items: Vec<_> = self.quadgrams.iter().map(|(&k, &v)| (k, v)).collect();
         items.sort_by(|a, b| b.1.cmp(&a.1));
@@ -559,6 +571,7 @@ impl NgramAnalyzer {
     }
 
     /// Reset all counters
+    #[inline]
     pub fn reset(&mut self) {
         self.bigrams.clear();
         self.trigrams.clear();

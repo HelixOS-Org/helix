@@ -56,8 +56,11 @@ impl ClockFlags {
     pub const PER_CPU: u32 = 1 << 5;
 
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn is_continuous(&self) -> bool { self.has(Self::CONTINUOUS) }
+    #[inline(always)]
     pub fn is_monotonic(&self) -> bool { self.has(Self::MONOTONIC) }
 }
 
@@ -90,6 +93,7 @@ impl ClockSource {
         }
     }
 
+    #[inline]
     pub fn read(&mut self, raw_counter: u64) -> u64 {
         let masked = raw_counter & self.mask;
         self.last_read = masked;
@@ -97,15 +101,18 @@ impl ClockSource {
         (masked.wrapping_mul(self.mult as u64)) >> self.shift
     }
 
+    #[inline(always)]
     pub fn cycles_to_ns(&self, cycles: u64) -> u64 {
         if self.frequency_hz == 0 { return 0; }
         (cycles as u128 * 1_000_000_000 / self.frequency_hz as u128) as u64
     }
 
+    #[inline(always)]
     pub fn ns_to_cycles(&self, ns: u64) -> u64 {
         (ns as u128 * self.frequency_hz as u128 / 1_000_000_000) as u64
     }
 
+    #[inline(always)]
     pub fn is_suitable(&self) -> bool {
         self.state == ClockState::Active && self.quality <= ClockQuality::Acceptable
     }
@@ -130,6 +137,7 @@ impl ClockWatchdog {
         }
     }
 
+    #[inline]
     pub fn check(&mut self, reference_ns: u64, measured_ns: u64, now: u64) -> bool {
         self.total_checks += 1;
         self.last_check = now;
@@ -140,6 +148,7 @@ impl ClockWatchdog {
         } else { true }
     }
 
+    #[inline(always)]
     pub fn violation_rate(&self) -> f64 {
         if self.total_checks == 0 { return 0.0; }
         self.skew_violations as f64 / self.total_checks as f64
@@ -148,6 +157,7 @@ impl ClockWatchdog {
 
 /// Clock source stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ClockSourceStats {
     pub total_sources: u32,
     pub active_source: Option<u32>,
@@ -170,6 +180,7 @@ impl HolisticClockSource {
         Self { sources: BTreeMap::new(), active_id: None, watchdog: None, source_switches: 0, next_id: 1 }
     }
 
+    #[inline]
     pub fn register(&mut self, name: String, stype: ClockSourceType, freq: u64) -> u32 {
         let id = self.next_id;
         self.next_id += 1;
@@ -177,6 +188,7 @@ impl HolisticClockSource {
         id
     }
 
+    #[inline]
     pub fn activate(&mut self, id: u32) -> bool {
         if let Some(src) = self.sources.get_mut(&id) {
             src.state = ClockState::Active;
@@ -186,6 +198,7 @@ impl HolisticClockSource {
         } else { false }
     }
 
+    #[inline]
     pub fn select_best(&mut self) -> Option<u32> {
         let best = self.sources.values()
             .filter(|s| s.state != ClockState::Failed)
@@ -195,11 +208,13 @@ impl HolisticClockSource {
         best
     }
 
+    #[inline(always)]
     pub fn read_active(&mut self, raw: u64) -> Option<u64> {
         let id = self.active_id?;
         self.sources.get_mut(&id).map(|s| s.read(raw))
     }
 
+    #[inline]
     pub fn stats(&self) -> ClockSourceStats {
         let total_reads: u64 = self.sources.values().map(|s| s.read_count).sum();
         let violations = self.watchdog.as_ref().map(|w| w.skew_violations).unwrap_or(0);

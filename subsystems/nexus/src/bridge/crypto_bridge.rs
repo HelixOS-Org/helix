@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -29,6 +30,7 @@ pub enum CryptoPriority {
 }
 
 impl CryptoPriority {
+    #[inline]
     pub fn weight(&self) -> u32 {
         match self {
             Self::Software => 100,
@@ -65,10 +67,12 @@ impl CryptoAlg {
         }
     }
 
+    #[inline(always)]
     pub fn key_size_range(&self) -> (u32, u32) {
         (self.min_key_size, self.max_key_size)
     }
 
+    #[inline(always)]
     pub fn is_aead(&self) -> bool {
         self.alg_type == CryptoAlgType::Aead
     }
@@ -76,6 +80,7 @@ impl CryptoAlg {
 
 /// Crypto operation request
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CryptoRequest {
     pub alg_name: String,
     pub op: CryptoOp,
@@ -112,6 +117,7 @@ pub enum CryptoResult {
 
 /// Per-algorithm stats
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct AlgStats {
     pub name: String,
     pub total_ops: u64,
@@ -129,11 +135,13 @@ impl AlgStats {
         }
     }
 
+    #[inline(always)]
     pub fn throughput_mbps(&self, elapsed_s: f64) -> f64 {
         if elapsed_s <= 0.0 { return 0.0; }
         (self.total_bytes as f64 / (1024.0 * 1024.0)) / elapsed_s
     }
 
+    #[inline(always)]
     pub fn error_rate(&self) -> f64 {
         if self.total_ops == 0 { return 0.0; }
         self.errors as f64 / self.total_ops as f64
@@ -142,6 +150,7 @@ impl AlgStats {
 
 /// Crypto bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CryptoBridgeStats {
     pub registered_algs: u32,
     pub total_requests: u64,
@@ -152,10 +161,11 @@ pub struct CryptoBridgeStats {
 }
 
 /// Main crypto bridge
+#[repr(align(64))]
 pub struct BridgeCrypto {
     algorithms: BTreeMap<String, CryptoAlg>,
     alg_stats: BTreeMap<String, AlgStats>,
-    requests: Vec<CryptoRequest>,
+    requests: VecDeque<CryptoRequest>,
     max_requests: usize,
     stats: CryptoBridgeStats,
 }
@@ -165,7 +175,7 @@ impl BridgeCrypto {
         Self {
             algorithms: BTreeMap::new(),
             alg_stats: BTreeMap::new(),
-            requests: Vec::new(),
+            requests: VecDeque::new(),
             max_requests: 4096,
             stats: CryptoBridgeStats {
                 registered_algs: 0, total_requests: 0,
@@ -175,11 +185,13 @@ impl BridgeCrypto {
         }
     }
 
+    #[inline(always)]
     pub fn register_alg(&mut self, alg: CryptoAlg) {
         self.stats.registered_algs += 1;
         self.algorithms.insert(alg.name.clone(), alg);
     }
 
+    #[inline]
     pub fn unregister_alg(&mut self, name: &str) -> bool {
         if self.algorithms.remove(name).is_some() {
             if self.stats.registered_algs > 0 { self.stats.registered_algs -= 1; }
@@ -210,24 +222,28 @@ impl BridgeCrypto {
         if req.latency_ns > entry.peak_latency_ns { entry.peak_latency_ns = req.latency_ns; }
         entry.avg_latency_ns = ((entry.avg_latency_ns * (entry.total_ops - 1)) + req.latency_ns) / entry.total_ops;
 
-        if self.requests.len() >= self.max_requests { self.requests.remove(0); }
-        self.requests.push(req);
+        if self.requests.len() >= self.max_requests { self.requests.pop_front(); }
+        self.requests.push_back(req);
     }
 
+    #[inline(always)]
     pub fn find_alg(&self, name: &str) -> Option<&CryptoAlg> {
         self.algorithms.get(name)
     }
 
+    #[inline(always)]
     pub fn algs_by_type(&self, alg_type: CryptoAlgType) -> Vec<&CryptoAlg> {
         self.algorithms.values().filter(|a| a.alg_type == alg_type).collect()
     }
 
+    #[inline]
     pub fn best_alg(&self, name: &str) -> Option<&CryptoAlg> {
         self.algorithms.values()
             .filter(|a| a.name == name || a.driver_name == name)
             .max_by_key(|a| a.priority.weight())
     }
 
+    #[inline]
     pub fn busiest_algs(&self, n: usize) -> Vec<(&str, u64)> {
         let mut v: Vec<_> = self.alg_stats.iter()
             .map(|(name, s)| (name.as_str(), s.total_ops))
@@ -237,6 +253,7 @@ impl BridgeCrypto {
         v
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CryptoBridgeStats {
         &self.stats
     }
@@ -285,6 +302,7 @@ pub enum CryptoV2Result {
 
 /// Crypto v2 record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CryptoV2Record {
     pub op: CryptoV2Op,
     pub alg_type: CryptoV2AlgType,
@@ -305,6 +323,7 @@ impl CryptoV2Record {
 
 /// Crypto v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CryptoV2BridgeStats {
     pub total_ops: u64,
     pub encryptions: u64,
@@ -325,6 +344,7 @@ impl BridgeCryptoV2 {
         Self { stats: CryptoV2BridgeStats { total_ops: 0, encryptions: 0, decryptions: 0, hashes: 0, total_bytes: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &CryptoV2Record) {
         self.stats.total_ops += 1;
         self.stats.total_bytes += rec.input_size as u64;

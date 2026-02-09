@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Task priority
@@ -44,17 +45,22 @@ impl WsTask {
         Self { id, priority: prio, state: WsTaskState::Queued, origin_worker: worker, current_worker: worker, stolen: false, queued_at: now, started_at: 0, completed_at: 0 }
     }
 
+    #[inline(always)]
     pub fn start(&mut self, now: u64) { self.state = WsTaskState::Running; self.started_at = now; }
+    #[inline(always)]
     pub fn complete(&mut self, now: u64) { self.state = WsTaskState::Completed; self.completed_at = now; }
+    #[inline(always)]
     pub fn steal(&mut self, thief: u64) { self.stolen = true; self.current_worker = thief; self.state = WsTaskState::Stolen; }
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 { if self.completed_at > 0 { self.completed_at - self.queued_at } else { 0 } }
 }
 
 /// Worker queue
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct WorkerQueue {
     pub id: u64,
-    pub tasks: Vec<WsTask>,
+    pub tasks: VecDeque<WsTask>,
     pub total_processed: u64,
     pub total_stolen_from: u64,
     pub total_stolen_to: u64,
@@ -63,22 +69,27 @@ pub struct WorkerQueue {
 
 impl WorkerQueue {
     pub fn new(id: u64) -> Self {
-        Self { id, tasks: Vec::new(), total_processed: 0, total_stolen_from: 0, total_stolen_to: 0, idle_ns: 0 }
+        Self { id, tasks: VecDeque::new(), total_processed: 0, total_stolen_from: 0, total_stolen_to: 0, idle_ns: 0 }
     }
 
-    pub fn push(&mut self, task: WsTask) { self.tasks.push(task); }
+    #[inline(always)]
+    pub fn push(&mut self, task: WsTask) { self.tasks.push_back(task); }
+    #[inline(always)]
     pub fn pop(&mut self) -> Option<WsTask> { self.tasks.pop() }
+    #[inline]
     pub fn steal(&mut self) -> Option<WsTask> {
         if self.tasks.is_empty() { return None; }
         self.total_stolen_from += 1;
-        Some(self.tasks.remove(0))
+        self.tasks.pop_front()
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize { self.tasks.len() }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkStealingStats {
     pub total_workers: u32,
     pub total_tasks: u64,
@@ -99,8 +110,10 @@ pub struct CoopWorkStealing {
 impl CoopWorkStealing {
     pub fn new() -> Self { Self { workers: BTreeMap::new(), next_task_id: 1, total_steals: 0, seed: 0xabcdef0123456789 } }
 
+    #[inline(always)]
     pub fn add_worker(&mut self, id: u64) { self.workers.insert(id, WorkerQueue::new(id)); }
 
+    #[inline]
     pub fn submit(&mut self, worker: u64, prio: WsTaskPriority, now: u64) -> u64 {
         let id = self.next_task_id; self.next_task_id += 1;
         let task = WsTask::new(id, prio, worker, now);
@@ -129,6 +142,7 @@ impl CoopWorkStealing {
         false
     }
 
+    #[inline]
     pub fn stats(&self) -> WorkStealingStats {
         let processed: u64 = self.workers.values().map(|w| w.total_processed).sum();
         let depths: Vec<f64> = self.workers.values().map(|w| w.len() as f64).collect();
@@ -171,7 +185,7 @@ impl StealTask {
 #[derive(Debug)]
 pub struct WorkerDeque {
     pub worker_id: u64,
-    pub tasks: Vec<StealTask>,
+    pub tasks: VecDeque<StealTask>,
     pub total_pushed: u64,
     pub total_popped: u64,
     pub total_stolen_from: u64,
@@ -180,27 +194,32 @@ pub struct WorkerDeque {
 
 impl WorkerDeque {
     pub fn new(id: u64) -> Self {
-        Self { worker_id: id, tasks: Vec::new(), total_pushed: 0, total_popped: 0, total_stolen_from: 0, total_stolen_to: 0 }
+        Self { worker_id: id, tasks: VecDeque::new(), total_pushed: 0, total_popped: 0, total_stolen_from: 0, total_stolen_to: 0 }
     }
 
-    pub fn push(&mut self, task: StealTask) { self.total_pushed += 1; self.tasks.push(task); }
+    #[inline(always)]
+    pub fn push(&mut self, task: StealTask) { self.total_pushed += 1; self.tasks.push_back(task); }
 
+    #[inline(always)]
     pub fn pop(&mut self) -> Option<StealTask> { self.total_popped += 1; self.tasks.pop() }
 
+    #[inline]
     pub fn steal(&mut self) -> Option<StealTask> {
         if self.tasks.is_empty() { return None; }
         self.total_stolen_from += 1;
-        let mut task = self.tasks.remove(0);
+        let mut task = self.tasks.pop_front().unwrap();
         task.stolen = true;
         task.steal_count += 1;
         Some(task)
     }
 
+    #[inline(always)]
     pub fn load(&self) -> u64 { self.tasks.iter().map(|t| t.cost_estimate).sum() }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkStealingV2Stats {
     pub total_workers: u32,
     pub total_tasks: u32,
@@ -217,12 +236,15 @@ pub struct CoopWorkStealingV2 {
 impl CoopWorkStealingV2 {
     pub fn new() -> Self { Self { workers: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn add_worker(&mut self, id: u64) { self.workers.insert(id, WorkerDeque::new(id)); }
 
+    #[inline(always)]
     pub fn push(&mut self, worker: u64, task: StealTask) {
         if let Some(w) = self.workers.get_mut(&worker) { w.push(task); }
     }
 
+    #[inline(always)]
     pub fn pop(&mut self, worker: u64) -> Option<StealTask> {
         self.workers.get_mut(&worker).and_then(|w| w.pop())
     }
@@ -243,6 +265,7 @@ impl CoopWorkStealingV2 {
         None
     }
 
+    #[inline]
     pub fn stats(&self) -> WorkStealingV2Stats {
         let loads: Vec<u64> = self.workers.values().map(|w| w.load()).collect();
         let total_tasks: u32 = self.workers.values().map(|w| w.tasks.len() as u32).sum();

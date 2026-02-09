@@ -22,6 +22,7 @@ impl CongestionCoopRecord {
 
 /// Congestion coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CongestionCoopStats { pub total_events: u64, pub syncs: u64, pub group_starts: u64, pub recoveries: u64 }
 
 /// Main coop congestion
@@ -30,6 +31,7 @@ pub struct CoopCongestion { pub stats: CongestionCoopStats }
 
 impl CoopCongestion {
     pub fn new() -> Self { Self { stats: CongestionCoopStats { total_events: 0, syncs: 0, group_starts: 0, recoveries: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &CongestionCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

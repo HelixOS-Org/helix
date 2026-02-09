@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -31,7 +32,9 @@ impl SysctlPerm {
     pub const ROOT_RW: u16 = 0o600;
 
     pub fn new(bits: u16) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn is_readable(&self) -> bool { self.bits & 0o444 != 0 }
+    #[inline(always)]
     pub fn is_writable(&self) -> bool { self.bits & 0o222 != 0 }
 }
 
@@ -66,6 +69,7 @@ pub struct SysctlParam {
 }
 
 impl SysctlParam {
+    #[inline]
     pub fn new_int(id: u64, path: String, ns: SysctlNs, value: i64) -> Self {
         Self {
             id, path, ns, value_type: SysctlValueType::Integer,
@@ -76,6 +80,7 @@ impl SysctlParam {
         }
     }
 
+    #[inline]
     pub fn new_string(id: u64, path: String, ns: SysctlNs, value: String) -> Self {
         Self {
             id, path, ns, value_type: SysctlValueType::String,
@@ -86,11 +91,13 @@ impl SysctlParam {
         }
     }
 
+    #[inline(always)]
     pub fn read(&mut self) -> i64 {
         self.read_count += 1;
         self.int_val
     }
 
+    #[inline]
     pub fn write(&mut self, value: i64, now: u64) -> bool {
         if value < self.min_val || value > self.max_val { return false; }
         self.int_val = value;
@@ -99,13 +106,16 @@ impl SysctlParam {
         true
     }
 
+    #[inline(always)]
     pub fn is_default(&self) -> bool { self.int_val == self.default_val }
 
+    #[inline(always)]
     pub fn set_range(&mut self, min: i64, max: i64) {
         self.min_val = min;
         self.max_val = max;
     }
 
+    #[inline]
     pub fn fnv_hash(&self) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
         for b in self.path.as_bytes() {
@@ -136,6 +146,7 @@ pub struct SysctlChangeEvent {
 
 /// Bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SysctlBridgeStats {
     pub total_params: u32,
     pub total_reads: u64,
@@ -145,10 +156,11 @@ pub struct SysctlBridgeStats {
 }
 
 /// Main sysctl bridge
+#[repr(align(64))]
 pub struct BridgeSysctl {
     params: BTreeMap<u64, SysctlParam>,
     changes: Vec<SysctlChangeEvent>,
-    path_index: BTreeMap<u64, u64>, // hash → param id
+    path_index: LinearMap<u64, 64>, // hash → param id
     next_id: u64,
     max_changes: usize,
 }
@@ -157,10 +169,11 @@ impl BridgeSysctl {
     pub fn new() -> Self {
         Self {
             params: BTreeMap::new(), changes: Vec::new(),
-            path_index: BTreeMap::new(), next_id: 1, max_changes: 4096,
+            path_index: LinearMap::new(), next_id: 1, max_changes: 4096,
         }
     }
 
+    #[inline]
     pub fn register_int(&mut self, path: String, ns: SysctlNs, value: i64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -171,6 +184,7 @@ impl BridgeSysctl {
         id
     }
 
+    #[inline]
     pub fn register_string(&mut self, path: String, ns: SysctlNs, value: String) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -181,10 +195,12 @@ impl BridgeSysctl {
         id
     }
 
+    #[inline(always)]
     pub fn read(&mut self, id: u64) -> Option<i64> {
         self.params.get_mut(&id).map(|p| p.read())
     }
 
+    #[inline]
     pub fn write(&mut self, id: u64, value: i64, pid: u64, now: u64) -> bool {
         if let Some(param) = self.params.get_mut(&id) {
             let old = param.int_val;

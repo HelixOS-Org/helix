@@ -22,6 +22,7 @@ impl BacklogCoopRecord {
 
 /// Backlog coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BacklogCoopStats { pub total_events: u64, pub shares: u64, pub redirects: u64, pub syncs: u64 }
 
 /// Main coop backlog
@@ -30,6 +31,7 @@ pub struct CoopBacklog { pub stats: BacklogCoopStats }
 
 impl CoopBacklog {
     pub fn new() -> Self { Self { stats: BacklogCoopStats { total_events: 0, shares: 0, redirects: 0, syncs: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &BacklogCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

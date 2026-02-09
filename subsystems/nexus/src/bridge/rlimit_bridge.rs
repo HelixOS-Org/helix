@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Resource types (RLIMIT_* equivalents)
@@ -35,6 +36,7 @@ pub enum ResourceType {
 }
 
 impl ResourceType {
+    #[inline]
     pub fn all() -> &'static [ResourceType] {
         &[
             ResourceType::Cpu, ResourceType::Fsize, ResourceType::Data,
@@ -61,14 +63,19 @@ impl Rlimit {
     pub fn new(soft: u64, hard: u64) -> Self {
         Self { soft, hard }
     }
+    #[inline(always)]
     pub fn unlimited() -> Self {
         Self { soft: RLIM_INFINITY, hard: RLIM_INFINITY }
     }
+    #[inline(always)]
     pub fn is_unlimited(&self) -> bool { self.hard == RLIM_INFINITY }
 
+    #[inline(always)]
     pub fn check_soft(&self, usage: u64) -> bool { usage <= self.soft || self.soft == RLIM_INFINITY }
+    #[inline(always)]
     pub fn check_hard(&self, usage: u64) -> bool { usage <= self.hard || self.hard == RLIM_INFINITY }
 
+    #[inline(always)]
     pub fn remaining_soft(&self, usage: u64) -> u64 {
         if self.soft == RLIM_INFINITY { return RLIM_INFINITY; }
         self.soft.saturating_sub(usage)
@@ -77,6 +84,7 @@ impl Rlimit {
 
 /// Per-process resource usage
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessRlimits {
     pub process_id: u64,
     pub limits: BTreeMap<ResourceType, Rlimit>,
@@ -115,10 +123,12 @@ impl ProcessRlimits {
         }
     }
 
+    #[inline(always)]
     pub fn get_limit(&self, res: ResourceType) -> Rlimit {
         self.limits.get(&res).copied().unwrap_or(Rlimit::unlimited())
     }
 
+    #[inline]
     pub fn set_limit(&mut self, res: ResourceType, rlim: Rlimit) -> bool {
         // Cannot raise hard limit (unless privileged — we skip that check)
         if let Some(current) = self.limits.get(&res) {
@@ -131,10 +141,12 @@ impl ProcessRlimits {
         true
     }
 
+    #[inline(always)]
     pub fn get_usage(&self, res: ResourceType) -> u64 {
         self.usage.get(&res).copied().unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn update_usage(&mut self, res: ResourceType, value: u64) {
         self.usage.insert(res, value);
     }
@@ -154,6 +166,7 @@ impl ProcessRlimits {
     }
 
     /// Clone limits for fork (usage is NOT inherited)
+    #[inline]
     pub fn fork_limits(&self, child_pid: u64) -> ProcessRlimits {
         let mut child = ProcessRlimits::new(child_pid);
         child.limits = self.limits.clone();
@@ -184,6 +197,7 @@ pub struct LimitChangeAudit {
 
 /// Bridge rlimit stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeRlimitStats {
     pub total_processes: usize,
     pub total_soft_violations: u64,
@@ -192,9 +206,10 @@ pub struct BridgeRlimitStats {
 }
 
 /// Bridge Rlimit Manager
+#[repr(align(64))]
 pub struct BridgeRlimitBridge {
     processes: BTreeMap<u64, ProcessRlimits>,
-    audit_log: Vec<LimitChangeAudit>,
+    audit_log: VecDeque<LimitChangeAudit>,
     max_audit: usize,
     stats: BridgeRlimitStats,
 }
@@ -203,16 +218,18 @@ impl BridgeRlimitBridge {
     pub fn new(max_audit: usize) -> Self {
         Self {
             processes: BTreeMap::new(),
-            audit_log: Vec::new(),
+            audit_log: VecDeque::new(),
             max_audit,
             stats: BridgeRlimitStats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.entry(pid).or_insert_with(|| ProcessRlimits::new(pid));
     }
 
+    #[inline]
     pub fn fork_process(&mut self, parent_pid: u64, child_pid: u64) {
         if let Some(parent) = self.processes.get(&parent_pid) {
             let child = parent.fork_limits(child_pid);
@@ -220,10 +237,12 @@ impl BridgeRlimitBridge {
         }
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
     }
 
+    #[inline(always)]
     pub fn get_rlimit(&self, pid: u64, res: ResourceType) -> Option<Rlimit> {
         self.processes.get(&pid).map(|p| p.get_limit(res))
     }
@@ -232,29 +251,32 @@ impl BridgeRlimitBridge {
         if let Some(proc_limits) = self.processes.get_mut(&pid) {
             let old = proc_limits.get_limit(res);
             let success = proc_limits.set_limit(res, rlim);
-            self.audit_log.push(LimitChangeAudit {
+            self.audit_log.push_back(LimitChangeAudit {
                 process_id: pid, resource: res,
                 old_soft: old.soft, old_hard: old.hard,
                 new_soft: rlim.soft, new_hard: rlim.hard,
                 timestamp_ns: ts, success,
             });
-            while self.audit_log.len() > self.max_audit { self.audit_log.remove(0); }
+            while self.audit_log.len() > self.max_audit { self.audit_log.pop_front(); }
             success
         } else { false }
     }
 
+    #[inline]
     pub fn check_limit(&mut self, pid: u64, res: ResourceType) -> LimitCheckResult {
         if let Some(proc_limits) = self.processes.get_mut(&pid) {
             proc_limits.check(res)
         } else { LimitCheckResult::Ok }
     }
 
+    #[inline]
     pub fn update_usage(&mut self, pid: u64, res: ResourceType, value: u64) {
         if let Some(proc_limits) = self.processes.get_mut(&pid) {
             proc_limits.update_usage(res, value);
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.processes.len();
         self.stats.total_soft_violations = self.processes.values().map(|p| p.soft_violations).sum();
@@ -262,7 +284,9 @@ impl BridgeRlimitBridge {
         self.stats.total_limit_changes = self.audit_log.len();
     }
 
+    #[inline(always)]
     pub fn process_limits(&self, pid: u64) -> Option<&ProcessRlimits> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeRlimitStats { &self.stats }
 }
 
@@ -302,14 +326,17 @@ impl RlimitV2Pair {
         Self { soft, hard }
     }
 
+    #[inline(always)]
     pub fn unlimited() -> Self {
         Self { soft: u64::MAX, hard: u64::MAX }
     }
 
+    #[inline(always)]
     pub fn is_unlimited(&self) -> bool {
         self.soft == u64::MAX && self.hard == u64::MAX
     }
 
+    #[inline]
     pub fn check(&self, current: u64) -> RlimitV2Check {
         if current >= self.hard {
             RlimitV2Check::HardExceeded
@@ -331,6 +358,7 @@ pub enum RlimitV2Check {
 
 /// A process's resource limits
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessRlimitsV2 {
     pub pid: u64,
     pub limits: BTreeMap<RlimitV2Resource, RlimitV2Pair>,
@@ -360,6 +388,7 @@ impl ProcessRlimitsV2 {
         Self { pid, limits, usage, violations: 0, soft_warnings: 0 }
     }
 
+    #[inline]
     pub fn set_limit(&mut self, resource: RlimitV2Resource, soft: u64, hard: u64) -> bool {
         if soft > hard {
             return false;
@@ -386,6 +415,7 @@ impl ProcessRlimitsV2 {
 
 /// Statistics for rlimit V2 bridge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RlimitV2BridgeStats {
     pub processes_tracked: u64,
     pub limits_set: u64,
@@ -397,6 +427,7 @@ pub struct RlimitV2BridgeStats {
 
 /// Main rlimit V2 bridge manager
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeRlimitV2 {
     processes: BTreeMap<u64, ProcessRlimitsV2>,
     stats: RlimitV2BridgeStats,
@@ -417,11 +448,13 @@ impl BridgeRlimitV2 {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.insert(pid, ProcessRlimitsV2::new(pid));
         self.stats.processes_tracked += 1;
     }
 
+    #[inline]
     pub fn set_limit(&mut self, pid: u64, resource: RlimitV2Resource, soft: u64, hard: u64) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             if proc.set_limit(resource, soft, hard) {
@@ -447,6 +480,7 @@ impl BridgeRlimitV2 {
         }
     }
 
+    #[inline]
     pub fn inherit_limits(&mut self, parent_pid: u64, child_pid: u64) -> bool {
         if let Some(parent) = self.processes.get(&parent_pid) {
             let mut child = ProcessRlimitsV2::new(child_pid);
@@ -459,6 +493,7 @@ impl BridgeRlimitV2 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &RlimitV2BridgeStats {
         &self.stats
     }
@@ -521,6 +556,7 @@ impl RlimitV3Value {
         }
     }
 
+    #[inline]
     pub fn update_usage(&mut self, usage: u64) {
         self.current_usage = usage;
         if usage > self.peak_usage {
@@ -528,6 +564,7 @@ impl RlimitV3Value {
         }
     }
 
+    #[inline]
     pub fn check_limit(&self, requested: u64) -> bool {
         match self.enforcement {
             RlimitV3Enforcement::Hard => self.current_usage + requested <= self.hard_limit,
@@ -536,11 +573,13 @@ impl RlimitV3Value {
         }
     }
 
+    #[inline(always)]
     pub fn utilization_pct(&self) -> u64 {
         if self.hard_limit == 0 || self.hard_limit == u64::MAX { 0 }
         else { (self.current_usage * 100) / self.hard_limit }
     }
 
+    #[inline(always)]
     pub fn headroom(&self) -> u64 {
         if self.current_usage >= self.hard_limit { 0 }
         else { self.hard_limit - self.current_usage }
@@ -567,6 +606,7 @@ impl RlimitV3ProcessLimits {
         }
     }
 
+    #[inline]
     pub fn set_limit(&mut self, resource: RlimitV3Resource, soft: u64, hard: u64) {
         if let Some(lim) = self.limits.iter_mut().find(|l| l.resource == resource) {
             lim.soft_limit = soft;
@@ -576,16 +616,19 @@ impl RlimitV3ProcessLimits {
         }
     }
 
+    #[inline(always)]
     pub fn get_limit(&self, resource: RlimitV3Resource) -> Option<&RlimitV3Value> {
         self.limits.iter().find(|l| l.resource == resource)
     }
 
+    #[inline(always)]
     pub fn most_constrained(&self) -> Option<&RlimitV3Value> {
         self.limits.iter().max_by_key(|l| l.utilization_pct())
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RlimitV3BridgeStats {
     pub total_processes: u64,
     pub total_limits_set: u64,
@@ -593,6 +636,7 @@ pub struct RlimitV3BridgeStats {
     pub cgroup_overrides: u64,
 }
 
+#[repr(align(64))]
 pub struct BridgeRlimitV3 {
     processes: BTreeMap<u64, RlimitV3ProcessLimits>,
     stats: RlimitV3BridgeStats,
@@ -611,11 +655,13 @@ impl BridgeRlimitV3 {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) {
         self.processes.insert(pid, RlimitV3ProcessLimits::new(pid));
         self.stats.total_processes += 1;
     }
 
+    #[inline]
     pub fn set_limit(&mut self, pid: u64, resource: RlimitV3Resource, soft: u64, hard: u64) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.set_limit(resource, soft, hard);
@@ -637,6 +683,7 @@ impl BridgeRlimitV3 {
         false
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &RlimitV3BridgeStats {
         &self.stats
     }

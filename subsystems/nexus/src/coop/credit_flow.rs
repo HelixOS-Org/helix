@@ -44,14 +44,18 @@ impl CreditGrant {
         }
     }
 
+    #[inline]
     pub fn consume(&mut self, n: u64) -> u64 {
         let consumed = n.min(self.remaining);
         self.remaining -= consumed;
         consumed
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool { now >= self.expires_at }
+    #[inline(always)]
     pub fn is_exhausted(&self) -> bool { self.remaining == 0 }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.amount == 0 { return 1.0; }
         (self.amount - self.remaining) as f64 / self.amount as f64
@@ -80,6 +84,7 @@ impl CreditEndpoint {
         }
     }
 
+    #[inline]
     pub fn grant(&mut self, ctype: CreditType, amount: u64, now: u64, ttl: u64) {
         let grant = CreditGrant::new(self.grants.len() as u64, ctype, amount, now, ttl);
         self.total_credits_received += amount;
@@ -88,6 +93,7 @@ impl CreditEndpoint {
         self.update_state();
     }
 
+    #[inline]
     pub fn consume(&mut self, amount: u64) -> u64 {
         let mut remaining = amount;
         for grant in &mut self.grants {
@@ -100,10 +106,12 @@ impl CreditEndpoint {
         consumed
     }
 
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.grants.iter().map(|g| g.remaining).sum()
     }
 
+    #[inline(always)]
     pub fn cleanup_expired(&mut self, now: u64) {
         self.grants.retain(|g| !g.is_expired(now) || !g.is_exhausted());
     }
@@ -118,6 +126,7 @@ impl CreditEndpoint {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CreditFlowStats {
     pub total_endpoints: u32,
     pub blocked_endpoints: u32,
@@ -136,6 +145,7 @@ pub struct CoopCreditFlow {
 impl CoopCreditFlow {
     pub fn new() -> Self { Self { endpoints: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create_endpoint(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -143,10 +153,12 @@ impl CoopCreditFlow {
         id
     }
 
+    #[inline(always)]
     pub fn grant(&mut self, endpoint: u64, ctype: CreditType, amount: u64, now: u64, ttl: u64) {
         if let Some(ep) = self.endpoints.get_mut(&endpoint) { ep.grant(ctype, amount, now, ttl); }
     }
 
+    #[inline(always)]
     pub fn consume(&mut self, endpoint: u64, amount: u64) -> u64 {
         self.endpoints.get_mut(&endpoint).map(|ep| ep.consume(amount)).unwrap_or(0)
     }

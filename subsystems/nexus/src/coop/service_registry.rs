@@ -10,9 +10,11 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
+use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Service health status
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -56,7 +58,7 @@ pub struct ServiceEndpoint {
     pub active_requests: u32,
     pub total_served: u64,
     pub dependencies: Vec<u64>, // service IDs this depends on
-    pub metadata: BTreeMap<u64, u64>,
+    pub metadata: LinearMap<u64, 64>,
 }
 
 impl ServiceEndpoint {
@@ -77,29 +79,36 @@ impl ServiceEndpoint {
             active_requests: 0,
             total_served: 0,
             dependencies: Vec::new(),
-            metadata: BTreeMap::new(),
+            metadata: LinearMap::new(),
         }
     }
 
+    #[inline(always)]
     pub fn is_available(&self) -> bool {
-        matches!(self.health, ServiceHealth::Healthy | ServiceHealth::Degraded)
-            && self.active_requests < self.max_concurrent
+        matches!(
+            self.health,
+            ServiceHealth::Healthy | ServiceHealth::Degraded
+        ) && self.active_requests < self.max_concurrent
     }
 
+    #[inline(always)]
     pub fn is_alive(&self, now_ns: u64) -> bool {
         let timeout = self.heartbeat_interval_ns * 3;
         now_ns.saturating_sub(self.last_heartbeat_ns) < timeout
     }
 
+    #[inline(always)]
     pub fn heartbeat(&mut self, now_ns: u64, load: u32) {
         self.last_heartbeat_ns = now_ns;
         self.load_score = load;
     }
 
+    #[inline(always)]
     pub fn has_capability(&self, cap: ServiceCapability) -> bool {
         self.capabilities.contains(&cap)
     }
 
+    #[inline(always)]
     pub fn version_tuple(&self) -> (u16, u16, u16) {
         (self.version_major, self.version_minor, self.version_patch)
     }
@@ -142,9 +151,9 @@ pub enum ServiceEventType {
 /// Cooperative Service Registry
 pub struct CoopServiceRegistry {
     services: BTreeMap<u64, ServiceEndpoint>,
-    name_index: BTreeMap<u64, u64>, // name_hash -> service_id
+    name_index: LinearMap<u64, 64>,     // name_hash -> service_id
     cap_index: BTreeMap<u32, Vec<u64>>, // cap_discriminant -> [service_ids]
-    events: Vec<ServiceEvent>,
+    events: VecDeque<ServiceEvent>,
     max_events: usize,
 }
 
@@ -152,9 +161,9 @@ impl CoopServiceRegistry {
     pub fn new(max_events: usize) -> Self {
         Self {
             services: BTreeMap::new(),
-            name_index: BTreeMap::new(),
+            name_index: LinearMap::new(),
             cap_index: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events,
         }
     }
@@ -199,7 +208,7 @@ impl CoopServiceRegistry {
     pub fn deregister(&mut self, service_id: u64, now_ns: u64) -> bool {
         if let Some(ep) = self.services.remove(&service_id) {
             let name_hash = Self::hash_name(&ep.name);
-            self.name_index.remove(&name_hash);
+            self.name_index.remove(name_hash);
             for cap in &ep.capabilities {
                 let key = Self::cap_key(cap);
                 if let Some(list) = self.cap_index.get_mut(&key) {
@@ -208,9 +217,12 @@ impl CoopServiceRegistry {
             }
             self.emit_event(service_id, ServiceEventType::Deregistered, now_ns);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
+    #[inline]
     pub fn drain(&mut self, service_id: u64, now_ns: u64) {
         if let Some(ep) = self.services.get_mut(&service_id) {
             ep.health = ServiceHealth::Draining;
@@ -218,6 +230,7 @@ impl CoopServiceRegistry {
         }
     }
 
+    #[inline]
     pub fn heartbeat(&mut self, service_id: u64, load: u32, now_ns: u64) {
         if let Some(ep) = self.services.get_mut(&service_id) {
             ep.heartbeat(now_ns, load);
@@ -225,9 +238,12 @@ impl CoopServiceRegistry {
     }
 
     /// Lookup by name
+    #[inline(always)]
     pub fn lookup_by_name(&self, name: &str) -> Option<&ServiceEndpoint> {
         let hash = Self::hash_name(name);
-        self.name_index.get(&hash).and_then(|id| self.services.get(id))
+        self.name_index
+            .get(hash)
+            .and_then(|id| self.services.get(id))
     }
 
     /// Lookup by capability — returns available services sorted by load
@@ -239,7 +255,10 @@ impl CoopServiceRegistry {
                 if let Some(ep) = self.services.get(&id) {
                     if ep.is_available() && ep.is_alive(now_ns) {
                         let score = 1000u32.saturating_sub(ep.load_score);
-                        results.push(LookupResult { service_id: id, score });
+                        results.push(LookupResult {
+                            service_id: id,
+                            score,
+                        });
                     }
                 }
             }
@@ -258,7 +277,9 @@ impl CoopServiceRegistry {
             if let Some(dep) = self.services.get(&dep_id) {
                 if !dep.is_alive(now_ns) || dep.health == ServiceHealth::Down {
                     missing.push(dep_id);
-                } else if dep.health == ServiceHealth::Degraded || dep.health == ServiceHealth::Unhealthy {
+                } else if dep.health == ServiceHealth::Degraded
+                    || dep.health == ServiceHealth::Unhealthy
+                {
                     degraded.push(dep_id);
                 }
             } else {
@@ -276,7 +297,9 @@ impl CoopServiceRegistry {
 
     /// Check for stale services and mark them down
     pub fn sweep_stale(&mut self, now_ns: u64) {
-        let stale: Vec<u64> = self.services.iter()
+        let stale: Vec<u64> = self
+            .services
+            .iter()
             .filter(|(_, ep)| !ep.is_alive(now_ns) && ep.health != ServiceHealth::Down)
             .map(|(&id, _)| id)
             .collect();
@@ -290,19 +313,31 @@ impl CoopServiceRegistry {
     }
 
     fn emit_event(&mut self, service_id: u64, event_type: ServiceEventType, ts: u64) {
-        self.events.push(ServiceEvent { service_id, event_type, timestamp_ns: ts });
+        self.events.push_back(ServiceEvent {
+            service_id,
+            event_type,
+            timestamp_ns: ts,
+        });
         while self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
     }
 
+    #[inline(always)]
     pub fn service(&self, id: u64) -> Option<&ServiceEndpoint> {
         self.services.get(&id)
     }
 
-    pub fn service_count(&self) -> usize { self.services.len() }
+    #[inline(always)]
+    pub fn service_count(&self) -> usize {
+        self.services.len()
+    }
 
+    #[inline(always)]
     pub fn healthy_count(&self) -> usize {
-        self.services.values().filter(|ep| ep.health == ServiceHealth::Healthy).count()
+        self.services
+            .values()
+            .filter(|ep| ep.health == ServiceHealth::Healthy)
+            .count()
     }
 }

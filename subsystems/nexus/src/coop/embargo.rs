@@ -85,32 +85,39 @@ impl Embargo {
         }
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         now_ns >= self.expiry_ns
     }
 
+    #[inline(always)]
     pub fn is_enforced(&self) -> bool {
         self.active && !matches!(self.embargo_type, EmbargoType::Soft)
     }
 
+    #[inline(always)]
     pub fn is_exempt(&self, pid: u64) -> bool {
         pid == self.owner_pid || self.exemptions.contains(&pid)
     }
 
+    #[inline]
     pub fn add_exemption(&mut self, pid: u64) {
         if !self.exemptions.contains(&pid) {
             self.exemptions.push(pid);
         }
     }
 
+    #[inline(always)]
     pub fn remaining_ns(&self, now_ns: u64) -> u64 {
         self.expiry_ns.saturating_sub(now_ns)
     }
 
+    #[inline(always)]
     pub fn extend(&mut self, extra_ns: u64) {
         self.expiry_ns += extra_ns;
     }
 
+    #[inline(always)]
     pub fn record_violation(&mut self) {
         self.violation_count += 1;
     }
@@ -156,6 +163,7 @@ pub enum EmbargoResponse {
 
 /// Embargo engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopEmbargoStats {
     pub active_embargoes: usize,
     pub total_created: u64,
@@ -280,6 +288,7 @@ impl CoopEmbargoEngine {
     }
 
     /// Release an embargo
+    #[inline]
     pub fn release(&mut self, embargo_id: u64) -> bool {
         if let Some(embargo) = self.embargoes.get_mut(&embargo_id) {
             embargo.active = false;
@@ -327,6 +336,7 @@ impl CoopEmbargoEngine {
         self.stats.pending_requests = self.pending.len();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopEmbargoStats {
         &self.stats
     }

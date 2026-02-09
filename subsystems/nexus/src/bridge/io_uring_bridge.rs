@@ -59,6 +59,7 @@ pub struct SqeFlags {
 }
 
 impl SqeFlags {
+    #[inline]
     pub fn empty() -> Self {
         Self {
             fixed_file: false, io_drain: false, io_link: false,
@@ -85,6 +86,7 @@ pub struct BridgeSqe {
 
 /// Completion Queue Entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeCqe {
     pub user_data: u64,
     pub result: i32,
@@ -95,6 +97,7 @@ pub struct BridgeCqe {
 
 /// Per-opcode statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OpStats {
     pub count: u64,
     pub total_latency_ns: u64,
@@ -104,11 +107,13 @@ pub struct OpStats {
 }
 
 impl OpStats {
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.count == 0 { return 0; }
         self.total_latency_ns / self.count
     }
 
+    #[inline]
     pub fn record(&mut self, latency: u64, result: i32, bytes: u64) {
         self.count += 1;
         self.total_latency_ns += latency;
@@ -133,6 +138,7 @@ impl RegisteredFdTable {
         Self { fds, capacity: cap, used: 0 }
     }
 
+    #[inline]
     pub fn register(&mut self, slot: u32, fd: i32) -> bool {
         if slot >= self.capacity { return false; }
         let was_none = self.fds[slot as usize].is_none();
@@ -141,6 +147,7 @@ impl RegisteredFdTable {
         true
     }
 
+    #[inline]
     pub fn unregister(&mut self, slot: u32) -> bool {
         if slot >= self.capacity { return false; }
         if self.fds[slot as usize].take().is_some() {
@@ -149,6 +156,7 @@ impl RegisteredFdTable {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn resolve(&self, slot: u32) -> Option<i32> {
         self.fds.get(slot as usize).and_then(|&v| v)
     }
@@ -156,6 +164,7 @@ impl RegisteredFdTable {
 
 /// Fixed buffer registration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FixedBuffer {
     pub addr: u64,
     pub len: u64,
@@ -164,6 +173,7 @@ pub struct FixedBuffer {
 
 /// io_uring ring instance
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoUringInstance {
     pub ring_fd: i32,
     pub owner_pid: u64,
@@ -199,6 +209,7 @@ impl IoUringInstance {
         }
     }
 
+    #[inline]
     pub fn submit(&mut self, sqe: BridgeSqe) -> bool {
         if self.sq_pending.len() >= self.sq_size as usize { return false; }
         self.sq_pending.push(sqe);
@@ -232,25 +243,31 @@ impl IoUringInstance {
         self.total_completed += 1;
     }
 
+    #[inline(always)]
     pub fn reap(&mut self, max: usize) -> Vec<BridgeCqe> {
         let take = max.min(self.cq_ready.len());
         self.cq_ready.drain(..take).collect()
     }
 
+    #[inline(always)]
     pub fn register_fds(&mut self, capacity: u32) {
         self.registered_fds = Some(RegisteredFdTable::new(capacity));
     }
 
+    #[inline(always)]
     pub fn add_fixed_buffer(&mut self, addr: u64, len: u64) {
         self.fixed_buffers.push(FixedBuffer { addr, len, registered: true });
     }
 
+    #[inline(always)]
     pub fn inflight(&self) -> usize { self.sq_pending.len() }
+    #[inline(always)]
     pub fn completions_available(&self) -> usize { self.cq_ready.len() }
 }
 
 /// Global io_uring bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeIoUringStats {
     pub total_rings: usize,
     pub total_submitted: u64,
@@ -260,6 +277,7 @@ pub struct BridgeIoUringStats {
 }
 
 /// Bridge io_uring Manager
+#[repr(align(64))]
 pub struct BridgeIoUringBridge {
     rings: BTreeMap<i32, IoUringInstance>,
     stats: BridgeIoUringStats,
@@ -275,6 +293,7 @@ impl BridgeIoUringBridge {
         }
     }
 
+    #[inline]
     pub fn setup_ring(&mut self, pid: u64, sq_sz: u32, cq_sz: u32, ts: u64) -> i32 {
         let fd = self.next_ring_fd;
         self.next_ring_fd += 1;
@@ -282,24 +301,29 @@ impl BridgeIoUringBridge {
         fd
     }
 
+    #[inline(always)]
     pub fn submit_sqe(&mut self, ring_fd: i32, sqe: BridgeSqe) -> bool {
         self.rings.get_mut(&ring_fd).map(|r| r.submit(sqe)).unwrap_or(false)
     }
 
+    #[inline]
     pub fn complete_sqe(&mut self, ring_fd: i32, user_data: u64, result: i32, flags: u32, now: u64) {
         if let Some(ring) = self.rings.get_mut(&ring_fd) {
             ring.complete(user_data, result, flags, now);
         }
     }
 
+    #[inline(always)]
     pub fn reap_cqes(&mut self, ring_fd: i32, max: usize) -> Vec<BridgeCqe> {
         self.rings.get_mut(&ring_fd).map(|r| r.reap(max)).unwrap_or_default()
     }
 
+    #[inline(always)]
     pub fn destroy_ring(&mut self, ring_fd: i32) -> bool {
         self.rings.remove(&ring_fd).is_some()
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_rings = self.rings.len();
         self.stats.total_submitted = self.rings.values().map(|r| r.total_submitted).sum();
@@ -308,7 +332,9 @@ impl BridgeIoUringBridge {
         self.stats.total_inflight = self.rings.values().map(|r| r.inflight()).sum();
     }
 
+    #[inline(always)]
     pub fn ring(&self, fd: i32) -> Option<&IoUringInstance> { self.rings.get(&fd) }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeIoUringStats { &self.stats }
 }
 
@@ -375,6 +401,7 @@ impl IoUringV2BufGroup {
         }
     }
 
+    #[inline]
     pub fn consume(&mut self) -> bool {
         if self.consumed < self.buf_count {
             self.consumed += 1;
@@ -384,11 +411,13 @@ impl IoUringV2BufGroup {
         }
     }
 
+    #[inline(always)]
     pub fn replenish(&mut self, count: u32) {
         self.consumed = self.consumed.saturating_sub(count);
         self.replenished += count;
     }
 
+    #[inline(always)]
     pub fn available(&self) -> u32 {
         self.buf_count.saturating_sub(self.consumed)
     }
@@ -405,6 +434,7 @@ pub struct IoUringV2RegisteredFd {
 
 /// An io_uring V2 ring instance.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoUringV2Ring {
     pub ring_id: u64,
     pub sq_size: u32,
@@ -454,6 +484,7 @@ impl IoUringV2Ring {
         true
     }
 
+    #[inline]
     pub fn complete_op(&mut self) {
         if self.sq_entries_used > 0 {
             self.sq_entries_used -= 1;
@@ -461,6 +492,7 @@ impl IoUringV2Ring {
         self.total_completed += 1;
     }
 
+    #[inline]
     pub fn register_fd(&mut self, slot: u32, fd: i32, direct: bool) {
         self.registered_fds.push(IoUringV2RegisteredFd {
             slot,
@@ -470,6 +502,7 @@ impl IoUringV2Ring {
         });
     }
 
+    #[inline(always)]
     pub fn add_buf_group(&mut self, group_id: u16, count: u32, size: u32) {
         let group = IoUringV2BufGroup::new(group_id, count, size);
         self.buf_groups.insert(group_id, group);
@@ -478,6 +511,7 @@ impl IoUringV2Ring {
 
 /// Statistics for io_uring V2 bridge.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoUringV2BridgeStats {
     pub total_rings: u64,
     pub total_submitted: u64,
@@ -491,6 +525,7 @@ pub struct IoUringV2BridgeStats {
 }
 
 /// Main bridge io_uring V2 manager.
+#[repr(align(64))]
 pub struct BridgeIoUringV2 {
     pub rings: BTreeMap<u64, IoUringV2Ring>,
     pub next_ring_id: u64,
@@ -516,6 +551,7 @@ impl BridgeIoUringV2 {
         }
     }
 
+    #[inline]
     pub fn create_ring(&mut self, sq_size: u32, cq_size: u32) -> u64 {
         let id = self.next_ring_id;
         self.next_ring_id += 1;
@@ -546,6 +582,7 @@ impl BridgeIoUringV2 {
         }
     }
 
+    #[inline(always)]
     pub fn ring_count(&self) -> usize {
         self.rings.len()
     }
@@ -643,6 +680,7 @@ pub struct CqeEntry {
 
 /// Registered buffer pool
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RegisteredBufPool {
     pub pool_id: u16,
     pub buf_count: u32,
@@ -662,6 +700,7 @@ impl RegisteredBufPool {
         }
     }
 
+    #[inline]
     pub fn alloc(&mut self) -> bool {
         if self.allocated < self.buf_count {
             self.allocated += 1;
@@ -671,6 +710,7 @@ impl RegisteredBufPool {
         }
     }
 
+    #[inline]
     pub fn free(&mut self) {
         if self.allocated > 0 {
             self.allocated -= 1;
@@ -678,10 +718,12 @@ impl RegisteredBufPool {
         }
     }
 
+    #[inline(always)]
     pub fn utilization_pct(&self) -> f64 {
         if self.buf_count == 0 { 0.0 } else { (self.allocated as f64 / self.buf_count as f64) * 100.0 }
     }
 
+    #[inline(always)]
     pub fn total_memory(&self) -> u64 {
         self.buf_count as u64 * self.buf_size as u64
     }
@@ -689,6 +731,7 @@ impl RegisteredBufPool {
 
 /// io_uring ring instance
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoUringV3Ring {
     pub ring_id: u32,
     pub sq_size: u32,
@@ -724,6 +767,7 @@ impl IoUringV3Ring {
         }
     }
 
+    #[inline]
     pub fn submit(&mut self, sqe: &SqeEntry) -> bool {
         if self.sq_pending >= self.sq_size {
             self.sq_drops += 1;
@@ -735,6 +779,7 @@ impl IoUringV3Ring {
         true
     }
 
+    #[inline]
     pub fn complete(&mut self) -> bool {
         if self.sq_pending == 0 { return false; }
         self.sq_pending -= 1;
@@ -743,14 +788,17 @@ impl IoUringV3Ring {
         true
     }
 
+    #[inline(always)]
     pub fn reap(&mut self) -> bool {
         if self.cq_pending > 0 { self.cq_pending -= 1; true } else { false }
     }
 
+    #[inline(always)]
     pub fn enable_feature(&mut self, feature: IoUringV3Feature) {
         self.features |= 1u64 << (feature as u64);
     }
 
+    #[inline(always)]
     pub fn sq_utilization_pct(&self) -> f64 {
         if self.sq_size == 0 { 0.0 } else { (self.sq_pending as f64 / self.sq_size as f64) * 100.0 }
     }
@@ -758,6 +806,7 @@ impl IoUringV3Ring {
 
 /// io_uring v3 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoUringV3BridgeStats {
     pub total_rings: u64,
     pub total_submissions: u64,
@@ -767,6 +816,7 @@ pub struct IoUringV3BridgeStats {
 
 /// Main bridge io_uring v3
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeIoUringV3 {
     pub rings: BTreeMap<u32, IoUringV3Ring>,
     pub stats: IoUringV3BridgeStats,
@@ -787,6 +837,7 @@ impl BridgeIoUringV3 {
         }
     }
 
+    #[inline]
     pub fn create_ring(&mut self, sq_size: u32, cq_size: u32) -> u32 {
         let id = self.next_ring_id;
         self.next_ring_id += 1;

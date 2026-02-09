@@ -98,12 +98,15 @@ impl IntrusiveList {
         Some(data)
     }
 
+    #[inline(always)]
     pub fn len(&self) -> u32 { self.len }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.len == 0 }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IntrusiveListStats {
     pub total_lists: u32,
     pub total_nodes: u32,
@@ -118,20 +121,24 @@ pub struct CoopIntrusiveList {
 impl CoopIntrusiveList {
     pub fn new() -> Self { Self { lists: Vec::new() } }
 
+    #[inline]
     pub fn create(&mut self) -> usize {
         let idx = self.lists.len();
         self.lists.push(IntrusiveList::new());
         idx
     }
 
+    #[inline(always)]
     pub fn push_back(&mut self, list: usize, data: u64) -> Option<usize> {
         if list < self.lists.len() { Some(self.lists[list].push_back(data)) } else { None }
     }
 
+    #[inline(always)]
     pub fn pop_front(&mut self, list: usize) -> Option<u64> {
         if list < self.lists.len() { self.lists[list].pop_front() } else { None }
     }
 
+    #[inline]
     pub fn stats(&self) -> IntrusiveListStats {
         let nodes: u32 = self.lists.iter().map(|l| l.len).sum();
         let free: u32 = self.lists.iter().map(|l| l.free_list.len() as u32).sum();

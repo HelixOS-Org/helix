@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -30,10 +31,12 @@ impl UffdFeatures {
     pub const WP_ASYNC: Self = Self(1 << 15);
     pub const MOVE: Self = Self(1 << 16);
 
+    #[inline(always)]
     pub fn has(&self, flag: Self) -> bool {
         (self.0 & flag.0) != 0
     }
 
+    #[inline(always)]
     pub fn combine(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
@@ -72,6 +75,7 @@ pub struct UffdMsg {
 }
 
 impl UffdMsg {
+    #[inline]
     pub fn pagefault(fault_type: FaultType, address: u64, tid: u64) -> Self {
         Self {
             event: UffdEventType::Pagefault,
@@ -124,14 +128,17 @@ impl RegisteredRange {
         }
     }
 
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool {
         addr >= self.start && addr < self.end
     }
 
+    #[inline(always)]
     pub fn page_count(&self) -> u64 {
         (self.end - self.start) / 4096
     }
 
+    #[inline(always)]
     pub fn resolution_rate(&self) -> f64 {
         if self.fault_count == 0 { return 1.0; }
         self.resolved_count as f64 / self.fault_count as f64
@@ -145,7 +152,7 @@ pub struct UffdInstance {
     pub pid: u64,
     pub features: UffdFeatures,
     pub ranges: Vec<RegisteredRange>,
-    pub msg_queue: Vec<UffdMsg>,
+    pub msg_queue: VecDeque<UffdMsg>,
     pub max_queue_size: usize,
     pub non_blocking: bool,
     overflow_count: u64,
@@ -158,7 +165,7 @@ impl UffdInstance {
             pid,
             features,
             ranges: Vec::new(),
-            msg_queue: Vec::new(),
+            msg_queue: VecDeque::new(),
             max_queue_size: 4096,
             non_blocking: false,
             overflow_count: 0,
@@ -183,6 +190,7 @@ impl UffdInstance {
         true
     }
 
+    #[inline]
     pub fn unregister_range(&mut self, start: u64) -> bool {
         let aligned = start & !4095;
         if let Some(idx) = self.ranges.iter().position(|r| r.start == aligned) {
@@ -211,21 +219,24 @@ impl UffdInstance {
                 break;
             }
         }
-        self.msg_queue.push(msg);
+        self.msg_queue.push_back(msg);
         true
     }
 
+    #[inline]
     pub fn read_msg(&mut self) -> Option<UffdMsg> {
         if self.msg_queue.is_empty() {
             return None;
         }
-        Some(self.msg_queue.remove(0))
+        self.msg_queue.pop_front()
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.msg_queue.len()
     }
 
+    #[inline(always)]
     pub fn total_registered_pages(&self) -> u64 {
         self.ranges.iter().map(|r| r.page_count()).sum()
     }
@@ -261,6 +272,7 @@ pub struct ResolveRequest {
 
 /// Userfault bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UserfaultBridgeStats {
     pub instances_created: u64,
     pub ranges_registered: u64,
@@ -273,6 +285,7 @@ pub struct UserfaultBridgeStats {
 }
 
 /// Main userfaultfd bridge manager
+#[repr(align(64))]
 pub struct BridgeUserfault {
     instances: BTreeMap<i32, UffdInstance>,
     next_fd: i32,
@@ -328,10 +341,12 @@ impl BridgeUserfault {
         Some(fd)
     }
 
+    #[inline(always)]
     pub fn destroy_instance(&mut self, fd: i32) -> bool {
         self.instances.remove(&fd).is_some()
     }
 
+    #[inline]
     pub fn register_range(
         &mut self,
         fd: i32,
@@ -348,6 +363,7 @@ impl BridgeUserfault {
         false
     }
 
+    #[inline]
     pub fn unregister_range(&mut self, fd: i32, start: u64) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             inst.unregister_range(start)
@@ -370,6 +386,7 @@ impl BridgeUserfault {
         }
     }
 
+    #[inline]
     pub fn read_fault(&mut self, fd: i32) -> Option<UffdMsg> {
         if let Some(inst) = self.instances.get_mut(&fd) {
             inst.read_msg()
@@ -412,12 +429,14 @@ impl BridgeUserfault {
         false
     }
 
+    #[inline]
     pub fn instance_info(&self, fd: i32) -> Option<(u64, usize, usize, u64)> {
         self.instances.get(&fd).map(|inst| {
             (inst.pid, inst.ranges.len(), inst.pending_count(), inst.total_registered_pages())
         })
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &UserfaultBridgeStats {
         &self.stats
     }
@@ -501,6 +520,7 @@ impl UffdV2Instance {
         }
     }
 
+    #[inline]
     pub fn register(&mut self, start: u64, length: u64, mode: u32) {
         self.registrations.push(UffdV2Registration {
             start_addr: start,
@@ -512,6 +532,7 @@ impl UffdV2Instance {
         });
     }
 
+    #[inline]
     pub fn report_fault(&mut self, fault_type: UffdV2FaultType, addr: u64, tid: u64, tick: u64) {
         self.pending_faults.push(UffdV2Event {
             fault_type,
@@ -522,6 +543,7 @@ impl UffdV2Instance {
         });
     }
 
+    #[inline]
     pub fn resolve_copy(&mut self, _dst: u64, _len: u64) -> bool {
         if let Some(_fault) = self.pending_faults.pop() {
             self.resolved_faults += 1;
@@ -532,6 +554,7 @@ impl UffdV2Instance {
         }
     }
 
+    #[inline]
     pub fn resolve_zero(&mut self, _addr: u64, _len: u64) -> bool {
         if let Some(_fault) = self.pending_faults.pop() {
             self.resolved_faults += 1;
@@ -542,10 +565,12 @@ impl UffdV2Instance {
         }
     }
 
+    #[inline(always)]
     pub fn write_protect(&mut self, addr: u64, len: u64, protect: bool) {
         self.wp_ops += 1;
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending_faults.len()
     }
@@ -553,6 +578,7 @@ impl UffdV2Instance {
 
 /// Statistics for userfaultfd V2 bridge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UffdV2BridgeStats {
     pub instances_created: u64,
     pub registrations: u64,
@@ -566,6 +592,7 @@ pub struct UffdV2BridgeStats {
 
 /// Main userfaultfd V2 bridge manager
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeUserfaultV2 {
     instances: BTreeMap<u64, UffdV2Instance>,
     next_fd: u64,
@@ -590,6 +617,7 @@ impl BridgeUserfaultV2 {
         }
     }
 
+    #[inline]
     pub fn create(&mut self, features: u32) -> u64 {
         let fd = self.next_fd;
         self.next_fd += 1;
@@ -598,6 +626,7 @@ impl BridgeUserfaultV2 {
         fd
     }
 
+    #[inline]
     pub fn register(&mut self, fd: u64, start: u64, length: u64, mode: u32) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             inst.register(start, length, mode);
@@ -608,6 +637,7 @@ impl BridgeUserfaultV2 {
         }
     }
 
+    #[inline]
     pub fn report_fault(&mut self, fd: u64, fault_type: UffdV2FaultType, addr: u64, tid: u64, tick: u64) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             inst.report_fault(fault_type, addr, tid, tick);
@@ -618,6 +648,7 @@ impl BridgeUserfaultV2 {
         }
     }
 
+    #[inline]
     pub fn resolve_copy(&mut self, fd: u64, dst: u64, len: u64) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             if inst.resolve_copy(dst, len) {
@@ -629,6 +660,7 @@ impl BridgeUserfaultV2 {
         false
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &UffdV2BridgeStats {
         &self.stats
     }

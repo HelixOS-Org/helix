@@ -2,6 +2,7 @@
 //! NEXUS Holistic — Fork (holistic fork analysis)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -29,6 +30,7 @@ pub struct HolisticForkEntry {
 
 /// Fork holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticForkStats {
     pub total_analyzed: u64,
     pub sequential_forks: u64,
@@ -41,8 +43,8 @@ pub struct HolisticForkStats {
 /// Manager for holistic fork analysis
 pub struct HolisticForkManager {
     entries: Vec<HolisticForkEntry>,
-    tree_depth: BTreeMap<u64, u32>,
-    children_count: BTreeMap<u64, u32>,
+    tree_depth: LinearMap<u32, 64>,
+    children_count: LinearMap<u32, 64>,
     stats: HolisticForkStats,
 }
 
@@ -50,8 +52,8 @@ impl HolisticForkManager {
     pub fn new() -> Self {
         Self {
             entries: Vec::new(),
-            tree_depth: BTreeMap::new(),
-            children_count: BTreeMap::new(),
+            tree_depth: LinearMap::new(),
+            children_count: LinearMap::new(),
             stats: HolisticForkStats {
                 total_analyzed: 0,
                 sequential_forks: 0,
@@ -64,7 +66,7 @@ impl HolisticForkManager {
     }
 
     pub fn analyze_fork(&mut self, parent: u64, child: u64, cow_ratio: f64) -> HolisticForkPattern {
-        let depth = self.tree_depth.get(&parent).cloned().unwrap_or(0) + 1;
+        let depth = self.tree_depth.get(parent).cloned().unwrap_or(0) + 1;
         self.tree_depth.insert(child, depth);
         let count = self.children_count.entry(parent).or_insert(0);
         *count += 1;
@@ -94,10 +96,12 @@ impl HolisticForkManager {
         pattern
     }
 
+    #[inline(always)]
     pub fn max_depth(&self) -> u32 {
         self.tree_depth.values().cloned().max().unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticForkStats {
         &self.stats
     }

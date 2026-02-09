@@ -39,6 +39,7 @@ pub enum BridgeExecResult {
 
 /// Stats for exec operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeExecStats {
     pub total_execs: u64,
     pub successful: u64,
@@ -49,6 +50,7 @@ pub struct BridgeExecStats {
 }
 
 /// Manager for exec bridge operations
+#[repr(align(64))]
 pub struct BridgeExecManager {
     history: Vec<(BridgeExecRequest, BridgeExecResult)>,
     active_execs: BTreeMap<u64, BridgeExecRequest>,
@@ -92,10 +94,12 @@ impl BridgeExecManager {
         BridgeExecResult::Success
     }
 
+    #[inline(always)]
     pub fn complete_exec(&mut self, pid: u64) -> bool {
         self.active_execs.remove(&pid).is_some()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeExecStats {
         &self.stats
     }

@@ -40,6 +40,7 @@ impl HazardSlot {
         }
     }
 
+    #[inline]
     pub fn protect(&mut self, addr: u64, now_ns: u64) {
         self.state = HazardState::Active;
         self.protected_addr = addr;
@@ -47,15 +48,18 @@ impl HazardSlot {
         self.protect_count += 1;
     }
 
+    #[inline(always)]
     pub fn release(&mut self) {
         self.state = HazardState::Free;
         self.protected_addr = 0;
     }
 
+    #[inline(always)]
     pub fn is_protecting(&self, addr: u64) -> bool {
         self.state == HazardState::Active && self.protected_addr == addr
     }
 
+    #[inline(always)]
     pub fn hold_duration(&self, now_ns: u64) -> u64 {
         if self.state != HazardState::Active { return 0; }
         now_ns.saturating_sub(self.acquire_ns)
@@ -132,6 +136,7 @@ impl ThreadHazardCtx {
         None
     }
 
+    #[inline]
     pub fn protect(&mut self, slot_id: u64, addr: u64, now_ns: u64) -> bool {
         if let Some(slot) = self.slots.iter_mut().find(|s| s.slot_id == slot_id) {
             slot.protect(addr, now_ns);
@@ -142,17 +147,20 @@ impl ThreadHazardCtx {
         }
     }
 
+    #[inline]
     pub fn release_slot(&mut self, slot_id: u64) {
         if let Some(slot) = self.slots.iter_mut().find(|s| s.slot_id == slot_id) {
             slot.release();
         }
     }
 
+    #[inline(always)]
     pub fn retire(&mut self, addr: u64, size: usize, epoch: u64, now_ns: u64) {
         self.retired_list.push(RetiredNode::new(addr, size, epoch, self.thread_id, now_ns));
         self.total_retires += 1;
     }
 
+    #[inline]
     pub fn active_protections(&self) -> Vec<u64> {
         self.slots.iter()
             .filter(|s| s.state == HazardState::Active)
@@ -160,14 +168,17 @@ impl ThreadHazardCtx {
             .collect()
     }
 
+    #[inline(always)]
     pub fn retired_count(&self) -> usize {
         self.retired_list.len()
     }
 
+    #[inline(always)]
     pub fn retired_bytes(&self) -> u64 {
         self.retired_list.iter().map(|r| r.size_bytes as u64).sum()
     }
 
+    #[inline(always)]
     pub fn needs_scan(&self, threshold: usize) -> bool {
         self.retired_list.len() >= threshold
     }
@@ -194,10 +205,12 @@ impl HazardDomain {
         }
     }
 
+    #[inline(always)]
     pub fn register_thread(&mut self, thread_id: u64) {
         self.threads.insert(thread_id, ThreadHazardCtx::new(thread_id, self.max_slots_per_thread));
     }
 
+    #[inline]
     pub fn unregister_thread(&mut self, thread_id: u64) -> Vec<RetiredNode> {
         if let Some(ctx) = self.threads.remove(&thread_id) {
             ctx.retired_list
@@ -258,14 +271,17 @@ impl HazardDomain {
         (total_count, total_bytes)
     }
 
+    #[inline(always)]
     pub fn total_retired(&self) -> u64 {
         self.threads.values().map(|c| c.retired_count() as u64).sum()
     }
 
+    #[inline(always)]
     pub fn total_retired_bytes(&self) -> u64 {
         self.threads.values().map(|c| c.retired_bytes()).sum()
     }
 
+    #[inline(always)]
     pub fn thread_count(&self) -> usize {
         self.threads.len()
     }
@@ -273,6 +289,7 @@ impl HazardDomain {
 
 /// Hazard pointer stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HazardPtrStats {
     pub total_domains: u64,
     pub total_threads: u64,
@@ -309,6 +326,7 @@ impl CoopHazardPtr {
         }
     }
 
+    #[inline]
     pub fn create_domain(&mut self, max_slots: usize) -> u64 {
         let id = self.next_domain_id;
         self.next_domain_id += 1;
@@ -317,6 +335,7 @@ impl CoopHazardPtr {
         id
     }
 
+    #[inline]
     pub fn register_thread(&mut self, domain_id: u64, thread_id: u64) {
         if let Some(d) = self.domains.get_mut(&domain_id) {
             d.register_thread(thread_id);
@@ -324,6 +343,7 @@ impl CoopHazardPtr {
         }
     }
 
+    #[inline]
     pub fn scan_domain(&mut self, domain_id: u64) -> (u64, u64) {
         if let Some(d) = self.domains.get_mut(&domain_id) {
             let (c, b) = d.scan_all();
@@ -335,6 +355,7 @@ impl CoopHazardPtr {
         }
     }
 
+    #[inline]
     pub fn scan_all_domains(&mut self) -> (u64, u64) {
         let ids: Vec<u64> = self.domains.keys().copied().collect();
         let mut tc = 0u64;
@@ -347,16 +368,19 @@ impl CoopHazardPtr {
         (tc, tb)
     }
 
+    #[inline]
     pub fn total_pending(&self) -> (u64, u64) {
         let count: u64 = self.domains.values().map(|d| d.total_retired()).sum();
         let bytes: u64 = self.domains.values().map(|d| d.total_retired_bytes()).sum();
         (count, bytes)
     }
 
+    #[inline(always)]
     pub fn get_domain(&self, id: u64) -> Option<&HazardDomain> {
         self.domains.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HazardPtrStats {
         &self.stats
     }
@@ -388,8 +412,11 @@ impl HazardPointerV2 {
         Self { id, owner_tid: tid, protected_addr: 0, state: HpState::Free, protect_count: 0 }
     }
 
+    #[inline(always)]
     pub fn protect(&mut self, addr: u64) { self.protected_addr = addr; self.state = HpState::Protecting; self.protect_count += 1; }
+    #[inline(always)]
     pub fn release(&mut self) { self.protected_addr = 0; self.state = HpState::Free; }
+    #[inline(always)]
     pub fn is_protecting(&self, addr: u64) -> bool { self.state == HpState::Protecting && self.protected_addr == addr }
 }
 
@@ -419,14 +446,17 @@ impl HpThreadV2 {
         Self { tid, hazard_ptrs: hps, retired: Vec::new(), scan_count: 0, reclaimed_count: 0, reclaimed_bytes: 0 }
     }
 
+    #[inline(always)]
     pub fn protect(&mut self, slot: usize, addr: u64) {
         if slot < self.hazard_ptrs.len() { self.hazard_ptrs[slot].protect(addr); }
     }
 
+    #[inline(always)]
     pub fn release(&mut self, slot: usize) {
         if slot < self.hazard_ptrs.len() { self.hazard_ptrs[slot].release(); }
     }
 
+    #[inline(always)]
     pub fn retire(&mut self, addr: u64, size: u64, now: u64) {
         self.retired.push(RetiredNodeV2 { addr, size, retired_at: now, retire_tid: self.tid });
     }
@@ -434,6 +464,7 @@ impl HpThreadV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HazardPtrV2Stats {
     pub total_threads: u32,
     pub total_hazard_ptrs: u32,
@@ -452,12 +483,15 @@ pub struct CoopHazardPtrV2 {
 impl CoopHazardPtrV2 {
     pub fn new(hp_per_thread: u32) -> Self { Self { threads: BTreeMap::new(), hp_per_thread } }
 
+    #[inline(always)]
     pub fn register(&mut self, tid: u64) { self.threads.insert(tid, HpThreadV2::new(tid, self.hp_per_thread)); }
 
+    #[inline(always)]
     pub fn protect(&mut self, tid: u64, slot: usize, addr: u64) {
         if let Some(t) = self.threads.get_mut(&tid) { t.protect(slot, addr); }
     }
 
+    #[inline(always)]
     pub fn retire(&mut self, tid: u64, addr: u64, size: u64, now: u64) {
         if let Some(t) = self.threads.get_mut(&tid) { t.retire(addr, size, now); }
     }
@@ -477,6 +511,7 @@ impl CoopHazardPtrV2 {
         } else { 0 }
     }
 
+    #[inline]
     pub fn stats(&self) -> HazardPtrV2Stats {
         let hps: u32 = self.threads.values().map(|t| t.hazard_ptrs.len() as u32).sum();
         let active: u32 = self.threads.values().flat_map(|t| &t.hazard_ptrs).filter(|hp| hp.state == HpState::Protecting).count() as u32;
@@ -513,7 +548,9 @@ impl HazardSlot {
         Self { slot_id, owner, guarded_addr: 0, state: HazardSlotState::Empty, guard_count: 0 }
     }
 
+    #[inline(always)]
     pub fn guard(&mut self, addr: u64) { self.guarded_addr = addr; self.state = HazardSlotState::Guarding; self.guard_count += 1; }
+    #[inline(always)]
     pub fn clear(&mut self) { self.guarded_addr = 0; self.state = HazardSlotState::Empty; }
 }
 
@@ -542,25 +579,30 @@ impl HazardDomainV3 {
         Self { slots: Vec::new(), retired_list: Vec::new(), reclaim_threshold: threshold, total_reclaimed: 0, total_reclaimed_bytes: 0, scans: 0, next_slot_id: 1 }
     }
 
+    #[inline]
     pub fn allocate_slot(&mut self, owner: u64) -> u64 {
         let id = self.next_slot_id; self.next_slot_id += 1;
         self.slots.push(HazardSlot::new(id, owner));
         id
     }
 
+    #[inline(always)]
     pub fn guard(&mut self, slot_id: u64, addr: u64) {
         if let Some(s) = self.slots.iter_mut().find(|s| s.slot_id == slot_id) { s.guard(addr); }
     }
 
+    #[inline(always)]
     pub fn clear(&mut self, slot_id: u64) {
         if let Some(s) = self.slots.iter_mut().find(|s| s.slot_id == slot_id) { s.clear(); }
     }
 
+    #[inline(always)]
     pub fn retire(&mut self, addr: u64, size: u64, tick: u64) {
         self.retired_list.push(RetiredObjV3 { addr, size_bytes: size, retire_tick: tick });
         if self.retired_list.len() >= self.reclaim_threshold { self.scan(); }
     }
 
+    #[inline]
     pub fn scan(&mut self) -> u64 {
         self.scans += 1;
         let guarded: Vec<u64> = self.slots.iter().filter(|s| s.state == HazardSlotState::Guarding).map(|s| s.guarded_addr).collect();
@@ -575,6 +617,7 @@ impl HazardDomainV3 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HazardPtrV3Stats {
     pub total_slots: u32,
     pub guarding_slots: u32,
@@ -590,11 +633,16 @@ pub struct CoopHazardPtrV3 {
 
 impl CoopHazardPtrV3 {
     pub fn new(threshold: usize) -> Self { Self { domain: HazardDomainV3::new(threshold) } }
+    #[inline(always)]
     pub fn allocate(&mut self, owner: u64) -> u64 { self.domain.allocate_slot(owner) }
+    #[inline(always)]
     pub fn guard(&mut self, slot: u64, addr: u64) { self.domain.guard(slot, addr); }
+    #[inline(always)]
     pub fn clear(&mut self, slot: u64) { self.domain.clear(slot); }
+    #[inline(always)]
     pub fn retire(&mut self, addr: u64, size: u64, tick: u64) { self.domain.retire(addr, size, tick); }
 
+    #[inline(always)]
     pub fn stats(&self) -> HazardPtrV3Stats {
         let guarding = self.domain.slots.iter().filter(|s| s.state == HazardSlotState::Guarding).count() as u32;
         HazardPtrV3Stats { total_slots: self.domain.slots.len() as u32, guarding_slots: guarding, pending_retired: self.domain.retired_list.len() as u32, total_reclaimed_bytes: self.domain.total_reclaimed_bytes, total_scans: self.domain.scans }
@@ -638,18 +686,21 @@ impl HazardV4Pointer {
         }
     }
 
+    #[inline]
     pub fn protect(&mut self, addr: u64) {
         self.protected_addr.store(addr, Ordering::Release);
         self.state = HazardV4State::Active;
         self.acquisitions += 1;
     }
 
+    #[inline]
     pub fn release(&mut self) {
         self.protected_addr.store(0, Ordering::Release);
         self.state = HazardV4State::Free;
         self.releases += 1;
     }
 
+    #[inline(always)]
     pub fn is_protecting(&self, addr: u64) -> bool {
         self.protected_addr.load(Ordering::Acquire) == addr
     }
@@ -663,6 +714,7 @@ pub struct HazardV4RetiredNode {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HazardV4ThreadState {
     pub thread_id: u32,
     pub slots: Vec<HazardV4Pointer>,
@@ -681,10 +733,12 @@ impl HazardV4ThreadState {
         }
     }
 
+    #[inline(always)]
     pub fn retire(&mut self, addr: u64, size: u32, epoch: u64) {
         self.retired_list.push(HazardV4RetiredNode { addr, retire_epoch: epoch, size_bytes: size });
     }
 
+    #[inline]
     pub fn scan_and_reclaim(&mut self, protected_addrs: &[u64]) -> u64 {
         self.scan_count += 1;
         let before = self.retired_list.len();
@@ -696,10 +750,12 @@ impl HazardV4ThreadState {
         reclaimed
     }
 
+    #[inline(always)]
     pub fn retired_count(&self) -> usize { self.retired_list.len() }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HazardV4Stats {
     pub total_threads: u32,
     pub total_slots: u32,
@@ -731,12 +787,14 @@ impl CoopHazardPtrV4 {
         }
     }
 
+    #[inline]
     pub fn register_thread(&mut self, id: u32) {
         self.threads.insert(id, HazardV4ThreadState::new(id, self.slots_per_thread));
         self.stats.total_threads += 1;
         self.stats.total_slots += self.slots_per_thread;
     }
 
+    #[inline]
     pub fn retire(&mut self, thread_id: u32, addr: u64, size: u32) {
         let epoch = self.epoch.load(Ordering::Relaxed);
         if let Some(t) = self.threads.get_mut(&thread_id) {
@@ -746,5 +804,6 @@ impl CoopHazardPtrV4 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HazardV4Stats { &self.stats }
 }

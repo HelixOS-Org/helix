@@ -83,18 +83,21 @@ impl NexusDecision {
     }
 
     /// Add reasoning step
+    #[inline(always)]
     pub fn with_reason(mut self, reason: impl Into<String>) -> Self {
         self.reasoning.push(reason.into());
         self
     }
 
     /// Set decision time
+    #[inline(always)]
     pub fn with_decision_time(mut self, cycles: u64) -> Self {
         self.decision_time = cycles;
         self
     }
 
     /// Record outcome
+    #[inline(always)]
     pub fn record_outcome(&mut self, outcome: DecisionOutcome) {
         self.outcome = Some(outcome);
     }

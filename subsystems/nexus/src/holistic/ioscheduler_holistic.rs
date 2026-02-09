@@ -37,6 +37,7 @@ pub enum IoReqType {
 
 /// IO scheduler queue
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoSchedQueue {
     pub queue_id: u32,
     pub pending: u32,
@@ -53,16 +54,22 @@ impl IoSchedQueue {
         Self { queue_id, pending: 0, dispatched: 0, completed: 0, merged: 0, requeued: 0, avg_latency_ns: 0, total_latency_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn enqueue(&mut self) { self.pending += 1; }
+    #[inline(always)]
     pub fn dispatch(&mut self) { self.pending = self.pending.saturating_sub(1); self.dispatched += 1; }
+    #[inline]
     pub fn complete(&mut self, latency_ns: u64) {
         self.completed += 1;
         self.total_latency_ns += latency_ns;
         if self.completed > 0 { self.avg_latency_ns = self.total_latency_ns / self.completed; }
     }
 
+    #[inline(always)]
     pub fn merge(&mut self) { self.merged += 1; }
+    #[inline(always)]
     pub fn requeue(&mut self) { self.requeued += 1; self.pending += 1; }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 { self.pending as f64 }
 }
 
@@ -81,13 +88,17 @@ impl BfqBudget {
         Self { pid, weight, budget_sectors: 0, used_sectors: 0, slices: 0 }
     }
 
+    #[inline(always)]
     pub fn charge(&mut self, sectors: u64) { self.used_sectors += sectors; }
+    #[inline(always)]
     pub fn new_slice(&mut self, budget: u64) { self.budget_sectors = budget; self.used_sectors = 0; self.slices += 1; }
+    #[inline(always)]
     pub fn remaining(&self) -> u64 { self.budget_sectors.saturating_sub(self.used_sectors) }
 }
 
 /// IO scheduler holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticIoSchedStats {
     pub total_requests: u64,
     pub total_merges: u64,
@@ -115,10 +126,12 @@ impl HolisticIoScheduler {
         }
     }
 
+    #[inline(always)]
     pub fn add_queue(&mut self, queue_id: u32) {
         self.queues.insert(queue_id, IoSchedQueue::new(queue_id));
     }
 
+    #[inline]
     pub fn submit(&mut self, queue_id: u32) {
         if let Some(q) = self.queues.get_mut(&queue_id) {
             q.enqueue();
@@ -126,6 +139,7 @@ impl HolisticIoScheduler {
         }
     }
 
+    #[inline]
     pub fn dispatch(&mut self, queue_id: u32) {
         if let Some(q) = self.queues.get_mut(&queue_id) {
             q.dispatch();
@@ -133,6 +147,7 @@ impl HolisticIoScheduler {
         }
     }
 
+    #[inline]
     pub fn complete(&mut self, queue_id: u32, latency_ns: u64) {
         if let Some(q) = self.queues.get_mut(&queue_id) {
             q.complete(latency_ns);

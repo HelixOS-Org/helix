@@ -63,16 +63,19 @@ impl DiskQuota {
         }
     }
 
+    #[inline(always)]
     pub fn set_block_limits(&mut self, soft: u64, hard: u64) {
         self.blocks_soft = soft;
         self.blocks_hard = hard;
     }
 
+    #[inline(always)]
     pub fn set_inode_limits(&mut self, soft: u64, hard: u64) {
         self.inodes_soft = soft;
         self.inodes_hard = hard;
     }
 
+    #[inline]
     pub fn check_block_alloc(&self, additional: u64) -> QuotaEnforcement {
         let new_total = self.blocks_used + additional;
         if new_total > self.blocks_hard { return QuotaEnforcement::Hard; }
@@ -80,6 +83,7 @@ impl DiskQuota {
         QuotaEnforcement::None
     }
 
+    #[inline]
     pub fn check_inode_alloc(&self) -> QuotaEnforcement {
         let new_total = self.inodes_used + 1;
         if new_total > self.inodes_hard { return QuotaEnforcement::Hard; }
@@ -87,11 +91,13 @@ impl DiskQuota {
         QuotaEnforcement::None
     }
 
+    #[inline(always)]
     pub fn block_utilization(&self) -> f64 {
         if self.blocks_hard == u64::MAX || self.blocks_hard == 0 { return 0.0; }
         self.blocks_used as f64 / self.blocks_hard as f64
     }
 
+    #[inline(always)]
     pub fn inode_utilization(&self) -> f64 {
         if self.inodes_hard == u64::MAX || self.inodes_hard == 0 { return 0.0; }
         self.inodes_used as f64 / self.inodes_hard as f64
@@ -118,6 +124,7 @@ pub enum QuotaResource {
 
 /// Per-filesystem quota state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FsQuotaState {
     pub fs_id: u64,
     pub state: QuotaState,
@@ -139,6 +146,7 @@ impl FsQuotaState {
 
 /// Bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QuotaBridgeStats {
     pub total_quotas: u32,
     pub total_violations: u64,
@@ -148,6 +156,7 @@ pub struct QuotaBridgeStats {
 }
 
 /// Main quota bridge
+#[repr(align(64))]
 pub struct BridgeQuota {
     quotas: BTreeMap<u64, DiskQuota>,
     fs_states: BTreeMap<u64, FsQuotaState>,
@@ -164,6 +173,7 @@ impl BridgeQuota {
         }
     }
 
+    #[inline]
     pub fn create_quota(&mut self, qtype: QuotaType, uid_gid: u32) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -171,6 +181,7 @@ impl BridgeQuota {
         id
     }
 
+    #[inline(always)]
     pub fn set_block_limits(&mut self, id: u64, soft: u64, hard: u64) {
         if let Some(q) = self.quotas.get_mut(&id) { q.set_block_limits(soft, hard); }
     }
@@ -189,6 +200,7 @@ impl BridgeQuota {
         result
     }
 
+    #[inline]
     pub fn stats(&self) -> QuotaBridgeStats {
         let hard = self.violations.iter().filter(|v| v.enforcement == QuotaEnforcement::Hard).count() as u64;
         let over_soft = self.quotas.values().filter(|q| q.blocks_used > q.blocks_soft || q.inodes_used > q.inodes_soft).count() as u32;
@@ -246,14 +258,19 @@ impl QuotaV2Usage {
         Self { id, quota_type: qt, owner_id: owner, limits, blocks_used: 0, inodes_used: 0, grace_deadline: 0, warnings_issued: 0 }
     }
 
+    #[inline(always)]
     pub fn block_usage_ratio(&self) -> f64 { if self.limits.block_hard == 0 { 0.0 } else { self.blocks_used as f64 / self.limits.block_hard as f64 } }
+    #[inline(always)]
     pub fn inode_usage_ratio(&self) -> f64 { if self.limits.inode_hard == 0 { 0.0 } else { self.inodes_used as f64 / self.limits.inode_hard as f64 } }
+    #[inline(always)]
     pub fn over_soft_block(&self) -> bool { self.blocks_used > self.limits.block_soft }
+    #[inline(always)]
     pub fn over_hard_block(&self) -> bool { self.blocks_used > self.limits.block_hard }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QuotaV2BridgeStats {
     pub total_quotas: u32,
     pub user_quotas: u32,
@@ -263,6 +280,7 @@ pub struct QuotaV2BridgeStats {
 }
 
 /// Main quota v2 bridge
+#[repr(align(64))]
 pub struct BridgeQuotaV2 {
     quotas: BTreeMap<u64, QuotaV2Usage>,
     next_id: u64,
@@ -271,16 +289,19 @@ pub struct BridgeQuotaV2 {
 impl BridgeQuotaV2 {
     pub fn new() -> Self { Self { quotas: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, qt: QuotaV2Type, owner: u32, limits: QuotaV2Limits) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.quotas.insert(id, QuotaV2Usage::new(id, qt, owner, limits));
         id
     }
 
+    #[inline(always)]
     pub fn update_usage(&mut self, id: u64, blocks: u64, inodes: u64) {
         if let Some(q) = self.quotas.get_mut(&id) { q.blocks_used = blocks; q.inodes_used = inodes; }
     }
 
+    #[inline]
     pub fn stats(&self) -> QuotaV2BridgeStats {
         let user = self.quotas.values().filter(|q| q.quota_type == QuotaV2Type::User).count() as u32;
         let group = self.quotas.values().filter(|q| q.quota_type == QuotaV2Type::Group).count() as u32;

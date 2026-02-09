@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Eventfd flags
@@ -15,10 +16,12 @@ impl EventfdFlags {
     pub const NONBLOCK: Self = Self(0x02);
     pub const SEMAPHORE: Self = Self(0x04);
 
+    #[inline(always)]
     pub fn contains(&self, flag: Self) -> bool {
         self.0 & flag.0 != 0
     }
 
+    #[inline(always)]
     pub fn is_semaphore(&self) -> bool {
         self.contains(Self::SEMAPHORE)
     }
@@ -51,6 +54,7 @@ impl EventfdInstance {
         }
     }
 
+    #[inline]
     pub fn write(&mut self, value: u64, now: u64) -> bool {
         let max = u64::MAX - 1;
         if self.counter > max - value {
@@ -78,15 +82,18 @@ impl EventfdInstance {
         val
     }
 
+    #[inline(always)]
     pub fn is_ready(&self) -> bool {
         self.counter > 0
     }
 
+    #[inline(always)]
     pub fn idle_time(&self, now: u64) -> u64 {
         let last = self.last_write.max(self.last_read);
         now.saturating_sub(last)
     }
 
+    #[inline]
     pub fn activity_ratio(&self) -> f64 {
         let total = self.write_count + self.read_count;
         if total == 0 { return 0.0; }
@@ -116,6 +123,7 @@ pub struct EventfdEvent {
 
 /// Eventfd bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventfdBridgeStats {
     pub active_eventfds: u32,
     pub total_created: u64,
@@ -126,9 +134,10 @@ pub struct EventfdBridgeStats {
 }
 
 /// Main eventfd bridge
+#[repr(align(64))]
 pub struct BridgeEventfd {
     instances: BTreeMap<i32, EventfdInstance>,
-    events: Vec<EventfdEvent>,
+    events: VecDeque<EventfdEvent>,
     max_events: usize,
     stats: EventfdBridgeStats,
 }
@@ -137,7 +146,7 @@ impl BridgeEventfd {
     pub fn new() -> Self {
         Self {
             instances: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 4096,
             stats: EventfdBridgeStats {
                 active_eventfds: 0, total_created: 0,
@@ -147,6 +156,7 @@ impl BridgeEventfd {
         }
     }
 
+    #[inline]
     pub fn create(&mut self, fd: i32, flags: EventfdFlags, pid: u32, now: u64) {
         let inst = EventfdInstance::new(fd, flags, pid, now);
         self.stats.total_created += 1;
@@ -155,6 +165,7 @@ impl BridgeEventfd {
         self.instances.insert(fd, inst);
     }
 
+    #[inline]
     pub fn write_eventfd(&mut self, fd: i32, value: u64, now: u64) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             let ok = inst.write(value, now);
@@ -164,6 +175,7 @@ impl BridgeEventfd {
         } else { false }
     }
 
+    #[inline]
     pub fn read_eventfd(&mut self, fd: i32, now: u64) -> Option<u64> {
         if let Some(inst) = self.instances.get_mut(&fd) {
             let val = inst.read(now);
@@ -172,6 +184,7 @@ impl BridgeEventfd {
         } else { None }
     }
 
+    #[inline]
     pub fn close(&mut self, fd: i32) -> bool {
         if let Some(inst) = self.instances.remove(&fd) {
             if self.stats.active_eventfds > 0 { self.stats.active_eventfds -= 1; }
@@ -182,11 +195,13 @@ impl BridgeEventfd {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn record_event(&mut self, event: EventfdEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
-        self.events.push(event);
+        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        self.events.push_back(event);
     }
 
+    #[inline]
     pub fn idle_eventfds(&self, now: u64, threshold: u64) -> Vec<i32> {
         self.instances.iter()
             .filter(|(_, inst)| inst.idle_time(now) > threshold)
@@ -194,6 +209,7 @@ impl BridgeEventfd {
             .collect()
     }
 
+    #[inline]
     pub fn busiest_eventfds(&self, n: usize) -> Vec<(i32, u64)> {
         let mut v: Vec<_> = self.instances.iter()
             .map(|(&fd, inst)| (fd, inst.write_count + inst.read_count))
@@ -203,10 +219,12 @@ impl BridgeEventfd {
         v
     }
 
+    #[inline(always)]
     pub fn get_instance(&self, fd: i32) -> Option<&EventfdInstance> {
         self.instances.get(&fd)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &EventfdBridgeStats {
         &self.stats
     }
@@ -234,6 +252,7 @@ pub enum EventfdV2State {
 
 /// An eventfd V2 instance.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventfdV2Instance {
     pub efd_id: u64,
     pub fd: i32,
@@ -307,10 +326,12 @@ impl EventfdV2Instance {
         }
     }
 
+    #[inline(always)]
     pub fn is_readable(&self) -> bool {
         self.counter > 0
     }
 
+    #[inline(always)]
     pub fn is_writable(&self) -> bool {
         self.counter < u64::MAX - 1
     }
@@ -318,6 +339,7 @@ impl EventfdV2Instance {
 
 /// Statistics for eventfd V2 bridge.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventfdV2BridgeStats {
     pub total_eventfds: u64,
     pub total_writes: u64,
@@ -329,6 +351,7 @@ pub struct EventfdV2BridgeStats {
 }
 
 /// Main bridge eventfd V2 manager.
+#[repr(align(64))]
 pub struct BridgeEventfdV2 {
     pub instances: BTreeMap<u64, EventfdV2Instance>,
     pub fd_map: BTreeMap<i32, u64>,
@@ -369,6 +392,7 @@ impl BridgeEventfdV2 {
         id
     }
 
+    #[inline]
     pub fn write(&mut self, efd_id: u64, value: u64) -> bool {
         if let Some(inst) = self.instances.get_mut(&efd_id) {
             let ok = inst.write(value);
@@ -381,6 +405,7 @@ impl BridgeEventfdV2 {
         }
     }
 
+    #[inline]
     pub fn read(&mut self, efd_id: u64) -> Option<u64> {
         if let Some(inst) = self.instances.get_mut(&efd_id) {
             let val = inst.read();
@@ -391,6 +416,7 @@ impl BridgeEventfdV2 {
         }
     }
 
+    #[inline(always)]
     pub fn instance_count(&self) -> usize {
         self.instances.len()
     }
@@ -436,6 +462,7 @@ impl EventfdV3Record {
 
 /// Eventfd v3 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventfdV3BridgeStats {
     pub total_ops: u64,
     pub fds_created: u64,

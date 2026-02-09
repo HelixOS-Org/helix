@@ -89,6 +89,7 @@ impl Permission {
     }
 
     /// Is sensitive
+    #[inline]
     pub fn is_sensitive(&self) -> bool {
         matches!(
             self,
@@ -170,6 +171,7 @@ pub enum AccessDecision {
 
 impl AccessDecision {
     /// Get decision name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Allowed => "allowed",
@@ -180,6 +182,7 @@ impl AccessDecision {
     }
 
     /// Is allowed
+    #[inline(always)]
     pub fn is_allowed(&self) -> bool {
         matches!(self, Self::Allowed | Self::Audited)
     }

@@ -23,10 +23,15 @@ pub struct VmaPerms {
 }
 
 impl VmaPerms {
+    #[inline(always)]
     pub fn rwx() -> Self { Self { read: true, write: true, exec: true, shared: false } }
+    #[inline(always)]
     pub fn rw() -> Self { Self { read: true, write: true, exec: false, shared: false } }
+    #[inline(always)]
     pub fn ro() -> Self { Self { read: true, write: false, exec: false, shared: false } }
+    #[inline(always)]
     pub fn rx() -> Self { Self { read: true, write: false, exec: true, shared: false } }
+    #[inline]
     pub fn to_bits(&self) -> u8 {
         let mut v = 0u8;
         if self.read { v |= 1; }
@@ -100,20 +105,26 @@ impl Vma {
         }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
+    #[inline(always)]
     pub fn pages(&self) -> u64 { self.size() / 4096 }
 
+    #[inline(always)]
     pub fn rss_ratio(&self) -> f64 {
         let total = self.pages();
         if total == 0 { 0.0 } else { self.resident_pages as f64 / total as f64 }
     }
 
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool { addr >= self.start && addr < self.end }
 
+    #[inline(always)]
     pub fn overlaps(&self, other: &Vma) -> bool {
         self.start < other.end && other.start < self.end
     }
 
+    #[inline(always)]
     pub fn can_merge_with(&self, other: &Vma) -> bool {
         self.end == other.start && self.perms.to_bits() == other.perms.to_bits()
             && self.vma_type == other.vma_type && self.hint == other.hint
@@ -143,6 +154,7 @@ pub struct AddressGap {
 }
 
 impl AddressGap {
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
 }
 
@@ -168,15 +180,18 @@ impl ProcessAddressSpace {
         }
     }
 
+    #[inline(always)]
     pub fn add_vma(&mut self, vma: Vma) {
         self.vmas.push(vma);
         self.vmas.sort_by_key(|v| v.start);
     }
 
+    #[inline(always)]
     pub fn remove_vma(&mut self, start: u64, end: u64) {
         self.vmas.retain(|v| !(v.start == start && v.end == end));
     }
 
+    #[inline(always)]
     pub fn find_vma(&self, addr: u64) -> Option<&Vma> {
         self.vmas.iter().find(|v| v.contains(addr))
     }
@@ -216,6 +231,7 @@ impl ProcessAddressSpace {
         self.vmas = merged;
     }
 
+    #[inline]
     pub fn find_gaps(&self) -> Vec<AddressGap> {
         let mut gaps = Vec::new();
         for i in 1..self.vmas.len() {
@@ -244,6 +260,7 @@ impl ProcessAddressSpace {
 
 /// Mmap advisor stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MmapAdvisorStats {
     pub processes_tracked: usize,
     pub total_vmas: usize,
@@ -266,22 +283,27 @@ impl HolisticMmapAdvisor {
         Self { processes: BTreeMap::new(), stats: MmapAdvisorStats::default() }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.insert(pid, ProcessAddressSpace::new(pid));
     }
 
+    #[inline(always)]
     pub fn add_mapping(&mut self, pid: u64, vma: Vma) {
         if let Some(p) = self.processes.get_mut(&pid) { p.add_vma(vma); }
     }
 
+    #[inline(always)]
     pub fn remove_mapping(&mut self, pid: u64, start: u64, end: u64) {
         if let Some(p) = self.processes.get_mut(&pid) { p.remove_vma(start, end); }
     }
 
+    #[inline(always)]
     pub fn madvise(&mut self, pid: u64, start: u64, len: u64, hint: MadviseHint) {
         if let Some(p) = self.processes.get_mut(&pid) { p.apply_madvise(start, len, hint); }
     }
 
+    #[inline]
     pub fn record_fault(&mut self, pid: u64, addr: u64) {
         if let Some(p) = self.processes.get_mut(&pid) {
             for vma in &mut p.vmas {
@@ -290,6 +312,7 @@ impl HolisticMmapAdvisor {
         }
     }
 
+    #[inline]
     pub fn record_access(&mut self, pid: u64, addr: u64, ts: u64) {
         if let Some(p) = self.processes.get_mut(&pid) {
             for vma in &mut p.vmas {
@@ -302,6 +325,7 @@ impl HolisticMmapAdvisor {
         }
     }
 
+    #[inline(always)]
     pub fn optimize_merges(&mut self, pid: u64) {
         if let Some(p) = self.processes.get_mut(&pid) { p.merge_adjacent(); }
     }
@@ -335,6 +359,8 @@ impl HolisticMmapAdvisor {
         self.stats.ksm_mergeable_vmas = self.processes.values().flat_map(|p| p.vmas.iter()).filter(|v| v.ksm_mergeable).count();
     }
 
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcessAddressSpace> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &MmapAdvisorStats { &self.stats }
 }

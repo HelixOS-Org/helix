@@ -122,47 +122,56 @@ impl VirtResourceScheduler {
     }
 
     /// Set policy
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: SchedulingPolicy) {
         self.policies.insert(policy.workload_id, policy);
     }
 
     /// Get policy
+    #[inline(always)]
     pub fn get_policy(&self, workload_id: VirtId) -> Option<&SchedulingPolicy> {
         self.policies.get(&workload_id)
     }
 
     /// Set reservation
+    #[inline(always)]
     pub fn set_reservation(&mut self, reservation: ResourceReservation) {
         self.reservations
             .insert(reservation.workload_id, reservation);
     }
 
     /// Get reservation
+    #[inline(always)]
     pub fn get_reservation(&self, workload_id: VirtId) -> Option<&ResourceReservation> {
         self.reservations.get(&workload_id)
     }
 
     /// Record allocation event
+    #[inline(always)]
     pub fn record_event(&mut self, event: AllocationEvent) {
         self.allocations.push(event);
     }
 
     /// Get total reserved CPUs
+    #[inline(always)]
     pub fn total_reserved_cpus(&self) -> f64 {
         self.reservations.values().map(|r| r.reserved_cpus).sum()
     }
 
     /// Get total reserved memory
+    #[inline(always)]
     pub fn total_reserved_memory(&self) -> u64 {
         self.reservations.values().map(|r| r.reserved_memory).sum()
     }
 
     /// Policy count
+    #[inline(always)]
     pub fn policy_count(&self) -> usize {
         self.policies.len()
     }
 
     /// Reservation count
+    #[inline(always)]
     pub fn reservation_count(&self) -> usize {
         self.reservations.len()
     }

@@ -192,6 +192,7 @@ impl Default for ResolverConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ResolverStats {
     /// Symbols defined
     pub symbols_defined: u64,
@@ -250,6 +251,7 @@ impl SymbolResolver {
     }
 
     /// Enter scope
+    #[inline]
     pub fn enter_scope(&mut self, scope_id: u64) {
         if self.scopes.contains_key(&scope_id) {
             self.current_scope = scope_id;
@@ -257,6 +259,7 @@ impl SymbolResolver {
     }
 
     /// Exit scope
+    #[inline]
     pub fn exit_scope(&mut self) {
         if let Some(scope) = self.scopes.get(&self.current_scope) {
             if let Some(parent) = scope.parent {
@@ -312,6 +315,7 @@ impl SymbolResolver {
     }
 
     /// Set documentation
+    #[inline]
     pub fn set_doc(&mut self, symbol_id: u64, doc: &str) {
         if let Some(symbol) = self.symbols.get_mut(&symbol_id) {
             symbol.doc = Some(doc.into());
@@ -446,6 +450,7 @@ impl SymbolResolver {
     }
 
     /// Find references
+    #[inline]
     pub fn find_references(&self, symbol_id: u64) -> Vec<&SymbolRef> {
         self.references
             .iter()
@@ -454,26 +459,31 @@ impl SymbolResolver {
     }
 
     /// Find by kind
+    #[inline(always)]
     pub fn find_by_kind(&self, kind: SymbolKind) -> Vec<&Symbol> {
         self.symbols.values().filter(|s| s.kind == kind).collect()
     }
 
     /// Get symbol
+    #[inline(always)]
     pub fn get_symbol(&self, id: u64) -> Option<&Symbol> {
         self.symbols.get(&id)
     }
 
     /// Get scope
+    #[inline(always)]
     pub fn get_scope(&self, id: u64) -> Option<&Scope> {
         self.scopes.get(&id)
     }
 
     /// Get current scope
+    #[inline(always)]
     pub fn current_scope(&self) -> &Scope {
         self.scopes.get(&self.current_scope).unwrap()
     }
 
     /// Get symbols in scope
+    #[inline]
     pub fn symbols_in_scope(&self, scope_id: u64) -> Vec<&Symbol> {
         self.scopes
             .get(&scope_id)
@@ -504,6 +514,7 @@ impl SymbolResolver {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ResolverStats {
         &self.stats
     }

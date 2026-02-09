@@ -46,6 +46,7 @@ impl DegradationType {
     }
 
     /// Is this resource-related?
+    #[inline]
     pub fn is_resource(&self) -> bool {
         matches!(
             self,
@@ -91,6 +92,7 @@ impl DegradationSeverity {
     }
 
     /// Get name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Minor => "minor",

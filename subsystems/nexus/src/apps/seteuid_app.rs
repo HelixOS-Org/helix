@@ -43,6 +43,7 @@ impl SeteuidRecord {
 
 /// Seteuid app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeteuidAppStats {
     pub total_ops: u64,
     pub euid_changes: u64,

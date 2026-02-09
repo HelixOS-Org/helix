@@ -49,30 +49,35 @@ impl Benchmark {
     }
 
     /// Set setup function
+    #[inline(always)]
     pub fn with_setup(mut self, setup: impl Fn() + Send + Sync + 'static) -> Self {
         self.setup = Some(Box::new(setup));
         self
     }
 
     /// Set teardown function
+    #[inline(always)]
     pub fn with_teardown(mut self, teardown: impl Fn() + Send + Sync + 'static) -> Self {
         self.teardown = Some(Box::new(teardown));
         self
     }
 
     /// Set minimum iterations
+    #[inline(always)]
     pub fn with_min_iterations(mut self, n: u64) -> Self {
         self.min_iterations = n;
         self
     }
 
     /// Set minimum time
+    #[inline(always)]
     pub fn with_min_time(mut self, cycles: u64) -> Self {
         self.min_time = cycles;
         self
     }
 
     /// Set warmup iterations
+    #[inline(always)]
     pub fn with_warmup(mut self, n: u64) -> Self {
         self.warmup_iterations = n;
         self

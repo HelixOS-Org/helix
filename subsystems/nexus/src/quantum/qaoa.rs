@@ -35,6 +35,7 @@ impl QaoaParameters {
     }
 
     /// Create with initial values
+    #[inline]
     pub fn with_values(betas: Vec<f64>, gammas: Vec<f64>) -> Option<Self> {
         if betas.len() != gammas.len() {
             return None;
@@ -43,16 +44,19 @@ impl QaoaParameters {
     }
 
     /// Number of QAOA layers
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.betas.len()
     }
 
     /// Total number of parameters
+    #[inline(always)]
     pub fn num_params(&self) -> usize {
         self.betas.len() + self.gammas.len()
     }
 
     /// Get all parameters as vector
+    #[inline]
     pub fn to_vec(&self) -> Vec<f64> {
         let mut v = self.gammas.clone();
         v.extend(self.betas.iter());
@@ -60,6 +64,7 @@ impl QaoaParameters {
     }
 
     /// Set from vector
+    #[inline]
     pub fn from_vec(&mut self, params: &[f64]) {
         let p = self.depth();
         if params.len() >= 2 * p {
@@ -126,6 +131,7 @@ impl QaoaProblem {
     }
 
     /// Create Ising problem from couplings and fields
+    #[inline]
     pub fn ising(couplings: &[(usize, usize, f64)], fields: &[(usize, f64)]) -> Self {
         let hamiltonian = Hamiltonian::ising(couplings, fields);
         let n_qubits = hamiltonian.n_qubits;
@@ -133,6 +139,7 @@ impl QaoaProblem {
     }
 
     /// Evaluate cost function for bitstring
+    #[inline]
     pub fn evaluate(&self, bitstring: usize) -> f64 {
         let mut cost = 0.0;
 
@@ -230,6 +237,7 @@ impl QaoaEngine {
     }
 
     /// Execute QAOA circuit
+    #[inline]
     pub fn execute(&mut self) {
         self.initialize_plus();
 
@@ -255,6 +263,7 @@ impl QaoaEngine {
     }
 
     /// Run QAOA and return expectation value
+    #[inline(always)]
     pub fn run(&mut self) -> f64 {
         self.execute();
         self.expectation_value()
@@ -310,6 +319,7 @@ impl QaoaEngine {
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn state(&self) -> &StateVector {
         &self.state
     }
@@ -340,12 +350,14 @@ impl QaoaOptimizer {
     }
 
     /// Set learning rate
+    #[inline(always)]
     pub fn with_learning_rate(mut self, lr: f64) -> Self {
         self.learning_rate = lr;
         self
     }
 
     /// Set max iterations
+    #[inline(always)]
     pub fn with_max_iterations(mut self, iters: usize) -> Self {
         self.max_iterations = iters;
         self
@@ -416,6 +428,7 @@ impl QaoaOptimizer {
     }
 
     /// Get inner engine
+    #[inline(always)]
     pub fn into_engine(self) -> QaoaEngine {
         self.engine
     }

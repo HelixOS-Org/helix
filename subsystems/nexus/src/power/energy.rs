@@ -32,11 +32,13 @@ pub struct TaskEnergy {
 
 impl TaskEnergy {
     /// Total energy
+    #[inline(always)]
     pub fn total(&self) -> f64 {
         self.cpu_energy + self.memory_energy + self.io_energy + self.network_energy
     }
 
     /// Energy per nanosecond
+    #[inline]
     pub fn power(&self) -> f64 {
         if self.runtime_ns > 0 {
             self.total() / self.runtime_ns as f64
@@ -110,6 +112,7 @@ impl EnergyProfiler {
     }
 
     /// Record CPU usage for task
+    #[inline]
     pub fn record_cpu(&mut self, task_id: u64, cpu_cycles: u64, p_state: &PState) {
         let energy = self.task_energy.entry(task_id).or_default();
         energy.task_id = task_id;
@@ -123,6 +126,7 @@ impl EnergyProfiler {
     }
 
     /// Record memory access
+    #[inline]
     pub fn record_memory(&mut self, task_id: u64, accesses: u64) {
         let energy = self.task_energy.entry(task_id).or_default();
 
@@ -134,6 +138,7 @@ impl EnergyProfiler {
     }
 
     /// Record I/O
+    #[inline]
     pub fn record_io(&mut self, task_id: u64, bytes: u64) {
         let energy = self.task_energy.entry(task_id).or_default();
 
@@ -145,6 +150,7 @@ impl EnergyProfiler {
     }
 
     /// Record runtime
+    #[inline]
     pub fn record_runtime(&mut self, task_id: u64, runtime_ns: u64) {
         let energy = self.task_energy.entry(task_id).or_default();
         energy.runtime_ns += runtime_ns;
@@ -152,6 +158,7 @@ impl EnergyProfiler {
     }
 
     /// Record idle time
+    #[inline]
     pub fn record_idle(&mut self, duration_ns: u64, c_state: CState) {
         let power_factor = c_state.power_reduction();
         let joules = duration_ns as f64 * power_factor * 0.00000001;
@@ -160,11 +167,13 @@ impl EnergyProfiler {
     }
 
     /// Get task energy
+    #[inline(always)]
     pub fn get_task_energy(&self, task_id: u64) -> Option<&TaskEnergy> {
         self.task_energy.get(&task_id)
     }
 
     /// Get top energy consumers
+    #[inline]
     pub fn top_consumers(&self, n: usize) -> Vec<&TaskEnergy> {
         let mut tasks: Vec<_> = self.task_energy.values().collect();
         tasks.sort_by(|a, b| b.total().partial_cmp(&a.total()).unwrap());
@@ -172,6 +181,7 @@ impl EnergyProfiler {
     }
 
     /// Get system energy
+    #[inline(always)]
     pub fn system_energy(&self) -> &SystemEnergy {
         &self.system_energy
     }
@@ -192,11 +202,13 @@ impl EnergyProfiler {
     }
 
     /// Add power sensor
+    #[inline(always)]
     pub fn add_sensor(&mut self, sensor: PowerSensor) {
         self.power_sensors.push(sensor);
     }
 
     /// Update sensor reading
+    #[inline]
     pub fn update_sensor(&mut self, sensor_id: u32, power_mw: u32, energy_uj: u64) {
         if let Some(sensor) = self.power_sensors.iter_mut().find(|s| s.id == sensor_id) {
             sensor.power_mw = power_mw;
@@ -205,6 +217,7 @@ impl EnergyProfiler {
     }
 
     /// Get total sensor power
+    #[inline(always)]
     pub fn sensor_power(&self) -> u32 {
         self.power_sensors.iter().map(|s| s.power_mw).sum()
     }

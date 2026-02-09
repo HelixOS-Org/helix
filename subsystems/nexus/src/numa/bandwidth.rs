@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::NodeId;
@@ -51,6 +52,7 @@ impl BandwidthMonitor {
     }
 
     /// Record bandwidth sample
+    #[inline]
     pub fn record(&mut self, from: NodeId, to: NodeId, bytes: u64, duration_ns: u64) {
         let bandwidth = if duration_ns > 0 {
             bytes as f64 * 1_000_000_000.0 / duration_ns as f64
@@ -68,7 +70,7 @@ impl BandwidthMonitor {
         let samples = self.samples.entry(key).or_default();
         samples.push(sample);
         if samples.len() > self.max_samples {
-            samples.remove(0);
+            samples.pop_front();
         }
 
         // Update current
@@ -85,16 +87,19 @@ impl BandwidthMonitor {
     }
 
     /// Get current bandwidth estimate
+    #[inline(always)]
     pub fn get_bandwidth(&self, from: NodeId, to: NodeId) -> f64 {
         self.current.get(&(from, to)).copied().unwrap_or(0.0)
     }
 
     /// Get peak bandwidth
+    #[inline(always)]
     pub fn get_peak(&self, from: NodeId, to: NodeId) -> f64 {
         self.peak.get(&(from, to)).copied().unwrap_or(0.0)
     }
 
     /// Get average bandwidth
+    #[inline]
     pub fn get_average(&self, from: NodeId, to: NodeId) -> f64 {
         let samples = match self.samples.get(&(from, to)) {
             Some(s) if !s.is_empty() => s,

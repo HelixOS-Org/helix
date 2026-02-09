@@ -106,11 +106,13 @@ impl TierInfo {
     }
 
     /// Available pages
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.capacity_pages.saturating_sub(self.used_pages)
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.capacity_pages == 0 {
             return 0.0;
@@ -119,6 +121,7 @@ impl TierInfo {
     }
 
     /// Migration cost (ns) to move n pages here
+    #[inline]
     pub fn migration_cost_ns(&self, pages: u64) -> u64 {
         if self.migration_bw == 0 {
             return u64::MAX;
@@ -164,6 +167,7 @@ impl PageTierInfo {
     }
 
     /// Record access
+    #[inline]
     pub fn record_access(&mut self, now_ns: u64) {
         self.access_count += 1;
         if self.last_access_ns > 0 {
@@ -195,12 +199,14 @@ impl PageTierInfo {
     }
 
     /// Should promote?
+    #[inline(always)]
     pub fn should_promote(&self) -> bool {
         matches!(self.hotness(), PageHotness::Blazing | PageHotness::Hot)
             && !matches!(self.current_tier, MemoryTier::LocalDram)
     }
 
     /// Should demote?
+    #[inline(always)]
     pub fn should_demote(&self) -> bool {
         matches!(self.hotness(), PageHotness::Cold | PageHotness::Frozen)
             && matches!(self.current_tier, MemoryTier::LocalDram | MemoryTier::RemoteDram)
@@ -234,6 +240,7 @@ pub struct TierMigrationDecision {
 
 /// Tiering stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticMemoryTieringStats {
     /// Active tiers
     pub active_tiers: usize,
@@ -278,12 +285,14 @@ impl HolisticMemoryTiering {
     }
 
     /// Add a tier
+    #[inline(always)]
     pub fn add_tier(&mut self, tier: MemoryTier, capacity_pages: u64) {
         self.tiers.insert(tier as u8, TierInfo::new(tier, capacity_pages));
         self.update_stats();
     }
 
     /// Place page in tier
+    #[inline]
     pub fn place_page(&mut self, pfn: u64, tier: MemoryTier, owner: u64) {
         let page = PageTierInfo::new(pfn, tier, owner);
         self.pages.insert(pfn, page);
@@ -294,6 +303,7 @@ impl HolisticMemoryTiering {
     }
 
     /// Record page access
+    #[inline]
     pub fn record_access(&mut self, pfn: u64, now_ns: u64) {
         if let Some(page) = self.pages.get_mut(&pfn) {
             page.record_access(now_ns);
@@ -435,6 +445,7 @@ impl HolisticMemoryTiering {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticMemoryTieringStats {
         &self.stats
     }

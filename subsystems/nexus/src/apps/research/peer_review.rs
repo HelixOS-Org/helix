@@ -144,6 +144,7 @@ pub struct PeerConfidence {
 
 /// Engine-level statistics.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct PeerReviewStats {
     pub findings_submitted: u64,
     pub findings_accepted: u64,
@@ -242,6 +243,7 @@ impl AppsPeerReview {
     }
 
     /// Perform cross-validation of a finding by a specific reviewer.
+    #[inline]
     pub fn cross_validate(&mut self, finding_id: u64, reviewer_id: u64, score: f32, method_ok: bool, reproducible: bool) -> bool {
         let weight = if let Some(member) = self.board.get_mut(&reviewer_id) {
             member.reviews_completed += 1;
@@ -299,6 +301,7 @@ impl AppsPeerReview {
     }
 
     /// Get the consensus score for a finding.
+    #[inline(always)]
     pub fn consensus_score(&self, finding_id: u64) -> Option<f32> {
         self.findings.get(&finding_id).map(|f| f.consensus_score)
     }
@@ -339,6 +342,7 @@ impl AppsPeerReview {
     }
 
     /// Get current review board composition and stats.
+    #[inline(always)]
     pub fn review_board(&self) -> Vec<BoardMember> {
         self.board.values().cloned().collect()
     }
@@ -445,6 +449,7 @@ impl AppsPeerReview {
     }
 
     /// Return engine stats.
+    #[inline(always)]
     pub fn stats(&self) -> &PeerReviewStats {
         &self.stats
     }

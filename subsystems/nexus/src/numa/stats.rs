@@ -8,6 +8,7 @@ extern crate alloc;
 
 /// NUMA access statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NumaStats {
     /// Local accesses
     pub local_accesses: u64,
@@ -27,6 +28,7 @@ pub struct NumaStats {
 
 impl NumaStats {
     /// Local access ratio
+    #[inline]
     pub fn local_ratio(&self) -> f64 {
         let total = self.local_accesses + self.remote_accesses;
         if total == 0 {
@@ -37,11 +39,13 @@ impl NumaStats {
     }
 
     /// Remote access ratio
+    #[inline(always)]
     pub fn remote_ratio(&self) -> f64 {
         1.0 - self.local_ratio()
     }
 
     /// Record local access
+    #[inline]
     pub fn record_local(&mut self, hit: bool) {
         self.local_accesses += 1;
         if hit {
@@ -50,6 +54,7 @@ impl NumaStats {
     }
 
     /// Record remote access
+    #[inline]
     pub fn record_remote(&mut self, hit: bool) {
         self.remote_accesses += 1;
         if hit {
@@ -58,6 +63,7 @@ impl NumaStats {
     }
 
     /// Record migration
+    #[inline(always)]
     pub fn record_migration(&mut self, bytes: u64) {
         self.migrations += 1;
         self.migration_bytes += bytes;
@@ -70,6 +76,7 @@ impl NumaStats {
 
 /// Per-node statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NodeStats {
     /// Memory allocations
     pub allocations: u64,
@@ -91,24 +98,28 @@ pub struct NodeStats {
 
 impl NodeStats {
     /// Record allocation
+    #[inline(always)]
     pub fn record_alloc(&mut self, bytes: u64) {
         self.allocations += 1;
         self.allocated_bytes += bytes;
     }
 
     /// Record free
+    #[inline(always)]
     pub fn record_free(&mut self, bytes: u64) {
         self.frees += 1;
         self.freed_bytes += bytes;
     }
 
     /// Record latency
+    #[inline(always)]
     pub fn record_latency(&mut self, latency_ns: u64) {
         let alpha = 0.1;
         self.avg_latency_ns = alpha * latency_ns as f64 + (1.0 - alpha) * self.avg_latency_ns;
     }
 
     /// Net allocation
+    #[inline(always)]
     pub fn net_allocation(&self) -> i64 {
         self.allocated_bytes as i64 - self.freed_bytes as i64
     }

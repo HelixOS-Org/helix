@@ -31,6 +31,7 @@ impl OnceCell {
         Self { id, state: OnceCellState::Uninitialized, value_hash: 0, initialized_at: 0, initializer_tid: 0, access_count: 0, waiters: 0 }
     }
 
+    #[inline]
     pub fn try_init(&mut self, tid: u64) -> bool {
         if self.state != OnceCellState::Uninitialized { return false; }
         self.state = OnceCellState::Initializing;
@@ -38,24 +39,29 @@ impl OnceCell {
         true
     }
 
+    #[inline]
     pub fn complete_init(&mut self, value_hash: u64, now: u64) {
         self.state = OnceCellState::Initialized;
         self.value_hash = value_hash;
         self.initialized_at = now;
     }
 
+    #[inline(always)]
     pub fn poison(&mut self) { self.state = OnceCellState::Poisoned; }
 
+    #[inline(always)]
     pub fn get(&mut self) -> Option<u64> {
         if self.state == OnceCellState::Initialized { self.access_count += 1; Some(self.value_hash) }
         else { None }
     }
 
+    #[inline(always)]
     pub fn is_initialized(&self) -> bool { self.state == OnceCellState::Initialized }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct OnceCellStats {
     pub total_cells: u32,
     pub initialized: u32,
@@ -73,12 +79,14 @@ pub struct CoopOnceCell {
 impl CoopOnceCell {
     pub fn new() -> Self { Self { cells: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.cells.insert(id, OnceCell::new(id));
         id
     }
 
+    #[inline]
     pub fn get_or_init(&mut self, id: u64, tid: u64, value_hash: u64, now: u64) -> Option<u64> {
         let cell = self.cells.get_mut(&id)?;
         if cell.is_initialized() { return cell.get(); }
@@ -86,6 +94,7 @@ impl CoopOnceCell {
         cell.get()
     }
 
+    #[inline]
     pub fn stats(&self) -> OnceCellStats {
         let initialized = self.cells.values().filter(|c| c.is_initialized()).count() as u32;
         let uninitialized = self.cells.values().filter(|c| c.state == OnceCellState::Uninitialized).count() as u32;

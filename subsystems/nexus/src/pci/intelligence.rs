@@ -97,6 +97,7 @@ impl PciIntelligence {
     }
 
     /// Register device
+    #[inline(always)]
     pub fn register_device(&mut self, device: PciDevice) {
         self.manager.register_device(device);
     }
@@ -212,11 +213,13 @@ impl PciIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &PciManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut PciManager {
         &mut self.manager
     }

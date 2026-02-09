@@ -42,6 +42,7 @@ pub struct Evaluation {
 
 /// Metric
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Metric {
     /// Metric ID
     pub id: u64,
@@ -195,6 +196,7 @@ pub struct EvaluationEngine {
 
 /// Metric definition
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricDef {
     /// Name
     pub name: String,
@@ -226,6 +228,7 @@ impl Default for EvaluationConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct EvaluationStats {
     /// Evaluations performed
     pub evaluations_performed: u64,
@@ -316,6 +319,7 @@ impl EvaluationEngine {
     }
 
     /// Set metric weight
+    #[inline]
     pub fn set_metric_weight(&mut self, eval_id: u64, metric_id: u64, weight: f64) {
         if let Some(eval) = self.evaluations.get_mut(&eval_id) {
             if let Some(metric) = eval.metrics.iter_mut().find(|m| m.id == metric_id) {
@@ -400,6 +404,7 @@ impl EvaluationEngine {
     }
 
     /// Set baseline
+    #[inline]
     pub fn set_baseline(&mut self, benchmark_id: u64, score: f64) {
         if let Some(benchmark) = self.benchmarks.get_mut(&benchmark_id) {
             benchmark.baseline = Some(score);
@@ -496,21 +501,25 @@ impl EvaluationEngine {
     }
 
     /// Get evaluation
+    #[inline(always)]
     pub fn get_evaluation(&self, id: u64) -> Option<&Evaluation> {
         self.evaluations.get(&id)
     }
 
     /// Get benchmark
+    #[inline(always)]
     pub fn get_benchmark(&self, id: u64) -> Option<&Benchmark> {
         self.benchmarks.get(&id)
     }
 
     /// Get result
+    #[inline(always)]
     pub fn get_result(&self, benchmark_id: u64) -> Option<&BenchmarkResult> {
         self.results.get(&benchmark_id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &EvaluationStats {
         &self.stats
     }

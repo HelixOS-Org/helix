@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -120,6 +121,7 @@ pub struct ParadigmShift {
 
 /// Evidence accumulation state for a model.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct EvidenceState {
     pub model_id: u64,
     pub model_name: String,
@@ -145,6 +147,7 @@ pub struct ModelComparison {
 
 /// Paradigm engine statistics.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct ParadigmStats {
     pub total_models: u64,
     pub active_model_age: u64,
@@ -183,9 +186,10 @@ pub struct TransitionStep {
 // ============================================================================
 
 /// Paradigm shift detection and management engine.
+#[repr(align(64))]
 pub struct BridgeParadigm {
     models: BTreeMap<u64, OptimizationModel>,
-    evidence: Vec<Evidence>,
+    evidence: VecDeque<Evidence>,
     shifts: Vec<ParadigmShift>,
     active_model_id: u64,
     stats: ParadigmStats,
@@ -216,7 +220,7 @@ impl BridgeParadigm {
 
         Self {
             models,
-            evidence: Vec::new(),
+            evidence: VecDeque::new(),
             shifts: Vec::new(),
             active_model_id: id,
             stats: ParadigmStats {
@@ -274,11 +278,11 @@ impl BridgeParadigm {
         let clamped_weight = weight.max(0.0).min(2.0);
 
         if self.evidence.len() >= MAX_EVIDENCE {
-            self.evidence.remove(0);
+            self.evidence.pop_front();
         }
 
         let eid = fnv1a_hash(observation.as_bytes()) ^ self.tick;
-        self.evidence.push(Evidence {
+        self.evidence.push_back(Evidence {
             id: eid,
             model_id,
             supports,
@@ -428,6 +432,7 @@ impl BridgeParadigm {
     }
 
     /// Get the evidence accumulation state for the active model.
+    #[inline(always)]
     pub fn evidence_accumulation(&self) -> EvidenceState {
         self.evidence_accumulation_for(self.active_model_id)
     }
@@ -488,26 +493,31 @@ impl BridgeParadigm {
     }
 
     /// Get the age of the current paradigm (ticks since last shift).
+    #[inline(always)]
     pub fn paradigm_age(&self) -> u64 {
         self.stats.active_model_age
     }
 
     /// Get the history of all paradigm shifts.
+    #[inline(always)]
     pub fn shift_history(&self) -> &[ParadigmShift] {
         &self.shifts
     }
 
     /// Get stats.
+    #[inline(always)]
     pub fn stats(&self) -> &ParadigmStats {
         &self.stats
     }
 
     /// Number of registered models.
+    #[inline(always)]
     pub fn model_count(&self) -> usize {
         self.models.len()
     }
 
     /// Name of the active model.
+    #[inline]
     pub fn active_model_name(&self) -> String {
         self.models
             .get(&self.active_model_id)
@@ -520,7 +530,7 @@ impl BridgeParadigm {
     // ========================================================================
 
     fn evidence_accumulation_for(&self, model_id: u64) -> EvidenceState {
-        let model_evidence: Vec<&Evidence> =
+        let model_evidence: VecDeque<&Evidence> =
             self.evidence.iter().filter(|e| e.model_id == model_id).collect();
         let supporting = model_evidence.iter().filter(|e| e.supports).count() as u64;
         let contradicting = model_evidence.iter().filter(|e| !e.supports).count() as u64;

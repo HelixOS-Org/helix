@@ -12,6 +12,7 @@ pub struct TokenId(pub u64);
 
 impl TokenId {
     /// Create new token ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
@@ -32,6 +33,7 @@ pub struct SourceLoc {
 
 impl SourceLoc {
     /// Create new source location
+    #[inline]
     pub const fn new(file_id: u32, line: u32, column: u32, offset: u32) -> Self {
         Self {
             file_id,
@@ -42,6 +44,7 @@ impl SourceLoc {
     }
 
     /// Unknown location
+    #[inline(always)]
     pub const fn unknown() -> Self {
         Self::new(0, 0, 0, 0)
     }
@@ -58,11 +61,13 @@ pub struct Span {
 
 impl Span {
     /// Create new span
+    #[inline(always)]
     pub const fn new(start: SourceLoc, end: SourceLoc) -> Self {
         Self { start, end }
     }
 
     /// Unknown span
+    #[inline]
     pub const fn unknown() -> Self {
         Self {
             start: SourceLoc::unknown(),
@@ -71,16 +76,19 @@ impl Span {
     }
 
     /// Check if spans overlap
+    #[inline(always)]
     pub fn overlaps(&self, other: &Span) -> bool {
         self.start.offset < other.end.offset && other.start.offset < self.end.offset
     }
 
     /// Get span length in bytes
+    #[inline(always)]
     pub fn len(&self) -> u32 {
         self.end.offset.saturating_sub(self.start.offset)
     }
 
     /// Check if span is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -345,6 +353,7 @@ impl TokenKind {
     }
 
     /// Check if this is a literal
+    #[inline]
     pub fn is_literal(&self) -> bool {
         matches!(
             self,
@@ -394,6 +403,7 @@ impl TokenKind {
     }
 
     /// Check if this is a delimiter
+    #[inline]
     pub fn is_delimiter(&self) -> bool {
         matches!(
             self,
@@ -453,6 +463,7 @@ impl Token {
     }
 
     /// Check if token is trivia (whitespace or comment)
+    #[inline]
     pub fn is_trivia(&self) -> bool {
         matches!(
             self.kind,
@@ -461,6 +472,7 @@ impl Token {
     }
 
     /// Check if token is EOF
+    #[inline(always)]
     pub fn is_eof(&self) -> bool {
         self.kind == TokenKind::Eof
     }

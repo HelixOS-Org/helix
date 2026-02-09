@@ -107,6 +107,7 @@ pub struct BeyondProfile {
 
 /// Statistics for the singularity engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct SingularityStats {
     pub total_models: u64,
     pub total_observations: u64,
@@ -189,6 +190,7 @@ impl AppsSingularity {
     // -- public API ---------------------------------------------------------
 
     /// Return a unified understanding combining classification + prediction + optimization.
+    #[inline]
     pub fn unified_understanding(&mut self, app_id: u64) -> Option<UnifiedModel> {
         self.recompute_convergence(app_id);
         self.generate_optimizations(app_id);
@@ -318,11 +320,13 @@ impl AppsSingularity {
     }
 
     /// Return the current singularity level (0–100).
+    #[inline(always)]
     pub fn singularity_level(&self) -> u64 {
         self.stats.singularity_level
     }
 
     /// Return current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &SingularityStats {
         &self.stats
     }

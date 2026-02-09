@@ -13,6 +13,7 @@ pub enum BridgeBrkOp {
 
 /// Brk state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeBrkState {
     pub start: u64,
     pub current: u64,
@@ -22,6 +23,7 @@ pub struct BridgeBrkState {
 
 /// Brk stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeBrkStats {
     pub total_ops: u64,
     pub expansions: u64,
@@ -80,6 +82,8 @@ impl BridgeBrkManager {
         self.state.current
     }
 
+    #[inline(always)]
     pub fn heap_size(&self) -> u64 { self.state.current - self.state.start }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeBrkStats { &self.stats }
 }

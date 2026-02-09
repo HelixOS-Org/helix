@@ -80,6 +80,7 @@ pub struct CostEstimate {
 
 /// Synthesis context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SynthesisContext {
     /// Available components
     pub components: Vec<Component>,
@@ -325,6 +326,7 @@ impl Default for SynthesisConfig {
 
 /// Synthesis statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SynthesisStats {
     /// Total synthesis attempts
     pub total_attempts: u64,
@@ -931,11 +933,13 @@ impl SynthesisEngine {
     }
 
     /// Register component
+    #[inline(always)]
     pub fn register_component(&mut self, component: Component) {
         self.components.insert(component.name.clone(), component);
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SynthesisStats {
         &self.stats
     }

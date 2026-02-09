@@ -79,14 +79,17 @@ impl Vec2 {
         Self { x, y }
     }
 
+    #[inline(always)]
     pub fn zero() -> Self {
         Self { x: 0.0, y: 0.0 }
     }
 
+    #[inline(always)]
     pub fn magnitude(&self) -> f64 {
         libm::sqrt(self.x * self.x + self.y * self.y)
     }
 
+    #[inline]
     pub fn normalize(&self) -> Self {
         let mag = self.magnitude();
         if mag > 1e-8 {
@@ -99,12 +102,14 @@ impl Vec2 {
         }
     }
 
+    #[inline]
     pub fn distance(&self, other: &Vec2) -> f64 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
         libm::sqrt(dx * dx + dy * dy)
     }
 
+    #[inline]
     pub fn add(&self, other: &Vec2) -> Self {
         Self {
             x: self.x + other.x,
@@ -112,6 +117,7 @@ impl Vec2 {
         }
     }
 
+    #[inline]
     pub fn sub(&self, other: &Vec2) -> Self {
         Self {
             x: self.x - other.x,
@@ -119,6 +125,7 @@ impl Vec2 {
         }
     }
 
+    #[inline]
     pub fn scale(&self, s: f64) -> Self {
         Self {
             x: self.x * s,
@@ -126,6 +133,7 @@ impl Vec2 {
         }
     }
 
+    #[inline]
     pub fn limit(&self, max: f64) -> Self {
         let mag = self.magnitude();
         if mag > max {
@@ -183,6 +191,7 @@ impl Agent {
     }
 
     /// Update best if current is better
+    #[inline]
     pub fn update_best(&mut self) {
         if self.fitness > self.best_fitness {
             self.best_fitness = self.fitness;
@@ -191,6 +200,7 @@ impl Agent {
     }
 
     /// Move agent by velocity
+    #[inline(always)]
     pub fn step(&mut self, dt: f64) {
         self.position = self.position.add(&self.velocity.scale(dt));
     }
@@ -236,6 +246,7 @@ impl Pheromone {
     }
 
     /// Decay over time
+    #[inline]
     pub fn decay(&mut self, rate: f64, dt: f64) {
         self.age += dt;
         self.intensity *= 1.0 - rate * dt;
@@ -243,6 +254,7 @@ impl Pheromone {
     }
 
     /// Is effectively gone?
+    #[inline(always)]
     pub fn is_expired(&self) -> bool {
         self.intensity < 0.01
     }
@@ -431,6 +443,7 @@ impl AntColony {
     }
 
     /// Get best tour
+    #[inline(always)]
     pub fn best(&self) -> (&[usize], f64) {
         (&self.best_tour, self.best_length)
     }
@@ -492,6 +505,7 @@ impl ParticleSwarm {
     }
 
     /// Evaluate fitness for all particles
+    #[inline]
     pub fn evaluate<F>(&mut self, fitness_fn: F)
     where
         F: Fn(&Vec2) -> f64,
@@ -551,6 +565,7 @@ impl ParticleSwarm {
     }
 
     /// Run optimization
+    #[inline]
     pub fn optimize<F>(&mut self, fitness_fn: F, iterations: usize, rng: &mut u64)
     where
         F: Fn(&Vec2) -> f64,
@@ -562,6 +577,7 @@ impl ParticleSwarm {
     }
 
     /// Get best solution
+    #[inline(always)]
     pub fn best(&self) -> (Vec2, f64) {
         (self.global_best_position, self.global_best_fitness)
     }
@@ -620,6 +636,7 @@ impl BeeColony {
     }
 
     /// Evaluate all solutions
+    #[inline]
     pub fn evaluate<F>(&mut self, fitness_fn: F)
     where
         F: Fn(&[f64]) -> f64,
@@ -781,6 +798,7 @@ impl BeeColony {
     }
 
     /// Run one iteration
+    #[inline]
     pub fn iterate<F>(&mut self, fitness_fn: &F, rng: &mut u64)
     where
         F: Fn(&[f64]) -> f64,
@@ -792,6 +810,7 @@ impl BeeColony {
     }
 
     /// Get best solution
+    #[inline(always)]
     pub fn best(&self) -> (&[f64], f64) {
         (&self.best_solution, self.best_fitness)
     }
@@ -825,11 +844,13 @@ impl Boid {
     }
 
     /// Apply steering force
+    #[inline(always)]
     pub fn apply_force(&mut self, force: Vec2) {
         self.acceleration = self.acceleration.add(&force);
     }
 
     /// Update position and velocity
+    #[inline]
     pub fn update(&mut self) {
         self.velocity = self.velocity.add(&self.acceleration).limit(self.max_speed);
         self.position = self.position.add(&self.velocity);
@@ -837,12 +858,14 @@ impl Boid {
     }
 
     /// Seek target
+    #[inline(always)]
     pub fn seek(&self, target: Vec2) -> Vec2 {
         let desired = target.sub(&self.position).normalize().scale(self.max_speed);
         desired.sub(&self.velocity).limit(self.max_force)
     }
 
     /// Flee from target
+    #[inline(always)]
     pub fn flee(&self, target: Vec2) -> Vec2 {
         self.seek(target).scale(-1.0)
     }
@@ -1004,6 +1027,7 @@ impl Flock {
     }
 
     /// Get flock center of mass
+    #[inline]
     pub fn center_of_mass(&self) -> Vec2 {
         let mut sum = Vec2::zero();
         for boid in &self.boids {
@@ -1013,6 +1037,7 @@ impl Flock {
     }
 
     /// Get flock average velocity
+    #[inline]
     pub fn average_velocity(&self) -> Vec2 {
         let mut sum = Vec2::zero();
         for boid in &self.boids {
@@ -1068,6 +1093,7 @@ impl StigmergicEnvironment {
     }
 
     /// Deposit pheromone
+    #[inline]
     pub fn deposit(&mut self, ptype: PheromoneType, x: usize, y: usize, amount: f64) {
         if x < self.width && y < self.height {
             let width = self.width;
@@ -1079,6 +1105,7 @@ impl StigmergicEnvironment {
     }
 
     /// Read pheromone level
+    #[inline]
     pub fn read(&self, ptype: PheromoneType, x: usize, y: usize) -> f64 {
         if x < self.width && y < self.height {
             self.grids
@@ -1218,6 +1245,7 @@ impl SwarmConsensus {
     }
 
     /// Update opinions (average with neighbors)
+    #[inline]
     pub fn update(&mut self) {
         let old_opinions = self.opinions.clone();
 
@@ -1231,6 +1259,7 @@ impl SwarmConsensus {
     }
 
     /// Check if consensus reached
+    #[inline]
     pub fn has_consensus(&self) -> bool {
         if self.opinions.is_empty() {
             return true;
@@ -1243,6 +1272,7 @@ impl SwarmConsensus {
     }
 
     /// Get current consensus value
+    #[inline]
     pub fn consensus_value(&self) -> f64 {
         if self.opinions.is_empty() {
             0.0
@@ -1252,6 +1282,7 @@ impl SwarmConsensus {
     }
 
     /// Run until consensus or max iterations
+    #[inline]
     pub fn run(&mut self, max_iterations: usize) -> (bool, usize) {
         for i in 0..max_iterations {
             self.update();
@@ -1302,26 +1333,31 @@ impl KernelSwarmManager {
     }
 
     /// Initialize task assignment with ACO
+    #[inline(always)]
     pub fn init_task_aco(&mut self, costs: Vec<Vec<f64>>, num_ants: usize) {
         self.task_aco = Some(AntColony::new(costs, num_ants));
     }
 
     /// Initialize resource optimization with PSO
+    #[inline(always)]
     pub fn init_resource_pso(&mut self, num_particles: usize, bounds: (Vec2, Vec2)) {
         self.resource_pso = Some(ParticleSwarm::new(num_particles, bounds, &mut self.rng));
     }
 
     /// Initialize load balancing with Bees
+    #[inline(always)]
     pub fn init_load_bees(&mut self, num_bees: usize, dim: usize, bounds: (f64, f64)) {
         self.load_bees = Some(BeeColony::new(num_bees, dim, bounds, &mut self.rng));
     }
 
     /// Initialize coordination flock
+    #[inline(always)]
     pub fn init_coordination(&mut self, num_agents: usize, bounds: (Vec2, Vec2)) {
         self.coord_flock = Some(Flock::new(num_agents, bounds, &mut self.rng));
     }
 
     /// Initialize consensus
+    #[inline]
     pub fn init_consensus(&mut self, initial_opinions: Vec<f64>) {
         self.consensus = Some(SwarmConsensus::new(
             initial_opinions.len(),
@@ -1330,6 +1366,7 @@ impl KernelSwarmManager {
     }
 
     /// Run task assignment iteration
+    #[inline]
     pub fn assign_tasks(&mut self) -> Option<(Vec<usize>, f64)> {
         if let Some(aco) = &mut self.task_aco {
             aco.iterate(&mut self.rng);
@@ -1341,6 +1378,7 @@ impl KernelSwarmManager {
     }
 
     /// Run resource optimization
+    #[inline]
     pub fn optimize_resources<F>(&mut self, fitness_fn: F, iterations: usize) -> Option<(Vec2, f64)>
     where
         F: Fn(&Vec2) -> f64,
@@ -1354,12 +1392,14 @@ impl KernelSwarmManager {
     }
 
     /// Signal resource at location
+    #[inline(always)]
     pub fn signal_resource(&mut self, x: usize, y: usize, strength: f64) {
         self.environment
             .deposit(PheromoneType::Resource, x, y, strength);
     }
 
     /// Find best resource location
+    #[inline]
     pub fn find_best_resource(&self) -> Option<(usize, usize)> {
         self.environment
             .find_peak(PheromoneType::Resource)
@@ -1367,11 +1407,13 @@ impl KernelSwarmManager {
     }
 
     /// Update environment
+    #[inline(always)]
     pub fn update_environment(&mut self, dt: f64) {
         self.environment.update(dt);
     }
 
     /// Reach consensus on value
+    #[inline]
     pub fn reach_consensus(&mut self, max_iterations: usize) -> Option<(bool, f64)> {
         if let Some(cons) = &mut self.consensus {
             let (reached, _) = cons.run(max_iterations);

@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Access pattern classification
@@ -100,6 +101,7 @@ impl FileReadahead {
         }
     }
 
+    #[inline(always)]
     pub fn hit_ratio(&self) -> f64 {
         let total = self.ra_hits + self.ra_misses;
         if total == 0 { 0.0 } else { self.ra_hits as f64 / total as f64 }
@@ -128,7 +130,9 @@ impl FileReadahead {
         }
     }
 
+    #[inline(always)]
     pub fn record_hit(&mut self) { self.ra_hits += 1; self.pages_prefetched += 1; }
+    #[inline(always)]
     pub fn record_miss(&mut self) { self.ra_misses += 1; }
 }
 
@@ -137,20 +141,21 @@ impl FileReadahead {
 pub struct InterleavedStream {
     pub stream_id: u64,
     pub file_ids: Vec<u64>,
-    pub access_sequence: Vec<u64>,
+    pub access_sequence: VecDeque<u64>,
     pub max_sequence: usize,
     pub detected_period: u32,
 }
 
 impl InterleavedStream {
     pub fn new(stream_id: u64) -> Self {
-        Self { stream_id, file_ids: Vec::new(), access_sequence: Vec::new(), max_sequence: 64, detected_period: 0 }
+        Self { stream_id, file_ids: Vec::new(), access_sequence: VecDeque::new(), max_sequence: 64, detected_period: 0 }
     }
 
+    #[inline]
     pub fn record_file_access(&mut self, file_id: u64) {
-        self.access_sequence.push(file_id);
+        self.access_sequence.push_back(file_id);
         if self.access_sequence.len() > self.max_sequence {
-            self.access_sequence.remove(0);
+            self.access_sequence.pop_front();
         }
         if !self.file_ids.contains(&file_id) {
             self.file_ids.push(file_id);
@@ -176,11 +181,13 @@ impl InterleavedStream {
         self.detected_period = 0;
     }
 
+    #[inline(always)]
     pub fn is_periodic(&self) -> bool { self.detected_period > 0 }
 }
 
 /// Readahead tuner stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ReadaheadStats {
     pub files_tracked: usize,
     pub sequential_files: usize,
@@ -213,10 +220,12 @@ impl HolisticReadaheadTuner {
         }
     }
 
+    #[inline(always)]
     pub fn track_file(&mut self, file_id: u64) {
         self.files.entry(file_id).or_insert_with(|| FileReadahead::new(file_id));
     }
 
+    #[inline]
     pub fn record_access(&mut self, file_id: u64, offset: u64, ts: u64) {
         self.track_file(file_id);
         if let Some(f) = self.files.get_mut(&file_id) {
@@ -224,18 +233,22 @@ impl HolisticReadaheadTuner {
         }
     }
 
+    #[inline(always)]
     pub fn record_hit(&mut self, file_id: u64) {
         if let Some(f) = self.files.get_mut(&file_id) { f.record_hit(); }
     }
 
+    #[inline(always)]
     pub fn record_miss(&mut self, file_id: u64) {
         if let Some(f) = self.files.get_mut(&file_id) { f.record_miss(); }
     }
 
+    #[inline(always)]
     pub fn set_pressure(&mut self, pressure: f64) {
         self.pressure_level = pressure;
     }
 
+    #[inline]
     pub fn get_window(&self, file_id: u64) -> u32 {
         if self.pressure_level > self.pressure_throttle_threshold {
             return 2;
@@ -258,6 +271,7 @@ impl HolisticReadaheadTuner {
         }
     }
 
+    #[inline]
     pub fn create_stream(&mut self) -> u64 {
         let id = self.next_stream_id;
         self.next_stream_id += 1;
@@ -265,6 +279,7 @@ impl HolisticReadaheadTuner {
         id
     }
 
+    #[inline]
     pub fn record_stream_access(&mut self, stream_id: u64, file_id: u64) {
         if let Some(s) = self.streams.get_mut(&stream_id) {
             s.record_file_access(file_id);
@@ -285,6 +300,8 @@ impl HolisticReadaheadTuner {
         self.stats.interleaved_streams = self.streams.values().filter(|s| s.is_periodic()).count();
     }
 
+    #[inline(always)]
     pub fn file(&self, id: u64) -> Option<&FileReadahead> { self.files.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &ReadaheadStats { &self.stats }
 }

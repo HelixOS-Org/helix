@@ -44,6 +44,7 @@ pub struct FeatureMap {
 
 impl FeatureMap {
     /// Create ELU feature map
+    #[inline]
     pub fn elu(dim: usize) -> Self {
         Self {
             map_type: FeatureMapType::Elu,
@@ -54,6 +55,7 @@ impl FeatureMap {
     }
 
     /// Create random Fourier features
+    #[inline]
     pub fn random_fourier(input_dim: usize, feature_dim: usize, seed: u64) -> Self {
         let random_matrix = Matrix::random(feature_dim, input_dim, seed);
         Self {
@@ -65,6 +67,7 @@ impl FeatureMap {
     }
 
     /// Create positive random features (Performer)
+    #[inline]
     pub fn positive_random(input_dim: usize, feature_dim: usize, seed: u64) -> Self {
         let random_matrix = Matrix::random(feature_dim, input_dim, seed);
         Self {
@@ -76,6 +79,7 @@ impl FeatureMap {
     }
 
     /// Apply feature map to input
+    #[inline]
     pub fn apply(&self, x: &Matrix) -> Matrix {
         match self.map_type {
             FeatureMapType::Elu => self.apply_elu(x),
@@ -207,6 +211,7 @@ impl LinearAttention {
     }
 
     /// Create with custom feature maps
+    #[inline]
     pub fn with_feature_maps(query_map: FeatureMap, key_map: FeatureMap) -> Self {
         Self {
             query_feature_map: query_map,
@@ -497,17 +502,20 @@ impl LinearAttentionRNN {
     }
 
     /// Reset state
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.s_matrix = Matrix::new(self.feature_dim, self.value_dim);
         self.z_vec = alloc::vec![0.0; self.feature_dim];
     }
 
     /// Get current S matrix
+    #[inline(always)]
     pub fn get_s_matrix(&self) -> &Matrix {
         &self.s_matrix
     }
 
     /// Get current z vector
+    #[inline(always)]
     pub fn get_z_vec(&self) -> &[f64] {
         &self.z_vec
     }

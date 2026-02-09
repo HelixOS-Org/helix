@@ -161,6 +161,7 @@ impl AttentionTarget {
     }
 
     /// Apply focus and record history
+    #[inline]
     pub fn apply_focus(&mut self, new_focus: f32) {
         let clamped = if new_focus < 0.0 {
             0.0
@@ -177,6 +178,7 @@ impl AttentionTarget {
     }
 
     /// Decay focus over time
+    #[inline]
     pub fn decay_focus(&mut self, rng: &mut u64) {
         let jitter = (xorshift64(rng) % 50) as f32 / 100_000.0;
         self.focus *= ATTENTION_DECAY - jitter;
@@ -209,6 +211,7 @@ impl AttentionTarget {
 
 /// Statistics for the cooperation attention system
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopAttentionStats {
     pub total_targets: usize,
     pub active_targets: usize,
@@ -401,6 +404,7 @@ impl CoopAttentionEngine {
     }
 
     /// Count of urgent targets (above URGENCY_HIGH)
+    #[inline]
     pub fn urgent_count(&self) -> usize {
         self.targets
             .values()
@@ -413,6 +417,7 @@ impl CoopAttentionEngine {
     // ========================================================================
 
     /// Shift attention smoothly from one target to another
+    #[inline]
     pub fn attention_shift(&mut self, from_id: u64, to_id: u64, amount: f32) -> bool {
         let clamped = if amount < 0.0 {
             0.0
@@ -488,6 +493,7 @@ impl CoopAttentionEngine {
     // ========================================================================
 
     /// Decay all target focus levels
+    #[inline]
     pub fn decay_all(&mut self) {
         let rng = &mut self.rng_state;
         for (_, target) in self.targets.iter_mut() {
@@ -533,16 +539,19 @@ impl CoopAttentionEngine {
     // ========================================================================
 
     /// Get a target by ID
+    #[inline(always)]
     pub fn target(&self, id: u64) -> Option<&AttentionTarget> {
         self.targets.get(&id)
     }
 
     /// Total number of tracked targets
+    #[inline(always)]
     pub fn target_count(&self) -> usize {
         self.targets.len()
     }
 
     /// Snapshot of attention statistics
+    #[inline(always)]
     pub fn snapshot_stats(&self) -> CoopAttentionStats {
         self.stats.clone()
     }

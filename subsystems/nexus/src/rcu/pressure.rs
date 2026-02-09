@@ -2,6 +2,7 @@
 //!
 //! This module provides memory pressure analysis for RCU callback management.
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use super::RcuDomainId;
 
@@ -22,6 +23,7 @@ pub enum MemoryPressureLevel {
 
 impl MemoryPressureLevel {
     /// Get level name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::None => "none",
@@ -53,7 +55,7 @@ pub struct MemoryPressureAnalyzer {
     /// Domain ID
     domain_id: RcuDomainId,
     /// Historical samples
-    samples: Vec<MemoryPressureSample>,
+    samples: VecDeque<MemoryPressureSample>,
     /// Maximum samples
     max_samples: usize,
     /// Current pressure level
@@ -112,9 +114,9 @@ impl MemoryPressureAnalyzer {
 
         // Store sample
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
     /// Calculate pressure level from metrics
@@ -149,11 +151,13 @@ impl MemoryPressureAnalyzer {
     }
 
     /// Get current pressure level
+    #[inline(always)]
     pub fn current_level(&self) -> MemoryPressureLevel {
         self.current_level
     }
 
     /// Check if expedited grace period is recommended
+    #[inline(always)]
     pub fn recommend_expedited(&self) -> bool {
         self.current_level >= MemoryPressureLevel::High
     }
@@ -193,16 +197,19 @@ impl MemoryPressureAnalyzer {
     }
 
     /// Get domain ID
+    #[inline(always)]
     pub fn domain_id(&self) -> RcuDomainId {
         self.domain_id
     }
 
     /// Get level changes count
+    #[inline(always)]
     pub fn level_changes(&self) -> u64 {
         self.level_changes
     }
 
     /// Set thresholds
+    #[inline]
     pub fn set_thresholds(&mut self, medium: u64, high: u64, critical: u64) {
         self.medium_threshold = medium;
         self.high_threshold = high;
@@ -210,6 +217,7 @@ impl MemoryPressureAnalyzer {
     }
 
     /// Get time distribution across levels
+    #[inline]
     pub fn get_time_distribution(&self) -> [(MemoryPressureLevel, u64); 5] {
         [
             (MemoryPressureLevel::None, self.time_in_level[0]),

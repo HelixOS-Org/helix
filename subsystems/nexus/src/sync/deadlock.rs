@@ -63,6 +63,7 @@ impl DeadlockDetector {
     }
 
     /// Record lock acquired
+    #[inline]
     pub fn lock_acquired(&mut self, thread: ThreadId, lock: LockId) {
         self.held.entry(thread).or_default().push(lock);
         self.holders.insert(lock, thread);
@@ -70,6 +71,7 @@ impl DeadlockDetector {
     }
 
     /// Record lock released
+    #[inline]
     pub fn lock_released(&mut self, thread: ThreadId, lock: LockId) {
         if let Some(held) = self.held.get_mut(&thread) {
             held.retain(|&l| l != lock);
@@ -78,6 +80,7 @@ impl DeadlockDetector {
     }
 
     /// Record waiting
+    #[inline(always)]
     pub fn waiting_for(&mut self, thread: ThreadId, lock: LockId) -> Option<DeadlockInfo> {
         self.waiting.insert(thread, lock);
         self.detect_cycle(thread)
@@ -150,16 +153,19 @@ impl DeadlockDetector {
     }
 
     /// Get detected deadlocks
+    #[inline(always)]
     pub fn deadlocks(&self) -> &[DeadlockInfo] {
         &self.deadlocks
     }
 
     /// Get near misses
+    #[inline(always)]
     pub fn near_misses(&self) -> &[NearMiss] {
         &self.near_misses
     }
 
     /// Clear
+    #[inline]
     pub fn clear(&mut self) {
         self.held.clear();
         self.waiting.clear();

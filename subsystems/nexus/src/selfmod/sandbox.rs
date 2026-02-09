@@ -98,6 +98,7 @@ pub enum FailureType {
 
 /// Performance metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PerformanceMetrics {
     /// Average execution time per iteration
     pub avg_time: f64,
@@ -275,6 +276,7 @@ impl SandboxMemory {
 
 /// Virtual CPU state
 #[derive(Debug, Default)]
+#[repr(align(64))]
 pub struct VirtualCpuState {
     /// General purpose registers
     pub regs: [u64; 16],
@@ -324,6 +326,7 @@ pub struct InterceptedSyscall {
 
 /// Syscall statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SyscallStats {
     /// Total syscalls
     pub total: u64,
@@ -523,6 +526,7 @@ impl TestSuite {
 
 /// Sandbox statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SandboxStats {
     /// Total tests run
     pub tests_run: u64,
@@ -555,6 +559,7 @@ impl Sandbox {
     }
 
     /// Initialize sandbox with modification
+    #[inline]
     pub fn initialize(&mut self, modification: &Modification) -> Result<(), SandboxError> {
         self.memory.load_code(&modification.modified);
         self.cpu_state.reset();
@@ -673,27 +678,32 @@ impl Sandbox {
     }
 
     /// Add custom test case
+    #[inline(always)]
     pub fn add_test(&mut self, test: TestCase) {
         self.test_suite.add_test(test);
     }
 
     /// Terminate sandbox
+    #[inline(always)]
     pub fn terminate(&mut self) {
         self.active.store(false, Ordering::SeqCst);
         self.state = SandboxState::Terminated;
     }
 
     /// Get ID
+    #[inline(always)]
     pub fn id(&self) -> SandboxId {
         self.id
     }
 
     /// Get state
+    #[inline(always)]
     pub fn state(&self) -> SandboxState {
         self.state
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SandboxStats {
         &self.stats
     }
@@ -704,6 +714,7 @@ impl Sandbox {
 // ============================================================================
 
 /// Pool of sandboxes for parallel testing
+#[repr(align(64))]
 pub struct SandboxPool {
     /// Available sandboxes
     available: Vec<Sandbox>,
@@ -732,6 +743,7 @@ impl SandboxPool {
     }
 
     /// Acquire a sandbox
+    #[inline]
     pub fn acquire(&mut self) -> Option<SandboxId> {
         if let Some(mut sandbox) = self.available.pop() {
             let id = sandbox.id;
@@ -744,6 +756,7 @@ impl SandboxPool {
     }
 
     /// Release a sandbox
+    #[inline]
     pub fn release(&mut self, id: SandboxId) {
         if let Some(mut sandbox) = self.active.remove(&id) {
             sandbox.terminate();
@@ -753,16 +766,19 @@ impl SandboxPool {
     }
 
     /// Get sandbox
+    #[inline(always)]
     pub fn get(&mut self, id: SandboxId) -> Option<&mut Sandbox> {
         self.active.get_mut(&id)
     }
 
     /// Get available count
+    #[inline(always)]
     pub fn available_count(&self) -> usize {
         self.available.len()
     }
 
     /// Get active count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.active.len()
     }

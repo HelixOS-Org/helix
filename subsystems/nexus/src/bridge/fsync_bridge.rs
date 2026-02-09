@@ -9,6 +9,7 @@ pub enum FsyncBridgeEvent { Fsync, Fdatasync, SyncRange, SyncFs }
 
 /// Fsync bridge record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FsyncBridgeRecord {
     pub event: FsyncBridgeEvent,
     pub fd: i32,
@@ -23,6 +24,7 @@ impl FsyncBridgeRecord {
 
 /// Fsync bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FsyncBridgeStats { pub total_ops: u64, pub full_syncs: u64, pub data_syncs: u64, pub range_syncs: u64 }
 
 /// Main bridge fsync
@@ -31,6 +33,7 @@ pub struct BridgeFsync { pub stats: FsyncBridgeStats }
 
 impl BridgeFsync {
     pub fn new() -> Self { Self { stats: FsyncBridgeStats { total_ops: 0, full_syncs: 0, data_syncs: 0, range_syncs: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &FsyncBridgeRecord) {
         self.stats.total_ops += 1;
         match rec.event {

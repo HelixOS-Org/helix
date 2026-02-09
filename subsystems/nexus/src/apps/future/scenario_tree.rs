@@ -14,6 +14,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -54,6 +55,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f64, new_sample: f64, alpha: f64) -> f64 {
     alpha * new_sample + (1.0 - alpha) * current
 }
@@ -177,7 +179,7 @@ struct AppTreeState {
     total_probability_mass: f64,
     last_build_tick: u64,
     observation_count: u64,
-    action_frequency: BTreeMap<u64, u64>,
+    action_frequency: LinearMap<u64, 64>,
 }
 
 impl AppTreeState {
@@ -190,7 +192,7 @@ impl AppTreeState {
             total_probability_mass: 0.0,
             last_build_tick: 0,
             observation_count: 0,
-            action_frequency: BTreeMap::new(),
+            action_frequency: LinearMap::new(),
         }
     }
 
@@ -206,7 +208,7 @@ impl AppTreeState {
             return 1.0 / 8.0;
         }
         let key = fnv1a_hash(action.as_str().as_bytes());
-        let count = self.action_frequency.get(&key).copied().unwrap_or(0);
+        let count = self.action_frequency.get(key).copied().unwrap_or(0);
         count as f64 / self.observation_count as f64
     }
 }
@@ -217,6 +219,7 @@ impl AppTreeState {
 
 /// Statistics for the scenario tree engine.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ScenarioTreeStats {
     pub total_trees_built: u64,
     pub total_nodes_created: u64,
@@ -281,6 +284,7 @@ impl AppsScenarioTree {
     }
 
     /// Record an observed action for an application to improve future trees.
+    #[inline]
     pub fn record_observation(&mut self, app_id: u64, action: AppAction) {
         if self.app_states.len() >= MAX_APPS && !self.app_states.contains_key(&app_id) {
             return;
@@ -523,16 +527,19 @@ impl AppsScenarioTree {
     }
 
     /// Return the total number of scenarios (leaf nodes) in the current tree.
+    #[inline(always)]
     pub fn scenario_count(&self) -> usize {
         self.nodes.iter().filter(|n| n.is_leaf()).count()
     }
 
     /// Return a snapshot of engine statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &ScenarioTreeStats {
         &self.stats
     }
 
     /// Get the total number of nodes currently in the tree.
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
@@ -570,6 +577,7 @@ impl AppsScenarioTree {
     }
 
     /// Get the depth distribution of the current tree.
+    #[inline]
     pub fn depth_distribution(&self) -> BTreeMap<usize, usize> {
         let mut dist = BTreeMap::new();
         for node in &self.nodes {
@@ -580,11 +588,13 @@ impl AppsScenarioTree {
     }
 
     /// Retrieve the EMA-smoothed average branch factor.
+    #[inline(always)]
     pub fn avg_branch_factor(&self) -> f64 {
         self.ema_branch_factor
     }
 
     /// Retrieve the EMA-smoothed average tree depth.
+    #[inline(always)]
     pub fn avg_tree_depth(&self) -> f64 {
         self.ema_depth
     }

@@ -9,7 +9,7 @@
 //! - Reputation persistence across sessions
 //! - Gamification-inspired tiered levels
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -37,6 +37,7 @@ pub enum CoopLevel {
 
 impl CoopLevel {
     /// Score threshold for each level
+    #[inline]
     pub fn threshold(&self) -> i64 {
         match self {
             Self::Hostile => i64::MIN,
@@ -69,19 +70,21 @@ impl CoopLevel {
     }
 
     /// Priority boost multiplier (basis points, 10000 = 1.0x)
+    #[inline]
     pub fn priority_boost(&self) -> u32 {
         match self {
-            Self::Hostile => 5000,       // 0.5x
-            Self::NonCooperative => 8000, // 0.8x
-            Self::Basic => 10000,         // 1.0x
-            Self::Cooperative => 11000,   // 1.1x
+            Self::Hostile => 5000,            // 0.5x
+            Self::NonCooperative => 8000,     // 0.8x
+            Self::Basic => 10000,             // 1.0x
+            Self::Cooperative => 11000,       // 1.1x
             Self::HighlyCooperative => 12000, // 1.2x
-            Self::Exemplary => 14000,     // 1.4x
-            Self::Symbiotic => 16000,     // 1.6x
+            Self::Exemplary => 14000,         // 1.4x
+            Self::Symbiotic => 16000,         // 1.6x
         }
     }
 
     /// Resource allocation multiplier (basis points)
+    #[inline]
     pub fn resource_multiplier(&self) -> u32 {
         match self {
             Self::Hostile => 7000,
@@ -247,7 +250,7 @@ struct ProcessScore {
     /// Longest reward streak
     max_streak: u32,
     /// Recent events (ring buffer)
-    recent_events: Vec<ScoreEvent>,
+    recent_events: VecDeque<ScoreEvent>,
     /// Max recent events
     max_recent: usize,
     /// Last reward time
@@ -270,7 +273,7 @@ impl ProcessScore {
             total_penalties: 0,
             reward_streak: 0,
             max_streak: 0,
-            recent_events: Vec::new(),
+            recent_events: VecDeque::new(),
             max_recent: 50,
             last_reward: timestamp,
             last_penalty: 0,
@@ -333,9 +336,9 @@ impl ProcessScore {
 
     fn push_event(&mut self, event: ScoreEvent) {
         if self.recent_events.len() >= self.max_recent {
-            self.recent_events.remove(0);
+            self.recent_events.pop_front();
         }
-        self.recent_events.push(event);
+        self.recent_events.push_back(event);
     }
 }
 
@@ -423,11 +426,15 @@ impl RewardEngine {
     }
 
     /// Register a process
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, timestamp: u64) {
-        self.scores.entry(pid).or_insert_with(|| ProcessScore::new(pid, timestamp));
+        self.scores
+            .entry(pid)
+            .or_insert_with(|| ProcessScore::new(pid, timestamp));
     }
 
     /// Unregister a process
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) {
         self.scores.remove(&pid);
     }
@@ -438,10 +445,7 @@ impl RewardEngine {
         self.next_event_id += 1;
 
         // Calculate multiplier
-        let streak = self
-            .scores
-            .get(&pid)
-            .map_or(0, |s| s.reward_streak);
+        let streak = self.scores.get(&pid).map_or(0, |s| s.reward_streak);
 
         let multiplier = if streak >= self.config.streak_threshold {
             10000 + self.config.streak_bonus_percent * 100
@@ -523,13 +527,13 @@ impl RewardEngine {
     }
 
     /// Get cooperation level for a PID
+    #[inline]
     pub fn get_level(&self, pid: u64) -> CoopLevel {
-        self.scores
-            .get(&pid)
-            .map_or(CoopLevel::Basic, |s| s.level)
+        self.scores.get(&pid).map_or(CoopLevel::Basic, |s| s.level)
     }
 
     /// Decay all scores
+    #[inline]
     pub fn decay_all(&mut self, current_time: u64) {
         for ps in self.scores.values_mut() {
             ps.decay(current_time, self.config.decay_rate);
@@ -559,11 +563,13 @@ impl RewardEngine {
     }
 
     /// Registered process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.scores.len()
     }
 
     /// Average cooperation score
+    #[inline]
     pub fn average_score(&self) -> f64 {
         if self.scores.is_empty() {
             return 0.0;

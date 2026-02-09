@@ -33,12 +33,19 @@ impl PageFlags {
     pub const NO_EXECUTE: u64 = 1 << 63;
 
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn set(&mut self, flag: u64) { self.0 |= flag; }
+    #[inline(always)]
     pub fn clear(&mut self, flag: u64) { self.0 &= !flag; }
+    #[inline(always)]
     pub fn has(&self, flag: u64) -> bool { self.0 & flag != 0 }
+    #[inline(always)]
     pub fn is_present(&self) -> bool { self.has(Self::PRESENT) }
+    #[inline(always)]
     pub fn is_writable(&self) -> bool { self.has(Self::WRITABLE) }
+    #[inline(always)]
     pub fn is_user(&self) -> bool { self.has(Self::USER) }
+    #[inline(always)]
     pub fn is_huge(&self) -> bool { self.has(Self::HUGE) }
 }
 
@@ -57,6 +64,7 @@ impl PtEntry {
         Self { vaddr, paddr, flags, level, access_count: 0 }
     }
 
+    #[inline]
     pub fn page_size(&self) -> u64 {
         match self.level {
             PtLevel::Pml5 | PtLevel::Pml4 => 512 * 1024 * 1024 * 1024,
@@ -66,6 +74,7 @@ impl PtEntry {
         }
     }
 
+    #[inline(always)]
     pub fn frame_number(&self) -> u64 { self.paddr >> 12 }
 }
 
@@ -89,6 +98,7 @@ impl AddressSpace {
         }
     }
 
+    #[inline]
     pub fn map_page(&mut self, vaddr: u64, paddr: u64, flags: PageFlags, level: PtLevel) {
         let entry = PtEntry::new(vaddr, paddr, flags, level);
         let size = entry.page_size();
@@ -96,6 +106,7 @@ impl AddressSpace {
         self.total_mapped += size;
     }
 
+    #[inline]
     pub fn unmap_page(&mut self, vaddr: u64) -> Option<u64> {
         let entry = self.entries.remove(&vaddr)?;
         self.total_mapped -= entry.page_size();
@@ -103,6 +114,7 @@ impl AddressSpace {
         Some(entry.paddr)
     }
 
+    #[inline]
     pub fn translate(&self, vaddr: u64) -> Option<u64> {
         // Walk: find containing entry
         for (base, entry) in &self.entries {
@@ -128,6 +140,7 @@ pub enum TlbFlushType {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PageTableStats {
     pub total_address_spaces: u32,
     pub total_mappings: u64,
@@ -147,6 +160,7 @@ pub struct HolisticPageTable {
 impl HolisticPageTable {
     pub fn new() -> Self { Self { spaces: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create_space(&mut self, root: u64, levels: u8) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -154,14 +168,17 @@ impl HolisticPageTable {
         id
     }
 
+    #[inline(always)]
     pub fn map(&mut self, space: u64, vaddr: u64, paddr: u64, flags: PageFlags, level: PtLevel) {
         if let Some(s) = self.spaces.get_mut(&space) { s.map_page(vaddr, paddr, flags, level); }
     }
 
+    #[inline(always)]
     pub fn unmap(&mut self, space: u64, vaddr: u64) -> Option<u64> {
         self.spaces.get_mut(&space)?.unmap_page(vaddr)
     }
 
+    #[inline(always)]
     pub fn translate(&self, space: u64, vaddr: u64) -> Option<u64> {
         self.spaces.get(&space)?.translate(vaddr)
     }

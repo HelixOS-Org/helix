@@ -31,6 +31,7 @@ impl ParkedThread {
         Self { tid, state: ParkState::Running, parked_at: 0, unparked_at: 0, timeout_ns: 0, park_count: 0, total_park_ns: 0 }
     }
 
+    #[inline]
     pub fn park(&mut self, now: u64, timeout: u64) {
         self.state = ParkState::Parked;
         self.parked_at = now;
@@ -38,6 +39,7 @@ impl ParkedThread {
         self.park_count += 1;
     }
 
+    #[inline]
     pub fn unpark(&mut self, now: u64) {
         if self.state == ParkState::Parked {
             self.state = ParkState::Notified;
@@ -46,6 +48,7 @@ impl ParkedThread {
         }
     }
 
+    #[inline]
     pub fn check_timeout(&mut self, now: u64) -> bool {
         if self.state == ParkState::Parked && self.timeout_ns > 0 && now - self.parked_at >= self.timeout_ns {
             self.state = ParkState::TimedOut;
@@ -58,6 +61,7 @@ impl ParkedThread {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ParkStats {
     pub tracked_threads: u32,
     pub parked_count: u32,
@@ -72,22 +76,28 @@ pub struct CoopPark {
 
 impl CoopPark {
     pub fn new() -> Self { Self { threads: BTreeMap::new() } }
+    #[inline(always)]
     pub fn register(&mut self, tid: u64) { self.threads.insert(tid, ParkedThread::new(tid)); }
 
+    #[inline(always)]
     pub fn park(&mut self, tid: u64, now: u64, timeout: u64) {
         if let Some(t) = self.threads.get_mut(&tid) { t.park(now, timeout); }
     }
 
+    #[inline(always)]
     pub fn unpark(&mut self, tid: u64, now: u64) {
         if let Some(t) = self.threads.get_mut(&tid) { t.unpark(now); }
     }
 
+    #[inline(always)]
     pub fn tick(&mut self, now: u64) {
         for t in self.threads.values_mut() { t.check_timeout(now); }
     }
 
+    #[inline(always)]
     pub fn unregister(&mut self, tid: u64) { self.threads.remove(&tid); }
 
+    #[inline]
     pub fn stats(&self) -> ParkStats {
         let parked = self.threads.values().filter(|t| t.state == ParkState::Parked).count() as u32;
         let parks: u64 = self.threads.values().map(|t| t.park_count).sum();

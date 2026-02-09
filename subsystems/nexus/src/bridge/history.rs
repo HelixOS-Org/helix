@@ -7,6 +7,7 @@
 //! - Machine learning training data
 //! - Regression testing
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -71,10 +72,12 @@ impl RecordFlags {
     pub const COALESCED: Self = Self { bits: 64 };
     pub const DEPRECATED: Self = Self { bits: 128 };
 
+    #[inline(always)]
     pub fn has(&self, flag: RecordFlags) -> bool {
         (self.bits & flag.bits) != 0
     }
 
+    #[inline(always)]
     pub fn set(&mut self, flag: RecordFlags) {
         self.bits |= flag.bits;
     }
@@ -82,11 +85,13 @@ impl RecordFlags {
 
 impl SyscallRecord {
     /// Execution latency
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
         self.exit_time.saturating_sub(self.entry_time)
     }
 
     /// Whether the syscall succeeded
+    #[inline(always)]
     pub fn success(&self) -> bool {
         self.return_value >= 0
     }
@@ -97,6 +102,7 @@ impl SyscallRecord {
 // ============================================================================
 
 /// Ring buffer for storing records without heap reallocation
+#[repr(align(64))]
 pub struct RecordRingBuffer {
     /// Storage
     records: Vec<SyscallRecord>,
@@ -122,6 +128,7 @@ impl RecordRingBuffer {
     }
 
     /// Push a record
+    #[inline]
     pub fn push(&mut self, record: SyscallRecord) {
         if self.records.len() < self.capacity {
             self.records.push(record);
@@ -134,6 +141,7 @@ impl RecordRingBuffer {
     }
 
     /// Number of valid records
+    #[inline]
     pub fn len(&self) -> usize {
         if self.wrapped {
             self.capacity
@@ -143,11 +151,13 @@ impl RecordRingBuffer {
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.records.is_empty()
     }
 
     /// Get record by index (0 = oldest)
+    #[inline]
     pub fn get(&self, idx: usize) -> Option<&SyscallRecord> {
         if idx >= self.len() {
             return None;
@@ -161,6 +171,7 @@ impl RecordRingBuffer {
     }
 
     /// Iterate over records (oldest first)
+    #[inline]
     pub fn iter(&self) -> RingBufferIter<'_> {
         RingBufferIter {
             buffer: self,
@@ -170,6 +181,7 @@ impl RecordRingBuffer {
     }
 
     /// Get last N records
+    #[inline]
     pub fn last_n(&self, n: usize) -> Vec<&SyscallRecord> {
         let count = n.min(self.len());
         let start = self.len().saturating_sub(count);
@@ -177,11 +189,13 @@ impl RecordRingBuffer {
     }
 
     /// Total records written (including overwritten)
+    #[inline(always)]
     pub fn total_written(&self) -> u64 {
         self.total_written
     }
 
     /// Records dropped (overwritten)
+    #[inline]
     pub fn dropped(&self) -> u64 {
         if self.wrapped {
             self.total_written - self.capacity as u64
@@ -191,6 +205,7 @@ impl RecordRingBuffer {
     }
 
     /// Clear all records
+    #[inline]
     pub fn clear(&mut self) {
         self.records.clear();
         self.write_pos = 0;
@@ -199,6 +214,7 @@ impl RecordRingBuffer {
 }
 
 /// Iterator over ring buffer
+#[repr(align(64))]
 pub struct RingBufferIter<'a> {
     buffer: &'a RecordRingBuffer,
     pos: usize,
@@ -229,6 +245,7 @@ impl<'a> Iterator for RingBufferIter<'a> {
 
 /// Query filter for searching history
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HistoryQuery {
     /// Filter by PID
     pub pid: Option<u64>,
@@ -265,31 +282,37 @@ impl HistoryQuery {
         }
     }
 
+    #[inline(always)]
     pub fn for_pid(mut self, pid: u64) -> Self {
         self.pid = Some(pid);
         self
     }
 
+    #[inline(always)]
     pub fn for_type(mut self, t: SyscallType) -> Self {
         self.syscall_type = Some(t);
         self
     }
 
+    #[inline(always)]
     pub fn in_range(mut self, start: u64, end: u64) -> Self {
         self.time_range = Some((start, end));
         self
     }
 
+    #[inline(always)]
     pub fn failures_only(mut self) -> Self {
         self.success = Some(false);
         self
     }
 
+    #[inline(always)]
     pub fn slow_calls(mut self, min_ns: u64) -> Self {
         self.min_latency_ns = Some(min_ns);
         self
     }
 
+    #[inline(always)]
     pub fn with_limit(mut self, limit: usize) -> Self {
         self.limit = limit;
         self
@@ -358,13 +381,14 @@ pub struct QueryResult {
 
 /// Aggregated statistics from history queries
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HistoryAggregation {
     /// Total records matching
     pub total_records: u64,
     /// Per-type counts
     pub type_counts: BTreeMap<u8, u64>,
     /// Per-process counts
-    pub process_counts: BTreeMap<u64, u64>,
+    pub process_counts: LinearMap<u64, 64>,
     /// Total latency sum
     pub total_latency_ns: u64,
     /// Min latency
@@ -386,7 +410,7 @@ impl HistoryAggregation {
         Self {
             total_records: 0,
             type_counts: BTreeMap::new(),
-            process_counts: BTreeMap::new(),
+            process_counts: LinearMap::new(),
             total_latency_ns: 0,
             min_latency_ns: u64::MAX,
             max_latency_ns: 0,
@@ -425,6 +449,7 @@ impl HistoryAggregation {
     }
 
     /// Average latency
+    #[inline]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.total_records == 0 {
             0
@@ -434,6 +459,7 @@ impl HistoryAggregation {
     }
 
     /// Error rate
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         if self.total_records == 0 {
             0.0
@@ -443,6 +469,7 @@ impl HistoryAggregation {
     }
 
     /// Cache hit rate
+    #[inline]
     pub fn cache_hit_rate(&self) -> f64 {
         if self.total_records == 0 {
             0.0
@@ -457,6 +484,7 @@ impl HistoryAggregation {
 // ============================================================================
 
 /// Central history management
+#[repr(align(64))]
 pub struct HistoryManager {
     /// Global history ring buffer
     global_history: RecordRingBuffer,
@@ -568,6 +596,7 @@ impl HistoryManager {
     }
 
     /// Aggregate statistics
+    #[inline]
     pub fn aggregate(&self, query: &HistoryQuery) -> HistoryAggregation {
         let mut agg = HistoryAggregation::new();
 
@@ -581,6 +610,7 @@ impl HistoryManager {
     }
 
     /// Get last N records for a process
+    #[inline]
     pub fn recent_for_process(&self, pid: u64, n: usize) -> Vec<&SyscallRecord> {
         self.process_histories
             .get(&pid)
@@ -589,26 +619,31 @@ impl HistoryManager {
     }
 
     /// Remove process history
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.process_histories.remove(&pid);
     }
 
     /// Global record count
+    #[inline(always)]
     pub fn global_count(&self) -> usize {
         self.global_history.len()
     }
 
     /// Total records ever written
+    #[inline(always)]
     pub fn total_records(&self) -> u64 {
         self.global_history.total_written()
     }
 
     /// Records dropped
+    #[inline(always)]
     pub fn dropped_records(&self) -> u64 {
         self.global_history.dropped()
     }
 
     /// Number of tracked processes
+    #[inline(always)]
     pub fn tracked_processes(&self) -> usize {
         self.process_histories.len()
     }

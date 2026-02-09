@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// RSS component type
@@ -47,7 +48,7 @@ pub struct ProcessRss {
     pub last_sample_ts: u64,
     pub prev_total: u64,
     pub oom_score: u32,
-    pub samples: Vec<(u64, u64)>, // (timestamp, total_rss)
+    pub samples: VecDeque<(u64, u64)>, // (timestamp, total_rss)
 }
 
 impl ProcessRss {
@@ -58,18 +59,21 @@ impl ProcessRss {
             soft_limit_pages: None, hard_limit_pages: None,
             peak_rss_pages: 0, growth_rate_pages_per_sec: 0.0,
             last_sample_ts: 0, prev_total: 0, oom_score: 0,
-            samples: Vec::new(),
+            samples: VecDeque::new(),
         }
     }
 
+    #[inline(always)]
     pub fn total_rss(&self) -> u64 {
         self.anon_pages + self.file_pages + self.shmem_pages
     }
 
+    #[inline(always)]
     pub fn total_with_swap(&self) -> u64 {
         self.total_rss() + self.swapped_pages
     }
 
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 { self.total_rss() * 4096 }
 
     pub fn update(&mut self, anon: u64, file: u64, shmem: u64, swap: u64, pt: u64, ts: u64) {
@@ -93,24 +97,28 @@ impl ProcessRss {
 
         self.prev_total = total;
         self.last_sample_ts = ts;
-        self.samples.push((ts, total));
-        if self.samples.len() > 100 { self.samples.remove(0); }
+        self.samples.push_back((ts, total));
+        if self.samples.len() > 100 { self.samples.pop_front(); }
     }
 
+    #[inline(always)]
     pub fn exceeds_soft_limit(&self) -> bool {
         self.soft_limit_pages.map(|l| self.total_rss() > l).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn exceeds_hard_limit(&self) -> bool {
         self.hard_limit_pages.map(|l| self.total_rss() > l).unwrap_or(false)
     }
 
+    #[inline]
     pub fn limit_status(&self) -> RssLimitType {
         if self.exceeds_hard_limit() { RssLimitType::Hard }
         else if self.exceeds_soft_limit() { RssLimitType::Soft }
         else { RssLimitType::None }
     }
 
+    #[inline]
     pub fn compute_oom_score(&mut self, total_mem_pages: u64) {
         if total_mem_pages == 0 { self.oom_score = 0; return; }
         // Score 0-1000 based on RSS proportion
@@ -121,6 +129,7 @@ impl ProcessRss {
         self.oom_score = (base_score + growth_bonus).min(1000);
     }
 
+    #[inline]
     pub fn working_set_estimate(&self) -> u64 {
         // Estimate working set from recent samples
         if self.samples.len() < 2 { return self.total_rss(); }
@@ -144,6 +153,7 @@ pub struct SystemRssSummary {
 
 /// RSS tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RssTrackerStats {
     pub tracked_processes: usize,
     pub total_rss_pages: u64,
@@ -172,18 +182,22 @@ impl HolisticRssTracker {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u32) {
         self.processes.insert(pid, ProcessRss::new(pid));
     }
 
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u32) { self.processes.remove(&pid); }
 
+    #[inline]
     pub fn update(&mut self, pid: u32, anon: u64, file: u64, shmem: u64, swap: u64, pt: u64, ts: u64) {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.update(anon, file, shmem, swap, pt, ts);
         }
     }
 
+    #[inline]
     pub fn set_limits(&mut self, pid: u32, soft: Option<u64>, hard: Option<u64>) {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.soft_limit_pages = soft;
@@ -191,11 +205,13 @@ impl HolisticRssTracker {
         }
     }
 
+    #[inline(always)]
     pub fn compute_oom_scores(&mut self) {
         let total = self.total_memory_pages;
         for proc in self.processes.values_mut() { proc.compute_oom_score(total); }
     }
 
+    #[inline]
     pub fn oom_candidates(&self, n: usize) -> Vec<(u32, u32)> {
         let mut sorted: Vec<(u32, u32)> = self.processes.values().map(|p| (p.pid, p.oom_score)).collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
@@ -217,6 +233,7 @@ impl HolisticRssTracker {
         }
     }
 
+    #[inline(always)]
     pub fn process(&self, pid: u32) -> Option<&ProcessRss> { self.processes.get(&pid) }
 
     pub fn recompute(&mut self) {
@@ -237,5 +254,6 @@ impl HolisticRssTracker {
         } else { 0.0 };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &RssTrackerStats { &self.stats }
 }

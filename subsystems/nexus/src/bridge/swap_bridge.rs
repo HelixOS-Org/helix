@@ -47,11 +47,13 @@ impl SwapCluster {
         Self { start_offset: offset, count, free: count, sequential_alloc: 0 }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.count == 0 { return 0.0; }
         1.0 - (self.free as f64 / self.count as f64)
     }
 
+    #[inline]
     pub fn try_allocate(&mut self) -> Option<u64> {
         if self.free == 0 { return None; }
         self.free -= 1;
@@ -59,6 +61,7 @@ impl SwapCluster {
         Some(self.start_offset + (self.count - self.free - 1) as u64)
     }
 
+    #[inline(always)]
     pub fn release(&mut self) {
         if self.free < self.count { self.free += 1; }
     }
@@ -99,13 +102,16 @@ impl SwapArea {
         }
     }
 
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
         if self.total_slots == 0 { return 0.0; }
         self.used_slots as f64 / self.total_slots as f64
     }
 
+    #[inline(always)]
     pub fn free_slots(&self) -> u64 { self.total_slots.saturating_sub(self.used_slots + self.bad_slots) }
 
+    #[inline]
     pub fn allocate_slot(&mut self) -> Option<u64> {
         for cluster in &mut self.clusters {
             if let Some(off) = cluster.try_allocate() {
@@ -117,6 +123,7 @@ impl SwapArea {
         None
     }
 
+    #[inline]
     pub fn free_slot(&mut self, offset: u64) {
         let cluster_size = 256u64;
         let idx = (offset / cluster_size) as usize;
@@ -144,6 +151,7 @@ impl ProcessSwapInfo {
         Self { pid, swapped_pages: 0, swap_in_faults: 0, swap_out_events: 0, peak_swapped: 0, last_swap_ts: 0 }
     }
 
+    #[inline]
     pub fn record_swap_out(&mut self, pages: u64, ts: u64) {
         self.swapped_pages += pages;
         self.swap_out_events += 1;
@@ -151,6 +159,7 @@ impl ProcessSwapInfo {
         self.last_swap_ts = ts;
     }
 
+    #[inline]
     pub fn record_swap_in(&mut self, pages: u64, ts: u64) {
         self.swapped_pages = self.swapped_pages.saturating_sub(pages);
         self.swap_in_faults += 1;
@@ -160,6 +169,7 @@ impl ProcessSwapInfo {
 
 /// Swap bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SwapBridgeStats {
     pub total_areas: usize,
     pub active_areas: usize,
@@ -173,6 +183,7 @@ pub struct SwapBridgeStats {
 }
 
 /// Bridge swap manager
+#[repr(align(64))]
 pub struct BridgeSwapBridge {
     areas: BTreeMap<u64, SwapArea>,
     proc_swap: BTreeMap<u64, ProcessSwapInfo>,
@@ -190,6 +201,7 @@ impl BridgeSwapBridge {
         }
     }
 
+    #[inline]
     pub fn swapon(&mut self, area_type: SwapAreaType, path: String, priority: i16, total: u64, ts: u64) -> u64 {
         let id = self.next_area_id;
         self.next_area_id += 1;
@@ -226,6 +238,7 @@ impl BridgeSwapBridge {
         None
     }
 
+    #[inline]
     pub fn free(&mut self, area_id: u64, offset: u64, pid: u64, ts: u64) {
         if let Some(area) = self.areas.get_mut(&area_id) {
             area.free_slot(offset);
@@ -258,7 +271,10 @@ impl BridgeSwapBridge {
         }
     }
 
+    #[inline(always)]
     pub fn area(&self, id: u64) -> Option<&SwapArea> { self.areas.get(&id) }
+    #[inline(always)]
     pub fn process_swap(&self, pid: u64) -> Option<&ProcessSwapInfo> { self.proc_swap.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &SwapBridgeStats { &self.stats }
 }

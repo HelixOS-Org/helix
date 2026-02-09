@@ -117,6 +117,7 @@ pub struct EvolutionDirection {
 
 /// Aggregate meta-cognition statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct MetaCognitionStats {
     pub component_count: usize,
     pub bias_count: usize,
@@ -194,6 +195,7 @@ impl HolisticMetaCognition {
     }
 
     /// Update a component's performance metrics
+    #[inline]
     pub fn update_component(
         &mut self,
         component_id: u64,
@@ -213,6 +215,7 @@ impl HolisticMetaCognition {
     }
 
     /// Evaluate the entire cognitive architecture
+    #[inline]
     pub fn architecture_evaluation(&mut self) -> f32 {
         if self.components.is_empty() {
             return 0.0;
@@ -259,6 +262,7 @@ impl HolisticMetaCognition {
     }
 
     /// Analyze attention distribution across components
+    #[inline]
     pub fn attention_distribution(&mut self) -> BTreeMap<u64, f32> {
         let total_attention: f32 = self.components.values().map(|c| c.attention_share).sum();
         let mut distribution = BTreeMap::new();
@@ -406,6 +410,7 @@ impl HolisticMetaCognition {
     }
 
     /// Overall cognitive architecture score (0.0 – 1.0)
+    #[inline]
     pub fn cognitive_architecture_score(&self) -> f32 {
         self.architecture_score_ema * 0.40
             + self.attention_balance_ema * 0.25

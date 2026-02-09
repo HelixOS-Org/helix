@@ -77,22 +77,26 @@ impl AlgorithmInfo {
     }
 
     /// Record use
+    #[inline(always)]
     pub fn record_use(&self, bytes: u64) {
         self.use_count.fetch_add(1, Ordering::Relaxed);
         self.bytes_processed.fetch_add(bytes, Ordering::Relaxed);
     }
 
     /// Get use count
+    #[inline(always)]
     pub fn use_count(&self) -> u64 {
         self.use_count.load(Ordering::Relaxed)
     }
 
     /// Get bytes processed
+    #[inline(always)]
     pub fn bytes_processed(&self) -> u64 {
         self.bytes_processed.load(Ordering::Relaxed)
     }
 
     /// Is secure
+    #[inline]
     pub fn is_secure(&self) -> bool {
         self.status == AlgorithmStatus::Active
             && self.strength.is_secure()
@@ -100,6 +104,7 @@ impl AlgorithmInfo {
     }
 
     /// Is deprecated
+    #[inline]
     pub fn is_deprecated(&self) -> bool {
         matches!(
             self.status,
@@ -195,6 +200,7 @@ impl KnownAlgorithms {
     }
 
     /// Get status for algorithm
+    #[inline]
     pub fn status(name: &str) -> AlgorithmStatus {
         match name {
             "md5" | "md4" | "rc4" => AlgorithmStatus::Broken,

@@ -64,6 +64,7 @@ pub enum DomainValue {
 
 impl DomainValue {
     /// Get as integer
+    #[inline]
     pub fn as_integer(&self) -> Option<i64> {
         match self {
             DomainValue::Integer(i) => Some(*i),
@@ -73,6 +74,7 @@ impl DomainValue {
     }
 
     /// Get as boolean
+    #[inline]
     pub fn as_boolean(&self) -> Option<bool> {
         match self {
             DomainValue::Boolean(b) => Some(*b),
@@ -102,12 +104,14 @@ impl Domain {
     }
 
     /// Create an integer range domain [min, max]
+    #[inline(always)]
     pub fn integer_range(min: i64, max: i64) -> Self {
         let values: Vec<DomainValue> = (min..=max).map(DomainValue::Integer).collect();
         Self::new(values)
     }
 
     /// Create a boolean domain
+    #[inline]
     pub fn boolean() -> Self {
         Self::new(vec![
             DomainValue::Boolean(false),
@@ -116,16 +120,19 @@ impl Domain {
     }
 
     /// Check if domain is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.values.is_empty()
     }
 
     /// Check if domain is a singleton
+    #[inline(always)]
     pub fn is_singleton(&self) -> bool {
         self.values.len() == 1
     }
 
     /// Get the single value if singleton
+    #[inline]
     pub fn get_singleton(&self) -> Option<&DomainValue> {
         if self.is_singleton() {
             self.values.iter().next()
@@ -135,42 +142,50 @@ impl Domain {
     }
 
     /// Get domain size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.values.len()
     }
 
     /// Remove a value from the domain
+    #[inline(always)]
     pub fn remove(&mut self, value: &DomainValue) -> bool {
         self.values.remove(value)
     }
 
     /// Restrict domain to given values
+    #[inline(always)]
     pub fn restrict(&mut self, allowed: &BTreeSet<DomainValue>) {
         self.values.retain(|v| allowed.contains(v));
     }
 
     /// Check if value is in domain
+    #[inline(always)]
     pub fn contains(&self, value: &DomainValue) -> bool {
         self.values.contains(value)
     }
 
     /// Get all values
+    #[inline(always)]
     pub fn values(&self) -> impl Iterator<Item = &DomainValue> {
         self.values.iter()
     }
 
     /// Set to singleton
+    #[inline(always)]
     pub fn set_value(&mut self, value: DomainValue) {
         self.values.clear();
         self.values.insert(value);
     }
 
     /// Get minimum integer value
+    #[inline(always)]
     pub fn min_integer(&self) -> Option<i64> {
         self.values.iter().filter_map(|v| v.as_integer()).min()
     }
 
     /// Get maximum integer value
+    #[inline(always)]
     pub fn max_integer(&self) -> Option<i64> {
         self.values.iter().filter_map(|v| v.as_integer()).max()
     }
@@ -242,6 +257,7 @@ pub struct ConstraintInfo {
 
 impl ConstraintInfo {
     /// Create a hard constraint
+    #[inline]
     pub fn hard(id: u32, constraint: Constraint) -> Self {
         let variables = constraint.get_variables();
         Self {
@@ -255,6 +271,7 @@ impl ConstraintInfo {
     }
 
     /// Create a soft constraint with weight
+    #[inline]
     pub fn soft(id: u32, constraint: Constraint, weight: f64) -> Self {
         let variables = constraint.get_variables();
         Self {
@@ -397,24 +414,28 @@ impl CspSolver {
     }
 
     /// Set variable heuristic
+    #[inline(always)]
     pub fn with_variable_heuristic(mut self, heuristic: VariableHeuristic) -> Self {
         self.var_heuristic = heuristic;
         self
     }
 
     /// Set value heuristic
+    #[inline(always)]
     pub fn with_value_heuristic(mut self, heuristic: ValueHeuristic) -> Self {
         self.val_heuristic = heuristic;
         self
     }
 
     /// Disable propagation
+    #[inline(always)]
     pub fn without_propagation(mut self) -> Self {
         self.propagation = false;
         self
     }
 
     /// Add a variable with domain
+    #[inline]
     pub fn add_variable(&mut self, domain: Domain) -> VarId {
         let id = VarId(self.domains.len() as u32);
         self.domains.insert(id, domain);
@@ -423,11 +444,13 @@ impl CspSolver {
     }
 
     /// Add an integer variable with range
+    #[inline(always)]
     pub fn add_int_variable(&mut self, min: i64, max: i64) -> VarId {
         self.add_variable(Domain::integer_range(min, max))
     }
 
     /// Add a boolean variable
+    #[inline(always)]
     pub fn add_bool_variable(&mut self) -> VarId {
         self.add_variable(Domain::boolean())
     }
@@ -952,6 +975,7 @@ impl CspSolver {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> SolverStats {
         SolverStats {
             steps: self.steps,
@@ -970,6 +994,7 @@ impl Default for CspSolver {
 
 /// Solver statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SolverStats {
     /// Total steps taken
     pub steps: usize,
@@ -996,6 +1021,7 @@ pub struct SatLiteral {
 
 impl SatLiteral {
     /// Create a positive literal
+    #[inline]
     pub fn pos(var: u32) -> Self {
         Self {
             var,
@@ -1004,6 +1030,7 @@ impl SatLiteral {
     }
 
     /// Create a negative literal
+    #[inline]
     pub fn neg(var: u32) -> Self {
         Self {
             var,
@@ -1012,6 +1039,7 @@ impl SatLiteral {
     }
 
     /// Negate this literal
+    #[inline]
     pub fn negate(&self) -> Self {
         Self {
             var: self.var,
@@ -1061,6 +1089,7 @@ impl DpllSolver {
     }
 
     /// Add a clause
+    #[inline(always)]
     pub fn add_clause(&mut self, clause: SatClause) {
         self.clauses.push(clause);
     }
@@ -1231,12 +1260,14 @@ impl SchedulerCsp {
     }
 
     /// Add a task with priority range
+    #[inline(always)]
     pub fn add_task(&mut self, task_id: u64, min_priority: i64, max_priority: i64) {
         let var = self.solver.add_int_variable(min_priority, max_priority);
         self.task_vars.insert(task_id, var);
     }
 
     /// Add CPU affinity constraint
+    #[inline]
     pub fn add_affinity_constraint(&mut self, task_id: u64, allowed_cpus: Vec<i64>) {
         if let Some(&var) = self.task_vars.get(&task_id) {
             let values: Vec<DomainValue> =
@@ -1248,6 +1279,7 @@ impl SchedulerCsp {
     }
 
     /// Add mutual exclusion (tasks can't run simultaneously on same CPU)
+    #[inline]
     pub fn add_mutex_constraint(&mut self, task1: u64, task2: u64) {
         if let (Some(&v1), Some(&v2)) = (
             self.cpu_assignments.get(&task1),
@@ -1258,6 +1290,7 @@ impl SchedulerCsp {
     }
 
     /// Add priority ordering constraint
+    #[inline]
     pub fn add_priority_ordering(&mut self, higher: u64, lower: u64) {
         if let (Some(&v1), Some(&v2)) = (self.task_vars.get(&higher), self.task_vars.get(&lower)) {
             self.solver.add_constraint(Constraint::GreaterThan(v1, v2));
@@ -1332,6 +1365,7 @@ impl MemoryAllocationCsp {
     }
 
     /// Add non-overlapping constraint between regions
+    #[inline]
     pub fn add_non_overlapping(&mut self, region1: u64, region2: u64) {
         if let (Some(&(v1, s1)), Some(&(v2, s2))) =
             (self.regions.get(&region1), self.regions.get(&region2))

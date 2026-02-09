@@ -130,21 +130,25 @@ impl FtraceIntelligence {
     }
 
     /// Set tracer
+    #[inline(always)]
     pub fn set_tracer(&mut self, tracer: TracerType) {
         self.manager.set_tracer(tracer);
     }
 
     /// Start tracing
+    #[inline(always)]
     pub fn start(&self) {
         self.manager.start();
     }
 
     /// Stop tracing
+    #[inline(always)]
     pub fn stop(&self) {
         self.manager.stop();
     }
 
     /// Record latency
+    #[inline(always)]
     pub fn record_latency(&mut self, record: LatencyRecord) {
         self.manager.record_latency(record);
     }
@@ -296,11 +300,13 @@ impl FtraceIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &FtraceManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut FtraceManager {
         &mut self.manager
     }

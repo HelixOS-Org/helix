@@ -244,6 +244,7 @@ pub struct GeneticEngine {
 
 /// Evolution statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct EvolutionStats {
     /// Total evaluations
     pub evaluations: u64,
@@ -259,6 +260,7 @@ pub struct EvolutionStats {
 
 /// Per-generation statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GenerationStats {
     /// Generation number
     pub generation: Generation,
@@ -520,6 +522,7 @@ impl GeneticEngine {
     }
 
     /// Run evolution until termination
+    #[inline]
     pub fn run<F>(&mut self, fitness_fn: F) -> Option<Individual>
     where
         F: Fn(&genome::CodeGenome) -> Fitness + Clone,
@@ -557,26 +560,31 @@ impl GeneticEngine {
     }
 
     /// Get best individual
+    #[inline(always)]
     pub fn best(&self) -> Option<&Individual> {
         self.best_ever.as_ref()
     }
 
     /// Get current generation
+    #[inline(always)]
     pub fn generation(&self) -> Generation {
         self.generation
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &EvolutionStats {
         &self.stats
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[GenerationStats] {
         &self.history
     }
 
     /// Get population
+    #[inline(always)]
     pub fn population(&self) -> &population::Population {
         &self.population
     }

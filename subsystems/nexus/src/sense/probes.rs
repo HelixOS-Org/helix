@@ -35,6 +35,7 @@ impl CpuProbe {
     }
 
     /// Create with custom config
+    #[inline]
     pub fn with_config(config: ProbeConfig) -> Self {
         Self {
             id: ProbeId::generate(),
@@ -167,6 +168,7 @@ impl MemoryProbe {
     }
 
     /// Create with custom config
+    #[inline]
     pub fn with_config(config: ProbeConfig) -> Self {
         Self {
             id: ProbeId::generate(),

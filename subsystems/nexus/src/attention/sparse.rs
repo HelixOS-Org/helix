@@ -286,6 +286,7 @@ impl SparsePattern {
     }
 
     /// Get sparsity ratio
+    #[inline]
     pub fn sparsity(&self) -> f64 {
         let total_edges: usize = self.adjacency.iter().map(|k| k.len()).sum();
         let dense_edges = self.seq_len * self.seq_len;
@@ -294,6 +295,7 @@ impl SparsePattern {
     }
 
     /// Apply causal mask
+    #[inline]
     pub fn make_causal(&mut self) {
         for q in 0..self.seq_len {
             self.adjacency[q].retain(|&k| k <= q);
@@ -323,12 +325,14 @@ impl SparseAttention {
     }
 
     /// Create with local pattern
+    #[inline(always)]
     pub fn local(head_dim: usize, seq_len: usize, window_size: usize) -> Self {
         let pattern = SparsePattern::local(seq_len, window_size);
         Self::new(head_dim, pattern)
     }
 
     /// Create with BigBird pattern
+    #[inline(always)]
     pub fn bigbird(
         head_dim: usize,
         seq_len: usize,
@@ -396,6 +400,7 @@ impl SparseAttention {
     }
 
     /// Get sparsity ratio
+    #[inline(always)]
     pub fn sparsity(&self) -> f64 {
         self.pattern.sparsity()
     }
@@ -442,6 +447,7 @@ impl BlockSparseAttention {
     }
 
     /// Create with custom block pattern
+    #[inline]
     pub fn with_pattern(head_dim: usize, block_size: usize, pattern: Vec<Vec<usize>>) -> Self {
         Self {
             block_size,
@@ -517,6 +523,7 @@ impl BlockSparseAttention {
     }
 
     /// Get number of blocks
+    #[inline(always)]
     pub fn num_blocks(&self) -> usize {
         self.block_pattern.len()
     }
@@ -547,6 +554,7 @@ impl DilatedAttention {
     }
 
     /// Create with exponentially increasing rates
+    #[inline]
     pub fn exponential(head_dim: usize, num_heads: usize, segment_len: usize) -> Self {
         let rates: Vec<usize> = (0..num_heads)
             .map(|h| 1 << h)  // 1, 2, 4, 8, ...

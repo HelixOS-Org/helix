@@ -10,11 +10,13 @@ pub struct KprobeId(pub u64);
 
 impl KprobeId {
     /// Create a new kprobe ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -26,11 +28,13 @@ pub struct KretprobeId(pub u64);
 
 impl KretprobeId {
     /// Create a new kretprobe ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -42,21 +46,25 @@ pub struct ProbeAddress(pub u64);
 
 impl ProbeAddress {
     /// Create a new probe address
+    #[inline(always)]
     pub const fn new(addr: u64) -> Self {
         Self(addr)
     }
 
     /// Get the raw address value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
 
     /// Check if address is aligned
+    #[inline(always)]
     pub fn is_aligned(&self, alignment: u64) -> bool {
         self.0 % alignment == 0
     }
 
     /// Get offset from base
+    #[inline(always)]
     pub fn offset_from(&self, base: u64) -> u64 {
         self.0.saturating_sub(base)
     }
@@ -93,11 +101,13 @@ impl SymbolInfo {
     }
 
     /// Check if address is within symbol
+    #[inline(always)]
     pub fn contains(&self, addr: ProbeAddress) -> bool {
         addr.raw() >= self.address.raw() && addr.raw() < self.address.raw() + self.size
     }
 
     /// Get offset within symbol
+    #[inline]
     pub fn offset(&self, addr: ProbeAddress) -> Option<u64> {
         if self.contains(addr) {
             Some(addr.raw() - self.address.raw())
@@ -135,6 +145,7 @@ pub enum Architecture {
 
 impl Architecture {
     /// Get breakpoint instruction
+    #[inline]
     pub fn breakpoint_instruction(&self) -> &'static [u8] {
         match self {
             Self::X86_64 => &[0xCC], // INT3
@@ -144,6 +155,7 @@ impl Architecture {
     }
 
     /// Get NOP instruction
+    #[inline]
     pub fn nop_instruction(&self) -> &'static [u8] {
         match self {
             Self::X86_64 => &[0x90], // NOP
@@ -153,6 +165,7 @@ impl Architecture {
     }
 
     /// Get instruction alignment
+    #[inline]
     pub fn instruction_alignment(&self) -> u64 {
         match self {
             Self::X86_64 => 1,

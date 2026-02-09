@@ -130,6 +130,7 @@ impl ParticipantTracker {
         }
     }
 
+    #[inline]
     fn record(&mut self, satisfaction: f32, fairness: f32, agreed: bool, resources: f32) {
         self.total_negotiations += 1;
         self.total_resources_requested += resources;
@@ -158,6 +159,7 @@ impl ParticipantTracker {
 
 /// Aggregate cooperation introspection statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct IntrospectionStats {
     pub total_negotiations: u64,
     pub avg_fairness: f32,
@@ -212,6 +214,7 @@ impl CoopIntrospector {
     }
 
     /// Record a completed negotiation with per-participant satisfaction
+    #[inline]
     pub fn record_negotiation(
         &mut self,
         category: NegotiationCategory,

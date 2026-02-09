@@ -152,6 +152,7 @@ impl MapElites {
     }
 
     /// Get coverage statistics
+    #[inline]
     pub fn get_coverage_stats(&self) -> (usize, usize, f64) {
         let total_cells = self
             .config

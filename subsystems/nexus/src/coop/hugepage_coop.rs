@@ -9,6 +9,7 @@
 //! - Cooperative compaction scheduling
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -19,33 +20,38 @@ pub enum HugePageSize {
 }
 
 impl HugePageSize {
+    #[inline]
     pub fn bytes(&self) -> u64 {
         match self {
             Self::TwoMB => 2 * 1024 * 1024,
             Self::OneGB => 1024 * 1024 * 1024,
         }
     }
+    #[inline(always)]
     pub fn base_pages(&self) -> u64 {
         self.bytes() / 4096
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HugePagePool {
     pub total_2mb: u64,
     pub free_2mb: u64,
     pub total_1gb: u64,
     pub free_1gb: u64,
-    pub reservations: BTreeMap<u64, u64>, // pid → reserved count
+    pub reservations: LinearMap<u64, 64>, // pid → reserved count
 }
 
 impl HugePagePool {
+    #[inline]
     pub fn utilization_2mb(&self) -> f64 {
         if self.total_2mb == 0 {
             return 0.0;
         }
         1.0 - (self.free_2mb as f64 / self.total_2mb as f64)
     }
+    #[inline]
     pub fn pressure(&self) -> f64 {
         let reserved: u64 = self.reservations.values().sum();
         if self.free_2mb == 0 {
@@ -65,6 +71,7 @@ pub struct CompactionRequest {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HugePageCoopStats {
     pub promotions_coordinated: u64,
     pub demotions_forced: u64,
@@ -92,13 +99,14 @@ impl HugePageCoopManager {
         }
     }
 
+    #[inline]
     pub fn init_pool(&mut self, numa_node: u32, total_2mb: u64, total_1gb: u64) {
         self.pools.insert(numa_node, HugePagePool {
             total_2mb,
             free_2mb: total_2mb,
             total_1gb,
             free_1gb: total_1gb,
-            reservations: BTreeMap::new(),
+            reservations: LinearMap::new(),
         });
     }
 
@@ -118,6 +126,7 @@ impl HugePageCoopManager {
     }
 
     /// Release reserved huge pages
+    #[inline]
     pub fn release(&mut self, pid: u64, count: u64, numa_node: u32) {
         if let Some(pool) = self.pools.get_mut(&numa_node) {
             pool.free_2mb += count;
@@ -131,6 +140,7 @@ impl HugePageCoopManager {
     }
 
     /// Coordinate THP promotion: check if promotion won't starve others
+    #[inline]
     pub fn can_promote(&self, pid: u64, numa_node: u32) -> bool {
         let pool = match self.pools.get(&numa_node) {
             Some(p) => p,
@@ -141,6 +151,7 @@ impl HugePageCoopManager {
     }
 
     /// Request compaction to free contiguous huge page frames
+    #[inline]
     pub fn request_compaction(&mut self, pid: u64, target: u64, priority: u32, now: u64) {
         self.compaction_queue.push(CompactionRequest {
             pid,
@@ -192,9 +203,11 @@ impl HugePageCoopManager {
         moves
     }
 
+    #[inline(always)]
     pub fn pool(&self, numa_node: u32) -> Option<&HugePagePool> {
         self.pools.get(&numa_node)
     }
+    #[inline(always)]
     pub fn stats(&self) -> &HugePageCoopStats {
         &self.stats
     }

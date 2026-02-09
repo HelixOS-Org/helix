@@ -49,14 +49,17 @@ impl KexecSegment {
         }
     }
 
+    #[inline(always)]
     pub fn is_valid(&self) -> bool {
         self.buf_size > 0 && self.mem_size >= self.buf_size
     }
 
+    #[inline(always)]
     pub fn mem_end(&self) -> u64 {
         self.mem_start.saturating_add(self.mem_size)
     }
 
+    #[inline(always)]
     pub fn overlaps(&self, other: &Self) -> bool {
         self.mem_start < other.mem_end() && other.mem_start < self.mem_end()
     }
@@ -79,6 +82,7 @@ pub enum ImageState {
 
 /// A loaded kexec image
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct KexecImage {
     pub kexec_type: KexecType,
     pub state: ImageState,
@@ -123,10 +127,12 @@ impl KexecImage {
         true
     }
 
+    #[inline(always)]
     pub fn set_cmdline(&mut self, cmdline: String) {
         self.cmdline = cmdline;
     }
 
+    #[inline(always)]
     pub fn set_initrd(&mut self, start: u64, size: u64) {
         self.initrd_start = start;
         self.initrd_size = size;
@@ -159,6 +165,7 @@ impl KexecImage {
         true
     }
 
+    #[inline(always)]
     pub fn segment_count(&self) -> usize {
         self.segments.len()
     }
@@ -177,6 +184,7 @@ impl CrashReserveRegion {
         Self { start, size, in_use: false }
     }
 
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool {
         addr >= self.start && addr < self.start + self.size
     }
@@ -203,6 +211,7 @@ pub struct ShutdownNotifier {
 
 /// Kexec bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KexecBridgeStats {
     pub images_loaded: u64,
     pub kexec_executions: u64,
@@ -327,6 +336,7 @@ impl BridgeKexec {
         }
     }
 
+    #[inline]
     pub fn reserve_crash_region(&mut self, start: u64, size: u64) -> bool {
         // Check for overlaps with existing reservations
         for region in &self.crash_regions {
@@ -338,6 +348,7 @@ impl BridgeKexec {
         true
     }
 
+    #[inline]
     pub fn register_shutdown_notifier(&mut self, name: String, priority: u32, timeout_ns: u64) {
         self.shutdown_notifiers.push(ShutdownNotifier {
             name,
@@ -348,10 +359,12 @@ impl BridgeKexec {
         self.shutdown_notifiers.sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
+    #[inline(always)]
     pub fn set_purgatory_state(&mut self, state: PurgatoryState) {
         self.purgatory_state = state;
     }
 
+    #[inline]
     pub fn image_info(&self, kexec_type: KexecType) -> Option<(ImageState, u64, usize)> {
         let image = match kexec_type {
             KexecType::Crash => self.crash_image.as_ref(),
@@ -360,10 +373,12 @@ impl BridgeKexec {
         image.map(|img| (img.state, img.total_size, img.segment_count()))
     }
 
+    #[inline(always)]
     pub fn total_crash_reserved(&self) -> u64 {
         self.crash_regions.iter().map(|r| r.size).sum()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &KexecBridgeStats {
         &self.stats
     }

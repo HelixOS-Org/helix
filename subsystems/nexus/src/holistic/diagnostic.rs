@@ -97,11 +97,13 @@ pub struct Symptom {
 
 impl Symptom {
     /// Is anomalous? (value outside expected range)
+    #[inline(always)]
     pub fn is_anomalous(&self) -> bool {
         self.value < self.expected_min || self.value > self.expected_max
     }
 
     /// Deviation from expected
+    #[inline]
     pub fn deviation(&self) -> f64 {
         if self.value > self.expected_max {
             self.value - self.expected_max
@@ -184,6 +186,7 @@ impl FaultTree {
     }
 
     /// Add node
+    #[inline]
     pub fn add_node(&mut self, node: FaultNode, parent: u64) {
         let id = node.id;
         self.nodes.insert(id, node);
@@ -193,6 +196,7 @@ impl FaultTree {
     }
 
     /// Evaluate tree
+    #[inline(always)]
     pub fn evaluate(&mut self) -> bool {
         let root_id = self.root;
         self.evaluate_node(root_id)
@@ -228,6 +232,7 @@ impl FaultTree {
     }
 
     /// Get active paths (root-cause chain)
+    #[inline]
     pub fn active_paths(&self) -> Vec<Vec<u64>> {
         let mut paths = Vec::new();
         let mut current = Vec::new();
@@ -295,6 +300,7 @@ pub struct DiagnosisReport {
 
 /// Diagnostic stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticDiagnosticStats {
     /// Total symptoms collected
     pub total_symptoms: u64,
@@ -439,6 +445,7 @@ impl HolisticDiagnosticEngine {
     }
 
     /// Clear old symptoms
+    #[inline(always)]
     pub fn clear_old(&mut self, before: u64) {
         self.symptoms.retain(|_, s| s.timestamp >= before);
         self.update_stats();
@@ -450,6 +457,7 @@ impl HolisticDiagnosticEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticDiagnosticStats {
         &self.stats
     }

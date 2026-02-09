@@ -24,6 +24,7 @@ impl StatfsBridgeRecord {
 
 /// Statfs bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StatfsBridgeStats { pub total_ops: u64, pub path_stats: u64, pub fd_stats: u64 }
 
 /// Main bridge statfs
@@ -32,6 +33,7 @@ pub struct BridgeStatfs { pub stats: StatfsBridgeStats }
 
 impl BridgeStatfs {
     pub fn new() -> Self { Self { stats: StatfsBridgeStats { total_ops: 0, path_stats: 0, fd_stats: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &StatfsBridgeRecord) {
         self.stats.total_ops += 1;
         match rec.event {

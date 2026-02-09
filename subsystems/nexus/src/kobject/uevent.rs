@@ -3,6 +3,7 @@
 //! Handling kernel object uevents.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -57,11 +58,13 @@ impl Uevent {
     }
 
     /// Add environment variable
+    #[inline(always)]
     pub fn add_env(&mut self, key: String, value: String) {
         self.env.insert(key, value);
     }
 
     /// Format as netlink message
+    #[inline]
     pub fn to_netlink_format(&self) -> String {
         let mut msg = format!("{}@{}\0", self.action.as_str(), self.devpath);
         for (key, value) in &self.env {
@@ -76,7 +79,7 @@ pub struct UeventHandler {
     /// Pending uevents
     pending: Vec<Uevent>,
     /// Sent uevents
-    history: Vec<Uevent>,
+    history: VecDeque<Uevent>,
     /// Maximum history
     max_history: usize,
     /// Next sequence number
@@ -138,9 +141,9 @@ impl UeventHandler {
 
         for event in &events {
             if self.history.len() >= self.max_history {
-                self.history.remove(0);
+                self.history.pop_front();
             }
-            self.history.push(event.clone());
+            self.history.push_back(event.clone());
             self.total_sent.fetch_add(1, Ordering::Relaxed);
         }
 
@@ -148,31 +151,37 @@ impl UeventHandler {
     }
 
     /// Get pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }
 
     /// Suppress uevents
+    #[inline(always)]
     pub fn suppress(&mut self, suppress: bool) {
         self.suppressed = suppress;
     }
 
     /// Check if suppressed
+    #[inline(always)]
     pub fn is_suppressed(&self) -> bool {
         self.suppressed
     }
 
     /// Get total sent
+    #[inline(always)]
     pub fn total_sent(&self) -> u64 {
         self.total_sent.load(Ordering::Relaxed)
     }
 
     /// Get subsystem count
+    #[inline(always)]
     pub fn subsystem_count(&self, subsystem: &str) -> u64 {
         self.subsystem_counts.get(subsystem).copied().unwrap_or(0)
     }
 
     /// Get recent uevents
+    #[inline(always)]
     pub fn recent_uevents(&self, limit: usize) -> &[Uevent] {
         let start = self.history.len().saturating_sub(limit);
         &self.history[start..]

@@ -9,7 +9,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -101,6 +103,7 @@ impl PlacementCandidate {
     }
 
     /// Set dimension score
+    #[inline(always)]
     pub fn set_dimension(&mut self, dim: PlacementDimension, score: f64) {
         self.dimension_scores.insert(dim as u8, score);
     }
@@ -171,18 +174,21 @@ impl InterferenceModel {
     }
 
     /// Record interference
+    #[inline(always)]
     pub fn record(&mut self, pair: InterferencePair) {
         let key = Self::pair_key(pair.task_a, pair.task_b);
         self.pairs.insert(key, pair);
     }
 
     /// Get interference between two tasks
+    #[inline(always)]
     pub fn get_interference(&self, a: u64, b: u64) -> Option<&InterferencePair> {
         let key = Self::pair_key(a, b);
         self.pairs.get(&key)
     }
 
     /// Predict interference level
+    #[inline]
     pub fn predict_level(&self, a: u64, b: u64) -> InterferenceLevel {
         self.pairs.get(&Self::pair_key(a, b))
             .map(|p| p.level)
@@ -246,6 +252,7 @@ pub struct PlacementResult {
 
 /// Placement stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticPlacementStats {
     /// Total placements
     pub total_placements: u64,
@@ -262,11 +269,11 @@ pub struct HolisticPlacementEngine {
     /// CPU info: id -> (numa, load, thermal_headroom)
     cpus: BTreeMap<u32, (u32, f64, f64)>,
     /// Task placements: task_id -> cpu_id
-    placements: BTreeMap<u64, u32>,
+    placements: LinearMap<u32, 64>,
     /// Interference model
     pub interference: InterferenceModel,
     /// Score history (for average)
-    score_history: Vec<f64>,
+    score_history: VecDeque<f64>,
     /// Max history
     max_history: usize,
     /// Stats
@@ -277,20 +284,22 @@ impl HolisticPlacementEngine {
     pub fn new() -> Self {
         Self {
             cpus: BTreeMap::new(),
-            placements: BTreeMap::new(),
+            placements: LinearMap::new(),
             interference: InterferenceModel::new(),
-            score_history: Vec::new(),
+            score_history: VecDeque::new(),
             max_history: 256,
             stats: HolisticPlacementStats::default(),
         }
     }
 
     /// Register CPU
+    #[inline(always)]
     pub fn add_cpu(&mut self, id: u32, numa: u32) {
         self.cpus.insert(id, (numa, 0.0, 1.0));
     }
 
     /// Update CPU state
+    #[inline]
     pub fn update_cpu(&mut self, id: u32, load: f64, thermal_headroom: f64) {
         if let Some(cpu) = self.cpus.get_mut(&id) {
             cpu.1 = load;
@@ -343,9 +352,9 @@ impl HolisticPlacementEngine {
             self.placements.insert(request.task_id, cpu_id);
 
             if self.score_history.len() >= self.max_history {
-                self.score_history.remove(0);
+                self.score_history.pop_front();
             }
-            self.score_history.push(score);
+            self.score_history.push_back(score);
 
             self.stats.total_placements += 1;
             if interference == InterferenceLevel::None {
@@ -366,8 +375,9 @@ impl HolisticPlacementEngine {
     }
 
     /// Remove task placement
+    #[inline(always)]
     pub fn remove(&mut self, task_id: u64) {
-        self.placements.remove(&task_id);
+        self.placements.remove(task_id);
     }
 
     fn update_avg_score(&mut self) {
@@ -378,6 +388,7 @@ impl HolisticPlacementEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticPlacementStats {
         &self.stats
     }

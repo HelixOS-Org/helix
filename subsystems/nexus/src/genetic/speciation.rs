@@ -57,6 +57,7 @@ impl Species {
     }
 
     /// Add member
+    #[inline]
     pub fn add_member(&mut self, id: GenomeId) {
         if !self.members.contains(&id) {
             self.members.push(id);
@@ -64,16 +65,19 @@ impl Species {
     }
 
     /// Remove member
+    #[inline(always)]
     pub fn remove_member(&mut self, id: GenomeId) {
         self.members.retain(|&m| m != id);
     }
 
     /// Check if genome belongs to this species
+    #[inline(always)]
     pub fn matches(&self, genome: &CodeGenome, threshold: f64) -> bool {
         self.representative.distance(genome) < threshold
     }
 
     /// Update statistics
+    #[inline]
     pub fn update_stats(&mut self, best_fitness: f64) {
         if best_fitness > self.best_fitness {
             self.best_fitness = best_fitness;
@@ -102,6 +106,7 @@ impl Species {
     }
 
     /// Select random representative
+    #[inline]
     pub fn update_representative(&mut self, population: &Population) {
         if let Some(&member_id) = self.members.first() {
             if let Some(individual) = population.get(member_id) {
@@ -111,11 +116,13 @@ impl Species {
     }
 
     /// Get size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.members.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.members.is_empty()
     }
@@ -180,6 +187,7 @@ pub struct SpeciesManager {
 
 /// Speciation statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SpeciationStats {
     /// Total species created
     pub species_created: u64,
@@ -371,21 +379,25 @@ impl SpeciesManager {
     }
 
     /// Get species count
+    #[inline(always)]
     pub fn species_count(&self) -> usize {
         self.species.len()
     }
 
     /// Get species
+    #[inline(always)]
     pub fn get(&self, id: SpeciesId) -> Option<&Species> {
         self.species.get(&id)
     }
 
     /// Get all species
+    #[inline(always)]
     pub fn species(&self) -> impl Iterator<Item = &Species> {
         self.species.values()
     }
 
     /// Get best species
+    #[inline]
     pub fn best_species(&self) -> Option<&Species> {
         self.species.values().max_by(|a, b| {
             a.best_fitness
@@ -395,16 +407,19 @@ impl SpeciesManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SpeciationStats {
         &self.stats
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &SpeciationConfig {
         &self.config
     }
 
     /// Update configuration
+    #[inline(always)]
     pub fn set_config(&mut self, config: SpeciationConfig) {
         self.config = config;
     }

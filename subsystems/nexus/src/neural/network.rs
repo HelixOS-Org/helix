@@ -40,16 +40,19 @@ impl NetworkConfig {
         }
     }
 
+    #[inline(always)]
     pub fn with_learning_rate(mut self, lr: f32) -> Self {
         self.learning_rate = lr;
         self
     }
 
+    #[inline(always)]
     pub fn with_momentum(mut self, momentum: f32) -> Self {
         self.momentum = momentum;
         self
     }
 
+    #[inline(always)]
     pub fn with_weight_decay(mut self, decay: f32) -> Self {
         self.weight_decay = decay;
         self
@@ -77,11 +80,13 @@ impl Sequential {
         }
     }
 
+    #[inline(always)]
     pub fn add(&mut self, layer: Box<dyn Layer>) {
         self.output_shape = layer.output_shape(&self.output_shape);
         self.layers.push(layer);
     }
 
+    #[inline]
     pub fn forward(&self, input: &Tensor) -> Tensor {
         let mut current = input.clone();
 
@@ -92,36 +97,44 @@ impl Sequential {
         current
     }
 
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.config.name
     }
 
+    #[inline(always)]
     pub fn input_shape(&self) -> &TensorShape {
         &self.config.input_shape
     }
 
+    #[inline(always)]
     pub fn output_shape(&self) -> &TensorShape {
         &self.output_shape
     }
 
+    #[inline(always)]
     pub fn num_layers(&self) -> usize {
         self.layers.len()
     }
 
+    #[inline(always)]
     pub fn num_parameters(&self) -> usize {
         self.layers.iter().map(|l| l.num_parameters()).sum()
     }
 
+    #[inline(always)]
     pub fn layer_names(&self) -> Vec<&str> {
         self.layers.iter().map(|l| l.name()).collect()
     }
 
     /// Get layer by index
+    #[inline(always)]
     pub fn layer(&self, index: usize) -> Option<&dyn Layer> {
         self.layers.get(index).map(|l| l.as_ref())
     }
 
     /// Get mutable layer by index
+    #[inline(always)]
     pub fn layer_mut(&mut self, index: usize) -> Option<&mut (dyn Layer + 'static)> {
         self.layers.get_mut(index).map(|l| &mut **l)
     }
@@ -154,11 +167,13 @@ impl NetworkBuilder {
         alloc::format!("{}_{}", prefix, self.layer_count)
     }
 
+    #[inline(always)]
     pub fn learning_rate(mut self, lr: f32) -> Self {
         self.config.learning_rate = lr;
         self
     }
 
+    #[inline]
     pub fn dense(mut self, output_size: usize, activation: ActivationType) -> Self {
         let name = self.next_name("dense");
         let input_size = self.current_shape.total_elements();
@@ -168,6 +183,7 @@ impl NetworkBuilder {
         self
     }
 
+    #[inline]
     pub fn layer_norm(mut self) -> Self {
         let name = self.next_name("ln");
         let size = self.current_shape.total_elements();
@@ -176,6 +192,7 @@ impl NetworkBuilder {
         self
     }
 
+    #[inline]
     pub fn batch_norm(mut self) -> Self {
         let name = self.next_name("bn");
         let size = self.current_shape.total_elements();
@@ -184,6 +201,7 @@ impl NetworkBuilder {
         self
     }
 
+    #[inline]
     pub fn dropout(mut self, rate: f32) -> Self {
         let name = self.next_name("drop");
         let layer = Dropout::new(&name, rate);
@@ -191,6 +209,7 @@ impl NetworkBuilder {
         self
     }
 
+    #[inline]
     pub fn flatten(mut self) -> Self {
         let name = self.next_name("flat");
         self.current_shape = TensorShape::vector(self.current_shape.total_elements());
@@ -217,6 +236,7 @@ impl NetworkBuilder {
         self
     }
 
+    #[inline]
     pub fn max_pool1d(mut self, kernel_size: usize) -> Self {
         let name = self.next_name("pool");
         let layer = MaxPool1D::new(&name, kernel_size);
@@ -225,6 +245,7 @@ impl NetworkBuilder {
         self
     }
 
+    #[inline]
     pub fn global_avg_pool(mut self) -> Self {
         let name = self.next_name("gap");
         let layer = GlobalAvgPool::new(&name);
@@ -233,6 +254,7 @@ impl NetworkBuilder {
         self
     }
 
+    #[inline]
     pub fn attention(mut self) -> Self {
         let name = self.next_name("attn");
         let embed_dim = self.current_shape.total_elements();
@@ -241,6 +263,7 @@ impl NetworkBuilder {
         self
     }
 
+    #[inline]
     pub fn build(self) -> Sequential {
         let mut net = Sequential::new(self.config);
         for layer in self.layers {
@@ -282,10 +305,12 @@ impl MultiInputNetwork {
         }
     }
 
+    #[inline(always)]
     pub fn add_branch(&mut self, name: &str, network: Sequential) {
         self.branches.insert(String::from(name), network);
     }
 
+    #[inline(always)]
     pub fn add_output_layer(&mut self, layer: Box<dyn Layer>) {
         self.output_layers.push(layer);
     }
@@ -383,6 +408,7 @@ impl MultiInputNetwork {
         }
     }
 
+    #[inline]
     pub fn num_parameters(&self) -> usize {
         let branch_params: usize = self.branches.values().map(|b| b.num_parameters()).sum();
         let output_params: usize = self.output_layers.iter().map(|l| l.num_parameters()).sum();
@@ -410,10 +436,12 @@ impl ResidualBlock {
         }
     }
 
+    #[inline(always)]
     pub fn add_layer(&mut self, layer: Box<dyn Layer>) {
         self.layers.push(layer);
     }
 
+    #[inline(always)]
     pub fn with_projection(mut self, projection: Box<dyn Layer>) -> Self {
         self.projection = Some(projection);
         self
@@ -467,10 +495,12 @@ impl EnsembleNetwork {
         }
     }
 
+    #[inline(always)]
     pub fn add_network(&mut self, network: Sequential) {
         self.networks.push(network);
     }
 
+    #[inline]
     pub fn forward(&self, input: &Tensor) -> Tensor {
         if self.networks.is_empty() {
             return Tensor::zeros(TensorShape::vector(1));
@@ -554,10 +584,12 @@ impl EnsembleNetwork {
         }
     }
 
+    #[inline(always)]
     pub fn num_networks(&self) -> usize {
         self.networks.len()
     }
 
+    #[inline(always)]
     pub fn total_parameters(&self) -> usize {
         self.networks.iter().map(|n| n.num_parameters()).sum()
     }
@@ -591,10 +623,12 @@ impl SiameseNetwork {
         }
     }
 
+    #[inline(always)]
     pub fn forward_one(&self, input: &Tensor) -> Tensor {
         self.shared_network.forward(input)
     }
 
+    #[inline]
     pub fn forward_pair(&self, input1: &Tensor, input2: &Tensor) -> (Tensor, Tensor, f32) {
         let embedding1 = self.forward_one(input1);
         let embedding2 = self.forward_one(input2);
@@ -652,6 +686,7 @@ impl SiameseNetwork {
         }
     }
 
+    #[inline(always)]
     pub fn is_similar(&self, input1: &Tensor, input2: &Tensor, threshold: f32) -> bool {
         let (_, _, distance) = self.forward_pair(input1, input2);
         distance < threshold
@@ -680,14 +715,17 @@ impl Autoencoder {
         }
     }
 
+    #[inline(always)]
     pub fn encode(&self, input: &Tensor) -> Tensor {
         self.encoder.forward(input)
     }
 
+    #[inline(always)]
     pub fn decode(&self, latent: &Tensor) -> Tensor {
         self.decoder.forward(latent)
     }
 
+    #[inline(always)]
     pub fn forward(&self, input: &Tensor) -> Tensor {
         let latent = self.encode(input);
         self.decode(&latent)
@@ -706,6 +744,7 @@ impl Autoencoder {
             / input.len() as f32
     }
 
+    #[inline(always)]
     pub fn latent_dim(&self) -> usize {
         self.latent_dim
     }
@@ -716,6 +755,7 @@ impl Autoencoder {
 // ============================================================================
 
 /// Create a network for kernel resource prediction
+#[inline]
 pub fn create_resource_predictor() -> Sequential {
     NetworkBuilder::new("resource_predictor", TensorShape::vector(16))
         .learning_rate(0.001)
@@ -728,6 +768,7 @@ pub fn create_resource_predictor() -> Sequential {
 }
 
 /// Create a network for process scheduling decisions
+#[inline]
 pub fn create_scheduler_network() -> Sequential {
     NetworkBuilder::new("scheduler_net", TensorShape::vector(32))
         .learning_rate(0.0005)
@@ -741,6 +782,7 @@ pub fn create_scheduler_network() -> Sequential {
 }
 
 /// Create a network for anomaly detection
+#[inline]
 pub fn create_anomaly_detector() -> Sequential {
     NetworkBuilder::new("anomaly_detector", TensorShape::vector(64))
         .learning_rate(0.001)

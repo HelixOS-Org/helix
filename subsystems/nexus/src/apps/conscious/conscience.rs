@@ -108,6 +108,7 @@ impl AppFairness {
         }
     }
 
+    #[inline]
     fn update(
         &mut self,
         resource_share: f32,
@@ -196,6 +197,7 @@ pub struct PriorityClassFairness {
 
 /// Overall conscience statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConscienceStats {
     pub total_apps: usize,
     pub conscience_score: f32,
@@ -303,12 +305,14 @@ impl AppsConscience {
     }
 
     /// Check SLA compliance for a specific app
+    #[inline(always)]
     pub fn sla_compliance(&self, app_id: u64) -> Option<(f32, f32)> {
         let app = self.apps.get(&app_id)?;
         Some((app.sla_compliance, app.compliance_trend()))
     }
 
     /// Detect all currently starved apps
+    #[inline]
     pub fn starvation_detection(&self) -> Vec<(u64, u64)> {
         let mut starved = Vec::new();
         for (id, app) in &self.apps {
@@ -350,11 +354,13 @@ impl AppsConscience {
     }
 
     /// Compute the overall conscience score (0.0 = terrible, 1.0 = perfect)
+    #[inline(always)]
     pub fn conscience_score(&self) -> f32 {
         self.conscience_score
     }
 
     /// Recommend an ethical allocation adjustment for a starved app
+    #[inline]
     pub fn ethical_allocation(&self, app_id: u64) -> Option<f32> {
         let app = self.apps.get(&app_id)?;
         if !app.starved {
@@ -366,11 +372,13 @@ impl AppsConscience {
     }
 
     /// Get the fairness record for a specific app
+    #[inline(always)]
     pub fn app_fairness(&self, app_id: u64) -> Option<&AppFairness> {
         self.apps.get(&app_id)
     }
 
     /// Get all violations
+    #[inline(always)]
     pub fn violation_log(&self) -> &[FairnessViolation] {
         &self.violations
     }
@@ -409,6 +417,7 @@ impl AppsConscience {
     }
 
     /// Decay conscience tracking
+    #[inline]
     pub fn decay(&mut self) {
         for (_, app) in self.apps.iter_mut() {
             app.sla_compliance *= CONSCIENCE_DECAY;
@@ -423,6 +432,7 @@ impl AppsConscience {
     // INTERNAL
     // ========================================================================
 
+    #[inline]
     fn recompute_conscience(&mut self) {
         if self.apps.is_empty() {
             self.conscience_score = 1.0;

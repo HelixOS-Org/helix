@@ -68,20 +68,29 @@ impl BioRequest {
         }
     }
 
+    #[inline(always)]
     pub fn submit(&mut self, ts_ns: u64) { self.state = BioState::Submitted; self.submit_ns = ts_ns; }
+    #[inline(always)]
     pub fn complete(&mut self, ts_ns: u64) { self.state = BioState::Completed; self.complete_ns = ts_ns; }
+    #[inline(always)]
     pub fn error(&mut self) { self.state = BioState::Error; }
+    #[inline(always)]
     pub fn retry(&mut self) { self.retries += 1; self.state = BioState::Retrying; }
+    #[inline(always)]
     pub fn merge(&mut self) { self.merged_count += 1; }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 { self.complete_ns.saturating_sub(self.submit_ns) }
+    #[inline(always)]
     pub fn bytes(&self) -> u64 { self.nr_sectors as u64 * 512 }
 
+    #[inline(always)]
     pub fn is_write(&self) -> bool { matches!(self.op, BioOp::Write | BioOp::Flush | BioOp::WriteZeroes) }
 }
 
 /// BIO holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticBioStats {
     pub total_bios: u64,
     pub reads: u64,
@@ -107,6 +116,7 @@ impl HolisticBio {
         }
     }
 
+    #[inline]
     pub fn submit(&mut self, mut bio: BioRequest, ts_ns: u64) {
         self.stats.total_bios += 1;
         if bio.is_write() { self.stats.writes += 1; } else { self.stats.reads += 1; }
@@ -115,6 +125,7 @@ impl HolisticBio {
         self.in_flight.insert(bio.bio_id, bio);
     }
 
+    #[inline]
     pub fn complete(&mut self, bio_id: u64, ts_ns: u64) -> Option<u64> {
         if let Some(bio) = self.in_flight.get_mut(&bio_id) {
             bio.complete(ts_ns);
@@ -125,6 +136,7 @@ impl HolisticBio {
         } else { None }
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.stats.total_bios == 0 { 0 } else { self.stats.total_latency_ns / self.stats.total_bios }
     }

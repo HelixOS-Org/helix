@@ -67,22 +67,26 @@ impl InferenceConfig {
         Self::default()
     }
 
+    #[inline(always)]
     pub fn with_batch_size(mut self, size: usize) -> Self {
         self.max_batch_size = size;
         self
     }
 
+    #[inline]
     pub fn with_cache(mut self, enable: bool, size: usize) -> Self {
         self.enable_cache = enable;
         self.cache_size = size;
         self
     }
 
+    #[inline(always)]
     pub fn with_quantization(mut self, quantize: bool) -> Self {
         self.quantize = quantize;
         self
     }
 
+    #[inline]
     pub fn kernel_optimized() -> Self {
         Self {
             max_batch_size: 16,
@@ -101,6 +105,7 @@ impl InferenceConfig {
 
 /// Statistics for inference operations
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct InferenceStats {
     pub total_inferences: u64,
     pub cache_hits: u64,
@@ -138,6 +143,7 @@ impl InferenceStats {
         }
     }
 
+    #[inline]
     pub fn average_latency(&self) -> f32 {
         if self.total_inferences > 0 {
             self.total_latency_cycles as f32 / self.total_inferences as f32
@@ -146,6 +152,7 @@ impl InferenceStats {
         }
     }
 
+    #[inline]
     pub fn cache_hit_rate(&self) -> f32 {
         let total = self.cache_hits + self.cache_misses;
         if total > 0 {
@@ -155,6 +162,7 @@ impl InferenceStats {
         }
     }
 
+    #[inline(always)]
     pub fn reset(&mut self) {
         *self = Self::new();
     }
@@ -262,30 +270,36 @@ impl InferenceEngine {
         }
     }
 
+    #[inline(always)]
     pub fn with_default_config() -> Self {
         Self::new(InferenceConfig::default())
     }
 
+    #[inline(always)]
     pub fn kernel_engine() -> Self {
         Self::new(InferenceConfig::kernel_optimized())
     }
 
     /// Register a model for inference
+    #[inline(always)]
     pub fn register_model(&mut self, name: &str, model: Sequential) {
         self.models.insert(String::from(name), model);
     }
 
     /// Unregister a model
+    #[inline(always)]
     pub fn unregister_model(&mut self, name: &str) -> Option<Sequential> {
         self.models.remove(name)
     }
 
     /// Check if a model is registered
+    #[inline(always)]
     pub fn has_model(&self, name: &str) -> bool {
         self.models.contains_key(name)
     }
 
     /// List all registered models
+    #[inline(always)]
     pub fn list_models(&self) -> Vec<&str> {
         self.models.keys().map(|s| s.as_str()).collect()
     }
@@ -367,12 +381,14 @@ impl InferenceEngine {
     }
 
     /// Predict class (argmax of output)
+    #[inline(always)]
     pub fn predict_class(&mut self, model_name: &str, input: &Tensor) -> Option<usize> {
         let output = self.infer(model_name, input)?;
         Some(output.argmax())
     }
 
     /// Predict with probabilities
+    #[inline]
     pub fn predict_probs(&mut self, model_name: &str, input: &Tensor) -> Option<Vec<f32>> {
         let output = self.infer(model_name, input)?;
 
@@ -382,6 +398,7 @@ impl InferenceEngine {
     }
 
     /// Predict top-k classes
+    #[inline]
     pub fn predict_top_k(
         &mut self,
         model_name: &str,
@@ -429,21 +446,25 @@ impl InferenceEngine {
     }
 
     /// Get inference statistics
+    #[inline(always)]
     pub fn stats(&self) -> &InferenceStats {
         &self.stats
     }
 
     /// Reset statistics
+    #[inline(always)]
     pub fn reset_stats(&mut self) {
         self.stats.reset();
     }
 
     /// Clear inference cache
+    #[inline(always)]
     pub fn clear_cache(&mut self) {
         self.cache.clear();
     }
 
     /// Get model info
+    #[inline]
     pub fn model_info(&self, name: &str) -> Option<ModelInfo> {
         let model = self.models.get(name)?;
         Some(ModelInfo {
@@ -509,6 +530,7 @@ pub enum InferenceError {
 }
 
 /// Async inference queue
+#[repr(align(64))]
 pub struct AsyncInferenceQueue {
     engine: InferenceEngine,
     pending: Vec<InferenceRequest>,
@@ -586,6 +608,7 @@ impl AsyncInferenceQueue {
     }
 
     /// Process multiple requests
+    #[inline]
     pub fn process_batch(&mut self, count: usize) -> usize {
         let mut processed = 0;
         for _ in 0..count {
@@ -599,6 +622,7 @@ impl AsyncInferenceQueue {
     }
 
     /// Get result for a request
+    #[inline]
     pub fn get_result(&mut self, request_id: u64) -> Option<InferenceResult> {
         if let Some(pos) = self
             .completed
@@ -612,16 +636,19 @@ impl AsyncInferenceQueue {
     }
 
     /// Check if request is pending
+    #[inline(always)]
     pub fn is_pending(&self, request_id: u64) -> bool {
         self.pending.iter().any(|r| r.id == request_id)
     }
 
     /// Check if request is completed
+    #[inline(always)]
     pub fn is_completed(&self, request_id: u64) -> bool {
         self.completed.iter().any(|r| r.request_id == request_id)
     }
 
     /// Get queue statistics
+    #[inline]
     pub fn queue_stats(&self) -> QueueStats {
         QueueStats {
             pending_count: self.pending.len(),
@@ -631,17 +658,20 @@ impl AsyncInferenceQueue {
     }
 
     /// Get underlying engine
+    #[inline(always)]
     pub fn engine(&self) -> &InferenceEngine {
         &self.engine
     }
 
     /// Get mutable engine
+    #[inline(always)]
     pub fn engine_mut(&mut self) -> &mut InferenceEngine {
         &mut self.engine
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueueStats {
     pub pending_count: usize,
     pub completed_count: usize,
@@ -675,12 +705,14 @@ impl KernelInferenceManager {
         }
     }
 
+    #[inline]
     pub fn register_model(&mut self, name: &str, model: Sequential) {
         self.inference_queue
             .engine_mut()
             .register_model(name, model);
     }
 
+    #[inline]
     pub fn register_handler(
         &mut self,
         name: &str,
@@ -693,6 +725,7 @@ impl KernelInferenceManager {
             });
     }
 
+    #[inline(always)]
     pub fn submit_inference(
         &mut self,
         model_name: &str,
@@ -719,6 +752,7 @@ impl KernelInferenceManager {
         processed
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &InferenceStats {
         self.inference_queue.engine().stats()
     }

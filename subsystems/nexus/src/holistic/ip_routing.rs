@@ -2,6 +2,7 @@
 //! Holistic IP routing — routing table management with policy-based and ECMP routing
 
 extern crate alloc;
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -68,6 +69,7 @@ impl RouteNextHop {
         }
     }
 
+    #[inline(always)]
     pub fn probe(&mut self, ts_ns: u64) {
         self.probe_count += 1;
         self.last_probe_ns = ts_ns;
@@ -107,10 +109,12 @@ impl RouteEntry {
         }
     }
 
+    #[inline(always)]
     pub fn add_next_hop(&mut self, hop: RouteNextHop) {
         self.next_hops.push(hop);
     }
 
+    #[inline]
     pub fn matches(&self, dest_ip: u32) -> bool {
         if self.prefix_len == 0 {
             return true;
@@ -142,6 +146,7 @@ impl RouteEntry {
         reachable.last().copied()
     }
 
+    #[inline(always)]
     pub fn ecmp_count(&self) -> usize {
         self.next_hops.iter().filter(|h| h.reachable).count()
     }
@@ -181,6 +186,7 @@ impl PolicyRule {
 
 /// IP routing stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IpRoutingStats {
     pub total_routes: u64,
     pub total_lookups: u64,
@@ -194,7 +200,7 @@ pub struct IpRoutingStats {
 pub struct HolisticIpRouting {
     pub tables: BTreeMap<u32, Vec<RouteEntry>>,
     pub policy_rules: Vec<PolicyRule>,
-    pub route_cache: BTreeMap<u32, u64>,
+    pub route_cache: ArrayMap<u64, 32>,
     pub stats: IpRoutingStats,
 }
 
@@ -206,7 +212,7 @@ impl HolisticIpRouting {
         Self {
             tables,
             policy_rules: Vec::new(),
-            route_cache: BTreeMap::new(),
+            route_cache: ArrayMap::new(0),
             stats: IpRoutingStats {
                 total_routes: 0,
                 total_lookups: 0,
@@ -217,6 +223,7 @@ impl HolisticIpRouting {
         }
     }
 
+    #[inline]
     pub fn add_route(&mut self, table_id: u32, entry: RouteEntry) {
         let table = self.tables.entry(table_id).or_insert_with(Vec::new);
         table.push(entry);
@@ -225,7 +232,7 @@ impl HolisticIpRouting {
 
     pub fn lookup(&mut self, dest_ip: u32, seed: u64) -> Option<u32> {
         self.stats.total_lookups += 1;
-        if let Some(&cached_gw) = self.route_cache.get(&dest_ip) {
+        if let Some(&cached_gw) = self.route_cache.try_get(dest_ip as usize) {
             self.stats.cache_hits += 1;
             return Some(cached_gw as u32);
         }
@@ -253,6 +260,7 @@ impl HolisticIpRouting {
         None
     }
 
+    #[inline]
     pub fn cache_hit_rate(&self) -> f64 {
         if self.stats.total_lookups == 0 {
             return 0.0;
@@ -260,6 +268,7 @@ impl HolisticIpRouting {
         self.stats.cache_hits as f64 / self.stats.total_lookups as f64
     }
 
+    #[inline(always)]
     pub fn flush_cache(&mut self) {
         self.route_cache.clear();
     }

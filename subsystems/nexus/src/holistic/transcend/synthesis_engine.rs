@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -130,6 +131,7 @@ pub struct NovelAlgorithm {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct SynthesisStats {
     pub generation: u64,
     pub population_size: u64,
@@ -164,7 +166,7 @@ impl SynthesisStats {
 
 pub struct HolisticSynthesisEngine {
     population: BTreeMap<u64, CandidateAlgorithm>,
-    improvements: Vec<ImprovementEvent>,
+    improvements: VecDeque<ImprovementEvent>,
     stats: SynthesisStats,
     rng: Xorshift64,
     tick: u64,
@@ -174,7 +176,7 @@ impl HolisticSynthesisEngine {
     pub fn new(seed: u64) -> Self {
         Self {
             population: BTreeMap::new(),
-            improvements: Vec::new(),
+            improvements: VecDeque::new(),
             stats: SynthesisStats::new(),
             rng: Xorshift64::new(seed),
             tick: 0,
@@ -235,9 +237,9 @@ impl HolisticSynthesisEngine {
         };
         let eh = self.gen_hash(kind);
         if self.improvements.len() >= MAX_IMPROVEMENT_LOG {
-            self.improvements.remove(0);
+            self.improvements.pop_front();
         }
-        self.improvements.push(ImprovementEvent {
+        self.improvements.push_back(ImprovementEvent {
             event_hash: eh,
             tick: self.tick,
             kind: String::from(kind),
@@ -381,11 +383,13 @@ impl HolisticSynthesisEngine {
     }
 
     /// Returns the intelligence growth curve — the EMA fitness over time.
+    #[inline(always)]
     pub fn intelligence_growth(&self) -> u64 {
         self.stats.ema_fitness
     }
 
     /// The rate of synthesis: novel algorithms per generation.
+    #[inline(always)]
     pub fn synthesis_rate(&self) -> u64 {
         let gen = self.stats.generation.max(1);
         self.stats.novel_algorithms.saturating_mul(10_000) / gen
@@ -407,18 +411,22 @@ impl HolisticSynthesisEngine {
 
     // -- accessors ----------------------------------------------------------
 
+    #[inline(always)]
     pub fn stats(&self) -> &SynthesisStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn population_size(&self) -> usize {
         self.population.len()
     }
 
+    #[inline(always)]
     pub fn generation(&self) -> u64 {
         self.stats.generation
     }
 
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

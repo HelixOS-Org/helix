@@ -29,6 +29,7 @@ pub struct CoopWritebackEntry {
 
 /// Stats for writeback cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopWritebackStats {
     pub total_writebacks: u64,
     pub pages_written: u64,
@@ -98,6 +99,7 @@ impl CoopWritebackManager {
         count
     }
 
+    #[inline]
     pub fn complete_writeback(&mut self, inode: u64) -> bool {
         if let Some(entry) = self.dirty_inodes.remove(&inode) {
             self.stats.total_writebacks += 1;
@@ -110,15 +112,18 @@ impl CoopWritebackManager {
         }
     }
 
+    #[inline(always)]
     pub fn dirty_count(&self) -> usize {
         self.dirty_inodes.len()
     }
 
+    #[inline(always)]
     pub fn set_thresholds(&mut self, dirty: u32, background: u32) {
         self.dirty_threshold = dirty;
         self.background_threshold = background;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopWritebackStats {
         &self.stats
     }

@@ -225,6 +225,7 @@ pub struct ExecutionFeedback {
 
 impl ExecutionFeedback {
     /// Create success feedback
+    #[inline]
     pub fn success(duration: Duration, quality: f32) -> Self {
         Self {
             success: true,
@@ -236,6 +237,7 @@ impl ExecutionFeedback {
     }
 
     /// Create failure feedback
+    #[inline]
     pub fn failure(duration: Duration, error: impl Into<alloc::string::String>) -> Self {
         Self {
             success: false,
@@ -282,6 +284,7 @@ pub struct GcResult {
 
 /// Memory statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MemoryStats {
     /// Working memory items
     pub working_items: usize,

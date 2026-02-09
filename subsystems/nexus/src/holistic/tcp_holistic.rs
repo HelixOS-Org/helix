@@ -23,6 +23,7 @@ impl TcpHolisticRecord {
 
 /// TCP holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TcpHolisticStats { pub total_samples: u64, pub degraded: u64, pub retransmit_total: u64, pub peak_throughput: u64 }
 
 /// Main holistic TCP
@@ -31,6 +32,7 @@ pub struct HolisticTcp { pub stats: TcpHolisticStats }
 
 impl HolisticTcp {
     pub fn new() -> Self { Self { stats: TcpHolisticStats { total_samples: 0, degraded: 0, retransmit_total: 0, peak_throughput: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &TcpHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.health {

@@ -31,6 +31,7 @@ impl Rng {
         }
     }
 
+    #[inline]
     pub fn next_u64(&self) -> u64 {
         let mut x = self.state.load(Ordering::Relaxed);
         x ^= x >> 12;
@@ -40,22 +41,27 @@ impl Rng {
         x.wrapping_mul(0x2545F4914F6CDD1D)
     }
 
+    #[inline(always)]
     pub fn next_f64(&self) -> f64 {
         (self.next_u64() as f64) / (u64::MAX as f64)
     }
 
+    #[inline(always)]
     pub fn next_usize(&self, max: usize) -> usize {
         (self.next_u64() as usize) % max
     }
 
+    #[inline(always)]
     pub fn next_range(&self, min: f64, max: f64) -> f64 {
         min + self.next_f64() * (max - min)
     }
 
+    #[inline(always)]
     pub fn next_bool(&self, prob: f64) -> bool {
         self.next_f64() < prob
     }
 
+    #[inline]
     pub fn next_gaussian(&self) -> f64 {
         // Box-Muller transform
         let u1 = self.next_f64();
@@ -835,18 +841,22 @@ impl OperatorRegistry {
         registry
     }
 
+    #[inline(always)]
     pub fn register_crossover(&mut self, op: Box<dyn CrossoverOperator>) {
         self.crossovers.insert(op.name().to_string(), op);
     }
 
+    #[inline(always)]
     pub fn register_mutation(&mut self, op: Box<dyn MutationOperator>) {
         self.mutations.insert(op.name().to_string(), op);
     }
 
+    #[inline(always)]
     pub fn get_crossover(&self, name: &str) -> Option<&dyn CrossoverOperator> {
         self.crossovers.get(name).map(|b| b.as_ref())
     }
 
+    #[inline(always)]
     pub fn get_mutation(&self, name: &str) -> Option<&dyn MutationOperator> {
         self.mutations.get(name).map(|b| b.as_ref())
     }

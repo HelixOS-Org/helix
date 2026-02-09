@@ -81,29 +81,39 @@ pub struct SignalMask {
 }
 
 impl SignalMask {
+    #[inline(always)]
     pub fn empty() -> Self { Self { bits: 0 } }
+    #[inline(always)]
     pub fn full() -> Self { Self { bits: u64::MAX } }
 
+    #[inline(always)]
     pub fn set(&mut self, sig: SignalNum) {
         if sig >= 1 && sig <= 64 { self.bits |= 1u64 << (sig - 1); }
     }
 
+    #[inline(always)]
     pub fn clear(&mut self, sig: SignalNum) {
         if sig >= 1 && sig <= 64 { self.bits &= !(1u64 << (sig - 1)); }
     }
 
+    #[inline(always)]
     pub fn is_set(&self, sig: SignalNum) -> bool {
         if sig >= 1 && sig <= 64 { (self.bits & (1u64 << (sig - 1))) != 0 } else { false }
     }
 
+    #[inline(always)]
     pub fn union(&self, other: &SignalMask) -> SignalMask { SignalMask { bits: self.bits | other.bits } }
+    #[inline(always)]
     pub fn intersect(&self, other: &SignalMask) -> SignalMask { SignalMask { bits: self.bits & other.bits } }
+    #[inline(always)]
     pub fn complement(&self) -> SignalMask { SignalMask { bits: !self.bits } }
+    #[inline(always)]
     pub fn count(&self) -> u32 { self.bits.count_ones() }
 }
 
 /// Queued signal
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueuedSignal {
     pub signum: SignalNum,
     pub sender_pid: u64,
@@ -123,6 +133,7 @@ pub struct AltStack {
 
 /// Per-thread signal state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ThreadSignalState {
     pub thread_id: u64,
     pub blocked: SignalMask,
@@ -144,6 +155,7 @@ impl ThreadSignalState {
         }
     }
 
+    #[inline]
     pub fn queue_signal(&mut self, sig: QueuedSignal) {
         // Standard signals coalesce (only one pending), RT signals queue
         if sig.signum < SIGRTMIN {
@@ -152,12 +164,14 @@ impl ThreadSignalState {
         self.pending.push(sig);
     }
 
+    #[inline]
     pub fn dequeue_signal(&mut self) -> Option<QueuedSignal> {
         // Return first non-blocked signal; prefer standard over RT, RT in order
         let idx = self.pending.iter().position(|s| !self.blocked.is_set(s.signum));
         idx.map(|i| self.pending.remove(i))
     }
 
+    #[inline(always)]
     pub fn has_pending_unblocked(&self) -> bool {
         self.pending.iter().any(|s| !self.blocked.is_set(s.signum))
     }
@@ -165,6 +179,7 @@ impl ThreadSignalState {
 
 /// Per-process signal dispatch state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessSignalState {
     pub process_id: u64,
     pub handlers: BTreeMap<SignalNum, SignalHandler>,
@@ -188,22 +203,26 @@ impl ProcessSignalState {
         }
     }
 
+    #[inline]
     pub fn register_handler(&mut self, handler: SignalHandler) {
         // SIGKILL and SIGSTOP cannot be caught or ignored
         if handler.signum == SIGKILL || handler.signum == SIGSTOP { return; }
         self.handlers.insert(handler.signum, handler);
     }
 
+    #[inline(always)]
     pub fn get_disposition(&self, sig: SignalNum) -> SignalDisposition {
         self.handlers.get(&sig).map(|h| h.disposition).unwrap_or_else(|| default_disposition(sig))
     }
 
+    #[inline(always)]
     pub fn add_thread(&mut self, tid: u64) {
         self.threads.entry(tid).or_insert_with(|| ThreadSignalState::new(tid));
     }
 }
 
 /// Default signal disposition
+#[inline]
 pub fn default_disposition(sig: SignalNum) -> SignalDisposition {
     match sig {
         SIGKILL | SIGTERM | SIGHUP | SIGINT | SIGPIPE | SIGALRM | SIGUSR1 | SIGUSR2 => SignalDisposition::Terminate,
@@ -218,6 +237,7 @@ pub fn default_disposition(sig: SignalNum) -> SignalDisposition {
 
 /// Apps signal dispatch stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsSignalDispatchStats {
     pub total_processes: usize,
     pub total_threads: usize,
@@ -237,10 +257,12 @@ impl AppsSignalDispatch {
         Self { processes: BTreeMap::new(), stats: AppsSignalDispatchStats::default() }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.entry(pid).or_insert_with(|| ProcessSignalState::new(pid));
     }
 
+    #[inline(always)]
     pub fn register_thread(&mut self, pid: u64, tid: u64) {
         if let Some(proc_state) = self.processes.get_mut(&pid) { proc_state.add_thread(tid); }
     }
@@ -270,12 +292,14 @@ impl AppsSignalDispatch {
         } else { false }
     }
 
+    #[inline]
     pub fn sigaction(&mut self, pid: u64, handler: SignalHandler) {
         if let Some(proc_state) = self.processes.get_mut(&pid) {
             proc_state.register_handler(handler);
         }
     }
 
+    #[inline]
     pub fn sigmask(&mut self, pid: u64, tid: u64, mask: SignalMask) {
         if let Some(proc_state) = self.processes.get_mut(&pid) {
             if let Some(thread) = proc_state.threads.get_mut(&tid) {
@@ -284,8 +308,10 @@ impl AppsSignalDispatch {
         }
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) { self.processes.remove(&pid); }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.processes.len();
         self.stats.total_threads = self.processes.values().map(|p| p.threads.len()).sum();
@@ -296,6 +322,8 @@ impl AppsSignalDispatch {
         self.stats.total_ignored = self.processes.values().map(|p| p.total_ignored).sum();
     }
 
+    #[inline(always)]
     pub fn process_state(&self, pid: u64) -> Option<&ProcessSignalState> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsSignalDispatchStats { &self.stats }
 }

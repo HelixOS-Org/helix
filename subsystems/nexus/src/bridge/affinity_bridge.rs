@@ -26,6 +26,7 @@ pub struct BridgeAffinityEntry {
 
 /// Stats for affinity operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeAffinityStats {
     pub total_sets: u64,
     pub total_gets: u64,
@@ -35,6 +36,7 @@ pub struct BridgeAffinityStats {
 }
 
 /// Manager for affinity bridge operations
+#[repr(align(64))]
 pub struct BridgeAffinityManager {
     entries: BTreeMap<u64, BridgeAffinityEntry>,
     stats: BridgeAffinityStats,
@@ -76,11 +78,13 @@ impl BridgeAffinityManager {
         }
     }
 
+    #[inline(always)]
     pub fn get_affinity(&mut self, id: u64) -> Option<u64> {
         self.stats.total_gets += 1;
         self.entries.get(&id).map(|e| e.cpu_mask)
     }
 
+    #[inline]
     pub fn record_migration(&mut self, id: u64) {
         if let Some(entry) = self.entries.get_mut(&id) {
             entry.migration_count += 1;
@@ -88,6 +92,7 @@ impl BridgeAffinityManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeAffinityStats {
         &self.stats
     }

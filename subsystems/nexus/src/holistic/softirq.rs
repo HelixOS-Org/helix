@@ -38,11 +38,13 @@ impl SoftirqEntry {
         Self { vec, cpu, pending: false, total_raised: 0, total_handled: 0, total_ns: 0, max_ns: 0, ksoftirqd_wakeups: 0 }
     }
 
+    #[inline(always)]
     pub fn raise(&mut self) {
         self.pending = true;
         self.total_raised += 1;
     }
 
+    #[inline]
     pub fn handle(&mut self, ns: u64) {
         self.pending = false;
         self.total_handled += 1;
@@ -50,6 +52,7 @@ impl SoftirqEntry {
         if ns > self.max_ns { self.max_ns = ns; }
     }
 
+    #[inline(always)]
     pub fn avg_ns(&self) -> u64 {
         if self.total_handled == 0 { 0 } else { self.total_ns / self.total_handled }
     }
@@ -61,6 +64,7 @@ fn softirq_key(vec: SoftirqVec, cpu: u32) -> u64 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SoftirqStats {
     pub total_entries: u32,
     pub total_raised: u64,
@@ -78,26 +82,31 @@ pub struct HolisticSoftirq {
 impl HolisticSoftirq {
     pub fn new() -> Self { Self { entries: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn register(&mut self, vec: SoftirqVec, cpu: u32) {
         let key = softirq_key(vec, cpu);
         self.entries.insert(key, SoftirqEntry::new(vec, cpu));
     }
 
+    #[inline(always)]
     pub fn raise(&mut self, vec: SoftirqVec, cpu: u32) {
         let key = softirq_key(vec, cpu);
         if let Some(e) = self.entries.get_mut(&key) { e.raise(); }
     }
 
+    #[inline(always)]
     pub fn handle(&mut self, vec: SoftirqVec, cpu: u32, ns: u64) {
         let key = softirq_key(vec, cpu);
         if let Some(e) = self.entries.get_mut(&key) { e.handle(ns); }
     }
 
+    #[inline(always)]
     pub fn record_ksoftirqd(&mut self, vec: SoftirqVec, cpu: u32) {
         let key = softirq_key(vec, cpu);
         if let Some(e) = self.entries.get_mut(&key) { e.ksoftirqd_wakeups += 1; }
     }
 
+    #[inline]
     pub fn stats(&self) -> SoftirqStats {
         let raised: u64 = self.entries.values().map(|e| e.total_raised).sum();
         let handled: u64 = self.entries.values().map(|e| e.total_handled).sum();

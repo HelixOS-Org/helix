@@ -299,16 +299,19 @@ impl DecisionTree {
     }
 
     /// Get feature importances
+    #[inline(always)]
     pub fn feature_importances(&self) -> &[f64] {
         &self.feature_importances
     }
 
     /// Get number of nodes
+    #[inline(always)]
     pub fn n_nodes(&self) -> usize {
         self.nodes.len()
     }
 
     /// Get tree depth
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.compute_depth(0)
     }

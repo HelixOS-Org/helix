@@ -176,6 +176,7 @@ impl Default for PerceptionConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PerceptionStats {
     /// Percepts received
     pub percepts_received: u64,
@@ -354,6 +355,7 @@ impl PerceptionEngine {
     }
 
     /// Get attended percepts
+    #[inline]
     pub fn attended(&self) -> Vec<&Percept> {
         if let Some(ref focus) = self.attention {
             focus.targets.iter()
@@ -365,6 +367,7 @@ impl PerceptionEngine {
     }
 
     /// Get salient percepts
+    #[inline]
     pub fn salient(&self) -> Vec<&Percept> {
         self.percepts.values()
             .filter(|p| p.salience >= self.config.salience_threshold)
@@ -372,21 +375,25 @@ impl PerceptionEngine {
     }
 
     /// Add filter
+    #[inline(always)]
     pub fn add_filter(&mut self, filter: PerceptionFilter) {
         self.filters.push(filter);
     }
 
     /// Learn pattern
+    #[inline(always)]
     pub fn learn_pattern(&mut self, pattern: PatternData) {
         self.patterns.push(pattern);
     }
 
     /// Get percept
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Percept> {
         self.percepts.get(&id)
     }
 
     /// Get recent percepts
+    #[inline]
     pub fn recent(&self, count: usize) -> Vec<&Percept> {
         let mut percepts: Vec<_> = self.percepts.values().collect();
         percepts.sort_by(|a, b| b.timestamp.0.cmp(&a.timestamp.0));
@@ -394,11 +401,13 @@ impl PerceptionEngine {
     }
 
     /// Get events
+    #[inline(always)]
     pub fn events(&self) -> &[PerceptionEvent] {
         &self.events
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PerceptionStats {
         &self.stats
     }

@@ -35,6 +35,7 @@ impl HomeostasisController {
     }
 
     /// Set target setpoint
+    #[inline(always)]
     pub fn set_target(&mut self, morph_type: MorphogenType, target: f64) {
         self.setpoints.insert(morph_type, target);
     }

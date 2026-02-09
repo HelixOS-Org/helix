@@ -37,6 +37,7 @@ pub struct Demonstration {
 
 /// State-action pair
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateAction {
     /// State features
     pub state: Vec<f64>,
@@ -142,6 +143,7 @@ impl Default for ImitationConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ImitationStats {
     /// Demos collected
     pub demos_collected: u64,
@@ -276,6 +278,7 @@ impl ImitationLearner {
     }
 
     /// Predict action using policy
+    #[inline]
     pub fn predict(&mut self, policy_id: u64, state: &[f64]) -> Option<ActionData> {
         let policy = self.policies.get(&policy_id)?;
 
@@ -420,16 +423,19 @@ impl ImitationLearner {
     }
 
     /// Get demonstration
+    #[inline(always)]
     pub fn get_demo(&self, id: u64) -> Option<&Demonstration> {
         self.demonstrations.get(&id)
     }
 
     /// Get policy
+    #[inline(always)]
     pub fn get_policy(&self, id: u64) -> Option<&LearnedPolicy> {
         self.policies.get(&id)
     }
 
     /// Get demos by expert
+    #[inline]
     pub fn demos_by_expert(&self, expert: &str) -> Vec<&Demonstration> {
         self.demonstrations
             .values()
@@ -438,6 +444,7 @@ impl ImitationLearner {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ImitationStats {
         &self.stats
     }

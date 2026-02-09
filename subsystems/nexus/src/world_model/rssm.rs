@@ -48,6 +48,7 @@ impl RSSM {
     }
 
     /// Get combined state
+    #[inline]
     pub fn get_state(&self) -> LatentState {
         let mut z = self.hidden.clone();
         z.extend_from_slice(&self.stochastic);
@@ -90,11 +91,13 @@ impl RSSM {
     }
 
     /// Decode state to observation
+    #[inline(always)]
     pub fn decode(&self, state: &LatentState) -> Vec<f64> {
         self.decoder.decode(state)
     }
 
     /// Imagine trajectory
+    #[inline]
     pub fn imagine(&mut self, actions: &[Vec<f64>]) -> Vec<LatentState> {
         let mut trajectory = Vec::new();
 
@@ -107,6 +110,7 @@ impl RSSM {
     }
 
     /// Reset hidden state
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.hidden = vec![0.0; self.hidden.len()];
         self.stochastic = vec![0.0; self.stochastic.len()];

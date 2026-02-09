@@ -59,6 +59,7 @@ impl IoIntelligence {
     }
 
     /// Register device
+    #[inline]
     pub fn register_device(&mut self, info: DeviceInfo) {
         self.scheduler
             .latency_predictor_mut()
@@ -86,36 +87,43 @@ impl IoIntelligence {
     }
 
     /// Dispatch next request
+    #[inline(always)]
     pub fn dispatch(&mut self, device_id: u32) -> Option<IoRequest> {
         self.scheduler.dispatch(device_id)
     }
 
     /// Complete request
+    #[inline(always)]
     pub fn complete(&mut self, request: &IoRequest) {
         self.scheduler.complete(request);
     }
 
     /// Get scheduler
+    #[inline(always)]
     pub fn scheduler(&self) -> &IoScheduler {
         &self.scheduler
     }
 
     /// Get mutable scheduler
+    #[inline(always)]
     pub fn scheduler_mut(&mut self) -> &mut IoScheduler {
         &mut self.scheduler
     }
 
     /// Get prefetch engine
+    #[inline(always)]
     pub fn prefetch(&self) -> &PrefetchEngine {
         &self.prefetch
     }
 
     /// Get mutable prefetch engine
+    #[inline(always)]
     pub fn prefetch_mut(&mut self) -> &mut PrefetchEngine {
         &mut self.prefetch
     }
 
     /// Get total operations
+    #[inline(always)]
     pub fn total_operations(&self) -> u64 {
         self.total_ops.load(Ordering::Relaxed)
     }

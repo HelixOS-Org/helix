@@ -97,16 +97,19 @@ impl BlockIntelligence {
     }
 
     /// Register device
+    #[inline(always)]
     pub fn register_device(&mut self, device: BlockDevice) {
         self.manager.register_device(device);
     }
 
     /// Submit I/O
+    #[inline(always)]
     pub fn submit_io(&mut self, device_id: BlockDeviceId, request: IoRequest) {
         self.manager.submit_io(device_id, request);
     }
 
     /// Complete I/O
+    #[inline(always)]
     pub fn complete_io(
         &mut self,
         device_id: BlockDeviceId,
@@ -235,11 +238,13 @@ impl BlockIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &BlockManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut BlockManager {
         &mut self.manager
     }

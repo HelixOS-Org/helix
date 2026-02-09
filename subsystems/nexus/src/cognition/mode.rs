@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::format;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -235,7 +236,7 @@ pub struct ModeManager {
     /// Last transition per rule (for cooldown)
     last_transitions: BTreeMap<u64, Timestamp>,
     /// Transition history
-    history: Vec<ModeTransition>,
+    history: VecDeque<ModeTransition>,
     /// Next rule ID
     next_rule_id: AtomicU64,
     /// Next transition ID
@@ -274,6 +275,7 @@ impl Default for ModeConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ModeStats {
     /// Total transitions
     pub total_transitions: u64,
@@ -293,7 +295,7 @@ impl ModeManager {
             domain_modes: BTreeMap::new(),
             rules: BTreeMap::new(),
             last_transitions: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             next_rule_id: AtomicU64::new(1),
             next_transition_id: AtomicU64::new(1),
             config,
@@ -303,16 +305,19 @@ impl ModeManager {
     }
 
     /// Get current mode
+    #[inline(always)]
     pub fn current_mode(&self) -> CognitiveMode {
         self.current_mode
     }
 
     /// Get time in current mode
+    #[inline(always)]
     pub fn mode_duration(&self) -> u64 {
         Timestamp::now().elapsed_since(self.mode_since)
     }
 
     /// Get mode characteristics
+    #[inline(always)]
     pub fn current_characteristics(&self) -> ModeCharacteristics {
         self.current_mode.characteristics()
     }
@@ -340,9 +345,9 @@ impl ModeManager {
 
         // Update history
         if self.history.len() >= self.config.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(transition.clone());
+        self.history.push_back(transition.clone());
 
         // Update state
         self.current_mode = mode;
@@ -372,11 +377,13 @@ impl ModeManager {
     }
 
     /// Remove transition rule
+    #[inline(always)]
     pub fn remove_rule(&mut self, rule_id: u64) -> bool {
         self.rules.remove(&rule_id).is_some()
     }
 
     /// Set rule enabled
+    #[inline]
     pub fn set_rule_enabled(&mut self, rule_id: u64, enabled: bool) {
         if let Some(rule) = self.rules.get_mut(&rule_id) {
             rule.enabled = enabled;
@@ -384,6 +391,7 @@ impl ModeManager {
     }
 
     /// Update load
+    #[inline(always)]
     pub fn update_load(&mut self, load: f64) {
         self.current_load = load.clamp(0.0, 1.0);
     }
@@ -478,36 +486,43 @@ impl ModeManager {
     }
 
     /// Get domain mode
+    #[inline(always)]
     pub fn get_domain_mode(&self, domain: DomainId) -> CognitiveMode {
         self.domain_modes.get(&domain).copied().unwrap_or(self.current_mode)
     }
 
     /// Set domain mode
+    #[inline(always)]
     pub fn set_domain_mode(&mut self, domain: DomainId, mode: CognitiveMode) {
         self.domain_modes.insert(domain, mode);
     }
 
     /// Clear domain mode (use global)
+    #[inline(always)]
     pub fn clear_domain_mode(&mut self, domain: DomainId) {
         self.domain_modes.remove(&domain);
     }
 
     /// Get transition history
+    #[inline(always)]
     pub fn history(&self) -> &[ModeTransition] {
         &self.history
     }
 
     /// Get recent transitions
+    #[inline(always)]
     pub fn recent_transitions(&self, count: usize) -> Vec<&ModeTransition> {
         self.history.iter().rev().take(count).collect()
     }
 
     /// Get rules
+    #[inline(always)]
     pub fn rules(&self) -> Vec<&ModeTransitionRule> {
         self.rules.values().collect()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ModeStats {
         &self.stats
     }
@@ -546,48 +561,56 @@ impl RuleBuilder {
     }
 
     /// Set condition
+    #[inline(always)]
     pub fn when(mut self, condition: TransitionCondition) -> Self {
         self.rule.condition = condition;
         self
     }
 
     /// Set time-based condition
+    #[inline(always)]
     pub fn after_ns(mut self, duration: u64) -> Self {
         self.rule.condition = TransitionCondition::TimeBased(duration);
         self
     }
 
     /// Set load condition
+    #[inline(always)]
     pub fn when_load_above(mut self, threshold: f64) -> Self {
         self.rule.condition = TransitionCondition::LoadThreshold(threshold, ThresholdOp::GreaterThan);
         self
     }
 
     /// Set load condition
+    #[inline(always)]
     pub fn when_load_below(mut self, threshold: f64) -> Self {
         self.rule.condition = TransitionCondition::LoadThreshold(threshold, ThresholdOp::LessThan);
         self
     }
 
     /// Set trigger condition
+    #[inline(always)]
     pub fn on_trigger(mut self, trigger: &str) -> Self {
         self.rule.condition = TransitionCondition::Trigger(trigger.into());
         self
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn priority(mut self, priority: u32) -> Self {
         self.rule.priority = priority;
         self
     }
 
     /// Set cooldown
+    #[inline(always)]
     pub fn cooldown_ns(mut self, cooldown: u64) -> Self {
         self.rule.cooldown_ns = cooldown;
         self
     }
 
     /// Build the rule
+    #[inline(always)]
     pub fn build(self) -> ModeTransitionRule {
         self.rule
     }

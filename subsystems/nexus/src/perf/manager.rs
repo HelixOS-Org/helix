@@ -3,6 +3,7 @@
 //! PMU and event management.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -19,7 +20,7 @@ pub struct PerfManager {
     /// Events
     pub(crate) events: BTreeMap<EventId, PerfEvent>,
     /// Samples
-    samples: Vec<Sample>,
+    samples: VecDeque<Sample>,
     /// Max samples
     max_samples: usize,
     /// Event counter
@@ -36,7 +37,7 @@ impl PerfManager {
         Self {
             pmus: BTreeMap::new(),
             events: BTreeMap::new(),
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             max_samples: 10000,
             event_counter: AtomicU64::new(0),
             sample_count: AtomicU64::new(0),
@@ -45,16 +46,19 @@ impl PerfManager {
     }
 
     /// Register PMU
+    #[inline(always)]
     pub fn register_pmu(&mut self, pmu: Pmu) {
         self.pmus.insert(pmu.id, pmu);
     }
 
     /// Get PMU
+    #[inline(always)]
     pub fn get_pmu(&self, id: PmuId) -> Option<&Pmu> {
         self.pmus.get(&id)
     }
 
     /// Create event
+    #[inline]
     pub fn create_event(&mut self, config: EventConfig, pmu: PmuId) -> EventId {
         let id = EventId(self.event_counter.fetch_add(1, Ordering::Relaxed));
         let event = PerfEvent::new(id, config, pmu);
@@ -63,16 +67,19 @@ impl PerfManager {
     }
 
     /// Get event
+    #[inline(always)]
     pub fn get_event(&self, id: EventId) -> Option<&PerfEvent> {
         self.events.get(&id)
     }
 
     /// Get event mutably
+    #[inline(always)]
     pub fn get_event_mut(&mut self, id: EventId) -> Option<&mut PerfEvent> {
         self.events.get_mut(&id)
     }
 
     /// Start event
+    #[inline]
     pub fn start_event(&mut self, id: EventId) -> bool {
         if let Some(event) = self.events.get_mut(&id) {
             if let Some(pmu) = self.pmus.get(&event.pmu) {
@@ -85,6 +92,7 @@ impl PerfManager {
     }
 
     /// Stop event
+    #[inline]
     pub fn stop_event(&mut self, id: EventId) -> bool {
         if let Some(event) = self.events.get_mut(&id) {
             if let Some(pmu) = self.pmus.get(&event.pmu) {
@@ -97,25 +105,29 @@ impl PerfManager {
     }
 
     /// Record sample
+    #[inline]
     pub fn record_sample(&mut self, sample: Sample) {
         self.sample_count.fetch_add(1, Ordering::Relaxed);
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
     /// Active events
+    #[inline(always)]
     pub fn active_events(&self) -> Vec<&PerfEvent> {
         self.events.values().filter(|e| e.is_running()).collect()
     }
 
     /// Total sample count
+    #[inline(always)]
     pub fn total_samples(&self) -> u64 {
         self.sample_count.load(Ordering::Relaxed)
     }
 
     /// Get PMU for hardware event
+    #[inline]
     pub fn core_pmu(&self) -> Option<&Pmu> {
         self.pmus
             .values()

@@ -23,6 +23,7 @@ pub enum IoScheduler {
 
 impl IoScheduler {
     /// Get scheduler name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::None => "none",
@@ -36,21 +37,25 @@ impl IoScheduler {
     }
 
     /// Best for rotational
+    #[inline(always)]
     pub fn best_for_rotational() -> Self {
         Self::MqDeadline
     }
 
     /// Best for SSD
+    #[inline(always)]
     pub fn best_for_ssd() -> Self {
         Self::None
     }
 
     /// Best for NVMe
+    #[inline(always)]
     pub fn best_for_nvme() -> Self {
         Self::None
     }
 
     /// Is fair queueing
+    #[inline(always)]
     pub fn is_fair(&self) -> bool {
         matches!(self, Self::Bfq | Self::Cfq)
     }
@@ -77,6 +82,7 @@ pub enum IoRequestType {
 
 impl IoRequestType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Read => "read",

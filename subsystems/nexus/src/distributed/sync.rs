@@ -33,6 +33,7 @@ pub struct VectorClock {
 static SYNC_SESSION_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl SyncSessionId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(SYNC_SESSION_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -47,16 +48,19 @@ impl VectorClock {
     }
 
     /// Increment clock for node
+    #[inline(always)]
     pub fn increment(&mut self, node: NodeId) {
         *self.clocks.entry(node).or_insert(0) += 1;
     }
 
     /// Get clock for node
+    #[inline(always)]
     pub fn get(&self, node: NodeId) -> u64 {
         self.clocks.get(&node).copied().unwrap_or(0)
     }
 
     /// Merge with another clock (take max)
+    #[inline]
     pub fn merge(&mut self, other: &VectorClock) {
         for (&node, &time) in &other.clocks {
             let current = self.clocks.entry(node).or_insert(0);
@@ -89,6 +93,7 @@ impl VectorClock {
     }
 
     /// Check if clocks are concurrent
+    #[inline(always)]
     pub fn concurrent(&self, other: &VectorClock) -> bool {
         !self.happens_before(other) && !other.happens_before(self)
     }
@@ -100,6 +105,7 @@ impl VectorClock {
 
 /// State version
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateVersion {
     /// Version number
     pub version: u64,
@@ -115,6 +121,7 @@ pub struct StateVersion {
 
 /// State item
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateItem {
     /// Key
     pub key: String,
@@ -128,6 +135,7 @@ pub struct StateItem {
 
 /// State snapshot
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateSnapshot {
     /// Epoch
     pub epoch: Epoch,
@@ -285,6 +293,7 @@ impl MerkleTree {
     }
 
     /// Get root hash
+    #[inline(always)]
     pub fn root_hash(&self) -> u64 {
         self.nodes.last().map(|n| n.hash).unwrap_or(0)
     }
@@ -472,6 +481,7 @@ impl Default for SyncConfig {
 
 /// Sync statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SyncStats {
     /// Syncs initiated
     pub syncs_initiated: u64,
@@ -526,11 +536,13 @@ impl SyncEngine {
     }
 
     /// Get item
+    #[inline(always)]
     pub fn get(&self, key: &str) -> Option<&StateItem> {
         self.state.get(key).filter(|i| !i.tombstone)
     }
 
     /// Delete item
+    #[inline]
     pub fn delete(&mut self, key: &str) {
         if let Some(item) = self.state.get_mut(key) {
             self.clock.increment(self.node_id);
@@ -692,16 +704,19 @@ impl SyncEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SyncStats {
         &self.stats
     }
 
     /// Get current epoch
+    #[inline(always)]
     pub fn epoch(&self) -> Epoch {
         self.epoch
     }
 
     /// Get vector clock
+    #[inline(always)]
     pub fn clock(&self) -> &VectorClock {
         &self.clock
     }

@@ -2,6 +2,7 @@
 //! NEXUS Holistic — Clone (holistic clone analysis)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -28,6 +29,7 @@ pub struct HolisticCloneRecord {
 
 /// Clone holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticCloneStats {
     pub total_analyzed: u64,
     pub thread_creates: u64,
@@ -40,7 +42,7 @@ pub struct HolisticCloneStats {
 /// Manager for holistic clone analysis
 pub struct HolisticCloneManager {
     records: Vec<HolisticCloneRecord>,
-    parent_clone_count: BTreeMap<u64, u32>,
+    parent_clone_count: LinearMap<u32, 64>,
     stats: HolisticCloneStats,
 }
 
@@ -48,7 +50,7 @@ impl HolisticCloneManager {
     pub fn new() -> Self {
         Self {
             records: Vec::new(),
-            parent_clone_count: BTreeMap::new(),
+            parent_clone_count: LinearMap::new(),
             stats: HolisticCloneStats {
                 total_analyzed: 0,
                 thread_creates: 0,
@@ -90,6 +92,7 @@ impl HolisticCloneManager {
         pattern
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCloneStats {
         &self.stats
     }

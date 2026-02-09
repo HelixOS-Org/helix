@@ -79,22 +79,32 @@ impl SagaStep {
         }
     }
 
+    #[inline(always)]
     pub fn start(&mut self, ts: u64) { self.status = StepStatus::Running; self.start_ts = ts; }
+    #[inline(always)]
     pub fn complete(&mut self, result: u64, ts: u64) { self.status = StepStatus::Completed; self.result_hash = result; self.end_ts = ts; }
 
+    #[inline]
     pub fn fail(&mut self, ts: u64) {
         self.retries += 1;
         if self.retries >= self.max_retries { self.status = StepStatus::Failed; } else { self.status = StepStatus::Pending; }
         self.end_ts = ts;
     }
 
+    #[inline(always)]
     pub fn begin_compensate(&mut self) { self.status = StepStatus::CompensationPending; }
+    #[inline(always)]
     pub fn run_compensate(&mut self, ts: u64) { self.status = StepStatus::CompensationRunning; self.start_ts = ts; }
+    #[inline(always)]
     pub fn compensated(&mut self, result: u64, ts: u64) { self.status = StepStatus::Compensated; self.compensation_result = result; self.end_ts = ts; }
+    #[inline(always)]
     pub fn compensation_fail(&mut self, ts: u64) { self.status = StepStatus::CompensationFailed; self.end_ts = ts; }
 
+    #[inline(always)]
     pub fn is_done(&self) -> bool { matches!(self.status, StepStatus::Completed | StepStatus::Failed | StepStatus::Compensated | StepStatus::CompensationFailed | StepStatus::Skipped) }
+    #[inline(always)]
     pub fn is_timed_out(&self, now: u64) -> bool { self.status == StepStatus::Running && now.saturating_sub(self.start_ts) > self.timeout_ns }
+    #[inline(always)]
     pub fn latency(&self) -> u64 { self.end_ts.saturating_sub(self.start_ts) }
 }
 
@@ -147,8 +157,10 @@ impl Saga {
         }
     }
 
+    #[inline(always)]
     pub fn add_step(&mut self, step: SagaStep) { self.steps.push(step); }
 
+    #[inline(always)]
     pub fn start(&mut self, ts: u64) {
         self.status = SagaStatus::Running;
         self.log.push(SagaLogEntry { saga_id: self.id, step_id: 0, event: SagaLogEvent::SagaStarted, ts, data_hash: 0 });
@@ -182,6 +194,7 @@ impl Saga {
         None
     }
 
+    #[inline]
     pub fn complete_step(&mut self, step_id: u64, result: u64, ts: u64) {
         if let Some(s) = self.steps.iter_mut().find(|s| s.id == step_id) {
             s.complete(result, ts);
@@ -189,6 +202,7 @@ impl Saga {
         }
     }
 
+    #[inline]
     pub fn fail_step(&mut self, step_id: u64, ts: u64) {
         if let Some(s) = self.steps.iter_mut().find(|s| s.id == step_id) {
             s.fail(ts);
@@ -205,10 +219,12 @@ impl Saga {
         }
     }
 
+    #[inline(always)]
     pub fn next_compensation(&mut self) -> Option<u64> {
         self.steps.iter().rev().find(|s| s.status == StepStatus::CompensationPending).map(|s| s.id)
     }
 
+    #[inline]
     pub fn compensate_step(&mut self, step_id: u64, result: u64, ts: u64) {
         if let Some(s) = self.steps.iter_mut().find(|s| s.id == step_id) {
             s.compensated(result, ts);
@@ -220,14 +236,19 @@ impl Saga {
         }
     }
 
+    #[inline(always)]
     pub fn is_done(&self) -> bool { matches!(self.status, SagaStatus::Completed | SagaStatus::CompensationComplete | SagaStatus::Failed) }
+    #[inline(always)]
     pub fn latency(&self) -> u64 { self.end_ts.saturating_sub(self.create_ts) }
+    #[inline(always)]
     pub fn step_count(&self) -> usize { self.steps.len() }
+    #[inline(always)]
     pub fn completed_steps(&self) -> usize { self.steps.iter().filter(|s| s.status == StepStatus::Completed).count() }
 }
 
 /// Saga coordinator stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SagaStats {
     pub total_sagas: u64,
     pub completed: u64,
@@ -251,6 +272,7 @@ impl CoopSagaCoord {
         Self { sagas: BTreeMap::new(), stats: SagaStats::default(), next_id: 1, next_step_id: 1 }
     }
 
+    #[inline]
     pub fn create_saga(&mut self, recovery: RecoveryMode, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.sagas.insert(id, Saga::new(id, recovery, ts));
@@ -258,6 +280,7 @@ impl CoopSagaCoord {
         id
     }
 
+    #[inline]
     pub fn add_step(&mut self, saga_id: u64, name_hash: u64, participant: u64, timeout: u64) -> Option<u64> {
         let sid = self.next_step_id; self.next_step_id += 1;
         let saga = self.sagas.get_mut(&saga_id)?;
@@ -267,26 +290,32 @@ impl CoopSagaCoord {
         Some(sid)
     }
 
+    #[inline(always)]
     pub fn start(&mut self, saga_id: u64, ts: u64) {
         if let Some(s) = self.sagas.get_mut(&saga_id) { s.start(ts); }
     }
 
+    #[inline(always)]
     pub fn advance(&mut self, saga_id: u64, ts: u64) -> Option<u64> {
         self.sagas.get_mut(&saga_id)?.advance(ts)
     }
 
+    #[inline(always)]
     pub fn complete_step(&mut self, saga_id: u64, step_id: u64, result: u64, ts: u64) {
         if let Some(s) = self.sagas.get_mut(&saga_id) { s.complete_step(step_id, result, ts); }
     }
 
+    #[inline(always)]
     pub fn fail_step(&mut self, saga_id: u64, step_id: u64, ts: u64) {
         if let Some(s) = self.sagas.get_mut(&saga_id) { s.fail_step(step_id, ts); }
     }
 
+    #[inline(always)]
     pub fn compensate_step(&mut self, saga_id: u64, step_id: u64, result: u64, ts: u64) {
         if let Some(s) = self.sagas.get_mut(&saga_id) { s.compensate_step(step_id, result, ts); }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.completed = self.sagas.values().filter(|s| s.status == SagaStatus::Completed).count() as u64;
         self.stats.compensated = self.sagas.values().filter(|s| s.status == SagaStatus::CompensationComplete).count() as u64;
@@ -299,6 +328,8 @@ impl CoopSagaCoord {
         }
     }
 
+    #[inline(always)]
     pub fn saga(&self, id: u64) -> Option<&Saga> { self.sagas.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &SagaStats { &self.stats }
 }

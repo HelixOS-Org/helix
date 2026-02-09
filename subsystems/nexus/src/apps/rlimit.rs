@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -109,6 +110,7 @@ impl Rlimit {
         Self { soft, hard }
     }
 
+    #[inline]
     pub fn unlimited() -> Self {
         Self {
             soft: u64::MAX,
@@ -117,11 +119,13 @@ impl Rlimit {
     }
 
     /// Is unlimited?
+    #[inline(always)]
     pub fn is_unlimited(&self) -> bool {
         self.soft == u64::MAX && self.hard == u64::MAX
     }
 
     /// Set soft (cannot exceed hard)
+    #[inline]
     pub fn set_soft(&mut self, value: u64) -> bool {
         if value <= self.hard {
             self.soft = value;
@@ -146,16 +150,19 @@ impl Rlimit {
     }
 
     /// Check if value exceeds soft limit
+    #[inline(always)]
     pub fn soft_exceeded(&self, value: u64) -> bool {
         value > self.soft && self.soft != u64::MAX
     }
 
     /// Check if value exceeds hard limit
+    #[inline(always)]
     pub fn hard_exceeded(&self, value: u64) -> bool {
         value > self.hard && self.hard != u64::MAX
     }
 
     /// Utilization relative to soft limit
+    #[inline]
     pub fn utilization(&self, value: u64) -> f64 {
         if self.soft == 0 || self.soft == u64::MAX {
             return 0.0;
@@ -252,6 +259,7 @@ impl ProcessLimitProfile {
     }
 
     /// Get limit
+    #[inline]
     pub fn get_limit(&self, resource: RlimitResource) -> Rlimit {
         self.limits
             .get(&(resource as u8))
@@ -347,16 +355,19 @@ impl ProcessLimitProfile {
     }
 
     /// Current usage
+    #[inline(always)]
     pub fn current_usage(&self, resource: RlimitResource) -> u64 {
         self.usage.get(&(resource as u8)).copied().unwrap_or(0)
     }
 
     /// Peak usage
+    #[inline(always)]
     pub fn peak(&self, resource: RlimitResource) -> u64 {
         self.peak_usage.get(&(resource as u8)).copied().unwrap_or(0)
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self, resource: RlimitResource) -> f64 {
         let usage = self.current_usage(resource);
         let limit = self.get_limit(resource);
@@ -394,6 +405,7 @@ impl ProcessLimitProfile {
 
 /// Rlimit stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppRlimitStats {
     /// Tracked processes
     pub processes: usize,
@@ -408,7 +420,7 @@ pub struct AppRlimitManager {
     /// Profiles
     profiles: BTreeMap<u64, ProcessLimitProfile>,
     /// Violation log
-    violations: Vec<LimitViolation>,
+    violations: VecDeque<LimitViolation>,
     /// Stats
     stats: AppRlimitStats,
     /// Max violations kept
@@ -419,13 +431,14 @@ impl AppRlimitManager {
     pub fn new() -> Self {
         Self {
             profiles: BTreeMap::new(),
-            violations: Vec::new(),
+            violations: VecDeque::new(),
             stats: AppRlimitStats::default(),
             max_violations: 4096,
         }
     }
 
     /// Register process
+    #[inline]
     pub fn register(&mut self, pid: u64) {
         self.profiles
             .entry(pid)
@@ -434,6 +447,7 @@ impl AppRlimitManager {
     }
 
     /// Set limit
+    #[inline]
     pub fn set_limit(
         &mut self,
         pid: u64,
@@ -468,9 +482,9 @@ impl AppRlimitManager {
             if v.violation == ViolationType::HardExceeded {
                 self.stats.hard_violations += 1;
             }
-            self.violations.push(v.clone());
+            self.violations.push_back(v.clone());
             if self.violations.len() > self.max_violations {
-                self.violations.remove(0);
+                self.violations.pop_front();
             }
             Some(v.violation)
         } else {
@@ -479,21 +493,25 @@ impl AppRlimitManager {
     }
 
     /// Get limit
+    #[inline(always)]
     pub fn get_limit(&self, pid: u64, resource: RlimitResource) -> Option<Rlimit> {
         self.profiles.get(&pid).map(|p| p.get_limit(resource))
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessLimitProfile> {
         self.profiles.get(&pid)
     }
 
     /// Recent violations
+    #[inline(always)]
     pub fn recent_violations(&self, limit: usize) -> Vec<&LimitViolation> {
         self.violations.iter().rev().take(limit).collect()
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppRlimitStats {
         &self.stats
     }

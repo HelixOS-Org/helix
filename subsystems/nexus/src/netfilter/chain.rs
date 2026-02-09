@@ -88,17 +88,20 @@ impl ChainDef {
     }
 
     /// Is base chain (attached to hook)
+    #[inline(always)]
     pub fn is_base_chain(&self) -> bool {
         self.hook.is_some()
     }
 
     /// Record packet
+    #[inline(always)]
     pub fn record_packet(&self, size: u64) {
         self.packets.fetch_add(1, Ordering::Relaxed);
         self.bytes.fetch_add(size, Ordering::Relaxed);
     }
 
     /// Get packet count
+    #[inline(always)]
     pub fn packet_count(&self) -> u64 {
         self.packets.load(Ordering::Relaxed)
     }

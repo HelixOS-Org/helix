@@ -132,6 +132,7 @@ pub struct ParetoPoint {
 
 /// Aggregate goal tracking statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct GoalTrackerStats {
     pub root_goal_count: usize,
     pub subgoal_count: usize,
@@ -306,6 +307,7 @@ impl HolisticGoalTracker {
     }
 
     /// Get status of all root goals
+    #[inline]
     pub fn root_goal_status(&mut self) -> Vec<(u64, GoalStatus, f32)> {
         self.tick += 1;
         let status: Vec<(u64, GoalStatus, f32)> = self
@@ -331,6 +333,7 @@ impl HolisticGoalTracker {
     }
 
     /// Check alignment between root goals and their sub-goals
+    #[inline]
     pub fn goal_alignment_check(&mut self) -> f32 {
         let mut alignment_sum = 0.0f32;
         let mut goal_count = 0u32;
@@ -363,6 +366,7 @@ impl HolisticGoalTracker {
     }
 
     /// Detect synergies and conflicts between goals
+    #[inline]
     pub fn cross_module_synergy(&mut self) -> Vec<GoalSynergy> {
         self.tick += 1;
         let root_ids: Vec<u64> = self.root_goals.keys().copied().collect();

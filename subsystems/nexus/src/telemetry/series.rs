@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -29,6 +30,7 @@ impl DataPoint {
     }
 
     /// Create with current timestamp
+    #[inline]
     pub fn now(value: f64) -> Self {
         Self {
             timestamp: NexusTimestamp::now().raw(),
@@ -49,7 +51,7 @@ pub struct TimeSeries {
     /// Labels
     pub labels: BTreeMap<String, String>,
     /// Data points
-    points: Vec<DataPoint>,
+    points: VecDeque<DataPoint>,
     /// Maximum points to retain
     max_points: usize,
     /// Aggregation interval (for downsampling)
@@ -62,39 +64,44 @@ impl TimeSeries {
         Self {
             name: name.into(),
             labels: BTreeMap::new(),
-            points: Vec::new(),
+            points: VecDeque::new(),
             max_points,
             aggregation_interval: 0,
         }
     }
 
     /// Add label
+    #[inline(always)]
     pub fn with_label(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.labels.insert(key.into(), value.into());
         self
     }
 
     /// Add data point
+    #[inline]
     pub fn add(&mut self, point: DataPoint) {
-        self.points.push(point);
+        self.points.push_back(point);
 
         // Evict old points if over limit
         if self.points.len() > self.max_points {
-            self.points.remove(0);
+            self.points.pop_front();
         }
     }
 
     /// Add value with current timestamp
+    #[inline(always)]
     pub fn add_value(&mut self, value: f64) {
         self.add(DataPoint::now(value));
     }
 
     /// Get all points
+    #[inline(always)]
     pub fn points(&self) -> &[DataPoint] {
         &self.points
     }
 
     /// Get points in time range
+    #[inline]
     pub fn range(&self, start: u64, end: u64) -> Vec<DataPoint> {
         self.points
             .iter()
@@ -104,16 +111,19 @@ impl TimeSeries {
     }
 
     /// Get latest value
+    #[inline(always)]
     pub fn latest(&self) -> Option<f64> {
-        self.points.last().map(|p| p.value)
+        self.points.back().map(|p| p.value)
     }
 
     /// Get latest N values
+    #[inline(always)]
     pub fn latest_n(&self, n: usize) -> Vec<f64> {
         self.points.iter().rev().take(n).map(|p| p.value).collect()
     }
 
     /// Calculate mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.points.is_empty() {
             return 0.0;
@@ -123,6 +133,7 @@ impl TimeSeries {
     }
 
     /// Calculate min
+    #[inline]
     pub fn min(&self) -> f64 {
         self.points
             .iter()
@@ -131,6 +142,7 @@ impl TimeSeries {
     }
 
     /// Calculate max
+    #[inline]
     pub fn max(&self) -> f64 {
         self.points
             .iter()
@@ -165,7 +177,7 @@ impl TimeSeries {
         }
 
         let first = &self.points[0];
-        let last = self.points.last().unwrap();
+        let last = self.points.back().unwrap();
 
         let time_diff = (last.timestamp - first.timestamp) as f64;
         if time_diff == 0.0 {
@@ -218,16 +230,19 @@ impl TimeSeries {
     }
 
     /// Number of points
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.points.len()
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.points.is_empty()
     }
 
     /// Clear all points
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.points.clear();
     }

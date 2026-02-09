@@ -60,6 +60,7 @@ impl Default for TermiosAttrs {
 }
 
 impl TermiosAttrs {
+    #[inline]
     pub fn set_raw(&mut self) {
         self.canonical = false;
         self.echo = false;
@@ -117,11 +118,17 @@ impl TtyDevice {
         }
     }
 
+    #[inline(always)]
     pub fn read(&mut self, bytes: u64) { self.bytes_in += bytes; self.read_count += 1; }
+    #[inline(always)]
     pub fn write(&mut self, bytes: u64) { self.bytes_out += bytes; self.write_count += 1; }
+    #[inline(always)]
     pub fn ioctl(&mut self) { self.ioctl_count += 1; }
+    #[inline(always)]
     pub fn hangup(&mut self) { self.hung_up = true; }
+    #[inline(always)]
     pub fn set_winsize(&mut self, ws: WinSize) { self.winsize = ws; }
+    #[inline(always)]
     pub fn set_session(&mut self, sid: u64, pgrp: u64) { self.session_id = sid; self.fg_pgrp = pgrp; }
 }
 
@@ -143,6 +150,7 @@ impl PtyPair {
 
 /// TTY bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TtyBridgeStats {
     pub total_ttys: usize,
     pub pty_pairs: usize,
@@ -155,6 +163,7 @@ pub struct TtyBridgeStats {
 }
 
 /// Bridge TTY manager
+#[repr(align(64))]
 pub struct BridgeTtyBridge {
     ttys: BTreeMap<u32, TtyDevice>,
     pty_pairs: Vec<PtyPair>,
@@ -168,6 +177,7 @@ impl BridgeTtyBridge {
         Self { ttys: BTreeMap::new(), pty_pairs: Vec::new(), next_tty_id: 1, next_pts: 0, stats: TtyBridgeStats::default() }
     }
 
+    #[inline]
     pub fn create_tty(&mut self, ttype: TtyType) -> u32 {
         let id = self.next_tty_id;
         self.next_tty_id += 1;
@@ -175,6 +185,7 @@ impl BridgeTtyBridge {
         id
     }
 
+    #[inline]
     pub fn create_pty(&mut self, owner: u64, ts: u64) -> (u32, u32) {
         let master = self.create_tty(TtyType::PtyMaster);
         let slave = self.create_tty(TtyType::PtySlave);
@@ -184,34 +195,42 @@ impl BridgeTtyBridge {
         (master, slave)
     }
 
+    #[inline(always)]
     pub fn read(&mut self, tty_id: u32, bytes: u64) {
         if let Some(t) = self.ttys.get_mut(&tty_id) { t.read(bytes); }
     }
 
+    #[inline(always)]
     pub fn write(&mut self, tty_id: u32, bytes: u64) {
         if let Some(t) = self.ttys.get_mut(&tty_id) { t.write(bytes); }
     }
 
+    #[inline(always)]
     pub fn ioctl(&mut self, tty_id: u32) {
         if let Some(t) = self.ttys.get_mut(&tty_id) { t.ioctl(); }
     }
 
+    #[inline(always)]
     pub fn set_attrs(&mut self, tty_id: u32, attrs: TermiosAttrs) {
         if let Some(t) = self.ttys.get_mut(&tty_id) { t.attrs = attrs; }
     }
 
+    #[inline(always)]
     pub fn set_raw(&mut self, tty_id: u32) {
         if let Some(t) = self.ttys.get_mut(&tty_id) { t.attrs.set_raw(); }
     }
 
+    #[inline(always)]
     pub fn set_winsize(&mut self, tty_id: u32, ws: WinSize) {
         if let Some(t) = self.ttys.get_mut(&tty_id) { t.set_winsize(ws); }
     }
 
+    #[inline(always)]
     pub fn hangup(&mut self, tty_id: u32) {
         if let Some(t) = self.ttys.get_mut(&tty_id) { t.hangup(); }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_ttys = self.ttys.len();
         self.stats.pty_pairs = self.pty_pairs.len();
@@ -223,7 +242,9 @@ impl BridgeTtyBridge {
         self.stats.raw_mode_count = self.ttys.values().filter(|t| t.attrs.raw_mode).count();
     }
 
+    #[inline(always)]
     pub fn tty(&self, id: u32) -> Option<&TtyDevice> { self.ttys.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &TtyBridgeStats { &self.stats }
 }
 
@@ -271,6 +292,7 @@ impl TtyV2Termios {
         }
     }
 
+    #[inline]
     pub fn set_raw(&mut self) {
         self.echo = false;
         self.canonical = false;
@@ -320,6 +342,7 @@ impl TtyV2Device {
         }
     }
 
+    #[inline]
     pub fn write_data(&mut self, data: &[u8]) -> usize {
         let len = data.len();
         self.output_buf.extend_from_slice(data);
@@ -327,6 +350,7 @@ impl TtyV2Device {
         len
     }
 
+    #[inline]
     pub fn read_data(&mut self, max: usize) -> Vec<u8> {
         let count = max.min(self.input_buf.len());
         let data: Vec<u8> = self.input_buf.drain(..count).collect();
@@ -334,17 +358,20 @@ impl TtyV2Device {
         data
     }
 
+    #[inline(always)]
     pub fn set_winsize(&mut self, cols: u16, rows: u16) {
         self.columns = cols;
         self.rows = rows;
     }
 
+    #[inline]
     pub fn hangup_device(&mut self) {
         self.hangup = true;
         self.session_id = None;
         self.foreground_pgrp = None;
     }
 
+    #[inline(always)]
     pub fn set_session(&mut self, sid: u64, pgrp: u64) {
         self.session_id = Some(sid);
         self.foreground_pgrp = Some(pgrp);
@@ -353,6 +380,7 @@ impl TtyV2Device {
 
 /// Statistics for TTY V2 bridge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TtyV2BridgeStats {
     pub devices_created: u64,
     pub total_opens: u64,
@@ -366,6 +394,7 @@ pub struct TtyV2BridgeStats {
 
 /// Main TTY V2 bridge manager
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeTtyV2 {
     devices: BTreeMap<u32, TtyV2Device>,
     next_minor: u32,
@@ -390,6 +419,7 @@ impl BridgeTtyV2 {
         }
     }
 
+    #[inline]
     pub fn create_device(&mut self, name: String) -> u32 {
         let minor = self.next_minor;
         self.next_minor += 1;
@@ -398,6 +428,7 @@ impl BridgeTtyV2 {
         minor
     }
 
+    #[inline]
     pub fn open_device(&mut self, minor: u32) -> bool {
         if let Some(dev) = self.devices.get_mut(&minor) {
             dev.open_count += 1;
@@ -408,6 +439,7 @@ impl BridgeTtyV2 {
         }
     }
 
+    #[inline]
     pub fn write(&mut self, minor: u32, data: &[u8]) -> usize {
         if let Some(dev) = self.devices.get_mut(&minor) {
             let written = dev.write_data(data);
@@ -418,6 +450,7 @@ impl BridgeTtyV2 {
         }
     }
 
+    #[inline]
     pub fn read(&mut self, minor: u32, max: usize) -> Vec<u8> {
         if let Some(dev) = self.devices.get_mut(&minor) {
             let data = dev.read_data(max);
@@ -428,6 +461,7 @@ impl BridgeTtyV2 {
         }
     }
 
+    #[inline]
     pub fn set_winsize(&mut self, minor: u32, cols: u16, rows: u16) -> bool {
         if let Some(dev) = self.devices.get_mut(&minor) {
             dev.set_winsize(cols, rows);
@@ -438,6 +472,7 @@ impl BridgeTtyV2 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &TtyV2BridgeStats {
         &self.stats
     }

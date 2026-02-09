@@ -16,6 +16,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -55,6 +56,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f64, sample: f64, alpha: f64) -> f64 {
     alpha * sample + (1.0 - alpha) * current
 }
@@ -286,7 +288,7 @@ impl BehavioralBaseline {
 struct AppAnomalyState {
     app_id: u64,
     baseline: BehavioralBaseline,
-    warnings: Vec<AnomalyWarning>,
+    warnings: VecDeque<AnomalyWarning>,
     total_warnings_issued: u64,
     total_warnings_validated: u64,
     true_positives: u64,
@@ -299,7 +301,7 @@ impl AppAnomalyState {
         Self {
             app_id,
             baseline: BehavioralBaseline::new(),
-            warnings: Vec::new(),
+            warnings: VecDeque::new(),
             total_warnings_issued: 0,
             total_warnings_validated: 0,
             true_positives: 0,
@@ -330,9 +332,9 @@ impl AppAnomalyState {
         };
 
         if self.warnings.len() >= MAX_WARNINGS {
-            self.warnings.remove(0);
+            self.warnings.pop_front();
         }
-        self.warnings.push(warning);
+        self.warnings.push_back(warning);
         self.total_warnings_issued += 1;
     }
 
@@ -364,6 +366,7 @@ impl AppAnomalyState {
 
 /// Engine-level statistics for anomaly forecasting.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AnomalyForecastStats {
     pub total_warnings_issued: u64,
     pub total_warnings_validated: u64,
@@ -421,6 +424,7 @@ impl AppsAnomalyForecast {
     }
 
     /// Update the behavioral baseline for an app with current metrics.
+    #[inline]
     pub fn update_baseline(
         &mut self,
         app_id: u64,
@@ -576,17 +580,20 @@ impl AppsAnomalyForecast {
     }
 
     /// Get the most recent early warning for an app, if any.
+    #[inline(always)]
     pub fn early_warning(&self, app_id: u64) -> Option<&AnomalyWarning> {
         let state = self.app_states.get(&app_id)?;
         state.warnings.last()
     }
 
     /// Suggest a prevention action for a given anomaly type.
+    #[inline(always)]
     pub fn prevention_action(&self, anomaly: AnomalyType) -> PreventionAction {
         PreventionAction::for_anomaly(anomaly)
     }
 
     /// Validate a previously issued warning.
+    #[inline]
     pub fn validate_warning(&mut self, app_id: u64, warning_hash: u64, happened: bool) {
         self.stats.total_warnings_validated += 1;
         if let Some(state) = self.app_states.get_mut(&app_id) {
@@ -597,16 +604,19 @@ impl AppsAnomalyForecast {
     }
 
     /// Return a snapshot of engine statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &AnomalyForecastStats {
         &self.stats
     }
 
     /// Number of tracked apps.
+    #[inline(always)]
     pub fn tracked_apps(&self) -> usize {
         self.app_states.len()
     }
 
     /// Global EMA-smoothed warning precision.
+    #[inline(always)]
     pub fn global_precision(&self) -> f64 {
         self.ema_precision
     }

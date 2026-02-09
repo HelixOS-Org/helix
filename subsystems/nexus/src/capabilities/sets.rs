@@ -26,11 +26,13 @@ impl CapabilitySet {
     };
 
     /// Create new capability set
+    #[inline(always)]
     pub const fn new() -> Self {
         Self::EMPTY
     }
 
     /// Check if capability is set
+    #[inline]
     pub fn has(&self, cap: Capability) -> bool {
         let bit = cap.number();
         if bit < 32 {
@@ -41,6 +43,7 @@ impl CapabilitySet {
     }
 
     /// Set capability
+    #[inline]
     pub fn set(&mut self, cap: Capability) {
         let bit = cap.number();
         if bit < 32 {
@@ -51,6 +54,7 @@ impl CapabilitySet {
     }
 
     /// Clear capability
+    #[inline]
     pub fn clear(&mut self, cap: Capability) {
         let bit = cap.number();
         if bit < 32 {
@@ -61,6 +65,7 @@ impl CapabilitySet {
     }
 
     /// Toggle capability
+    #[inline]
     pub fn toggle(&mut self, cap: Capability) {
         if self.has(cap) {
             self.clear(cap);
@@ -70,6 +75,7 @@ impl CapabilitySet {
     }
 
     /// Union with another set
+    #[inline]
     pub fn union(&self, other: &Self) -> Self {
         Self {
             cap0: self.cap0 | other.cap0,
@@ -78,6 +84,7 @@ impl CapabilitySet {
     }
 
     /// Intersection with another set
+    #[inline]
     pub fn intersection(&self, other: &Self) -> Self {
         Self {
             cap0: self.cap0 & other.cap0,
@@ -86,6 +93,7 @@ impl CapabilitySet {
     }
 
     /// Difference (capabilities in self but not in other)
+    #[inline]
     pub fn difference(&self, other: &Self) -> Self {
         Self {
             cap0: self.cap0 & !other.cap0,
@@ -94,11 +102,13 @@ impl CapabilitySet {
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.cap0 == 0 && self.cap1 == 0
     }
 
     /// Is full (all capabilities set)
+    #[inline]
     pub fn is_full(&self) -> bool {
         let mask0 = u32::MAX;
         let mask1 = (1u32 << 9) - 1; // Caps 32-40
@@ -106,21 +116,25 @@ impl CapabilitySet {
     }
 
     /// Count capabilities
+    #[inline(always)]
     pub fn count(&self) -> u32 {
         self.cap0.count_ones() + self.cap1.count_ones()
     }
 
     /// Iterate over set capabilities
+    #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = Capability> + '_ {
         Capability::all().iter().filter(|c| self.has(**c)).copied()
     }
 
     /// Get list of capabilities
+    #[inline(always)]
     pub fn to_list(&self) -> Vec<Capability> {
         self.iter().collect()
     }
 
     /// From list of capabilities
+    #[inline]
     pub fn from_list(caps: &[Capability]) -> Self {
         let mut set = Self::new();
         for cap in caps {
@@ -147,6 +161,7 @@ pub enum CapSetType {
 
 impl CapSetType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Effective => "effective",

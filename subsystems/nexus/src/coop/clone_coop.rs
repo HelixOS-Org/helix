@@ -27,6 +27,7 @@ pub struct CoopCloneResult {
 
 /// Clone cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopCloneStats {
     pub total_clones: u64,
     pub share_all: u64,
@@ -59,6 +60,7 @@ impl CoopCloneManager {
         }
     }
 
+    #[inline(always)]
     pub fn set_policy(&mut self, pid: u64, policy: CoopCloneSharingPolicy) {
         self.policy_map.insert(pid, policy);
     }
@@ -91,6 +93,7 @@ impl CoopCloneManager {
         result
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopCloneStats {
         &self.stats
     }

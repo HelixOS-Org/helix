@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -106,7 +107,7 @@ pub struct TrustTrajectory {
     pub current_trust: u64,
     pub velocity: i64,
     pub predicted_trust: u64,
-    pub history: Vec<u64>,
+    pub history: VecDeque<u64>,
 }
 
 // ---------------------------------------------------------------------------
@@ -128,6 +129,7 @@ pub struct ConflictForecast {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct OracleStats {
     pub total_predictions: usize,
     pub total_trajectories: usize,
@@ -183,11 +185,12 @@ impl CoopOracle {
 
     // -- demand observation -------------------------------------------------
 
+    #[inline]
     pub fn observe(&mut self, agent_id: u64, value: u64) {
         let history = self.demand_history.entry(agent_id).or_insert_with(Vec::new);
         history.push(value);
         if history.len() > HISTORY_WINDOW {
-            history.remove(0);
+            history.pop_front();
         }
     }
 
@@ -291,6 +294,7 @@ impl CoopOracle {
 
     // -- outcome certainty --------------------------------------------------
 
+    #[inline]
     pub fn outcome_certainty(&self, prediction_id: u64) -> u64 {
         match self.predictions.get(&prediction_id) {
             Some(p) => p.certainty,
@@ -300,6 +304,7 @@ impl CoopOracle {
 
     // -- validate prediction ------------------------------------------------
 
+    #[inline]
     pub fn validate_prediction(&mut self, prediction_id: u64, actual: u64) {
         if let Some(pred) = self.predictions.get_mut(&prediction_id) {
             pred.actual_value = Some(actual);
@@ -367,6 +372,7 @@ impl CoopOracle {
         Some(forecast)
     }
 
+    #[inline]
     pub fn validate_forecast(&mut self, forecast_id: u64, actual_severity: u64) {
         if let Some(fc) = self.forecasts.get_mut(&forecast_id) {
             let error = abs_diff(fc.predicted_severity, actual_severity);
@@ -391,7 +397,7 @@ impl CoopOracle {
             let velocity = current_trust as i64 - prev as i64;
             traj.history.push(current_trust);
             if traj.history.len() > HISTORY_WINDOW {
-                traj.history.remove(0);
+                traj.history.pop_front().unwrap();
             }
             traj.current_trust = current_trust;
             traj.velocity = velocity;
@@ -408,7 +414,7 @@ impl CoopOracle {
                 current_trust,
                 velocity: 0,
                 predicted_trust: current_trust,
-                history: Vec::new(),
+                history: VecDeque::new(),
             };
         }
 
@@ -431,6 +437,7 @@ impl CoopOracle {
 
     // -- oracle reliability -------------------------------------------------
 
+    #[inline]
     pub fn oracle_reliability(&self) -> u64 {
         if self.calibration_count == 0 {
             return 50;
@@ -490,6 +497,7 @@ impl CoopOracle {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> OracleStats {
         self.stats.clone()
     }

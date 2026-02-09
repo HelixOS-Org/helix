@@ -31,6 +31,7 @@ pub enum BlkdevBridgeResult {
 
 /// Blkdev bridge record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BlkdevBridgeRecord {
     pub op: BlkdevBridgeOp,
     pub result: BlkdevBridgeResult,
@@ -49,6 +50,7 @@ impl BlkdevBridgeRecord {
 
 /// Blkdev bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BlkdevBridgeStats {
     pub total_ops: u64,
     pub opens: u64,
@@ -68,6 +70,7 @@ impl BridgeBlkdev {
         Self { stats: BlkdevBridgeStats { total_ops: 0, opens: 0, ioctls: 0, flushes: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &BlkdevBridgeRecord) {
         self.stats.total_ops += 1;
         match rec.op {

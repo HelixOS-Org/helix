@@ -70,6 +70,7 @@ impl Confidence {
     }
 
     /// Weighted average
+    #[inline]
     pub fn weighted_average(values: &[(Self, f32)]) -> Self {
         if values.is_empty() {
             return Self::ZERO;
@@ -83,6 +84,7 @@ impl Confidence {
     }
 
     /// Confidence level classification
+    #[inline]
     pub fn level(&self) -> ConfidenceLevel {
         match self.0 {
             x if x >= 0.95 => ConfidenceLevel::VeryHigh,
@@ -145,6 +147,7 @@ pub enum ConfidenceLevel {
 
 impl ConfidenceLevel {
     /// Get level name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::VeryLow => "very_low",
@@ -156,11 +159,13 @@ impl ConfidenceLevel {
     }
 
     /// Is actionable (medium or higher)
+    #[inline(always)]
     pub const fn is_actionable(&self) -> bool {
         matches!(self, Self::Medium | Self::High | Self::VeryHigh)
     }
 
     /// Convert to threshold value
+    #[inline]
     pub const fn threshold(&self) -> f32 {
         match self {
             Self::VeryLow => 0.0,

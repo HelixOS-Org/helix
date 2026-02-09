@@ -134,6 +134,7 @@ pub struct BestPractice {
 
 /// Aggregate knowledge base statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct LiteratureStats {
     pub total_protocols: u64,
     pub total_theorems: u64,
@@ -262,6 +263,7 @@ impl CoopLiterature {
     }
 
     /// Retrieve fairness theorems applicable to a protocol category
+    #[inline]
     pub fn fairness_theorem(&self, category: ProtocolCategory) -> Vec<&FairnessTheorem> {
         self.theorems
             .values()
@@ -359,6 +361,7 @@ impl CoopLiterature {
 
     /// Assess knowledge completeness — what fraction of the protocol × contention
     /// space has at least one validated protocol entry
+    #[inline]
     pub fn knowledge_completeness(&mut self) -> f32 {
         let categories = [
             ProtocolCategory::Auction,
@@ -425,6 +428,7 @@ impl CoopLiterature {
     }
 
     /// Get current literature statistics
+    #[inline(always)]
     pub fn stats(&self) -> &LiteratureStats {
         &self.stats
     }

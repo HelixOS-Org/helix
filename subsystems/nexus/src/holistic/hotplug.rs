@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Hotplug resource type
@@ -48,6 +48,7 @@ pub enum HotplugPolicy {
 
 /// CPU hotplug state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuHotplugState {
     pub cpu_id: u32,
     pub online: bool,
@@ -80,11 +81,13 @@ impl CpuHotplugState {
     }
 
     /// Can this CPU be offlined safely?
+    #[inline(always)]
     pub fn can_offline(&self) -> bool {
         self.online && !self.draining && self.tasks_pinned == 0 && self.load_avg < 0.1
     }
 
     /// Needs migration before offline
+    #[inline(always)]
     pub fn needs_migration(&self) -> bool {
         self.tasks_pinned > 0 || self.irqs_assigned > 0
     }
@@ -118,6 +121,7 @@ impl MemorySection {
         }
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.pages_total == 0 {
             return 0.0;
@@ -125,6 +129,7 @@ impl MemorySection {
         self.pages_in_use as f64 / self.pages_total as f64
     }
 
+    #[inline(always)]
     pub fn can_offline(&self) -> bool {
         self.online && self.removable && self.pages_in_use == 0
     }
@@ -143,6 +148,7 @@ pub struct HotplugEvent {
 
 /// Hotplug stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticHotplugStats {
     pub total_cpus: usize,
     pub online_cpus: usize,
@@ -158,7 +164,7 @@ pub struct HolisticHotplugStats {
 pub struct HolisticHotplugMgr {
     cpus: BTreeMap<u32, CpuHotplugState>,
     memory_sections: BTreeMap<u32, MemorySection>,
-    events: Vec<HotplugEvent>,
+    events: VecDeque<HotplugEvent>,
     policy: HotplugPolicy,
     idle_threshold_ms: u64,
     max_events: usize,
@@ -170,7 +176,7 @@ impl HolisticHotplugMgr {
         Self {
             cpus: BTreeMap::new(),
             memory_sections: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             policy,
             idle_threshold_ms: 5000,
             max_events: 256,
@@ -178,11 +184,13 @@ impl HolisticHotplugMgr {
         }
     }
 
+    #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32) {
         self.cpus.insert(cpu_id, CpuHotplugState::new(cpu_id));
         self.recompute();
     }
 
+    #[inline]
     pub fn update_cpu_load(&mut self, cpu_id: u32, load: f64, idle_ms: u64) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.load_avg = load;
@@ -190,6 +198,7 @@ impl HolisticHotplugMgr {
         }
     }
 
+    #[inline]
     pub fn set_pinned_tasks(&mut self, cpu_id: u32, count: u32) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.tasks_pinned = count;
@@ -287,11 +296,13 @@ impl HolisticHotplugMgr {
         false
     }
 
+    #[inline(always)]
     pub fn register_memory(&mut self, section: MemorySection) {
         self.memory_sections.insert(section.section_id, section);
         self.recompute();
     }
 
+    #[inline]
     pub fn update_memory_usage(&mut self, section_id: u32, pages_in_use: u64) {
         if let Some(sec) = self.memory_sections.get_mut(&section_id) {
             sec.pages_in_use = pages_in_use;
@@ -342,9 +353,9 @@ impl HolisticHotplugMgr {
 
     fn record_event(&mut self, event: HotplugEvent) {
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event);
+        self.events.push_back(event);
     }
 
     fn recompute(&mut self) {
@@ -363,10 +374,12 @@ impl HolisticHotplugMgr {
         self.stats.policy = self.policy as u8;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticHotplugStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn events(&self) -> &[HotplugEvent] {
         &self.events
     }

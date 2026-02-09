@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -105,7 +106,7 @@ pub struct ParadigmProposal {
     pub proposal_id: u64,
     pub name: String,
     pub description: String,
-    pub supporting_evidence: Vec<u64>,
+    pub supporting_evidence: VecDeque<u64>,
     pub viability_score: f32,
     pub improvement_estimate: f32,
     pub proposed_tick: u64,
@@ -159,6 +160,7 @@ pub struct ChronicleEntry {
 
 /// Engine-level stats.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct ParadigmStats {
     pub evidence_collected: u64,
     pub shifts_detected: u64,
@@ -176,9 +178,9 @@ pub struct ParadigmStats {
 /// Paradigm shift detection engine for app understanding.
 pub struct AppsParadigm {
     current_paradigm: String,
-    evidence: Vec<ParadigmEvidence>,
+    evidence: VecDeque<ParadigmEvidence>,
     proposals: BTreeMap<u64, ParadigmProposal>,
-    chronicle: Vec<ChronicleEntry>,
+    chronicle: VecDeque<ChronicleEntry>,
     status: ParadigmStatus,
     last_shift_tick: u64,
     stats: ParadigmStats,
@@ -191,9 +193,9 @@ impl AppsParadigm {
     pub fn new(seed: u64, initial_paradigm: &str) -> Self {
         Self {
             current_paradigm: String::from(initial_paradigm),
-            evidence: Vec::new(),
+            evidence: VecDeque::new(),
             proposals: BTreeMap::new(),
-            chronicle: Vec::new(),
+            chronicle: VecDeque::new(),
             status: ParadigmStatus::Stable,
             last_shift_tick: 0,
             stats: ParadigmStats {
@@ -272,6 +274,7 @@ impl AppsParadigm {
     }
 
     /// Submit a piece of evidence for or against the current paradigm.
+    #[inline]
     pub fn evidence_weight(
         &mut self,
         description: &str,
@@ -299,9 +302,9 @@ impl AppsParadigm {
         };
 
         if self.evidence.len() >= MAX_EVIDENCE {
-            self.evidence.remove(0);
+            self.evidence.pop_front();
         }
-        self.evidence.push(evidence);
+        self.evidence.push_back(evidence);
 
         self.stats.ema_evidence_strength =
             EMA_ALPHA * clamped + (1.0 - EMA_ALPHA) * self.stats.ema_evidence_strength;
@@ -440,6 +443,7 @@ impl AppsParadigm {
     }
 
     /// Execute a paradigm shift — record it and update the current paradigm.
+    #[inline]
     pub fn execute_shift(&mut self, proposal_id: u64) -> bool {
         let proposal = match self.proposals.get(&proposal_id) {
             Some(p) => p.clone(),
@@ -471,9 +475,9 @@ impl AppsParadigm {
         });
 
         if self.chronicle.len() >= MAX_CHRONICLE {
-            self.chronicle.remove(0);
+            self.chronicle.pop_front();
         }
-        self.chronicle.push(entry);
+        self.chronicle.push_back(entry);
 
         // Remove the executed proposal
         self.proposals.remove(&proposal_id);
@@ -481,21 +485,25 @@ impl AppsParadigm {
     }
 
     /// Get the full paradigm chronicle — history of all shifts.
+    #[inline(always)]
     pub fn paradigm_chronicle(&self) -> Vec<ChronicleEntry> {
         self.chronicle.clone()
     }
 
     /// Get the current paradigm name.
+    #[inline(always)]
     pub fn current_paradigm(&self) -> &str {
         &self.current_paradigm
     }
 
     /// Get the current paradigm status.
+    #[inline(always)]
     pub fn current_status(&self) -> ParadigmStatus {
         self.status
     }
 
     /// List all active proposals ranked by viability.
+    #[inline]
     pub fn active_proposals(&self) -> Vec<ParadigmProposal> {
         let mut proposals: Vec<ParadigmProposal> = self.proposals.values().cloned().collect();
         for i in 0..proposals.len() {
@@ -509,6 +517,7 @@ impl AppsParadigm {
     }
 
     /// Return engine stats.
+    #[inline(always)]
     pub fn stats(&self) -> &ParadigmStats {
         &self.stats
     }

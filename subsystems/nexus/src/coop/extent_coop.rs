@@ -38,6 +38,7 @@ pub struct CoopExtentNode {
 
 /// Stats for extent cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopExtentStats {
     pub total_extents: u64,
     pub allocations: u64,
@@ -91,6 +92,7 @@ impl CoopExtentManager {
         id
     }
 
+    #[inline]
     pub fn free(&mut self, extent_id: u64) -> bool {
         if let Some(entry) = self.extents.remove(&extent_id) {
             if let Some(list) = self.inode_extents.get_mut(&entry.inode) {
@@ -117,10 +119,12 @@ impl CoopExtentManager {
         None
     }
 
+    #[inline(always)]
     pub fn extents_for_inode(&self, inode: u64) -> usize {
         self.inode_extents.get(&inode).map(|v| v.len()).unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopExtentStats {
         &self.stats
     }

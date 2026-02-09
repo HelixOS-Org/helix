@@ -29,11 +29,13 @@ impl Assignment {
     }
 
     /// Get value of variable
+    #[inline(always)]
     pub fn get(&self, var: VarId) -> Option<bool> {
         self.values.get(var as usize).copied().flatten()
     }
 
     /// Evaluate literal under current assignment
+    #[inline(always)]
     pub fn eval_lit(&self, lit: Literal) -> Option<bool> {
         self.get(lit.var())
             .map(|v| if lit.is_negated() { !v } else { v })
@@ -55,18 +57,21 @@ impl Assignment {
     }
 
     /// Assign a variable
+    #[inline(always)]
     pub fn assign(&mut self, var: VarId, value: bool) {
         self.values[var as usize] = Some(value);
         self.trail.push((var, value, self.decision_level));
     }
 
     /// Make a decision (increase level and assign)
+    #[inline(always)]
     pub fn decide(&mut self, var: VarId, value: bool) {
         self.decision_level += 1;
         self.assign(var, value);
     }
 
     /// Backtrack to a decision level
+    #[inline]
     pub fn backtrack_to(&mut self, level: usize) {
         while let Some(&(var, _, dl)) = self.trail.last() {
             if dl <= level {
@@ -79,11 +84,13 @@ impl Assignment {
     }
 
     /// Is fully assigned?
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.values.iter().all(|v| v.is_some())
     }
 
     /// Get unassigned variable
+    #[inline]
     pub fn pick_unassigned(&self) -> Option<VarId> {
         for (i, v) in self.values.iter().enumerate() {
             if v.is_none() {
@@ -94,6 +101,7 @@ impl Assignment {
     }
 
     /// Get the trail for conflict analysis
+    #[inline(always)]
     pub fn trail(&self) -> &[(VarId, bool, usize)] {
         &self.trail
     }

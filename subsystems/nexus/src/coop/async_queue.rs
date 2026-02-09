@@ -34,6 +34,7 @@ pub enum ItemState {
 
 /// Queue item
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueueItem {
     pub id: u64,
     pub priority: QueuePriority,
@@ -55,10 +56,12 @@ impl QueueItem {
         }
     }
 
+    #[inline(always)]
     pub fn wait_time(&self) -> u64 {
         if self.dequeue_time > 0 { self.dequeue_time - self.enqueue_time } else { 0 }
     }
 
+    #[inline]
     pub fn process_time(&self) -> u64 {
         if self.complete_time > 0 && self.dequeue_time > 0 {
             self.complete_time - self.dequeue_time
@@ -68,6 +71,7 @@ impl QueueItem {
 
 /// Async queue instance
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct AsyncQueueInstance {
     pub id: u64,
     pub order: QueueOrder,
@@ -125,19 +129,25 @@ impl AsyncQueueInstance {
         Some(item)
     }
 
+    #[inline(always)]
     pub fn depth(&self) -> usize { self.items.len() }
+    #[inline(always)]
     pub fn is_full(&self) -> bool { self.items.len() >= self.capacity }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.items.is_empty() }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 { return 0.0; }
         self.items.len() as f64 / self.capacity as f64
     }
 
+    #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
         if self.total_dequeued == 0 { 0 } else { self.total_wait_ns / self.total_dequeued }
     }
 
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.total_enqueued + self.total_dropped;
         if total == 0 { return 0.0; }
@@ -147,6 +157,7 @@ impl AsyncQueueInstance {
 
 /// Async queue stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AsyncQueueStats {
     pub total_queues: u32,
     pub total_enqueued: u64,
@@ -156,6 +167,7 @@ pub struct AsyncQueueStats {
 }
 
 /// Main async queue manager
+#[repr(align(64))]
 pub struct CoopAsyncQueue {
     queues: BTreeMap<u64, AsyncQueueInstance>,
     next_id: u64,
@@ -166,6 +178,7 @@ impl CoopAsyncQueue {
         Self { queues: BTreeMap::new(), next_id: 1 }
     }
 
+    #[inline]
     pub fn create_queue(&mut self, capacity: usize, order: QueueOrder) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -173,18 +186,22 @@ impl CoopAsyncQueue {
         id
     }
 
+    #[inline(always)]
     pub fn enqueue(&mut self, queue_id: u64, item: QueueItem) -> bool {
         self.queues.get_mut(&queue_id).map(|q| q.enqueue(item)).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn dequeue(&mut self, queue_id: u64, consumer_id: u32, now: u64) -> Option<QueueItem> {
         self.queues.get_mut(&queue_id)?.dequeue(consumer_id, now)
     }
 
+    #[inline(always)]
     pub fn destroy_queue(&mut self, queue_id: u64) -> bool {
         self.queues.remove(&queue_id).is_some()
     }
 
+    #[inline]
     pub fn busiest_queues(&self, n: usize) -> Vec<(u64, usize)> {
         let mut v: Vec<_> = self.queues.iter()
             .map(|(&id, q)| (id, q.depth()))
@@ -194,6 +211,7 @@ impl CoopAsyncQueue {
         v
     }
 
+    #[inline]
     pub fn stats(&self) -> AsyncQueueStats {
         AsyncQueueStats {
             total_queues: self.queues.len() as u32,

@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
+use alloc::collections::VecDeque;
 
 use super::types::DeviceType;
 use crate::math;
@@ -26,7 +26,7 @@ struct DeviceLatencyModel {
     /// Current queue depth
     current_queue_depth: u32,
     /// Recent latencies
-    recent_latencies: Vec<u64>,
+    recent_latencies: VecDeque<u64>,
     /// Average latency
     avg_latency: f64,
 }
@@ -43,7 +43,7 @@ impl DeviceLatencyModel {
             per_byte_latency: per_byte,
             queue_depth_factor: 1.1,
             current_queue_depth: 0,
-            recent_latencies: Vec::new(),
+            recent_latencies: VecDeque::new(),
             avg_latency: base as f64,
         }
     }
@@ -57,9 +57,9 @@ impl DeviceLatencyModel {
     }
 
     fn record(&mut self, latency: u64) {
-        self.recent_latencies.push(latency);
+        self.recent_latencies.push_back(latency);
         if self.recent_latencies.len() > 100 {
-            self.recent_latencies.remove(0);
+            self.recent_latencies.pop_front();
         }
 
         // Update average
@@ -88,7 +88,7 @@ pub struct LatencyPredictor {
     /// Device latency models
     device_models: BTreeMap<u32, DeviceLatencyModel>,
     /// Global latency history
-    global_history: Vec<(u64, u64)>, // (size, latency)
+    global_history: VecDeque<(u64, u64)>, // (size, latency)
     /// Max history size
     max_history: usize,
 }
@@ -98,18 +98,20 @@ impl LatencyPredictor {
     pub fn new() -> Self {
         Self {
             device_models: BTreeMap::new(),
-            global_history: Vec::new(),
+            global_history: VecDeque::new(),
             max_history: 1000,
         }
     }
 
     /// Register device
+    #[inline(always)]
     pub fn register_device(&mut self, device_id: u32, device_type: DeviceType) {
         self.device_models
             .insert(device_id, DeviceLatencyModel::new(device_type));
     }
 
     /// Predict latency for request
+    #[inline]
     pub fn predict(&self, device_id: u32, size: u32) -> u64 {
         self.device_models
             .get(&device_id)
@@ -118,18 +120,20 @@ impl LatencyPredictor {
     }
 
     /// Record actual latency
+    #[inline]
     pub fn record(&mut self, device_id: u32, size: u32, latency_ns: u64) {
         if let Some(model) = self.device_models.get_mut(&device_id) {
             model.record(latency_ns);
         }
 
-        self.global_history.push((size as u64, latency_ns));
+        self.global_history.push_back((size as u64, latency_ns));
         if self.global_history.len() > self.max_history {
-            self.global_history.remove(0);
+            self.global_history.pop_front();
         }
     }
 
     /// Update queue depth
+    #[inline]
     pub fn update_queue_depth(&mut self, device_id: u32, depth: u32) {
         if let Some(model) = self.device_models.get_mut(&device_id) {
             model.current_queue_depth = depth;
@@ -137,6 +141,7 @@ impl LatencyPredictor {
     }
 
     /// Get average latency for device
+    #[inline(always)]
     pub fn average_latency(&self, device_id: u32) -> Option<f64> {
         self.device_models.get(&device_id).map(|m| m.avg_latency)
     }

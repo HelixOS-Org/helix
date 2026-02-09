@@ -12,6 +12,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -24,6 +25,7 @@ use crate::types::Timestamp;
 
 /// Counterfactual scenario
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualScenario {
     /// Scenario ID
     pub id: u64,
@@ -68,16 +70,19 @@ impl World {
     }
 
     /// Set variable
+    #[inline(always)]
     pub fn set(&mut self, name: &str, value: WorldValue) {
         self.variables.insert(name.into(), value);
     }
 
     /// Get variable
+    #[inline(always)]
     pub fn get(&self, name: &str) -> Option<&WorldValue> {
         self.variables.get(name)
     }
 
     /// Clone and modify
+    #[inline]
     pub fn with_change(&self, name: &str, value: WorldValue) -> Self {
         let mut new_world = self.clone();
         new_world.variables.insert(name.into(), value);
@@ -104,6 +109,7 @@ pub enum WorldValue {
 
 impl WorldValue {
     /// Convert to float
+    #[inline]
     pub fn as_float(&self) -> Option<f64> {
         match self {
             WorldValue::Float(f) => Some(*f),
@@ -114,6 +120,7 @@ impl WorldValue {
     }
 
     /// Convert to bool
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             WorldValue::Bool(b) => Some(*b),
@@ -202,6 +209,7 @@ pub enum ScenarioStatus {
 
 /// Counterfactual result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualResult {
     /// Scenario ID
     pub scenario_id: u64,
@@ -248,6 +256,7 @@ pub struct ComputationStep {
 // ============================================================================
 
 /// Counterfactual reasoning engine
+#[repr(align(64))]
 pub struct CounterfactualEngine {
     /// Scenarios
     scenarios: BTreeMap<u64, CounterfactualScenario>,
@@ -263,6 +272,7 @@ pub struct CounterfactualEngine {
 
 /// Configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualConfig {
     /// Maximum propagation depth
     pub max_depth: usize,
@@ -284,6 +294,7 @@ impl Default for CounterfactualConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CounterfactualStats {
     /// Scenarios created
     pub scenarios_created: u64,
@@ -398,7 +409,7 @@ impl CounterfactualEngine {
 
     fn propagate(&self, world: &mut World, changed: &str) -> Vec<ComputationStep> {
         let mut steps = Vec::new();
-        let mut to_update: Vec<String> = Vec::new();
+        let mut to_update: VecDeque<String> = Vec::new();
         let mut updated = alloc::collections::BTreeSet::new();
 
         // Find equations that depend on the changed variable
@@ -411,7 +422,7 @@ impl CounterfactualEngine {
         // Propagate changes
         let mut depth = 0;
         while !to_update.is_empty() && depth < self.config.max_depth {
-            let current = to_update.remove(0);
+            let current = to_update.pop_front().unwrap();
 
             if updated.contains(&current) && !self.config.allow_loops {
                 continue;
@@ -550,16 +561,19 @@ impl CounterfactualEngine {
     }
 
     /// Get scenario
+    #[inline(always)]
     pub fn get_scenario(&self, id: u64) -> Option<&CounterfactualScenario> {
         self.scenarios.get(&id)
     }
 
     /// Get result
+    #[inline(always)]
     pub fn get_result(&self, id: u64) -> Option<&CounterfactualResult> {
         self.results.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CounterfactualStats {
         &self.stats
     }

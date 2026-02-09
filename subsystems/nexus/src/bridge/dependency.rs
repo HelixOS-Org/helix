@@ -46,6 +46,7 @@ pub enum DependencyStrength {
 
 /// Dependency edge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DependencyEdge {
     /// Source node
     pub from: u64,
@@ -102,16 +103,19 @@ impl DependencyNode {
     }
 
     /// Slack (latest - earliest)
+    #[inline(always)]
     pub fn slack(&self) -> u64 {
         self.latest_start.saturating_sub(self.earliest_start)
     }
 
     /// Is on critical path?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.slack() == 0
     }
 
     /// Can start? (all predecessors completed)
+    #[inline(always)]
     pub fn can_start(&self, completed: &[u64]) -> bool {
         self.predecessors.iter().all(|p| completed.contains(p))
     }
@@ -123,6 +127,7 @@ impl DependencyNode {
 
 /// Dependency graph
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DependencyGraph {
     /// Nodes
     pub nodes: BTreeMap<u64, DependencyNode>,
@@ -139,6 +144,7 @@ impl DependencyGraph {
     }
 
     /// Add node
+    #[inline(always)]
     pub fn add_node(&mut self, node: DependencyNode) {
         self.nodes.insert(node.id, node);
     }
@@ -200,6 +206,7 @@ impl DependencyGraph {
     }
 
     /// Detect cycles (returns true if cycle exists)
+    #[inline(always)]
     pub fn has_cycle(&self) -> bool {
         self.topological_sort().is_none()
     }
@@ -281,6 +288,7 @@ impl DependencyGraph {
     }
 
     /// Makespan (total time)
+    #[inline]
     pub fn makespan(&self) -> u64 {
         self.nodes
             .values()
@@ -306,11 +314,13 @@ impl DependencyGraph {
     }
 
     /// Node count
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
 
     /// Edge count
+    #[inline(always)]
     pub fn edge_count(&self) -> usize {
         self.edges.len()
     }
@@ -322,6 +332,7 @@ impl DependencyGraph {
 
 /// Dependency tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DependencyTrackerStats {
     /// Graphs tracked
     pub graphs: usize,
@@ -334,6 +345,7 @@ pub struct DependencyTrackerStats {
 }
 
 /// Bridge dependency tracker
+#[repr(align(64))]
 pub struct BridgeDependencyTracker {
     /// Active graphs
     graphs: BTreeMap<u64, DependencyGraph>,
@@ -353,6 +365,7 @@ impl BridgeDependencyTracker {
     }
 
     /// Create new dependency graph
+    #[inline]
     pub fn create_graph(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -362,6 +375,7 @@ impl BridgeDependencyTracker {
     }
 
     /// Add node to graph
+    #[inline]
     pub fn add_node(&mut self, graph_id: u64, node: DependencyNode) {
         if let Some(g) = self.graphs.get_mut(&graph_id) {
             g.add_node(node);
@@ -370,6 +384,7 @@ impl BridgeDependencyTracker {
     }
 
     /// Add edge
+    #[inline]
     pub fn add_edge(&mut self, graph_id: u64, edge: DependencyEdge) -> bool {
         if let Some(g) = self.graphs.get_mut(&graph_id) {
             g.add_edge(edge);
@@ -383,11 +398,13 @@ impl BridgeDependencyTracker {
     }
 
     /// Get execution order
+    #[inline(always)]
     pub fn execution_order(&self, graph_id: u64) -> Option<Vec<u64>> {
         self.graphs.get(&graph_id)?.topological_sort()
     }
 
     /// Get critical path
+    #[inline]
     pub fn critical_path(&mut self, graph_id: u64) -> Vec<u64> {
         if let Some(g) = self.graphs.get_mut(&graph_id) {
             g.critical_path()
@@ -397,12 +414,14 @@ impl BridgeDependencyTracker {
     }
 
     /// Remove completed graph
+    #[inline(always)]
     pub fn remove_graph(&mut self, graph_id: u64) {
         self.graphs.remove(&graph_id);
         self.stats.graphs = self.graphs.len();
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &DependencyTrackerStats {
         &self.stats
     }

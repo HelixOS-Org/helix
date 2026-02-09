@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -132,6 +133,7 @@ pub struct BayesianFusion {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct UncertaintyState {
     pub tick: u64,
     pub prior_uncertainty_bps: u64,
@@ -145,6 +147,7 @@ pub struct UncertaintyState {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct OracleStats {
     pub source_count: u64,
     pub total_predictions: u64,
@@ -179,7 +182,7 @@ impl OracleStats {
 
 pub struct HolisticOracle {
     sources: BTreeMap<u64, PredictionSource>,
-    predictions: Vec<OraclePrediction>,
+    predictions: VecDeque<OraclePrediction>,
     stats: OracleStats,
     rng: Xorshift64,
     tick: u64,
@@ -189,7 +192,7 @@ impl HolisticOracle {
     pub fn new(seed: u64) -> Self {
         Self {
             sources: BTreeMap::new(),
-            predictions: Vec::new(),
+            predictions: VecDeque::new(),
             stats: OracleStats::new(),
             rng: Xorshift64::new(seed),
             tick: 0,
@@ -202,6 +205,7 @@ impl HolisticOracle {
 
     // -- source management --------------------------------------------------
 
+    #[inline]
     pub fn register_source(&mut self, name: String) -> u64 {
         let src = PredictionSource::new(name);
         let h = src.source_hash;
@@ -270,9 +274,9 @@ impl HolisticOracle {
             uncertainty_bps: uncertainty,
         };
         if self.predictions.len() >= MAX_PREDICTIONS {
-            self.predictions.remove(0);
+            self.predictions.pop_front();
         }
-        self.predictions.push(pred.clone());
+        self.predictions.push_back(pred.clone());
         self.stats.ema_accuracy_bps = ema_update(self.stats.ema_accuracy_bps, confidence);
         self.stats.uncertainty_bps = ema_update(self.stats.uncertainty_bps, uncertainty);
         pred
@@ -307,6 +311,7 @@ impl HolisticOracle {
     }
 
     /// Check whether prediction perfection (≥98%) has been achieved.
+    #[inline]
     pub fn prediction_perfection(&mut self) -> (bool, u64) {
         self.advance_tick();
         self.refresh_global_accuracy();
@@ -338,6 +343,7 @@ impl HolisticOracle {
     }
 
     /// Global oracle accuracy in basis-points.
+    #[inline]
     pub fn oracle_accuracy(&mut self) -> u64 {
         self.advance_tick();
         self.refresh_global_accuracy();
@@ -367,26 +373,30 @@ impl HolisticOracle {
             uncertainty_bps: 10_000_u64.saturating_sub(confidence),
         };
         if self.predictions.len() >= MAX_PREDICTIONS {
-            self.predictions.remove(0);
+            self.predictions.pop_front();
         }
-        self.predictions.push(pred.clone());
+        self.predictions.push_back(pred.clone());
         pred
     }
 
     // -- accessors ----------------------------------------------------------
 
+    #[inline(always)]
     pub fn stats(&self) -> &OracleStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn source_count(&self) -> usize {
         self.sources.len()
     }
 
+    #[inline(always)]
     pub fn prediction_count(&self) -> usize {
         self.predictions.len()
     }
 
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

@@ -25,6 +25,7 @@ pub struct CpuUsage {
 
 impl CpuUsage {
     /// Calculate throttle percentage
+    #[inline]
     pub fn throttle_percent(&self) -> f32 {
         if self.nr_periods == 0 {
             return 0.0;
@@ -72,6 +73,7 @@ pub struct MemoryUsage {
 
 impl MemoryUsage {
     /// Calculate usage percentage
+    #[inline]
     pub fn usage_percent(&self, limit: u64) -> f32 {
         if limit == 0 || limit == u64::MAX {
             return 0.0;
@@ -99,11 +101,13 @@ pub struct IoUsage {
 
 impl IoUsage {
     /// Total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.bytes_read + self.bytes_written
     }
 
     /// Total operations
+    #[inline(always)]
     pub fn total_ops(&self) -> u64 {
         self.read_ops + self.write_ops
     }

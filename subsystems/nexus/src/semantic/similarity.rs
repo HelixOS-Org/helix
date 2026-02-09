@@ -67,6 +67,7 @@ impl EuclideanDistance {
         Self { normalize: true }
     }
 
+    #[inline(always)]
     pub fn raw() -> Self {
         Self { normalize: false }
     }
@@ -314,6 +315,7 @@ impl SimilarityMatrix {
     }
 
     /// Get similarity between two embeddings by index
+    #[inline]
     pub fn get(&self, i: usize, j: usize) -> Option<f32> {
         if i < self.size && j < self.size {
             Some(self.matrix[i * self.size + j])
@@ -323,6 +325,7 @@ impl SimilarityMatrix {
     }
 
     /// Get similarity between two embeddings by ID
+    #[inline]
     pub fn get_by_id(&self, id_a: EmbeddingId, id_b: EmbeddingId) -> Option<f32> {
         let i = self.ids.iter().position(|&id| id == id_a)?;
         let j = self.ids.iter().position(|&id| id == id_b)?;
@@ -345,6 +348,7 @@ impl SimilarityMatrix {
     }
 
     /// Get row (all similarities for one embedding)
+    #[inline]
     pub fn row(&self, i: usize) -> Option<&[f32]> {
         if i < self.size {
             Some(&self.matrix[i * self.size..(i + 1) * self.size])
@@ -353,10 +357,12 @@ impl SimilarityMatrix {
         }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.size
     }
 
+    #[inline(always)]
     pub fn metric_name(&self) -> &str {
         &self.metric_name
     }
@@ -380,21 +386,25 @@ impl SimilaritySearch {
         }
     }
 
+    #[inline]
     pub fn add(&mut self, embedding: Embedding) {
         let idx = self.embeddings.len();
         self.id_to_index.insert(embedding.id, idx);
         self.embeddings.push(embedding);
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.embeddings.len()
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.embeddings.is_empty()
     }
 
     /// Find K nearest neighbors using given metric
+    #[inline]
     pub fn knn<M: SimilarityMetric>(
         &self,
         query: &Embedding,
@@ -584,6 +594,7 @@ impl WeightedSimilarity {
         }
     }
 
+    #[inline(always)]
     pub fn add_metric<M: SimilarityMetric + 'static>(&mut self, metric: M, weight: f32) {
         self.metrics.push((Box::new(metric), weight));
     }

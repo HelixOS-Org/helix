@@ -74,6 +74,7 @@ impl SymlinkRecord {
         }
     }
 
+    #[inline(always)]
     pub fn is_fast_symlink(&self) -> bool {
         self.target_len <= 60
     }
@@ -114,12 +115,14 @@ impl SymlinkResolver {
         true
     }
 
+    #[inline]
     pub fn reset(&mut self) {
         self.current_depth = 0;
         self.visited.clear();
         self.total_resolutions += 1;
     }
 
+    #[inline(always)]
     pub fn loop_rate(&self) -> f64 {
         if self.total_resolutions == 0 { 0.0 }
         else { self.loop_detections as f64 / self.total_resolutions as f64 }
@@ -128,6 +131,7 @@ impl SymlinkResolver {
 
 /// Symlink app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SymlinkAppStats {
     pub total_created: u64,
     pub relative_links: u64,

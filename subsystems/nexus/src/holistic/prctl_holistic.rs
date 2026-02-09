@@ -26,6 +26,7 @@ pub struct HolisticPrctlEntry {
 
 /// Prctl holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticPrctlStats {
     pub total_analyzed: u64,
     pub hardened: u64,
@@ -85,6 +86,7 @@ impl HolisticPrctlManager {
         posture
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticPrctlStats {
         &self.stats
     }

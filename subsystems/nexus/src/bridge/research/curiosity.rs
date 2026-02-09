@@ -138,6 +138,7 @@ struct ExplorationRecord {
 
 /// Curiosity engine statistics.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct CuriosityStats {
     pub total_explorations: u64,
     pub exploit_count: u64,
@@ -156,6 +157,7 @@ pub struct CuriosityStats {
 // ============================================================================
 
 /// Proactive exploration engine for syscall optimization space.
+#[repr(align(64))]
 pub struct BridgeCuriosityEngine {
     dimensions: BTreeMap<u64, Dimension>,
     frontier: BTreeMap<u64, FrontierCell>,
@@ -283,6 +285,7 @@ impl BridgeCuriosityEngine {
     }
 
     /// Compute novelty score for a given dimension and region.
+    #[inline]
     pub fn novelty_score(&self, dim_name: &str, region_low: f32, region_high: f32) -> f32 {
         let dim_id = fnv1a_hash(dim_name.as_bytes());
         let cell_key = self.cell_key(dim_id, region_low);
@@ -352,16 +355,19 @@ impl BridgeCuriosityEngine {
     }
 
     /// Current stats.
+    #[inline(always)]
     pub fn stats(&self) -> &CuriosityStats {
         &self.stats
     }
 
     /// Number of frontier cells.
+    #[inline(always)]
     pub fn frontier_size(&self) -> usize {
         self.frontier.len()
     }
 
     /// Number of registered dimensions.
+    #[inline(always)]
     pub fn dimension_count(&self) -> usize {
         self.dimensions.len()
     }

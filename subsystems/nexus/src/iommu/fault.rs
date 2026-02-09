@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -33,6 +34,7 @@ pub enum FaultType {
 
 impl FaultType {
     /// Get fault name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Translation => "translation",
@@ -46,6 +48,7 @@ impl FaultType {
     }
 
     /// Is security related
+    #[inline(always)]
     pub fn is_security(&self) -> bool {
         matches!(self, Self::Permission | Self::Device)
     }
@@ -99,7 +102,7 @@ impl IommuFault {
 /// IOMMU fault tracker
 pub struct FaultTracker {
     /// Faults
-    faults: Vec<IommuFault>,
+    faults: VecDeque<IommuFault>,
     /// Max faults
     max_faults: usize,
     /// Fault count by device
@@ -116,7 +119,7 @@ impl FaultTracker {
     /// Create new tracker
     pub fn new(max_faults: usize) -> Self {
         Self {
-            faults: Vec::new(),
+            faults: VecDeque::new(),
             max_faults,
             by_device: BTreeMap::new(),
             by_type: BTreeMap::new(),
@@ -147,28 +150,32 @@ impl FaultTracker {
         }
 
         if self.faults.len() >= self.max_faults {
-            self.faults.remove(0);
+            self.faults.pop_front();
         }
-        self.faults.push(fault);
+        self.faults.push_back(fault);
     }
 
     /// Get recent faults
+    #[inline(always)]
     pub fn recent(&self, count: usize) -> &[IommuFault] {
         let start = self.faults.len().saturating_sub(count);
         &self.faults[start..]
     }
 
     /// Get faults for device
+    #[inline(always)]
     pub fn for_device(&self, device: DeviceId) -> Vec<&IommuFault> {
         self.faults.iter().filter(|f| f.device == device).collect()
     }
 
     /// Get total
+    #[inline(always)]
     pub fn total(&self) -> u64 {
         self.total.load(Ordering::Relaxed)
     }
 
     /// Get top faulting devices
+    #[inline]
     pub fn top_devices(&self, n: usize) -> Vec<(DeviceId, u64)> {
         let mut sorted: Vec<_> = self.by_device.iter().map(|(k, v)| (*k, *v)).collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
@@ -177,6 +184,7 @@ impl FaultTracker {
     }
 
     /// Enable/disable
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }

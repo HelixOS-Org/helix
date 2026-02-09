@@ -82,6 +82,7 @@ impl XdpMap {
         }
     }
 
+    #[inline]
     pub fn lookup(&mut self, found: bool) {
         self.lookups += 1;
         if !found {
@@ -89,6 +90,7 @@ impl XdpMap {
         }
     }
 
+    #[inline]
     pub fn update(&mut self) -> bool {
         if self.current_entries >= self.max_entries {
             return false;
@@ -98,6 +100,7 @@ impl XdpMap {
         true
     }
 
+    #[inline]
     pub fn delete(&mut self) -> bool {
         if self.current_entries == 0 {
             return false;
@@ -107,6 +110,7 @@ impl XdpMap {
         true
     }
 
+    #[inline]
     pub fn utilization_pct(&self) -> f64 {
         if self.max_entries == 0 {
             return 0.0;
@@ -114,6 +118,7 @@ impl XdpMap {
         (self.current_entries as f64 / self.max_entries as f64) * 100.0
     }
 
+    #[inline]
     pub fn miss_rate(&self) -> f64 {
         if self.lookups == 0 {
             return 0.0;
@@ -121,6 +126,7 @@ impl XdpMap {
         self.lookup_misses as f64 / self.lookups as f64
     }
 
+    #[inline(always)]
     pub fn memory_bytes(&self) -> u64 {
         (self.key_size as u64 + self.value_size as u64) * self.max_entries as u64
     }
@@ -161,6 +167,7 @@ impl XdpProgram {
         }
     }
 
+    #[inline]
     pub fn verify(&mut self) -> bool {
         if self.insn_count > 0 && self.insn_count <= 1_000_000 {
             self.state = XdpProgState::Verified;
@@ -171,18 +178,21 @@ impl XdpProgram {
         }
     }
 
+    #[inline]
     pub fn jit_compile(&mut self) {
         if self.state == XdpProgState::Verified {
             self.state = XdpProgState::JitCompiled;
         }
     }
 
+    #[inline]
     pub fn attach(&mut self, interface_id: u32, mode: XdpAttachMode) {
         self.interface_id = interface_id;
         self.attach_mode = mode;
         self.state = XdpProgState::Attached;
     }
 
+    #[inline]
     pub fn record_execution(&mut self, action: XdpAction, pkt_bytes: u64, duration_ns: u64) {
         self.packets_processed += 1;
         self.bytes_processed += pkt_bytes;
@@ -191,10 +201,12 @@ impl XdpProgram {
         self.actions[action as usize] += 1;
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.run_count == 0 { 0 } else { self.run_time_ns / self.run_count }
     }
 
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         if self.packets_processed == 0 {
             return 0.0;
@@ -202,6 +214,7 @@ impl XdpProgram {
         self.actions[XdpAction::Drop as usize] as f64 / self.packets_processed as f64
     }
 
+    #[inline]
     pub fn redirect_rate(&self) -> f64 {
         if self.packets_processed == 0 {
             return 0.0;
@@ -209,6 +222,7 @@ impl XdpProgram {
         self.actions[XdpAction::Redirect as usize] as f64 / self.packets_processed as f64
     }
 
+    #[inline(always)]
     pub fn add_map(&mut self, map_id: u32) {
         self.maps.push(map_id);
     }
@@ -216,6 +230,7 @@ impl XdpProgram {
 
 /// XDP manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct XdpMgrStats {
     pub total_programs: u64,
     pub attached_programs: u64,
@@ -253,6 +268,7 @@ impl HolisticXdpMgr {
         }
     }
 
+    #[inline]
     pub fn load_program(&mut self, insn_count: u32) -> u32 {
         let id = self.next_prog_id;
         self.next_prog_id += 1;
@@ -264,6 +280,7 @@ impl HolisticXdpMgr {
         id
     }
 
+    #[inline]
     pub fn attach_program(&mut self, prog_id: u32, interface_id: u32, mode: XdpAttachMode) -> bool {
         if let Some(prog) = self.programs.get_mut(&prog_id) {
             prog.attach(interface_id, mode);
@@ -274,6 +291,7 @@ impl HolisticXdpMgr {
         }
     }
 
+    #[inline]
     pub fn create_map(&mut self, map_type: XdpMapType, key_size: u32, value_size: u32, max_entries: u32) -> u32 {
         let id = self.next_map_id;
         self.next_map_id += 1;
@@ -282,6 +300,7 @@ impl HolisticXdpMgr {
         id
     }
 
+    #[inline(always)]
     pub fn total_map_memory(&self) -> u64 {
         self.maps.values().map(|m| m.memory_bytes()).sum()
     }

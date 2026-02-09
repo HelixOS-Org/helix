@@ -11,7 +11,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -127,6 +129,7 @@ pub struct ResearchTrend {
 
 /// Aggregate journal statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct JournalStats {
     pub total_entries: u64,
     pub total_published: u64,
@@ -204,7 +207,7 @@ impl TermIndex {
             return Vec::new();
         }
 
-        let mut scores: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut scores: LinearMap<f32, 64> = BTreeMap::new();
         let term_count = term_hashes.len() as f32;
         for th in &term_hashes {
             if let Some(entries) = self.index.get(th) {
@@ -291,7 +294,7 @@ impl AppsJournal {
             let trend = self.topic_trends.entry(topic_hash).or_insert_with(Vec::new);
             trend.push(tick);
             if trend.len() > TREND_WINDOW {
-                trend.remove(0);
+                trend.pop_front();
             }
 
             self.entries.insert(id, entry);
@@ -450,11 +453,13 @@ impl AppsJournal {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> JournalStats {
         self.stats
     }
 
     /// Get entry by id
+    #[inline(always)]
     pub fn entry(&self, entry_id: u64) -> Option<&JournalEntry> {
         self.entries.get(&entry_id)
     }

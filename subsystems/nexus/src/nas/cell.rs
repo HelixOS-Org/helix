@@ -38,11 +38,13 @@ impl Cell {
     }
 
     /// Add an edge with operation
+    #[inline(always)]
     pub fn add_edge(&mut self, from: usize, to: usize, op: OperationType) {
         self.edges.push((from, to, op));
     }
 
     /// Count parameters in this cell
+    #[inline]
     pub fn param_count(&self) -> usize {
         self.edges
             .iter()
@@ -51,6 +53,7 @@ impl Cell {
     }
 
     /// Estimate FLOPs for this cell
+    #[inline]
     pub fn estimated_flops(&self) -> u64 {
         self.edges
             .iter()

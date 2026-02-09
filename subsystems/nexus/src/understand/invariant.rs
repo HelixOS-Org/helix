@@ -18,6 +18,7 @@ pub struct InvariantId(pub u64);
 
 impl InvariantId {
     /// Create new invariant ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
@@ -259,11 +260,13 @@ impl InvariantMiner {
     }
 
     /// Add invariant
+    #[inline(always)]
     pub fn add_invariant(&mut self, invariant: Invariant) {
         self.invariants.push(invariant);
     }
 
     /// Mine null check invariants
+    #[inline]
     pub fn mine_null_checks(&mut self, _model: &SemanticModel) {
         // Look for patterns like:
         // - if ptr.is_null() { return; }
@@ -273,6 +276,7 @@ impl InvariantMiner {
     }
 
     /// Mine bounds check invariants
+    #[inline]
     pub fn mine_bounds_checks(&mut self, _model: &SemanticModel) {
         // Look for patterns like:
         // - if index < len { array[index] }
@@ -281,31 +285,37 @@ impl InvariantMiner {
     }
 
     /// Mine ownership invariants
+    #[inline(always)]
     pub fn mine_ownership(&mut self, _model: &SemanticModel) {
         // Analyze borrow patterns to extract ownership invariants
     }
 
     /// Mine loop invariants
+    #[inline(always)]
     pub fn mine_loop_invariants(&mut self, _model: &SemanticModel) {
         // Analyze loop structures to find invariants
     }
 
     /// Get all invariants
+    #[inline(always)]
     pub fn invariants(&self) -> &[Invariant] {
         &self.invariants
     }
 
     /// Invariant count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.invariants.len()
     }
 
     /// Filter by kind
+    #[inline(always)]
     pub fn by_kind(&self, kind: InvariantKind) -> Vec<&Invariant> {
         self.invariants.iter().filter(|i| i.kind == kind).collect()
     }
 
     /// Filter by confidence
+    #[inline]
     pub fn by_confidence(&self, min_confidence: InvariantConfidence) -> Vec<&Invariant> {
         self.invariants
             .iter()

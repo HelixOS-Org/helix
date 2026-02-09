@@ -40,16 +40,19 @@ pub enum FileType {
 
 impl FileType {
     /// Is this a regular file?
+    #[inline(always)]
     pub fn is_file(&self) -> bool {
         matches!(self, Self::Regular)
     }
 
     /// Is this a directory?
+    #[inline(always)]
     pub fn is_dir(&self) -> bool {
         matches!(self, Self::Directory)
     }
 
     /// Can this be cached?
+    #[inline(always)]
     pub fn is_cacheable(&self) -> bool {
         matches!(self, Self::Regular | Self::Directory | Self::Symlink)
     }
@@ -76,11 +79,13 @@ pub enum AccessMode {
 
 impl AccessMode {
     /// Is this a read operation?
+    #[inline(always)]
     pub fn is_read(&self) -> bool {
         matches!(self, Self::Read | Self::ReadWrite)
     }
 
     /// Is this a write operation?
+    #[inline(always)]
     pub fn is_write(&self) -> bool {
         matches!(self, Self::Write | Self::ReadWrite | Self::Append)
     }

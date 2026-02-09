@@ -82,6 +82,7 @@ impl CodeUnderstandingIntelligence {
     }
 
     /// Parse and analyze source code
+    #[inline]
     pub fn analyze_source(&mut self, source: String, file_id: u32) -> Vec<Token> {
         let mut lexer = Lexer::new(source, file_id);
         let tokens = lexer.tokenize_all();
@@ -91,6 +92,7 @@ impl CodeUnderstandingIntelligence {
     }
 
     /// Mine invariants from model
+    #[inline]
     pub fn mine_invariants(&mut self) {
         self.miner.mine_null_checks(&self.model);
         self.miner.mine_bounds_checks(&self.model);
@@ -99,11 +101,13 @@ impl CodeUnderstandingIntelligence {
     }
 
     /// Build control flow graph for function
+    #[inline(always)]
     pub fn build_cfg(&mut self, func_id: SymbolId) -> &ControlFlowGraph {
         self.cfgs.entry(func_id).or_default()
     }
 
     /// Analyze data flow for function
+    #[inline(always)]
     pub fn analyze_data_flow(&mut self, func_id: SymbolId) {
         self.data_flow.analyze_function(func_id, &self.model);
     }
@@ -147,46 +151,55 @@ impl CodeUnderstandingIntelligence {
     }
 
     /// Get semantic model
+    #[inline(always)]
     pub fn model(&self) -> &SemanticModel {
         &self.model
     }
 
     /// Get semantic model mutably
+    #[inline(always)]
     pub fn model_mut(&mut self) -> &mut SemanticModel {
         &mut self.model
     }
 
     /// Get invariant miner
+    #[inline(always)]
     pub fn miner(&self) -> &InvariantMiner {
         &self.miner
     }
 
     /// Get invariant miner mutably
+    #[inline(always)]
     pub fn miner_mut(&mut self) -> &mut InvariantMiner {
         &mut self.miner
     }
 
     /// Get data flow analyzer
+    #[inline(always)]
     pub fn data_flow(&self) -> &DataFlowAnalyzer {
         &self.data_flow
     }
 
     /// Get data flow analyzer mutably
+    #[inline(always)]
     pub fn data_flow_mut(&mut self) -> &mut DataFlowAnalyzer {
         &mut self.data_flow
     }
 
     /// Get control flow graphs
+    #[inline(always)]
     pub fn cfgs(&self) -> &BTreeMap<SymbolId, ControlFlowGraph> {
         &self.cfgs
     }
 
     /// Get files analyzed count
+    #[inline(always)]
     pub fn files_analyzed(&self) -> u64 {
         self.files_analyzed
     }
 
     /// Reset all analysis
+    #[inline]
     pub fn reset(&mut self) {
         self.model = SemanticModel::new();
         self.miner = InvariantMiner::new();

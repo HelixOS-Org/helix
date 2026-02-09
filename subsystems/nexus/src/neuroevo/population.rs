@@ -298,6 +298,7 @@ impl NeatPopulation {
     }
 
     /// Update best genome tracking
+    #[inline]
     pub fn update_best(&mut self) {
         for genome in &self.genomes {
             if genome.fitness > self.best_fitness {
@@ -308,6 +309,7 @@ impl NeatPopulation {
     }
 
     /// Get the best network
+    #[inline(always)]
     pub fn get_best_network(&self) -> Option<NeatNetwork> {
         self.best_genome.as_ref().map(NeatNetwork::from_genome)
     }

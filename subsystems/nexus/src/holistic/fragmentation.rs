@@ -63,6 +63,7 @@ pub enum FragSeverity {
 
 /// Buddy allocator order statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BuddyOrderStats {
     /// Free blocks per order (order 0-10 typically)
     pub free_blocks: [u64; 11],
@@ -79,6 +80,7 @@ impl BuddyOrderStats {
     }
 
     /// Free pages at order n = free_blocks[n] * 2^n
+    #[inline]
     pub fn free_pages_at_order(&self, order: usize) -> u64 {
         if order >= 11 {
             return 0;
@@ -87,6 +89,7 @@ impl BuddyOrderStats {
     }
 
     /// Total free pages
+    #[inline]
     pub fn total_free_pages(&self) -> u64 {
         let mut total = 0u64;
         for order in 0..11 {
@@ -113,6 +116,7 @@ impl BuddyOrderStats {
     }
 
     /// Can allocate contiguous pages of given order?
+    #[inline]
     pub fn can_allocate(&self, order: usize) -> bool {
         for o in order..11 {
             if self.free_blocks[o] > 0 {
@@ -123,6 +127,7 @@ impl BuddyOrderStats {
     }
 
     /// Largest contiguous allocation possible
+    #[inline]
     pub fn max_contiguous_order(&self) -> usize {
         for order in (0..11).rev() {
             if self.free_blocks[order] > 0 {
@@ -155,6 +160,7 @@ impl BuddyOrderStats {
 
 /// Slab cache info
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlabCacheInfo {
     /// Cache name hash
     pub name_hash: u64,
@@ -174,6 +180,7 @@ pub struct SlabCacheInfo {
 
 impl SlabCacheInfo {
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total_objects == 0 {
             return 0.0;
@@ -182,6 +189,7 @@ impl SlabCacheInfo {
     }
 
     /// Internal fragmentation (wasted within allocated slabs)
+    #[inline]
     pub fn internal_fragmentation(&self) -> f64 {
         if self.total_objects == 0 {
             return 0.0;
@@ -190,12 +198,14 @@ impl SlabCacheInfo {
     }
 
     /// Wasted memory bytes
+    #[inline(always)]
     pub fn wasted_bytes(&self) -> u64 {
         let unused = self.total_objects.saturating_sub(self.active_objects);
         unused * self.object_size as u64
     }
 
     /// Is this cache a fragmentation concern?
+    #[inline(always)]
     pub fn is_fragmented(&self) -> bool {
         self.internal_fragmentation() > 0.5 && self.wasted_bytes() > 4096
     }
@@ -207,6 +217,7 @@ impl SlabCacheInfo {
 
 /// Per-zone fragmentation data
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ZoneFragStats {
     /// Zone
     pub zone: MemoryZone,
@@ -235,11 +246,13 @@ impl ZoneFragStats {
     }
 
     /// Free pages
+    #[inline(always)]
     pub fn free_pages(&self) -> u64 {
         self.total_pages.saturating_sub(self.used_pages)
     }
 
     /// Usage ratio
+    #[inline]
     pub fn usage_ratio(&self) -> f64 {
         if self.total_pages == 0 {
             return 0.0;
@@ -248,11 +261,13 @@ impl ZoneFragStats {
     }
 
     /// Needs compaction?
+    #[inline(always)]
     pub fn needs_compaction(&self) -> bool {
         self.buddy.severity() >= FragSeverity::High && self.free_pages() > 0
     }
 
     /// Compaction success rate
+    #[inline]
     pub fn compaction_success_rate(&self) -> f64 {
         if self.compaction_attempts == 0 {
             return 0.0;
@@ -292,6 +307,7 @@ impl HugePageAvailability {
     }
 
     /// 2MB utilization
+    #[inline]
     pub fn utilization_2mb(&self) -> f64 {
         if self.total_2mb == 0 {
             return 0.0;
@@ -300,6 +316,7 @@ impl HugePageAvailability {
     }
 
     /// 1GB utilization
+    #[inline]
     pub fn utilization_1gb(&self) -> f64 {
         if self.total_1gb == 0 {
             return 0.0;
@@ -314,6 +331,7 @@ impl HugePageAvailability {
 
 /// Fragmentation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticFragmentationStats {
     /// Number of zones
     pub zone_count: usize,
@@ -348,6 +366,7 @@ impl HolisticFragmentationEngine {
     }
 
     /// Register zone
+    #[inline]
     pub fn register_zone(&mut self, zone: MemoryZone) {
         let key = zone as u8;
         if !self.zones.contains_key(&key) {
@@ -357,6 +376,7 @@ impl HolisticFragmentationEngine {
     }
 
     /// Update zone buddy stats
+    #[inline]
     pub fn update_zone_buddy(&mut self, zone: MemoryZone, order: usize, free: u64, total: u64) {
         let key = zone as u8;
         if let Some(zs) = self.zones.get_mut(&key) {
@@ -369,17 +389,20 @@ impl HolisticFragmentationEngine {
     }
 
     /// Register slab cache
+    #[inline(always)]
     pub fn register_slab(&mut self, info: SlabCacheInfo) {
         self.slabs.insert(info.name_hash, info);
         self.update_stats();
     }
 
     /// Get fragmented slabs
+    #[inline(always)]
     pub fn fragmented_slabs(&self) -> Vec<&SlabCacheInfo> {
         self.slabs.values().filter(|s| s.is_fragmented()).collect()
     }
 
     /// Zones needing compaction
+    #[inline]
     pub fn zones_needing_compaction(&self) -> Vec<MemoryZone> {
         self.zones
             .values()
@@ -389,6 +412,7 @@ impl HolisticFragmentationEngine {
     }
 
     /// Overall fragmentation
+    #[inline]
     pub fn overall_fragmentation(&self) -> f64 {
         if self.zones.is_empty() {
             return 0.0;
@@ -405,6 +429,7 @@ impl HolisticFragmentationEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticFragmentationStats {
         &self.stats
     }

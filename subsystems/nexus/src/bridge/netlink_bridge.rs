@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Netlink protocol family
@@ -49,8 +50,11 @@ impl NlMsgFlags {
     pub const ATOMIC: u16 = 0x400;
 
     pub fn new(bits: u16) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u16) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn is_request(&self) -> bool { self.has(Self::REQUEST) }
+    #[inline(always)]
     pub fn is_dump(&self) -> bool { self.has(Self::DUMP) }
 }
 
@@ -89,11 +93,15 @@ impl NlSocket {
         }
     }
 
+    #[inline(always)]
     pub fn bind(&mut self, groups: u32) { self.groups = groups; self.bound = true; }
 
+    #[inline(always)]
     pub fn send(&mut self, bytes: u64) { self.tx_msgs += 1; self.tx_bytes += bytes; }
+    #[inline(always)]
     pub fn recv(&mut self, bytes: u64) { self.rx_msgs += 1; self.rx_bytes += bytes; }
 
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.rx_msgs + self.drops;
         if total == 0 { return 0.0; }
@@ -124,6 +132,7 @@ pub struct GenlFamily {
 
 /// Bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetlinkBridgeStats {
     pub total_sockets: u32,
     pub total_families: u32,
@@ -134,6 +143,7 @@ pub struct NetlinkBridgeStats {
 }
 
 /// Main netlink bridge
+#[repr(align(64))]
 pub struct BridgeNetlink {
     sockets: BTreeMap<u64, NlSocket>,
     families: BTreeMap<u16, GenlFamily>,
@@ -146,6 +156,7 @@ impl BridgeNetlink {
         Self { sockets: BTreeMap::new(), families: BTreeMap::new(), groups: BTreeMap::new(), next_sock_id: 1 }
     }
 
+    #[inline]
     pub fn open_socket(&mut self, pid: u32, proto: NlProto, now: u64) -> u64 {
         let id = self.next_sock_id;
         self.next_sock_id += 1;
@@ -153,12 +164,15 @@ impl BridgeNetlink {
         id
     }
 
+    #[inline(always)]
     pub fn close_socket(&mut self, id: u64) -> bool { self.sockets.remove(&id).is_some() }
 
+    #[inline(always)]
     pub fn send_msg(&mut self, sock_id: u64, bytes: u64) -> bool {
         if let Some(s) = self.sockets.get_mut(&sock_id) { s.send(bytes); true } else { false }
     }
 
+    #[inline]
     pub fn register_family(&mut self, id: u16, version: u8) {
         self.families.insert(id, GenlFamily {
             id, name_hash: id as u64, version, max_attr: 0,
@@ -166,6 +180,7 @@ impl BridgeNetlink {
         });
     }
 
+    #[inline]
     pub fn stats(&self) -> NetlinkBridgeStats {
         NetlinkBridgeStats {
             total_sockets: self.sockets.len() as u32,
@@ -203,6 +218,7 @@ pub enum NlV2MsgType {
 
 /// Netlink v2 message
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NlV2Message {
     pub msg_type: NlV2MsgType,
     pub flags: u16,
@@ -219,7 +235,7 @@ pub struct NlV2Socket {
     pub protocol: NlV2Protocol,
     pub pid: u32,
     pub groups: u64,
-    pub recv_queue: Vec<NlV2Message>,
+    pub recv_queue: VecDeque<NlV2Message>,
     pub send_count: u64,
     pub recv_count: u64,
     pub drop_count: u64,
@@ -228,21 +244,24 @@ pub struct NlV2Socket {
 
 impl NlV2Socket {
     pub fn new(id: u64, protocol: NlV2Protocol, pid: u32) -> Self {
-        Self { id, protocol, pid, groups: 0, recv_queue: Vec::new(), send_count: 0, recv_count: 0, drop_count: 0, max_recv: 256 }
+        Self { id, protocol, pid, groups: 0, recv_queue: VecDeque::new(), send_count: 0, recv_count: 0, drop_count: 0, max_recv: 256 }
     }
 
+    #[inline(always)]
     pub fn enqueue(&mut self, msg: NlV2Message) {
         if self.recv_queue.len() >= self.max_recv { self.drop_count += 1; return; }
-        self.recv_queue.push(msg);
+        self.recv_queue.push_back(msg);
     }
 
+    #[inline(always)]
     pub fn dequeue(&mut self) -> Option<NlV2Message> {
-        if self.recv_queue.is_empty() { None } else { self.recv_count += 1; Some(self.recv_queue.remove(0)) }
+        if self.recv_queue.is_empty() { None } else { self.recv_count += 1; self.recv_queue.pop_front() }
     }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetlinkV2BridgeStats {
     pub total_sockets: u32,
     pub total_sent: u64,
@@ -252,6 +271,7 @@ pub struct NetlinkV2BridgeStats {
 }
 
 /// Main netlink v2 bridge
+#[repr(align(64))]
 pub struct BridgeNetlinkV2 {
     sockets: BTreeMap<u64, NlV2Socket>,
     next_id: u64,
@@ -260,18 +280,22 @@ pub struct BridgeNetlinkV2 {
 impl BridgeNetlinkV2 {
     pub fn new() -> Self { Self { sockets: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create_socket(&mut self, protocol: NlV2Protocol, pid: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.sockets.insert(id, NlV2Socket::new(id, protocol, pid));
         id
     }
 
+    #[inline(always)]
     pub fn close(&mut self, id: u64) { self.sockets.remove(&id); }
 
+    #[inline(always)]
     pub fn send(&mut self, id: u64, msg: NlV2Message) {
         if let Some(sock) = self.sockets.get_mut(&id) { sock.send_count += 1; sock.enqueue(msg); }
     }
 
+    #[inline]
     pub fn stats(&self) -> NetlinkV2BridgeStats {
         let sent: u64 = self.sockets.values().map(|s| s.send_count).sum();
         let recv: u64 = self.sockets.values().map(|s| s.recv_count).sum();
@@ -344,6 +368,7 @@ impl NetlinkV3Socket {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetlinkV3BridgeStats {
     pub total_sockets: u32,
     pub total_rx_msgs: u64,
@@ -352,6 +377,7 @@ pub struct NetlinkV3BridgeStats {
 }
 
 /// Main bridge netlink v3
+#[repr(align(64))]
 pub struct BridgeNetlinkV3 {
     sockets: BTreeMap<u32, NetlinkV3Socket>,
 }
@@ -359,22 +385,27 @@ pub struct BridgeNetlinkV3 {
 impl BridgeNetlinkV3 {
     pub fn new() -> Self { Self { sockets: BTreeMap::new() } }
 
+    #[inline]
     pub fn bind(&mut self, pid: u32, proto: NetlinkV3Proto, groups: u32) {
         let mut s = NetlinkV3Socket::new(pid, proto);
         s.groups = groups;
         self.sockets.insert(pid, s);
     }
 
+    #[inline(always)]
     pub fn send(&mut self, pid: u32, bytes: u64) {
         if let Some(s) = self.sockets.get_mut(&pid) { s.tx_msgs += 1; s.tx_bytes += bytes; }
     }
 
+    #[inline(always)]
     pub fn receive(&mut self, pid: u32, bytes: u64) {
         if let Some(s) = self.sockets.get_mut(&pid) { s.rx_msgs += 1; s.rx_bytes += bytes; }
     }
 
+    #[inline(always)]
     pub fn close(&mut self, pid: u32) { self.sockets.remove(&pid); }
 
+    #[inline]
     pub fn stats(&self) -> NetlinkV3BridgeStats {
         let rx: u64 = self.sockets.values().map(|s| s.rx_msgs).sum();
         let tx: u64 = self.sockets.values().map(|s| s.tx_msgs).sum();
@@ -392,6 +423,7 @@ pub enum NetlinkV4MsgType { Route, Link, Address, Neighbor, Rule, Qdisc }
 
 /// Netlink v4 record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetlinkV4Record {
     pub msg_type: NetlinkV4MsgType,
     pub family: u16,
@@ -406,6 +438,7 @@ impl NetlinkV4Record {
 
 /// Netlink v4 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetlinkV4BridgeStats { pub total_msgs: u64, pub route_msgs: u64, pub link_msgs: u64, pub total_bytes: u64 }
 
 /// Main bridge netlink v4
@@ -414,6 +447,7 @@ pub struct BridgeNetlinkV4 { pub stats: NetlinkV4BridgeStats }
 
 impl BridgeNetlinkV4 {
     pub fn new() -> Self { Self { stats: NetlinkV4BridgeStats { total_msgs: 0, route_msgs: 0, link_msgs: 0, total_bytes: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &NetlinkV4Record) {
         self.stats.total_msgs += 1;
         match rec.msg_type {

@@ -1,6 +1,7 @@
 //! Degradation detection engine.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -16,7 +17,7 @@ pub struct DegradationDetector {
     /// Baselines by metric name
     baselines: BTreeMap<String, MetricBaseline>,
     /// Recent events
-    events: Vec<DegradationEvent>,
+    events: VecDeque<DegradationEvent>,
     /// Maximum events to keep
     max_events: usize,
     /// EMA alpha (higher = more weight to recent values)
@@ -36,7 +37,7 @@ impl DegradationDetector {
     pub fn new() -> Self {
         Self {
             baselines: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 1000,
             ema_alpha: 0.1,
             z_threshold: 2.5,
@@ -47,12 +48,14 @@ impl DegradationDetector {
     }
 
     /// Set z-score threshold
+    #[inline(always)]
     pub fn with_z_threshold(mut self, threshold: f64) -> Self {
         self.z_threshold = threshold;
         self
     }
 
     /// Set percentage threshold
+    #[inline(always)]
     pub fn with_pct_threshold(mut self, threshold: f64) -> Self {
         self.pct_threshold = threshold;
         self
@@ -105,9 +108,9 @@ impl DegradationDetector {
 
             // Add to events
             if self.events.len() >= self.max_events {
-                self.events.remove(0);
+                self.events.pop_front();
             }
-            self.events.push(event.clone());
+            self.events.push_back(event.clone());
 
             Some(event)
         } else {
@@ -116,6 +119,7 @@ impl DegradationDetector {
     }
 
     /// Record latency
+    #[inline(always)]
     pub fn record_latency(
         &mut self,
         name: &str,
@@ -126,6 +130,7 @@ impl DegradationDetector {
     }
 
     /// Record error rate
+    #[inline]
     pub fn record_error_rate(
         &mut self,
         name: &str,
@@ -142,6 +147,7 @@ impl DegradationDetector {
     }
 
     /// Record memory usage
+    #[inline]
     pub fn record_memory(
         &mut self,
         name: &str,
@@ -158,6 +164,7 @@ impl DegradationDetector {
     }
 
     /// Record throughput
+    #[inline(always)]
     pub fn record_throughput(
         &mut self,
         name: &str,
@@ -168,11 +175,13 @@ impl DegradationDetector {
     }
 
     /// Get recent events
+    #[inline(always)]
     pub fn events(&self) -> &[DegradationEvent] {
         &self.events
     }
 
     /// Get events by severity
+    #[inline]
     pub fn events_by_severity(&self, severity: DegradationSeverity) -> Vec<&DegradationEvent> {
         self.events
             .iter()
@@ -181,16 +190,19 @@ impl DegradationDetector {
     }
 
     /// Get current degradation for a metric
+    #[inline(always)]
     pub fn current_degradation(&self, name: &str) -> Option<f64> {
         self.baselines.get(name).map(|b| b.degradation())
     }
 
     /// Get baseline for a metric
+    #[inline(always)]
     pub fn baseline(&self, name: &str) -> Option<(f64, f64)> {
         self.baselines.get(name).map(|b| (b.mean, b.std_dev))
     }
 
     /// Reset baseline for a metric
+    #[inline]
     pub fn reset_baseline(&mut self, name: &str) {
         if let Some(baseline) = self.baselines.get_mut(name) {
             baseline.mean = baseline.current;
@@ -200,6 +212,7 @@ impl DegradationDetector {
     }
 
     /// Clear all baselines
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.baselines.clear();
         self.events.clear();
@@ -234,6 +247,7 @@ impl Default for DegradationDetector {
 
 /// Degradation statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DegradationStats {
     /// Total metrics tracked
     pub total_metrics: usize,

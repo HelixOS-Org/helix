@@ -19,6 +19,7 @@ use super::syscall::SyscallType;
 
 /// Hash of syscall parameters used as cache key
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct CacheKey(pub u64);
 
 impl CacheKey {
@@ -52,6 +53,7 @@ pub enum Cacheability {
 
 /// A cached syscall result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CachedResult {
     /// Cache key
     pub key: CacheKey,
@@ -97,12 +99,14 @@ impl CachedResult {
         }
     }
 
+    #[inline]
     pub fn with_data(mut self, data: Vec<u8>) -> Self {
         self.size_bytes += data.len();
         self.output_data = data;
         self
     }
 
+    #[inline]
     pub fn with_timestamp(mut self, ts: u64) -> Self {
         self.created_at = ts;
         self.last_accessed = ts;
@@ -110,6 +114,7 @@ impl CachedResult {
     }
 
     /// Check if this entry has expired
+    #[inline]
     pub fn is_expired(&self, current_time: u64) -> bool {
         if self.ttl_ms == 0 {
             return false;
@@ -118,12 +123,14 @@ impl CachedResult {
     }
 
     /// Record a cache hit
+    #[inline(always)]
     pub fn record_hit(&mut self, timestamp: u64) {
         self.hit_count += 1;
         self.last_accessed = timestamp;
     }
 
     /// LRU score (lower = better candidate for eviction)
+    #[inline(always)]
     pub fn lru_score(&self, current_time: u64) -> u64 {
         current_time.saturating_sub(self.last_accessed)
     }
@@ -319,6 +326,7 @@ fn classify_cacheability(syscall_type: SyscallType) -> Cacheability {
 
 /// Configuration for the syscall cache
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct SyscallCacheConfig {
     /// Max entries per process
     pub max_entries_per_process: usize,
@@ -345,6 +353,7 @@ impl Default for SyscallCacheConfig {
 }
 
 /// Global syscall result cache
+#[repr(align(64))]
 pub struct SyscallCache {
     /// Per-process caches
     process_caches: BTreeMap<u64, ProcessCache>,
@@ -500,11 +509,13 @@ impl SyscallCache {
     }
 
     /// Remove a process from the cache
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.process_caches.remove(&pid);
     }
 
     /// Global hit rate
+    #[inline]
     pub fn global_hit_rate(&self) -> f64 {
         let total = self.global_hits + self.global_misses;
         if total == 0 {
@@ -515,6 +526,7 @@ impl SyscallCache {
     }
 
     /// Per-process hit rate
+    #[inline]
     pub fn process_hit_rate(&self, pid: u64) -> f64 {
         self.process_caches
             .get(&pid)
@@ -523,16 +535,19 @@ impl SyscallCache {
     }
 
     /// Total cached entries
+    #[inline(always)]
     pub fn total_entries(&self) -> usize {
         self.process_caches.values().map(|c| c.entries.len()).sum()
     }
 
     /// Total memory used
+    #[inline(always)]
     pub fn total_memory(&self) -> usize {
         self.process_caches.values().map(|c| c.current_bytes).sum()
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> SyscallCacheStats {
         SyscallCacheStats {
             total_entries: self.total_entries(),
@@ -548,6 +563,7 @@ impl SyscallCache {
 
 /// Cache statistics summary
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallCacheStats {
     pub total_entries: usize,
     pub total_memory_bytes: usize,

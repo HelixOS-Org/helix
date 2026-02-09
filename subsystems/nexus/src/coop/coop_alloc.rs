@@ -21,6 +21,7 @@ pub enum AllocClass {
 }
 
 impl AllocClass {
+    #[inline]
     pub fn from_size(size: usize) -> Self {
         if size <= 256 { Self::Small }
         else if size <= 4096 { Self::Medium }
@@ -54,6 +55,7 @@ pub struct CoopAllocRecord {
 
 /// A memory pool
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CoopPool {
     pub id: u64,
     pub name: String,
@@ -81,12 +83,14 @@ impl ClassBucket {
         Self { active_count: 0, active_bytes: 0, total_allocs: 0, total_frees: 0 }
     }
 
+    #[inline]
     pub fn alloc(&mut self, size: usize) {
         self.active_count += 1;
         self.active_bytes += size as u64;
         self.total_allocs += 1;
     }
 
+    #[inline]
     pub fn free(&mut self, size: usize) {
         self.active_count = self.active_count.saturating_sub(1);
         self.active_bytes = self.active_bytes.saturating_sub(size as u64);
@@ -134,6 +138,7 @@ impl CoopPool {
         true
     }
 
+    #[inline]
     pub fn free(&mut self, size: usize) {
         self.used_bytes = self.used_bytes.saturating_sub(size);
         self.free_count += 1;
@@ -141,11 +146,13 @@ impl CoopPool {
         self.per_class[Self::class_idx(class)].free(size);
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.total_capacity == 0 { return 0.0; }
         self.used_bytes as f64 / self.total_capacity as f64
     }
 
+    #[inline]
     pub fn pressure(&self) -> PoolPressure {
         let util = self.utilization();
         if util > 0.95 { PoolPressure::Critical }
@@ -155,10 +162,12 @@ impl CoopPool {
         else { PoolPressure::None }
     }
 
+    #[inline(always)]
     pub fn remaining(&self) -> usize {
         self.total_capacity.saturating_sub(self.used_bytes)
     }
 
+    #[inline]
     pub fn fail_rate(&self) -> f64 {
         let total = self.alloc_count + self.alloc_fail_count;
         if total == 0 { return 0.0; }
@@ -189,10 +198,12 @@ impl SubsystemBudget {
         }
     }
 
+    #[inline(always)]
     pub fn can_allocate(&self, size: usize) -> bool {
         self.used_bytes + size <= self.budget_bytes
     }
 
+    #[inline]
     pub fn allocate(&mut self, size: usize) -> bool {
         if !self.can_allocate(size) {
             self.denied_count += 1;
@@ -203,10 +214,12 @@ impl SubsystemBudget {
         true
     }
 
+    #[inline(always)]
     pub fn free(&mut self, size: usize) {
         self.used_bytes = self.used_bytes.saturating_sub(size);
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.budget_bytes == 0 { return 0.0; }
         self.used_bytes as f64 / self.budget_bytes as f64
@@ -215,6 +228,7 @@ impl SubsystemBudget {
 
 /// Allocator stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopAllocStats {
     pub total_pools: u64,
     pub total_budgets: u64,
@@ -255,6 +269,7 @@ impl CoopAlloc {
         }
     }
 
+    #[inline]
     pub fn create_pool(&mut self, name: String, capacity: usize) -> u64 {
         let id = self.next_pool_id;
         self.next_pool_id += 1;
@@ -263,6 +278,7 @@ impl CoopAlloc {
         id
     }
 
+    #[inline(always)]
     pub fn create_budget(&mut self, subsystem: String, budget: usize, pool_id: u64) {
         self.budgets.insert(subsystem.clone(), SubsystemBudget::new(subsystem, budget, pool_id));
         self.stats.total_budgets += 1;
@@ -332,10 +348,12 @@ impl CoopAlloc {
         }
     }
 
+    #[inline(always)]
     pub fn pool_pressure(&self) -> Vec<(u64, PoolPressure)> {
         self.pools.iter().map(|(&id, p)| (id, p.pressure())).collect()
     }
 
+    #[inline]
     pub fn critical_pools(&self) -> Vec<u64> {
         self.pools.iter()
             .filter(|(_, p)| matches!(p.pressure(), PoolPressure::Critical | PoolPressure::High))
@@ -343,6 +361,7 @@ impl CoopAlloc {
             .collect()
     }
 
+    #[inline]
     pub fn budget_overcommit(&self) -> Vec<(&str, f64)> {
         self.budgets.iter()
             .filter(|(_, b)| b.utilization() > 0.9)
@@ -350,10 +369,12 @@ impl CoopAlloc {
             .collect()
     }
 
+    #[inline(always)]
     pub fn get_pool(&self, id: u64) -> Option<&CoopPool> {
         self.pools.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopAllocStats {
         &self.stats
     }

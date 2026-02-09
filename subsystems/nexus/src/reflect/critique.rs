@@ -261,6 +261,7 @@ impl Default for CritiqueConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CritiqueStats {
     /// Total critiques
     pub total_critiques: u64,
@@ -286,11 +287,13 @@ impl CritiqueEngine {
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: CritiqueRule) {
         self.rules.push(rule);
     }
 
     /// Set threshold
+    #[inline(always)]
     pub fn set_threshold(&mut self, name: &str, value: f64) {
         self.thresholds.insert(name.into(), value);
     }
@@ -360,6 +363,7 @@ impl CritiqueEngine {
     }
 
     /// Add evidence
+    #[inline]
     pub fn add_evidence(&mut self, critique_id: u64, evidence: Evidence) {
         if let Some(critique) = self.critiques.get_mut(&critique_id) {
             critique.evidence.push(evidence);
@@ -367,6 +371,7 @@ impl CritiqueEngine {
     }
 
     /// Add suggestion
+    #[inline]
     pub fn add_suggestion(&mut self, critique_id: u64, suggestion: Suggestion) {
         if let Some(critique) = self.critiques.get_mut(&critique_id) {
             critique.suggestions.push(suggestion);
@@ -413,11 +418,13 @@ impl CritiqueEngine {
     }
 
     /// Get critique
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Critique> {
         self.critiques.get(&id)
     }
 
     /// Update status
+    #[inline]
     pub fn update_status(&mut self, id: u64, status: CritiqueStatus) {
         if let Some(critique) = self.critiques.get_mut(&id) {
             let was_addressed = critique.status == CritiqueStatus::Addressed;
@@ -430,6 +437,7 @@ impl CritiqueEngine {
     }
 
     /// Get by category
+    #[inline]
     pub fn by_category(&self, category: CritiqueCategory) -> Vec<&Critique> {
         self.critiques
             .values()
@@ -438,6 +446,7 @@ impl CritiqueEngine {
     }
 
     /// Get by severity
+    #[inline]
     pub fn by_severity(&self, severity: Severity) -> Vec<&Critique> {
         self.critiques
             .values()
@@ -446,6 +455,7 @@ impl CritiqueEngine {
     }
 
     /// Get pending
+    #[inline]
     pub fn pending(&self) -> Vec<&Critique> {
         self.critiques
             .values()
@@ -456,6 +466,7 @@ impl CritiqueEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CritiqueStats {
         &self.stats
     }
@@ -497,36 +508,42 @@ impl CritiqueBuilder {
     }
 
     /// Set target
+    #[inline(always)]
     pub fn target(mut self, target: CritiqueTarget) -> Self {
         self.target = Some(target);
         self
     }
 
     /// Set severity
+    #[inline(always)]
     pub fn severity(mut self, severity: Severity) -> Self {
         self.severity = severity;
         self
     }
 
     /// Set summary
+    #[inline(always)]
     pub fn summary(mut self, summary: &str) -> Self {
         self.summary = summary.into();
         self
     }
 
     /// Set details
+    #[inline(always)]
     pub fn details(mut self, details: &str) -> Self {
         self.details = details.into();
         self
     }
 
     /// Add evidence
+    #[inline(always)]
     pub fn evidence(mut self, evidence: Evidence) -> Self {
         self.evidence.push(evidence);
         self
     }
 
     /// Add suggestion
+    #[inline]
     pub fn suggest(mut self, action: SuggestionAction, description: &str) -> Self {
         self.suggestions.push(Suggestion {
             id: 0, // Will be assigned

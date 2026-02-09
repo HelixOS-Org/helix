@@ -44,6 +44,7 @@ pub struct AppSwapProfile {
 }
 
 impl AppSwapProfile {
+    #[inline]
     pub fn divergence(&self) -> f64 {
         if self.rss_pages == 0 {
             return 0.0;
@@ -64,12 +65,14 @@ impl AppSwapProfile {
         }
     }
 
+    #[inline(always)]
     pub fn swappable_pages(&self) -> u64 {
         self.rss_pages.saturating_sub(self.working_set_pages)
     }
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SwapAppStats {
     pub total_swap_ins: u64,
     pub total_swap_outs: u64,
@@ -131,6 +134,7 @@ impl SwapAppManager {
         profile.last_updated = now;
     }
 
+    #[inline]
     pub fn record_swap_in(&mut self, app_id: u64, page_count: u64, now: u64) {
         if let Some(p) = self.profiles.get_mut(&app_id) {
             p.swap_in_count += page_count;
@@ -188,12 +192,15 @@ impl SwapAppManager {
         self.ring_head = (self.ring_head + 1) % self.ring_capacity;
     }
 
+    #[inline(always)]
     pub fn profile(&self, app_id: u64) -> Option<&AppSwapProfile> {
         self.profiles.get(&app_id)
     }
+    #[inline(always)]
     pub fn stats(&self) -> &SwapAppStats {
         &self.stats
     }
+    #[inline]
     pub fn global_compression_ratio(&self) -> f64 {
         if self.stats.total_compressed_bytes == 0 {
             return 1.0;

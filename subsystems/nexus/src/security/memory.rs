@@ -1,6 +1,8 @@
 //! Memory security monitoring and protection.
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -16,11 +18,11 @@ pub struct MemorySecurityMonitor {
     /// Protected memory regions
     protected_regions: Vec<ProtectedRegion>,
     /// Stack canary values
-    stack_canaries: BTreeMap<u64, u64>, // thread_id -> canary
+    stack_canaries: LinearMap<u64, 64>, // thread_id -> canary
     /// Heap metadata checksums
-    heap_checksums: BTreeMap<u64, u32>, // block_addr -> checksum
+    heap_checksums: LinearMap<u32, 64>, // block_addr -> checksum
     /// Violations detected
-    violations: Vec<MemoryViolation>,
+    violations: VecDeque<MemoryViolation>,
     /// Max violations to retain
     max_violations: usize,
 }
@@ -92,24 +94,27 @@ impl MemorySecurityMonitor {
     pub fn new() -> Self {
         Self {
             protected_regions: Vec::new(),
-            stack_canaries: BTreeMap::new(),
-            heap_checksums: BTreeMap::new(),
-            violations: Vec::new(),
+            stack_canaries: LinearMap::new(),
+            heap_checksums: LinearMap::new(),
+            violations: VecDeque::new(),
             max_violations: 1000,
         }
     }
 
     /// Add protected region
+    #[inline(always)]
     pub fn add_protected_region(&mut self, region: ProtectedRegion) {
         self.protected_regions.push(region);
     }
 
     /// Set stack canary
+    #[inline(always)]
     pub fn set_stack_canary(&mut self, thread_id: u64, canary: u64) {
         self.stack_canaries.insert(thread_id, canary);
     }
 
     /// Check stack canary
+    #[inline]
     pub fn check_stack_canary(&self, thread_id: u64, current: u64) -> bool {
         self.stack_canaries
             .get(&thread_id)
@@ -118,11 +123,13 @@ impl MemorySecurityMonitor {
     }
 
     /// Set heap checksum
+    #[inline(always)]
     pub fn set_heap_checksum(&mut self, block_addr: u64, checksum: u32) {
         self.heap_checksums.insert(block_addr, checksum);
     }
 
     /// Verify heap integrity
+    #[inline]
     pub fn verify_heap(&self, block_addr: u64, current_checksum: u32) -> bool {
         self.heap_checksums
             .get(&block_addr)
@@ -178,20 +185,23 @@ impl MemorySecurityMonitor {
     }
 
     /// Record violation
+    #[inline]
     pub fn record_violation(&mut self, violation: MemoryViolation) {
-        self.violations.push(violation);
+        self.violations.push_back(violation);
         if self.violations.len() > self.max_violations {
-            self.violations.remove(0);
+            self.violations.pop_front();
         }
     }
 
     /// Get recent violations
+    #[inline(always)]
     pub fn recent_violations(&self, count: usize) -> &[MemoryViolation] {
         let start = self.violations.len().saturating_sub(count);
         &self.violations[start..]
     }
 
     /// Get violation count for source
+    #[inline]
     pub fn violation_count(&self, source_id: u64) -> usize {
         self.violations
             .iter()

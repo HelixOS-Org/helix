@@ -504,6 +504,7 @@ pub struct CrossoverEngine {
 
 /// Crossover statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CrossoverStats {
     pub uniform: u64,
     pub single_point: u64,
@@ -576,6 +577,7 @@ impl CrossoverEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CrossoverStats {
         &self.stats
     }

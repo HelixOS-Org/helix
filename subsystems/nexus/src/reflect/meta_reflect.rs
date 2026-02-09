@@ -24,6 +24,7 @@ use crate::types::Timestamp;
 
 /// Metacognitive state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetacognitiveState {
     /// State ID
     pub id: u64,
@@ -178,6 +179,7 @@ impl Default for MetaConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MetaStats {
     /// Reflections
     pub reflections: u64,
@@ -485,6 +487,7 @@ impl MetaReflector {
     }
 
     /// Update assessment with actual performance
+    #[inline]
     pub fn update_assessment(&mut self, id: u64, actual: f64) {
         if let Some(a) = self.assessments.iter_mut().find(|a| a.id == id) {
             a.actual = Some(actual.clamp(0.0, 1.0));
@@ -512,16 +515,19 @@ impl MetaReflector {
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn current_state(&self) -> Option<&MetacognitiveState> {
         self.states.last()
     }
 
     /// Get detected biases
+    #[inline(always)]
     pub fn detected_biases(&self) -> &[CognitiveBias] {
         &self.biases
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MetaStats {
         &self.stats
     }

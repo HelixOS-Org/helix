@@ -69,16 +69,19 @@ impl NatTable {
     }
 
     /// Add SNAT mapping
+    #[inline(always)]
     pub fn add_snat(&mut self, mapping: NatMapping) {
         self.snat_mappings.push(mapping);
     }
 
     /// Add DNAT mapping
+    #[inline(always)]
     pub fn add_dnat(&mut self, mapping: NatMapping) {
         self.dnat_mappings.push(mapping);
     }
 
     /// Allocate masquerade port
+    #[inline]
     pub fn allocate_masq_port(&self) -> u16 {
         let port = self.next_port.fetch_add(1, Ordering::Relaxed) as u16;
         if port > self.masq_port_max {
@@ -90,11 +93,13 @@ impl NatTable {
     }
 
     /// Get SNAT mappings
+    #[inline(always)]
     pub fn snat_mappings(&self) -> &[NatMapping] {
         &self.snat_mappings
     }
 
     /// Get DNAT mappings
+    #[inline(always)]
     pub fn dnat_mappings(&self) -> &[NatMapping] {
         &self.dnat_mappings
     }

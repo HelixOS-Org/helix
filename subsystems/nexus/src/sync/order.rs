@@ -144,16 +144,19 @@ impl LockOrderOptimizer {
     }
 
     /// Get recommended order
+    #[inline(always)]
     pub fn recommended_order(&self) -> &[LockId] {
         &self.order
     }
 
     /// Get lock level
+    #[inline(always)]
     pub fn get_level(&self, lock: LockId) -> Option<u32> {
         self.levels.get(&lock).copied()
     }
 
     /// Get violations
+    #[inline(always)]
     pub fn violations(&self) -> &[OrderViolation] {
         &self.violations
     }

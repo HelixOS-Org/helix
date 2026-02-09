@@ -45,6 +45,7 @@ pub enum CacheResult {
 
 /// Dentry cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DentryCacheEntry {
     /// Path hash (FNV-1a)
     pub path_hash: u64,
@@ -81,6 +82,7 @@ impl DentryCacheEntry {
     }
 
     /// Is valid?
+    #[inline(always)]
     pub fn is_valid(&self, now_ns: u64) -> bool {
         now_ns.saturating_sub(self.cached_ns) < self.ttl_ns
     }
@@ -88,6 +90,7 @@ impl DentryCacheEntry {
 
 /// Stat cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StatCacheEntry {
     /// Path hash
     pub path_hash: u64,
@@ -124,6 +127,7 @@ impl StatCacheEntry {
         }
     }
 
+    #[inline(always)]
     pub fn is_valid(&self, now_ns: u64) -> bool {
         now_ns.saturating_sub(self.cached_ns) < self.ttl_ns
     }
@@ -131,6 +135,7 @@ impl StatCacheEntry {
 
 /// Per-process VFS stats
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessVfsProfile {
     /// PID
     pub pid: u64,
@@ -162,11 +167,13 @@ impl ProcessVfsProfile {
     }
 
     /// Record operation
+    #[inline(always)]
     pub fn record_op(&mut self, op: VfsOp) {
         *self.op_counts.entry(op as u8).or_insert(0) += 1;
     }
 
     /// Hit ratio
+    #[inline]
     pub fn hit_ratio(&self) -> f64 {
         if self.total_lookups == 0 {
             return 0.0;
@@ -175,6 +182,7 @@ impl ProcessVfsProfile {
     }
 
     /// Most common operation
+    #[inline]
     pub fn most_common_op(&self) -> Option<u8> {
         self.op_counts.iter()
             .max_by_key(|&(_, &count)| count)
@@ -184,6 +192,7 @@ impl ProcessVfsProfile {
 
 /// VFS proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeVfsProxyStats {
     pub dentry_cache_size: usize,
     pub stat_cache_size: usize,
@@ -195,6 +204,7 @@ pub struct BridgeVfsProxyStats {
 }
 
 /// Bridge VFS proxy
+#[repr(align(64))]
 pub struct BridgeVfsProxy {
     /// Dentry cache
     dentry_cache: BTreeMap<u64, DentryCacheEntry>,
@@ -260,6 +270,7 @@ impl BridgeVfsProxy {
     }
 
     /// Insert dentry
+    #[inline]
     pub fn insert_dentry(&mut self, path: &str, inode: Option<u64>, now_ns: u64) {
         if self.dentry_cache.len() >= self.max_dentry_cache {
             self.evict_dentry();
@@ -270,6 +281,7 @@ impl BridgeVfsProxy {
     }
 
     /// Lookup stat
+    #[inline]
     pub fn lookup_stat(&mut self, path: &str, now_ns: u64) -> Option<&StatCacheEntry> {
         let hash = Self::hash_path(path);
         if let Some(entry) = self.stat_cache.get_mut(&hash) {
@@ -282,6 +294,7 @@ impl BridgeVfsProxy {
     }
 
     /// Insert stat
+    #[inline]
     pub fn insert_stat(&mut self, path: &str, size: u64, mode: u32, now_ns: u64) {
         if self.stat_cache.len() >= self.max_stat_cache {
             self.evict_stat();
@@ -292,6 +305,7 @@ impl BridgeVfsProxy {
     }
 
     /// Invalidate path
+    #[inline]
     pub fn invalidate(&mut self, path: &str) {
         let hash = Self::hash_path(path);
         self.dentry_cache.remove(&hash);
@@ -332,6 +346,7 @@ impl BridgeVfsProxy {
         self.stats.tracked_processes = self.processes.len();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeVfsProxyStats {
         &self.stats
     }

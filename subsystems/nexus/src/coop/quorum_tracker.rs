@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -56,7 +57,7 @@ pub struct Ballot {
     pub id: u64,
     pub term: u64,
     pub policy: QuorumPolicy,
-    pub voters: BTreeMap<u64, u32>,
+    pub voters: LinearMap<u32, 64>,
     pub votes: Vec<QuorumVote>,
     pub required: u32,
     pub yes_weight: u32,
@@ -70,7 +71,7 @@ pub struct Ballot {
 }
 
 impl Ballot {
-    pub fn new(id: u64, term: u64, policy: QuorumPolicy, voters: BTreeMap<u64, u32>, ts: u64, timeout: u64) -> Self {
+    pub fn new(id: u64, term: u64, policy: QuorumPolicy, voters: LinearMap<u32, 64>, ts: u64, timeout: u64) -> Self {
         let total_weight: u32 = voters.values().sum();
         let required = match policy {
             QuorumPolicy::Majority => total_weight / 2 + 1,
@@ -121,6 +122,7 @@ impl Ballot {
         }
     }
 
+    #[inline]
     pub fn finalize(&mut self, ts: u64) {
         if !self.decided {
             self.decided = true;
@@ -129,26 +131,30 @@ impl Ballot {
         self.decide_ts = ts;
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool { now.saturating_sub(self.create_ts) > self.timeout_ns }
+    #[inline(always)]
     pub fn participation(&self) -> f64 { let t: u32 = self.voters.values().sum(); if t == 0 { 0.0 } else { (self.yes_weight + self.no_weight + self.abstain_weight) as f64 / t as f64 } }
+    #[inline(always)]
     pub fn latency(&self) -> u64 { self.decide_ts.saturating_sub(self.create_ts) }
 }
 
 /// Joint quorum (for membership changes)
 #[derive(Debug, Clone)]
 pub struct JointQuorum {
-    pub old_members: BTreeMap<u64, u32>,
-    pub new_members: BTreeMap<u64, u32>,
+    pub old_members: LinearMap<u32, 64>,
+    pub new_members: LinearMap<u32, 64>,
     pub old_ballot: u64,
     pub new_ballot: u64,
     pub committed: bool,
 }
 
 impl JointQuorum {
-    pub fn new(old: BTreeMap<u64, u32>, new: BTreeMap<u64, u32>) -> Self {
+    pub fn new(old: LinearMap<u32, 64>, new: LinearMap<u32, 64>) -> Self {
         Self { old_members: old, new_members: new, old_ballot: 0, new_ballot: 0, committed: false }
     }
 
+    #[inline]
     pub fn both_decided(&self, ballots: &BTreeMap<u64, Ballot>) -> bool {
         let old_ok = ballots.get(&self.old_ballot).map(|b| b.decided && b.accepted).unwrap_or(false);
         let new_ok = ballots.get(&self.new_ballot).map(|b| b.decided && b.accepted).unwrap_or(false);
@@ -158,6 +164,7 @@ impl JointQuorum {
 
 /// Quorum tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct QuorumStats {
     pub total_ballots: u64,
     pub accepted: u64,
@@ -182,7 +189,8 @@ impl CoopQuorumTracker {
         Self { ballots: BTreeMap::new(), joints: Vec::new(), stats: QuorumStats::default(), next_id: 1, default_timeout }
     }
 
-    pub fn create_ballot(&mut self, term: u64, policy: QuorumPolicy, voters: BTreeMap<u64, u32>, ts: u64) -> u64 {
+    #[inline]
+    pub fn create_ballot(&mut self, term: u64, policy: QuorumPolicy, voters: LinearMap<u32, 64>, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let ballot = Ballot::new(id, term, policy, voters, ts, self.default_timeout);
         self.ballots.insert(id, ballot);
@@ -190,10 +198,12 @@ impl CoopQuorumTracker {
         id
     }
 
+    #[inline(always)]
     pub fn vote(&mut self, ballot_id: u64, vote: QuorumVote) -> bool {
         if let Some(b) = self.ballots.get_mut(&ballot_id) { b.cast(vote) } else { false }
     }
 
+    #[inline]
     pub fn check_expired(&mut self, now: u64) -> Vec<u64> {
         let mut expired = Vec::new();
         for b in self.ballots.values_mut() {
@@ -205,7 +215,8 @@ impl CoopQuorumTracker {
         expired
     }
 
-    pub fn create_joint(&mut self, old: BTreeMap<u64, u32>, new: BTreeMap<u64, u32>, term: u64, ts: u64) -> (u64, u64) {
+    #[inline]
+    pub fn create_joint(&mut self, old: LinearMap<u32, 64>, new: LinearMap<u32, 64>, term: u64, ts: u64) -> (u64, u64) {
         let bid1 = self.create_ballot(term, QuorumPolicy::Majority, old.clone(), ts);
         let bid2 = self.create_ballot(term, QuorumPolicy::Majority, new.clone(), ts);
         let mut jq = JointQuorum::new(old, new);
@@ -215,6 +226,7 @@ impl CoopQuorumTracker {
         (bid1, bid2)
     }
 
+    #[inline]
     pub fn check_joints(&mut self) -> Vec<usize> {
         let mut committed = Vec::new();
         for (i, jq) in self.joints.iter_mut().enumerate() {
@@ -239,6 +251,8 @@ impl CoopQuorumTracker {
         }
     }
 
+    #[inline(always)]
     pub fn ballot(&self, id: u64) -> Option<&Ballot> { self.ballots.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &QuorumStats { &self.stats }
 }

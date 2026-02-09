@@ -89,12 +89,14 @@ impl XfsLogReservation {
         }
     }
 
+    #[inline]
     pub fn free_space(&self) -> u64 {
         self.log_size
             .saturating_sub(self.used_bytes)
             .saturating_sub(self.reserved_bytes)
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.log_size == 0 {
             return 0.0;
@@ -105,6 +107,7 @@ impl XfsLogReservation {
 
 /// Statistics for XFS log.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct XfsLogStats {
     pub total_items: u64,
     pub total_transactions: u64,
@@ -143,6 +146,7 @@ impl HolisticXfsLog {
         }
     }
 
+    #[inline]
     pub fn add_item(&mut self, item_type: XfsLogItemType, tx_id: u64) -> u64 {
         let id = self.next_item_id;
         self.next_item_id += 1;
@@ -169,6 +173,7 @@ impl HolisticXfsLog {
         self.stats.total_checkpoints += 1;
     }
 
+    #[inline(always)]
     pub fn item_count(&self) -> usize {
         self.items.len()
     }

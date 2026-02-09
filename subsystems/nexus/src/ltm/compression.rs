@@ -156,6 +156,7 @@ impl Default for CompressorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CompressorStats {
     /// Items stored
     pub items_stored: u64,
@@ -448,11 +449,13 @@ impl MemoryCompressor {
     }
 
     /// Add policy
+    #[inline(always)]
     pub fn add_policy(&mut self, policy: CompressionPolicy) {
         self.policies.push(policy);
     }
 
     /// Run policies
+    #[inline]
     pub fn run_policies(&mut self) -> Vec<CompressionResult> {
         let mut results = Vec::new();
 
@@ -465,21 +468,25 @@ impl MemoryCompressor {
     }
 
     /// Get item
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&MemoryItem> {
         self.items.get(&id)
     }
 
     /// Get compressed
+    #[inline(always)]
     pub fn get_compressed(&self, id: u64) -> Option<&CompressedMemory> {
         self.compressed.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CompressorStats {
         &self.stats
     }
 
     /// Memory usage
+    #[inline]
     pub fn memory_usage(&self) -> usize {
         self.items.values().map(|i| i.size).sum::<usize>()
             + self

@@ -10,6 +10,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -22,6 +23,7 @@ use crate::types::{DomainId, Timestamp};
 
 /// Cognitive state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CognitiveState {
     /// State ID
     pub id: u64,
@@ -85,6 +87,7 @@ pub enum StateValue {
 
 /// State condition
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateCondition {
     /// Condition ID
     pub id: u64,
@@ -112,6 +115,7 @@ pub enum ConditionOperator {
 
 /// State transition
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateTransition {
     /// Transition ID
     pub id: u64,
@@ -171,6 +175,7 @@ pub enum ActionType {
 // ============================================================================
 
 /// State machine for a cognitive domain
+#[repr(align(64))]
 pub struct StateMachine {
     /// Machine ID
     id: u64,
@@ -187,7 +192,7 @@ pub struct StateMachine {
     /// Timers
     timers: BTreeMap<String, Timer>,
     /// History
-    history: Vec<StateHistoryEntry>,
+    history: VecDeque<StateHistoryEntry>,
     /// Configuration
     config: StateMachineConfig,
     /// Statistics
@@ -196,6 +201,7 @@ pub struct StateMachine {
 
 /// Timer
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Timer {
     /// Timer name
     pub name: String,
@@ -209,6 +215,7 @@ pub struct Timer {
 
 /// History entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateHistoryEntry {
     /// Timestamp
     pub timestamp: Timestamp,
@@ -222,6 +229,7 @@ pub struct StateHistoryEntry {
 
 /// Configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateMachineConfig {
     /// Maximum history entries
     pub max_history: usize,
@@ -243,6 +251,7 @@ impl Default for StateMachineConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct StateMachineStats {
     /// Total transitions
     pub total_transitions: u64,
@@ -267,13 +276,14 @@ impl StateMachine {
             previous_state: None,
             variables: BTreeMap::new(),
             timers: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             config,
             stats: StateMachineStats::default(),
         }
     }
 
     /// Add a state
+    #[inline]
     pub fn add_state(&mut self, state: CognitiveState) -> u64 {
         let id = state.id;
         self.states.insert(id, state);
@@ -281,26 +291,31 @@ impl StateMachine {
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn current_state(&self) -> Option<&CognitiveState> {
         self.states.get(&self.current_state)
     }
 
     /// Get state by ID
+    #[inline(always)]
     pub fn get_state(&self, id: u64) -> Option<&CognitiveState> {
         self.states.get(&id)
     }
 
     /// Set initial state
+    #[inline(always)]
     pub fn set_initial_state(&mut self, state_id: u64) {
         self.current_state = state_id;
     }
 
     /// Set variable
+    #[inline(always)]
     pub fn set_variable(&mut self, name: &str, value: StateValue) {
         self.variables.insert(name.into(), value);
     }
 
     /// Get variable
+    #[inline(always)]
     pub fn get_variable(&self, name: &str) -> Option<&StateValue> {
         self.variables.get(name)
     }
@@ -369,9 +384,9 @@ impl StateMachine {
 
         // Record history
         if self.history.len() >= self.config.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(StateHistoryEntry {
+        self.history.push_back(StateHistoryEntry {
             timestamp: Timestamp::now(),
             from,
             to: transition.to,
@@ -501,7 +516,7 @@ impl StateMachine {
             for transition in &state.transitions {
                 if let TransitionTrigger::Timeout(duration) = transition.trigger {
                     // Check if we've been in state long enough
-                    if let Some(last_entry) = self.history.last() {
+                    if let Some(last_entry) = self.history.back() {
                         if last_entry.to == self.current_state {
                             let time_in_state = now.elapsed_since(last_entry.timestamp);
                             if time_in_state >= duration {
@@ -516,21 +531,25 @@ impl StateMachine {
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[StateHistoryEntry] {
         &self.history
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &StateMachineStats {
         &self.stats
     }
 
     /// Get machine ID
+    #[inline(always)]
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// Get domain ID
+    #[inline(always)]
     pub fn domain_id(&self) -> DomainId {
         self.domain_id
     }
@@ -558,6 +577,7 @@ impl StateMachine {
 // ============================================================================
 
 /// Manages multiple state machines
+#[repr(align(64))]
 pub struct StateMachineManager {
     /// State machines by domain
     machines: BTreeMap<DomainId, StateMachine>,
@@ -575,6 +595,7 @@ impl StateMachineManager {
     }
 
     /// Create a state machine for a domain
+    #[inline]
     pub fn create_machine(&mut self, domain_id: DomainId, config: StateMachineConfig) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let machine = StateMachine::new(id, domain_id, config);
@@ -583,16 +604,19 @@ impl StateMachineManager {
     }
 
     /// Get machine for domain
+    #[inline(always)]
     pub fn get(&self, domain_id: DomainId) -> Option<&StateMachine> {
         self.machines.get(&domain_id)
     }
 
     /// Get mutable machine
+    #[inline(always)]
     pub fn get_mut(&mut self, domain_id: DomainId) -> Option<&mut StateMachine> {
         self.machines.get_mut(&domain_id)
     }
 
     /// Process all timeouts
+    #[inline]
     pub fn process_all_timeouts(&mut self) {
         for machine in self.machines.values_mut() {
             machine.process_timeouts();
@@ -600,6 +624,7 @@ impl StateMachineManager {
     }
 
     /// Get all statistics
+    #[inline]
     pub fn all_stats(&self) -> BTreeMap<DomainId, &StateMachineStats> {
         self.machines
             .iter()

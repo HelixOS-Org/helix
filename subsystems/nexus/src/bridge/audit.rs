@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -61,6 +63,7 @@ pub enum AuditSeverity {
 
 /// Audit event
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AuditEvent {
     /// Event ID (monotonic)
     pub id: u64,
@@ -81,7 +84,7 @@ pub struct AuditEvent {
     /// Result code
     pub result: i64,
     /// Extra data fields
-    pub fields: BTreeMap<u32, u64>,
+    pub fields: ArrayMap<u64, 32>,
     /// Hash for integrity
     pub hash: u64,
 }
@@ -104,26 +107,30 @@ impl AuditEvent {
             uid: 0,
             syscall_nr: None,
             result: 0,
-            fields: BTreeMap::new(),
+            fields: ArrayMap::new(0),
             hash: 0,
         }
     }
 
+    #[inline(always)]
     pub fn with_syscall(mut self, nr: u32) -> Self {
         self.syscall_nr = Some(nr);
         self
     }
 
+    #[inline(always)]
     pub fn with_result(mut self, result: i64) -> Self {
         self.result = result;
         self
     }
 
+    #[inline(always)]
     pub fn with_uid(mut self, uid: u32) -> Self {
         self.uid = uid;
         self
     }
 
+    #[inline(always)]
     pub fn add_field(&mut self, key: u32, value: u64) {
         self.fields.insert(key, value);
     }
@@ -200,16 +207,19 @@ impl AuditRule {
         }
     }
 
+    #[inline(always)]
     pub fn for_event_type(mut self, event_type: AuditEventType) -> Self {
         self.event_type = Some(event_type);
         self
     }
 
+    #[inline(always)]
     pub fn for_pid(mut self, pid: u64) -> Self {
         self.pid = pid;
         self
     }
 
+    #[inline(always)]
     pub fn for_uid(mut self, uid: u32) -> Self {
         self.uid = uid;
         self
@@ -316,6 +326,7 @@ impl AlertCondition {
 
 /// Audit manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AuditManagerStats {
     /// Total events logged
     pub total_events: u64,
@@ -332,7 +343,7 @@ pub struct AuditManagerStats {
 /// Bridge audit manager
 pub struct BridgeAuditManager {
     /// Audit log (ring buffer)
-    log: Vec<AuditEvent>,
+    log: VecDeque<AuditEvent>,
     /// Max log size
     max_log: usize,
     /// Rules
@@ -350,7 +361,7 @@ pub struct BridgeAuditManager {
 impl BridgeAuditManager {
     pub fn new() -> Self {
         Self {
-            log: Vec::new(),
+            log: VecDeque::new(),
             max_log: 10_000,
             rules: Vec::new(),
             alerts: Vec::new(),
@@ -361,12 +372,14 @@ impl BridgeAuditManager {
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: AuditRule) {
         self.rules.push(rule);
         self.stats.active_rules = self.rules.iter().filter(|r| r.enabled).count();
     }
 
     /// Add alert condition
+    #[inline(always)]
     pub fn add_alert(&mut self, alert: AlertCondition) {
         self.alerts.push(alert);
     }
@@ -412,9 +425,9 @@ impl BridgeAuditManager {
             self.stats.total_events += 1;
 
             // Store
-            self.log.push(event);
+            self.log.push_back(event);
             if self.log.len() > self.max_log {
-                self.log.remove(0);
+                self.log.pop_front();
             }
         }
 
@@ -422,6 +435,7 @@ impl BridgeAuditManager {
     }
 
     /// Verify log integrity
+    #[inline]
     pub fn verify_integrity(&mut self) -> bool {
         for event in &self.log {
             if !event.verify_hash() {
@@ -433,6 +447,7 @@ impl BridgeAuditManager {
     }
 
     /// Query events by type
+    #[inline]
     pub fn query_by_type(&self, event_type: AuditEventType) -> Vec<&AuditEvent> {
         self.log
             .iter()
@@ -441,6 +456,7 @@ impl BridgeAuditManager {
     }
 
     /// Query events by severity
+    #[inline]
     pub fn query_by_severity(&self, min_severity: AuditSeverity) -> Vec<&AuditEvent> {
         self.log
             .iter()
@@ -449,6 +465,7 @@ impl BridgeAuditManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AuditManagerStats {
         &self.stats
     }

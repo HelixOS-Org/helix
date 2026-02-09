@@ -23,6 +23,7 @@ pub enum PtLevel {
 }
 
 impl PtLevel {
+    #[inline]
     pub fn entry_coverage_bytes(&self) -> u64 {
         match self {
             PtLevel::Pml4 => 512 * 1024 * 1024 * 1024,
@@ -32,6 +33,7 @@ impl PtLevel {
         }
     }
 
+    #[inline(always)]
     pub fn entries_per_table(&self) -> usize { 512 }
 }
 
@@ -51,6 +53,7 @@ pub struct PteFlags {
 }
 
 impl PteFlags {
+    #[inline]
     pub fn empty() -> Self {
         Self {
             present: false, writable: false, user: false,
@@ -60,14 +63,17 @@ impl PteFlags {
         }
     }
 
+    #[inline(always)]
     pub fn kernel_rw() -> Self {
         Self { present: true, writable: true, no_execute: true, ..Self::empty() }
     }
 
+    #[inline(always)]
     pub fn user_ro() -> Self {
         Self { present: true, user: true, no_execute: true, ..Self::empty() }
     }
 
+    #[inline(always)]
     pub fn user_rw() -> Self {
         Self { present: true, writable: true, user: true, no_execute: true, ..Self::empty() }
     }
@@ -94,12 +100,15 @@ impl PageTablePage {
         }
     }
 
+    #[inline(always)]
     pub fn occupancy(&self) -> f64 {
         if self.entries_total == 0 { return 0.0; }
         self.entries_present as f64 / self.entries_total as f64
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.entries_present == 0 }
+    #[inline(always)]
     pub fn is_full(&self) -> bool { self.entries_present >= self.entries_total }
 }
 
@@ -115,11 +124,13 @@ pub struct ThpCandidate {
 }
 
 impl ThpCandidate {
+    #[inline(always)]
     pub fn coverage_ratio(&self) -> f64 {
         if self.total_possible == 0 { return 0.0; }
         self.small_pages_present as f64 / self.total_possible as f64
     }
 
+    #[inline(always)]
     pub fn is_promotable(&self) -> bool {
         self.small_pages_present == self.total_possible && self.all_same_prot
     }
@@ -158,6 +169,7 @@ impl ProcessPageTable {
         }
     }
 
+    #[inline]
     pub fn overhead_ratio(&self) -> f64 {
         if self.total_mapped_pages == 0 { return 0.0; }
         let mapped_bytes = self.total_mapped_pages * 4096;
@@ -167,6 +179,7 @@ impl ProcessPageTable {
 
 /// Page table manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PgtableMgrStats {
     pub total_processes: usize,
     pub total_pt_pages: u64,
@@ -200,10 +213,12 @@ impl HolisticPgtableMgr {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u32, cr3: u64) {
         self.processes.insert(pid, ProcessPageTable::new(pid, cr3));
     }
 
+    #[inline]
     pub fn add_pt_page(&mut self, addr: u64, level: PtLevel, pid: u32, present: u16) {
         let mut page = PageTablePage::new(addr, level, pid);
         page.entries_present = present;
@@ -214,6 +229,7 @@ impl HolisticPgtableMgr {
         }
     }
 
+    #[inline]
     pub fn assign_pcid(&mut self, pid: u32, ts: u64) -> Option<u16> {
         if self.next_pcid > self.max_pcid { return None; }
         let pcid = self.next_pcid; self.next_pcid += 1;
@@ -224,6 +240,7 @@ impl HolisticPgtableMgr {
         Some(pcid)
     }
 
+    #[inline]
     pub fn mark_shared(&mut self, addr: u64, count: u32) {
         if let Some(page) = self.pt_pages.get_mut(&addr) {
             page.shared = true;
@@ -246,6 +263,7 @@ impl HolisticPgtableMgr {
         }
     }
 
+    #[inline]
     pub fn record_huge_page(&mut self, pid: u32, is_1gb: bool) {
         if let Some(proc) = self.processes.get_mut(&pid) {
             if is_1gb { proc.huge_pages_1gb += 1; } else { proc.huge_pages_2mb += 1; }
@@ -269,5 +287,6 @@ impl HolisticPgtableMgr {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PgtableMgrStats { &self.stats }
 }

@@ -152,6 +152,7 @@ pub struct StreamProcessor<T: Clone> {
 
 /// Stream statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct StreamStats {
     /// Total elements received
     pub total_elements: u64,
@@ -464,41 +465,49 @@ impl<T: Clone> StreamProcessor<T> {
     }
 
     /// Get completed windows
+    #[inline(always)]
     pub fn completed_windows(&self) -> Vec<&Window<T>> {
         self.windows.values().filter(|w| w.complete).collect()
     }
 
     /// Get active windows
+    #[inline(always)]
     pub fn active_windows(&self) -> Vec<&Window<T>> {
         self.windows.values().filter(|w| !w.complete).collect()
     }
 
     /// Get window by ID
+    #[inline(always)]
     pub fn get_window(&self, id: u64) -> Option<&Window<T>> {
         self.windows.get(&id)
     }
 
     /// Clear completed windows
+    #[inline(always)]
     pub fn clear_completed(&mut self) {
         self.windows.retain(|_, w| !w.complete);
     }
 
     /// Get stream ID
+    #[inline(always)]
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// Get stream name
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &StreamStats {
         &self.stats
     }
 
     /// Get aggregations
+    #[inline(always)]
     pub fn aggregations(&self) -> &[AggregationResult] {
         &self.aggregations
     }
@@ -526,6 +535,7 @@ impl StreamManager {
     }
 
     /// Create a stream ID
+    #[inline]
     pub fn create_stream(&mut self, name: &str) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         self.streams.insert(id, name.into());
@@ -533,11 +543,13 @@ impl StreamManager {
     }
 
     /// Get stream name
+    #[inline(always)]
     pub fn get_name(&self, id: u64) -> Option<&String> {
         self.streams.get(&id)
     }
 
     /// Remove stream
+    #[inline(always)]
     pub fn remove_stream(&mut self, id: u64) {
         self.streams.remove(&id);
     }

@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -71,7 +71,7 @@ pub enum EscalationLevel {
 #[derive(Debug)]
 pub struct PhiDetector {
     /// Heartbeat intervals (ns)
-    intervals: Vec<u64>,
+    intervals: VecDeque<u64>,
     /// Max samples
     max_samples: usize,
     /// Last heartbeat (ns)
@@ -85,7 +85,7 @@ pub struct PhiDetector {
 impl PhiDetector {
     pub fn new(suspected_threshold: f64, dead_threshold: f64) -> Self {
         Self {
-            intervals: Vec::new(),
+            intervals: VecDeque::new(),
             max_samples: 64,
             last_heartbeat_ns: 0,
             suspected_threshold,
@@ -94,13 +94,14 @@ impl PhiDetector {
     }
 
     /// Record heartbeat
+    #[inline]
     pub fn heartbeat(&mut self, now: u64) {
         if self.last_heartbeat_ns > 0 {
             let interval = now.saturating_sub(self.last_heartbeat_ns);
             if self.intervals.len() >= self.max_samples {
-                self.intervals.remove(0);
+                self.intervals.pop_front();
             }
-            self.intervals.push(interval);
+            self.intervals.push_back(interval);
         }
         self.last_heartbeat_ns = now;
     }
@@ -120,7 +121,9 @@ impl PhiDetector {
             return 0.0;
         }
         let mean = self.mean();
-        let sum_sq: f64 = self.intervals.iter()
+        let sum_sq: f64 = self
+            .intervals
+            .iter()
             .map(|&i| {
                 let d = i as f64 - mean;
                 d * d
@@ -152,6 +155,7 @@ impl PhiDetector {
     }
 
     /// Determine state
+    #[inline]
     pub fn state(&self, now: u64) -> LivenessState {
         let phi = self.phi(now);
         if phi >= self.dead_threshold {
@@ -218,6 +222,7 @@ impl WatchedProcess {
     }
 
     /// Check state
+    #[inline]
     pub fn check(&mut self, now: u64) -> LivenessState {
         let new_state = self.detector.state(now);
         if new_state != self.state {
@@ -240,6 +245,7 @@ impl WatchedProcess {
     }
 
     /// Add dependent
+    #[inline]
     pub fn add_dependent(&mut self, pid: u64) {
         if !self.dependents.contains(&pid) {
             self.dependents.push(pid);
@@ -253,6 +259,7 @@ impl WatchedProcess {
 
 /// Watchdog protocol stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopWatchdogProtoStats {
     /// Watched processes
     pub watched_processes: usize,
@@ -283,11 +290,15 @@ impl CoopWatchdogProtocol {
     }
 
     /// Watch process
+    #[inline(always)]
     pub fn watch(&mut self, pid: u64) -> &mut WatchedProcess {
-        self.processes.entry(pid).or_insert_with(|| WatchedProcess::new(pid))
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| WatchedProcess::new(pid))
     }
 
     /// Record heartbeat
+    #[inline]
     pub fn heartbeat(&mut self, pid: u64, now: u64) {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.heartbeat(now);
@@ -303,7 +314,9 @@ impl CoopWatchdogProtocol {
             if let Some(proc) = self.processes.get_mut(&pid) {
                 let prev = proc.state;
                 let new_state = proc.check(now);
-                if new_state != prev && matches!(new_state, LivenessState::Dead | LivenessState::Suspected) {
+                if new_state != prev
+                    && matches!(new_state, LivenessState::Dead | LivenessState::Suspected)
+                {
                     actions.push((pid, new_state, proc.recovery));
                 }
             }
@@ -313,6 +326,7 @@ impl CoopWatchdogProtocol {
     }
 
     /// Unwatch process
+    #[inline(always)]
     pub fn unwatch(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.update_stats();
@@ -320,21 +334,26 @@ impl CoopWatchdogProtocol {
 
     fn update_stats(&mut self) {
         self.stats.watched_processes = self.processes.len();
-        self.stats.alive_count = self.processes.values()
+        self.stats.alive_count = self
+            .processes
+            .values()
             .filter(|p| p.state == LivenessState::Alive)
             .count();
-        self.stats.suspected_count = self.processes.values()
+        self.stats.suspected_count = self
+            .processes
+            .values()
             .filter(|p| p.state == LivenessState::Suspected)
             .count();
-        self.stats.dead_count = self.processes.values()
+        self.stats.dead_count = self
+            .processes
+            .values()
             .filter(|p| p.state == LivenessState::Dead)
             .count();
-        self.stats.total_failures = self.processes.values()
-            .map(|p| p.failure_count)
-            .sum();
+        self.stats.total_failures = self.processes.values().map(|p| p.failure_count).sum();
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopWatchdogProtoStats {
         &self.stats
     }

@@ -155,6 +155,7 @@ impl SharingStrategy {
     }
 
     /// Update composite score from test results
+    #[inline]
     pub fn update_score(&mut self, success: bool) {
         self.dream_test_count += 1;
         let outcome = if success { 1.0 } else { 0.0 };
@@ -165,6 +166,7 @@ impl SharingStrategy {
     }
 
     /// Decay score over time
+    #[inline(always)]
     pub fn decay_score(&mut self) {
         self.composite_score *= STRATEGY_SCORE_DECAY;
     }
@@ -212,6 +214,7 @@ impl TrustPattern {
     }
 
     /// Add a trust observation
+    #[inline]
     pub fn observe_trust(&mut self, trust_val: f32) {
         let clamped = if trust_val < 0.0 {
             0.0
@@ -271,6 +274,7 @@ impl FairnessTemplate {
 // ============================================================================
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopDreamStats {
     pub total_dreams: u64,
     pub total_replays: u64,
@@ -344,6 +348,7 @@ impl CoopDreamEngine {
     }
 
     /// Record a cooperation event for future replay
+    #[inline]
     pub fn record_event(&mut self, event: CoopEvent) {
         if self.event_buffer.len() < MAX_DREAM_EPISODES {
             self.event_buffer.push(event);
@@ -359,6 +364,7 @@ impl CoopDreamEngine {
     // ========================================================================
 
     /// Execute a full dream cycle: replay, discover, consolidate
+    #[inline]
     pub fn dream_cooperation(&mut self) -> DreamEpisode {
         self.tick += 1;
         self.dreaming = true;
@@ -418,6 +424,7 @@ impl CoopDreamEngine {
     // ========================================================================
 
     /// Replay cooperation sharing history, extracting patterns
+    #[inline(always)]
     pub fn replay_sharing(&mut self) -> Vec<CoopEvent> {
         self.tick += 1;
         self.replay_sharing_internal()
@@ -458,6 +465,7 @@ impl CoopDreamEngine {
     // ========================================================================
 
     /// Hypothesize optimal cooperation strategies from replay data
+    #[inline]
     pub fn discover_optimal_strategy(&mut self) -> Vec<SharingStrategy> {
         self.tick += 1;
         let ids = self.discover_optimal_strategy_internal();
@@ -535,6 +543,7 @@ impl CoopDreamEngine {
     // ========================================================================
 
     /// Consolidate trust patterns from replay into long-term knowledge
+    #[inline(always)]
     pub fn consolidate_trust(&mut self) -> usize {
         self.tick += 1;
         self.consolidate_trust_internal()
@@ -563,11 +572,13 @@ impl CoopDreamEngine {
     // ========================================================================
 
     /// Build fairness models during dream phase
+    #[inline(always)]
     pub fn dream_fairness(&mut self) -> usize {
         self.tick += 1;
         self.dream_fairness_internal()
     }
 
+    #[inline]
     fn dream_fairness_internal(&mut self) -> usize {
         let mut built = 0usize;
 
@@ -652,6 +663,7 @@ impl CoopDreamEngine {
     // ========================================================================
 
     /// Get the best strategy found so far
+    #[inline]
     pub fn best_strategy(&self) -> Option<&SharingStrategy> {
         let mut best: Option<&SharingStrategy> = None;
         for (_, s) in self.strategies.iter() {
@@ -663,26 +675,31 @@ impl CoopDreamEngine {
     }
 
     /// Number of strategies discovered
+    #[inline(always)]
     pub fn strategy_count(&self) -> usize {
         self.strategies.len()
     }
 
     /// Number of trust patterns learned
+    #[inline(always)]
     pub fn trust_pattern_count(&self) -> usize {
         self.trust_patterns.len()
     }
 
     /// Whether the engine is currently dreaming
+    #[inline(always)]
     pub fn is_dreaming(&self) -> bool {
         self.dreaming
     }
 
     /// Snapshot of dream statistics
+    #[inline(always)]
     pub fn snapshot_stats(&self) -> CoopDreamStats {
         self.stats.clone()
     }
 
     /// Event buffer size
+    #[inline(always)]
     pub fn event_count(&self) -> usize {
         self.event_buffer.len()
     }

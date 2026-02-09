@@ -70,6 +70,7 @@ impl DirectoryAnalyzer {
     }
 
     /// Record directory access
+    #[inline]
     pub fn record_access(&mut self, inode: Inode) {
         if let Some(dir) = self.directories.get_mut(&inode) {
             dir.access_count += 1;
@@ -83,21 +84,25 @@ impl DirectoryAnalyzer {
     }
 
     /// Get directory info
+    #[inline(always)]
     pub fn get_info(&self, inode: Inode) -> Option<&DirectoryInfo> {
         self.directories.get(&inode)
     }
 
     /// Get hot directories
+    #[inline(always)]
     pub fn hot_directories(&self) -> &[Inode] {
         &self.hot_directories
     }
 
     /// Get deepest directories
+    #[inline(always)]
     pub fn deepest_directories(&self, n: usize) -> Vec<(Inode, u32)> {
         self.deep_directories.iter().take(n).cloned().collect()
     }
 
     /// Get largest directories
+    #[inline]
     pub fn largest_directories(&self, n: usize) -> Vec<&DirectoryInfo> {
         let mut dirs: Vec<_> = self.directories.values().collect();
         dirs.sort_by(|a, b| b.total_size.cmp(&a.total_size));
@@ -106,6 +111,7 @@ impl DirectoryAnalyzer {
     }
 
     /// Get most files directories
+    #[inline]
     pub fn busiest_directories(&self, n: usize) -> Vec<&DirectoryInfo> {
         let mut dirs: Vec<_> = self.directories.values().collect();
         dirs.sort_by(|a, b| b.child_count.cmp(&a.child_count));

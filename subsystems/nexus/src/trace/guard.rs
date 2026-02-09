@@ -27,11 +27,13 @@ impl<'a> SpanGuard<'a> {
     }
 
     /// Add an event to the span
+    #[inline(always)]
     pub fn add_event(&mut self, name: &'static str) {
         self.span.add_event(name);
     }
 
     /// Add an attribute
+    #[inline(always)]
     pub fn add_attribute(&mut self, key: impl Into<String>, value: impl Into<SpanValue>) {
         self.span.attributes.push((key.into(), value.into()));
     }

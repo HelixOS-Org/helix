@@ -41,6 +41,7 @@ impl SnowflakeId {
     const SEQUENCE_MASK: u64 = (1 << Self::SEQUENCE_BITS) - 1;
     const NODE_MASK: u64 = (1 << Self::NODE_BITS) - 1;
 
+    #[inline]
     pub fn compose(timestamp_ms: u64, node_id: u16, sequence: u16) -> Self {
         let raw = ((timestamp_ms & ((1 << Self::TIMESTAMP_BITS) - 1)) << Self::TIMESTAMP_SHIFT)
             | (((node_id as u64) & Self::NODE_MASK) << Self::NODE_SHIFT)
@@ -48,8 +49,11 @@ impl SnowflakeId {
         Self { raw }
     }
 
+    #[inline(always)]
     pub fn timestamp_ms(&self) -> u64 { self.raw >> Self::TIMESTAMP_SHIFT }
+    #[inline(always)]
     pub fn node_id(&self) -> u16 { ((self.raw >> Self::NODE_SHIFT) & Self::NODE_MASK) as u16 }
+    #[inline(always)]
     pub fn sequence(&self) -> u16 { (self.raw & Self::SEQUENCE_MASK) as u16 }
 }
 
@@ -126,6 +130,7 @@ impl NamespaceGenerator {
         }
     }
 
+    #[inline]
     pub fn next_batch(&mut self, count: usize, current_ms: u64) -> Vec<u64> {
         let mut ids = Vec::with_capacity(count);
         for _ in 0..count {
@@ -149,6 +154,7 @@ pub struct NodeRegistration {
 
 /// ID gen stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IdGenStats {
     pub total_namespaces: usize,
     pub total_nodes: usize,
@@ -173,16 +179,19 @@ impl CoopIdGen {
         }
     }
 
+    #[inline]
     pub fn register_node(&mut self, node_id: u16, ts: u64) {
         self.nodes.insert(node_id, NodeRegistration {
             node_id, registered_ts: ts, last_seen_ts: ts, ids_generated: 0,
         });
     }
 
+    #[inline(always)]
     pub fn create_namespace(&mut self, ns: u32, format: IdFormat, node_id: u16) {
         self.namespaces.insert(ns, NamespaceGenerator::new(ns, format, node_id, self.default_epoch_ms));
     }
 
+    #[inline]
     pub fn generate(&mut self, ns: u32, current_ms: u64) -> Option<u64> {
         let gen = self.namespaces.get_mut(&ns)?;
         let node_id = gen.node_id;
@@ -194,6 +203,7 @@ impl CoopIdGen {
         Some(id)
     }
 
+    #[inline]
     pub fn generate_batch(&mut self, ns: u32, count: usize, current_ms: u64) -> Vec<u64> {
         if let Some(gen) = self.namespaces.get_mut(&ns) {
             gen.next_batch(count, current_ms)
@@ -202,8 +212,10 @@ impl CoopIdGen {
         }
     }
 
+    #[inline(always)]
     pub fn parse_snowflake(raw: u64) -> SnowflakeId { SnowflakeId { raw } }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_namespaces = self.namespaces.len();
         self.stats.total_nodes = self.nodes.len();
@@ -212,5 +224,6 @@ impl CoopIdGen {
         self.stats.max_drift_ms = self.namespaces.values().map(|n| n.max_drift_ms).max().unwrap_or(0);
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &IdGenStats { &self.stats }
 }

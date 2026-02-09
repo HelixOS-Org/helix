@@ -68,11 +68,13 @@ impl DeviceInfo {
     }
 
     /// Check if device is operational
+    #[inline(always)]
     pub fn is_operational(&self) -> bool {
         matches!(self.state, DeviceState::Bound)
     }
 
     /// Check if device needs driver
+    #[inline(always)]
     pub fn needs_driver(&self) -> bool {
         self.driver_id.is_none()
             && !matches!(self.state, DeviceState::Removed | DeviceState::Error)
@@ -146,6 +148,7 @@ impl DriverInfo {
     }
 
     /// Get probe success rate
+    #[inline]
     pub fn success_rate(&self) -> f32 {
         let total = self.bound_count + self.failure_count;
         if total == 0 {

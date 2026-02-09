@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Capability type
@@ -83,6 +84,7 @@ impl CapToken {
         }
     }
 
+    #[inline]
     pub fn is_valid(&self, now: u64) -> bool {
         if self.state != CapState::Active { return false; }
         if let Some(exp) = self.expires_ns {
@@ -94,14 +96,17 @@ impl CapToken {
         true
     }
 
+    #[inline(always)]
     pub fn consume(&mut self) {
         self.use_count += 1;
     }
 
+    #[inline(always)]
     pub fn revoke(&mut self) {
         self.state = CapState::Revoked;
     }
 
+    #[inline(always)]
     pub fn suspend(&mut self) {
         self.state = CapState::Suspended;
     }
@@ -128,10 +133,12 @@ impl CapSet {
         }
     }
 
+    #[inline(always)]
     pub fn has_effective(&self, token_id: u64) -> bool {
         self.effective.contains(&token_id)
     }
 
+    #[inline(always)]
     pub fn has_ambient(&self, cap: BridgeCapType) -> bool {
         self.ambient.contains(&cap)
     }
@@ -160,6 +167,7 @@ pub enum CapAuditAction {
 
 /// Holistic Cap Manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeCapMgrStats {
     pub total_tokens: usize,
     pub active_tokens: usize,
@@ -169,10 +177,11 @@ pub struct BridgeCapMgrStats {
 }
 
 /// Bridge Capability Manager
+#[repr(align(64))]
 pub struct BridgeCapMgr {
     tokens: BTreeMap<u64, CapToken>,
     cap_sets: BTreeMap<u64, CapSet>,
-    audit_log: Vec<CapAuditEntry>,
+    audit_log: VecDeque<CapAuditEntry>,
     next_token_id: u64,
     max_audit: usize,
     stats: BridgeCapMgrStats,
@@ -183,7 +192,7 @@ impl BridgeCapMgr {
         Self {
             tokens: BTreeMap::new(),
             cap_sets: BTreeMap::new(),
-            audit_log: Vec::new(),
+            audit_log: VecDeque::new(),
             next_token_id: 1,
             max_audit,
             stats: BridgeCapMgrStats::default(),
@@ -231,6 +240,7 @@ impl BridgeCapMgr {
     }
 
     /// Use (consume) a capability
+    #[inline]
     pub fn use_cap(&mut self, token_id: u64, now: u64) -> bool {
         if let Some(token) = self.tokens.get_mut(&token_id) {
             if token.is_valid(now) {
@@ -243,6 +253,7 @@ impl BridgeCapMgr {
     }
 
     /// Revoke a capability
+    #[inline]
     pub fn revoke(&mut self, token_id: u64, now: u64) {
         if let Some(token) = self.tokens.get_mut(&token_id) {
             let owner = token.owner_id;
@@ -256,6 +267,7 @@ impl BridgeCapMgr {
     }
 
     /// Delegate a capability to another process
+    #[inline]
     pub fn delegate(&mut self, token_id: u64, target_pid: u64, now: u64) -> Option<u64> {
         let (cap_type, resource, delegatable) = if let Some(token) = self.tokens.get(&token_id) {
             (token.cap_type, token.resource_id, token.delegatable)
@@ -267,7 +279,7 @@ impl BridgeCapMgr {
     }
 
     fn audit(&mut self, ts: u64, token: u64, pid: u64, action: CapAuditAction, resource: u64, result: bool) {
-        self.audit_log.push(CapAuditEntry {
+        self.audit_log.push_back(CapAuditEntry {
             timestamp_ns: ts,
             token_id: token,
             process_id: pid,
@@ -276,10 +288,11 @@ impl BridgeCapMgr {
             result,
         });
         while self.audit_log.len() > self.max_audit {
-            self.audit_log.remove(0);
+            self.audit_log.pop_front();
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_tokens = self.tokens.len();
         self.stats.active_tokens = self.tokens.values()
@@ -288,7 +301,10 @@ impl BridgeCapMgr {
             .filter(|t| t.state == CapState::Revoked).count();
     }
 
+    #[inline(always)]
     pub fn token(&self, id: u64) -> Option<&CapToken> { self.tokens.get(&id) }
+    #[inline(always)]
     pub fn cap_set(&self, pid: u64) -> Option<&CapSet> { self.cap_sets.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCapMgrStats { &self.stats }
 }

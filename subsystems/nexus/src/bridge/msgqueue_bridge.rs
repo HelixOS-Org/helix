@@ -53,6 +53,7 @@ impl MsgqueueRecord {
 
 /// Msgqueue bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsgqueueBridgeStats {
     pub total_ops: u64,
     pub sends: u64,
@@ -72,6 +73,7 @@ impl BridgeMsgqueue {
         Self { stats: MsgqueueBridgeStats { total_ops: 0, sends: 0, receives: 0, queues_created: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &MsgqueueRecord) {
         self.stats.total_ops += 1;
         match rec.op {

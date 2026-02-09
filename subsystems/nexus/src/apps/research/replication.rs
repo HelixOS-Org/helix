@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -165,6 +166,7 @@ pub struct ReplicationReport {
 
 /// Engine-level stats.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct ReplicationStats {
     pub findings_registered: u64,
     pub attempts_total: u64,
@@ -186,7 +188,7 @@ pub struct AppsReplication {
     attempts: BTreeMap<u64, Vec<ReplicationAttempt>>,
     conditions: BTreeMap<u64, Vec<ReplicationConditions>>,
     robust: BTreeMap<u64, RobustPattern>,
-    report_history: Vec<ReplicationReport>,
+    report_history: VecDeque<ReplicationReport>,
     stats: ReplicationStats,
     rng_state: u64,
     tick: u64,
@@ -200,7 +202,7 @@ impl AppsReplication {
             attempts: BTreeMap::new(),
             conditions: BTreeMap::new(),
             robust: BTreeMap::new(),
-            report_history: Vec::new(),
+            report_history: VecDeque::new(),
             stats: ReplicationStats {
                 findings_registered: 0,
                 attempts_total: 0,
@@ -297,7 +299,7 @@ impl AppsReplication {
 
         let attempt_list = self.attempts.entry(finding_id).or_insert_with(Vec::new);
         if attempt_list.len() >= MAX_REPLICATIONS_PER_FINDING {
-            attempt_list.remove(0);
+            attempt_list.pop_front();
         }
         attempt_list.push(attempt.clone());
 
@@ -335,7 +337,7 @@ impl AppsReplication {
 
         let cond_list = self.conditions.entry(finding_id).or_insert_with(Vec::new);
         if cond_list.len() >= MAX_REPLICATIONS_PER_FINDING {
-            cond_list.remove(0);
+            cond_list.pop_front();
         }
         cond_list.push(cond.clone());
         Some(cond)
@@ -370,6 +372,7 @@ impl AppsReplication {
     }
 
     /// Compute the overall replication rate for a specific finding.
+    #[inline]
     pub fn replication_rate(&self, finding_id: u64) -> Option<f32> {
         let attempts = self.attempts.get(&finding_id)?;
         if attempts.is_empty() {
@@ -383,6 +386,7 @@ impl AppsReplication {
     }
 
     /// Get all robust patterns that have survived replication.
+    #[inline(always)]
     pub fn robust_patterns(&self) -> Vec<RobustPattern> {
         self.robust.values().cloned().collect()
     }
@@ -434,19 +438,21 @@ impl AppsReplication {
         };
 
         if self.report_history.len() >= MAX_REPORT_HISTORY {
-            self.report_history.remove(0);
+            self.report_history.pop_front();
         }
-        self.report_history.push(report.clone());
+        self.report_history.push_back(report.clone());
         Some(report)
     }
 
     /// Return engine stats.
+    #[inline(always)]
     pub fn stats(&self) -> &ReplicationStats {
         &self.stats
     }
 
     // ── Internal Helpers ───────────────────────────────────────────────
 
+    #[inline]
     fn check_robustness(&mut self, finding_id: u64) {
         let attempts = match self.attempts.get(&finding_id) {
             Some(a) => a,

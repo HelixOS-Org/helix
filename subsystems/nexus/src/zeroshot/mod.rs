@@ -91,6 +91,7 @@ impl PrototypeNetwork {
     }
 
     /// Add support example for a class
+    #[inline]
     pub fn add_support(&mut self, class_id: ClassId, features: &FeatureVector) {
         let embedding = self.encoder.encode(features);
 
@@ -288,6 +289,7 @@ impl EmbeddingGenerator {
     }
 
     /// Generate multiple synthetic embeddings for a class
+    #[inline(always)]
     pub fn generate_synthetic(
         &self,
         attributes: &AttributeVector,
@@ -329,6 +331,7 @@ impl MetaZeroShotLearner {
     }
 
     /// Register a known (seen) class
+    #[inline(always)]
     pub fn register_seen_class(&mut self, class_id: ClassId, attributes: AttributeVector) {
         self.classifier.register_class(class_id, attributes, true);
     }
@@ -418,6 +421,7 @@ impl MetaZeroShotLearner {
     }
 
     /// Rapid adaptation with few examples
+    #[inline]
     pub fn adapt(&mut self, class_id: ClassId, examples: &[FeatureVector]) {
         for features in examples {
             self.prototype_net.add_support(class_id, features);
@@ -488,6 +492,7 @@ impl TransductiveZSL {
     }
 
     /// Get pseudo-label for an instance
+    #[inline(always)]
     pub fn get_pseudo_label(&self, id: u64) -> Option<ClassId> {
         self.pseudo_labels.get(&id).copied()
     }
@@ -515,6 +520,7 @@ impl DomainAdapter {
     }
 
     /// Encode source domain features
+    #[inline]
     pub fn encode_source(&self, features: &FeatureVector) -> EmbeddingVector {
         let emb = self.source_encoder.encode(features);
         emb.iter()
@@ -524,6 +530,7 @@ impl DomainAdapter {
     }
 
     /// Encode target domain features
+    #[inline(always)]
     pub fn encode_target(&self, features: &FeatureVector) -> EmbeddingVector {
         self.target_encoder.encode(features)
     }
@@ -669,6 +676,7 @@ impl KernelZeroShotManager {
     }
 
     /// Classify kernel event
+    #[inline]
     pub fn classify_event(&self, features: &FeatureVector) -> Option<(KernelConcept, f64)> {
         let result = self.learner.classify(features);
 
@@ -700,6 +708,7 @@ impl KernelZeroShotManager {
     }
 
     /// Adapt to new concept with examples
+    #[inline(always)]
     pub fn adapt_with_examples(&mut self, class_id: ClassId, examples: &[FeatureVector]) {
         self.learner.adapt(class_id, examples);
     }

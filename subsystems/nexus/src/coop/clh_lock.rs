@@ -119,6 +119,7 @@ impl ClhLockInstance {
         }
     }
 
+    #[inline(always)]
     pub fn queue_depth(&self) -> usize {
         self.nodes.len().saturating_sub(1) // exclude sentinel
     }
@@ -126,6 +127,7 @@ impl ClhLockInstance {
 
 /// Statistics for CLH lock.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ClhLockStats {
     pub total_locks: u64,
     pub total_acquires: u64,
@@ -154,6 +156,7 @@ impl CoopClhLock {
         }
     }
 
+    #[inline]
     pub fn create_lock(&mut self) -> u64 {
         let id = self.next_lock_id;
         self.next_lock_id += 1;
@@ -163,6 +166,7 @@ impl CoopClhLock {
         id
     }
 
+    #[inline(always)]
     pub fn lock_count(&self) -> usize {
         self.locks.len()
     }

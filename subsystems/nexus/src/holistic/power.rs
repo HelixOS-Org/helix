@@ -11,7 +11,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -37,6 +37,7 @@ pub enum PState {
 
 impl PState {
     /// Typical frequency ratio (percent)
+    #[inline]
     pub fn freq_ratio(&self) -> u32 {
         match self {
             Self::P0 => 100,
@@ -49,6 +50,7 @@ impl PState {
     }
 
     /// Typical power ratio (percent)
+    #[inline]
     pub fn power_ratio(&self) -> u32 {
         match self {
             Self::P0 => 100,
@@ -82,6 +84,7 @@ pub enum CState {
 
 impl CState {
     /// Wakeup latency (microseconds)
+    #[inline]
     pub fn wakeup_latency_us(&self) -> u64 {
         match self {
             Self::C0 => 0,
@@ -95,6 +98,7 @@ impl CState {
     }
 
     /// Power savings (relative to C0, percent)
+    #[inline]
     pub fn power_savings(&self) -> u32 {
         match self {
             Self::C0 => 0,
@@ -129,6 +133,7 @@ pub enum PowerProfile {
 
 impl PowerProfile {
     /// Energy-Performance Preference value (0 = max perf, 255 = max efficiency)
+    #[inline]
     pub fn epp(&self) -> u8 {
         match self {
             Self::Performance => 0,
@@ -140,6 +145,7 @@ impl PowerProfile {
     }
 
     /// Max P-state allowed
+    #[inline]
     pub fn max_pstate(&self) -> PState {
         match self {
             Self::Performance => PState::P0,
@@ -151,6 +157,7 @@ impl PowerProfile {
     }
 
     /// Deepest C-state allowed
+    #[inline]
     pub fn max_cstate(&self) -> CState {
         match self {
             Self::Performance => CState::C1,
@@ -225,10 +232,12 @@ impl BatteryInfo {
         }
     }
 
+    #[inline(always)]
     pub fn is_low(&self) -> bool {
         self.capacity <= 20 && self.state == BatteryState::Discharging
     }
 
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.capacity <= 5 && self.state == BatteryState::Discharging
     }
@@ -286,11 +295,13 @@ impl PowerBudget {
     }
 
     /// Is over budget?
+    #[inline(always)]
     pub fn over_budget(&self) -> bool {
         self.current_mw > self.pl1_mw
     }
 
     /// Utilization ratio
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.pl1_mw == 0 {
             return 0.0;
@@ -333,7 +344,7 @@ pub struct PowerManager {
     /// Per-core C-state
     core_cstates: Vec<CState>,
     /// Power history (total mW)
-    power_history: Vec<u64>,
+    power_history: VecDeque<u64>,
     /// Max history
     max_history: usize,
     /// Profile change count
@@ -350,7 +361,7 @@ impl PowerManager {
             budgets: BTreeMap::new(),
             core_pstates: vec![PState::P2; num_cores],
             core_cstates: vec![CState::C0; num_cores],
-            power_history: Vec::new(),
+            power_history: VecDeque::new(),
             max_history: 60,
             profile_changes: 0,
             total_energy_mj: 0,
@@ -358,6 +369,7 @@ impl PowerManager {
     }
 
     /// Set power profile
+    #[inline(always)]
     pub fn set_profile(&mut self, profile: PowerProfile) {
         self.profile = profile;
         self.profile_changes += 1;
@@ -376,7 +388,7 @@ impl PowerManager {
                 } else {
                     PowerProfile::Balanced
                 }
-            }
+            },
             BatteryState::NotPresent => PowerProfile::Performance,
         };
         if profile != self.profile {
@@ -385,16 +397,19 @@ impl PowerManager {
     }
 
     /// Update battery info
+    #[inline(always)]
     pub fn update_battery(&mut self, info: BatteryInfo) {
         self.battery = info;
     }
 
     /// Add power budget
+    #[inline(always)]
     pub fn add_budget(&mut self, budget: PowerBudget) {
         self.budgets.insert(budget.domain as u8, budget);
     }
 
     /// Update power for domain
+    #[inline]
     pub fn update_power(&mut self, domain: PowerDomain, current_mw: u64) {
         if let Some(b) = self.budgets.get_mut(&(domain as u8)) {
             b.current_mw = current_mw;
@@ -402,6 +417,7 @@ impl PowerManager {
     }
 
     /// Set core P-state
+    #[inline]
     pub fn set_pstate(&mut self, core: usize, pstate: PState) {
         if let Some(p) = self.core_pstates.get_mut(core) {
             *p = pstate;
@@ -409,6 +425,7 @@ impl PowerManager {
     }
 
     /// Set core C-state
+    #[inline]
     pub fn set_cstate(&mut self, core: usize, cstate: CState) {
         if let Some(c) = self.core_cstates.get_mut(core) {
             *c = cstate;
@@ -453,16 +470,18 @@ impl PowerManager {
     }
 
     /// Record power sample
+    #[inline]
     pub fn record_power(&mut self, total_mw: u64, duration_ms: u64) {
-        self.power_history.push(total_mw);
+        self.power_history.push_back(total_mw);
         if self.power_history.len() > self.max_history {
-            self.power_history.remove(0);
+            self.power_history.pop_front();
         }
         // Accumulate energy
         self.total_energy_mj += total_mw * duration_ms / 1000;
     }
 
     /// Average power (mW)
+    #[inline]
     pub fn average_power(&self) -> f64 {
         if self.power_history.is_empty() {
             return 0.0;
@@ -472,11 +491,13 @@ impl PowerManager {
     }
 
     /// Core count
+    #[inline(always)]
     pub fn core_count(&self) -> usize {
         self.core_pstates.len()
     }
 
     /// Domain count
+    #[inline(always)]
     pub fn domain_count(&self) -> usize {
         self.budgets.len()
     }

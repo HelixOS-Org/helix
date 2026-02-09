@@ -37,6 +37,7 @@ pub enum MetricValue {
 
 impl MetricValue {
     /// Convert to f64
+    #[inline]
     pub fn as_f64(&self) -> f64 {
         match self {
             Self::Int(v) => *v as f64,
@@ -46,6 +47,7 @@ impl MetricValue {
     }
 
     /// Convert to u64
+    #[inline]
     pub fn as_u64(&self) -> u64 {
         match self {
             Self::Int(v) => *v as u64,
@@ -67,6 +69,7 @@ impl Default for MetricValue {
 
 /// Metric definition
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricDef {
     /// Metric name
     pub name: String,
@@ -82,6 +85,7 @@ pub struct MetricDef {
 
 impl MetricDef {
     /// Create a new counter
+    #[inline]
     pub fn counter(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -93,6 +97,7 @@ impl MetricDef {
     }
 
     /// Create a new gauge
+    #[inline]
     pub fn gauge(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -104,6 +109,7 @@ impl MetricDef {
     }
 
     /// Create a new histogram
+    #[inline]
     pub fn histogram(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -115,18 +121,21 @@ impl MetricDef {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Set unit
+    #[inline(always)]
     pub fn with_unit(mut self, unit: impl Into<String>) -> Self {
         self.unit = unit.into();
         self
     }
 
     /// Add label
+    #[inline(always)]
     pub fn with_label(mut self, label: impl Into<String>) -> Self {
         self.labels.push(label.into());
         self

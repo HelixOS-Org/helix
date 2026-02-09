@@ -6,6 +6,7 @@ extern crate alloc;
 
 use alloc::format;
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -19,6 +20,7 @@ use super::pattern::{BugCategory, BugPattern, BugSeverity};
 
 /// Debugger statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DebuggerStats {
     /// Number of patterns
     pub pattern_count: usize,
@@ -39,7 +41,7 @@ pub struct Debugger {
     /// Known bug patterns
     patterns: Vec<BugPattern>,
     /// Diagnosis history
-    history: Vec<Diagnosis>,
+    history: VecDeque<Diagnosis>,
     /// Maximum history
     max_history: usize,
     /// Total diagnoses
@@ -53,7 +55,7 @@ impl Debugger {
     pub fn new() -> Self {
         let mut debugger = Self {
             patterns: Vec::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
             total_diagnoses: AtomicU64::new(0),
             successful_diagnoses: AtomicU64::new(0),
@@ -166,6 +168,7 @@ impl Debugger {
     }
 
     /// Add a pattern
+    #[inline(always)]
     pub fn add_pattern(&mut self, pattern: BugPattern) {
         self.patterns.push(pattern);
     }
@@ -206,9 +209,9 @@ impl Debugger {
 
         // Add to history
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(diagnosis.clone());
+        self.history.push_back(diagnosis.clone());
 
         diagnosis
     }
@@ -270,11 +273,13 @@ impl Debugger {
     }
 
     /// Get diagnosis history
+    #[inline(always)]
     pub fn history(&self) -> &[Diagnosis] {
         &self.history
     }
 
     /// Get patterns by category
+    #[inline]
     pub fn patterns_by_category(&self, category: BugCategory) -> Vec<&BugPattern> {
         self.patterns
             .iter()

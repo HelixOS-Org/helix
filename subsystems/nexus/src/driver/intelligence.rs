@@ -48,12 +48,14 @@ impl DriverIntelligence {
     }
 
     /// Register driver
+    #[inline(always)]
     pub fn register(&mut self, info: DriverInfo) {
         self.metrics.insert(info.id, DriverMetrics::default());
         self.drivers.insert(info.id, info);
     }
 
     /// Mark driver loaded
+    #[inline]
     pub fn mark_loaded(&mut self, driver_id: DriverId) {
         if let Some(info) = self.drivers.get_mut(&driver_id) {
             info.mark_loaded();
@@ -76,6 +78,7 @@ impl DriverIntelligence {
     }
 
     /// Record fault
+    #[inline]
     pub fn record_fault(&mut self, driver_id: DriverId, fault_type: FaultType, recovered: bool) {
         self.fault.record_fault(driver_id, fault_type, recovered);
 
@@ -87,6 +90,7 @@ impl DriverIntelligence {
     }
 
     /// Record resource usage
+    #[inline(always)]
     pub fn record_resources(
         &mut self,
         driver_id: DriverId,
@@ -100,61 +104,73 @@ impl DriverIntelligence {
     }
 
     /// Get driver info
+    #[inline(always)]
     pub fn get_driver(&self, driver_id: DriverId) -> Option<&DriverInfo> {
         self.drivers.get(&driver_id)
     }
 
     /// Get driver metrics
+    #[inline(always)]
     pub fn get_metrics(&self, driver_id: DriverId) -> Option<&DriverMetrics> {
         self.metrics.get(&driver_id)
     }
 
     /// Get health score
+    #[inline(always)]
     pub fn get_health(&self, driver_id: DriverId) -> f64 {
         self.health.get_score(driver_id)
     }
 
     /// Get fault prediction
+    #[inline(always)]
     pub fn get_prediction(&self, driver_id: DriverId) -> Option<&FaultPrediction> {
         self.fault.get_prediction(driver_id)
     }
 
     /// Get unhealthy drivers
+    #[inline(always)]
     pub fn unhealthy_drivers(&self) -> Vec<(DriverId, f64)> {
         self.health.unhealthy_drivers()
     }
 
     /// Get high-risk drivers
+    #[inline(always)]
     pub fn high_risk_drivers(&self, threshold: f64) -> Vec<&FaultPrediction> {
         self.fault.high_risk_drivers(threshold)
     }
 
     /// Get health monitor
+    #[inline(always)]
     pub fn health_monitor(&self) -> &DriverHealthMonitor {
         &self.health
     }
 
     /// Get resource tracker
+    #[inline(always)]
     pub fn resource_tracker(&self) -> &DriverResourceTracker {
         &self.resource
     }
 
     /// Get mutable resource tracker
+    #[inline(always)]
     pub fn resource_tracker_mut(&mut self) -> &mut DriverResourceTracker {
         &mut self.resource
     }
 
     /// Get compatibility analyzer
+    #[inline(always)]
     pub fn compatibility(&self) -> &CompatibilityAnalyzer {
         &self.compat
     }
 
     /// Get mutable compatibility analyzer
+    #[inline(always)]
     pub fn compatibility_mut(&mut self) -> &mut CompatibilityAnalyzer {
         &mut self.compat
     }
 
     /// Get total loaded drivers
+    #[inline(always)]
     pub fn total_loaded(&self) -> u64 {
         self.total_loaded.load(Ordering::Relaxed)
     }

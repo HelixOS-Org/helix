@@ -24,6 +24,7 @@ pub struct SymbolId(pub u64);
 static SYMBOL_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl SymbolId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(SYMBOL_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -354,6 +355,7 @@ impl ReflectionRegistry {
     }
 
     /// Register a symbol
+    #[inline]
     pub fn register_symbol(&mut self, info: SymbolInfo) -> SymbolId {
         let id = info.id;
         self.symbols_by_name.insert(info.full_name.clone(), id);
@@ -363,11 +365,13 @@ impl ReflectionRegistry {
     }
 
     /// Get symbol by ID
+    #[inline(always)]
     pub fn get_symbol(&self, id: SymbolId) -> Option<&SymbolInfo> {
         self.symbols.get(&id)
     }
 
     /// Get symbol by name
+    #[inline]
     pub fn find_symbol(&self, name: &str) -> Option<&SymbolInfo> {
         self.symbols_by_name
             .get(name)
@@ -375,6 +379,7 @@ impl ReflectionRegistry {
     }
 
     /// Register a type
+    #[inline]
     pub fn register_type(&mut self, info: TypeInfo) -> TypeId {
         let id = info.id;
         self.types_by_name.insert(info.name.clone(), id);
@@ -384,16 +389,19 @@ impl ReflectionRegistry {
     }
 
     /// Generate type ID
+    #[inline(always)]
     pub fn generate_type_id(&self) -> TypeId {
         TypeId(self.type_counter.fetch_add(1, Ordering::SeqCst))
     }
 
     /// Get type by ID
+    #[inline(always)]
     pub fn get_type(&self, id: TypeId) -> Option<&TypeInfo> {
         self.types.get(&id)
     }
 
     /// Get type by name
+    #[inline]
     pub fn find_type(&self, name: &str) -> Option<&TypeInfo> {
         self.types_by_name
             .get(name)
@@ -401,6 +409,7 @@ impl ReflectionRegistry {
     }
 
     /// Register module
+    #[inline]
     pub fn register_module(&mut self, info: ModuleInfo) -> ModuleId {
         let id = info.id;
         self.modules.insert(id, info);
@@ -410,31 +419,37 @@ impl ReflectionRegistry {
     }
 
     /// Generate module ID
+    #[inline(always)]
     pub fn generate_module_id(&self) -> ModuleId {
         ModuleId(self.module_counter.fetch_add(1, Ordering::SeqCst))
     }
 
     /// Get module
+    #[inline(always)]
     pub fn get_module(&self, id: ModuleId) -> Option<&ModuleInfo> {
         self.modules.get(&id)
     }
 
     /// Add symbol to module
+    #[inline(always)]
     pub fn add_to_module(&mut self, module: ModuleId, symbol: SymbolId) {
         self.module_children.entry(module).or_default().push(symbol);
     }
 
     /// Get module children
+    #[inline(always)]
     pub fn module_symbols(&self, module: ModuleId) -> Option<&[SymbolId]> {
         self.module_children.get(&module).map(|v| v.as_slice())
     }
 
     /// Query symbols by kind
+    #[inline(always)]
     pub fn find_by_kind(&self, kind: SymbolKind) -> Vec<&SymbolInfo> {
         self.symbols.values().filter(|s| s.kind == kind).collect()
     }
 
     /// Query symbols with attribute
+    #[inline]
     pub fn find_with_attribute(&self, attr_name: &str) -> Vec<&SymbolInfo> {
         self.symbols
             .values()
@@ -443,16 +458,19 @@ impl ReflectionRegistry {
     }
 
     /// Get methods of type
+    #[inline(always)]
     pub fn type_methods(&self, type_id: TypeId) -> Option<&[MethodInfo]> {
         self.types.get(&type_id).map(|t| t.methods.as_slice())
     }
 
     /// Get implemented traits
+    #[inline(always)]
     pub fn implemented_traits(&self, type_id: TypeId) -> Option<&[TypeId]> {
         self.types.get(&type_id).map(|t| t.traits.as_slice())
     }
 
     /// Check if type implements trait
+    #[inline]
     pub fn implements_trait(&self, type_id: TypeId, trait_id: TypeId) -> bool {
         self.types
             .get(&type_id)
@@ -485,6 +503,7 @@ pub struct Introspector {
 
 /// Symbol metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SymbolMetrics {
     /// Lines of code
     pub loc: usize,
@@ -513,16 +532,19 @@ impl Introspector {
     }
 
     /// Get registry
+    #[inline(always)]
     pub fn registry(&self) -> &ReflectionRegistry {
         &self.registry
     }
 
     /// Get registry mut
+    #[inline(always)]
     pub fn registry_mut(&mut self) -> &mut ReflectionRegistry {
         &mut self.registry
     }
 
     /// Add call edge
+    #[inline]
     pub fn add_call(&mut self, caller: SymbolId, callee: SymbolId) {
         self.call_graph.entry(caller).or_default().push(callee);
 
@@ -532,17 +554,20 @@ impl Introspector {
     }
 
     /// Add dependency edge
+    #[inline(always)]
     pub fn add_dependency(&mut self, from: SymbolId, to: SymbolId) {
         self.dep_graph.entry(from).or_default().push(to);
         self.metrics.entry(from).or_default().deps_count += 1;
     }
 
     /// Get callees
+    #[inline(always)]
     pub fn callees(&self, symbol: SymbolId) -> Option<&[SymbolId]> {
         self.call_graph.get(&symbol).map(|v| v.as_slice())
     }
 
     /// Get callers (reverse lookup)
+    #[inline]
     pub fn callers(&self, symbol: SymbolId) -> Vec<SymbolId> {
         self.call_graph
             .iter()
@@ -552,11 +577,13 @@ impl Introspector {
     }
 
     /// Get dependencies
+    #[inline(always)]
     pub fn dependencies(&self, symbol: SymbolId) -> Option<&[SymbolId]> {
         self.dep_graph.get(&symbol).map(|v| v.as_slice())
     }
 
     /// Get dependents (reverse lookup)
+    #[inline]
     pub fn dependents(&self, symbol: SymbolId) -> Vec<SymbolId> {
         self.dep_graph
             .iter()
@@ -566,16 +593,19 @@ impl Introspector {
     }
 
     /// Set metrics
+    #[inline(always)]
     pub fn set_metrics(&mut self, symbol: SymbolId, metrics: SymbolMetrics) {
         self.metrics.insert(symbol, metrics);
     }
 
     /// Get metrics
+    #[inline(always)]
     pub fn get_metrics(&self, symbol: SymbolId) -> Option<&SymbolMetrics> {
         self.metrics.get(&symbol)
     }
 
     /// Find high complexity functions
+    #[inline]
     pub fn high_complexity(&self, threshold: usize) -> Vec<SymbolId> {
         self.metrics
             .iter()
@@ -585,6 +615,7 @@ impl Introspector {
     }
 
     /// Find highly coupled symbols
+    #[inline]
     pub fn high_coupling(&self, threshold: usize) -> Vec<SymbolId> {
         self.metrics
             .iter()
@@ -617,6 +648,7 @@ impl Introspector {
     }
 
     /// Detect cycles in call graph
+    #[inline]
     pub fn detect_cycles(&self) -> Vec<Vec<SymbolId>> {
         let mut cycles = Vec::new();
         let mut visited = BTreeMap::new();

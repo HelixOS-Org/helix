@@ -9,6 +9,7 @@
 //! - Address space entropy monitoring
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -22,9 +23,11 @@ pub struct RemapHotspot {
 }
 
 impl RemapHotspot {
+    #[inline(always)]
     pub fn is_active(&self, now: u64, timeout: u64) -> bool {
         now.saturating_sub(self.last_seen) < timeout
     }
+    #[inline(always)]
     pub fn severity(&self) -> f64 {
         (self.remap_count as f64 * self.avg_latency_ns as f64) / 1_000_000.0
     }
@@ -48,6 +51,7 @@ pub struct AslrSchedule {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MremapHolisticStats {
     pub total_remaps: u64,
     pub total_compactions: u64,
@@ -62,7 +66,7 @@ pub struct MremapHolisticManager {
     compaction_candidates: Vec<CompactionCandidate>,
     aslr_schedules: BTreeMap<u64, AslrSchedule>,
     /// per-process remap counter
-    remap_counts: BTreeMap<u64, u64>,
+    remap_counts: LinearMap<u64, 64>,
     stats: MremapHolisticStats,
 }
 
@@ -72,14 +76,14 @@ impl MremapHolisticManager {
             hotspots: BTreeMap::new(),
             compaction_candidates: Vec::new(),
             aslr_schedules: BTreeMap::new(),
-            remap_counts: BTreeMap::new(),
+            remap_counts: LinearMap::new(),
             stats: MremapHolisticStats::default(),
         }
     }
 
     /// Record a remap event system-wide
     pub fn record_remap(&mut self, pid: u64, addr: u64, size: u64, latency: u64, now: u64) {
-        *self.remap_counts.entry(pid).or_insert(0) += 1;
+        self.remap_counts.add(pid, 1);
         self.stats.total_remaps += 1;
 
         // Update latency EMA
@@ -102,6 +106,7 @@ impl MremapHolisticManager {
     }
 
     /// Find hotspots above threshold
+    #[inline]
     pub fn active_hotspots(&self, min_count: u64, now: u64) -> Vec<&RemapHotspot> {
         self.hotspots.values()
             .filter(|h| h.remap_count >= min_count && h.is_active(now, 60_000_000_000))
@@ -130,11 +135,13 @@ impl MremapHolisticManager {
     }
 
     /// Get top compaction candidates
+    #[inline(always)]
     pub fn top_compaction_candidates(&self, n: usize) -> &[CompactionCandidate] {
         &self.compaction_candidates[..n.min(self.compaction_candidates.len())]
     }
 
     /// Schedule ASLR re-randomization
+    #[inline]
     pub fn schedule_aslr(&mut self, pid: u64, period_ns: u64, entropy: u32, now: u64) {
         self.aslr_schedules.insert(pid, AslrSchedule {
             pid, last_randomized: now, period_ns, entropy_bits: entropy,
@@ -142,6 +149,7 @@ impl MremapHolisticManager {
     }
 
     /// Check which processes are due for ASLR refresh
+    #[inline]
     pub fn due_for_aslr_refresh(&self, now: u64) -> Vec<u64> {
         self.aslr_schedules.iter()
             .filter(|(_, s)| now.saturating_sub(s.last_randomized) >= s.period_ns)
@@ -150,6 +158,7 @@ impl MremapHolisticManager {
     }
 
     /// Compute system-wide address space entropy
+    #[inline]
     pub fn compute_entropy(&mut self, bases: &[u64]) -> f64 {
         if bases.is_empty() { return 0.0; }
         // XOR-fold to estimate randomness
@@ -161,5 +170,6 @@ impl MremapHolisticManager {
         entropy
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MremapHolisticStats { &self.stats }
 }

@@ -39,12 +39,14 @@ impl Contender {
         }
     }
 
+    #[inline]
     pub fn grant_ratio(&self) -> f64 {
         let total = self.granted_count + self.denied_count;
         if total == 0 { return 0.0; }
         self.granted_count as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn avg_wait(&self) -> u64 {
         let total = self.granted_count + self.denied_count;
         if total == 0 { 0 } else { self.wait_time / total }
@@ -73,6 +75,7 @@ pub enum ArbitrationResult {
 
 /// Resource arbitration context
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ResourceArbContext {
     pub resource_id: u64,
     pub policy: ArbitrationPolicy,
@@ -103,12 +106,14 @@ impl ResourceArbContext {
         x
     }
 
+    #[inline]
     pub fn add_contender(&mut self, contender: Contender) {
         if !self.contenders.iter().any(|c| c.id == contender.id) {
             self.contenders.push(contender);
         }
     }
 
+    #[inline]
     pub fn remove_contender(&mut self, id: u32) -> bool {
         let before = self.contenders.len();
         self.contenders.retain(|c| c.id != id);
@@ -188,6 +193,7 @@ impl ResourceArbContext {
 
 /// Prio arbiter stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrioArbiterStats {
     pub tracked_resources: u32,
     pub total_contenders: u64,
@@ -207,10 +213,12 @@ impl CoopPrioArbiter {
         Self { resources: BTreeMap::new(), total_arbitrations: 0, total_preemptions: 0 }
     }
 
+    #[inline(always)]
     pub fn register_resource(&mut self, resource_id: u64, policy: ArbitrationPolicy) {
         self.resources.insert(resource_id, ResourceArbContext::new(resource_id, policy));
     }
 
+    #[inline]
     pub fn add_contender(&mut self, resource_id: u64, contender: Contender) -> bool {
         if let Some(ctx) = self.resources.get_mut(&resource_id) {
             ctx.add_contender(contender);
@@ -218,6 +226,7 @@ impl CoopPrioArbiter {
         } else { false }
     }
 
+    #[inline]
     pub fn arbitrate(&mut self, resource_id: u64, now: u64) -> Option<u32> {
         let ctx = self.resources.get_mut(&resource_id)?;
         let result = ctx.arbitrate(now);
@@ -226,12 +235,14 @@ impl CoopPrioArbiter {
         result
     }
 
+    #[inline]
     pub fn release(&mut self, resource_id: u64) {
         if let Some(ctx) = self.resources.get_mut(&resource_id) {
             ctx.current_holder = None;
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> PrioArbiterStats {
         let total_cont: u64 = self.resources.values().map(|r| r.contenders.len() as u64).sum();
         PrioArbiterStats {

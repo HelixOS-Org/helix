@@ -111,6 +111,7 @@ impl SkipList {
         true
     }
 
+    #[inline]
     pub fn remove(&mut self, key: u64) -> bool {
         if let Some(pos) = self.nodes.iter().position(|n| n.key == key) {
             let node = self.nodes.remove(pos);
@@ -142,6 +143,7 @@ impl SkipList {
         }
     }
 
+    #[inline]
     pub fn range_scan(&mut self, start: u64, end: u64) -> Vec<&SkipNode> {
         self.total_scans += 1;
         self.nodes.iter()
@@ -149,38 +151,46 @@ impl SkipList {
             .collect()
     }
 
+    #[inline(always)]
     pub fn min(&self) -> Option<&SkipNode> {
         self.nodes.first()
     }
 
+    #[inline(always)]
     pub fn max(&self) -> Option<&SkipNode> {
         self.nodes.last()
     }
 
+    #[inline(always)]
     pub fn floor(&self, key: u64) -> Option<&SkipNode> {
         let pos = self.nodes.partition_point(|n| n.key <= key);
         if pos > 0 { Some(&self.nodes[pos - 1]) } else { None }
     }
 
+    #[inline(always)]
     pub fn ceiling(&self, key: u64) -> Option<&SkipNode> {
         let pos = self.nodes.partition_point(|n| n.key < key);
         self.nodes.get(pos)
     }
 
+    #[inline(always)]
     pub fn count(&self) -> u64 {
         self.node_count
     }
 
+    #[inline(always)]
     pub fn avg_comparisons_per_lookup(&self) -> f64 {
         if self.total_lookups == 0 { return 0.0; }
         self.lookup_comparisons as f64 / self.total_lookups as f64
     }
 
+    #[inline(always)]
     pub fn avg_value_size(&self) -> f64 {
         if self.node_count == 0 { return 0.0; }
         self.total_bytes as f64 / self.node_count as f64
     }
 
+    #[inline]
     pub fn level_distribution(&self) -> Vec<(usize, u64)> {
         let mut dist = Vec::new();
         for lvl in 1..=self.current_level {
@@ -190,6 +200,7 @@ impl SkipList {
         dist
     }
 
+    #[inline]
     pub fn hottest_keys(&self, top: usize) -> Vec<(u64, u64)> {
         let mut v: Vec<(u64, u64)> = self.nodes.iter()
             .map(|n| (n.key, n.access_count))
@@ -202,6 +213,7 @@ impl SkipList {
 
 /// Skip list stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SkipListStats {
     pub total_lists: u64,
     pub total_nodes: u64,
@@ -234,6 +246,7 @@ impl CoopSkipList {
         }
     }
 
+    #[inline]
     pub fn create_list(&mut self, name: String) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -269,6 +282,7 @@ impl CoopSkipList {
         }
     }
 
+    #[inline]
     pub fn lookup(&mut self, list_id: u64, key: u64) -> bool {
         if let Some(list) = self.lists.get_mut(&list_id) {
             self.stats.total_lookups += 1;
@@ -278,6 +292,7 @@ impl CoopSkipList {
         }
     }
 
+    #[inline]
     pub fn largest_lists(&self, top: usize) -> Vec<(u64, u64)> {
         let mut v: Vec<(u64, u64)> = self.lists.iter()
             .map(|(&id, l)| (id, l.node_count))
@@ -287,10 +302,12 @@ impl CoopSkipList {
         v
     }
 
+    #[inline(always)]
     pub fn get_list(&self, id: u64) -> Option<&SkipList> {
         self.lists.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SkipListStats {
         &self.stats
     }

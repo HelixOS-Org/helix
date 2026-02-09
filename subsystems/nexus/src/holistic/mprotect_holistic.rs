@@ -16,6 +16,7 @@ use alloc::vec::Vec;
 pub enum SecurityRating { Excellent, Good, Fair, Poor, Critical }
 
 impl SecurityRating {
+    #[inline]
     pub fn from_score(score: f64) -> Self {
         if score >= 0.9 { Self::Excellent }
         else if score >= 0.7 { Self::Good }
@@ -61,6 +62,7 @@ pub struct PkuDomainMap {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MprotectHolisticStats {
     pub total_processes: u64,
     pub wx_compliant_count: u64,
@@ -89,6 +91,7 @@ impl MprotectHolisticManager {
         }
     }
 
+    #[inline]
     pub fn register_process(&mut self, profile: ProcessSecurityProfile) {
         if profile.wx_compliant { self.stats.wx_compliant_count += 1; }
         self.stats.total_guard_pages += profile.guard_pages;
@@ -97,6 +100,7 @@ impl MprotectHolisticManager {
         self.recompute_scores();
     }
 
+    #[inline]
     pub fn record_wx_violation(&mut self, pid: u64, page_addr: u64, now: u64) {
         self.stats.wx_violation_count += 1;
         self.wx_timeline.push((now, pid, page_addr));
@@ -119,11 +123,13 @@ impl MprotectHolisticManager {
     }
 
     /// System security rating
+    #[inline(always)]
     pub fn system_rating(&self) -> SecurityRating {
         SecurityRating::from_score(self.stats.system_security_score)
     }
 
     /// Find processes with weakest security
+    #[inline]
     pub fn weakest_processes(&self, n: usize) -> Vec<(u64, f64)> {
         let mut scores: Vec<_> = self.profiles.iter()
             .map(|(&pid, p)| (pid, p.security_score()))
@@ -133,6 +139,7 @@ impl MprotectHolisticManager {
     }
 
     /// Register a PKU domain
+    #[inline]
     pub fn register_pku_domain(&mut self, domain_id: u32, pids: Vec<u64>, pages: u64, perms: u32) {
         self.pku_domains.insert(domain_id, PkuDomainMap {
             domain_id, pids, total_pages: pages, permission_bits: perms,
@@ -141,6 +148,7 @@ impl MprotectHolisticManager {
     }
 
     /// Get recent W^X violation trends
+    #[inline]
     pub fn wx_violation_rate(&self, window_ns: u64, now: u64) -> f64 {
         let cutoff = now.saturating_sub(window_ns);
         let recent = self.wx_timeline.iter()
@@ -150,6 +158,8 @@ impl MprotectHolisticManager {
         recent as f64 / (window_ns as f64 / 1_000_000_000.0)
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessSecurityProfile> { self.profiles.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &MprotectHolisticStats { &self.stats }
 }

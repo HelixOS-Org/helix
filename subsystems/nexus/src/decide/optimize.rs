@@ -174,6 +174,7 @@ impl Default for OptimizerConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OptimizerStats {
     /// Problems solved
     pub problems_solved: u64,
@@ -213,6 +214,7 @@ impl DecisionOptimizer {
     }
 
     /// Add variable
+    #[inline]
     pub fn add_variable(&mut self, problem_id: u64, variable: Variable) {
         if let Some(problem) = self.problems.get_mut(&problem_id) {
             problem.variables.push(variable);
@@ -220,6 +222,7 @@ impl DecisionOptimizer {
     }
 
     /// Add objective
+    #[inline]
     pub fn add_objective(&mut self, problem_id: u64, objective: Objective) {
         if let Some(problem) = self.problems.get_mut(&problem_id) {
             problem.objectives.push(objective);
@@ -227,6 +230,7 @@ impl DecisionOptimizer {
     }
 
     /// Add constraint
+    #[inline]
     pub fn add_constraint(&mut self, problem_id: u64, constraint: Constraint) {
         if let Some(problem) = self.problems.get_mut(&problem_id) {
             problem.constraints.push(constraint);
@@ -467,16 +471,19 @@ impl DecisionOptimizer {
     }
 
     /// Get problem
+    #[inline(always)]
     pub fn get_problem(&self, id: u64) -> Option<&OptimizationProblem> {
         self.problems.get(&id)
     }
 
     /// Get result
+    #[inline(always)]
     pub fn get_result(&self, id: u64) -> Option<&OptimizationResult> {
         self.results.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &OptimizerStats {
         &self.stats
     }
@@ -510,6 +517,7 @@ impl<'a> ProblemBuilder<'a> {
     }
 
     /// Add continuous variable
+    #[inline]
     pub fn variable(self, name: &str, min: f64, max: f64, initial: f64) -> Self {
         self.optimizer.add_variable(self.problem_id, Variable {
             name: name.into(),
@@ -521,6 +529,7 @@ impl<'a> ProblemBuilder<'a> {
     }
 
     /// Add integer variable
+    #[inline]
     pub fn integer_variable(self, name: &str, min: i64, max: i64) -> Self {
         self.optimizer.add_variable(self.problem_id, Variable {
             name: name.into(),
@@ -532,6 +541,7 @@ impl<'a> ProblemBuilder<'a> {
     }
 
     /// Add objective
+    #[inline]
     pub fn minimize(self, name: &str) -> Self {
         self.optimizer.add_objective(self.problem_id, Objective {
             name: name.into(),
@@ -542,6 +552,7 @@ impl<'a> ProblemBuilder<'a> {
     }
 
     /// Add objective
+    #[inline]
     pub fn maximize(self, name: &str) -> Self {
         self.optimizer.add_objective(self.problem_id, Objective {
             name: name.into(),
@@ -552,6 +563,7 @@ impl<'a> ProblemBuilder<'a> {
     }
 
     /// Build
+    #[inline(always)]
     pub fn build(self) -> u64 {
         self.problem_id
     }

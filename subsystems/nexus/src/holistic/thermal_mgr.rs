@@ -52,6 +52,7 @@ impl ThermalZone {
         Self { id, name, temperature_mc: 25000, trips: [None, None, None, None], cooling_devices: [None, None, None, None], readings: 0, max_temp_mc: i32::MIN, min_temp_mc: i32::MAX, throttle_count: 0 }
     }
 
+    #[inline]
     pub fn update_temp(&mut self, temp_mc: i32) {
         self.temperature_mc = temp_mc;
         if temp_mc > self.max_temp_mc { self.max_temp_mc = temp_mc; }
@@ -66,6 +67,7 @@ impl ThermalZone {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ThermalMgrStats {
     pub total_zones: u32,
     pub total_cooling: u32,
@@ -84,16 +86,19 @@ pub struct HolisticThermalMgr {
 impl HolisticThermalMgr {
     pub fn new() -> Self { Self { zones: BTreeMap::new(), cooling: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn add_zone(&mut self, name: String) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.zones.insert(id, ThermalZone::new(id, name));
         id
     }
 
+    #[inline(always)]
     pub fn update_zone(&mut self, id: u64, temp_mc: i32) {
         if let Some(z) = self.zones.get_mut(&id) { z.update_temp(temp_mc); }
     }
 
+    #[inline]
     pub fn stats(&self) -> ThermalMgrStats {
         let max_t = self.zones.values().map(|z| z.temperature_mc).max().unwrap_or(0);
         let temps: Vec<i32> = self.zones.values().map(|z| z.temperature_mc).collect();

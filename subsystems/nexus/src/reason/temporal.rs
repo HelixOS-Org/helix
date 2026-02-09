@@ -173,6 +173,7 @@ impl Default for TemporalConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TemporalStats {
     /// Events tracked
     pub events_tracked: u64,
@@ -220,16 +221,19 @@ impl TemporalReasoner {
     }
 
     /// Add point event
+    #[inline(always)]
     pub fn add_point_event(&mut self, name: &str, time: TimePoint) -> u64 {
         self.add_event(name, time, time, BTreeMap::new())
     }
 
     /// Get event
+    #[inline(always)]
     pub fn get_event(&self, id: u64) -> Option<&TemporalEvent> {
         self.events.get(&id)
     }
 
     /// Compute interval relation
+    #[inline]
     pub fn relation(&self, a: u64, b: u64) -> Option<IntervalRelation> {
         let event_a = self.events.get(&a)?;
         let event_b = self.events.get(&b)?;
@@ -331,6 +335,7 @@ impl TemporalReasoner {
     }
 
     /// Check constraints
+    #[inline]
     pub fn check_constraints(&mut self) -> Vec<(u64, bool)> {
         self.stats.constraints_checked += self.constraints.len() as u64;
 
@@ -431,6 +436,7 @@ impl TemporalReasoner {
     }
 
     /// Query before
+    #[inline]
     pub fn before(&self, time: TimePoint) -> Vec<&TemporalEvent> {
         self.events
             .values()
@@ -439,6 +445,7 @@ impl TemporalReasoner {
     }
 
     /// Query after
+    #[inline]
     pub fn after(&self, time: TimePoint) -> Vec<&TemporalEvent> {
         self.events
             .values()
@@ -447,6 +454,7 @@ impl TemporalReasoner {
     }
 
     /// Query between
+    #[inline]
     pub fn between(&self, start: TimePoint, end: TimePoint) -> Vec<&TemporalEvent> {
         self.events
             .values()
@@ -455,6 +463,7 @@ impl TemporalReasoner {
     }
 
     /// Query overlapping
+    #[inline]
     pub fn overlapping(&self, interval: TimeInterval) -> Vec<&TemporalEvent> {
         self.events
             .values()
@@ -463,6 +472,7 @@ impl TemporalReasoner {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &TemporalStats {
         &self.stats
     }

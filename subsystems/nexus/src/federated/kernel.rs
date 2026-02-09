@@ -67,12 +67,14 @@ impl KernelFederatedManager {
     }
 
     /// Enable Byzantine defense
+    #[inline(always)]
     pub fn enable_byzantine_defense(&mut self, defense: ByzantineDefense) {
         let defender = ByzantineRobustAggregator::new(self.model.clone(), defense);
         self.byzantine_defense = Some(defender);
     }
 
     /// Register a client node
+    #[inline]
     pub fn register_node(&mut self, node_id: u32) -> bool {
         if self.connected_nodes.len() >= MAX_CLIENTS {
             return false;
@@ -132,6 +134,7 @@ impl KernelFederatedManager {
     }
 
     /// Get global model
+    #[inline(always)]
     pub fn get_global_model(&self) -> &FederatedModel {
         &self.model
     }
@@ -155,6 +158,7 @@ impl KernelFederatedManager {
 
 /// Federated learning statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FederatedStats {
     /// Node role
     pub role: KernelNodeRole,

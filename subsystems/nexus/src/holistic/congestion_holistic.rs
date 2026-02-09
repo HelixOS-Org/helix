@@ -22,6 +22,7 @@ impl CongestionHolisticRecord {
 
 /// Congestion holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CongestionHolisticStats { pub total_samples: u64, pub collapses: u64, pub recoveries: u64, pub avg_cwnd: u32 }
 
 /// Main holistic congestion
@@ -33,6 +34,7 @@ pub struct HolisticCongestion {
 
 impl HolisticCongestion {
     pub fn new() -> Self { Self { stats: CongestionHolisticStats { total_samples: 0, collapses: 0, recoveries: 0, avg_cwnd: 0 }, cwnd_sum: 0 } }
+    #[inline]
     pub fn record(&mut self, rec: &CongestionHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.pattern {

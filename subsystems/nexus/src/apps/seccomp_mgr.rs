@@ -92,8 +92,10 @@ impl SeccompFilter {
         }
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: SyscallRule) { self.rules.push(rule); self.insn_count += 1; }
 
+    #[inline]
     pub fn eval(&mut self, syscall_nr: u32) -> SeccompAction {
         for r in &self.rules {
             if r.syscall_nr == syscall_nr { self.match_count += 1; return r.action; }
@@ -102,6 +104,7 @@ impl SeccompFilter {
         self.default_action
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         let total = self.match_count + self.miss_count;
         if total == 0 { 0.0 } else { self.match_count as f64 / total as f64 * 100.0 }
@@ -138,6 +141,7 @@ pub struct SeccompViolation {
 
 /// Seccomp stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SeccompStats {
     pub tracked_processes: usize,
     pub total_filters: usize,
@@ -158,6 +162,7 @@ pub struct AppsSeccompMgr {
 impl AppsSeccompMgr {
     pub fn new() -> Self { Self { filters: BTreeMap::new(), processes: BTreeMap::new(), stats: SeccompStats::default(), next_id: 1 } }
 
+    #[inline]
     pub fn create_filter(&mut self, mode: FilterMode, default: SeccompAction, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut f = SeccompFilter::new(id, mode, default);
@@ -166,10 +171,12 @@ impl AppsSeccompMgr {
         id
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, filter_id: u64, rule: SyscallRule) {
         if let Some(f) = self.filters.get_mut(&filter_id) { f.add_rule(rule); }
     }
 
+    #[inline(always)]
     pub fn install_filter(&mut self, pid: u64, filter_id: u64) {
         let proc_sec = self.processes.entry(pid).or_insert_with(|| ProcessSeccomp::new(pid));
         proc_sec.filters.push(filter_id);
@@ -194,6 +201,7 @@ impl AppsSeccompMgr {
         SeccompAction::Allow
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.tracked_processes = self.processes.len();
         self.stats.total_filters = self.filters.len();
@@ -203,7 +211,10 @@ impl AppsSeccompMgr {
         self.stats.processes_with_filters = self.processes.values().filter(|p| !p.filters.is_empty()).count();
     }
 
+    #[inline(always)]
     pub fn filter(&self, id: u64) -> Option<&SeccompFilter> { self.filters.get(&id) }
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcessSeccomp> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &SeccompStats { &self.stats }
 }

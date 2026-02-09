@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Rendezvous state
@@ -41,6 +42,7 @@ impl RendezvousParticipant {
         Self { tid, arrived_at: now, data_hash, ready: true, received_hash: None }
     }
 
+    #[inline(always)]
     pub fn wait_time(&self, now: u64) -> u64 { now.saturating_sub(self.arrived_at) }
 }
 
@@ -67,6 +69,7 @@ impl RendezvousPoint {
         }
     }
 
+    #[inline]
     pub fn arrive(&mut self, tid: u64, data_hash: u64, now: u64) -> bool {
         if self.state != RendezvousState::Waiting { return false; }
         self.participants.push(RendezvousParticipant::new(tid, data_hash, now));
@@ -107,11 +110,13 @@ impl RendezvousPoint {
         true
     }
 
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.participants.clear();
         self.state = RendezvousState::Waiting;
     }
 
+    #[inline]
     pub fn check_timeout(&mut self, now: u64) -> bool {
         if self.state == RendezvousState::Waiting && now.saturating_sub(self.created_at) > self.timeout_ns {
             self.state = RendezvousState::TimedOut;
@@ -122,6 +127,7 @@ impl RendezvousPoint {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RendezvousStats {
     pub total_points: u32,
     pub waiting: u32,
@@ -140,6 +146,7 @@ pub struct CoopRendezvous {
 impl CoopRendezvous {
     pub fn new() -> Self { Self { points: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, mode: ExchangeMode, required: u32, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -147,14 +154,17 @@ impl CoopRendezvous {
         id
     }
 
+    #[inline(always)]
     pub fn arrive(&mut self, point_id: u64, tid: u64, data_hash: u64, now: u64) -> bool {
         self.points.get_mut(&point_id).map(|p| p.arrive(tid, data_hash, now)).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn try_exchange(&mut self, point_id: u64, now: u64) -> bool {
         self.points.get_mut(&point_id).map(|p| p.exchange(now)).unwrap_or(false)
     }
 
+    #[inline]
     pub fn stats(&self) -> RendezvousStats {
         let waiting = self.points.values().filter(|p| p.state == RendezvousState::Waiting).count() as u32;
         let completed = self.points.values().filter(|p| p.state == RendezvousState::Complete).count() as u32;
@@ -194,10 +204,12 @@ pub struct RendezvousEndpointV2 {
 }
 
 impl RendezvousEndpointV2 {
+    #[inline(always)]
     pub fn new_sender(id: u64, value_hash: u64, now: u64) -> Self {
         Self { id, is_sender: true, value_hash, timestamp: now, state: RendezvousStateV2::WaitingSender, matched_with: None, wait_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn new_receiver(id: u64, now: u64) -> Self {
         Self { id, is_sender: false, value_hash: 0, timestamp: now, state: RendezvousStateV2::WaitingReceiver, matched_with: None, wait_ns: 0 }
     }
@@ -206,8 +218,8 @@ impl RendezvousEndpointV2 {
 /// Rendezvous channel v2
 #[derive(Debug)]
 pub struct RendezvousChannelV2 {
-    pub waiting_senders: Vec<RendezvousEndpointV2>,
-    pub waiting_receivers: Vec<RendezvousEndpointV2>,
+    pub waiting_senders: VecDeque<RendezvousEndpointV2>,
+    pub waiting_receivers: VecDeque<RendezvousEndpointV2>,
     pub total_matches: u64,
     pub total_timeouts: u64,
     pub total_wait_ns: u64,
@@ -215,7 +227,7 @@ pub struct RendezvousChannelV2 {
 
 impl RendezvousChannelV2 {
     pub fn new() -> Self {
-        Self { waiting_senders: Vec::new(), waiting_receivers: Vec::new(), total_matches: 0, total_timeouts: 0, total_wait_ns: 0 }
+        Self { waiting_senders: VecDeque::new(), waiting_receivers: VecDeque::new(), total_matches: 0, total_timeouts: 0, total_wait_ns: 0 }
     }
 
     pub fn send(&mut self, id: u64, value_hash: u64, now: u64) -> Option<u64> {
@@ -228,10 +240,10 @@ impl RendezvousChannelV2 {
             self.total_matches += 1;
             self.total_wait_ns += wait;
             let recv_id = recv.id;
-            self.waiting_receivers.remove(0);
+            self.waiting_receivers.pop_front();
             Some(recv_id)
         } else {
-            self.waiting_senders.push(RendezvousEndpointV2::new_sender(id, value_hash, now));
+            self.waiting_senders.push_back(RendezvousEndpointV2::new_sender(id, value_hash, now));
             None
         }
     }
@@ -245,10 +257,10 @@ impl RendezvousChannelV2 {
             self.total_matches += 1;
             self.total_wait_ns += wait;
             let val = sender.value_hash;
-            self.waiting_senders.remove(0);
+            self.waiting_senders.pop_front();
             Some(val)
         } else {
-            self.waiting_receivers.push(RendezvousEndpointV2::new_receiver(id, now));
+            self.waiting_receivers.push_back(RendezvousEndpointV2::new_receiver(id, now));
             None
         }
     }
@@ -256,6 +268,7 @@ impl RendezvousChannelV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RendezvousV2Stats {
     pub waiting_senders: u32,
     pub waiting_receivers: u32,
@@ -273,20 +286,24 @@ pub struct CoopRendezvousV2 {
 impl CoopRendezvousV2 {
     pub fn new() -> Self { Self { channels: BTreeMap::new(), next_chan: 1 } }
 
+    #[inline]
     pub fn create_channel(&mut self) -> u64 {
         let id = self.next_chan; self.next_chan += 1;
         self.channels.insert(id, RendezvousChannelV2::new());
         id
     }
 
+    #[inline(always)]
     pub fn send(&mut self, chan: u64, id: u64, val: u64, now: u64) -> Option<u64> {
         self.channels.get_mut(&chan).and_then(|c| c.send(id, val, now))
     }
 
+    #[inline(always)]
     pub fn recv(&mut self, chan: u64, id: u64, now: u64) -> Option<u64> {
         self.channels.get_mut(&chan).and_then(|c| c.recv(id, now))
     }
 
+    #[inline]
     pub fn stats(&self) -> Vec<RendezvousV2Stats> {
         self.channels.values().map(|c| {
             let avg = if c.total_matches == 0 { 0 } else { c.total_wait_ns / c.total_matches };
@@ -338,6 +355,7 @@ impl RendezvousV3Point {
         Self { id, required, arrived: Vec::new(), total_matches: 0, total_timeouts: 0 }
     }
 
+    #[inline]
     pub fn arrive(&mut self, tid: u64, data: u64, now: u64) -> bool {
         self.arrived.push(RendezvousV3Participant::new(tid, data, now));
         if self.arrived.len() as u32 >= self.required {
@@ -347,6 +365,7 @@ impl RendezvousV3Point {
         } else { false }
     }
 
+    #[inline]
     pub fn drain(&mut self) -> Vec<RendezvousV3Participant> {
         let mut v = Vec::new();
         core::mem::swap(&mut self.arrived, &mut v);
@@ -356,6 +375,7 @@ impl RendezvousV3Point {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RendezvousV3Stats {
     pub total_points: u32,
     pub total_matches: u64,
@@ -372,18 +392,22 @@ pub struct CoopRendezvousV3 {
 impl CoopRendezvousV3 {
     pub fn new() -> Self { Self { points: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, required: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.points.insert(id, RendezvousV3Point::new(id, required));
         id
     }
 
+    #[inline(always)]
     pub fn arrive(&mut self, point: u64, tid: u64, data: u64, now: u64) -> bool {
         if let Some(p) = self.points.get_mut(&point) { p.arrive(tid, data, now) } else { false }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, id: u64) { self.points.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> RendezvousV3Stats {
         let matches: u64 = self.points.values().map(|p| p.total_matches).sum();
         let timeouts: u64 = self.points.values().map(|p| p.total_timeouts).sum();

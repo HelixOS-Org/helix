@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -38,7 +39,7 @@ pub struct FreqDomain {
     pub governor: FreqGovernor,
     pub state: ScalingState,
     pub transitions: u64,
-    pub time_in_state: BTreeMap<u64, u64>,
+    pub time_in_state: LinearMap<u64, 64>,
     pub last_transition: u64,
 }
 
@@ -49,10 +50,11 @@ impl FreqDomain {
             min_freq_khz: min, max_freq_khz: max,
             available_freqs: Vec::new(), governor: FreqGovernor::Schedutil,
             state: ScalingState::Active, transitions: 0,
-            time_in_state: BTreeMap::new(), last_transition: 0,
+            time_in_state: LinearMap::new(), last_transition: 0,
         }
     }
 
+    #[inline]
     pub fn set_freq(&mut self, freq_khz: u64, now: u64) -> bool {
         if freq_khz < self.min_freq_khz || freq_khz > self.max_freq_khz { return false; }
         let duration = now.saturating_sub(self.last_transition);
@@ -63,21 +65,25 @@ impl FreqDomain {
         true
     }
 
+    #[inline(always)]
     pub fn boost(&mut self, now: u64) {
         self.set_freq(self.max_freq_khz, now);
         self.state = ScalingState::Boosted;
     }
 
+    #[inline(always)]
     pub fn throttle(&mut self, now: u64) {
         self.set_freq(self.min_freq_khz, now);
         self.state = ScalingState::Throttled;
     }
 
+    #[inline(always)]
     pub fn freq_ratio(&self) -> f64 {
         if self.max_freq_khz == 0 { return 0.0; }
         self.current_freq_khz as f64 / self.max_freq_khz as f64
     }
 
+    #[inline]
     pub fn avg_freq_khz(&self) -> u64 {
         let total_time: u64 = self.time_in_state.values().sum();
         if total_time == 0 { return self.current_freq_khz; }
@@ -98,6 +104,7 @@ pub enum EnergyPref {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FreqScalingStats {
     pub total_domains: u32,
     pub total_cpus: u32,
@@ -119,6 +126,7 @@ impl HolisticFreqScaling {
         Self { domains: BTreeMap::new(), next_id: 0, global_governor: governor }
     }
 
+    #[inline]
     pub fn add_domain(&mut self, min: u64, max: u64) -> u32 {
         let id = self.next_id;
         self.next_id += 1;
@@ -128,14 +136,17 @@ impl HolisticFreqScaling {
         id
     }
 
+    #[inline(always)]
     pub fn set_freq(&mut self, domain: u32, freq_khz: u64, now: u64) -> bool {
         self.domains.get_mut(&domain).map(|d| d.set_freq(freq_khz, now)).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn boost_domain(&mut self, domain: u32, now: u64) {
         if let Some(d) = self.domains.get_mut(&domain) { d.boost(now); }
     }
 
+    #[inline(always)]
     pub fn throttle_domain(&mut self, domain: u32, now: u64) {
         if let Some(d) = self.domains.get_mut(&domain) { d.throttle(now); }
     }

@@ -32,6 +32,7 @@ impl FileCaps {
     }
 
     /// Create from sets
+    #[inline]
     pub fn from_sets(
         permitted: CapabilitySet,
         inheritable: CapabilitySet,
@@ -47,6 +48,7 @@ impl FileCaps {
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.permitted.is_empty() && self.inheritable.is_empty()
     }

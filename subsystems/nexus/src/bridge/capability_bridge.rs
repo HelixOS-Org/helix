@@ -71,6 +71,7 @@ impl CapRecord {
 
 /// Capability bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CapBridgeStats {
     pub total_ops: u64,
     pub checks: u64,

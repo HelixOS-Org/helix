@@ -131,11 +131,13 @@ pub enum CognitiveMode {
 
 impl CognitiveMode {
     /// Check if mode allows full cognitive processing
+    #[inline(always)]
     pub fn is_full_cognition(&self) -> bool {
         matches!(self, Self::Normal | Self::Learning | Self::Reflecting)
     }
 
     /// Check if mode is a degraded state
+    #[inline(always)]
     pub fn is_degraded(&self) -> bool {
         matches!(self, Self::HighLoad | Self::Healing | Self::Survival)
     }
@@ -177,6 +179,7 @@ pub enum DomainState {
 
 impl DomainState {
     /// Check if domain is operational
+    #[inline(always)]
     pub fn is_operational(&self) -> bool {
         matches!(self, Self::Active | Self::Degraded)
     }
@@ -224,6 +227,7 @@ pub trait CognitiveDomain: Send + Sync {
 
 /// Context passed to each domain during a cognitive cycle
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CycleContext {
     /// Cycle number
     pub cycle_id: u64,
@@ -470,6 +474,7 @@ impl Blackboard {
     }
 
     /// Clear all data for new cycle
+    #[inline]
     pub fn clear(&mut self) {
         self.signals.clear();
         self.patterns.clear();
@@ -539,6 +544,7 @@ pub struct SystemHealth {
 
 /// Metrics for a cognitive domain
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DomainMetrics {
     /// Total cycles processed
     pub total_cycles: u64,
@@ -638,6 +644,7 @@ impl Default for OrchestratorConfig {
 
 /// Statistics for the orchestrator
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OrchestratorStats {
     /// Total cycles run
     pub total_cycles: u64,
@@ -669,6 +676,7 @@ impl CognitiveOrchestrator {
     }
 
     /// Register a cognitive domain
+    #[inline]
     pub fn register_domain(
         &mut self,
         domain: Box<dyn CognitiveDomain>,
@@ -681,11 +689,13 @@ impl CognitiveOrchestrator {
     }
 
     /// Get current mode
+    #[inline(always)]
     pub fn mode(&self) -> CognitiveMode {
         self.mode
     }
 
     /// Set cognitive mode
+    #[inline]
     pub fn set_mode(&mut self, mode: CognitiveMode) {
         if self.mode != mode {
             self.mode = mode;
@@ -694,26 +704,31 @@ impl CognitiveOrchestrator {
     }
 
     /// Get cycle count
+    #[inline(always)]
     pub fn cycle_count(&self) -> u64 {
         self.cycle_count.load(Ordering::Relaxed)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &OrchestratorStats {
         &self.stats
     }
 
     /// Get blackboard reference
+    #[inline(always)]
     pub fn blackboard(&self) -> &Blackboard {
         &self.blackboard
     }
 
     /// Get mutable blackboard reference
+    #[inline(always)]
     pub fn blackboard_mut(&mut self) -> &mut Blackboard {
         &mut self.blackboard
     }
 
     /// Initialize all domains
+    #[inline]
     pub fn initialize(&mut self) -> Result<(), CognitionError> {
         for domain in &mut self.domains {
             domain.initialize()?;
@@ -822,6 +837,7 @@ impl CognitiveOrchestrator {
     }
 
     /// Shutdown all domains
+    #[inline]
     pub fn shutdown(&mut self) -> Result<(), CognitionError> {
         self.mode = CognitiveMode::ShuttingDown;
         self.running.store(false, Ordering::SeqCst);
@@ -834,11 +850,13 @@ impl CognitiveOrchestrator {
     }
 
     /// Get domain count
+    #[inline(always)]
     pub fn domain_count(&self) -> usize {
         self.domains.len()
     }
 
     /// Check if running
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Relaxed)
     }

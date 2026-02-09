@@ -33,6 +33,7 @@ pub enum TlsDirection {
 
 /// TLS connection
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct TlsConnection {
     pub fd: u64,
     pub version: TlsVersion,
@@ -51,12 +52,15 @@ impl TlsConnection {
         Self { fd, version: ver, cipher, direction: dir, tx_bytes: 0, rx_bytes: 0, tx_records: 0, rx_records: 0, hw_offload: false, established_at: now }
     }
 
+    #[inline(always)]
     pub fn send(&mut self, bytes: u64) { self.tx_bytes += bytes; self.tx_records += 1; }
+    #[inline(always)]
     pub fn recv(&mut self, bytes: u64) { self.rx_bytes += bytes; self.rx_records += 1; }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TlsBridgeStats {
     pub total_connections: u32,
     pub hw_offloaded: u32,
@@ -66,6 +70,7 @@ pub struct TlsBridgeStats {
 }
 
 /// Main bridge TLS
+#[repr(align(64))]
 pub struct BridgeTls {
     connections: BTreeMap<u64, TlsConnection>,
 }
@@ -73,20 +78,25 @@ pub struct BridgeTls {
 impl BridgeTls {
     pub fn new() -> Self { Self { connections: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn establish(&mut self, fd: u64, ver: TlsVersion, cipher: TlsCipher, dir: TlsDirection, now: u64) {
         self.connections.insert(fd, TlsConnection::new(fd, ver, cipher, dir, now));
     }
 
+    #[inline(always)]
     pub fn close(&mut self, fd: u64) { self.connections.remove(&fd); }
 
+    #[inline(always)]
     pub fn send(&mut self, fd: u64, bytes: u64) {
         if let Some(c) = self.connections.get_mut(&fd) { c.send(bytes); }
     }
 
+    #[inline(always)]
     pub fn recv(&mut self, fd: u64, bytes: u64) {
         if let Some(c) = self.connections.get_mut(&fd) { c.recv(bytes); }
     }
 
+    #[inline]
     pub fn stats(&self) -> TlsBridgeStats {
         let hw = self.connections.values().filter(|c| c.hw_offload).count() as u32;
         let tx: u64 = self.connections.values().map(|c| c.tx_bytes).sum();

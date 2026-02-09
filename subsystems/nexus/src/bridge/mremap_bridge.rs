@@ -10,13 +10,16 @@ pub enum BridgeMremapFlag { MayMove, Fixed, DontUnmap }
 
 /// Mremap record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeMremapRecord { pub old_addr: u64, pub old_size: u64, pub new_addr: u64, pub new_size: u64, pub moved: bool }
 
 /// Mremap stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeMremapStats { pub total_ops: u64, pub grows: u64, pub shrinks: u64, pub moves: u64, pub in_place: u64 }
 
 /// Manager for mremap bridge
+#[repr(align(64))]
 pub struct BridgeMremapManager {
     history: Vec<BridgeMremapRecord>,
     next_addr: u64,
@@ -41,5 +44,6 @@ impl BridgeMremapManager {
         new_addr
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeMremapStats { &self.stats }
 }

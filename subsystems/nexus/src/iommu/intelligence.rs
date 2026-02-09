@@ -113,16 +113,19 @@ impl IommuIntelligence {
     }
 
     /// Register IOMMU
+    #[inline(always)]
     pub fn register_iommu(&mut self, iommu_type: IommuType) -> IommuId {
         self.manager.register_unit(iommu_type)
     }
 
     /// Record mapping
+    #[inline(always)]
     pub fn record_mapping(&mut self, mapping: DmaMapping) {
         self.manager.record_mapping(mapping);
     }
 
     /// Record fault
+    #[inline(always)]
     pub fn record_fault(&mut self, fault: IommuFault) {
         self.manager.record_fault(fault);
     }
@@ -243,11 +246,13 @@ impl IommuIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &IommuManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut IommuManager {
         &mut self.manager
     }

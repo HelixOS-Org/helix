@@ -57,11 +57,13 @@ pub enum CqlResult {
 
 impl CqlResult {
     /// Is error result
+    #[inline(always)]
     pub fn is_error(&self) -> bool {
         matches!(self, Self::Error(_))
     }
 
     /// Get error message
+    #[inline]
     pub fn error_message(&self) -> Option<&str> {
         match self {
             Self::Error(msg) => Some(msg),
@@ -167,6 +169,7 @@ impl CqlEngine {
     }
 
     /// Query count
+    #[inline(always)]
     pub fn query_count(&self) -> u64 {
         self.query_counter.load(Ordering::Relaxed)
     }

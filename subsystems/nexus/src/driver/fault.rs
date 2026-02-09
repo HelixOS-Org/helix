@@ -177,11 +177,13 @@ impl DriverFaultPredictor {
     }
 
     /// Get prediction
+    #[inline(always)]
     pub fn get_prediction(&self, driver_id: DriverId) -> Option<&FaultPrediction> {
         self.predictions.get(&driver_id)
     }
 
     /// Get high-risk drivers
+    #[inline]
     pub fn high_risk_drivers(&self, threshold: f64) -> Vec<&FaultPrediction> {
         self.predictions
             .values()
@@ -190,6 +192,7 @@ impl DriverFaultPredictor {
     }
 
     /// Get MTBF estimate
+    #[inline(always)]
     pub fn get_mtbf(&self, driver_id: DriverId) -> Option<f64> {
         self.mtbf_estimates.get(&driver_id).copied()
     }

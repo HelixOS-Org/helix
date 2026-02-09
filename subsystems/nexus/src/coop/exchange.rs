@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -110,11 +111,13 @@ impl ExchangeOrder {
     }
 
     /// Remaining quantity
+    #[inline(always)]
     pub fn remaining(&self) -> u64 {
         self.quantity.saturating_sub(self.filled)
     }
 
     /// Fill partially
+    #[inline]
     pub fn fill(&mut self, amount: u64) {
         self.filled += amount;
         if self.filled >= self.quantity {
@@ -125,11 +128,13 @@ impl ExchangeOrder {
     }
 
     /// Is open
+    #[inline(always)]
     pub fn is_open(&self) -> bool {
         matches!(self.state, OrderState::Open | OrderState::PartiallyFilled)
     }
 
     /// Check expiry
+    #[inline]
     pub fn check_expiry(&mut self, now: u64) {
         if now >= self.expiry && self.is_open() {
             self.state = OrderState::Expired;
@@ -189,6 +194,7 @@ impl OrderBook {
     }
 
     /// Add order
+    #[inline]
     pub fn add(&mut self, id: u64, side: OrderSide) {
         match side {
             OrderSide::Offer => self.offers.push(id),
@@ -197,22 +203,26 @@ impl OrderBook {
     }
 
     /// Remove order
+    #[inline(always)]
     pub fn remove(&mut self, id: u64) {
         self.offers.retain(|&o| o != id);
         self.requests.retain(|&r| r != id);
     }
 
     /// Best offer price
+    #[inline(always)]
     pub fn best_offer(&self) -> Option<u64> {
         self.offers.first().copied()
     }
 
     /// Best request price
+    #[inline(always)]
     pub fn best_request(&self) -> Option<u64> {
         self.requests.first().copied()
     }
 
     /// Depth (open orders)
+    #[inline(always)]
     pub fn depth(&self) -> (usize, usize) {
         (self.offers.len(), self.requests.len())
     }
@@ -224,6 +234,7 @@ impl OrderBook {
 
 /// Per-resource market statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MarketStats {
     /// Resource
     pub resource: ExchangeResource,
@@ -277,6 +288,7 @@ impl MarketStats {
 
 /// Exchange stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopExchangeStats {
     /// Open orders
     pub open_orders: usize,
@@ -299,7 +311,7 @@ pub struct CoopExchangeManager {
     /// Market stats
     market_stats: BTreeMap<u8, MarketStats>,
     /// Process balances (priority points)
-    balances: BTreeMap<u64, u64>,
+    balances: LinearMap<u64, 64>,
     /// Next IDs
     next_order_id: u64,
     next_trade_id: u64,
@@ -314,7 +326,7 @@ impl CoopExchangeManager {
             books: BTreeMap::new(),
             trades: Vec::new(),
             market_stats: BTreeMap::new(),
-            balances: BTreeMap::new(),
+            balances: LinearMap::new(),
             next_order_id: 1,
             next_trade_id: 1,
             stats: CoopExchangeStats::default(),
@@ -322,13 +334,15 @@ impl CoopExchangeManager {
     }
 
     /// Set process balance
+    #[inline(always)]
     pub fn set_balance(&mut self, pid: u64, balance: u64) {
         self.balances.insert(pid, balance);
     }
 
     /// Get balance
+    #[inline(always)]
     pub fn balance(&self, pid: u64) -> u64 {
-        self.balances.get(&pid).copied().unwrap_or(0)
+        self.balances.get(pid).copied().unwrap_or(0)
     }
 
     /// Place order
@@ -454,6 +468,7 @@ impl CoopExchangeManager {
     }
 
     /// Cancel order
+    #[inline]
     pub fn cancel_order(&mut self, order_id: u64) {
         if let Some(order) = self.orders.get_mut(&order_id) {
             order.state = OrderState::Cancelled;
@@ -491,11 +506,13 @@ impl CoopExchangeManager {
     }
 
     /// Market stats for resource
+    #[inline(always)]
     pub fn market_stats(&self, resource: ExchangeResource) -> Option<&MarketStats> {
         self.market_stats.get(&(resource as u8))
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopExchangeStats {
         &self.stats
     }

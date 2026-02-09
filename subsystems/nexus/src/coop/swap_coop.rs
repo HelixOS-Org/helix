@@ -9,6 +9,7 @@
 //! - Pre-swap notification protocol
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -22,6 +23,7 @@ pub enum SwapPriority {
 }
 
 impl SwapPriority {
+    #[inline]
     pub fn weight(&self) -> u32 {
         match self {
             Self::Critical => 0, // never swap
@@ -43,9 +45,11 @@ pub struct SwapBudget {
 }
 
 impl SwapBudget {
+    #[inline(always)]
     pub fn remaining(&self) -> u64 {
         self.allocated_slots.saturating_sub(self.used_slots)
     }
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.allocated_slots == 0 {
             return 0.0;
@@ -55,6 +59,7 @@ impl SwapBudget {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ZswapPool {
     pub pool_id: u64,
     pub capacity_bytes: u64,
@@ -65,18 +70,21 @@ pub struct ZswapPool {
 }
 
 impl ZswapPool {
+    #[inline]
     pub fn compression_ratio(&self) -> f64 {
         if self.compressed_bytes == 0 {
             return 1.0;
         }
         self.original_bytes as f64 / self.compressed_bytes as f64
     }
+    #[inline(always)]
     pub fn free_bytes(&self) -> u64 {
         self.capacity_bytes.saturating_sub(self.used_bytes)
     }
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SwapCoopStats {
     pub slots_allocated: u64,
     pub slots_freed: u64,
@@ -90,7 +98,7 @@ pub struct SwapCoopManager {
     budgets: BTreeMap<u64, SwapBudget>,
     pools: BTreeMap<u64, ZswapPool>,
     /// pid → group_id
-    pid_groups: BTreeMap<u64, u64>,
+    pid_groups: LinearMap<u64, 64>,
     total_swap_slots: u64,
     next_pool: u64,
     stats: SwapCoopStats,
@@ -101,7 +109,7 @@ impl SwapCoopManager {
         Self {
             budgets: BTreeMap::new(),
             pools: BTreeMap::new(),
-            pid_groups: BTreeMap::new(),
+            pid_groups: LinearMap::new(),
             total_swap_slots,
             next_pool: 1,
             stats: SwapCoopStats::default(),
@@ -131,7 +139,7 @@ impl SwapCoopManager {
 
     /// Request swap slots for a process
     pub fn request_slots(&mut self, pid: u64, count: u64) -> u64 {
-        let group_id = match self.pid_groups.get(&pid) {
+        let group_id = match self.pid_groups.get(pid) {
             Some(g) => *g,
             None => return 0,
         };
@@ -150,8 +158,9 @@ impl SwapCoopManager {
     }
 
     /// Release swap slots
+    #[inline]
     pub fn release_slots(&mut self, pid: u64, count: u64) {
-        let group_id = match self.pid_groups.get(&pid) {
+        let group_id = match self.pid_groups.get(pid) {
             Some(g) => *g,
             None => return,
         };
@@ -214,9 +223,11 @@ impl SwapCoopManager {
         }
     }
 
+    #[inline(always)]
     pub fn budget(&self, group_id: u64) -> Option<&SwapBudget> {
         self.budgets.get(&group_id)
     }
+    #[inline(always)]
     pub fn stats(&self) -> &SwapCoopStats {
         &self.stats
     }

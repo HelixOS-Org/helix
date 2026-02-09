@@ -39,6 +39,7 @@ pub enum SoftirqState {
 
 /// Per-vector statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SoftirqVectorStats {
     pub vector: SoftIrqType,
     pub raised_count: u64,
@@ -58,11 +59,13 @@ impl SoftirqVectorStats {
         }
     }
 
+    #[inline(always)]
     pub fn avg_time_ns(&self) -> f64 {
         if self.serviced_count == 0 { return 0.0; }
         self.total_time_ns as f64 / self.serviced_count as f64
     }
 
+    #[inline(always)]
     pub fn defer_ratio(&self) -> f64 {
         if self.raised_count == 0 { return 0.0; }
         self.deferred_count as f64 / self.raised_count as f64
@@ -71,6 +74,7 @@ impl SoftirqVectorStats {
 
 /// Per-CPU softirq state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuSoftirqState {
     pub cpu_id: u32,
     pub pending_mask: u16,
@@ -109,11 +113,13 @@ impl CpuSoftirqState {
         }
     }
 
+    #[inline(always)]
     pub fn raise(&mut self, vec_idx: u8) {
         self.pending_mask |= 1 << vec_idx;
         if let Some(v) = self.vectors.get_mut(&vec_idx) { v.raised_count += 1; }
     }
 
+    #[inline]
     pub fn begin_processing(&mut self) {
         self.in_softirq = true;
         self.current_loop = 0;
@@ -138,17 +144,20 @@ impl CpuSoftirqState {
         true
     }
 
+    #[inline]
     pub fn end_processing(&mut self) {
         self.in_softirq = false;
         self.current_loop += 1;
         if self.pending_mask != 0 { self.total_bursts += 1; }
     }
 
+    #[inline(always)]
     pub fn budget_utilization(&self) -> f64 {
         if self.time_budget_ns == 0 { return 0.0; }
         self.time_used_ns as f64 / self.time_budget_ns as f64
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> u32 {
         self.pending_mask.count_ones()
     }
@@ -169,6 +178,7 @@ impl BurstDetector {
         Self { window_ns, threshold, recent: Vec::new(), bursts_detected: 0, current_burst: false }
     }
 
+    #[inline]
     pub fn record(&mut self, ts: u64) {
         self.recent.push(ts);
         let cutoff = ts.saturating_sub(self.window_ns);
@@ -178,6 +188,7 @@ impl BurstDetector {
         if self.current_burst && !was_burst { self.bursts_detected += 1; }
     }
 
+    #[inline(always)]
     pub fn rate(&self) -> f64 {
         if self.window_ns == 0 { return 0.0; }
         (self.recent.len() as f64 * 1_000_000_000.0) / self.window_ns as f64
@@ -186,6 +197,7 @@ impl BurstDetector {
 
 /// Softirq manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SoftirqMgrStats {
     pub total_cpus: usize,
     pub total_raised: u64,
@@ -217,19 +229,23 @@ impl HolisticSoftirqMgr {
         }
     }
 
+    #[inline(always)]
     pub fn init_cpu(&mut self, cpu: u32) {
         self.cpus.insert(cpu, CpuSoftirqState::new(cpu, self.default_budget_ns));
     }
 
+    #[inline(always)]
     pub fn raise(&mut self, cpu: u32, vec_idx: u8, ts: u64) {
         if let Some(c) = self.cpus.get_mut(&cpu) { c.raise(vec_idx); }
         self.burst_detector.record(ts);
     }
 
+    #[inline(always)]
     pub fn begin_processing(&mut self, cpu: u32) {
         if let Some(c) = self.cpus.get_mut(&cpu) { c.begin_processing(); }
     }
 
+    #[inline]
     pub fn process_vector(&mut self, cpu: u32, vec_idx: u8, duration_ns: u64, ts: u64) -> bool {
         if let Some(c) = self.cpus.get_mut(&cpu) {
             c.process_vector(vec_idx, duration_ns, ts)
@@ -238,6 +254,7 @@ impl HolisticSoftirqMgr {
         }
     }
 
+    #[inline(always)]
     pub fn end_processing(&mut self, cpu: u32) {
         if let Some(c) = self.cpus.get_mut(&cpu) { c.end_processing(); }
     }
@@ -264,5 +281,6 @@ impl HolisticSoftirqMgr {
         self.stats.cpus_in_softirq = self.cpus.values().filter(|c| c.in_softirq).count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SoftirqMgrStats { &self.stats }
 }

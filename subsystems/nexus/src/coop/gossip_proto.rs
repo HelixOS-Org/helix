@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -37,7 +38,7 @@ pub struct GossipNode {
     pub heartbeat_seq: u64,
     pub last_heartbeat: u64,
     pub suspicion_start: u64,
-    pub metadata: BTreeMap<u64, u64>,
+    pub metadata: LinearMap<u64, 64>,
 }
 
 impl GossipNode {
@@ -45,16 +46,18 @@ impl GossipNode {
         Self {
             id, generation: 1, state: GossipNodeState::Alive,
             heartbeat_seq: 0, last_heartbeat: now, suspicion_start: 0,
-            metadata: BTreeMap::new(),
+            metadata: LinearMap::new(),
         }
     }
 
+    #[inline]
     pub fn heartbeat(&mut self, now: u64) {
         self.heartbeat_seq += 1;
         self.last_heartbeat = now;
         self.state = GossipNodeState::Alive;
     }
 
+    #[inline]
     pub fn suspect(&mut self, now: u64) {
         if self.state == GossipNodeState::Alive {
             self.state = GossipNodeState::Suspected;
@@ -62,9 +65,12 @@ impl GossipNode {
         }
     }
 
+    #[inline(always)]
     pub fn declare_dead(&mut self) { self.state = GossipNodeState::Dead; }
+    #[inline(always)]
     pub fn leave(&mut self) { self.state = GossipNodeState::Left; }
 
+    #[inline(always)]
     pub fn is_suspect_timeout(&self, now: u64, timeout: u64) -> bool {
         self.state == GossipNodeState::Suspected && now.saturating_sub(self.suspicion_start) > timeout
     }
@@ -92,6 +98,7 @@ pub enum GossipStyle {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GossipProtoStats {
     pub total_nodes: u32,
     pub alive_nodes: u32,
@@ -131,10 +138,12 @@ impl CoopGossipProto {
         x
     }
 
+    #[inline(always)]
     pub fn join(&mut self, node_id: u64, now: u64) {
         self.nodes.insert(node_id, GossipNode::new(node_id, now));
     }
 
+    #[inline(always)]
     pub fn heartbeat(&mut self, now: u64) {
         if let Some(local) = self.nodes.get_mut(&self.local_id) { local.heartbeat(now); }
     }
@@ -169,6 +178,7 @@ impl CoopGossipProto {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> GossipProtoStats {
         let alive = self.nodes.values().filter(|n| n.state == GossipNodeState::Alive).count() as u32;
         let suspected = self.nodes.values().filter(|n| n.state == GossipNodeState::Suspected).count() as u32;

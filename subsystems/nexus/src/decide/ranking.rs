@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -30,7 +31,7 @@ pub struct Alternative {
     /// Description
     pub description: String,
     /// Scores
-    pub scores: BTreeMap<u64, f64>,
+    pub scores: LinearMap<f64, 64>,
     /// Metadata
     pub metadata: BTreeMap<String, String>,
 }
@@ -86,7 +87,7 @@ pub struct RankedAlternative {
     /// Aggregate score
     pub score: f64,
     /// Criterion scores (normalized)
-    pub criterion_scores: BTreeMap<u64, f64>,
+    pub criterion_scores: LinearMap<f64, 64>,
 }
 
 /// Ranking method
@@ -116,9 +117,9 @@ pub struct SensitivityAnalysis {
     /// Original ranking
     pub original: Vec<u64>,
     /// Weight variations
-    pub weight_sensitivity: BTreeMap<u64, f64>,
+    pub weight_sensitivity: LinearMap<f64, 64>,
     /// Threshold for rank change
-    pub threshold: BTreeMap<u64, f64>,
+    pub threshold: LinearMap<f64, 64>,
 }
 
 // ============================================================================
@@ -163,6 +164,7 @@ impl Default for RankingConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RankingStats {
     /// Rankings performed
     pub rankings_performed: u64,
@@ -207,6 +209,7 @@ impl RankingEngine {
     }
 
     /// Set criterion scale
+    #[inline]
     pub fn set_scale(&mut self, criterion_id: u64, scale: Scale) {
         if let Some(criterion) = self.criteria.get_mut(&criterion_id) {
             criterion.scale = scale;
@@ -221,7 +224,7 @@ impl RankingEngine {
             id,
             name: name.into(),
             description: description.into(),
-            scores: BTreeMap::new(),
+            scores: LinearMap::new(),
             metadata: BTreeMap::new(),
         };
 
@@ -231,6 +234,7 @@ impl RankingEngine {
     }
 
     /// Set score
+    #[inline]
     pub fn set_score(&mut self, alternative_id: u64, criterion_id: u64, score: f64) {
         if let Some(alt) = self.alternatives.get_mut(&alternative_id) {
             alt.scores.insert(criterion_id, score);
@@ -238,6 +242,7 @@ impl RankingEngine {
     }
 
     /// Add pairwise comparison
+    #[inline]
     pub fn add_comparison(&mut self, a: u64, b: u64, preference: f64) {
         self.comparisons.push(PairwiseComparison {
             a,
@@ -321,8 +326,8 @@ impl RankingEngine {
         }
 
         // Find ideal and anti-ideal solutions
-        let mut ideal: BTreeMap<u64, f64> = BTreeMap::new();
-        let mut anti_ideal: BTreeMap<u64, f64> = BTreeMap::new();
+        let mut ideal: LinearMap<f64, 64> = BTreeMap::new();
+        let mut anti_ideal: LinearMap<f64, 64> = BTreeMap::new();
 
         for criterion in self.criteria.values() {
             let values: Vec<f64> = normalized_matrix.values()
@@ -434,6 +439,7 @@ impl RankingEngine {
     }
 
     /// Rank using default method
+    #[inline]
     pub fn rank(&mut self) -> RankingResult {
         match self.config.default_method {
             RankingMethod::WeightedSum => self.rank_weighted_sum(),
@@ -465,16 +471,19 @@ impl RankingEngine {
     }
 
     /// Get alternative
+    #[inline(always)]
     pub fn get_alternative(&self, id: u64) -> Option<&Alternative> {
         self.alternatives.get(&id)
     }
 
     /// Get criterion
+    #[inline(always)]
     pub fn get_criterion(&self, id: u64) -> Option<&Criterion> {
         self.criteria.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &RankingStats {
         &self.stats
     }

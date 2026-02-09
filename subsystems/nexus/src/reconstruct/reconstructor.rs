@@ -10,6 +10,7 @@ use crate::core::{ComponentId, NexusTimestamp};
 use crate::error::{HealingError, NexusResult};
 
 /// State reconstruction engine
+#[repr(align(64))]
 pub struct StateReconstructor {
     /// State logs by component
     logs: BTreeMap<u64, StateLog>,
@@ -33,17 +34,20 @@ impl StateReconstructor {
     }
 
     /// Enable/disable verification
+    #[inline(always)]
     pub fn with_verification(mut self, enabled: bool) -> Self {
         self.verify = enabled;
         self
     }
 
     /// Get or create log for component
+    #[inline(always)]
     pub fn log_for(&mut self, component: ComponentId) -> &mut StateLog {
         self.logs.entry(component.raw()).or_default()
     }
 
     /// Record an event
+    #[inline(always)]
     pub fn record(&mut self, event: StateEvent) {
         let component = event.component;
         self.log_for(component).append(event);
@@ -76,6 +80,7 @@ impl StateReconstructor {
     }
 
     /// Take a snapshot
+    #[inline]
     pub fn snapshot(
         &mut self,
         component: ComponentId,
@@ -148,6 +153,7 @@ impl StateReconstructor {
     }
 
     /// Reconstruct current state
+    #[inline(always)]
     pub fn reconstruct_current(
         &self,
         component: ComponentId,
@@ -156,6 +162,7 @@ impl StateReconstructor {
     }
 
     /// Verify reconstruction matches expected state
+    #[inline(always)]
     pub fn verify_state(
         &self,
         component: ComponentId,
@@ -166,17 +173,20 @@ impl StateReconstructor {
     }
 
     /// Get log for component
+    #[inline(always)]
     pub fn get_log(&self, component: ComponentId) -> Option<&StateLog> {
         self.logs.get(&component.raw())
     }
 
     /// Clear log for component
+    #[inline(always)]
     pub fn clear(&mut self, component: ComponentId) {
         self.logs.remove(&component.raw());
         self.states.remove(&component.raw());
     }
 
     /// Clear all logs
+    #[inline(always)]
     pub fn clear_all(&mut self) {
         self.logs.clear();
         self.states.clear();

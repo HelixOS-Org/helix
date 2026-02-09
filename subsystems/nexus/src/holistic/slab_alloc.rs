@@ -16,6 +16,7 @@ pub enum SlabState {
 
 /// Cache flags
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(align(64))]
 pub struct CacheFlags(pub u32);
 
 impl CacheFlags {
@@ -27,7 +28,9 @@ impl CacheFlags {
     pub const ACCOUNT: u32 = 1 << 5;
 
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn set(&mut self, f: u32) { self.0 |= f; }
+    #[inline(always)]
     pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
 }
 
@@ -47,6 +50,7 @@ impl Slab {
         Self { page_addr: addr, state: SlabState::Empty, objects_total: objects, objects_used: 0, freelist_head: 0, order }
     }
 
+    #[inline]
     pub fn allocate(&mut self) -> Option<u64> {
         if self.objects_used >= self.objects_total { return None; }
         let idx = self.objects_used;
@@ -55,6 +59,7 @@ impl Slab {
         Some(self.page_addr + (idx as u64 * 64)) // simplified offset
     }
 
+    #[inline]
     pub fn free(&mut self) -> bool {
         if self.objects_used == 0 { return false; }
         self.objects_used -= 1;
@@ -62,6 +67,7 @@ impl Slab {
         true
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.objects_total == 0 { return 0.0; }
         self.objects_used as f64 / self.objects_total as f64
@@ -70,6 +76,7 @@ impl Slab {
 
 /// Slab cache (kmem_cache equivalent)
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct SlabCache {
     pub name_hash: u64,
     pub object_size: u32,
@@ -118,6 +125,7 @@ impl SlabCache {
         addr
     }
 
+    #[inline]
     pub fn free_obj(&mut self) {
         for slab in &mut self.slabs {
             if slab.state != SlabState::Empty {
@@ -128,7 +136,9 @@ impl SlabCache {
         }
     }
 
+    #[inline(always)]
     pub fn active_objects(&self) -> u64 { self.total_allocated - self.total_freed }
+    #[inline(always)]
     pub fn waste_bytes(&self) -> u64 {
         (self.aligned_size - self.object_size) as u64 * self.active_objects()
     }
@@ -136,6 +146,7 @@ impl SlabCache {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlabAllocStats {
     pub total_caches: u32,
     pub total_slabs: u32,
@@ -154,14 +165,17 @@ pub struct HolisticSlabAlloc {
 impl HolisticSlabAlloc {
     pub fn new() -> Self { Self { caches: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn create_cache(&mut self, name_hash: u64, obj_size: u32, flags: CacheFlags) {
         self.caches.insert(name_hash, SlabCache::new(name_hash, obj_size, flags));
     }
 
+    #[inline(always)]
     pub fn alloc(&mut self, cache: u64, slab_addr: u64) -> Option<u64> {
         self.caches.get_mut(&cache)?.alloc(slab_addr)
     }
 
+    #[inline(always)]
     pub fn free(&mut self, cache: u64) {
         if let Some(c) = self.caches.get_mut(&cache) { c.free_obj(); }
     }
@@ -216,6 +230,7 @@ impl SlabV2Page {
         Self { page_addr: addr, objects: objs, in_use: 0, state: SlabV2State::Empty, freelist_head: 0, frozen: false }
     }
 
+    #[inline]
     pub fn alloc(&mut self) -> bool {
         if self.in_use >= self.objects { return false; }
         self.in_use += 1;
@@ -223,6 +238,7 @@ impl SlabV2Page {
         true
     }
 
+    #[inline]
     pub fn free(&mut self) -> bool {
         if self.in_use == 0 { return false; }
         self.in_use -= 1;
@@ -239,6 +255,7 @@ impl SlabV2Page {
 
 /// Slab v2 cache
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct SlabV2Cache {
     pub name_hash: u64,
     pub obj_size: u32,
@@ -256,6 +273,7 @@ impl SlabV2Cache {
         Self { name_hash: name, obj_size, align, objs_per_slab: per_slab, slabs: Vec::new(), total_allocs: 0, total_frees: 0, alloc_failures: 0, ctor_hash: 0 }
     }
 
+    #[inline]
     pub fn alloc(&mut self) -> bool {
         for slab in &mut self.slabs {
             if slab.alloc() { self.total_allocs += 1; return true; }
@@ -264,6 +282,7 @@ impl SlabV2Cache {
         false
     }
 
+    #[inline]
     pub fn free_obj(&mut self) -> bool {
         for slab in &mut self.slabs {
             if slab.state != SlabV2State::Empty && slab.free() {
@@ -274,10 +293,12 @@ impl SlabV2Cache {
         false
     }
 
+    #[inline(always)]
     pub fn add_slab(&mut self, addr: u64) {
         self.slabs.push(SlabV2Page::new(addr, self.objs_per_slab));
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         let total_objs: u32 = self.slabs.iter().map(|s| s.objects).sum();
         let used: u32 = self.slabs.iter().map(|s| s.in_use).sum();
@@ -287,6 +308,7 @@ impl SlabV2Cache {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlabAllocV2Stats {
     pub total_caches: u32,
     pub total_slabs: u32,
@@ -303,22 +325,27 @@ pub struct HolisticSlabAllocV2 {
 impl HolisticSlabAllocV2 {
     pub fn new() -> Self { Self { caches: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn create_cache(&mut self, name: u64, size: u32, align: u32, per_slab: u32) {
         self.caches.insert(name, SlabV2Cache::new(name, size, align, per_slab));
     }
 
+    #[inline(always)]
     pub fn alloc(&mut self, cache_name: u64) -> bool {
         if let Some(c) = self.caches.get_mut(&cache_name) { c.alloc() }
         else { false }
     }
 
+    #[inline(always)]
     pub fn free_obj(&mut self, cache_name: u64) -> bool {
         if let Some(c) = self.caches.get_mut(&cache_name) { c.free_obj() }
         else { false }
     }
 
+    #[inline(always)]
     pub fn destroy_cache(&mut self, name: u64) { self.caches.remove(&name); }
 
+    #[inline]
     pub fn stats(&self) -> SlabAllocV2Stats {
         let slabs: u32 = self.caches.values().map(|c| c.slabs.len() as u32).sum();
         let allocs: u64 = self.caches.values().map(|c| c.total_allocs).sum();
@@ -385,6 +412,7 @@ impl SlabV3Magazine {
         }
     }
 
+    #[inline]
     pub fn try_alloc(&mut self) -> Option<u64> {
         if let Some(addr) = self.object_addrs.pop() {
             self.current_count = self.current_count.saturating_sub(1);
@@ -396,6 +424,7 @@ impl SlabV3Magazine {
         }
     }
 
+    #[inline]
     pub fn try_free(&mut self, addr: u64) -> bool {
         if self.current_count >= self.capacity {
             return false;
@@ -460,6 +489,7 @@ impl SlabV3Depot {
 
 /// A slab cache descriptor for a given size class.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlabV3Cache {
     pub name: String,
     pub size_class: SlabV3SizeClass,
@@ -492,6 +522,7 @@ impl SlabV3Cache {
         }
     }
 
+    #[inline]
     pub fn utilization_percent(&self) -> f64 {
         let capacity = self.total_slabs * self.objects_per_slab as u64;
         if capacity == 0 {
@@ -503,6 +534,7 @@ impl SlabV3Cache {
 
 /// Statistics for the V3 slab allocator.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlabV3Stats {
     pub total_caches: u64,
     pub total_depots: u64,
@@ -545,6 +577,7 @@ impl HolisticSlabAllocV3 {
         }
     }
 
+    #[inline]
     pub fn create_cache(
         &mut self,
         name: String,
@@ -559,6 +592,7 @@ impl HolisticSlabAllocV3 {
         id
     }
 
+    #[inline]
     pub fn register_depot(&mut self, cpu_id: u32) {
         if !self.depots.contains_key(&cpu_id) {
             self.depots.insert(cpu_id, SlabV3Depot::new(cpu_id));
@@ -596,10 +630,12 @@ impl HolisticSlabAllocV3 {
         reaped
     }
 
+    #[inline(always)]
     pub fn cache_count(&self) -> usize {
         self.caches.len()
     }
 
+    #[inline(always)]
     pub fn depot_count(&self) -> usize {
         self.depots.len()
     }

@@ -48,12 +48,14 @@ impl StreamingSample {
     }
 
     /// Set timestamp
+    #[inline(always)]
     pub fn with_timestamp(mut self, ts: u64) -> Self {
         self.timestamp = ts;
         self
     }
 
     /// Set weight
+    #[inline(always)]
     pub fn with_weight(mut self, weight: f64) -> Self {
         self.weight = weight;
         self
@@ -66,6 +68,7 @@ impl StreamingSample {
 
 /// Online statistics (Welford's algorithm)
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OnlineStats {
     /// Count
     n: u64,
@@ -92,6 +95,7 @@ impl OnlineStats {
     }
 
     /// Update with new value
+    #[inline]
     pub fn update(&mut self, value: f64) {
         self.n += 1;
         let delta = value - self.mean;
@@ -104,16 +108,19 @@ impl OnlineStats {
     }
 
     /// Get count
+    #[inline(always)]
     pub fn count(&self) -> u64 {
         self.n
     }
 
     /// Get mean
+    #[inline(always)]
     pub fn mean(&self) -> f64 {
         self.mean
     }
 
     /// Get variance
+    #[inline]
     pub fn variance(&self) -> f64 {
         if self.n < 2 {
             0.0
@@ -123,16 +130,19 @@ impl OnlineStats {
     }
 
     /// Get standard deviation
+    #[inline(always)]
     pub fn std_dev(&self) -> f64 {
         self.variance().sqrt()
     }
 
     /// Get min
+    #[inline(always)]
     pub fn min(&self) -> f64 {
         self.min
     }
 
     /// Get max
+    #[inline(always)]
     pub fn max(&self) -> f64 {
         self.max
     }
@@ -220,6 +230,7 @@ impl OnlineLearner {
     }
 
     /// Predict value for sample
+    #[inline]
     pub fn predict(&self, features: &[f64]) -> f64 {
         let dot: f64 = self
             .weights
@@ -268,6 +279,7 @@ impl OnlineLearner {
     }
 
     /// Get mean absolute error over recent window
+    #[inline]
     pub fn recent_mae(&self) -> f64 {
         if self.recent_errors.is_empty() {
             return 0.0;
@@ -276,16 +288,19 @@ impl OnlineLearner {
     }
 
     /// Get model weights
+    #[inline(always)]
     pub fn weights(&self) -> &[f64] {
         &self.weights
     }
 
     /// Get samples seen
+    #[inline(always)]
     pub fn samples_seen(&self) -> u64 {
         self.samples_seen
     }
 
     /// Reset model
+    #[inline]
     pub fn reset(&mut self) {
         self.weights = vec![0.0; self.config.feature_dim];
         self.bias = 0.0;
@@ -332,6 +347,7 @@ impl StreamingClassifier {
     }
 
     /// Get class scores (logits)
+    #[inline]
     pub fn scores(&self, features: &[f64]) -> Vec<f64> {
         self.weights
             .iter()
@@ -344,6 +360,7 @@ impl StreamingClassifier {
     }
 
     /// Get class probabilities (softmax)
+    #[inline]
     pub fn probabilities(&self, features: &[f64]) -> Vec<f64> {
         let scores = self.scores(features);
         let max_score = scores.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
@@ -355,6 +372,7 @@ impl StreamingClassifier {
     }
 
     /// Predict class
+    #[inline]
     pub fn predict(&self, features: &[f64]) -> usize {
         let scores = self.scores(features);
         scores
@@ -391,6 +409,7 @@ impl StreamingClassifier {
     }
 
     /// Get accuracy estimate from confusion
+    #[inline]
     pub fn class_distribution(&self) -> Vec<f64> {
         let total = self.samples_seen as f64;
         if total == 0.0 {
@@ -403,6 +422,7 @@ impl StreamingClassifier {
     }
 
     /// Get number of classes
+    #[inline(always)]
     pub fn num_classes(&self) -> usize {
         self.num_classes
     }
@@ -665,26 +685,31 @@ impl ConceptDriftDetector {
     }
 
     /// Check if any detector flagged drift
+    #[inline(always)]
     pub fn drift_detected(&self) -> bool {
         self.adwin.drift_detected() || self.page_hinkley.drift_detected()
     }
 
     /// Check if both detectors agree on drift
+    #[inline(always)]
     pub fn strong_drift_detected(&self) -> bool {
         self.adwin.drift_detected() && self.page_hinkley.drift_detected()
     }
 
     /// Check if warning level reached
+    #[inline(always)]
     pub fn warning_detected(&self) -> bool {
         self.adwin.warning_detected() || self.page_hinkley.warning_detected()
     }
 
     /// Get drift count
+    #[inline(always)]
     pub fn drift_count(&self) -> usize {
         self.drift_history.len()
     }
 
     /// Reset detectors
+    #[inline]
     pub fn reset(&mut self) {
         self.adwin.reset();
         self.page_hinkley.reset();
@@ -784,11 +809,13 @@ impl AdaptiveLearner {
     }
 
     /// Predict
+    #[inline(always)]
     pub fn predict(&self, features: &[f64]) -> f64 {
         self.current.predict(features)
     }
 
     /// Get drift status
+    #[inline]
     pub fn drift_status(&self) -> DriftStatus {
         DriftStatus {
             warning: self.drift_detector.warning_detected(),

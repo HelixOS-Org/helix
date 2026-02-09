@@ -7,7 +7,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -71,6 +73,7 @@ pub struct StressResult {
 
 /// Rolling statistics for the simulator.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct SimulatorStats {
     pub total_simulations: u64,
     pub total_steps: u64,
@@ -99,7 +102,7 @@ impl SimulatorStats {
 #[derive(Clone, Debug)]
 struct SimNode {
     node_id: u64,
-    trust_levels: BTreeMap<u64, u64>,
+    trust_levels: LinearMap<u64, 64>,
     resource_capacity: u64,
     resource_used: u64,
     cooperation_bias: u64,
@@ -119,7 +122,7 @@ struct ScenarioConfig {
 pub struct CoopSimulator {
     nodes: BTreeMap<u64, SimNode>,
     trust_snapshots: Vec<TrustSnapshot>,
-    divergence_history: Vec<u64>,
+    divergence_history: VecDeque<u64>,
     stats: SimulatorStats,
     rng_state: u64,
     max_nodes: usize,
@@ -132,7 +135,7 @@ impl CoopSimulator {
         Self {
             nodes: BTreeMap::new(),
             trust_snapshots: Vec::new(),
-            divergence_history: Vec::new(),
+            divergence_history: VecDeque::new(),
             stats: SimulatorStats::new(),
             rng_state: seed | 1,
             max_nodes: 128,
@@ -147,7 +150,7 @@ impl CoopSimulator {
         }
         self.nodes.insert(node_id, SimNode {
             node_id,
-            trust_levels: BTreeMap::new(),
+            trust_levels: LinearMap::new(),
             resource_capacity: capacity,
             resource_used: 0,
             cooperation_bias: cooperation_bias.min(1000),
@@ -155,6 +158,7 @@ impl CoopSimulator {
     }
 
     /// Establish an initial trust link between two nodes.
+    #[inline]
     pub fn set_trust(&mut self, from: u64, to: u64, trust: u64) {
         let clamped = trust.min(1000);
         if let Some(node) = self.nodes.get_mut(&from) {
@@ -407,14 +411,15 @@ impl CoopSimulator {
             + score_diff.saturating_mul(3) / 10;
 
         if self.divergence_history.len() >= 64 {
-            self.divergence_history.remove(0);
+            self.divergence_history.pop_front();
         }
-        self.divergence_history.push(divergence);
+        self.divergence_history.push_back(divergence);
         self.stats.avg_divergence = ema_update(self.stats.avg_divergence, divergence, 3, 10);
         divergence
     }
 
     /// Get a reference to the current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &SimulatorStats {
         &self.stats
     }

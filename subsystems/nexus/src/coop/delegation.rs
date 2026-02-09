@@ -125,6 +125,7 @@ impl Delegation {
     }
 
     /// Add constraint
+    #[inline]
     pub fn with_constraint(mut self, constraint: DelegationConstraint) -> Self {
         self.constraints.push(constraint);
         if let DelegationConstraint::TimeLimited(deadline) = constraint {
@@ -134,6 +135,7 @@ impl Delegation {
     }
 
     /// Accept delegation
+    #[inline]
     pub fn accept(&mut self, now: u64) -> bool {
         if self.state != DelegationState::Pending {
             return false;
@@ -144,6 +146,7 @@ impl Delegation {
     }
 
     /// Decline delegation
+    #[inline]
     pub fn decline(&mut self) -> bool {
         if self.state != DelegationState::Pending {
             return false;
@@ -153,6 +156,7 @@ impl Delegation {
     }
 
     /// Revoke delegation
+    #[inline]
     pub fn revoke(&mut self) -> bool {
         if self.state != DelegationState::Active && self.state != DelegationState::Pending {
             return false;
@@ -179,6 +183,7 @@ impl Delegation {
     }
 
     /// Check if expired
+    #[inline]
     pub fn check_expiry(&mut self, now: u64) -> bool {
         if let Some(expires) = self.expires_at {
             if now >= expires && self.state == DelegationState::Active {
@@ -190,6 +195,7 @@ impl Delegation {
     }
 
     /// Remaining amount
+    #[inline(always)]
     pub fn remaining(&self) -> u64 {
         self.amount.saturating_sub(self.usage)
     }
@@ -239,12 +245,14 @@ impl DelegationChain {
     }
 
     /// Add link
+    #[inline(always)]
     pub fn add_link(&mut self, delegation_id: u64, amount: u64) {
         self.chain.push(delegation_id);
         self.total_delegated += amount;
     }
 
     /// Depth
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.chain.len()
     }
@@ -256,6 +264,7 @@ impl DelegationChain {
 
 /// Delegation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopDelegationStats {
     /// Active delegations
     pub active: usize,
@@ -347,6 +356,7 @@ impl CoopDelegationManager {
     }
 
     /// Consume from delegation
+    #[inline]
     pub fn consume(&mut self, delegation_id: u64, amount: u64) -> bool {
         if let Some(d) = self.delegations.get_mut(&delegation_id) {
             d.consume(amount)
@@ -356,6 +366,7 @@ impl CoopDelegationManager {
     }
 
     /// Check expirations
+    #[inline]
     pub fn check_expirations(&mut self, now: u64) -> Vec<u64> {
         let mut expired = Vec::new();
         for d in self.delegations.values_mut() {
@@ -368,11 +379,13 @@ impl CoopDelegationManager {
     }
 
     /// Get delegation
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Delegation> {
         self.delegations.get(&id)
     }
 
     /// Active delegations for delegate
+    #[inline]
     pub fn delegations_for(&self, delegate: u64) -> Vec<&Delegation> {
         self.by_delegate
             .get(&delegate)
@@ -399,6 +412,7 @@ impl CoopDelegationManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopDelegationStats {
         &self.stats
     }

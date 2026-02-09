@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -102,6 +103,7 @@ impl IntentRequirement {
     }
 
     /// Satisfaction ratio (0..1)
+    #[inline]
     pub fn satisfaction(&self, allocated: f64) -> f64 {
         if allocated >= self.desired {
             1.0
@@ -158,6 +160,7 @@ impl IntentDeclaration {
     }
 
     /// Add requirement
+    #[inline(always)]
     pub fn add_requirement(&mut self, req: IntentRequirement) {
         self.requirements.push(req);
     }
@@ -178,11 +181,13 @@ impl IntentDeclaration {
     }
 
     /// Is urgent (has deadline approaching)
+    #[inline(always)]
     pub fn is_urgent(&self, now: u64) -> bool {
         self.deadline_ns > 0 && now > self.deadline_ns.saturating_sub(self.duration_ns)
     }
 
     /// Is ready to start
+    #[inline(always)]
     pub fn is_ready(&self, now: u64) -> bool {
         self.state == IntentState::Pending && now >= self.start_after_ns
     }
@@ -213,6 +218,7 @@ pub struct IntentConflict {
 
 /// Intent engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopIntentStats {
     /// Total intents declared
     pub total_declared: u64,
@@ -235,7 +241,7 @@ pub struct CoopIntentEngine {
     /// Process -> intent IDs
     process_intents: BTreeMap<u64, Vec<u64>>,
     /// Resource availability
-    available: BTreeMap<u64, f64>,
+    available: LinearMap<f64, 64>,
     /// Stats
     stats: CoopIntentStats,
     /// Next intent ID
@@ -247,18 +253,20 @@ impl CoopIntentEngine {
         Self {
             intents: BTreeMap::new(),
             process_intents: BTreeMap::new(),
-            available: BTreeMap::new(),
+            available: LinearMap::new(),
             stats: CoopIntentStats::default(),
             next_intent_id: 1,
         }
     }
 
     /// Set resource availability
+    #[inline(always)]
     pub fn set_available(&mut self, resource_hash: u64, amount: f64) {
         self.available.insert(resource_hash, amount);
     }
 
     /// Declare intent
+    #[inline]
     pub fn declare(&mut self, pid: u64, category: IntentCategory, now: u64) -> u64 {
         let id = self.next_intent_id;
         self.next_intent_id += 1;
@@ -270,6 +278,7 @@ impl CoopIntentEngine {
     }
 
     /// Add requirement to intent
+    #[inline]
     pub fn add_requirement(&mut self, intent_id: u64, req: IntentRequirement) {
         if let Some(intent) = self.intents.get_mut(&intent_id) {
             intent.add_requirement(req);
@@ -314,7 +323,7 @@ impl CoopIntentEngine {
 
         for (&resource_hash, demands) in &demand_per_resource {
             let total_demand: f64 = demands.iter().map(|(_, d)| d).sum();
-            let available = self.available.get(&resource_hash).copied().unwrap_or(0.0);
+            let available = self.available.get(resource_hash).copied().unwrap_or(0.0);
             if total_demand > available && demands.len() >= 2 {
                 // Pairwise conflicts
                 for i in 0..demands.len().min(8) {
@@ -335,6 +344,7 @@ impl CoopIntentEngine {
     }
 
     /// Cancel intent
+    #[inline]
     pub fn cancel(&mut self, intent_id: u64) {
         if let Some(intent) = self.intents.get_mut(&intent_id) {
             intent.state = IntentState::Cancelled;
@@ -342,6 +352,7 @@ impl CoopIntentEngine {
     }
 
     /// Remove process
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
         if let Some(ids) = self.process_intents.remove(&pid) {
             for id in ids {
@@ -365,6 +376,7 @@ impl CoopIntentEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopIntentStats {
         &self.stats
     }

@@ -247,12 +247,14 @@ impl QueryBuilder {
     }
 
     /// Set target variable
+    #[inline(always)]
     pub fn target(mut self, var: &str) -> Self {
         self.target = Some(QueryTarget::Variable(var.into()));
         self
     }
 
     /// Set multiple target variables
+    #[inline]
     pub fn targets(mut self, vars: Vec<&str>) -> Self {
         self.target = Some(QueryTarget::Variables(
             vars.into_iter().map(String::from).collect(),
@@ -261,6 +263,7 @@ impl QueryBuilder {
     }
 
     /// Set relationship target
+    #[inline]
     pub fn relationship(mut self, from: &str, to: &str) -> Self {
         self.target = Some(QueryTarget::Relationship {
             from: from.into(),
@@ -270,6 +273,7 @@ impl QueryBuilder {
     }
 
     /// Add equality condition
+    #[inline]
     pub fn where_eq(mut self, var: &str, value: QueryValue) -> Self {
         self.conditions.push(Condition {
             variable: var.into(),
@@ -280,6 +284,7 @@ impl QueryBuilder {
     }
 
     /// Add greater than condition
+    #[inline]
     pub fn where_gt(mut self, var: &str, value: f64) -> Self {
         self.conditions.push(Condition {
             variable: var.into(),
@@ -290,6 +295,7 @@ impl QueryBuilder {
     }
 
     /// Add less than condition
+    #[inline]
     pub fn where_lt(mut self, var: &str, value: f64) -> Self {
         self.conditions.push(Condition {
             variable: var.into(),
@@ -300,6 +306,7 @@ impl QueryBuilder {
     }
 
     /// Add contains condition
+    #[inline]
     pub fn where_contains(mut self, var: &str, substring: &str) -> Self {
         self.conditions.push(Condition {
             variable: var.into(),
@@ -310,12 +317,14 @@ impl QueryBuilder {
     }
 
     /// Limit results
+    #[inline(always)]
     pub fn limit(mut self, n: usize) -> Self {
         self.constraints.push(Constraint::Limit(n));
         self
     }
 
     /// Order by
+    #[inline]
     pub fn order_by(mut self, field: &str, ascending: bool) -> Self {
         self.constraints.push(Constraint::OrderBy {
             field: field.into(),
@@ -325,24 +334,28 @@ impl QueryBuilder {
     }
 
     /// Set minimum confidence
+    #[inline(always)]
     pub fn min_confidence(mut self, conf: f64) -> Self {
         self.constraints.push(Constraint::MinConfidence(conf));
         self
     }
 
     /// Include explanations
+    #[inline(always)]
     pub fn with_explanations(mut self) -> Self {
         self.options.include_explanations = true;
         self
     }
 
     /// Set max depth
+    #[inline(always)]
     pub fn max_depth(mut self, depth: usize) -> Self {
         self.options.max_depth = depth;
         self
     }
 
     /// Build query
+    #[inline]
     pub fn build(self, id: u64) -> Query {
         Query {
             id,
@@ -389,6 +402,7 @@ pub struct KnowledgeFact {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct QueryStats {
     /// Queries executed
     pub queries_executed: u64,
@@ -413,6 +427,7 @@ impl QueryEngine {
     }
 
     /// Add knowledge fact
+    #[inline]
     pub fn add_fact(&mut self, subject: &str, predicate: &str, object: &str, confidence: f64) {
         self.knowledge.push(KnowledgeFact {
             subject: subject.into(),
@@ -423,6 +438,7 @@ impl QueryEngine {
     }
 
     /// Submit query
+    #[inline]
     pub fn submit(&mut self, builder: QueryBuilder) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let query = builder.build(id);
@@ -431,6 +447,7 @@ impl QueryEngine {
     }
 
     /// Execute pending queries
+    #[inline]
     pub fn execute_pending(&mut self) {
         while let Some(query) = self.pending.pop() {
             let result = self.execute_query(&query);
@@ -615,11 +632,13 @@ impl QueryEngine {
     }
 
     /// Get result
+    #[inline(always)]
     pub fn get_result(&self, id: u64) -> Option<&QueryResult> {
         self.results.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &QueryStats {
         &self.stats
     }

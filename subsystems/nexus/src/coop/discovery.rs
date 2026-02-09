@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -100,7 +101,7 @@ pub struct ServiceInstance {
     /// TTL (ns)
     pub ttl_ns: u64,
     /// Tags: key_hash -> value_hash
-    pub tags: BTreeMap<u64, u64>,
+    pub tags: LinearMap<u64, 64>,
 }
 
 impl ServiceInstance {
@@ -128,31 +129,36 @@ impl ServiceInstance {
             registered_at: now,
             last_heartbeat: now,
             ttl_ns,
-            tags: BTreeMap::new(),
+            tags: LinearMap::new(),
         }
     }
 
     /// Activate
+    #[inline(always)]
     pub fn activate(&mut self) {
         self.state = ServiceState::Active;
     }
 
     /// Drain
+    #[inline(always)]
     pub fn drain(&mut self) {
         self.state = ServiceState::Draining;
     }
 
     /// Heartbeat
+    #[inline(always)]
     pub fn heartbeat(&mut self, now: u64) {
         self.last_heartbeat = now;
     }
 
     /// Is expired?
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now.saturating_sub(self.last_heartbeat) > self.ttl_ns
     }
 
     /// Record request
+    #[inline]
     pub fn record_request(&mut self, latency_ns: u64, success: bool) {
         self.total_requests += 1;
         if !success {
@@ -163,6 +169,7 @@ impl ServiceInstance {
     }
 
     /// Error rate
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         if self.total_requests == 0 {
             return 0.0;
@@ -171,6 +178,7 @@ impl ServiceInstance {
     }
 
     /// Is healthy? (active, not expired, low error rate)
+    #[inline]
     pub fn is_healthy(&self, now: u64) -> bool {
         self.state == ServiceState::Active
             && !self.is_expired(now)
@@ -210,6 +218,7 @@ pub struct DiscoveryResult {
 
 /// Service discovery stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopDiscoveryStats {
     /// Total registered instances
     pub total_instances: usize,
@@ -232,7 +241,7 @@ pub struct CoopDiscoveryManager {
     /// Load balance strategy
     pub strategy: LoadBalanceStrategy,
     /// Round-robin counter per service
-    rr_counters: BTreeMap<u64, usize>,
+    rr_counters: LinearMap<usize, 64>,
     /// Next instance id
     next_id: u64,
     /// Stats
@@ -245,7 +254,7 @@ impl CoopDiscoveryManager {
             instances: BTreeMap::new(),
             name_index: BTreeMap::new(),
             strategy,
-            rr_counters: BTreeMap::new(),
+            rr_counters: LinearMap::new(),
             next_id: 1,
             stats: CoopDiscoveryStats::default(),
         }
@@ -299,6 +308,7 @@ impl CoopDiscoveryManager {
     }
 
     /// Heartbeat
+    #[inline]
     pub fn heartbeat(&mut self, id: u64, now: u64) -> bool {
         if let Some(instance) = self.instances.get_mut(&id) {
             instance.heartbeat(now);
@@ -403,6 +413,7 @@ impl CoopDiscoveryManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopDiscoveryStats {
         &self.stats
     }

@@ -22,12 +22,14 @@ impl FallbackRegistry {
     }
 
     /// Register a fallback
+    #[inline(always)]
     pub fn register(&mut self, module: ModuleInfo) {
         let comp = module.component.raw();
         self.fallbacks.entry(comp).or_default().push(module);
     }
 
     /// Get fallbacks for component
+    #[inline]
     pub fn get_fallbacks(&self, component: ComponentId) -> Vec<&ModuleInfo> {
         self.fallbacks
             .get(&component.raw())
@@ -36,6 +38,7 @@ impl FallbackRegistry {
     }
 
     /// Get best fallback (highest version)
+    #[inline]
     pub fn best_fallback(&self, component: ComponentId) -> Option<&ModuleInfo> {
         self.fallbacks
             .get(&component.raw())
@@ -43,6 +46,7 @@ impl FallbackRegistry {
     }
 
     /// Remove fallback
+    #[inline]
     pub fn remove(&mut self, component: ComponentId, module_id: u64) {
         if let Some(fallbacks) = self.fallbacks.get_mut(&component.raw()) {
             fallbacks.retain(|m| m.id != module_id);
@@ -50,6 +54,7 @@ impl FallbackRegistry {
     }
 
     /// Count fallbacks
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.fallbacks.values().map(|v| v.len()).sum()
     }

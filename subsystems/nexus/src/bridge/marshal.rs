@@ -54,6 +54,7 @@ pub enum MarshalledValue {
 
 impl MarshalledValue {
     /// As integer
+    #[inline]
     pub fn as_int(&self) -> Option<u64> {
         match self {
             Self::Int(v) => Some(*v),
@@ -62,6 +63,7 @@ impl MarshalledValue {
     }
 
     /// As fd
+    #[inline]
     pub fn as_fd(&self) -> Option<i32> {
         match self {
             Self::Fd(fd) => Some(*fd),
@@ -70,11 +72,13 @@ impl MarshalledValue {
     }
 
     /// Is null?
+    #[inline(always)]
     pub fn is_null(&self) -> bool {
         matches!(self, Self::Null)
     }
 
     /// Is buffer?
+    #[inline(always)]
     pub fn is_buffer(&self) -> bool {
         matches!(self, Self::Buffer { .. })
     }
@@ -99,6 +103,7 @@ pub struct ArgDescriptor {
 }
 
 impl ArgDescriptor {
+    #[inline]
     pub fn integer(index: u8) -> Self {
         Self {
             index,
@@ -109,6 +114,7 @@ impl ArgDescriptor {
         }
     }
 
+    #[inline]
     pub fn user_pointer(index: u8) -> Self {
         Self {
             index,
@@ -119,6 +125,7 @@ impl ArgDescriptor {
         }
     }
 
+    #[inline]
     pub fn fd(index: u8) -> Self {
         Self {
             index,
@@ -129,6 +136,7 @@ impl ArgDescriptor {
         }
     }
 
+    #[inline]
     pub fn flags(index: u8) -> Self {
         Self {
             index,
@@ -164,12 +172,14 @@ impl SyscallSignature {
     }
 
     /// Add argument
+    #[inline(always)]
     pub fn arg(mut self, desc: ArgDescriptor) -> Self {
         self.args.push(desc);
         self
     }
 
     /// Arg count
+    #[inline(always)]
     pub fn arg_count(&self) -> usize {
         self.args.len()
     }
@@ -248,6 +258,7 @@ impl PointerValidator {
     }
 
     /// Validate alignment
+    #[inline]
     pub fn validate_aligned(&self, addr: u64, alignment: usize) -> Result<(), ValidationError> {
         if alignment > 0 && (addr % alignment as u64) != 0 {
             Err(ValidationError::BadAlignment)
@@ -263,6 +274,7 @@ impl PointerValidator {
 
 /// Marshal stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MarshalStats {
     /// Signatures registered
     pub signatures: usize,
@@ -275,6 +287,7 @@ pub struct MarshalStats {
 }
 
 /// Marshalling engine
+#[repr(align(64))]
 pub struct BridgeMarshalEngine {
     /// Registered signatures
     signatures: BTreeMap<u32, SyscallSignature>,
@@ -294,6 +307,7 @@ impl BridgeMarshalEngine {
     }
 
     /// Register signature
+    #[inline(always)]
     pub fn register(&mut self, sig: SyscallSignature) {
         self.signatures.insert(sig.syscall_nr, sig);
         self.stats.signatures = self.signatures.len();
@@ -426,6 +440,7 @@ impl BridgeMarshalEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &MarshalStats {
         &self.stats
     }

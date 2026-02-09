@@ -1,6 +1,7 @@
 //! Driver health monitoring.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -21,7 +22,7 @@ pub struct DriverHealthMonitor {
     /// Health scores
     scores: BTreeMap<DriverId, f64>,
     /// Health events
-    events: Vec<HealthEvent>,
+    events: VecDeque<HealthEvent>,
     /// Max events
     max_events: usize,
 }
@@ -76,7 +77,7 @@ impl DriverHealthMonitor {
             samples: BTreeMap::new(),
             max_samples: 1000,
             scores: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 10000,
         }
     }
@@ -101,7 +102,7 @@ impl DriverHealthMonitor {
         let samples = self.samples.entry(driver_id).or_default();
         samples.push(sample);
         if samples.len() > self.max_samples {
-            samples.remove(0);
+            samples.pop_front();
         }
 
         // Update score
@@ -156,15 +157,16 @@ impl DriverHealthMonitor {
             details,
         };
 
-        self.events.push(event.clone());
+        self.events.push_back(event.clone());
         if self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
 
         event
     }
 
     /// Get current health score
+    #[inline(always)]
     pub fn get_score(&self, driver_id: DriverId) -> f64 {
         self.scores.get(&driver_id).copied().unwrap_or(1.0)
     }
@@ -186,6 +188,7 @@ impl DriverHealthMonitor {
     }
 
     /// Get unhealthy drivers
+    #[inline]
     pub fn unhealthy_drivers(&self) -> Vec<(DriverId, f64)> {
         self.scores
             .iter()
@@ -195,6 +198,7 @@ impl DriverHealthMonitor {
     }
 
     /// Get recent events
+    #[inline(always)]
     pub fn recent_events(&self, n: usize) -> &[HealthEvent] {
         let start = self.events.len().saturating_sub(n);
         &self.events[start..]

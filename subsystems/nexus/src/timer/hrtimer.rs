@@ -3,6 +3,7 @@
 //! Support for high-resolution timers (hrtimers).
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::{TimerId, TimerState};
@@ -37,6 +38,7 @@ pub enum HrtimerMode {
 
 /// Hrtimer statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HrtimerStats {
     /// Total hrtimers created
     pub total_created: u64,
@@ -55,7 +57,7 @@ pub struct HrtimerManager {
     /// Active hrtimers
     timers: BTreeMap<TimerId, HrtimerInfo>,
     /// Sorted by deadline
-    deadline_queue: Vec<(u64, TimerId)>,
+    deadline_queue: VecDeque<(u64, TimerId)>,
     /// Resolution (ns)
     resolution_ns: u64,
     /// Statistics
@@ -67,25 +69,27 @@ impl HrtimerManager {
     pub fn new(resolution_ns: u64) -> Self {
         Self {
             timers: BTreeMap::new(),
-            deadline_queue: Vec::new(),
+            deadline_queue: VecDeque::new(),
             resolution_ns,
             stats: HrtimerStats::default(),
         }
     }
 
     /// Add hrtimer
+    #[inline]
     pub fn add(&mut self, timer: HrtimerInfo) {
         let deadline = timer.deadline_ns;
         let id = timer.id;
 
         self.timers.insert(id, timer);
-        self.deadline_queue.push((deadline, id));
+        self.deadline_queue.push_back((deadline, id));
         self.deadline_queue.sort_by_key(|(d, _)| *d);
 
         self.stats.total_created += 1;
     }
 
     /// Cancel hrtimer
+    #[inline]
     pub fn cancel(&mut self, timer_id: TimerId) -> bool {
         if self.timers.remove(&timer_id).is_some() {
             self.deadline_queue.retain(|(_, id)| *id != timer_id);
@@ -97,6 +101,7 @@ impl HrtimerManager {
     }
 
     /// Get next deadline
+    #[inline(always)]
     pub fn next_deadline(&self) -> Option<u64> {
         self.deadline_queue.first().map(|(d, _)| *d)
     }
@@ -110,14 +115,14 @@ impl HrtimerManager {
                 break;
             }
 
-            self.deadline_queue.remove(0);
+            self.deadline_queue.pop_front();
             expired.push(id);
 
             // Handle periodic timers
             if let Some(timer) = self.timers.get_mut(&id) {
                 if timer.period_ns > 0 {
                     timer.deadline_ns = now_ns + timer.period_ns;
-                    self.deadline_queue.push((timer.deadline_ns, id));
+                    self.deadline_queue.push_back((timer.deadline_ns, id));
                     self.deadline_queue.sort_by_key(|(d, _)| *d);
                 } else {
                     self.timers.remove(&id);
@@ -139,21 +144,25 @@ impl HrtimerManager {
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &HrtimerStats {
         &self.stats
     }
 
     /// Get active count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.timers.len()
     }
 
     /// Get resolution
+    #[inline(always)]
     pub fn resolution(&self) -> u64 {
         self.resolution_ns
     }
 
     /// Get timer info
+    #[inline(always)]
     pub fn get_timer(&self, timer_id: TimerId) -> Option<&HrtimerInfo> {
         self.timers.get(&timer_id)
     }

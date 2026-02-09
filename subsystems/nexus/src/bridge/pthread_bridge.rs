@@ -40,6 +40,7 @@ pub struct BridgePthreadEntry {
 
 /// Stats for pthread operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgePthreadStats {
     pub total_created: u64,
     pub active_threads: u64,
@@ -49,6 +50,7 @@ pub struct BridgePthreadStats {
 }
 
 /// Manager for pthread bridge operations
+#[repr(align(64))]
 pub struct BridgePthreadManager {
     threads: BTreeMap<u64, BridgePthreadEntry>,
     next_tid: u64,
@@ -99,6 +101,7 @@ impl BridgePthreadManager {
         tid
     }
 
+    #[inline]
     pub fn join_thread(&mut self, tid: u64) -> bool {
         if let Some(entry) = self.threads.get_mut(&tid) {
             if entry.attr.detached { return false; }
@@ -111,12 +114,14 @@ impl BridgePthreadManager {
         }
     }
 
+    #[inline]
     pub fn set_state(&mut self, tid: u64, state: BridgePthreadState) {
         if let Some(entry) = self.threads.get_mut(&tid) {
             entry.state = state;
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgePthreadStats {
         &self.stats
     }

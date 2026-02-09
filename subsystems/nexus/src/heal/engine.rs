@@ -7,7 +7,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -26,11 +28,11 @@ pub struct HealingEngine {
     /// Quarantine manager
     quarantine: QuarantineManager,
     /// Healing history
-    history: Vec<HealingResult>,
+    history: VecDeque<HealingResult>,
     /// Maximum history entries
     max_history: usize,
     /// Healing attempts per component
-    attempts: BTreeMap<u64, u32>,
+    attempts: LinearMap<u32, 64>,
     /// Maximum attempts before quarantine
     max_attempts: u32,
     /// Healing timeout (cycles)
@@ -49,9 +51,9 @@ impl HealingEngine {
         Self {
             checkpoints: CheckpointStore::new(10, 1000, 64 * 1024 * 1024), // 64MB max
             quarantine: QuarantineManager::new(60 * 1_000_000_000),        // 1 minute default
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
-            attempts: BTreeMap::new(),
+            attempts: LinearMap::new(),
             max_attempts: 5,
             timeout_cycles: 500_000_000, // ~500ms at 1GHz
             enabled: true,
@@ -117,14 +119,15 @@ impl HealingEngine {
 
         // Add to history
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(result.clone());
+        self.history.push_back(result.clone());
 
         Ok(result)
     }
 
     /// Heal based on prediction
+    #[inline]
     pub fn heal_from_prediction(
         &mut self,
         prediction: &CrashPrediction,
@@ -135,37 +138,44 @@ impl HealingEngine {
     }
 
     /// Create a checkpoint for a component
+    #[inline(always)]
     pub fn checkpoint(&mut self, component: ComponentId, state: Vec<u8>) -> NexusResult<u64> {
         let checkpoint = Checkpoint::new(component, state);
         self.checkpoints.save(checkpoint)
     }
 
     /// Get checkpoint store
+    #[inline(always)]
     pub fn checkpoint_store(&self) -> &CheckpointStore {
         &self.checkpoints
     }
 
     /// Get mutable checkpoint store
+    #[inline(always)]
     pub fn checkpoint_store_mut(&mut self) -> &mut CheckpointStore {
         &mut self.checkpoints
     }
 
     /// Get quarantine manager
+    #[inline(always)]
     pub fn quarantine_manager(&self) -> &QuarantineManager {
         &self.quarantine
     }
 
     /// Get mutable quarantine manager
+    #[inline(always)]
     pub fn quarantine_manager_mut(&mut self) -> &mut QuarantineManager {
         &mut self.quarantine
     }
 
     /// Get healing history
+    #[inline(always)]
     pub fn history(&self) -> &[HealingResult] {
         &self.history
     }
 
     /// Get success rate
+    #[inline]
     pub fn success_rate(&self) -> f32 {
         let total = self.total_attempts.load(Ordering::Relaxed);
         let success = self.successful.load(Ordering::Relaxed);
@@ -178,16 +188,19 @@ impl HealingEngine {
     }
 
     /// Enable/disable engine
+    #[inline(always)]
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
 
     /// Is engine enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }
 
     /// Set maximum attempts before quarantine
+    #[inline(always)]
     pub fn set_max_attempts(&mut self, max: u32) {
         self.max_attempts = max;
     }

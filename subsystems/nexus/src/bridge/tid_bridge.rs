@@ -26,6 +26,7 @@ pub struct BridgeTidEntry {
 
 /// Stats for TID management
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeTidStats {
     pub total_allocated: u64,
     pub total_freed: u64,
@@ -35,6 +36,7 @@ pub struct BridgeTidStats {
 }
 
 /// Manager for TID bridge operations
+#[repr(align(64))]
 pub struct BridgeTidManager {
     tids: BTreeMap<u64, BridgeTidEntry>,
     free_list: Vec<u64>,
@@ -98,14 +100,17 @@ impl BridgeTidManager {
         }
     }
 
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: BridgeTidPolicy) {
         self.policy = policy;
     }
 
+    #[inline(always)]
     pub fn lookup(&self, tid: u64) -> Option<&BridgeTidEntry> {
         self.tids.get(&tid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeTidStats {
         &self.stats
     }

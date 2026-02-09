@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -48,6 +49,7 @@ pub enum BudgetPeriod {
 
 impl BudgetPeriod {
     /// Duration in nanoseconds
+    #[inline]
     pub fn duration_ns(&self) -> u64 {
         match self {
             BudgetPeriod::PerSecond => 1_000_000_000,
@@ -117,6 +119,7 @@ impl ResourceBudget {
     }
 
     /// Available budget
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         let total = self.limit + self.carryover + self.burst_allowance;
         total.saturating_sub(self.used + self.burst_used)
@@ -155,6 +158,7 @@ impl ResourceBudget {
     }
 
     /// Usage ratio
+    #[inline]
     pub fn usage_ratio(&self) -> f64 {
         if self.limit == 0 {
             return 0.0;
@@ -163,6 +167,7 @@ impl ResourceBudget {
     }
 
     /// Reset for new period
+    #[inline]
     pub fn reset_period(&mut self, now: u64) {
         // Carryover unused
         let unused = self.limit.saturating_sub(self.used);
@@ -173,6 +178,7 @@ impl ResourceBudget {
     }
 
     /// Is period expired?
+    #[inline(always)]
     pub fn period_expired(&self, now: u64) -> bool {
         now.saturating_sub(self.period_start) >= self.period.duration_ns()
     }
@@ -190,7 +196,7 @@ pub struct TenantBudget {
     /// Resource budgets
     budgets: BTreeMap<u8, ResourceBudget>,
     /// Usage history (period totals)
-    usage_history: Vec<BTreeMap<u8, u64>>,
+    usage_history: VecDeque<BTreeMap<u8, u64>>,
     /// Max history periods
     max_history: usize,
 }
@@ -200,17 +206,19 @@ impl TenantBudget {
         Self {
             id,
             budgets: BTreeMap::new(),
-            usage_history: Vec::new(),
+            usage_history: VecDeque::new(),
             max_history: 24,
         }
     }
 
     /// Set budget for resource
+    #[inline(always)]
     pub fn set_budget(&mut self, budget: ResourceBudget) {
         self.budgets.insert(budget.resource as u8, budget);
     }
 
     /// Try consume resource
+    #[inline]
     pub fn consume(&mut self, resource: BudgetedResource, amount: u64) -> bool {
         let key = resource as u8;
         if let Some(budget) = self.budgets.get_mut(&key) {
@@ -231,13 +239,14 @@ impl TenantBudget {
         }
         if !period_usage.is_empty() {
             if self.usage_history.len() >= self.max_history {
-                self.usage_history.remove(0);
+                self.usage_history.pop_front();
             }
-            self.usage_history.push(period_usage);
+            self.usage_history.push_back(period_usage);
         }
     }
 
     /// Worst state across all resources
+    #[inline]
     pub fn worst_state(&self) -> BudgetState {
         self.budgets.values()
             .map(|b| b.state())
@@ -246,6 +255,7 @@ impl TenantBudget {
     }
 
     /// Forecast: average usage over history
+    #[inline]
     pub fn forecast(&self, resource: BudgetedResource) -> Option<f64> {
         let key = resource as u8;
         let values: Vec<u64> = self.usage_history.iter()
@@ -265,6 +275,7 @@ impl TenantBudget {
 
 /// Budget manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticBudgetStats {
     /// Total tenants
     pub total_tenants: usize,
@@ -293,12 +304,14 @@ impl HolisticBudgetEngine {
     }
 
     /// Register tenant
+    #[inline(always)]
     pub fn register(&mut self, id: u64) {
         self.tenants.insert(id, TenantBudget::new(id));
         self.update_stats();
     }
 
     /// Set budget
+    #[inline]
     pub fn set_budget(&mut self, tenant_id: u64, budget: ResourceBudget) -> bool {
         if let Some(tenant) = self.tenants.get_mut(&tenant_id) {
             tenant.set_budget(budget);
@@ -309,6 +322,7 @@ impl HolisticBudgetEngine {
     }
 
     /// Consume resource
+    #[inline]
     pub fn consume(&mut self, tenant_id: u64, resource: BudgetedResource, amount: u64) -> bool {
         if let Some(tenant) = self.tenants.get_mut(&tenant_id) {
             let ok = tenant.consume(resource, amount);
@@ -320,6 +334,7 @@ impl HolisticBudgetEngine {
     }
 
     /// Periodic check
+    #[inline]
     pub fn check_periods(&mut self, now: u64) {
         for tenant in self.tenants.values_mut() {
             tenant.check_periods(now);
@@ -328,12 +343,14 @@ impl HolisticBudgetEngine {
     }
 
     /// Remove tenant
+    #[inline(always)]
     pub fn remove(&mut self, id: u64) {
         self.tenants.remove(&id);
         self.update_stats();
     }
 
     /// Get tenant
+    #[inline(always)]
     pub fn tenant(&self, id: u64) -> Option<&TenantBudget> {
         self.tenants.get(&id)
     }
@@ -349,6 +366,7 @@ impl HolisticBudgetEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticBudgetStats {
         &self.stats
     }

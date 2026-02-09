@@ -4,6 +4,7 @@
 //! a chosen action to be executed by the ACT domain.
 
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use alloc::format;
 
@@ -58,62 +59,73 @@ impl Intent {
     }
 
     /// Set score
+    #[inline(always)]
     pub fn with_score(mut self, score: f32) -> Self {
         self.score = score;
         self
     }
 
     /// Set justification
+    #[inline(always)]
     pub fn with_justification(mut self, justification: impl Into<String>) -> Self {
         self.justification = justification.into();
         self
     }
 
     /// Set source conclusion
+    #[inline(always)]
     pub fn with_source(mut self, conclusion_id: ConclusionId) -> Self {
         self.source_conclusion = Some(conclusion_id);
         self
     }
 
     /// Set expiration
+    #[inline(always)]
     pub fn with_expiry(mut self, ttl: Duration) -> Self {
         self.expires_at = Timestamp::new(self.timestamp.as_nanos() + ttl.as_nanos());
         self
     }
 
     /// Require confirmation
+    #[inline(always)]
     pub fn require_confirmation(mut self) -> Self {
         self.requires_confirmation = true;
         self
     }
 
     /// Set rate limited
+    #[inline(always)]
     pub fn set_rate_limited(mut self) -> Self {
         self.rate_limited = true;
         self
     }
 
     /// Check if intent has expired
+    #[inline(always)]
     pub fn is_expired(&self, now: Timestamp) -> bool {
         now.as_nanos() > self.expires_at.as_nanos()
     }
 
     /// Check if intent can be executed immediately
+    #[inline(always)]
     pub fn can_execute(&self) -> bool {
         !self.requires_confirmation && !self.rate_limited
     }
 
     /// Get action type
+    #[inline(always)]
     pub fn action_type(&self) -> super::options::ActionType {
         self.selected_option.action_type
     }
 
     /// Get target
+    #[inline(always)]
     pub fn target(&self) -> &super::options::ActionTarget {
         &self.selected_option.target
     }
 
     /// Get time until expiry
+    #[inline]
     pub fn time_until_expiry(&self, now: Timestamp) -> Duration {
         if self.is_expired(now) {
             Duration::ZERO
@@ -146,51 +158,61 @@ impl IntentBatch {
     }
 
     /// Add intent
+    #[inline(always)]
     pub fn add(&mut self, intent: Intent) {
         self.intents.push(intent);
     }
 
     /// Get intents
+    #[inline(always)]
     pub fn intents(&self) -> &[Intent] {
         &self.intents
     }
 
     /// Get mutable intents
+    #[inline(always)]
     pub fn intents_mut(&mut self) -> &mut Vec<Intent> {
         &mut self.intents
     }
 
     /// Count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.intents.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.intents.is_empty()
     }
 
     /// Get batch timestamp
+    #[inline(always)]
     pub fn timestamp(&self) -> Timestamp {
         self.timestamp
     }
 
     /// Filter expired intents
+    #[inline(always)]
     pub fn filter_expired(&mut self, now: Timestamp) {
         self.intents.retain(|i| !i.is_expired(now));
     }
 
     /// Get executable intents
+    #[inline(always)]
     pub fn executable(&self) -> impl Iterator<Item = &Intent> {
         self.intents.iter().filter(|i| i.can_execute())
     }
 
     /// Get intents requiring confirmation
+    #[inline(always)]
     pub fn requiring_confirmation(&self) -> impl Iterator<Item = &Intent> {
         self.intents.iter().filter(|i| i.requires_confirmation)
     }
 
     /// Sort by score (highest first)
+    #[inline]
     pub fn sort_by_score(&mut self) {
         self.intents.sort_by(|a, b| {
             b.score.partial_cmp(&a.score).unwrap_or(core::cmp::Ordering::Equal)
@@ -198,6 +220,7 @@ impl IntentBatch {
     }
 
     /// Sort by confidence (highest first)
+    #[inline]
     pub fn sort_by_confidence(&mut self) {
         self.intents.sort_by(|a, b| {
             b.confidence.value().partial_cmp(&a.confidence.value()).unwrap_or(core::cmp::Ordering::Equal)
@@ -211,13 +234,14 @@ impl IntentBatch {
 
 /// A priority queue for intents
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct IntentQueue {
     /// High priority intents
-    high: Vec<Intent>,
+    high: VecDeque<Intent>,
     /// Normal priority intents
-    normal: Vec<Intent>,
+    normal: VecDeque<Intent>,
     /// Low priority intents
-    low: Vec<Intent>,
+    low: VecDeque<Intent>,
     /// Maximum queue size
     max_size: usize,
 }
@@ -226,9 +250,9 @@ impl IntentQueue {
     /// Create new queue
     pub fn new(max_size: usize) -> Self {
         Self {
-            high: Vec::new(),
-            normal: Vec::new(),
-            low: Vec::new(),
+            high: VecDeque::new(),
+            normal: VecDeque::new(),
+            low: VecDeque::new(),
             max_size,
         }
     }
@@ -241,30 +265,32 @@ impl IntentQueue {
 
         // Priority based on score
         if intent.score >= 0.8 {
-            self.high.push(intent);
+            self.high.push_back(intent);
         } else if intent.score >= 0.4 {
-            self.normal.push(intent);
+            self.normal.push_back(intent);
         } else {
-            self.low.push(intent);
+            self.low.push_back(intent);
         }
 
         true
     }
 
     /// Dequeue next intent
+    #[inline]
     pub fn dequeue(&mut self) -> Option<Intent> {
         if !self.high.is_empty() {
-            Some(self.high.remove(0))
+            self.high.pop_front()
         } else if !self.normal.is_empty() {
-            Some(self.normal.remove(0))
+            self.normal.pop_front()
         } else if !self.low.is_empty() {
-            Some(self.low.remove(0))
+            self.low.pop_front()
         } else {
             None
         }
     }
 
     /// Peek next intent
+    #[inline]
     pub fn peek(&self) -> Option<&Intent> {
         self.high.first()
             .or_else(|| self.normal.first())
@@ -272,16 +298,19 @@ impl IntentQueue {
     }
 
     /// Total length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.high.len() + self.normal.len() + self.low.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.high.is_empty() && self.normal.is_empty() && self.low.is_empty()
     }
 
     /// Clear all
+    #[inline]
     pub fn clear(&mut self) {
         self.high.clear();
         self.normal.clear();
@@ -289,6 +318,7 @@ impl IntentQueue {
     }
 
     /// Remove expired intents
+    #[inline]
     pub fn remove_expired(&mut self, now: Timestamp) {
         self.high.retain(|i| !i.is_expired(now));
         self.normal.retain(|i| !i.is_expired(now));

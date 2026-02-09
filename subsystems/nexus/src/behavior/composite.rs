@@ -9,6 +9,7 @@
 #![allow(clippy::let_and_return)]
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -50,11 +51,13 @@ impl CompositeResult {
         }
     }
 
+    #[inline(always)]
     pub fn with_layer(mut self, layer: impl Into<String>) -> Self {
         self.active_layers.push(layer.into());
         self
     }
 
+    #[inline(always)]
     pub fn with_response(mut self, response: CompositeResponse) -> Self {
         self.responses.push(response);
         self
@@ -84,6 +87,7 @@ pub struct CompositeResponse {
 
 /// State change record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateChange {
     pub system: String,
     pub from: String,
@@ -185,52 +189,64 @@ impl BehaviorLayer {
         }
     }
 
+    #[inline(always)]
     pub fn with_priority(mut self, priority: i32) -> Self {
         self.priority = priority;
         self
     }
 
+    #[inline(always)]
     pub fn with_subsumption(mut self, layer_id: u32) -> Self {
         self.subsumes.push(layer_id);
         self
     }
 
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.is_enabled = true;
     }
 
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.is_enabled = false;
     }
 
+    #[inline(always)]
     pub fn behavior_tree(&self) -> Option<&BehaviorTree> {
         self.behavior_tree.as_ref()
     }
 
+    #[inline(always)]
     pub fn behavior_tree_mut(&mut self) -> Option<&mut BehaviorTree> {
         self.behavior_tree.as_mut()
     }
 
+    #[inline(always)]
     pub fn state_machine(&self) -> Option<&StateMachine> {
         self.state_machine.as_ref()
     }
 
+    #[inline(always)]
     pub fn state_machine_mut(&mut self) -> Option<&mut StateMachine> {
         self.state_machine.as_mut()
     }
 
+    #[inline(always)]
     pub fn reactive(&self) -> Option<&SubsumptionArchitecture> {
         self.reactive.as_ref()
     }
 
+    #[inline(always)]
     pub fn reactive_mut(&mut self) -> Option<&mut SubsumptionArchitecture> {
         self.reactive.as_mut()
     }
 
+    #[inline(always)]
     pub fn utility(&self) -> Option<&UtilitySelector> {
         self.utility.as_ref()
     }
 
+    #[inline(always)]
     pub fn utility_mut(&mut self) -> Option<&mut UtilitySelector> {
         self.utility.as_mut()
     }
@@ -286,10 +302,12 @@ impl BehaviorBlend {
         }
     }
 
+    #[inline(always)]
     pub fn add_output(&mut self, output: BlendOutput) {
         self.outputs.push(output);
     }
 
+    #[inline(always)]
     pub fn clear_outputs(&mut self) {
         self.outputs.clear();
     }
@@ -413,28 +431,34 @@ impl BehaviorComposite {
         }
     }
 
+    #[inline]
     pub fn add_layer(&mut self, layer: BehaviorLayer) {
         self.layers.push(layer);
         // Sort by priority (highest first)
         self.layers.sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
+    #[inline(always)]
     pub fn get_layer(&self, id: u32) -> Option<&BehaviorLayer> {
         self.layers.iter().find(|l| l.id == id)
     }
 
+    #[inline(always)]
     pub fn get_layer_mut(&mut self, id: u32) -> Option<&mut BehaviorLayer> {
         self.layers.iter_mut().find(|l| l.id == id)
     }
 
+    #[inline(always)]
     pub fn blackboard(&self) -> &Blackboard {
         &self.blackboard
     }
 
+    #[inline(always)]
     pub fn blackboard_mut(&mut self) -> &mut Blackboard {
         &mut self.blackboard
     }
 
+    #[inline(always)]
     pub fn add_stimulus(&mut self, stimulus: Stimulus) {
         self.stimulus_buffer.add(stimulus);
     }
@@ -717,6 +741,7 @@ impl BehaviorComposite {
     }
 
     /// Process an event through all state machines
+    #[inline]
     pub fn process_event(&mut self, event: &StateEvent) {
         for layer in &mut self.layers {
             if let Some(sm) = layer.state_machine_mut() {
@@ -726,14 +751,17 @@ impl BehaviorComposite {
         }
     }
 
+    #[inline(always)]
     pub fn layer_count(&self) -> usize {
         self.layers.len()
     }
 
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[inline(always)]
     pub fn id(&self) -> CompositeId {
         self.id
     }
@@ -747,7 +775,7 @@ impl BehaviorComposite {
 pub struct CompositeExecutor {
     composites: BTreeMap<CompositeId, BehaviorComposite>,
     active_composite: Option<CompositeId>,
-    execution_history: Vec<ExecutionRecord>,
+    execution_history: VecDeque<ExecutionRecord>,
     max_history: usize,
 }
 
@@ -765,11 +793,12 @@ impl CompositeExecutor {
         Self {
             composites: BTreeMap::new(),
             active_composite: None,
-            execution_history: Vec::new(),
+            execution_history: VecDeque::new(),
             max_history: 100,
         }
     }
 
+    #[inline]
     pub fn register(&mut self, composite: BehaviorComposite) {
         let id = composite.id();
         if self.active_composite.is_none() {
@@ -778,6 +807,7 @@ impl CompositeExecutor {
         self.composites.insert(id, composite);
     }
 
+    #[inline]
     pub fn set_active(&mut self, id: CompositeId) -> bool {
         if self.composites.contains_key(&id) {
             self.active_composite = Some(id);
@@ -787,10 +817,12 @@ impl CompositeExecutor {
         }
     }
 
+    #[inline(always)]
     pub fn get(&self, id: CompositeId) -> Option<&BehaviorComposite> {
         self.composites.get(&id)
     }
 
+    #[inline(always)]
     pub fn get_mut(&mut self, id: CompositeId) -> Option<&mut BehaviorComposite> {
         self.composites.get_mut(&id)
     }
@@ -803,7 +835,7 @@ impl CompositeExecutor {
         let result = composite.update(time, delta_time);
 
         // Record execution
-        self.execution_history.push(ExecutionRecord {
+        self.execution_history.push_back(ExecutionRecord {
             timestamp: time,
             composite_id: id,
             status: result.status,
@@ -811,7 +843,7 @@ impl CompositeExecutor {
         });
 
         if self.execution_history.len() > self.max_history {
-            self.execution_history.remove(0);
+            self.execution_history.pop_front();
         }
 
         Some(result)
@@ -836,10 +868,12 @@ impl CompositeExecutor {
         results
     }
 
+    #[inline(always)]
     pub fn composite_count(&self) -> usize {
         self.composites.len()
     }
 
+    #[inline(always)]
     pub fn execution_history(&self) -> &[ExecutionRecord] {
         &self.execution_history
     }

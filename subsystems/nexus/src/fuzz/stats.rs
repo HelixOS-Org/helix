@@ -10,6 +10,7 @@ use crate::core::NexusTimestamp;
 
 /// Fuzzing statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FuzzStats {
     /// Total executions
     pub executions: u64,

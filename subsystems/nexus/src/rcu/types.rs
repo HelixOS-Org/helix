@@ -8,11 +8,13 @@ pub struct RcuDomainId(pub u64);
 
 impl RcuDomainId {
     /// Create a new domain ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +26,13 @@ pub struct CpuId(pub u32);
 
 impl CpuId {
     /// Create a new CPU ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -40,11 +44,13 @@ pub struct GracePeriodId(pub u64);
 
 impl GracePeriodId {
     /// Create a new grace period ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -56,11 +62,13 @@ pub struct CallbackId(pub u64);
 
 impl CallbackId {
     /// Create a new callback ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -103,6 +111,7 @@ impl RcuFlavor {
     }
 
     /// Check if flavor supports sleeping
+    #[inline]
     pub fn supports_sleeping(&self) -> bool {
         matches!(
             self,

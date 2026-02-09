@@ -94,18 +94,22 @@ impl DenseLayer {
         }
     }
 
+    #[inline(always)]
     pub fn input_size(&self) -> usize {
         self.input_size
     }
 
+    #[inline(always)]
     pub fn output_size(&self) -> usize {
         self.output_size
     }
 
+    #[inline(always)]
     pub fn weights(&self) -> &Tensor {
         &self.weights
     }
 
+    #[inline(always)]
     pub fn bias(&self) -> &Tensor {
         &self.bias
     }
@@ -176,6 +180,7 @@ impl LayerNorm {
         }
     }
 
+    #[inline(always)]
     pub fn with_epsilon(mut self, epsilon: f32) -> Self {
         self.epsilon = epsilon;
         self
@@ -315,10 +320,12 @@ impl Dropout {
         }
     }
 
+    #[inline(always)]
     pub fn set_training(&mut self, training: bool) {
         self.training = training;
     }
 
+    #[inline(always)]
     pub fn set_seed(&mut self, seed: u64) {
         self.seed = seed;
     }
@@ -579,11 +586,13 @@ impl Conv1D {
         }
     }
 
+    #[inline(always)]
     pub fn with_stride(mut self, stride: usize) -> Self {
         self.stride = stride.max(1);
         self
     }
 
+    #[inline(always)]
     pub fn with_padding(mut self, padding: usize) -> Self {
         self.padding = padding;
         self
@@ -657,6 +666,7 @@ impl Layer for Conv1D {
 // ============================================================================
 
 /// 1D Max Pooling layer
+#[repr(align(64))]
 pub struct MaxPool1D {
     name: String,
     kernel_size: usize,
@@ -672,6 +682,7 @@ impl MaxPool1D {
         }
     }
 
+    #[inline(always)]
     pub fn with_stride(mut self, stride: usize) -> Self {
         self.stride = stride.max(1);
         self
@@ -725,6 +736,7 @@ impl Layer for MaxPool1D {
 // ============================================================================
 
 /// 1D Average Pooling layer
+#[repr(align(64))]
 pub struct AvgPool1D {
     name: String,
     kernel_size: usize,
@@ -740,6 +752,7 @@ impl AvgPool1D {
         }
     }
 
+    #[inline(always)]
     pub fn with_stride(mut self, stride: usize) -> Self {
         self.stride = stride.max(1);
         self
@@ -790,6 +803,7 @@ impl Layer for AvgPool1D {
 // ============================================================================
 
 /// Global Average Pooling: average over all spatial dimensions
+#[repr(align(64))]
 pub struct GlobalAvgPool {
     name: String,
 }

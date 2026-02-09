@@ -46,11 +46,13 @@ impl IommuCapabilities {
     }
 
     /// Is fully featured
+    #[inline(always)]
     pub fn is_full_featured(&self) -> bool {
         self.addr_64bit && self.nested && self.interrupt_remap && self.queued_invalidation
     }
 
     /// Has isolation support
+    #[inline(always)]
     pub fn has_isolation(&self) -> bool {
         self.max_domains > 1
     }

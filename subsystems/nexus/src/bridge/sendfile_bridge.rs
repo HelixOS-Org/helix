@@ -81,6 +81,7 @@ impl SendfileTransfer {
         }
     }
 
+    #[inline]
     pub fn progress_percent(&self) -> f64 {
         if self.count == 0 {
             return 100.0;
@@ -88,6 +89,7 @@ impl SendfileTransfer {
         (self.bytes_sent as f64 / self.count as f64) * 100.0
     }
 
+    #[inline]
     pub fn throughput_bps(&self) -> u64 {
         let elapsed = if self.end_time > self.start_time {
             self.end_time - self.start_time
@@ -97,6 +99,7 @@ impl SendfileTransfer {
         (self.bytes_sent * 1_000_000) / elapsed
     }
 
+    #[inline]
     pub fn advance(&mut self, bytes: u64) {
         self.bytes_sent += bytes;
         self.state = if self.bytes_sent >= self.count {
@@ -128,6 +131,7 @@ impl SendfilePipeBuf {
         }
     }
 
+    #[inline(always)]
     pub fn available(&self) -> usize {
         self.capacity - self.used
     }
@@ -135,6 +139,7 @@ impl SendfilePipeBuf {
 
 /// Statistics for the sendfile bridge.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SendfileBridgeStats {
     pub total_transfers: u64,
     pub completed_transfers: u64,
@@ -147,6 +152,7 @@ pub struct SendfileBridgeStats {
 }
 
 /// Main bridge sendfile manager.
+#[repr(align(64))]
 pub struct BridgeSendfile {
     pub transfers: BTreeMap<u64, SendfileTransfer>,
     pub pipe_bufs: BTreeMap<u64, SendfilePipeBuf>,
@@ -212,6 +218,7 @@ impl BridgeSendfile {
         }
     }
 
+    #[inline(always)]
     pub fn transfer_count(&self) -> usize {
         self.transfers.len()
     }
@@ -275,11 +282,13 @@ impl SendfileV2Op {
         }
     }
 
+    #[inline(always)]
     pub fn start(&mut self, ts_ns: u64) {
         self.state = SendfileV2State::Sending;
         self.start_ns = ts_ns;
     }
 
+    #[inline]
     pub fn progress(&mut self, bytes: u64, cache_hit: bool) {
         self.bytes_sent += bytes;
         if cache_hit {
@@ -289,20 +298,24 @@ impl SendfileV2Op {
         }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, ts_ns: u64) {
         self.state = SendfileV2State::Completed;
         self.end_ns = ts_ns;
     }
 
+    #[inline(always)]
     pub fn throughput_bps(&self) -> u64 {
         let dur = self.end_ns.saturating_sub(self.start_ns);
         if dur == 0 { 0 } else { (self.bytes_sent * 8 * 1_000_000_000) / dur }
     }
 
+    #[inline(always)]
     pub fn completion_pct(&self) -> f64 {
         if self.count == 0 { 0.0 } else { (self.bytes_sent as f64 / self.count as f64) * 100.0 }
     }
 
+    #[inline(always)]
     pub fn cache_hit_rate(&self) -> f64 {
         let total = self.page_cache_hits + self.page_cache_misses;
         if total == 0 { 0.0 } else { self.page_cache_hits as f64 / total as f64 }
@@ -311,6 +324,7 @@ impl SendfileV2Op {
 
 /// Sendfile v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SendfileV2BridgeStats {
     pub total_operations: u64,
     pub total_bytes_sent: u64,
@@ -321,6 +335,7 @@ pub struct SendfileV2BridgeStats {
 
 /// Main bridge sendfile v2
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeSendfileV2 {
     pub active_ops: BTreeMap<u64, SendfileV2Op>,
     pub stats: SendfileV2BridgeStats,
@@ -342,6 +357,7 @@ impl BridgeSendfileV2 {
         }
     }
 
+    #[inline]
     pub fn start_sendfile(&mut self, in_fd: i32, out_fd: i32, offset: u64, count: u64, ts_ns: u64) -> u64 {
         let id = self.next_op_id;
         self.next_op_id += 1;
@@ -369,6 +385,7 @@ impl BridgeSendfileV2 {
         }
     }
 
+    #[inline(always)]
     pub fn avg_throughput_bps(&self) -> u64 {
         if self.stats.total_duration_ns == 0 { 0 }
         else { (self.stats.total_bytes_sent * 8 * 1_000_000_000) / self.stats.total_duration_ns }

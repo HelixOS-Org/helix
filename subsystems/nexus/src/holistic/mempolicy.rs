@@ -6,6 +6,8 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -55,6 +57,7 @@ impl NumaNodemask {
         }
     }
 
+    #[inline]
     pub fn set_node(&mut self, node: u32) {
         if node < self.max_nodes {
             let word = (node / 64) as usize;
@@ -65,6 +68,7 @@ impl NumaNodemask {
         }
     }
 
+    #[inline]
     pub fn clear_node(&mut self, node: u32) {
         if node < self.max_nodes {
             let word = (node / 64) as usize;
@@ -88,6 +92,7 @@ impl NumaNodemask {
         }
     }
 
+    #[inline]
     pub fn weight(&self) -> u32 {
         let mut count = 0u32;
         for &word in &self.bits {
@@ -113,7 +118,7 @@ impl NumaNodemask {
 /// Weighted interleave configuration.
 #[derive(Debug, Clone)]
 pub struct WeightedInterleave {
-    pub node_weights: BTreeMap<u32, u32>,
+    pub node_weights: ArrayMap<u32, 32>,
     pub total_weight: u32,
     pub interleave_index: u64,
 }
@@ -121,12 +126,13 @@ pub struct WeightedInterleave {
 impl WeightedInterleave {
     pub fn new() -> Self {
         Self {
-            node_weights: BTreeMap::new(),
+            node_weights: ArrayMap::new(0),
             total_weight: 0,
             interleave_index: 0,
         }
     }
 
+    #[inline]
     pub fn set_weight(&mut self, node: u32, weight: u32) {
         if let Some(old) = self.node_weights.insert(node, weight) {
             self.total_weight = self.total_weight - old + weight;
@@ -244,6 +250,7 @@ impl MempolicyInstance {
 
 /// Statistics for the memory policy manager.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MempolicyStats {
     pub total_policies: u64,
     pub bind_policies: u64,
@@ -259,7 +266,7 @@ pub struct MempolicyStats {
 /// Main holistic memory policy manager.
 pub struct HolisticMempolicy {
     pub policies: BTreeMap<u64, MempolicyInstance>,
-    pub process_policies: BTreeMap<u64, u64>, // pid → policy_id
+    pub process_policies: LinearMap<u64, 64>, // pid → policy_id
     pub max_numa_nodes: u32,
     pub next_policy_id: u64,
     pub stats: MempolicyStats,
@@ -269,7 +276,7 @@ impl HolisticMempolicy {
     pub fn new(max_numa_nodes: u32) -> Self {
         Self {
             policies: BTreeMap::new(),
-            process_policies: BTreeMap::new(),
+            process_policies: LinearMap::new(),
             max_numa_nodes,
             next_policy_id: 1,
             stats: MempolicyStats {
@@ -302,6 +309,7 @@ impl HolisticMempolicy {
         id
     }
 
+    #[inline]
     pub fn set_process_policy(&mut self, pid: u64, policy_id: u64) -> bool {
         if self.policies.contains_key(&policy_id) {
             self.process_policies.insert(pid, policy_id);
@@ -312,7 +320,7 @@ impl HolisticMempolicy {
     }
 
     pub fn allocate_for_process(&mut self, pid: u64) -> Option<u32> {
-        let policy_id = self.process_policies.get(&pid).copied()?;
+        let policy_id = self.process_policies.get(pid).copied()?;
         let policy = self.policies.get_mut(&policy_id)?;
         let node = policy.select_node();
         self.stats.total_allocations += 1;
@@ -328,10 +336,12 @@ impl HolisticMempolicy {
         node
     }
 
+    #[inline(always)]
     pub fn policy_count(&self) -> usize {
         self.policies.len()
     }
 
+    #[inline(always)]
     pub fn process_binding_count(&self) -> usize {
         self.process_policies.len()
     }

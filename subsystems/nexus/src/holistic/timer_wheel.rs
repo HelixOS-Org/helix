@@ -35,6 +35,7 @@ pub enum TimerType {
 
 /// Timer entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerEntry {
     pub timer_id: u64,
     pub timer_type: TimerType,
@@ -78,11 +79,13 @@ impl TimerEntry {
         }
     }
 
+    #[inline(always)]
     pub fn avg_jitter_ns(&self) -> f64 {
         if self.fired_count == 0 { return 0.0; }
         self.total_jitter_ns as f64 / self.fired_count as f64
     }
 
+    #[inline(always)]
     pub fn is_deferrable(&self) -> bool { self.timer_type == TimerType::Deferrable }
 }
 
@@ -105,15 +108,18 @@ impl WheelLevel {
         }
     }
 
+    #[inline(always)]
     pub fn slot_for(&self, expires_ns: u64, base_ns: u64) -> u32 {
         let ticks = expires_ns.saturating_sub(base_ns) / self.granularity_ns;
         (ticks as u32) % self.slots
     }
 
+    #[inline(always)]
     pub fn advance(&mut self) {
         self.current_slot = (self.current_slot + 1) % self.slots;
     }
 
+    #[inline(always)]
     pub fn total_timers(&self) -> u32 { self.timer_counts.iter().sum() }
 }
 
@@ -129,6 +135,7 @@ pub struct CoalesceGroup {
 
 /// Per-CPU timer state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuTimerState {
     pub cpu_id: u32,
     pub active_timers: u32,
@@ -149,6 +156,7 @@ impl CpuTimerState {
 
 /// Timer wheel stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TimerWheelStats {
     pub total_timers: usize,
     pub armed_timers: usize,
@@ -165,6 +173,7 @@ pub struct TimerWheelStats {
 }
 
 /// Holistic timer wheel manager
+#[repr(align(64))]
 pub struct HolisticTimerWheel {
     timers: BTreeMap<u64, TimerEntry>,
     levels: Vec<WheelLevel>,
@@ -196,6 +205,7 @@ impl HolisticTimerWheel {
         }
     }
 
+    #[inline(always)]
     pub fn init_cpu(&mut self, cpu: u32) { self.cpus.insert(cpu, CpuTimerState::new(cpu)); }
 
     pub fn add_timer(&mut self, ttype: TimerType, expires: u64, interval: u64, cb: u64, cpu: Option<u32>, ts: u64) -> u64 {
@@ -332,6 +342,7 @@ impl HolisticTimerWheel {
         self.stats.total_cpus = self.cpus.len();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &TimerWheelStats { &self.stats }
 }
 
@@ -359,6 +370,7 @@ pub enum TimerType {
 
 /// Timer entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerEntry {
     pub id: u64,
     pub timer_type: TimerType,
@@ -380,8 +392,10 @@ impl TimerEntry {
         }
     }
 
+    #[inline(always)]
     pub fn set_periodic(&mut self, period: u64) { self.period_ns = period; }
 
+    #[inline]
     pub fn fire(&mut self, now: u64) {
         self.state = TimerState::Running;
         self.fire_count += 1;
@@ -393,8 +407,10 @@ impl TimerEntry {
         }
     }
 
+    #[inline(always)]
     pub fn cancel(&mut self) { self.state = TimerState::Cancelled; }
 
+    #[inline(always)]
     pub fn time_until(&self, now: u64) -> i64 {
         self.expires_at as i64 - now as i64
     }
@@ -416,17 +432,20 @@ impl WheelLevel {
         Self { granularity_ns: granularity, num_buckets, buckets, current_index: 0 }
     }
 
+    #[inline(always)]
     pub fn bucket_for(&self, delta_ns: u64) -> u32 {
         let ticks = delta_ns / self.granularity_ns;
         ((self.current_index as u64 + ticks) % self.num_buckets as u64) as u32
     }
 
+    #[inline]
     pub fn insert(&mut self, bucket: u32, timer_id: u64) {
         if (bucket as usize) < self.buckets.len() {
             self.buckets[bucket as usize].push(timer_id);
         }
     }
 
+    #[inline]
     pub fn advance(&mut self) -> Vec<u64> {
         let expired = core::mem::take(&mut self.buckets[self.current_index as usize]);
         self.current_index = (self.current_index + 1) % self.num_buckets;
@@ -436,6 +455,7 @@ impl WheelLevel {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerWheelV2Stats {
     pub total_timers: u32,
     pub pending_timers: u32,
@@ -447,6 +467,7 @@ pub struct TimerWheelV2Stats {
 }
 
 /// Main timer wheel v2 manager
+#[repr(align(64))]
 pub struct HolisticTimerWheelV2 {
     timers: BTreeMap<u64, TimerEntry>,
     levels: Vec<WheelLevel>,
@@ -485,6 +506,7 @@ impl HolisticTimerWheelV2 {
         id
     }
 
+    #[inline(always)]
     pub fn cancel(&mut self, id: u64) {
         if let Some(t) = self.timers.get_mut(&id) { t.cancel(); }
     }

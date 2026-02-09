@@ -17,6 +17,7 @@ pub enum HugePageAllocSize {
 }
 
 impl HugePageAllocSize {
+    #[inline]
     pub fn bytes(&self) -> u64 {
         match self {
             Self::Size16K => 16384,
@@ -41,6 +42,7 @@ pub struct HugePageEntry {
 
 /// Huge page pool
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct HugePageAllocPool {
     pub size: HugePageAllocSize,
     pub total: u32,
@@ -59,6 +61,7 @@ impl HugePageAllocPool {
         Self { size, total, free: total, reserved: 0, surplus: 0, max_surplus: 0, pages: Vec::new(), alloc_failures: 0, total_allocated: 0, total_freed: 0 }
     }
 
+    #[inline]
     pub fn allocate(&mut self, pfn: u64, pid: u64, now: u64) -> bool {
         if self.free == 0 { self.alloc_failures += 1; return false; }
         self.free -= 1;
@@ -67,6 +70,7 @@ impl HugePageAllocPool {
         true
     }
 
+    #[inline]
     pub fn free_page(&mut self, pfn: u64) {
         if let Some(pos) = self.pages.iter().position(|p| p.pfn == pfn) {
             self.pages.remove(pos);
@@ -75,6 +79,7 @@ impl HugePageAllocPool {
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.total == 0 { return 0.0; }
         (self.total - self.free) as f64 / self.total as f64
@@ -83,6 +88,7 @@ impl HugePageAllocPool {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HugePageAllocStats {
     pub pools: u32,
     pub total_pages: u32,
@@ -99,22 +105,26 @@ pub struct HolisticHugePageAlloc {
 impl HolisticHugePageAlloc {
     pub fn new() -> Self { Self { pools: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn create_pool(&mut self, size: HugePageAllocSize, total: u32) {
         let key = size as u8;
         self.pools.insert(key, HugePageAllocPool::new(size, total));
     }
 
+    #[inline]
     pub fn allocate(&mut self, size: HugePageAllocSize, pfn: u64, pid: u64, now: u64) -> bool {
         let key = size as u8;
         if let Some(p) = self.pools.get_mut(&key) { p.allocate(pfn, pid, now) }
         else { false }
     }
 
+    #[inline(always)]
     pub fn free_page(&mut self, size: HugePageAllocSize, pfn: u64) {
         let key = size as u8;
         if let Some(p) = self.pools.get_mut(&key) { p.free_page(pfn); }
     }
 
+    #[inline]
     pub fn stats(&self) -> HugePageAllocStats {
         let total: u32 = self.pools.values().map(|p| p.total).sum();
         let free: u32 = self.pools.values().map(|p| p.free).sum();

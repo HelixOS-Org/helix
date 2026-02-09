@@ -67,6 +67,7 @@ impl TmpfsMountInstance {
         }
     }
 
+    #[inline]
     pub fn allocate(&mut self, bytes: u64) -> bool {
         if self.used_bytes + bytes > self.max_bytes {
             self.state = TmpfsMountState::Full;
@@ -77,6 +78,7 @@ impl TmpfsMountInstance {
         true
     }
 
+    #[inline]
     pub fn free(&mut self, bytes: u64) {
         self.used_bytes = self.used_bytes.saturating_sub(bytes);
         let pages = (bytes + 4095) / 4096;
@@ -86,16 +88,19 @@ impl TmpfsMountInstance {
         }
     }
 
+    #[inline(always)]
     pub fn swap_out(&mut self, pages: u64) {
         self.pages_swapped += pages;
         self.pages_allocated = self.pages_allocated.saturating_sub(pages);
     }
 
+    #[inline(always)]
     pub fn swap_in(&mut self, pages: u64) {
         self.pages_allocated += pages;
         self.pages_swapped = self.pages_swapped.saturating_sub(pages);
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.max_bytes == 0 {
             return 0.0;
@@ -106,6 +111,7 @@ impl TmpfsMountInstance {
 
 /// Statistics for tmpfs manager.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TmpfsMgrStats {
     pub total_mounts: u64,
     pub total_bytes_used: u64,
@@ -138,6 +144,7 @@ impl HolisticTmpfsMgr {
         }
     }
 
+    #[inline]
     pub fn create_mount(&mut self, name: String, max_bytes: u64) -> u64 {
         let id = self.next_mount_id;
         self.next_mount_id += 1;
@@ -160,6 +167,7 @@ impl HolisticTmpfsMgr {
         }
     }
 
+    #[inline(always)]
     pub fn mount_count(&self) -> usize {
         self.mounts.len()
     }

@@ -101,6 +101,7 @@ impl CircuitBreaker {
         }
     }
 
+    #[inline]
     pub fn can_execute(&self, now: u64) -> bool {
         match self.state {
             CircuitState::Closed => true,
@@ -148,6 +149,7 @@ impl CircuitBreaker {
         }
     }
 
+    #[inline(always)]
     pub fn record_rejection(&mut self) { self.total_rejections += 1; }
 
     fn trim_window(&mut self, now: u64) {
@@ -183,24 +185,28 @@ impl CircuitBreaker {
         }
     }
 
+    #[inline]
     pub fn check_transition(&mut self, now: u64) {
         if self.state == CircuitState::Open && self.can_execute(now) {
             self.transition(CircuitState::HalfOpen, now);
         }
     }
 
+    #[inline]
     pub fn failure_rate(&self) -> f64 {
         if self.window.is_empty() { return 0.0; }
         let failures = self.window.iter().filter(|e| !e.success).count() as f64;
         failures / self.window.len() as f64
     }
 
+    #[inline]
     pub fn avg_latency_ns(&self) -> f64 {
         if self.window.is_empty() { return 0.0; }
         let sum: u64 = self.window.iter().map(|e| e.latency_ns).sum();
         sum as f64 / self.window.len() as f64
     }
 
+    #[inline]
     pub fn p99_latency_ns(&self) -> u64 {
         if self.window.is_empty() { return 0; }
         let mut latencies: Vec<u64> = self.window.iter().map(|e| e.latency_ns).collect();
@@ -227,12 +233,14 @@ impl Bulkhead {
         Self { name, max_concurrent, current_concurrent: 0, queue_size: 0, max_queue, total_accepted: 0, total_rejected: 0 }
     }
 
+    #[inline]
     pub fn try_acquire(&mut self) -> bool {
         if self.current_concurrent < self.max_concurrent { self.current_concurrent += 1; self.total_accepted += 1; true }
         else if self.queue_size < self.max_queue { self.queue_size += 1; self.total_accepted += 1; true }
         else { self.total_rejected += 1; false }
     }
 
+    #[inline]
     pub fn release(&mut self) {
         if self.current_concurrent > 0 { self.current_concurrent -= 1; }
         if self.queue_size > 0 && self.current_concurrent < self.max_concurrent {
@@ -241,6 +249,7 @@ impl Bulkhead {
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.max_concurrent == 0 { return 0.0; }
         self.current_concurrent as f64 / self.max_concurrent as f64
@@ -249,6 +258,7 @@ impl Bulkhead {
 
 /// Circuit breaker manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CircuitBreakerStats {
     pub total_circuits: usize,
     pub closed_circuits: usize,
@@ -278,34 +288,41 @@ impl CoopCircuitBreaker {
         hash
     }
 
+    #[inline]
     pub fn create_circuit(&mut self, name: String, config: CircuitConfig) -> u64 {
         let id = Self::name_hash(&name);
         self.circuits.entry(id).or_insert_with(|| CircuitBreaker::new(name, config));
         id
     }
 
+    #[inline]
     pub fn create_bulkhead(&mut self, name: String, max_concurrent: u32, max_queue: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.bulkheads.insert(id, Bulkhead::new(name, max_concurrent, max_queue));
         id
     }
 
+    #[inline(always)]
     pub fn can_execute(&self, circuit_id: u64, now: u64) -> bool {
         self.circuits.get(&circuit_id).map_or(false, |c| c.can_execute(now))
     }
 
+    #[inline(always)]
     pub fn record_success(&mut self, circuit_id: u64, now: u64, latency_ns: u64) {
         if let Some(c) = self.circuits.get_mut(&circuit_id) { c.record_success(now, latency_ns); }
     }
 
+    #[inline(always)]
     pub fn record_failure(&mut self, circuit_id: u64, now: u64, latency_ns: u64, failure: FailureType) {
         if let Some(c) = self.circuits.get_mut(&circuit_id) { c.record_failure(now, latency_ns, failure); }
     }
 
+    #[inline(always)]
     pub fn tick(&mut self, now: u64) {
         for c in self.circuits.values_mut() { c.check_transition(now); }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_circuits = self.circuits.len();
         self.stats.closed_circuits = self.circuits.values().filter(|c| c.state == CircuitState::Closed).count();
@@ -317,7 +334,10 @@ impl CoopCircuitBreaker {
         self.stats.avg_failure_rate = if rates.is_empty() { 0.0 } else { rates.iter().sum::<f64>() / rates.len() as f64 };
     }
 
+    #[inline(always)]
     pub fn circuit(&self, id: u64) -> Option<&CircuitBreaker> { self.circuits.get(&id) }
+    #[inline(always)]
     pub fn bulkhead(&self, id: u64) -> Option<&Bulkhead> { self.bulkheads.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &CircuitBreakerStats { &self.stats }
 }

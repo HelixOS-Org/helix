@@ -10,6 +10,7 @@ use super::LockId;
 
 /// RwLock statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RwLockStats {
     /// Lock ID
     pub lock_id: LockId,
@@ -29,6 +30,7 @@ pub struct RwLockStats {
 
 impl RwLockStats {
     /// Record read
+    #[inline]
     pub fn record_read(&mut self, hold_time_ns: u64, concurrent_readers: u32) {
         self.reads += 1;
         self.read_time_ns += hold_time_ns;
@@ -37,12 +39,14 @@ impl RwLockStats {
     }
 
     /// Record write
+    #[inline(always)]
     pub fn record_write(&mut self, hold_time_ns: u64) {
         self.writes += 1;
         self.write_time_ns += hold_time_ns;
     }
 
     /// Read ratio
+    #[inline]
     pub fn read_ratio(&self) -> f64 {
         let total = self.reads + self.writes;
         if total == 0 {
@@ -53,6 +57,7 @@ impl RwLockStats {
     }
 
     /// Average readers
+    #[inline]
     pub fn avg_readers(&self) -> f64 {
         if self.reader_samples == 0 {
             0.0
@@ -120,6 +125,7 @@ impl RwLockOptimizer {
     }
 
     /// Record read
+    #[inline]
     pub fn record_read(&mut self, lock_id: LockId, hold_time_ns: u64, concurrent_readers: u32) {
         let stats = self.stats.entry(lock_id).or_insert_with(|| RwLockStats {
             lock_id,
@@ -131,6 +137,7 @@ impl RwLockOptimizer {
     }
 
     /// Record write
+    #[inline]
     pub fn record_write(&mut self, lock_id: LockId, hold_time_ns: u64) {
         let stats = self.stats.entry(lock_id).or_insert_with(|| RwLockStats {
             lock_id,
@@ -203,16 +210,19 @@ impl RwLockOptimizer {
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn get_stats(&self, lock_id: LockId) -> Option<&RwLockStats> {
         self.stats.get(&lock_id)
     }
 
     /// Get pattern
+    #[inline(always)]
     pub fn get_pattern(&self, lock_id: LockId) -> Option<RwPattern> {
         self.patterns.get(&lock_id).copied()
     }
 
     /// Get recommendations
+    #[inline(always)]
     pub fn recommendations(&self) -> &[RwRecommendation] {
         &self.recommendations
     }

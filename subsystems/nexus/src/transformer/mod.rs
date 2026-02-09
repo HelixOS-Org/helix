@@ -118,6 +118,7 @@ impl Activation {
     }
 
     /// Apply to vector
+    #[inline]
     pub fn apply_vec(&self, v: &mut [f64]) {
         for x in v {
             *x = self.apply(*x);
@@ -184,6 +185,7 @@ impl LayerNorm {
     }
 
     /// Forward for batch
+    #[inline(always)]
     pub fn forward_batch(&self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         input.iter().map(|x| self.forward(x)).collect()
     }
@@ -325,6 +327,7 @@ impl FeedForward {
     }
 
     /// Forward for batch
+    #[inline(always)]
     pub fn forward_batch(&self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         input.iter().map(|x| self.forward(x)).collect()
     }
@@ -473,11 +476,13 @@ impl SinusoidalPosEncoding {
     }
 
     /// Get encoding for position
+    #[inline(always)]
     pub fn get(&self, position: usize) -> &[f64] {
         &self.encodings[position.min(self.max_len - 1)]
     }
 
     /// Add positional encoding to input
+    #[inline]
     pub fn encode(&self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         input
             .iter()
@@ -526,6 +531,7 @@ impl LearnedPosEmbedding {
     }
 
     /// Encode input
+    #[inline]
     pub fn encode(&self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         input
             .iter()
@@ -964,6 +970,7 @@ impl TransformerDecoder {
     }
 
     /// Forward pass
+    #[inline]
     pub fn forward(&self, input: &[Vec<f64>], encoder_output: &[Vec<f64>]) -> Vec<Vec<f64>> {
         let mut hidden = self.pos_encoding.encode(input);
 
@@ -1035,6 +1042,7 @@ impl Transformer {
     }
 
     /// Encode source sequence
+    #[inline(always)]
     pub fn encode(&self, source: &[Vec<f64>]) -> Vec<Vec<f64>> {
         self.encoder.forward(source)
     }
@@ -1063,6 +1071,7 @@ impl Transformer {
     }
 
     /// Full forward pass
+    #[inline(always)]
     pub fn forward(&self, source: &[Vec<f64>], target: &[Vec<f64>]) -> Vec<Vec<f64>> {
         let encoder_output = self.encode(source);
         self.decode(target, &encoder_output)
@@ -1249,18 +1258,21 @@ impl KernelTransformerManager {
     }
 
     /// Encode sequence
+    #[inline(always)]
     pub fn encode(&mut self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         self.forward_count += 1;
         self.encoder.forward(input)
     }
 
     /// Generate logits
+    #[inline(always)]
     pub fn generate(&mut self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         self.forward_count += 1;
         self.decoder.forward(input)
     }
 
     /// Get statistics
+    #[inline]
     pub fn get_stats(&self) -> TransformerStats {
         TransformerStats {
             d_model: self.d_model,
@@ -1273,6 +1285,7 @@ impl KernelTransformerManager {
 
 /// Transformer statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TransformerStats {
     pub d_model: usize,
     pub encoder_layers: usize,

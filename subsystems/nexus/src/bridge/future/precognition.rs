@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -176,7 +177,7 @@ struct FeatureTracker {
     /// EMA of kurtosis (fourth central moment)
     kurtosis_ema: f32,
     /// Recent values for windowed statistics
-    recent_values: Vec<f32>,
+    recent_values: VecDeque<f32>,
     /// Reference distribution (the "normal" state)
     reference_fingerprint: DistributionFingerprint,
     /// Current distribution (sliding window)
@@ -200,7 +201,7 @@ impl FeatureTracker {
             variance_slow: 0.0,
             skewness_ema: 0.0,
             kurtosis_ema: 0.0,
-            recent_values: Vec::new(),
+            recent_values: VecDeque::new(),
             reference_fingerprint: DistributionFingerprint::new(0.0, 1.0),
             current_fingerprint: DistributionFingerprint::new(0.0, 1.0),
             total: 0,
@@ -210,6 +211,7 @@ impl FeatureTracker {
         }
     }
 
+    #[inline]
     fn observe(&mut self, value: f32) {
         self.total += 1;
 
@@ -241,9 +243,9 @@ impl FeatureTracker {
         self.kurtosis_ema = self.kurtosis_ema * (1.0 - FAST_EMA_ALPHA) + quartic * FAST_EMA_ALPHA;
 
         // Maintain recent values window
-        self.recent_values.push(value);
+        self.recent_values.push_back(value);
         if self.recent_values.len() > MAX_HISTORY {
-            self.recent_values.remove(0);
+            self.recent_values.pop_front();
         }
 
         // Update fingerprints
@@ -355,6 +357,7 @@ impl FeatureTracker {
 
 /// Statistics for the precognition engine.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrecognitionStats {
     pub total_features_tracked: u32,
     pub total_signals_detected: u64,
@@ -390,6 +393,7 @@ impl PrecognitionStats {
 /// Detects subtle shifts in syscall distributions that precede major changes.
 /// Tracks higher-order statistics (variance, skewness, kurtosis) and
 /// distribution fingerprints to sense changes before they become significant.
+#[repr(align(64))]
 pub struct BridgePrecognition {
     /// Per-feature trackers
     features: BTreeMap<u64, FeatureTracker>,
@@ -499,6 +503,7 @@ impl BridgePrecognition {
     }
 
     /// Detect subtle shifts for a specific feature.
+    #[inline]
     pub fn subtle_shift_detection(&mut self, feature_hash: u64) -> Vec<EarlySignal> {
         let tick = self.tick;
         if let Some(tracker) = self.features.get_mut(&feature_hash) {
@@ -509,6 +514,7 @@ impl BridgePrecognition {
     }
 
     /// Measure distribution drift for a specific feature.
+    #[inline]
     pub fn distribution_drift(&self, feature_hash: u64) -> f32 {
         if let Some(tracker) = self.features.get(&feature_hash) {
             tracker
@@ -520,11 +526,13 @@ impl BridgePrecognition {
     }
 
     /// Get the most recent early signal across all features.
+    #[inline(always)]
     pub fn early_signal(&self) -> Option<&EarlySignal> {
         self.recent_signals.last()
     }
 
     /// Confirm that a precognitive signal was correct (the predicted change materialized).
+    #[inline]
     pub fn confirm_signal(&mut self, feature_hash: u64) {
         self.confirmed_signals += 1;
         self.stats.total_signals_confirmed = self.confirmed_signals;
@@ -537,6 +545,7 @@ impl BridgePrecognition {
     }
 
     /// Record a false positive: signal was raised but no change materialized.
+    #[inline(always)]
     pub fn record_false_positive(&mut self, _feature_hash: u64) {
         self.false_positives += 1;
         self.update_accuracy();
@@ -553,21 +562,25 @@ impl BridgePrecognition {
     }
 
     /// Get overall precognition accuracy.
+    #[inline(always)]
     pub fn precognition_accuracy(&self) -> f32 {
         self.stats.precognition_accuracy
     }
 
     /// Get false positive rate.
+    #[inline(always)]
     pub fn false_positive_rate(&self) -> f32 {
         self.stats.false_positive_rate
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &PrecognitionStats {
         &self.stats
     }
 
     /// Get the number of tracked features.
+    #[inline(always)]
     pub fn feature_count(&self) -> usize {
         self.features.len()
     }

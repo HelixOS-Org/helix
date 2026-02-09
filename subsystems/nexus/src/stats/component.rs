@@ -14,6 +14,7 @@ use crate::core::NexusTimestamp;
 
 /// Statistics for a single component
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ComponentStats {
     /// Component name
     pub name: String,
@@ -57,6 +58,7 @@ impl Default for ComponentStats {
 
 /// Statistics for prediction engine
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PredictionStats {
     /// Total predictions made
     pub total_predictions: u64,
@@ -82,6 +84,7 @@ pub struct PredictionStats {
 
 impl PredictionStats {
     /// Calculate accuracy
+    #[inline]
     pub fn accuracy(&self) -> f32 {
         if self.total_predictions == 0 {
             return 0.0;
@@ -90,6 +93,7 @@ impl PredictionStats {
     }
 
     /// Calculate precision
+    #[inline]
     pub fn precision(&self) -> f32 {
         let denom = self.true_positives + self.false_positives;
         if denom == 0 {
@@ -99,6 +103,7 @@ impl PredictionStats {
     }
 
     /// Calculate recall
+    #[inline]
     pub fn recall(&self) -> f32 {
         let denom = self.true_positives + self.false_negatives;
         if denom == 0 {
@@ -108,6 +113,7 @@ impl PredictionStats {
     }
 
     /// Calculate F1 score
+    #[inline]
     pub fn f1_score(&self) -> f32 {
         let precision = self.precision();
         let recall = self.recall();
@@ -125,6 +131,7 @@ impl PredictionStats {
 
 /// Statistics for healing engine
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HealingStats {
     /// Total healing attempts
     pub total_attempts: u64,
@@ -152,6 +159,7 @@ pub struct HealingStats {
 
 impl HealingStats {
     /// Calculate success rate
+    #[inline]
     pub fn success_rate(&self) -> f32 {
         if self.total_attempts == 0 {
             return 0.0;

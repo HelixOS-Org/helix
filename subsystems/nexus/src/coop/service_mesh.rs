@@ -96,6 +96,7 @@ impl ServiceInstance {
         }
     }
 
+    #[inline]
     pub fn avg_latency_ns(&self) -> f64 {
         if self.total_requests == 0 {
             0.0
@@ -104,6 +105,7 @@ impl ServiceInstance {
         }
     }
 
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         if self.total_requests == 0 {
             0.0
@@ -129,6 +131,7 @@ impl ServiceInstance {
         }
     }
 
+    #[inline]
     pub fn check_circuit(&mut self, now_ns: u64) {
         if self.circuit == CircuitState::Open {
             if now_ns - self.circuit_open_ns > self.circuit_half_open_timeout_ns {
@@ -137,6 +140,7 @@ impl ServiceInstance {
         }
     }
 
+    #[inline(always)]
     pub fn is_available(&self) -> bool {
         self.state == ServiceState::Active && self.circuit != CircuitState::Open
     }
@@ -188,10 +192,12 @@ impl Service {
         }
     }
 
+    #[inline(always)]
     pub fn add_instance(&mut self, instance: ServiceInstance) {
         self.instances.push(instance);
     }
 
+    #[inline(always)]
     pub fn remove_instance(&mut self, instance_id: u64) {
         self.instances.retain(|i| i.instance_id != instance_id);
     }
@@ -255,18 +261,22 @@ impl Service {
         Some(self.instances[idx].instance_id)
     }
 
+    #[inline(always)]
     pub fn instance_count(&self) -> usize {
         self.instances.len()
     }
 
+    #[inline(always)]
     pub fn healthy_count(&self) -> usize {
         self.instances.iter().filter(|i| i.is_available()).count()
     }
 
+    #[inline(always)]
     pub fn total_requests(&self) -> u64 {
         self.instances.iter().map(|i| i.total_requests).sum()
     }
 
+    #[inline(always)]
     pub fn total_errors(&self) -> u64 {
         self.instances.iter().map(|i| i.total_errors).sum()
     }
@@ -274,6 +284,7 @@ impl Service {
 
 /// Service mesh stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopServiceMeshStats {
     pub total_services: usize,
     pub total_instances: usize,
@@ -302,6 +313,7 @@ impl CoopServiceMesh {
         }
     }
 
+    #[inline]
     pub fn register_service(&mut self, name: String, strategy: LoadBalanceStrategy) -> u64 {
         let id = self.next_service_id;
         self.next_service_id += 1;
@@ -310,6 +322,7 @@ impl CoopServiceMesh {
         id
     }
 
+    #[inline]
     pub fn add_instance(&mut self, service_id: u64, pid: u64, weight: u32) -> u64 {
         let inst_id = self.next_instance_id;
         self.next_instance_id += 1;
@@ -320,6 +333,7 @@ impl CoopServiceMesh {
         inst_id
     }
 
+    #[inline(always)]
     pub fn route(&mut self, service_id: u64) -> Option<u64> {
         self.services.get_mut(&service_id)?.select_instance()
     }
@@ -332,6 +346,7 @@ impl CoopServiceMesh {
         self.stats.total_errors = self.services.values().map(|s| s.total_errors()).sum();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopServiceMeshStats {
         &self.stats
     }

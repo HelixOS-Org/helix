@@ -100,6 +100,7 @@ pub struct TaxonomyNode {
 
 /// Statistics for the omniscient engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct OmniscientStats {
     pub total_apps_tracked: u64,
     pub total_observations: u64,
@@ -210,6 +211,7 @@ impl AppsOmniscient {
     }
 
     /// Build the application knowledge graph as a vector of edges.
+    #[inline(always)]
     pub fn app_knowledge_graph(&self) -> Vec<(u64, u64, u64)> {
         self.edges.iter().map(|e| (e.src_app, e.dst_app, e.weight)).collect()
     }
@@ -229,6 +231,7 @@ impl AppsOmniscient {
     }
 
     /// Return the count of completely unknown applications (no classification).
+    #[inline]
     pub fn unknown_app_zero(&self) -> u64 {
         self.profiles.values()
             .filter(|p| p.classes.is_empty() && p.observation_count < 3)
@@ -257,6 +260,7 @@ impl AppsOmniscient {
     }
 
     /// Return a snapshot of current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &OmniscientStats {
         &self.stats
     }

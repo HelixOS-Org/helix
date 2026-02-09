@@ -10,9 +10,11 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // HANDSHAKE TYPES
@@ -46,6 +48,7 @@ pub struct ProtocolVersion {
 }
 
 impl ProtocolVersion {
+    #[inline]
     pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
         Self {
             major,
@@ -58,6 +61,7 @@ impl ProtocolVersion {
     pub const CURRENT: ProtocolVersion = ProtocolVersion::new(4, 0, 1);
 
     /// Compatible with another version
+    #[inline(always)]
     pub fn compatible(&self, other: &ProtocolVersion) -> bool {
         self.major == other.major && self.minor >= other.minor
     }
@@ -110,17 +114,20 @@ impl CapabilitySet {
         }
     }
 
+    #[inline]
     pub fn add(&mut self, cap: Capability) {
         if !self.capabilities.contains(&cap) {
             self.capabilities.push(cap);
         }
     }
 
+    #[inline(always)]
     pub fn has(&self, cap: Capability) -> bool {
         self.capabilities.contains(&cap)
     }
 
     /// Intersect with another set
+    #[inline]
     pub fn intersect(&self, other: &CapabilitySet) -> CapabilitySet {
         let mut result = CapabilitySet::new();
         for cap in &self.capabilities {
@@ -131,6 +138,7 @@ impl CapabilitySet {
         result
     }
 
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.capabilities.len()
     }
@@ -256,6 +264,7 @@ impl HandshakeSession {
     }
 
     /// Duration so far (ms)
+    #[inline]
     pub fn duration_ms(&self, now: u64) -> u64 {
         if self.completed_at > 0 {
             self.completed_at.saturating_sub(self.created_at)
@@ -265,6 +274,7 @@ impl HandshakeSession {
     }
 
     /// Is timed out
+    #[inline]
     pub fn is_timed_out(&self, now: u64) -> bool {
         self.state != HandshakeState::Complete
             && self.state != HandshakeState::Failed
@@ -272,12 +282,14 @@ impl HandshakeSession {
     }
 
     /// Complete successfully
+    #[inline(always)]
     pub fn complete(&mut self, now: u64) {
         self.state = HandshakeState::Complete;
         self.completed_at = now;
     }
 
     /// Fail
+    #[inline(always)]
     pub fn fail(&mut self) {
         self.state = HandshakeState::Failed;
     }
@@ -289,6 +301,7 @@ impl HandshakeSession {
 
 /// Handshake manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HandshakeManagerStats {
     /// Total sessions
     pub total_sessions: u64,
@@ -309,7 +322,7 @@ pub struct CoopHandshakeManager {
     /// Active sessions
     sessions: BTreeMap<u64, HandshakeSession>,
     /// Process to session
-    pid_sessions: BTreeMap<u64, u64>,
+    pid_sessions: LinearMap<u64, 64>,
     /// Kernel capabilities
     kernel_caps: CapabilitySet,
     /// Next session ID
@@ -317,7 +330,7 @@ pub struct CoopHandshakeManager {
     /// Stats
     stats: HandshakeManagerStats,
     /// Completed handshake times (for average)
-    completion_times: Vec<u64>,
+    completion_times: VecDeque<u64>,
     /// Max completion history
     max_history: usize,
 }
@@ -326,11 +339,11 @@ impl CoopHandshakeManager {
     pub fn new(kernel_caps: CapabilitySet) -> Self {
         Self {
             sessions: BTreeMap::new(),
-            pid_sessions: BTreeMap::new(),
+            pid_sessions: LinearMap::new(),
             kernel_caps,
             next_session_id: 1,
             stats: HandshakeManagerStats::default(),
-            completion_times: Vec::new(),
+            completion_times: VecDeque::new(),
             max_history: 256,
         }
     }
@@ -376,6 +389,7 @@ impl CoopHandshakeManager {
     }
 
     /// Register performance hints
+    #[inline]
     pub fn register_hints(&mut self, session_id: u64, hints: Vec<PerformanceHint>) -> bool {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             session.perf_hints = hints;
@@ -392,9 +406,9 @@ impl CoopHandshakeManager {
             session.complete(now);
             let duration = session.duration_ms(now);
 
-            self.completion_times.push(duration);
+            self.completion_times.push_back(duration);
             if self.completion_times.len() > self.max_history {
-                self.completion_times.remove(0);
+                self.completion_times.pop_front();
             }
 
             self.stats.completed += 1;
@@ -404,14 +418,16 @@ impl CoopHandshakeManager {
                 .filter(|s| {
                     !matches!(
                         s.state,
-                        HandshakeState::Complete | HandshakeState::Failed | HandshakeState::TimedOut
+                        HandshakeState::Complete
+                            | HandshakeState::Failed
+                            | HandshakeState::TimedOut
                     )
                 })
                 .count();
 
             if !self.completion_times.is_empty() {
-                self.stats.avg_handshake_ms = self.completion_times.iter().sum::<u64>()
-                    / self.completion_times.len() as u64;
+                self.stats.avg_handshake_ms =
+                    self.completion_times.iter().sum::<u64>() / self.completion_times.len() as u64;
             }
 
             true
@@ -436,11 +452,13 @@ impl CoopHandshakeManager {
     }
 
     /// Get session
+    #[inline(always)]
     pub fn session(&self, id: u64) -> Option<&HandshakeSession> {
         self.sessions.get(&id)
     }
 
     /// Get session for process
+    #[inline]
     pub fn session_for_pid(&self, pid: u64) -> Option<&HandshakeSession> {
         self.pid_sessions
             .get(&pid)
@@ -448,6 +466,7 @@ impl CoopHandshakeManager {
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &HandshakeManagerStats {
         &self.stats
     }

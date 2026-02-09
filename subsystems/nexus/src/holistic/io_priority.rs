@@ -77,21 +77,25 @@ impl ProcessIoWeight {
         }
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.io_ops == 0 { return 0; }
         self.total_latency_ns / self.io_ops
     }
 
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.bytes_read + self.bytes_written
     }
 
+    #[inline]
     pub fn read_write_ratio(&self) -> f64 {
         let total = self.total_bytes();
         if total == 0 { return 0.5; }
         self.bytes_read as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn budget_consumed_ratio(&self) -> f64 {
         if self.budget_bytes == 0 { return 0.0; }
         1.0 - (self.budget_remaining as f64 / self.budget_bytes as f64)
@@ -127,20 +131,24 @@ impl DeviceSaturation {
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.iops_capacity == 0 { return 0.0; }
         self.current_iops as f64 / self.iops_capacity as f64
     }
 
+    #[inline(always)]
     pub fn bandwidth_utilization(&self) -> f64 {
         if self.bandwidth_bps == 0 { return 0.0; }
         self.current_bandwidth_bps as f64 / self.bandwidth_bps as f64
     }
 
+    #[inline(always)]
     pub fn is_saturated(&self) -> bool {
         self.utilization() > 0.9 || self.queue_depth >= self.max_queue_depth
     }
 
+    #[inline(always)]
     pub fn queue_pressure(&self) -> f64 {
         if self.max_queue_depth == 0 { return 0.0; }
         self.queue_depth as f64 / self.max_queue_depth as f64
@@ -149,6 +157,7 @@ impl DeviceSaturation {
 
 /// Readahead tuning state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReadaheadState {
     pub device_id: u32,
     pub process_id: u64,
@@ -172,6 +181,7 @@ impl ReadaheadState {
         }
     }
 
+    #[inline]
     pub fn sequential_ratio(&self) -> f64 {
         let total = self.sequential_hits + self.random_hits;
         if total == 0 { return 0.0; }
@@ -201,6 +211,7 @@ impl ReadaheadState {
 
 /// Holistic IO Priority stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticIoPriorityStats {
     pub total_processes: usize,
     pub total_devices: usize,
@@ -228,10 +239,12 @@ impl HolisticIoPriority {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pw: ProcessIoWeight) {
         self.processes.insert(pw.process_id, pw);
     }
 
+    #[inline(always)]
     pub fn register_device(&mut self, ds: DeviceSaturation) {
         self.devices.insert(ds.device_id, ds);
     }
@@ -295,7 +308,10 @@ impl HolisticIoPriority {
         self.stats.avg_global_latency_ns = if total_ops > 0 { total_lat / total_ops } else { 0 };
     }
 
+    #[inline(always)]
     pub fn process(&self, id: u64) -> Option<&ProcessIoWeight> { self.processes.get(&id) }
+    #[inline(always)]
     pub fn device(&self, id: u32) -> Option<&DeviceSaturation> { self.devices.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticIoPriorityStats { &self.stats }
 }

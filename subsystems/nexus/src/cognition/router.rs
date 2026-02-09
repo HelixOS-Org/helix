@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::boxed::Box;
 use alloc::vec;
 
@@ -167,7 +168,7 @@ pub struct MessageRouter {
     /// Next rule ID
     next_rule_id: AtomicU64,
     /// Round-robin counters per rule
-    rr_counters: BTreeMap<u64, usize>,
+    rr_counters: LinearMap<usize, 64>,
     /// Sticky routing cache
     sticky_cache: BTreeMap<String, DomainId>,
     /// Domain load
@@ -180,6 +181,7 @@ pub struct MessageRouter {
 
 /// Router statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RouterStats {
     /// Total messages routed
     pub total_routed: u64,
@@ -199,7 +201,7 @@ impl MessageRouter {
         Self {
             rules: BTreeMap::new(),
             next_rule_id: AtomicU64::new(1),
-            rr_counters: BTreeMap::new(),
+            rr_counters: LinearMap::new(),
             sticky_cache: BTreeMap::new(),
             domain_load: BTreeMap::new(),
             default_destination: None,
@@ -224,12 +226,14 @@ impl MessageRouter {
     }
 
     /// Remove a routing rule
+    #[inline(always)]
     pub fn remove_rule(&mut self, rule_id: u64) -> bool {
-        self.rr_counters.remove(&rule_id);
+        self.rr_counters.remove(rule_id);
         self.rules.remove(&rule_id).is_some()
     }
 
     /// Enable/disable a rule
+    #[inline]
     pub fn set_rule_enabled(&mut self, rule_id: u64, enabled: bool) {
         if let Some(rule) = self.rules.get_mut(&rule_id) {
             rule.enabled = enabled;
@@ -237,11 +241,13 @@ impl MessageRouter {
     }
 
     /// Set default destination
+    #[inline(always)]
     pub fn set_default(&mut self, domain: DomainId) {
         self.default_destination = Some(domain);
     }
 
     /// Update domain load
+    #[inline(always)]
     pub fn update_load(&mut self, domain: DomainId, load: u32) {
         self.domain_load.insert(domain, load);
     }
@@ -433,16 +439,19 @@ impl MessageRouter {
     }
 
     /// Clear sticky cache
+    #[inline(always)]
     pub fn clear_sticky_cache(&mut self) {
         self.sticky_cache.clear();
     }
 
     /// Get routing rules
+    #[inline(always)]
     pub fn rules(&self) -> &BTreeMap<u64, RoutingRule> {
         &self.rules
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &RouterStats {
         &self.stats
     }
@@ -480,40 +489,47 @@ impl RouteBuilder {
     }
 
     /// Set criteria
+    #[inline(always)]
     pub fn when(mut self, criteria: RoutingCriteria) -> Self {
         self.rule.criteria = criteria;
         self
     }
 
     /// When message type matches
+    #[inline(always)]
     pub fn when_type(self, msg_type: &str) -> Self {
         self.when(RoutingCriteria::MessageType(msg_type.into()))
     }
 
     /// When source matches
+    #[inline(always)]
     pub fn when_source(self, source: DomainId) -> Self {
         self.when(RoutingCriteria::Source(source))
     }
 
     /// Add destination
+    #[inline(always)]
     pub fn to(mut self, domain: DomainId) -> Self {
         self.rule.destinations.push(domain);
         self
     }
 
     /// Set strategy
+    #[inline(always)]
     pub fn with_strategy(mut self, strategy: LoadBalanceStrategy) -> Self {
         self.rule.strategy = strategy;
         self
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: u32) -> Self {
         self.rule.priority = priority;
         self
     }
 
     /// Build the rule
+    #[inline(always)]
     pub fn build(self) -> RoutingRule {
         self.rule
     }

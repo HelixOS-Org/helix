@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -64,6 +65,7 @@ pub enum SystemMetricType {
 
 /// A metric sample
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct MetricSample {
     /// Metric type
     pub metric: SystemMetricType,
@@ -259,6 +261,7 @@ pub struct Bottleneck {
 
 /// Correlation between two metrics
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct MetricCorrelation {
     /// First metric
     pub metric_a: SystemMetricType,
@@ -319,6 +322,7 @@ impl CorrelationAnalyzer {
     }
 
     /// Get top positive correlations
+    #[inline]
     pub fn top_positive(&self, count: usize) -> Vec<&MetricCorrelation> {
         let mut sorted: Vec<&MetricCorrelation> = self.correlations.iter().collect();
         sorted.sort_by(|a, b| b.coefficient.partial_cmp(&a.coefficient).unwrap_or(core::cmp::Ordering::Equal));
@@ -327,6 +331,7 @@ impl CorrelationAnalyzer {
     }
 
     /// Get top negative correlations
+    #[inline]
     pub fn top_negative(&self, count: usize) -> Vec<&MetricCorrelation> {
         let mut sorted: Vec<&MetricCorrelation> = self.correlations.iter().collect();
         sorted.sort_by(|a, b| a.coefficient.partial_cmp(&b.coefficient).unwrap_or(core::cmp::Ordering::Equal));
@@ -334,18 +339,22 @@ impl CorrelationAnalyzer {
         sorted
     }
 
+    #[inline(always)]
     pub fn needs_update(&self) -> bool {
         self.samples_since_update >= self.update_interval
     }
 
+    #[inline(always)]
     pub fn mark_updated(&mut self) {
         self.samples_since_update = 0;
     }
 
+    #[inline(always)]
     pub fn record_sample(&mut self) {
         self.samples_since_update += 1;
     }
 
+    #[inline(always)]
     pub fn update_correlations(&mut self, correlations: Vec<MetricCorrelation>) {
         self.correlations = correlations;
         self.mark_updated();
@@ -426,7 +435,7 @@ pub struct SystemAnalyzer {
     /// Active bottlenecks
     active_bottlenecks: Vec<Bottleneck>,
     /// Health history
-    health_history: Vec<f64>,
+    health_history: VecDeque<f64>,
     /// Max health history
     max_health_history: usize,
     /// Total samples recorded
@@ -443,7 +452,7 @@ impl SystemAnalyzer {
             correlations: CorrelationAnalyzer::new(100),
             thresholds: AnalyzerThresholds::default(),
             active_bottlenecks: Vec::new(),
-            health_history: Vec::new(),
+            health_history: VecDeque::new(),
             max_health_history: 60,
             total_samples: 0,
             total_bottlenecks: 0,
@@ -469,11 +478,13 @@ impl SystemAnalyzer {
     }
 
     /// Get latest value for metric
+    #[inline(always)]
     pub fn latest(&self, metric: SystemMetricType) -> Option<u64> {
         self.series.get(&(metric as u8))?.latest()
     }
 
     /// Get average for metric
+    #[inline]
     pub fn average(&self, metric: SystemMetricType) -> f64 {
         self.series
             .get(&(metric as u8))
@@ -481,6 +492,7 @@ impl SystemAnalyzer {
     }
 
     /// Get trend for metric
+    #[inline]
     pub fn trend(&self, metric: SystemMetricType) -> f64 {
         self.series
             .get(&(metric as u8))
@@ -631,9 +643,9 @@ impl SystemAnalyzer {
         let overall = if overall < 0.0 { 0.0 } else if overall > 1.0 { 1.0 } else { overall };
 
         // Track health trend
-        self.health_history.push(overall);
+        self.health_history.push_back(overall);
         if self.health_history.len() > self.max_health_history {
-            self.health_history.remove(0);
+            self.health_history.pop_front();
         }
 
         let trend = if self.health_history.len() >= 3 {
@@ -657,11 +669,13 @@ impl SystemAnalyzer {
     }
 
     /// Get correlation analyzer
+    #[inline(always)]
     pub fn correlations(&self) -> &CorrelationAnalyzer {
         &self.correlations
     }
 
     /// Metric count being tracked
+    #[inline(always)]
     pub fn metric_count(&self) -> usize {
         self.series.len()
     }

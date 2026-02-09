@@ -27,6 +27,7 @@ impl ShareWeight {
     pub const MAX: ShareWeight = ShareWeight(65536);
 
     /// Proportion of total
+    #[inline]
     pub fn proportion(&self, total_weight: u32) -> f64 {
         if total_weight == 0 {
             return 0.0;
@@ -44,11 +45,13 @@ impl ShareWeight {
 pub struct VirtualTime(pub u64);
 
 impl VirtualTime {
+    #[inline(always)]
     pub fn zero() -> Self {
         Self(0)
     }
 
     /// Advance by wall-clock time weighted by shares
+    #[inline]
     pub fn advance(&mut self, wall_us: u64, weight: ShareWeight, total_weight: u32) {
         if weight.0 == 0 || total_weight == 0 {
             return;
@@ -59,6 +62,7 @@ impl VirtualTime {
     }
 
     /// Lag relative to ideal fair share
+    #[inline(always)]
     pub fn lag(&self, ideal: &VirtualTime) -> i64 {
         ideal.0 as i64 - self.0 as i64
     }
@@ -129,6 +133,7 @@ impl FairShareEntity {
     }
 
     /// Fairness ratio (actual/ideal, 1.0 = perfect)
+    #[inline]
     pub fn fairness_ratio(&self) -> f64 {
         if self.ideal_us == 0 {
             return 1.0;
@@ -137,11 +142,13 @@ impl FairShareEntity {
     }
 
     /// Is under-served
+    #[inline(always)]
     pub fn is_underserved(&self) -> bool {
         self.lag_us > 0
     }
 
     /// Is over-served
+    #[inline(always)]
     pub fn is_overserved(&self) -> bool {
         self.lag_us < 0
     }
@@ -153,6 +160,7 @@ impl FairShareEntity {
 
 /// System-wide fairness metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FairnessMetrics {
     /// Jain's fairness index (0-1, 1 = perfect)
     pub jains_index: f64,
@@ -222,6 +230,7 @@ impl FairnessMetrics {
 
 /// Fair share scheduler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FairShareStats {
     /// Total entities
     pub total_entities: usize,
@@ -373,6 +382,7 @@ impl CoopFairShareScheduler {
     }
 
     /// Detect starvation
+    #[inline]
     pub fn detect_starvation(&self) -> Vec<u64> {
         let threshold = self.starvation_threshold_us;
         self.entities
@@ -385,6 +395,7 @@ impl CoopFairShareScheduler {
     }
 
     /// Compute fairness metrics
+    #[inline]
     pub fn fairness_metrics(&self) -> FairnessMetrics {
         let active: Vec<&FairShareEntity> = self
             .entities
@@ -395,6 +406,7 @@ impl CoopFairShareScheduler {
     }
 
     /// Set entity active/inactive
+    #[inline]
     pub fn set_active(&mut self, entity_id: u64, active: bool) {
         if let Some(entity) = self.entities.get_mut(&entity_id) {
             entity.active = active;
@@ -408,6 +420,7 @@ impl CoopFairShareScheduler {
     }
 
     /// Change weight
+    #[inline]
     pub fn set_weight(&mut self, entity_id: u64, weight: ShareWeight) {
         if let Some(entity) = self.entities.get_mut(&entity_id) {
             entity.weight = weight;
@@ -434,11 +447,13 @@ impl CoopFairShareScheduler {
     }
 
     /// Get entity
+    #[inline(always)]
     pub fn entity(&self, id: u64) -> Option<&FairShareEntity> {
         self.entities.get(&id)
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &FairShareStats {
         &self.stats
     }

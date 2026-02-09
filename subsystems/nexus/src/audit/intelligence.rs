@@ -121,6 +121,7 @@ impl AuditIntelligence {
     }
 
     /// Create with custom log size
+    #[inline]
     pub fn with_log_size(log_size: usize) -> Self {
         Self {
             manager: AuditManager::new(log_size),
@@ -130,17 +131,20 @@ impl AuditIntelligence {
     }
 
     /// Process event
+    #[inline(always)]
     pub fn process_event(&mut self, event: AuditEvent, timestamp: u64) {
         self.detector.process_event(&event, timestamp);
         self.manager.process_event(event);
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(&mut self, action: RuleAction, list: RuleList, timestamp: u64) -> AuditRuleId {
         self.manager.add_rule(action, list, timestamp)
     }
 
     /// Add compliance check
+    #[inline(always)]
     pub fn add_compliance_check(&mut self, check: ComplianceCheck) {
         self.compliance_checks.push(check);
     }
@@ -231,26 +235,31 @@ impl AuditIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &AuditManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut AuditManager {
         &mut self.manager
     }
 
     /// Get detector
+    #[inline(always)]
     pub fn detector(&self) -> &AnomalyDetector {
         &self.detector
     }
 
     /// Get detector mutably
+    #[inline(always)]
     pub fn detector_mut(&mut self) -> &mut AnomalyDetector {
         &mut self.detector
     }
 
     /// Get compliance checks
+    #[inline(always)]
     pub fn compliance_checks(&self) -> &[ComplianceCheck] {
         &self.compliance_checks
     }

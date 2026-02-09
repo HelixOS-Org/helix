@@ -140,6 +140,7 @@ impl DemandTracker {
         }
     }
 
+    #[inline]
     fn update(&mut self, resource: DemandResource, value: f32, tick: u64) {
         let key = resource as u8;
         let old_avg = *self.avg_demand.get(&key).unwrap_or(&0.0);
@@ -189,6 +190,7 @@ impl DemandTracker {
 
 /// Aggregate proactive optimization statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ProactiveStats {
     pub total_observations: u64,
     pub spikes_detected: u64,
@@ -437,6 +439,7 @@ impl AppsProactive {
     }
 
     /// Generate a savings report comparing estimated vs actual savings
+    #[inline]
     pub fn savings_report(&mut self) -> Vec<SavingsEntry> {
         let mut entries = Vec::new();
         let accuracy = if self.estimated_savings > 0.001 {
@@ -457,11 +460,13 @@ impl AppsProactive {
     }
 
     /// Record actual savings from a proactive action
+    #[inline(always)]
     pub fn record_actual_savings(&mut self, savings_ms: f32) {
         self.actual_savings += savings_ms;
     }
 
     /// Remove tracking for a process
+    #[inline(always)]
     pub fn deregister_process(&mut self, process_id: u64) {
         self.trackers.remove(&process_id);
     }

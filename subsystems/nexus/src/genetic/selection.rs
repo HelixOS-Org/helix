@@ -493,11 +493,13 @@ impl BoltzmannSelection {
     }
 
     /// Cool down the temperature
+    #[inline(always)]
     pub fn cool(&mut self) {
         self.temperature *= self.cooling_rate;
     }
 
     /// Set temperature
+    #[inline(always)]
     pub fn set_temperature(&mut self, temp: f64) {
         self.temperature = temp;
     }

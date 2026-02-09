@@ -87,16 +87,19 @@ pub enum FluentValue {
 
 impl FluentValue {
     /// Check if value is true (for boolean fluents)
+    #[inline(always)]
     pub fn is_true(&self) -> bool {
         matches!(self, FluentValue::Bool(true))
     }
 
     /// Check if value is false (for boolean fluents)
+    #[inline(always)]
     pub fn is_false(&self) -> bool {
         matches!(self, FluentValue::Bool(false))
     }
 
     /// Get as boolean
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             FluentValue::Bool(b) => Some(*b),
@@ -105,6 +108,7 @@ impl FluentValue {
     }
 
     /// Get as integer
+    #[inline]
     pub fn as_int(&self) -> Option<i64> {
         match self {
             FluentValue::Int(i) => Some(*i),
@@ -113,6 +117,7 @@ impl FluentValue {
     }
 
     /// Get as real
+    #[inline]
     pub fn as_real(&self) -> Option<f64> {
         match self {
             FluentValue::Real(r) => Some(*r),
@@ -202,6 +207,7 @@ impl FluentTimeline {
     }
 
     /// Record a change
+    #[inline]
     pub fn record_change(&mut self, time: Time, value: FluentValue, caused_by: Option<EventId>) {
         // Insert in order
         let pos = self.changes.partition_point(|(t, _, _)| *t <= time);
@@ -227,6 +233,7 @@ impl FluentTimeline {
     }
 
     /// Get the event that caused the value at time
+    #[inline]
     pub fn caused_by_at(&self, time: Time) -> Option<EventId> {
         for (t, _, e) in self.changes.iter().rev() {
             if *t <= time {
@@ -237,11 +244,13 @@ impl FluentTimeline {
     }
 
     /// Check if fluent holds at time
+    #[inline(always)]
     pub fn holds_at(&self, time: Time) -> bool {
         self.value_at(time).is_true()
     }
 
     /// Get all change times
+    #[inline(always)]
     pub fn change_times(&self) -> Vec<Time> {
         self.changes.iter().map(|(t, _, _)| *t).collect()
     }
@@ -301,6 +310,7 @@ impl Narrative {
     }
 
     /// Add event
+    #[inline]
     pub fn add_event(&mut self, event: Event) {
         // Insert in chronological order
         let pos = self.events.partition_point(|e| e.time <= event.time);
@@ -308,11 +318,13 @@ impl Narrative {
     }
 
     /// Get event at time
+    #[inline(always)]
     pub fn event_at(&self, time: Time) -> Option<&Event> {
         self.events.iter().find(|e| e.time == time)
     }
 
     /// Get events in time range
+    #[inline]
     pub fn events_in_range(&self, from: Time, to: Time) -> Vec<&Event> {
         self.events
             .iter()
@@ -321,6 +333,7 @@ impl Narrative {
     }
 
     /// Set initial value
+    #[inline(always)]
     pub fn set_initial(&mut self, fluent: FluentId, value: FluentValue) {
         self.initial_state.insert(fluent, value);
     }
@@ -411,6 +424,7 @@ impl EventCalculus {
     }
 
     /// Add precondition to action
+    #[inline]
     pub fn add_precondition(
         &mut self,
         action_id: ActionId,
@@ -428,6 +442,7 @@ impl EventCalculus {
     }
 
     /// Add initiates effect
+    #[inline]
     pub fn add_initiates(&mut self, action_id: ActionId, fluent: FluentId, value: FluentValue) {
         if let Some(action) = self.actions.get_mut(&action_id) {
             action.initiates.push(Effect {
@@ -439,6 +454,7 @@ impl EventCalculus {
     }
 
     /// Add terminates effect
+    #[inline]
     pub fn add_terminates(&mut self, action_id: ActionId, fluent: FluentId) {
         if let Some(action) = self.actions.get_mut(&action_id) {
             action.terminates.push(Effect {
@@ -450,6 +466,7 @@ impl EventCalculus {
     }
 
     /// Add releases effect
+    #[inline]
     pub fn add_releases(&mut self, action_id: ActionId, fluent: FluentId) {
         if let Some(action) = self.actions.get_mut(&action_id) {
             action.releases.push(Effect {
@@ -461,6 +478,7 @@ impl EventCalculus {
     }
 
     /// Set initial value of fluent
+    #[inline]
     pub fn initially(&mut self, fluent: FluentId, value: FluentValue) {
         if let Some(f) = self.fluents.get_mut(&fluent) {
             f.initial_value = value.clone();
@@ -593,6 +611,7 @@ impl EventCalculus {
     }
 
     /// Query: HoldsAt(fluent, time)
+    #[inline]
     pub fn holds_at(&self, fluent: FluentId, time: Time) -> bool {
         match self.timelines.get(&fluent) {
             Some(timeline) => timeline.holds_at(time),
@@ -601,6 +620,7 @@ impl EventCalculus {
     }
 
     /// Query: value of fluent at time
+    #[inline]
     pub fn value_at(&self, fluent: FluentId, time: Time) -> FluentValue {
         match self.timelines.get(&fluent) {
             Some(timeline) => timeline.value_at(time).clone(),
@@ -609,11 +629,13 @@ impl EventCalculus {
     }
 
     /// Query: what event initiated fluent at time?
+    #[inline(always)]
     pub fn initiated_by(&self, fluent: FluentId, time: Time) -> Option<EventId> {
         self.timelines.get(&fluent)?.caused_by_at(time)
     }
 
     /// Query: when did fluent become true?
+    #[inline]
     pub fn when_initiated(&self, fluent: FluentId) -> Option<Time> {
         let timeline = self.timelines.get(&fluent)?;
 
@@ -627,6 +649,7 @@ impl EventCalculus {
     }
 
     /// Query: is fluent released (non-inertial) at time?
+    #[inline]
     pub fn is_released(&self, fluent: FluentId, time: Time) -> bool {
         // Check if there's a release at or before this time
         for (f, t) in &self.released {
@@ -688,21 +711,25 @@ impl EventCalculus {
     }
 
     /// Get the narrative
+    #[inline(always)]
     pub fn narrative(&self) -> &Narrative {
         &self.narrative
     }
 
     /// Get fluent by ID
+    #[inline(always)]
     pub fn get_fluent(&self, id: FluentId) -> Option<&Fluent> {
         self.fluents.get(&id)
     }
 
     /// Get action by ID
+    #[inline(always)]
     pub fn get_action(&self, id: ActionId) -> Option<&Action> {
         self.actions.get(&id)
     }
 
     /// Get current time
+    #[inline(always)]
     pub fn current_time(&self) -> Time {
         self.current_time
     }
@@ -840,51 +867,61 @@ impl KernelEventCalculus {
     }
 
     /// Start a process
+    #[inline(always)]
     pub fn start_process(&mut self, time: Time) -> Option<EventId> {
         self.ec.happens(self.action_start_process, time, vec![])
     }
 
     /// Stop a process
+    #[inline(always)]
     pub fn stop_process(&mut self, time: Time) -> Option<EventId> {
         self.ec.happens(self.action_stop_process, time, vec![])
     }
 
     /// Allocate memory
+    #[inline(always)]
     pub fn allocate_memory(&mut self, time: Time) -> Option<EventId> {
         self.ec.happens(self.action_allocate_memory, time, vec![])
     }
 
     /// Free memory
+    #[inline(always)]
     pub fn free_memory(&mut self, time: Time) -> Option<EventId> {
         self.ec.happens(self.action_free_memory, time, vec![])
     }
 
     /// Acquire lock
+    #[inline(always)]
     pub fn acquire_lock(&mut self, time: Time) -> Option<EventId> {
         self.ec.happens(self.action_acquire_lock, time, vec![])
     }
 
     /// Release lock
+    #[inline(always)]
     pub fn release_lock(&mut self, time: Time) -> Option<EventId> {
         self.ec.happens(self.action_release_lock, time, vec![])
     }
 
     /// Check if process is running at time
+    #[inline(always)]
     pub fn is_process_running(&self, time: Time) -> bool {
         self.ec.holds_at(self.fluent_process_running, time)
     }
 
     /// Check if memory is allocated at time
+    #[inline(always)]
     pub fn is_memory_allocated(&self, time: Time) -> bool {
         self.ec.holds_at(self.fluent_memory_allocated, time)
     }
 
     /// Check if resource is locked at time
+    #[inline(always)]
     pub fn is_locked(&self, time: Time) -> bool {
         self.ec.holds_at(self.fluent_resource_locked, time)
     }
 
     /// Get full state projection at time
+    #[inline]
     pub fn state_at(&self, time: Time) -> KernelState {
         KernelState {
             process_running: self.ec.holds_at(self.fluent_process_running, time),
@@ -897,18 +934,21 @@ impl KernelEventCalculus {
     }
 
     /// Detect potential deadlock
+    #[inline(always)]
     pub fn detect_deadlock(&self, time: Time) -> bool {
         // Simple deadlock detection: locked but process not running
         self.is_locked(time) && !self.is_process_running(time)
     }
 
     /// Detect memory leak
+    #[inline(always)]
     pub fn detect_memory_leak(&self, time: Time) -> bool {
         // Memory allocated but process not running
         self.is_memory_allocated(time) && !self.is_process_running(time)
     }
 
     /// Get underlying engine
+    #[inline(always)]
     pub fn engine(&self) -> &EventCalculus {
         &self.ec
     }
@@ -922,6 +962,7 @@ impl Default for KernelEventCalculus {
 
 /// Kernel state at a point in time
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KernelState {
     /// Is a process running?
     pub process_running: bool,

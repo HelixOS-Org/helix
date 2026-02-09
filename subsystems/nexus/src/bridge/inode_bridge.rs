@@ -33,6 +33,7 @@ pub enum InodeBridgeResult {
 
 /// Inode bridge record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InodeBridgeRecord {
     pub op: InodeBridgeOp,
     pub result: InodeBridgeResult,
@@ -50,6 +51,7 @@ impl InodeBridgeRecord {
 
 /// Inode bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InodeBridgeStats {
     pub total_ops: u64,
     pub allocs: u64,
@@ -70,6 +72,7 @@ impl BridgeInode {
         Self { stats: InodeBridgeStats { total_ops: 0, allocs: 0, frees: 0, writebacks: 0, errors: 0, total_latency_ns: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &InodeBridgeRecord) {
         self.stats.total_ops += 1;
         self.stats.total_latency_ns += rec.latency_ns;
@@ -106,6 +109,7 @@ impl InodeV2Record {
 
 /// Inode v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InodeV2BridgeStats { pub total_events: u64, pub allocs: u64, pub frees: u64, pub attr_changes: u64 }
 
 /// Main bridge inode v2
@@ -114,6 +118,7 @@ pub struct BridgeInodeV2 { pub stats: InodeV2BridgeStats }
 
 impl BridgeInodeV2 {
     pub fn new() -> Self { Self { stats: InodeV2BridgeStats { total_events: 0, allocs: 0, frees: 0, attr_changes: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &InodeV2Record) {
         self.stats.total_events += 1;
         match rec.event {

@@ -147,6 +147,7 @@ pub struct VelocityReport {
 
 /// Journal statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct JournalStats {
     pub total_entries: u64,
     pub cross_references: u64,
@@ -193,6 +194,7 @@ impl HolisticJournal {
     }
 
     /// Record a new discovery in the journal
+    #[inline]
     pub fn record_discovery(
         &mut self,
         domain: ResearchDomain,
@@ -317,6 +319,7 @@ impl HolisticJournal {
     }
 
     /// Build a knowledge graph of all journal entries and cross-references
+    #[inline]
     pub fn knowledge_graph(&mut self) -> &BTreeMap<u64, KnowledgeNode> {
         self.stats.knowledge_nodes = self.knowledge_nodes.len() as u64;
         let mut domain_set: Vec<ResearchDomain> = Vec::new();
@@ -388,6 +391,7 @@ impl HolisticJournal {
     }
 
     /// Current statistics snapshot
+    #[inline(always)]
     pub fn stats(&self) -> &JournalStats {
         &self.stats
     }

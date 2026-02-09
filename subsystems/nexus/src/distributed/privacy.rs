@@ -44,21 +44,25 @@ impl PrivacyBudget {
     }
 
     /// Remaining epsilon
+    #[inline(always)]
     pub fn remaining_epsilon(&self) -> f64 {
         (self.epsilon - self.spent_epsilon).max(0.0)
     }
 
     /// Remaining delta
+    #[inline(always)]
     pub fn remaining_delta(&self) -> f64 {
         (self.delta - self.spent_delta).max(0.0)
     }
 
     /// Can spend
+    #[inline(always)]
     pub fn can_spend(&self, epsilon: f64, delta: f64) -> bool {
         self.spent_epsilon + epsilon <= self.epsilon && self.spent_delta + delta <= self.delta
     }
 
     /// Spend budget
+    #[inline]
     pub fn spend(&mut self, epsilon: f64, delta: f64) -> bool {
         if self.can_spend(epsilon, delta) {
             self.spent_epsilon += epsilon;
@@ -70,6 +74,7 @@ impl PrivacyBudget {
     }
 
     /// Reset budget
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.spent_epsilon = 0.0;
         self.spent_delta = 0.0;
@@ -284,6 +289,7 @@ impl SecureAggregation {
     }
 
     /// Submit masked value
+    #[inline]
     pub fn submit_masked(&mut self, node: NodeId, masked: Vec<f64>) {
         self.masked_values.insert(node, masked);
 
@@ -314,6 +320,7 @@ impl SecureAggregation {
     }
 
     /// Get state
+    #[inline(always)]
     pub fn state(&self) -> SecAggState {
         self.state
     }
@@ -359,6 +366,7 @@ impl HomomorphicEncryption {
     }
 
     /// Create public key only (for encryption)
+    #[inline]
     pub fn public_only(n: u128, g: u128) -> Self {
         Self {
             n,
@@ -370,6 +378,7 @@ impl HomomorphicEncryption {
     }
 
     /// Encrypt a value
+    #[inline]
     pub fn encrypt(&self, m: u64) -> u128 {
         // c = g^m * r^n mod n^2
         // Simplified: assume r = 1
@@ -378,6 +387,7 @@ impl HomomorphicEncryption {
     }
 
     /// Decrypt a value
+    #[inline]
     pub fn decrypt(&self, c: u128) -> Option<u64> {
         let lambda = self.lambda?;
         let mu = self.mu?;
@@ -391,11 +401,13 @@ impl HomomorphicEncryption {
     }
 
     /// Add two encrypted values (homomorphic addition)
+    #[inline(always)]
     pub fn add(&self, c1: u128, c2: u128) -> u128 {
         (c1 * c2) % self.n_squared
     }
 
     /// Multiply encrypted value by constant
+    #[inline(always)]
     pub fn mul_const(&self, c: u128, k: u64) -> u128 {
         Self::mod_pow(c, k as u128, self.n_squared)
     }
@@ -492,6 +504,7 @@ impl Default for PrivacyConfig {
 
 /// Privacy statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PrivacyStats {
     /// DP queries
     pub dp_queries: u64,
@@ -522,6 +535,7 @@ impl PrivacyManager {
     }
 
     /// Get or create budget for node
+    #[inline]
     pub fn get_budget(&mut self, node: NodeId) -> &mut PrivacyBudget {
         self.budgets.entry(node).or_insert_with(|| {
             PrivacyBudget::new(self.config.default_epsilon, self.config.default_delta)
@@ -575,6 +589,7 @@ impl PrivacyManager {
     }
 
     /// Encrypt value with HE
+    #[inline]
     pub fn he_encrypt(&mut self, value: u64) -> Result<u128, PrivacyError> {
         let he = self.he.as_ref().ok_or(PrivacyError::HENotEnabled)?;
         self.stats.he_operations += 1;
@@ -582,6 +597,7 @@ impl PrivacyManager {
     }
 
     /// Decrypt value with HE
+    #[inline]
     pub fn he_decrypt(&mut self, ciphertext: u128) -> Result<u64, PrivacyError> {
         let he = self.he.as_ref().ok_or(PrivacyError::HENotEnabled)?;
         self.stats.he_operations += 1;
@@ -589,23 +605,27 @@ impl PrivacyManager {
     }
 
     /// Add encrypted values
+    #[inline(always)]
     pub fn he_add(&self, c1: u128, c2: u128) -> Result<u128, PrivacyError> {
         let he = self.he.as_ref().ok_or(PrivacyError::HENotEnabled)?;
         Ok(he.add(c1, c2))
     }
 
     /// Create secure aggregation session
+    #[inline(always)]
     pub fn create_secagg(&mut self, participants: Vec<NodeId>) -> SecureAggregation {
         self.stats.secagg_sessions += 1;
         SecureAggregation::new(participants)
     }
 
     /// Set DP mechanism
+    #[inline(always)]
     pub fn set_dp_mechanism(&mut self, mechanism: Box<dyn DifferentialPrivacy>) {
         self.dp_mechanism = mechanism;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PrivacyStats {
         &self.stats
     }

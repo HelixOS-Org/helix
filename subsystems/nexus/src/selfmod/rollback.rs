@@ -7,6 +7,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -173,6 +174,7 @@ pub struct MemoryRegion {
 
 /// Global state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GlobalState {
     /// Name
     pub name: String,
@@ -220,6 +222,7 @@ impl Default for SnapshotConfig {
 
 /// Snapshot statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SnapshotStats {
     /// Total snapshots created
     pub created: u64,
@@ -273,11 +276,13 @@ impl SnapshotManager {
     }
 
     /// Get snapshot
+    #[inline(always)]
     pub fn get(&self, id: SnapshotId) -> Option<&Snapshot> {
         self.snapshots.get(&id)
     }
 
     /// Get snapshot for version
+    #[inline]
     pub fn get_for_version(&self, version: VersionId) -> Option<&Snapshot> {
         self.version_snapshots
             .get(&version)
@@ -316,6 +321,7 @@ impl SnapshotManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SnapshotStats {
         &self.stats
     }
@@ -336,7 +342,7 @@ pub struct RollbackManager {
     /// Active rollbacks
     active: BTreeMap<RollbackId, RollbackOperation>,
     /// Completed rollbacks
-    history: Vec<RollbackOperation>,
+    history: VecDeque<RollbackOperation>,
     /// Snapshot manager
     snapshot_manager: SnapshotManager,
     /// Configuration
@@ -371,6 +377,7 @@ impl Default for RollbackConfig {
 
 /// Rollback statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RollbackStats {
     /// Total rollbacks
     pub total: u64,
@@ -387,7 +394,7 @@ impl RollbackManager {
     pub fn new() -> Self {
         Self {
             active: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             snapshot_manager: SnapshotManager::default(),
             config: RollbackConfig::default(),
             stats: RollbackStats::default(),
@@ -472,7 +479,7 @@ impl RollbackManager {
 
         // Move to history
         if let Some(op) = self.active.remove(&id) {
-            self.history.push(op);
+            self.history.push_back(op);
             self.trim_history();
         }
 
@@ -525,13 +532,14 @@ impl RollbackManager {
         operation.status = RollbackStatus::Cancelled;
 
         if let Some(op) = self.active.remove(&id) {
-            self.history.push(op);
+            self.history.push_back(op);
         }
 
         Ok(())
     }
 
     /// Create snapshot
+    #[inline(always)]
     pub fn create_snapshot(
         &mut self,
         version: VersionId,
@@ -541,22 +549,25 @@ impl RollbackManager {
     }
 
     /// Get rollback status
+    #[inline(always)]
     pub fn status(&self, id: RollbackId) -> Option<RollbackStatus> {
         self.active.get(&id).map(|op| op.status)
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[RollbackOperation] {
         &self.history
     }
 
     fn trim_history(&mut self) {
         while self.history.len() > self.config.history_size {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &RollbackStats {
         &self.stats
     }
@@ -599,6 +610,7 @@ pub struct AutoRollbackMonitor {
 
 /// Metric configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricConfig {
     /// Threshold
     pub threshold: f64,
@@ -654,16 +666,19 @@ impl AutoRollbackMonitor {
     }
 
     /// Add metric to monitor
+    #[inline(always)]
     pub fn add_metric(&mut self, name: impl Into<String>, config: MetricConfig) {
         self.metrics.insert(name.into(), config);
     }
 
     /// Update metric value
+    #[inline(always)]
     pub fn update(&mut self, name: &str, value: f64) {
         self.current_values.insert(name.to_string(), value);
     }
 
     /// Set baseline
+    #[inline(always)]
     pub fn set_baseline(&mut self, name: &str, value: f64) {
         self.baselines.insert(name.to_string(), value);
     }

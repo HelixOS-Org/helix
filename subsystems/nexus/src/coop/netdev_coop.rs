@@ -31,6 +31,7 @@ pub enum CoopNetdevType {
 
 /// Shared network queue
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SharedNetQueue {
     pub queue_id: u32,
     pub capacity: u32,
@@ -46,6 +47,7 @@ impl SharedNetQueue {
         Self { queue_id, capacity, enqueued: 0, processed: 0, dropped: 0, bytes_total: 0, consumers: Vec::new() }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, bytes: u64) -> bool {
         if self.enqueued >= self.capacity {
             self.dropped += 1;
@@ -57,15 +59,18 @@ impl SharedNetQueue {
         }
     }
 
+    #[inline(always)]
     pub fn dequeue(&mut self) -> bool {
         if self.enqueued == 0 { false }
         else { self.enqueued -= 1; self.processed += 1; true }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 { 0.0 } else { self.enqueued as f64 / self.capacity as f64 }
     }
 
+    #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         let total = self.processed + self.dropped;
         if total == 0 { 0.0 } else { self.dropped as f64 / total as f64 }
@@ -95,18 +100,23 @@ impl CoopNetdevInstance {
         }
     }
 
+    #[inline(always)]
     pub fn bring_up(&mut self) { self.state = CoopNetdevState::Up; }
+    #[inline(always)]
     pub fn share_with(&mut self, ns_id: u64) {
         if !self.shared_ns.contains(&ns_id) { self.shared_ns.push(ns_id); }
         self.state = CoopNetdevState::Shared;
     }
 
+    #[inline(always)]
     pub fn total_tx_bytes(&self) -> u64 { self.tx_queues.iter().map(|q| q.bytes_total).sum() }
+    #[inline(always)]
     pub fn total_rx_bytes(&self) -> u64 { self.rx_queues.iter().map(|q| q.bytes_total).sum() }
 }
 
 /// Coop netdev stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopNetdevStats {
     pub total_devices: u64,
     pub shared_devices: u64,
@@ -129,11 +139,13 @@ impl CoopNetdev {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, dev: CoopNetdevInstance) {
         self.stats.total_devices += 1;
         self.devices.insert(dev.dev_id, dev);
     }
 
+    #[inline]
     pub fn share_device(&mut self, dev_id: u64, ns_id: u64) -> bool {
         if let Some(dev) = self.devices.get_mut(&dev_id) {
             dev.share_with(ns_id);

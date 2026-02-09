@@ -248,6 +248,7 @@ impl Default for PreprocessorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PreprocessorStats {
     /// Inputs processed
     pub inputs_processed: u64,
@@ -289,6 +290,7 @@ impl Preprocessor {
     }
 
     /// Set default pipeline
+    #[inline]
     pub fn set_default(&mut self, pipeline_id: u64) {
         if self.pipelines.contains_key(&pipeline_id) {
             self.default_pipeline = Some(pipeline_id);
@@ -577,7 +579,7 @@ impl Preprocessor {
         }
 
         for (type_name, count) in type_counts {
-            features.numeric.insert(format!("type_{}", type_name), count);
+            features.numeric.insert(crate::fast::fast_hash::FastHasher::new().write_str("type_").write_u64(type_name as u64).finish(), count);
         }
 
         // Average token length
@@ -611,11 +613,13 @@ impl Preprocessor {
     }
 
     /// Get pipeline
+    #[inline(always)]
     pub fn get_pipeline(&self, id: u64) -> Option<&Pipeline> {
         self.pipelines.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PreprocessorStats {
         &self.stats
     }

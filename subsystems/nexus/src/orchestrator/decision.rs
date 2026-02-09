@@ -69,6 +69,7 @@ pub enum DecisionUrgency {
 
 impl DecisionUrgency {
     /// Get urgency name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Deferred => "deferred",
@@ -117,6 +118,7 @@ impl DecisionStatus {
     }
 
     /// Is terminal state
+    #[inline]
     pub fn is_terminal(&self) -> bool {
         matches!(
             self,
@@ -157,6 +159,7 @@ impl DecisionAction {
     }
 
     /// Add parameter
+    #[inline]
     pub fn with_param(mut self, key: &str, value: &str) -> Self {
         self.parameters
             .insert(String::from(key), String::from(value));
@@ -219,28 +222,33 @@ impl Decision {
     }
 
     /// Add action
+    #[inline(always)]
     pub fn add_action(&mut self, action: DecisionAction) {
         self.actions.push(action);
     }
 
     /// Set urgency
+    #[inline(always)]
     pub fn with_urgency(mut self, urgency: DecisionUrgency) -> Self {
         self.urgency = urgency;
         self
     }
 
     /// Set confidence
+    #[inline(always)]
     pub fn with_confidence(mut self, confidence: u8) -> Self {
         self.confidence = confidence.min(100);
         self
     }
 
     /// Total estimated impact
+    #[inline(always)]
     pub fn total_impact(&self) -> i32 {
         self.actions.iter().map(|a| a.estimated_impact).sum()
     }
 
     /// Is high priority
+    #[inline]
     pub fn is_high_priority(&self) -> bool {
         matches!(
             self.urgency,

@@ -9,6 +9,7 @@ use alloc::vec;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -27,6 +28,7 @@ pub struct ObjectiveId(pub u64);
 static OBJECTIVE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl ObjectiveId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(OBJECTIVE_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -88,11 +90,13 @@ impl Solution {
     }
 
     /// Check if feasible (all constraints satisfied)
+    #[inline(always)]
     pub fn is_feasible(&self) -> bool {
         self.constraints.iter().all(|&c| c <= 0.0)
     }
 
     /// Sum of constraint violations
+    #[inline(always)]
     pub fn total_violation(&self) -> f64 {
         self.constraints.iter().filter(|&&c| c > 0.0).sum()
     }
@@ -236,6 +240,7 @@ impl NonDominatedSorting {
     }
 
     /// Get Pareto front (first front)
+    #[inline(always)]
     pub fn pareto_front(&self, solutions: &mut [Solution]) -> Vec<usize> {
         let fronts = self.sort(solutions);
         fronts.into_iter().next().unwrap_or_default()
@@ -503,6 +508,7 @@ impl ReferencePoints {
     }
 
     /// Get reference points
+    #[inline(always)]
     pub fn points(&self) -> &[Vec<f64>] {
         &self.points
     }
@@ -612,7 +618,7 @@ impl ReferencePoints {
             if let Some(members) = niche_counts.get_mut(&ref_idx) {
                 if !members.is_empty() {
                     members.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-                    let (sol_idx, _) = members.remove(0);
+                    let (sol_idx, _) = members.pop_front().unwrap();
                     selected.push(sol_idx);
                 }
             }
@@ -658,6 +664,7 @@ impl IndicatorSelection {
     }
 
     /// Select solutions using indicator
+    #[inline]
     pub fn select(&self, solutions: &mut [Solution], count: usize) -> Vec<usize> {
         match self.indicator {
             IndicatorType::Hypervolume => self.select_hypervolume(solutions, count),

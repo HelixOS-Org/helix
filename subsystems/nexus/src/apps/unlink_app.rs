@@ -57,6 +57,7 @@ impl UnlinkRecord {
         }
     }
 
+    #[inline(always)]
     pub fn is_final_unlink(&self) -> bool {
         self.nlink_after == 0
     }
@@ -76,6 +77,7 @@ impl OrphanInodeTracker {
         Self { inode, open_fds: 1, size_bytes, unlinked_ns: ts_ns }
     }
 
+    #[inline(always)]
     pub fn close_fd(&mut self) -> bool {
         self.open_fds = self.open_fds.saturating_sub(1);
         self.open_fds == 0
@@ -84,6 +86,7 @@ impl OrphanInodeTracker {
 
 /// Unlink app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UnlinkAppStats {
     pub total_ops: u64,
     pub files_removed: u64,
@@ -136,6 +139,7 @@ impl AppUnlink {
         }
     }
 
+    #[inline]
     pub fn close_orphan_fd(&mut self, inode: u64) -> bool {
         if let Some(orphan) = self.orphans.get_mut(&inode) {
             if orphan.close_fd() {
@@ -184,6 +188,7 @@ pub struct AppUnlinkEntry {
 
 /// Stats for unlink operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppUnlinkV2Stats {
     pub total_unlinks: u64,
     pub successful_unlinks: u64,
@@ -241,6 +246,7 @@ impl AppUnlinkV2Manager {
         AppUnlinkResult::Success
     }
 
+    #[inline]
     pub fn process_orphans(&mut self) -> usize {
         let count = self.orphan_list.len();
         self.orphan_list.clear();
@@ -261,6 +267,7 @@ impl AppUnlinkV2Manager {
         self.stats.deferred_unlinks += 1;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppUnlinkV2Stats {
         &self.stats
     }

@@ -3,6 +3,7 @@
 //! Tracing function calls via kprobes.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -50,12 +51,14 @@ impl FunctionCall {
     }
 
     /// Record exit
+    #[inline(always)]
     pub fn record_exit(&mut self, exit_time: u64, return_value: u64) {
         self.exit_time = Some(exit_time);
         self.return_value = Some(return_value);
     }
 
     /// Get duration
+    #[inline(always)]
     pub fn duration(&self) -> Option<u64> {
         self.exit_time
             .map(|exit| exit.saturating_sub(self.entry_time))
@@ -64,6 +67,7 @@ impl FunctionCall {
 
 /// Function tracer statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FunctionStats {
     /// Symbol name
     pub symbol: String,
@@ -119,7 +123,7 @@ pub struct FunctionTracer {
     /// Function statistics
     stats: BTreeMap<KprobeId, FunctionStats>,
     /// Completed calls history
-    history: Vec<FunctionCall>,
+    history: VecDeque<FunctionCall>,
     /// Max history size
     max_history: usize,
     /// Total calls traced
@@ -206,24 +210,27 @@ impl FunctionTracer {
 
                 // Add to history
                 if self.history.len() >= self.max_history {
-                    self.history.remove(0);
+                    self.history.pop_front();
                 }
-                self.history.push(call);
+                self.history.push_back(call);
             }
         }
     }
 
     /// Get function stats
+    #[inline(always)]
     pub fn get_stats(&self, kprobe_id: KprobeId) -> Option<&FunctionStats> {
         self.stats.get(&kprobe_id)
     }
 
     /// Get all stats
+    #[inline(always)]
     pub fn all_stats(&self) -> impl Iterator<Item = &FunctionStats> {
         self.stats.values()
     }
 
     /// Get hottest functions
+    #[inline]
     pub fn hottest_functions(&self, limit: usize) -> Vec<&FunctionStats> {
         let mut sorted: Vec<_> = self.stats.values().collect();
         sorted.sort_by(|a, b| b.total_calls.cmp(&a.total_calls));
@@ -231,6 +238,7 @@ impl FunctionTracer {
     }
 
     /// Get slowest functions
+    #[inline]
     pub fn slowest_functions(&self, limit: usize) -> Vec<&FunctionStats> {
         let mut sorted: Vec<_> = self.stats.values().collect();
         sorted.sort_by(|a, b| {
@@ -242,16 +250,19 @@ impl FunctionTracer {
     }
 
     /// Enable/disable
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }
 
     /// Get total calls
+    #[inline(always)]
     pub fn total_calls(&self) -> u64 {
         self.total_calls.load(Ordering::Relaxed)
     }

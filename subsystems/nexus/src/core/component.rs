@@ -6,11 +6,13 @@ pub struct ComponentId(u64);
 
 impl ComponentId {
     /// Create a new component ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }

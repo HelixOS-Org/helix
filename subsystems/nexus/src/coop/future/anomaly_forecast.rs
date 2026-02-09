@@ -7,7 +7,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -122,6 +124,7 @@ pub struct AnomalyPattern {
 
 /// Rolling statistics for the anomaly forecast engine.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct AnomalyForecastStats {
     pub deadlocks_predicted: u64,
     pub livelocks_detected: u64,
@@ -162,7 +165,7 @@ struct ResourceHolding {
 #[derive(Clone, Debug)]
 struct ProcessWaitState {
     process_id: u64,
-    state_changes: Vec<u64>,
+    state_changes: VecDeque<u64>,
     ema_change_interval: u64,
     resources_attempted: Vec<u64>,
     wait_cycles: u64,
@@ -262,7 +265,7 @@ impl CoopAnomalyForecast {
 
         let ws = self.wait_states.entry(process_id).or_insert_with(|| ProcessWaitState {
             process_id,
-            state_changes: Vec::new(),
+            state_changes: VecDeque::new(),
             ema_change_interval: 100,
             resources_attempted: Vec::new(),
             wait_cycles: 0,
@@ -273,7 +276,7 @@ impl CoopAnomalyForecast {
             ws.resources_attempted.push(resource_id);
         }
         if ws.state_changes.len() > 64 {
-            ws.state_changes.remove(0);
+            ws.state_changes.pop_front().unwrap();
         }
 
         let priority = self.priorities.entry(process_id).or_insert_with(|| PriorityRecord {
@@ -315,6 +318,7 @@ impl CoopAnomalyForecast {
     }
 
     /// Set priority for a process.
+    #[inline]
     pub fn set_priority(&mut self, process_id: u64, priority: u64) {
         let rec = self.priorities.entry(process_id).or_insert_with(|| PriorityRecord {
             process_id,
@@ -590,6 +594,7 @@ impl CoopAnomalyForecast {
     }
 
     /// Return the anomaly pattern library.
+    #[inline(always)]
     pub fn anomaly_library(&self) -> Vec<&AnomalyPattern> {
         self.pattern_library.values().collect()
     }
@@ -609,6 +614,7 @@ impl CoopAnomalyForecast {
     }
 
     /// Retrieve current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &AnomalyForecastStats {
         &self.stats
     }
@@ -617,7 +623,7 @@ impl CoopAnomalyForecast {
 
     fn detect_wait_cycle(&self, start: u64) -> Vec<u64> {
         let mut path: Vec<u64> = Vec::new();
-        let mut visited: BTreeMap<u64, bool> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
         let mut current = start;
 
         for _ in 0..32 {
@@ -648,7 +654,7 @@ impl CoopAnomalyForecast {
     fn compute_inversion_depth(&self, blocker: u64) -> u32 {
         let mut depth: u32 = 0;
         let mut current = blocker;
-        let mut visited: BTreeMap<u64, bool> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
 
         for _ in 0..16 {
             if visited.contains_key(&current) {

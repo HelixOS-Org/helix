@@ -40,6 +40,7 @@ impl PolicyRule {
     }
 
     /// Create deny rule
+    #[inline]
     pub fn deny(
         source: String,
         target: String,
@@ -58,6 +59,7 @@ impl PolicyRule {
 
 /// Policy statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PolicyStats {
     /// Total rules
     pub total_rules: usize,
@@ -92,6 +94,7 @@ pub enum PolicyComplexity {
 
 impl PolicyComplexity {
     /// Get name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Minimal => "minimal",
@@ -103,6 +106,7 @@ impl PolicyComplexity {
     }
 
     /// From rule count
+    #[inline]
     pub fn from_rule_count(count: usize) -> Self {
         match count {
             0..=100 => Self::Minimal,

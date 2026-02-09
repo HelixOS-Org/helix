@@ -26,11 +26,13 @@ pub struct Pkey {
 
 /// PKRU register state (32-bit: 2 bits per key, 16 keys)
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct PkruState(pub u32);
 
 impl PkruState {
     pub fn new() -> Self { Self(0) }
 
+    #[inline]
     pub fn set_key(&mut self, key: u32, access: PkeyAccess) {
         if key >= 16 { return; }
         let shift = key * 2;
@@ -39,6 +41,7 @@ impl PkruState {
         self.0 = (self.0 & mask) | (bits << shift);
     }
 
+    #[inline(always)]
     pub fn get_key(&self, key: u32) -> PkeyAccess {
         if key >= 16 { return PkeyAccess::NoAccess; }
         match (self.0 >> (key * 2)) & 3 { 0 => PkeyAccess::ReadWrite, 1 => PkeyAccess::WriteOnly, 2 => PkeyAccess::ReadOnly, _ => PkeyAccess::NoAccess }
@@ -57,6 +60,7 @@ pub struct ProcessPkeys {
 impl ProcessPkeys {
     pub fn new(pid: u64) -> Self { Self { pid, pkru: PkruState::new(), allocated_keys: Vec::new(), violation_count: 0 } }
 
+    #[inline]
     pub fn alloc_key(&mut self) -> Option<u32> {
         for k in 1u32..16 {
             if !self.allocated_keys.contains(&k) { self.allocated_keys.push(k); return Some(k); }
@@ -64,6 +68,7 @@ impl ProcessPkeys {
         None
     }
 
+    #[inline]
     pub fn free_key(&mut self, key: u32) {
         if let Some(pos) = self.allocated_keys.iter().position(|&k| k == key) {
             self.allocated_keys.remove(pos);
@@ -74,6 +79,7 @@ impl ProcessPkeys {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PkeyBridgeStats {
     pub tracked_processes: u32,
     pub total_allocated_keys: u32,
@@ -81,22 +87,29 @@ pub struct PkeyBridgeStats {
 }
 
 /// Main pkey bridge
+#[repr(align(64))]
 pub struct BridgePkey {
     processes: BTreeMap<u64, ProcessPkeys>,
 }
 
 impl BridgePkey {
     pub fn new() -> Self { Self { processes: BTreeMap::new() } }
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessPkeys::new(pid)); }
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) { self.processes.remove(&pid); }
 
+    #[inline(always)]
     pub fn alloc_key(&mut self, pid: u64) -> Option<u32> { self.processes.get_mut(&pid)?.alloc_key() }
+    #[inline(always)]
     pub fn free_key(&mut self, pid: u64, key: u32) { if let Some(p) = self.processes.get_mut(&pid) { p.free_key(key); } }
 
+    #[inline(always)]
     pub fn set_access(&mut self, pid: u64, key: u32, access: PkeyAccess) {
         if let Some(p) = self.processes.get_mut(&pid) { p.pkru.set_key(key, access); }
     }
 
+    #[inline]
     pub fn stats(&self) -> PkeyBridgeStats {
         let keys: u32 = self.processes.values().map(|p| p.allocated_keys.len() as u32).sum();
         let violations: u64 = self.processes.values().map(|p| p.violation_count).sum();
@@ -134,6 +147,7 @@ impl PkeyV2Entry {
 
 /// PKRU register state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PkruState {
     pub pid: u64,
     pub pkru_value: u32,
@@ -143,6 +157,7 @@ pub struct PkruState {
 impl PkruState {
     pub fn new(pid: u64) -> Self { Self { pid, pkru_value: 0, last_modified: 0 } }
 
+    #[inline]
     pub fn set_key_access(&mut self, key: u32, disable_write: bool, disable_access: bool) {
         let bits = ((disable_access as u32) << 1) | (disable_write as u32);
         let shift = key * 2;
@@ -152,6 +167,7 @@ impl PkruState {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PkeyV2BridgeStats {
     pub total_keys: u32,
     pub active_processes: u32,
@@ -160,6 +176,7 @@ pub struct PkeyV2BridgeStats {
 }
 
 /// Main bridge pkey v2
+#[repr(align(64))]
 pub struct BridgePkeyV2 {
     keys: BTreeMap<u32, PkeyV2Entry>,
     pkru_states: BTreeMap<u64, PkruState>,
@@ -168,13 +185,16 @@ pub struct BridgePkeyV2 {
 impl BridgePkeyV2 {
     pub fn new() -> Self { Self { keys: BTreeMap::new(), pkru_states: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn alloc(&mut self, key: u32, pid: u64, now: u64) {
         self.keys.insert(key, PkeyV2Entry::new(key, pid, now));
         self.pkru_states.entry(pid).or_insert_with(|| PkruState::new(pid));
     }
 
+    #[inline(always)]
     pub fn free(&mut self, key: u32) { self.keys.remove(&key); }
 
+    #[inline]
     pub fn set_access(&mut self, pid: u64, key: u32, dw: bool, da: bool) {
         if let Some(ps) = self.pkru_states.get_mut(&pid) { ps.set_key_access(key, dw, da); }
         if let Some(ke) = self.keys.get_mut(&key) {
@@ -182,6 +202,7 @@ impl BridgePkeyV2 {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> PkeyV2BridgeStats {
         let violations: u64 = self.keys.values().map(|k| k.violations).sum();
         let pages: u64 = self.keys.values().map(|k| k.assigned_pages).sum();

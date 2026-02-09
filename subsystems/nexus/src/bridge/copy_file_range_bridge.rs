@@ -62,16 +62,19 @@ impl CopyRangeOp {
         }
     }
 
+    #[inline]
     pub fn start(&mut self, ts_ns: u64, mode: CopyRangeMode) {
         self.state = CopyRangeState::InProgress;
         self.mode = mode;
         self.start_ns = ts_ns;
     }
 
+    #[inline(always)]
     pub fn progress(&mut self, bytes: u64) {
         self.copied_len += bytes;
     }
 
+    #[inline]
     pub fn complete(&mut self, ts_ns: u64) {
         self.end_ns = ts_ns;
         self.state = if self.copied_len >= self.requested_len {
@@ -81,11 +84,13 @@ impl CopyRangeOp {
         };
     }
 
+    #[inline(always)]
     pub fn throughput_bps(&self) -> u64 {
         let dur = self.end_ns.saturating_sub(self.start_ns);
         if dur == 0 { 0 } else { (self.copied_len * 8 * 1_000_000_000) / dur }
     }
 
+    #[inline(always)]
     pub fn completion_pct(&self) -> f64 {
         if self.requested_len == 0 { 0.0 } else { (self.copied_len as f64 / self.requested_len as f64) * 100.0 }
     }
@@ -93,6 +98,7 @@ impl CopyRangeOp {
 
 /// Copy file range bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CopyRangeBridgeStats {
     pub total_ops: u64,
     pub total_bytes_copied: u64,
@@ -104,6 +110,7 @@ pub struct CopyRangeBridgeStats {
 
 /// Main bridge copy_file_range
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeCopyFileRange {
     pub active_ops: BTreeMap<u64, CopyRangeOp>,
     pub stats: CopyRangeBridgeStats,
@@ -156,6 +163,7 @@ impl BridgeCopyFileRange {
         }
     }
 
+    #[inline(always)]
     pub fn reflink_rate(&self) -> f64 {
         if self.stats.total_ops == 0 { 0.0 } else { self.stats.reflink_ops as f64 / self.stats.total_ops as f64 }
     }

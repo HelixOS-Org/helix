@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -85,6 +86,7 @@ pub struct ProactiveContract {
 
 /// Rolling statistics for proactive optimization.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct ProactiveStats {
     pub pre_negotiations: u64,
     pub successful_pre_negotiations: u64,
@@ -150,7 +152,7 @@ pub struct CoopProactive {
     trust_bootstraps: BTreeMap<u64, TrustBootstrap>,
     coalition_plans: BTreeMap<u64, CoalitionPlan>,
     contracts: BTreeMap<u64, ProactiveContract>,
-    savings_history: Vec<u64>,
+    savings_history: VecDeque<u64>,
     stats: ProactiveStats,
     rng_state: u64,
     current_tick: u64,
@@ -165,7 +167,7 @@ impl CoopProactive {
             trust_bootstraps: BTreeMap::new(),
             coalition_plans: BTreeMap::new(),
             contracts: BTreeMap::new(),
-            savings_history: Vec::new(),
+            savings_history: VecDeque::new(),
             stats: ProactiveStats::new(),
             rng_state: seed | 1,
             current_tick: 0,
@@ -174,6 +176,7 @@ impl CoopProactive {
     }
 
     /// Advance the internal tick counter and expire stale entries.
+    #[inline]
     pub fn tick(&mut self, now: u64) {
         self.current_tick = now;
         self.expire_stale_slots();
@@ -405,15 +408,16 @@ impl CoopProactive {
             .saturating_add(total_savings / 100);
 
         if self.savings_history.len() >= 64 {
-            self.savings_history.remove(0);
+            self.savings_history.pop_front();
         }
-        self.savings_history.push(total_savings);
+        self.savings_history.push_back(total_savings);
         self.stats.avg_savings = ema_update(self.stats.avg_savings, total_savings, 3, 10);
 
         total_savings
     }
 
     /// Activate a pre-negotiated slot, converting it to a live reservation.
+    #[inline]
     pub fn activate_slot(&mut self, contract_id: u64) -> bool {
         if let Some(slot) = self.negotiation_slots.get_mut(&contract_id) {
             if !slot.activated && slot.expiry_tick > self.current_tick {
@@ -425,6 +429,7 @@ impl CoopProactive {
     }
 
     /// Get the current statistics snapshot.
+    #[inline(always)]
     pub fn stats(&self) -> &ProactiveStats {
         &self.stats
     }

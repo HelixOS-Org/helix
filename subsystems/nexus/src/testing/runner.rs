@@ -36,17 +36,20 @@ impl TestRunner {
     }
 
     /// Add a test suite
+    #[inline(always)]
     pub fn add_suite(&mut self, suite: TestSuite) {
         self.suites.push(suite);
     }
 
     /// Enable fail-fast mode
+    #[inline(always)]
     pub fn fail_fast(mut self) -> Self {
         self.fail_fast = true;
         self
     }
 
     /// Filter by tag
+    #[inline(always)]
     pub fn with_tag(mut self, tag: impl Into<String>) -> Self {
         self.tag_filter = Some(tag.into());
         self
@@ -83,16 +86,19 @@ impl TestRunner {
     }
 
     /// Get total tests run
+    #[inline(always)]
     pub fn total_run(&self) -> u64 {
         self.total_run.load(Ordering::Relaxed)
     }
 
     /// Get total passed
+    #[inline(always)]
     pub fn total_passed(&self) -> u64 {
         self.total_passed.load(Ordering::Relaxed)
     }
 
     /// Get total failed
+    #[inline(always)]
     pub fn total_failed(&self) -> u64 {
         self.total_failed.load(Ordering::Relaxed)
     }

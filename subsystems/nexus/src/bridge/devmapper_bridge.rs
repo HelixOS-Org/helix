@@ -35,6 +35,7 @@ pub enum DmBridgeResult {
 
 /// DM bridge record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DmBridgeRecord {
     pub op: DmBridgeOp,
     pub result: DmBridgeResult,
@@ -55,6 +56,7 @@ impl DmBridgeRecord {
 
 /// DM bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DmBridgeStats {
     pub total_ops: u64,
     pub creates: u64,
@@ -75,6 +77,7 @@ impl BridgeDevMapper {
         Self { stats: DmBridgeStats { total_ops: 0, creates: 0, removes: 0, suspends: 0, table_loads: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &DmBridgeRecord) {
         self.stats.total_ops += 1;
         match rec.op {

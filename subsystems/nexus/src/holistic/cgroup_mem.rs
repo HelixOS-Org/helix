@@ -17,6 +17,7 @@ pub enum MemLimitType {
 
 /// Cgroup memory state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CgroupMemState {
     pub id: u64,
     pub usage_bytes: u64,
@@ -38,21 +39,25 @@ impl CgroupMemState {
         Self { id, usage_bytes: 0, limit_bytes: limit, swap_usage: 0, swap_limit: 0, kernel_usage: 0, cache_bytes: 0, rss_bytes: 0, mapped_file: 0, pgfault: 0, pgmajfault: 0, oom_kills: 0, under_oom: false }
     }
 
+    #[inline(always)]
     pub fn charge(&mut self, bytes: u64) -> bool {
         if self.usage_bytes + bytes > self.limit_bytes { self.under_oom = true; self.oom_kills += 1; return false; }
         self.usage_bytes += bytes; true
     }
 
+    #[inline(always)]
     pub fn uncharge(&mut self, bytes: u64) {
         self.usage_bytes = self.usage_bytes.saturating_sub(bytes);
         if self.usage_bytes < self.limit_bytes { self.under_oom = false; }
     }
 
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 { if self.limit_bytes == 0 { 0.0 } else { self.usage_bytes as f64 / self.limit_bytes as f64 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupMemStats {
     pub total_cgroups: u32,
     pub total_usage_bytes: u64,
@@ -69,16 +74,20 @@ pub struct HolisticCgroupMem {
 impl HolisticCgroupMem {
     pub fn new() -> Self { Self { cgroups: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn add(&mut self, id: u64, limit: u64) { self.cgroups.insert(id, CgroupMemState::new(id, limit)); }
 
+    #[inline(always)]
     pub fn charge(&mut self, id: u64, bytes: u64) -> bool {
         self.cgroups.get_mut(&id).map_or(false, |c| c.charge(bytes))
     }
 
+    #[inline(always)]
     pub fn uncharge(&mut self, id: u64, bytes: u64) {
         if let Some(c) = self.cgroups.get_mut(&id) { c.uncharge(bytes); }
     }
 
+    #[inline]
     pub fn stats(&self) -> CgroupMemStats {
         let usage: u64 = self.cgroups.values().map(|c| c.usage_bytes).sum();
         let limit: u64 = self.cgroups.values().map(|c| c.limit_bytes).sum();

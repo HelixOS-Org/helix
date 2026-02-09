@@ -201,6 +201,7 @@ impl AppKnowledgeProfile {
         }
     }
 
+    #[inline]
     fn update_profile(&mut self, cpu: f32, mem: f32, io: f32, net: f32) {
         self.cpu_profile = EMA_ALPHA * cpu + (1.0 - EMA_ALPHA) * self.cpu_profile;
         self.mem_profile = EMA_ALPHA * mem + (1.0 - EMA_ALPHA) * self.mem_profile;
@@ -325,6 +326,7 @@ impl MemoryRoom {
 
 /// Aggregate memory palace statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PalaceStats {
     pub total_rooms: usize,
     pub total_profiles: usize,
@@ -512,6 +514,7 @@ impl AppsMemoryPalace {
     }
 
     /// Measure knowledge depth for a specific category
+    #[inline]
     pub fn knowledge_depth(&self, category: RoomCategory) -> f32 {
         let room_idx = RoomCategory::all()
             .iter()

@@ -3,6 +3,7 @@
 //! LSM denial recording and analysis.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -57,6 +58,7 @@ impl Denial {
     }
 
     /// Is sensitive denial
+    #[inline(always)]
     pub fn is_sensitive(&self) -> bool {
         self.permissions.iter().any(|p| p.is_sensitive())
     }
@@ -65,7 +67,7 @@ impl Denial {
 /// Denial tracker
 pub struct DenialTracker {
     /// Denials
-    denials: Vec<Denial>,
+    denials: VecDeque<Denial>,
     /// Max denials
     max_denials: usize,
     /// Denial count by source type
@@ -82,7 +84,7 @@ impl DenialTracker {
     /// Create new tracker
     pub fn new(max_denials: usize) -> Self {
         Self {
-            denials: Vec::new(),
+            denials: VecDeque::new(),
             max_denials,
             by_source_type: BTreeMap::new(),
             by_target_type: BTreeMap::new(),
@@ -109,18 +111,20 @@ impl DenialTracker {
             .or_insert(0) += 1;
 
         if self.denials.len() >= self.max_denials {
-            self.denials.remove(0);
+            self.denials.pop_front();
         }
-        self.denials.push(denial);
+        self.denials.push_back(denial);
     }
 
     /// Get recent denials
+    #[inline(always)]
     pub fn recent(&self, count: usize) -> &[Denial] {
         let start = self.denials.len().saturating_sub(count);
         &self.denials[start..]
     }
 
     /// Get denials by source type
+    #[inline]
     pub fn by_source(&self, type_: &str) -> Vec<&Denial> {
         self.denials
             .iter()
@@ -129,11 +133,13 @@ impl DenialTracker {
     }
 
     /// Get total
+    #[inline(always)]
     pub fn total(&self) -> u64 {
         self.total.load(Ordering::Relaxed)
     }
 
     /// Get top denied source types
+    #[inline]
     pub fn top_sources(&self, n: usize) -> Vec<(String, u64)> {
         let mut sorted: Vec<_> = self
             .by_source_type
@@ -146,6 +152,7 @@ impl DenialTracker {
     }
 
     /// Enable/disable
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }

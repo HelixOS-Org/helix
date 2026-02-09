@@ -6,6 +6,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -50,6 +51,7 @@ pub struct Task {
 
 impl Task {
     /// Create primitive task
+    #[inline]
     pub fn primitive(id: TaskId, name: String, action: ActionId) -> Self {
         Self {
             id,
@@ -61,6 +63,7 @@ impl Task {
     }
 
     /// Create compound task
+    #[inline]
     pub fn compound(id: TaskId, name: String) -> Self {
         Self {
             id,
@@ -72,12 +75,14 @@ impl Task {
     }
 
     /// Add method
+    #[inline(always)]
     pub fn with_method(mut self, method: MethodId) -> Self {
         self.methods.push(method);
         self
     }
 
     /// Is primitive?
+    #[inline(always)]
     pub fn is_primitive(&self) -> bool {
         self.task_type == TaskType::Primitive
     }
@@ -94,7 +99,7 @@ pub struct Method {
     /// Precondition (state condition for this method)
     pub precondition: Option<Box<dyn Fn(&WorldState) -> bool + Send + Sync>>,
     /// Subtasks (ordered)
-    pub subtasks: Vec<TaskId>,
+    pub subtasks: VecDeque<TaskId>,
     /// Cost multiplier
     pub cost_factor: f64,
 }
@@ -120,24 +125,27 @@ impl Method {
             name,
             task,
             precondition: None,
-            subtasks: Vec::new(),
+            subtasks: VecDeque::new(),
             cost_factor: 1.0,
         }
     }
 
     /// Add subtask
+    #[inline(always)]
     pub fn with_subtask(mut self, subtask: TaskId) -> Self {
         self.subtasks.push(subtask);
         self
     }
 
     /// Set subtasks
-    pub fn with_subtasks(mut self, subtasks: Vec<TaskId>) -> Self {
+    #[inline(always)]
+    pub fn with_subtasks(mut self, subtasks: VecDeque<TaskId>) -> Self {
         self.subtasks = subtasks;
         self
     }
 
     /// Check if method is applicable
+    #[inline]
     pub fn is_applicable(&self, state: &WorldState) -> bool {
         match &self.precondition {
             Some(f) => f(state),
@@ -166,7 +174,7 @@ impl core::fmt::Debug for Method {
 #[derive(Debug, Clone)]
 pub struct TaskNetwork {
     /// Tasks in network order
-    pub tasks: Vec<TaskId>,
+    pub tasks: VecDeque<TaskId>,
     /// Decomposition history
     pub decompositions: Vec<(TaskId, MethodId)>,
 }
@@ -175,12 +183,13 @@ impl TaskNetwork {
     /// Create empty network
     pub fn new() -> Self {
         Self {
-            tasks: Vec::new(),
+            tasks: VecDeque::new(),
             decompositions: Vec::new(),
         }
     }
 
     /// Create network with initial task
+    #[inline]
     pub fn with_task(task: TaskId) -> Self {
         Self {
             tasks: vec![task],
@@ -189,38 +198,44 @@ impl TaskNetwork {
     }
 
     /// Add task
+    #[inline(always)]
     pub fn add_task(&mut self, task: TaskId) {
-        self.tasks.push(task);
+        self.tasks.push_back(task);
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.tasks.is_empty()
     }
 
     /// Get first task
+    #[inline(always)]
     pub fn first(&self) -> Option<TaskId> {
         self.tasks.first().copied()
     }
 
     /// Remove first task
+    #[inline]
     pub fn pop_first(&mut self) -> Option<TaskId> {
         if self.tasks.is_empty() {
             None
         } else {
-            Some(self.tasks.remove(0))
+            self.tasks.pop_front()
         }
     }
 
     /// Record decomposition
+    #[inline(always)]
     pub fn record_decomposition(&mut self, task: TaskId, method: MethodId) {
         self.decompositions.push((task, method));
     }
 
     /// Replace first task with subtasks
-    pub fn decompose(&mut self, subtasks: Vec<TaskId>, task: TaskId, method: MethodId) {
+    #[inline]
+    pub fn decompose(&mut self, subtasks: VecDeque<TaskId>, task: TaskId, method: MethodId) {
         if !self.tasks.is_empty() {
-            self.tasks.remove(0);
+            self.tasks.pop_front();
             // Insert subtasks at beginning
             for (i, subtask) in subtasks.into_iter().enumerate() {
                 self.tasks.insert(i, subtask);
@@ -290,6 +305,7 @@ impl HTNPlanner {
     }
 
     /// Add task
+    #[inline]
     pub fn add_task(&mut self, task: Task) -> TaskId {
         let id = task.id;
         self.tasks.insert(id, task);
@@ -297,6 +313,7 @@ impl HTNPlanner {
     }
 
     /// Create primitive task
+    #[inline]
     pub fn create_primitive(&mut self, name: String, action: Action) -> TaskId {
         let task_id = TaskId(self.next_task_id);
         self.next_task_id += 1;
@@ -307,6 +324,7 @@ impl HTNPlanner {
     }
 
     /// Create compound task
+    #[inline]
     pub fn create_compound(&mut self, name: String) -> TaskId {
         let task_id = TaskId(self.next_task_id);
         self.next_task_id += 1;
@@ -330,7 +348,8 @@ impl HTNPlanner {
     }
 
     /// Create method
-    pub fn create_method(&mut self, name: String, task: TaskId, subtasks: Vec<TaskId>) -> MethodId {
+    #[inline]
+    pub fn create_method(&mut self, name: String, task: TaskId, subtasks: VecDeque<TaskId>) -> MethodId {
         let id = MethodId(self.next_method_id);
         self.next_method_id += 1;
         let method = Method::new(id, name, task).with_subtasks(subtasks);
@@ -405,16 +424,19 @@ impl HTNPlanner {
     }
 
     /// Get task
+    #[inline(always)]
     pub fn get_task(&self, id: TaskId) -> Option<&Task> {
         self.tasks.get(&id)
     }
 
     /// Get method
+    #[inline(always)]
     pub fn get_method(&self, id: MethodId) -> Option<&Method> {
         self.methods.get(&id)
     }
 
     /// Get action
+    #[inline(always)]
     pub fn get_action(&self, id: ActionId) -> Option<&Action> {
         self.actions.get(id)
     }
@@ -455,6 +477,7 @@ impl Plan {
     }
 
     /// Add action
+    #[inline]
     pub fn add_action(&mut self, action: ActionId, cost: f64) {
         self.actions.push(action);
         self.costs.push(cost);
@@ -462,16 +485,19 @@ impl Plan {
     }
 
     /// Add decomposition record
+    #[inline(always)]
     pub fn add_decomposition(&mut self, task: TaskId, method: MethodId) {
         self.decompositions.push((task, method));
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.actions.is_empty()
     }
 
     /// Plan length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.actions.len()
     }

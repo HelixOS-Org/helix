@@ -27,6 +27,7 @@ impl Timestamp {
     pub const MAX: Self = Self(u64::MAX);
 
     /// Current time (placeholder - would use real clock)
+    #[inline(always)]
     pub fn now() -> Self {
         // In real implementation: read from kernel clock
         Self(0)
@@ -246,6 +247,7 @@ impl TimeRange {
     }
 
     /// Merge with another range (union)
+    #[inline]
     pub fn merge(&self, other: &Self) -> Self {
         Self {
             start: Timestamp::new(self.start.0.min(other.start.0)),
@@ -254,6 +256,7 @@ impl TimeRange {
     }
 
     /// Intersection with another range
+    #[inline]
     pub fn intersect(&self, other: &Self) -> Option<Self> {
         if !self.overlaps(other) {
             return None;

@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -148,6 +148,7 @@ impl PidController {
     }
 
     /// Reset controller state
+    #[inline]
     pub fn reset(&mut self) {
         self.integral = 0.0;
         self.prev_error = 0.0;
@@ -156,6 +157,7 @@ impl PidController {
     }
 
     /// Current error
+    #[inline(always)]
     pub fn error(&self) -> f64 {
         self.prev_error
     }
@@ -192,7 +194,7 @@ pub struct ControlLoop {
     /// Last output
     pub last_output: f64,
     /// History of outputs
-    pub output_history: Vec<f64>,
+    pub output_history: VecDeque<f64>,
     /// Max history
     pub max_history: usize,
     /// Stability counter (consecutive outputs within threshold)
@@ -208,7 +210,7 @@ impl ControlLoop {
             state: ControlLoopState::Running,
             interval_ns,
             last_output: 0.0,
-            output_history: Vec::new(),
+            output_history: VecDeque::new(),
             max_history: 100,
             stability_counter: 0,
         }
@@ -221,9 +223,9 @@ impl ControlLoop {
         }
 
         let output = self.controller.compute(measured, now);
-        self.output_history.push(output);
+        self.output_history.push_back(output);
         if self.output_history.len() > self.max_history {
-            self.output_history.remove(0);
+            self.output_history.pop_front();
         }
 
         // Track stability
@@ -239,16 +241,19 @@ impl ControlLoop {
     }
 
     /// Is stable?
+    #[inline(always)]
     pub fn is_stable(&self) -> bool {
         self.stability_counter > 10
     }
 
     /// Pause
+    #[inline(always)]
     pub fn pause(&mut self) {
         self.state = ControlLoopState::Paused;
     }
 
     /// Resume
+    #[inline(always)]
     pub fn resume(&mut self) {
         self.state = ControlLoopState::Running;
     }
@@ -276,6 +281,7 @@ impl ControlLoop {
 
 /// Adaptive control manager
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticAdaptiveStats {
     /// Active loops
     pub active_loops: usize,
@@ -302,6 +308,7 @@ impl HolisticAdaptiveEngine {
     }
 
     /// Add control loop
+    #[inline]
     pub fn add_loop(&mut self, name_hash: u64, controller: PidController, interval_ns: u64) {
         let cloop = ControlLoop::new(name_hash, controller, interval_ns);
         self.loops.insert(name_hash, cloop);
@@ -309,6 +316,7 @@ impl HolisticAdaptiveEngine {
     }
 
     /// Update loop with measurement
+    #[inline]
     pub fn update(&mut self, name_hash: u64, measured: f64, now: u64) -> Option<f64> {
         if let Some(cloop) = self.loops.get_mut(&name_hash) {
             let output = cloop.update(measured, now);
@@ -321,6 +329,7 @@ impl HolisticAdaptiveEngine {
     }
 
     /// Set setpoint
+    #[inline]
     pub fn set_setpoint(&mut self, name_hash: u64, setpoint: f64) {
         if let Some(cloop) = self.loops.get_mut(&name_hash) {
             cloop.controller.setpoint = setpoint;
@@ -328,16 +337,19 @@ impl HolisticAdaptiveEngine {
     }
 
     /// Get loop
+    #[inline(always)]
     pub fn get_loop(&self, name_hash: u64) -> Option<&ControlLoop> {
         self.loops.get(&name_hash)
     }
 
     /// All stable?
+    #[inline(always)]
     pub fn all_stable(&self) -> bool {
         self.loops.values().all(|l| l.is_stable())
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticAdaptiveStats {
         &self.stats
     }

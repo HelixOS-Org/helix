@@ -109,6 +109,7 @@ pub struct ProjectedTimeline {
 
 /// Phase duration statistics
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct PhaseDurationStats {
     pub phase: LifecyclePhase,
     pub avg_duration: f32,
@@ -245,6 +246,7 @@ impl AppTimeline {
 
 /// Aggregate timeline statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct TimelineStats {
     pub tracked_apps: usize,
     pub total_transitions: u64,
@@ -287,6 +289,7 @@ impl AppsTimeline {
     }
 
     /// Register a new app for timeline tracking
+    #[inline]
     pub fn register_app(&mut self, process_id: u64, start_tick: u64) {
         self.tick = start_tick;
         if self.apps.len() < MAX_TRACKED_APPS {
@@ -295,6 +298,7 @@ impl AppsTimeline {
     }
 
     /// Record a phase transition for an app
+    #[inline]
     pub fn record_transition(&mut self, process_id: u64, new_phase: LifecyclePhase, tick: u64) {
         self.tick = tick;
         self.total_transitions += 1;
@@ -469,6 +473,7 @@ impl AppsTimeline {
     }
 
     /// Compute timeline divergence: how far actual behavior deviates from projection
+    #[inline]
     pub fn timeline_divergence(
         &mut self,
         process_id: u64,
@@ -513,11 +518,13 @@ impl AppsTimeline {
     }
 
     /// Deregister an app
+    #[inline(always)]
     pub fn deregister_app(&mut self, process_id: u64) {
         self.apps.remove(&process_id);
     }
 
     /// Get aggregate statistics
+    #[inline]
     pub fn stats(&self) -> TimelineStats {
         let avg_life: f32 = self.global_phase_avg.iter().sum();
         TimelineStats {

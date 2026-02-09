@@ -10,6 +10,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -161,6 +162,7 @@ impl OutputFormatter {
     }
 
     /// Format output
+    #[inline]
     pub fn format(&self, output: &CognitiveOutput) -> String {
         match self.format {
             OutputFormat::Text => self.format_text(output),
@@ -414,7 +416,7 @@ impl OutputFormatter {
 /// Output manager
 pub struct OutputManager {
     /// Outputs
-    outputs: Vec<CognitiveOutput>,
+    outputs: VecDeque<CognitiveOutput>,
     /// Outputs by type
     by_type: BTreeMap<OutputType, Vec<u64>>,
     /// Outputs by source
@@ -476,6 +478,7 @@ impl Default for OutputConfig {
 
 /// Output statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OutputStats {
     /// Total outputs
     pub total_outputs: u64,
@@ -507,7 +510,7 @@ impl OutputManager {
         );
 
         Self {
-            outputs: Vec::new(),
+            outputs: VecDeque::new(),
             by_type: BTreeMap::new(),
             by_source: BTreeMap::new(),
             subscribers: BTreeMap::new(),
@@ -556,11 +559,11 @@ impl OutputManager {
         *self.stats.by_type.entry(output_type).or_insert(0) += 1;
 
         // Store
-        self.outputs.push(output);
+        self.outputs.push_back(output);
 
         // Limit storage
         while self.outputs.len() > self.config.max_outputs {
-            let removed = self.outputs.remove(0);
+            let removed = self.outputs.pop_front().unwrap();
             if let Some(ids) = self.by_type.get_mut(&removed.output_type) {
                 ids.retain(|&i| i != removed.id);
             }
@@ -597,6 +600,7 @@ impl OutputManager {
     }
 
     /// Unsubscribe
+    #[inline(always)]
     pub fn unsubscribe(&mut self, id: u64) {
         self.subscribers.remove(&id);
     }
@@ -643,6 +647,7 @@ impl OutputManager {
     }
 
     /// Format output
+    #[inline]
     pub fn format(&self, output: &CognitiveOutput, format: OutputFormat) -> String {
         self.formatters
             .get(&format)
@@ -651,11 +656,13 @@ impl OutputManager {
     }
 
     /// Get output by ID
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&CognitiveOutput> {
         self.outputs.iter().find(|o| o.id == id)
     }
 
     /// Get outputs by type
+    #[inline]
     pub fn by_type(&self, output_type: OutputType) -> Vec<&CognitiveOutput> {
         self.outputs
             .iter()
@@ -664,17 +671,20 @@ impl OutputManager {
     }
 
     /// Get outputs by source
+    #[inline(always)]
     pub fn by_source(&self, source: DomainId) -> Vec<&CognitiveOutput> {
         self.outputs.iter().filter(|o| o.source == source).collect()
     }
 
     /// Get recent outputs
+    #[inline(always)]
     pub fn recent(&self, count: usize) -> &[CognitiveOutput] {
         let start = self.outputs.len().saturating_sub(count);
         &self.outputs[start..]
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &OutputStats {
         &self.stats
     }

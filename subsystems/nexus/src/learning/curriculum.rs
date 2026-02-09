@@ -43,6 +43,7 @@ pub enum LessonDifficulty {
 
 impl LessonDifficulty {
     /// Convert to numeric value
+    #[inline]
     pub fn to_value(&self) -> f64 {
         match self {
             LessonDifficulty::Beginner => 0.1,
@@ -112,6 +113,7 @@ impl Lesson {
     }
 
     /// Add prerequisite
+    #[inline(always)]
     pub fn with_prerequisite(mut self, prereq: LessonId) -> Self {
         self.prerequisites.push(prereq);
         self
@@ -144,6 +146,7 @@ impl Lesson {
     }
 
     /// Get success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.completions == 0 {
             0.0
@@ -238,6 +241,7 @@ impl TaskProgression {
     }
 
     /// Get current success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.recent_total == 0 {
             0.0
@@ -247,6 +251,7 @@ impl TaskProgression {
     }
 
     /// Is at max difficulty?
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         (self.current_difficulty - self.target_difficulty).abs() < 0.001
     }
@@ -292,6 +297,7 @@ impl CurriculumLearner {
     }
 
     /// Add lesson
+    #[inline]
     pub fn add_lesson(&mut self, lesson: Lesson) -> LessonId {
         let id = lesson.id;
         self.lessons.insert(id, lesson);
@@ -300,6 +306,7 @@ impl CurriculumLearner {
     }
 
     /// Create and add lesson
+    #[inline]
     pub fn create_lesson(&mut self, name: String, difficulty: LessonDifficulty) -> LessonId {
         let id = LessonId(self.next_id);
         self.next_id += 1;
@@ -321,6 +328,7 @@ impl CurriculumLearner {
     }
 
     /// Get current lesson
+    #[inline]
     pub fn current_lesson(&self) -> Option<&Lesson> {
         self.order
             .get(self.current_index)
@@ -394,21 +402,25 @@ impl CurriculumLearner {
     }
 
     /// Get lesson by ID
+    #[inline(always)]
     pub fn get_lesson(&self, id: LessonId) -> Option<&Lesson> {
         self.lessons.get(&id)
     }
 
     /// Get lesson count
+    #[inline(always)]
     pub fn lesson_count(&self) -> usize {
         self.lessons.len()
     }
 
     /// Get mastered count
+    #[inline(always)]
     pub fn mastered_count(&self) -> usize {
         self.lessons.values().filter(|l| l.mastered).count()
     }
 
     /// Get progress percentage
+    #[inline]
     pub fn progress(&self) -> f64 {
         if self.lessons.is_empty() {
             return 0.0;
@@ -417,11 +429,13 @@ impl CurriculumLearner {
     }
 
     /// Get current difficulty level
+    #[inline(always)]
     pub fn current_difficulty(&self) -> LessonDifficulty {
         LessonDifficulty::from_value(self.progression.current_difficulty)
     }
 
     /// Get curriculum status
+    #[inline]
     pub fn status(&self) -> CurriculumStatus {
         CurriculumStatus {
             total_lessons: self.lessons.len(),
@@ -516,6 +530,7 @@ impl DifficultyEstimator {
 
     /// Infer difficulty from performance score
     /// Low score = high difficulty, high score = low difficulty
+    #[inline(always)]
     pub fn infer_from_performance(performance: f64) -> f64 {
         (1.0 - performance).clamp(0.0, 1.0)
     }

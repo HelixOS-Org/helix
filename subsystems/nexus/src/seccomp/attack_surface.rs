@@ -219,16 +219,19 @@ impl AttackSurfaceAnalyzer {
     }
 
     /// Get syscall info
+    #[inline(always)]
     pub fn get_syscall_info(&self, syscall: SyscallNum) -> Option<&SyscallInfo> {
         self.syscall_db.get(&syscall)
     }
 
     /// Get critical syscalls
+    #[inline(always)]
     pub fn critical_syscalls(&self) -> &[SyscallNum] {
         &self.critical_syscalls
     }
 
     /// Get high risk syscalls
+    #[inline(always)]
     pub fn high_risk_syscalls(&self) -> &[SyscallNum] {
         &self.high_risk_syscalls
     }

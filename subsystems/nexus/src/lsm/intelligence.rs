@@ -92,11 +92,13 @@ impl LsmIntelligence {
     }
 
     /// Register LSM
+    #[inline(always)]
     pub fn register_lsm(&mut self, lsm: LsmType, state: LsmState) {
         self.manager.register_lsm(lsm, state);
     }
 
     /// Register hook
+    #[inline(always)]
     pub fn register_hook(
         &mut self,
         name: String,
@@ -107,6 +109,7 @@ impl LsmIntelligence {
     }
 
     /// Record denial
+    #[inline(always)]
     pub fn record_denial(&mut self, denial: Denial) {
         self.manager.record_denial(denial);
     }
@@ -196,11 +199,13 @@ impl LsmIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &LsmManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut LsmManager {
         &mut self.manager
     }

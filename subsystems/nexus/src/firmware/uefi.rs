@@ -28,11 +28,13 @@ impl UefiVariableAttributes {
     pub const APPEND_WRITE: u32 = 0x00000040;
 
     /// Check if non-volatile
+    #[inline(always)]
     pub fn is_non_volatile(&self) -> bool {
         self.0 & Self::NON_VOLATILE != 0
     }
 
     /// Check if runtime accessible
+    #[inline(always)]
     pub fn is_runtime_accessible(&self) -> bool {
         self.0 & Self::RUNTIME_ACCESS != 0
     }
@@ -122,6 +124,7 @@ impl UefiRuntimeServices {
     }
 
     /// Initialize runtime services
+    #[inline]
     pub fn initialize(&mut self) {
         self.available = true;
         self.reset_available = true;
@@ -130,56 +133,67 @@ impl UefiRuntimeServices {
     }
 
     /// Check if available
+    #[inline(always)]
     pub fn is_available(&self) -> bool {
         self.available
     }
 
     /// Set virtual address map
+    #[inline(always)]
     pub fn set_virtual_address_map(&mut self) {
         self.virtual_map_set = true;
     }
 
     /// Get variable
+    #[inline(always)]
     pub fn get_variable(&self, name: &str) -> Option<&UefiVariable> {
         self.variables.get(name)
     }
 
     /// Set variable
+    #[inline(always)]
     pub fn set_variable(&mut self, variable: UefiVariable) {
         self.variables.insert(variable.name.clone(), variable);
     }
 
     /// Delete variable
+    #[inline(always)]
     pub fn delete_variable(&mut self, name: &str) -> bool {
         self.variables.remove(name).is_some()
     }
 
     /// Get next monotonic count
+    #[inline(always)]
     pub fn get_next_monotonic_count(&self) -> u64 {
         self.monotonic_count.fetch_add(1, Ordering::SeqCst)
     }
 
     /// Check reset available
+    #[inline(always)]
     pub fn can_reset(&self) -> bool {
         self.available && self.reset_available
     }
 
     /// Check variable services available
+    #[inline(always)]
     pub fn can_access_variables(&self) -> bool {
         self.available && self.variable_services_available
     }
 
     /// Check time services available
+    #[inline(always)]
     pub fn can_access_time(&self) -> bool {
         self.available && self.time_services_available
     }
 
     /// Check capsule services available
+    #[inline(always)]
     pub fn can_update_capsule(&self) -> bool {
         self.available && self.capsule_services_available
     }
 
     /// List variables
+    #[inline(always)]
     pub fn list_variables(&self) -> Vec<&str> {
         self.variables.keys().map(|s| s.as_str()).collect()
     }

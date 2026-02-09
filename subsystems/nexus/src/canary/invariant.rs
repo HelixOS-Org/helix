@@ -59,45 +59,53 @@ impl Invariant {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Mark as critical
+    #[inline(always)]
     pub fn critical(mut self) -> Self {
         self.critical = true;
         self
     }
 
     /// Set component
+    #[inline(always)]
     pub fn with_component(mut self, component: ComponentId) -> Self {
         self.component = Some(component);
         self
     }
 
     /// Set check interval
+    #[inline(always)]
     pub fn with_interval(mut self, ticks: u64) -> Self {
         self.interval = ticks;
         self
     }
 
     /// Enable the invariant
+    #[inline(always)]
     pub fn enable(&self) {
         self.enabled.store(true, Ordering::SeqCst);
     }
 
     /// Disable the invariant
+    #[inline(always)]
     pub fn disable(&self) {
         self.enabled.store(false, Ordering::SeqCst);
     }
 
     /// Is enabled?
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::SeqCst)
     }
 
     /// Should check now?
+    #[inline(always)]
     pub fn should_check(&self, now: NexusTimestamp) -> bool {
         self.is_enabled() && now.duration_since(self.last_check) >= self.interval
     }
@@ -132,6 +140,7 @@ impl Invariant {
     }
 
     /// Get violation rate
+    #[inline]
     pub fn violation_rate(&self) -> f64 {
         if self.total_checks == 0 {
             return 0.0;
@@ -140,6 +149,7 @@ impl Invariant {
     }
 
     /// Get consecutive failures
+    #[inline(always)]
     pub fn consecutive_failures(&self) -> u32 {
         self.consecutive_failures
     }
@@ -158,6 +168,7 @@ pub struct InvariantResult {
 
 impl InvariantResult {
     /// Invariant holds
+    #[inline]
     pub fn ok() -> Self {
         Self {
             holds: true,
@@ -167,6 +178,7 @@ impl InvariantResult {
     }
 
     /// Invariant violated
+    #[inline]
     pub fn violated(message: impl Into<String>) -> Self {
         Self {
             holds: false,
@@ -176,12 +188,14 @@ impl InvariantResult {
     }
 
     /// Add context
+    #[inline(always)]
     pub fn with_context(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.context.push((key.into(), value.into()));
         self
     }
 
     /// From a boolean
+    #[inline]
     pub fn from_bool(holds: bool, violation_message: impl Into<String>) -> Self {
         if holds {
             Self::ok()
@@ -214,6 +228,7 @@ pub struct InvariantCheck {
 
 impl InvariantCheck {
     /// Was the invariant violated?
+    #[inline(always)]
     pub fn violated(&self) -> bool {
         !self.result.holds
     }

@@ -46,6 +46,7 @@ impl SyncIntelligence {
     }
 
     /// Register lock
+    #[inline(always)]
     pub fn register(&mut self, info: LockInfo) {
         self.locks.insert(info.id, info);
     }
@@ -81,6 +82,7 @@ impl SyncIntelligence {
     }
 
     /// Record lock released
+    #[inline]
     pub fn lock_released(&mut self, lock_id: LockId, thread: ThreadId) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.release(thread);
@@ -90,66 +92,79 @@ impl SyncIntelligence {
     }
 
     /// Check for potential deadlock
+    #[inline(always)]
     pub fn check_deadlock(&mut self, thread: ThreadId, lock_id: LockId) -> Option<DeadlockInfo> {
         self.deadlock.waiting_for(thread, lock_id)
     }
 
     /// Get lock info
+    #[inline(always)]
     pub fn get_lock(&self, lock_id: LockId) -> Option<&LockInfo> {
         self.locks.get(&lock_id)
     }
 
     /// Get contention analyzer
+    #[inline(always)]
     pub fn contention(&self) -> &ContentionAnalyzer {
         &self.contention
     }
 
     /// Get deadlock detector
+    #[inline(always)]
     pub fn deadlock(&self) -> &DeadlockDetector {
         &self.deadlock
     }
 
     /// Get wait time predictor
+    #[inline(always)]
     pub fn wait_time(&self) -> &WaitTimePredictor {
         &self.wait_time
     }
 
     /// Get lock order optimizer
+    #[inline(always)]
     pub fn order(&self) -> &LockOrderOptimizer {
         &self.order
     }
 
     /// Get mutable order optimizer
+    #[inline(always)]
     pub fn order_mut(&mut self) -> &mut LockOrderOptimizer {
         &mut self.order
     }
 
     /// Get spinlock analyzer
+    #[inline(always)]
     pub fn spinlock(&self) -> &SpinlockAnalyzer {
         &self.spinlock
     }
 
     /// Get mutable spinlock analyzer
+    #[inline(always)]
     pub fn spinlock_mut(&mut self) -> &mut SpinlockAnalyzer {
         &mut self.spinlock
     }
 
     /// Get rwlock optimizer
+    #[inline(always)]
     pub fn rwlock(&self) -> &RwLockOptimizer {
         &self.rwlock
     }
 
     /// Get mutable rwlock optimizer
+    #[inline(always)]
     pub fn rwlock_mut(&mut self) -> &mut RwLockOptimizer {
         &mut self.rwlock
     }
 
     /// Get total operations
+    #[inline(always)]
     pub fn total_ops(&self) -> u64 {
         self.total_ops.load(Ordering::Relaxed)
     }
 
     /// Predict wait time
+    #[inline]
     pub fn predict_wait(&self, lock_id: LockId) -> f64 {
         let waiters = self
             .locks

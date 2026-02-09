@@ -16,6 +16,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -58,6 +59,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f64, sample: f64, alpha: f64) -> f64 {
     alpha * sample + (1.0 - alpha) * current
 }
@@ -250,8 +252,8 @@ struct AppPrecogState {
     app_id: u64,
     trackers: [MetricTracker; NUM_METRICS],
     phase_hash: u64,
-    phase_transitions: Vec<PhaseTransitionEvent>,
-    workload_changes: Vec<WorkloadChange>,
+    phase_transitions: VecDeque<PhaseTransitionEvent>,
+    workload_changes: VecDeque<WorkloadChange>,
     precognition_score: f64,
     total_shifts_detected: u64,
     total_adaptations: u64,
@@ -270,8 +272,8 @@ impl AppPrecogState {
                 MetricTracker::new(BehaviorMetric::ThreadActivity),
             ],
             phase_hash: 0,
-            phase_transitions: Vec::new(),
-            workload_changes: Vec::new(),
+            phase_transitions: VecDeque::new(),
+            workload_changes: VecDeque::new(),
             precognition_score: 0.0,
             total_shifts_detected: 0,
             total_adaptations: 0,
@@ -328,9 +330,9 @@ impl AppPrecogState {
 
         self.phase_hash = new_hash;
         if self.phase_transitions.len() >= MAX_PHASE_HISTORY {
-            self.phase_transitions.remove(0);
+            self.phase_transitions.pop_front();
         }
-        self.phase_transitions.push(event.clone());
+        self.phase_transitions.push_back(event.clone());
         self.total_shifts_detected += 1;
 
         Some(event)
@@ -361,9 +363,9 @@ impl AppPrecogState {
         };
 
         if self.workload_changes.len() >= MAX_DRIFT_HISTORY {
-            self.workload_changes.remove(0);
+            self.workload_changes.pop_front();
         }
-        self.workload_changes.push(change.clone());
+        self.workload_changes.push_back(change.clone());
 
         Some(change)
     }
@@ -375,6 +377,7 @@ impl AppPrecogState {
 
 /// Engine-level statistics for the precognition module.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrecognitionStats {
     pub total_shifts_detected: u64,
     pub total_phase_transitions: u64,
@@ -497,6 +500,7 @@ impl AppsPrecognition {
     }
 
     /// Detect a phase transition in the app's behavior.
+    #[inline]
     pub fn phase_transition(&mut self, app_id: u64) -> Option<PhaseTransitionEvent> {
         let state = self.app_states.get_mut(&app_id)?;
         let event = state.detect_phase_transition(self.tick);
@@ -508,6 +512,7 @@ impl AppsPrecognition {
     }
 
     /// Detect a workload regime change.
+    #[inline]
     pub fn workload_change_detection(&mut self, app_id: u64) -> Option<WorkloadChange> {
         let state = self.app_states.get_mut(&app_id)?;
         let change = state.detect_workload_change(self.tick);
@@ -608,16 +613,19 @@ impl AppsPrecognition {
     }
 
     /// Return a snapshot of engine statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &PrecognitionStats {
         &self.stats
     }
 
     /// Number of tracked apps.
+    #[inline(always)]
     pub fn tracked_apps(&self) -> usize {
         self.app_states.len()
     }
 
     /// Global EMA-smoothed precognition score.
+    #[inline(always)]
     pub fn avg_precognition_score(&self) -> f64 {
         self.ema_precog_score
     }

@@ -485,6 +485,7 @@ impl IRBuilder {
     }
 
     /// Set current block
+    #[inline(always)]
     pub fn set_block(&mut self, block: BlockId) {
         self.current_block = Some(block);
     }
@@ -512,6 +513,7 @@ impl IRBuilder {
     }
 
     /// Set block terminator
+    #[inline]
     pub fn terminate(&mut self, term: IRTerminator) {
         if let (Some(func_id), Some(block_id)) = (self.current_func, self.current_block) {
             if let Some(func) = self.module.functions.get_mut(&func_id) {
@@ -539,6 +541,7 @@ impl IRBuilder {
     }
 
     /// Add global variable
+    #[inline]
     pub fn add_global(&mut self, name: &str, typ: IRType, init: Option<IRValue>, mutable: bool) {
         let global = IRGlobal {
             name: name.into(),
@@ -552,56 +555,67 @@ impl IRBuilder {
     }
 
     /// Emit add instruction
+    #[inline(always)]
     pub fn build_add(&mut self, dest: &str, lhs: IRValue, rhs: IRValue) -> NodeId {
         self.emit(Some(dest), IROp::Add(lhs, rhs))
     }
 
     /// Emit sub instruction
+    #[inline(always)]
     pub fn build_sub(&mut self, dest: &str, lhs: IRValue, rhs: IRValue) -> NodeId {
         self.emit(Some(dest), IROp::Sub(lhs, rhs))
     }
 
     /// Emit mul instruction
+    #[inline(always)]
     pub fn build_mul(&mut self, dest: &str, lhs: IRValue, rhs: IRValue) -> NodeId {
         self.emit(Some(dest), IROp::Mul(lhs, rhs))
     }
 
     /// Emit load instruction
+    #[inline(always)]
     pub fn build_load(&mut self, dest: &str, ptr: IRValue) -> NodeId {
         self.emit(Some(dest), IROp::Load(ptr))
     }
 
     /// Emit store instruction
+    #[inline(always)]
     pub fn build_store(&mut self, ptr: IRValue, val: IRValue) -> NodeId {
         self.emit(None, IROp::Store(ptr, val))
     }
 
     /// Emit call instruction
+    #[inline(always)]
     pub fn build_call(&mut self, dest: Option<&str>, func: &str, args: Vec<IRValue>) -> NodeId {
         self.emit(dest, IROp::Call(func.into(), args))
     }
 
     /// Emit return
+    #[inline(always)]
     pub fn build_return(&mut self, value: Option<IRValue>) {
         self.terminate(IRTerminator::Return(value));
     }
 
     /// Emit branch
+    #[inline(always)]
     pub fn build_branch(&mut self, target: BlockId) {
         self.terminate(IRTerminator::Branch(target));
     }
 
     /// Emit conditional branch
+    #[inline(always)]
     pub fn build_cond_branch(&mut self, cond: IRValue, then_block: BlockId, else_block: BlockId) {
         self.terminate(IRTerminator::CondBranch(cond, then_block, else_block));
     }
 
     /// Finalize and return module
+    #[inline(always)]
     pub fn finalize(self) -> IRModule {
         self.module
     }
 
     /// Get module reference
+    #[inline(always)]
     pub fn module(&self) -> &IRModule {
         &self.module
     }
@@ -672,11 +686,13 @@ impl IRType {
     }
 
     /// Check if floating point
+    #[inline(always)]
     pub fn is_float(&self) -> bool {
         matches!(self, IRType::F32 | IRType::F64)
     }
 
     /// Check if pointer
+    #[inline(always)]
     pub fn is_pointer(&self) -> bool {
         matches!(self, IRType::Ptr(_))
     }

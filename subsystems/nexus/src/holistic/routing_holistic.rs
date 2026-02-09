@@ -22,6 +22,7 @@ impl RoutingHolisticRecord {
 
 /// Routing holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RoutingHolisticStats { pub total_samples: u64, pub blackholes: u64, pub avg_lookup_ns: u64, pub max_routes: u32 }
 
 /// Main holistic routing
@@ -33,6 +34,7 @@ pub struct HolisticRouting {
 
 impl HolisticRouting {
     pub fn new() -> Self { Self { stats: RoutingHolisticStats { total_samples: 0, blackholes: 0, avg_lookup_ns: 0, max_routes: 0 }, lookup_sum: 0 } }
+    #[inline]
     pub fn record(&mut self, rec: &RoutingHolisticRecord) {
         self.stats.total_samples += 1;
         if rec.efficiency == RoutingEfficiency::Blackhole { self.stats.blackholes += 1; }

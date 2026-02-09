@@ -10,6 +10,7 @@ use crate::core::NexusTimestamp;
 
 /// NEXUS statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NexusStats {
     /// Boot timestamp
     pub boot_time: NexusTimestamp,
@@ -82,11 +83,13 @@ impl Default for NexusStats {
 
 impl NexusStats {
     /// Calculate uptime in cycles
+    #[inline(always)]
     pub fn uptime(&self) -> u64 {
         NexusTimestamp::now().duration_since(self.boot_time)
     }
 
     /// Calculate prediction accuracy
+    #[inline]
     pub fn prediction_accuracy(&self) -> f32 {
         if self.predictions_made == 0 {
             return 0.0;
@@ -95,6 +98,7 @@ impl NexusStats {
     }
 
     /// Calculate healing success rate
+    #[inline]
     pub fn healing_success_rate(&self) -> f32 {
         if self.healing_attempts == 0 {
             return 0.0;
@@ -103,6 +107,7 @@ impl NexusStats {
     }
 
     /// Calculate decision success rate
+    #[inline]
     pub fn decision_success_rate(&self) -> f32 {
         if self.decisions_made == 0 {
             return 0.0;
@@ -111,6 +116,7 @@ impl NexusStats {
     }
 
     /// Calculate events per tick
+    #[inline]
     pub fn events_per_tick(&self) -> f64 {
         if self.ticks == 0 {
             return 0.0;
@@ -119,6 +125,7 @@ impl NexusStats {
     }
 
     /// Calculate drop rate
+    #[inline]
     pub fn drop_rate(&self) -> f32 {
         let total = self.events_processed + self.events_dropped;
         if total == 0 {

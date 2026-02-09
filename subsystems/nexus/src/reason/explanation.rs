@@ -24,6 +24,7 @@ pub enum ExplanationType {
 
 impl ExplanationType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::WhyDid => "why_did",
@@ -69,23 +70,27 @@ impl Explanation {
     }
 
     /// With summary
+    #[inline(always)]
     pub fn with_summary(mut self, summary: String) -> Self {
         self.summary = summary;
         self
     }
 
     /// With confidence
+    #[inline(always)]
     pub fn with_confidence(mut self, confidence: f32) -> Self {
         self.confidence = confidence;
         self
     }
 
     /// Add detail
+    #[inline(always)]
     pub fn add_detail(&mut self, detail: String) {
         self.details.push(detail);
     }
 
     /// Add related event
+    #[inline]
     pub fn add_related(&mut self, event: CausalEventId) {
         if !self.related_events.contains(&event) {
             self.related_events.push(event);
@@ -93,6 +98,7 @@ impl Explanation {
     }
 
     /// Set chain
+    #[inline(always)]
     pub fn set_chain(&mut self, chain_id: ChainId) {
         self.chain = Some(chain_id);
     }

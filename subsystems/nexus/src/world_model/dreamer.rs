@@ -212,6 +212,7 @@ impl DreamerAgent {
     }
 
     /// Act in environment
+    #[inline]
     pub fn act(&self, observation: &[f64], explore: bool) -> Vec<f64> {
         let state = self.world_model.encoder.encode(observation);
         let noise = if explore { 0.3 } else { 0.0 };

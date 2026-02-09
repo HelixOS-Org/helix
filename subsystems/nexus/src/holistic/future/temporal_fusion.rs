@@ -60,6 +60,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f32, sample: f32) -> f32 {
     EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * current
 }
@@ -228,6 +229,7 @@ pub struct PanoramaEntry {
 
 /// Runtime statistics for the temporal fusion engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TemporalFusionStats {
     pub fusions_performed: u64,
     pub micro_macro_bridges: u64,
@@ -621,6 +623,7 @@ impl HolisticTemporalFusion {
     }
 
     /// Get current statistics
+    #[inline(always)]
     pub fn stats(&self) -> &TemporalFusionStats {
         &self.stats
     }

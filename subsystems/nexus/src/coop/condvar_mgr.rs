@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Condvar wait result
@@ -25,7 +26,9 @@ pub struct CondWaiter {
 
 impl CondWaiter {
     pub fn new(tid: u64, now: u64) -> Self { Self { tid, wait_start: now, result: None } }
+    #[inline(always)]
     pub fn wake(&mut self, result: CondWaitResult) { self.result = Some(result); }
+    #[inline(always)]
     pub fn wait_time(&self, now: u64) -> u64 { now.saturating_sub(self.wait_start) }
 }
 
@@ -34,7 +37,7 @@ impl CondWaiter {
 pub struct CondVar {
     pub id: u64,
     pub mutex_id: u64,
-    pub waiters: Vec<CondWaiter>,
+    pub waiters: VecDeque<CondWaiter>,
     pub total_signals: u64,
     pub total_broadcasts: u64,
     pub total_waits: u64,
@@ -44,14 +47,16 @@ pub struct CondVar {
 
 impl CondVar {
     pub fn new(id: u64, mutex_id: u64) -> Self {
-        Self { id, mutex_id, waiters: Vec::new(), total_signals: 0, total_broadcasts: 0, total_waits: 0, total_timeouts: 0, total_spurious: 0 }
+        Self { id, mutex_id, waiters: VecDeque::new(), total_signals: 0, total_broadcasts: 0, total_waits: 0, total_timeouts: 0, total_spurious: 0 }
     }
 
+    #[inline(always)]
     pub fn wait(&mut self, tid: u64, now: u64) {
         self.total_waits += 1;
-        self.waiters.push(CondWaiter::new(tid, now));
+        self.waiters.push_back(CondWaiter::new(tid, now));
     }
 
+    #[inline]
     pub fn signal(&mut self) -> Option<u64> {
         self.total_signals += 1;
         if let Some(w) = self.waiters.iter_mut().find(|w| w.result.is_none()) {
@@ -60,6 +65,7 @@ impl CondVar {
         } else { None }
     }
 
+    #[inline]
     pub fn broadcast(&mut self) -> u32 {
         self.total_broadcasts += 1;
         let mut woken = 0u32;
@@ -69,11 +75,13 @@ impl CondVar {
         woken
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> u32 { self.waiters.iter().filter(|w| w.result.is_none()).count() as u32 }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CondvarMgrStats {
     pub total_condvars: u32,
     pub total_signals: u64,
@@ -92,24 +100,29 @@ pub struct CoopCondvarMgr {
 impl CoopCondvarMgr {
     pub fn new() -> Self { Self { condvars: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, mutex_id: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.condvars.insert(id, CondVar::new(id, mutex_id));
         id
     }
 
+    #[inline(always)]
     pub fn wait(&mut self, cv: u64, tid: u64, now: u64) {
         if let Some(c) = self.condvars.get_mut(&cv) { c.wait(tid, now); }
     }
 
+    #[inline(always)]
     pub fn signal(&mut self, cv: u64) -> Option<u64> {
         self.condvars.get_mut(&cv)?.signal()
     }
 
+    #[inline(always)]
     pub fn broadcast(&mut self, cv: u64) -> u32 {
         self.condvars.get_mut(&cv).map(|c| c.broadcast()).unwrap_or(0)
     }
 
+    #[inline]
     pub fn stats(&self) -> CondvarMgrStats {
         let sigs: u64 = self.condvars.values().map(|c| c.total_signals).sum();
         let bcast: u64 = self.condvars.values().map(|c| c.total_broadcasts).sum();
@@ -147,7 +160,7 @@ pub struct CondvarV2Waiter {
 #[derive(Debug, Clone)]
 pub struct CondvarV2Instance {
     pub id: u64,
-    pub waiters: Vec<CondvarV2Waiter>,
+    pub waiters: VecDeque<CondvarV2Waiter>,
     pub signal_count: u64,
     pub broadcast_count: u64,
     pub total_waits: u64,
@@ -157,14 +170,15 @@ pub struct CondvarV2Instance {
 impl CondvarV2Instance {
     pub fn new(id: u64) -> Self {
         Self {
-            id, waiters: Vec::new(),
+            id, waiters: VecDeque::new(),
             signal_count: 0, broadcast_count: 0,
             total_waits: 0, spurious_wakeups: 0,
         }
     }
 
+    #[inline]
     pub fn wait(&mut self, tid: u64, mutex_id: u64, tick: u64, timeout: u64) {
-        self.waiters.push(CondvarV2Waiter {
+        self.waiters.push_back(CondvarV2Waiter {
             thread_id: tid, mutex_id,
             wait_start_tick: tick, timeout_ns: timeout,
             result: None,
@@ -172,6 +186,7 @@ impl CondvarV2Instance {
         self.total_waits += 1;
     }
 
+    #[inline]
     pub fn signal(&mut self) -> Option<u64> {
         self.signal_count += 1;
         for w in self.waiters.iter_mut() {
@@ -183,6 +198,7 @@ impl CondvarV2Instance {
         None
     }
 
+    #[inline]
     pub fn broadcast(&mut self) -> u64 {
         self.broadcast_count += 1;
         let mut woken = 0u64;
@@ -195,6 +211,7 @@ impl CondvarV2Instance {
         woken
     }
 
+    #[inline(always)]
     pub fn drain_completed(&mut self) {
         self.waiters.retain(|w| w.result.is_none());
     }
@@ -202,6 +219,7 @@ impl CondvarV2Instance {
 
 /// Statistics for condvar V2
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CondvarV2Stats {
     pub condvars_created: u64,
     pub total_waits: u64,
@@ -232,6 +250,7 @@ impl CoopCondvarV2 {
         }
     }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -240,6 +259,7 @@ impl CoopCondvarV2 {
         id
     }
 
+    #[inline]
     pub fn wait(&mut self, cv_id: u64, tid: u64, mutex_id: u64, tick: u64, timeout: u64) -> bool {
         if let Some(cv) = self.condvars.get_mut(&cv_id) {
             cv.wait(tid, mutex_id, tick, timeout);
@@ -248,6 +268,7 @@ impl CoopCondvarV2 {
         } else { false }
     }
 
+    #[inline]
     pub fn signal(&mut self, cv_id: u64) -> Option<u64> {
         if let Some(cv) = self.condvars.get_mut(&cv_id) {
             self.stats.total_signals += 1;
@@ -255,6 +276,7 @@ impl CoopCondvarV2 {
         } else { None }
     }
 
+    #[inline]
     pub fn broadcast(&mut self, cv_id: u64) -> u64 {
         if let Some(cv) = self.condvars.get_mut(&cv_id) {
             self.stats.total_broadcasts += 1;
@@ -262,6 +284,7 @@ impl CoopCondvarV2 {
         } else { 0 }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CondvarV2Stats {
         &self.stats
     }
@@ -317,7 +340,7 @@ impl CondvarV3Waiter {
 #[derive(Debug, Clone)]
 pub struct CondvarV3Instance {
     pub cv_id: u64,
-    pub waiters: Vec<CondvarV3Waiter>,
+    pub waiters: VecDeque<CondvarV3Waiter>,
     pub associated_lock: Option<u64>,
     pub signal_count: u64,
     pub broadcast_count: u64,
@@ -331,7 +354,7 @@ impl CondvarV3Instance {
     pub fn new(cv_id: u64) -> Self {
         Self {
             cv_id,
-            waiters: Vec::new(),
+            waiters: VecDeque::new(),
             associated_lock: None,
             signal_count: 0,
             broadcast_count: 0,
@@ -342,19 +365,22 @@ impl CondvarV3Instance {
         }
     }
 
+    #[inline(always)]
     pub fn enqueue_waiter(&mut self, waiter: CondvarV3Waiter) {
         self.total_waits += 1;
-        self.waiters.push(waiter);
+        self.waiters.push_back(waiter);
     }
 
+    #[inline]
     pub fn signal_one(&mut self) -> Option<CondvarV3Waiter> {
         self.signal_count += 1;
         if self.waiters.is_empty() {
             return None;
         }
-        Some(self.waiters.remove(0))
+        self.waiters.pop_front()
     }
 
+    #[inline]
     pub fn broadcast_all(&mut self) -> Vec<CondvarV3Waiter> {
         self.broadcast_count += 1;
         let mut all = Vec::new();
@@ -377,6 +403,7 @@ impl CondvarV3Instance {
         expired
     }
 
+    #[inline(always)]
     pub fn waiter_count(&self) -> usize {
         self.waiters.len()
     }
@@ -384,6 +411,7 @@ impl CondvarV3Instance {
 
 /// Statistics for condvar V3.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CondvarV3Stats {
     pub total_condvars: u64,
     pub total_signals: u64,
@@ -418,6 +446,7 @@ impl CoopCondvarV3 {
         }
     }
 
+    #[inline]
     pub fn create_condvar(&mut self) -> u64 {
         let id = self.next_cv_id;
         self.next_cv_id += 1;
@@ -427,6 +456,7 @@ impl CoopCondvarV3 {
         id
     }
 
+    #[inline]
     pub fn signal(&mut self, cv_id: u64) -> Option<CondvarV3Waiter> {
         if let Some(cv) = self.condvars.get_mut(&cv_id) {
             self.stats.total_signals += 1;
@@ -436,6 +466,7 @@ impl CoopCondvarV3 {
         }
     }
 
+    #[inline(always)]
     pub fn condvar_count(&self) -> usize {
         self.condvars.len()
     }

@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -82,7 +83,7 @@ pub struct TradeoffResult {
     /// Pareto front
     pub pareto_front: Vec<u64>,
     /// Sensitivity
-    pub sensitivity: BTreeMap<u64, f64>,
+    pub sensitivity: LinearMap<f64, 64>,
     /// Method used
     pub method: AnalysisMethod,
     /// Timestamp
@@ -99,7 +100,7 @@ pub struct RankedAlternative {
     /// Score
     pub score: f64,
     /// Criterion scores
-    pub criterion_scores: BTreeMap<u64, f64>,
+    pub criterion_scores: LinearMap<f64, 64>,
 }
 
 /// Analysis method
@@ -171,6 +172,7 @@ impl Default for TradeoffConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TradeoffStats {
     /// Analyses created
     pub analyses_created: u64,
@@ -258,6 +260,7 @@ impl TradeoffAnalyzer {
     }
 
     /// Set score
+    #[inline]
     pub fn set_score(&mut self, analysis_id: u64, alt_id: u64, crit_id: u64, score: f64) {
         if let Some(analysis) = self.analyses.get_mut(&analysis_id) {
             analysis.scores.insert((alt_id, crit_id), score);
@@ -271,7 +274,7 @@ impl TradeoffAnalyzer {
         // Normalize weights
         let total_weight: f64 = analysis.criteria.iter().map(|c| c.weight).sum();
 
-        let normalized_weights: BTreeMap<u64, f64> = if total_weight > 0.0 {
+        let normalized_weights: LinearMap<f64, 64> = if total_weight > 0.0 {
             analysis.criteria.iter()
                 .map(|c| (c.id, c.weight / total_weight))
                 .collect()
@@ -462,16 +465,19 @@ impl TradeoffAnalyzer {
     }
 
     /// Get analysis
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&TradeoffAnalysis> {
         self.analyses.get(&id)
     }
 
     /// Get result
+    #[inline(always)]
     pub fn get_result(&self, id: u64) -> Option<&TradeoffResult> {
         self.results.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &TradeoffStats {
         &self.stats
     }

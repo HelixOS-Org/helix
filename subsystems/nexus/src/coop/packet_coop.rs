@@ -52,6 +52,7 @@ impl SharedPktBuf {
         }
     }
 
+    #[inline]
     pub fn allocate(&mut self, data_len: u32) -> bool {
         if self.state != PktBufState::Free { return false; }
         self.state = PktBufState::Allocated;
@@ -60,14 +61,18 @@ impl SharedPktBuf {
         true
     }
 
+    #[inline(always)]
     pub fn share(&mut self) { self.ref_count += 1; self.state = PktBufState::Shared; }
+    #[inline(always)]
     pub fn release(&mut self) -> bool {
         self.ref_count = self.ref_count.saturating_sub(1);
         if self.ref_count == 0 { self.state = PktBufState::Free; true } else { false }
     }
 
+    #[inline(always)]
     pub fn clone_buf(&mut self) { self.ref_count += 1; self.state = PktBufState::Cloned; }
 
+    #[inline]
     pub fn compute_hash(&mut self, data: &[u8]) {
         let mut h: u64 = 0xcbf29ce484222325;
         for b in data { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
@@ -77,6 +82,7 @@ impl SharedPktBuf {
 
 /// Shared buffer pool
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SharedBufPool {
     pub pool_id: u64,
     pub buffers: Vec<SharedPktBuf>,
@@ -96,6 +102,7 @@ impl SharedBufPool {
         Self { pool_id, buffers, capacity, allocated: 0, shared_count: 0, total_allocs: 0, total_frees: 0 }
     }
 
+    #[inline]
     pub fn alloc(&mut self, data_len: u32) -> Option<u64> {
         for buf in &mut self.buffers {
             if buf.state == PktBufState::Free {
@@ -108,6 +115,7 @@ impl SharedBufPool {
         None
     }
 
+    #[inline]
     pub fn free(&mut self, buf_id: u64) -> bool {
         if let Some(buf) = self.buffers.iter_mut().find(|b| b.buf_id == buf_id) {
             if buf.release() { self.allocated -= 1; self.total_frees += 1; true }
@@ -115,6 +123,7 @@ impl SharedBufPool {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 { 0.0 } else { self.allocated as f64 / self.capacity as f64 }
     }
@@ -122,6 +131,7 @@ impl SharedBufPool {
 
 /// Coop packet stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopPktStats {
     pub total_pools: u64,
     pub total_allocs: u64,
@@ -144,11 +154,13 @@ impl CoopPacket {
         }
     }
 
+    #[inline(always)]
     pub fn create_pool(&mut self, pool_id: u64, capacity: u32) {
         self.pools.insert(pool_id, SharedBufPool::new(pool_id, capacity));
         self.stats.total_pools += 1;
     }
 
+    #[inline]
     pub fn alloc_from_pool(&mut self, pool_id: u64, data_len: u32) -> Option<u64> {
         if let Some(pool) = self.pools.get_mut(&pool_id) {
             let result = pool.alloc(data_len);

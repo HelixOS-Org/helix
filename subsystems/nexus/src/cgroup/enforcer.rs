@@ -3,6 +3,7 @@
 //! Resource limits enforcement and OOM handling.
 
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -45,7 +46,7 @@ pub struct EnforcementResult {
 /// Limits enforcer
 pub struct LimitsEnforcer {
     /// Enforcement history
-    history: Vec<EnforcementResult>,
+    history: VecDeque<EnforcementResult>,
     /// Maximum history
     max_history: usize,
     /// Total enforcements
@@ -163,27 +164,31 @@ impl LimitsEnforcer {
         };
 
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(result);
+        self.history.push_back(result);
     }
 
     /// Get enforcement history
+    #[inline(always)]
     pub fn history(&self) -> &[EnforcementResult] {
         &self.history
     }
 
     /// Get total enforcements
+    #[inline(always)]
     pub fn total_enforcements(&self) -> u64 {
         self.total_enforcements.load(Ordering::Relaxed)
     }
 
     /// Get OOM kills
+    #[inline(always)]
     pub fn oom_kills(&self) -> u64 {
         self.oom_kills.load(Ordering::Relaxed)
     }
 
     /// Get throttle events
+    #[inline(always)]
     pub fn throttle_events(&self) -> u64 {
         self.throttle_events.load(Ordering::Relaxed)
     }

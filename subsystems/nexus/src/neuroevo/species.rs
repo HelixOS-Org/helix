@@ -38,16 +38,19 @@ impl Species {
     }
 
     /// Check if a genome belongs to this species
+    #[inline(always)]
     pub fn is_compatible(&self, genome: &NeatGenome, threshold: f64) -> bool {
         genome.compatibility_distance(&self.representative, 1.0, 1.0, 0.4) < threshold
     }
 
     /// Clear members for new generation
+    #[inline(always)]
     pub fn clear_members(&mut self) {
         self.members.clear();
     }
 
     /// Add a member
+    #[inline(always)]
     pub fn add_member(&mut self, idx: usize) {
         self.members.push(idx);
     }

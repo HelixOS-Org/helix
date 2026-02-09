@@ -3,6 +3,7 @@
 //! Resource usage tracking and rate calculation.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::CgroupId;
@@ -44,15 +45,17 @@ impl ResourceAccountant {
     }
 
     /// Record sample
+    #[inline]
     pub fn record_sample(&mut self, cgroup: CgroupId, sample: ResourceSample) {
         let samples = self.samples.entry(cgroup).or_default();
         if samples.len() >= self.max_samples {
-            samples.remove(0);
+            samples.pop_front();
         }
         samples.push(sample);
     }
 
     /// Get samples for cgroup
+    #[inline(always)]
     pub fn get_samples(&self, cgroup: CgroupId) -> Option<&[ResourceSample]> {
         self.samples.get(&cgroup).map(|v| v.as_slice())
     }
@@ -115,21 +118,25 @@ impl ResourceAccountant {
     }
 
     /// Clear samples for cgroup
+    #[inline(always)]
     pub fn clear_samples(&mut self, cgroup: CgroupId) {
         self.samples.remove(&cgroup);
     }
 
     /// Set accounting interval
+    #[inline(always)]
     pub fn set_interval(&mut self, interval_ns: u64) {
         self.interval_ns = interval_ns;
     }
 
     /// Get accounting interval
+    #[inline(always)]
     pub fn interval(&self) -> u64 {
         self.interval_ns
     }
 
     /// Set max samples
+    #[inline(always)]
     pub fn set_max_samples(&mut self, max: usize) {
         self.max_samples = max;
     }

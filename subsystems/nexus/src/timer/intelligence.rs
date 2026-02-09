@@ -12,6 +12,7 @@ use super::{
 };
 
 /// Central timer intelligence coordinator
+#[repr(align(64))]
 pub struct TimerIntelligence {
     /// Registered timers
     timers: BTreeMap<TimerId, TimerInfo>,
@@ -47,6 +48,7 @@ impl TimerIntelligence {
     }
 
     /// Register timer
+    #[inline(always)]
     pub fn register(&mut self, info: TimerInfo) {
         self.total_ops.fetch_add(1, Ordering::Relaxed);
         self.timers.insert(info.id, info);
@@ -109,6 +111,7 @@ impl TimerIntelligence {
     }
 
     /// Cancel timer
+    #[inline]
     pub fn cancel(&mut self, timer_id: TimerId) {
         if let Some(timer) = self.timers.get_mut(&timer_id) {
             timer.state = TimerState::Cancelled;
@@ -117,56 +120,67 @@ impl TimerIntelligence {
     }
 
     /// Get timer info
+    #[inline(always)]
     pub fn get_timer(&self, timer_id: TimerId) -> Option<&TimerInfo> {
         self.timers.get(&timer_id)
     }
 
     /// Get predictor
+    #[inline(always)]
     pub fn predictor(&self) -> &DeadlinePredictor {
         &self.predictor
     }
 
     /// Get coalescer
+    #[inline(always)]
     pub fn coalescer(&self) -> &TimerCoalescer {
         &self.coalescer
     }
 
     /// Get mutable coalescer
+    #[inline(always)]
     pub fn coalescer_mut(&mut self) -> &mut TimerCoalescer {
         &mut self.coalescer
     }
 
     /// Coalesce pending timers
+    #[inline(always)]
     pub fn coalesce(&mut self) -> Vec<CoalescedGroup> {
         self.coalescer.coalesce()
     }
 
     /// Get jitter analyzer
+    #[inline(always)]
     pub fn jitter(&self) -> &JitterAnalyzer {
         &self.jitter
     }
 
     /// Get scheduler
+    #[inline(always)]
     pub fn scheduler(&self) -> &PowerAwareScheduler {
         &self.scheduler
     }
 
     /// Get mutable scheduler
+    #[inline(always)]
     pub fn scheduler_mut(&mut self) -> &mut PowerAwareScheduler {
         &mut self.scheduler
     }
 
     /// Get hrtimer manager
+    #[inline(always)]
     pub fn hrtimer(&self) -> &HrtimerManager {
         &self.hrtimer
     }
 
     /// Get total operations
+    #[inline(always)]
     pub fn total_ops(&self) -> u64 {
         self.total_ops.load(Ordering::Relaxed)
     }
 
     /// Get active timer count
+    #[inline]
     pub fn active_count(&self) -> usize {
         self.timers
             .values()

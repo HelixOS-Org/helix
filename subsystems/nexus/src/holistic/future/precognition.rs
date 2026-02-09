@@ -22,7 +22,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -67,6 +69,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f32, sample: f32) -> f32 {
     EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * current
 }
@@ -241,6 +244,7 @@ pub enum ForesightRecommendation {
 
 /// Runtime statistics for the precognition engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrecognitionStats {
     pub precog_cycles: u64,
     pub regime_changes_detected: u64,
@@ -283,8 +287,8 @@ pub struct HolisticPrecognition {
     phase_history: Vec<PhaseTransitionSense>,
     paradigm_alerts: Vec<ParadigmShiftAlert>,
     accuracy_log: Vec<PrecogAccuracyRecord>,
-    source_ema_fast: BTreeMap<u64, f32>,
-    source_ema_slow: BTreeMap<u64, f32>,
+    source_ema_fast: LinearMap<f32, 64>,
+    source_ema_slow: LinearMap<f32, 64>,
     rng_state: u64,
     next_signal_id: u64,
     stats: PrecognitionStats,
@@ -301,8 +305,8 @@ impl HolisticPrecognition {
             phase_history: Vec::new(),
             paradigm_alerts: Vec::new(),
             accuracy_log: Vec::new(),
-            source_ema_fast: BTreeMap::new(),
-            source_ema_slow: BTreeMap::new(),
+            source_ema_fast: LinearMap::new(),
+            source_ema_slow: LinearMap::new(),
             rng_state: seed ^ 0xC0FFEE_DEAD_BEEF_42,
             next_signal_id: 1,
             stats: PrecognitionStats::new(),
@@ -321,8 +325,8 @@ impl HolisticPrecognition {
         self.next_signal_id += 1;
         let sk = fnv1a_hash(&[source as u8]);
 
-        let prev_fast = self.source_ema_fast.get(&sk).copied().unwrap_or(value);
-        let prev_slow = self.source_ema_slow.get(&sk).copied().unwrap_or(value);
+        let prev_fast = self.source_ema_fast.get(sk).copied().unwrap_or(value);
+        let prev_slow = self.source_ema_slow.get(sk).copied().unwrap_or(value);
         let new_fast = ema_update(prev_fast, value);
         let new_slow = ema_slow_update(prev_slow, value);
         let derivative = new_fast - prev_fast;
@@ -343,13 +347,14 @@ impl HolisticPrecognition {
         let window = self.signal_window.entry(sk).or_insert_with(Vec::new);
         window.push(signal);
         if window.len() > MAX_SIGNAL_WINDOW {
-            window.remove(0);
+            window.pop_front();
         }
         id
     }
 
     /// Main precognitive sensing cycle: detect regime changes, phase
     /// transitions, and paradigm shifts
+    #[inline]
     pub fn system_precognition(&mut self, timestamp_us: u64) -> (
         Option<RegimeChangeDetection>,
         Option<PhaseTransitionSense>,
@@ -366,16 +371,19 @@ impl HolisticPrecognition {
     }
 
     /// Detect regime changes in system operating mode
+    #[inline(always)]
     pub fn regime_change_detection(&mut self, timestamp_us: u64) -> Option<RegimeChangeDetection> {
         self.detect_regime(timestamp_us)
     }
 
     /// Sense phase transitions and critical points
+    #[inline(always)]
     pub fn phase_transition_sense(&mut self, timestamp_us: u64) -> Option<PhaseTransitionSense> {
         self.sense_phase_transition(timestamp_us)
     }
 
     /// Alert on paradigm shifts
+    #[inline(always)]
     pub fn paradigm_shift_alert(&mut self, timestamp_us: u64) -> Option<ParadigmShiftAlert> {
         self.detect_paradigm_shift(timestamp_us)
     }
@@ -504,7 +512,7 @@ impl HolisticPrecognition {
             PrecogSource::Driver, PrecogSource::Userspace, PrecogSource::SystemWide,
         ];
 
-        let mut source_quality: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut source_quality: LinearMap<f32, 64> = BTreeMap::new();
         let mut blind_spots: Vec<PrecogSource> = Vec::new();
         let mut strongest: Vec<(PrecogSource, f32)> = Vec::new();
 
@@ -565,6 +573,7 @@ impl HolisticPrecognition {
     }
 
     /// Get current statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PrecognitionStats {
         &self.stats
     }
@@ -586,8 +595,8 @@ impl HolisticPrecognition {
 
         for &src in &all_sources {
             let sk = fnv1a_hash(&[src as u8]);
-            let fast = self.source_ema_fast.get(&sk).copied().unwrap_or(0.0);
-            let slow = self.source_ema_slow.get(&sk).copied().unwrap_or(0.0);
+            let fast = self.source_ema_fast.get(sk).copied().unwrap_or(0.0);
+            let slow = self.source_ema_slow.get(sk).copied().unwrap_or(0.0);
             fast_sum += fast;
             slow_sum += slow;
             source_count += 1;

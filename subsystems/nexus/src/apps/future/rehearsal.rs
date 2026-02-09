@@ -155,6 +155,7 @@ impl RehearsalRecord {
 
 /// Aggregate rehearsal statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct RehearsalStats {
     pub total_rehearsals: u64,
     pub scenarios_tested: usize,
@@ -204,6 +205,7 @@ impl AppsRehearsal {
     }
 
     /// Register a scenario for rehearsal
+    #[inline]
     pub fn register_scenario(&mut self, scenario: Scenario) {
         if self.scenarios.len() < MAX_SCENARIOS {
             self.scenarios.insert(scenario.id, scenario);
@@ -389,11 +391,13 @@ impl AppsRehearsal {
     }
 
     /// Compute rehearsal accuracy based on validated predictions
+    #[inline(always)]
     pub fn rehearsal_accuracy(&self) -> f32 {
         self.accuracy_ema
     }
 
     /// Validate a past rehearsal against actual outcomes
+    #[inline]
     pub fn validate(&mut self, scenario_id: u64, actual_cpu: f32, actual_mem: f32) {
         self.validated_count += 1;
         for rec in self.records.iter_mut().rev() {
@@ -446,11 +450,13 @@ impl AppsRehearsal {
     }
 
     /// Advance the internal tick
+    #[inline(always)]
     pub fn advance_tick(&mut self, tick: u64) {
         self.tick = tick;
     }
 
     /// Get aggregate statistics
+    #[inline]
     pub fn stats(&self) -> RehearsalStats {
         RehearsalStats {
             total_rehearsals: self.total_rehearsals,

@@ -14,6 +14,7 @@ use super::record::TraceRecord;
 // ============================================================================
 
 /// Lock-free ring buffer for trace records
+#[repr(align(64))]
 pub struct TraceRingBuffer {
     /// Buffer
     buffer: Vec<TraceRecord>,
@@ -79,6 +80,7 @@ impl TraceRingBuffer {
     }
 
     /// Get number of unread records
+    #[inline]
     pub fn len(&self) -> usize {
         let write = self.write_pos.load(Ordering::Relaxed);
         let read = self.read_pos.load(Ordering::Relaxed);
@@ -86,21 +88,25 @@ impl TraceRingBuffer {
     }
 
     /// Is buffer empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Get total written
+    #[inline(always)]
     pub fn total_written(&self) -> u64 {
         self.written.load(Ordering::Relaxed)
     }
 
     /// Get total dropped
+    #[inline(always)]
     pub fn total_dropped(&self) -> u64 {
         self.dropped.load(Ordering::Relaxed)
     }
 
     /// Clear the buffer
+    #[inline(always)]
     pub fn clear(&mut self) {
         let write = self.write_pos.load(Ordering::Relaxed);
         self.read_pos.store(write, Ordering::Relaxed);

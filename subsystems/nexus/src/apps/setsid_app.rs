@@ -2,6 +2,7 @@
 //! NEXUS Apps — Setsid (session management application interface)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -27,6 +28,7 @@ pub enum AppSetsidResult {
 
 /// Stats for session operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppSetsidStats {
     pub total_ops: u64,
     pub sessions_created: u64,
@@ -38,7 +40,7 @@ pub struct AppSetsidStats {
 /// Manager for session application operations
 pub struct AppSetsidManager {
     sessions: BTreeMap<u64, AppSessionEntry>,
-    pid_to_sid: BTreeMap<u64, u64>,
+    pid_to_sid: LinearMap<u64, 64>,
     stats: AppSetsidStats,
 }
 
@@ -46,7 +48,7 @@ impl AppSetsidManager {
     pub fn new() -> Self {
         Self {
             sessions: BTreeMap::new(),
-            pid_to_sid: BTreeMap::new(),
+            pid_to_sid: LinearMap::new(),
             stats: AppSetsidStats {
                 total_ops: 0,
                 sessions_created: 0,
@@ -77,10 +79,12 @@ impl AppSetsidManager {
         AppSetsidResult::Success
     }
 
+    #[inline(always)]
     pub fn getsid(&self, pid: u64) -> Option<u64> {
-        self.pid_to_sid.get(&pid).cloned()
+        self.pid_to_sid.get(pid).cloned()
     }
 
+    #[inline]
     pub fn set_controlling_tty(&mut self, sid: u64, tty: u64) -> bool {
         if let Some(session) = self.sessions.get_mut(&sid) {
             session.controlling_tty = Some(tty);
@@ -91,6 +95,7 @@ impl AppSetsidManager {
         }
     }
 
+    #[inline]
     pub fn set_foreground(&mut self, sid: u64, pgid: u64) -> bool {
         if let Some(session) = self.sessions.get_mut(&sid) {
             session.foreground_pgid = pgid;
@@ -101,6 +106,7 @@ impl AppSetsidManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppSetsidStats {
         &self.stats
     }

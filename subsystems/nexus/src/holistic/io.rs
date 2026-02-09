@@ -40,6 +40,7 @@ pub enum DeviceType {
 
 impl DeviceType {
     /// Typical max IOPS
+    #[inline]
     pub fn typical_max_iops(&self) -> u64 {
         match self {
             Self::NvmeSsd => 500_000,
@@ -53,6 +54,7 @@ impl DeviceType {
     }
 
     /// Typical max bandwidth (bytes/sec)
+    #[inline]
     pub fn typical_max_bw(&self) -> u64 {
         match self {
             Self::NvmeSsd => 3_500_000_000,
@@ -66,6 +68,7 @@ impl DeviceType {
     }
 
     /// Is rotational?
+    #[inline(always)]
     pub fn is_rotational(&self) -> bool {
         matches!(self, Self::SataHdd)
     }
@@ -73,6 +76,7 @@ impl DeviceType {
 
 /// Device statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DeviceStats {
     /// Device ID
     pub device_id: u64,
@@ -122,16 +126,19 @@ impl DeviceStats {
     }
 
     /// Total IOPS
+    #[inline(always)]
     pub fn total_iops(&self) -> u64 {
         self.read_iops + self.write_iops
     }
 
     /// Total bandwidth
+    #[inline(always)]
     pub fn total_bw(&self) -> u64 {
         self.read_bw + self.write_bw
     }
 
     /// Is saturated?
+    #[inline(always)]
     pub fn is_saturated(&self) -> bool {
         self.utilization > 9000 // > 90%
     }
@@ -194,6 +201,7 @@ impl IoProcessPriority {
     }
 
     /// Is throttled?
+    #[inline(always)]
     pub fn is_throttled(&self) -> bool {
         (self.bw_limit > 0 && self.current_bw >= self.bw_limit)
             || (self.iops_limit > 0 && self.current_iops >= self.iops_limit)
@@ -268,6 +276,7 @@ impl IoMergeEngine {
     }
 
     /// Submit request
+    #[inline]
     pub fn submit(&mut self, request: IoRequest) {
         self.total_requests += 1;
         self.pending
@@ -365,6 +374,7 @@ impl IoMergeEngine {
     }
 
     /// Pending request count
+    #[inline(always)]
     pub fn pending_count(&self, device_id: u64) -> usize {
         self.pending.get(&device_id).map_or(0, |r| r.len())
     }
@@ -443,17 +453,20 @@ impl HolisticIoManager {
     }
 
     /// Register device
+    #[inline(always)]
     pub fn register_device(&mut self, device_id: u64, device_type: DeviceType) {
         self.devices
             .insert(device_id, DeviceStats::new(device_id, device_type));
     }
 
     /// Update device stats
+    #[inline(always)]
     pub fn update_device(&mut self, stats: DeviceStats) {
         self.devices.insert(stats.device_id, stats);
     }
 
     /// Register process
+    #[inline]
     pub fn register_process(&mut self, pid: u64) {
         self.priorities
             .entry(pid)
@@ -461,11 +474,13 @@ impl HolisticIoManager {
     }
 
     /// Unregister process
+    #[inline(always)]
     pub fn unregister_process(&mut self, pid: u64) {
         self.priorities.remove(&pid);
     }
 
     /// Set I/O priority
+    #[inline]
     pub fn set_priority(&mut self, pid: u64, class: IoSchedClass, priority: u8) {
         if let Some(p) = self.priorities.get_mut(&pid) {
             p.sched_class = class;
@@ -474,6 +489,7 @@ impl HolisticIoManager {
     }
 
     /// Set bandwidth limit
+    #[inline]
     pub fn set_bw_limit(&mut self, pid: u64, limit: u64) {
         if let Some(p) = self.priorities.get_mut(&pid) {
             p.bw_limit = limit;
@@ -481,6 +497,7 @@ impl HolisticIoManager {
     }
 
     /// Submit I/O request
+    #[inline]
     pub fn submit_request(&mut self, request: IoRequest) {
         self.total_ops += 1;
         self.total_bytes += request.length as u64;
@@ -488,31 +505,37 @@ impl HolisticIoManager {
     }
 
     /// Process merged requests for device
+    #[inline(always)]
     pub fn process_device(&mut self, device_id: u64) -> Vec<MergedRequest> {
         self.merge_engine.merge(device_id)
     }
 
     /// Get device stats
+    #[inline(always)]
     pub fn device_stats(&self, device_id: u64) -> Option<&DeviceStats> {
         self.devices.get(&device_id)
     }
 
     /// Get process priority
+    #[inline(always)]
     pub fn process_priority(&self, pid: u64) -> Option<&IoProcessPriority> {
         self.priorities.get(&pid)
     }
 
     /// Get merge engine stats
+    #[inline(always)]
     pub fn merge_stats(&self) -> (u64, u64) {
         (self.merge_engine.total_merges, self.merge_engine.total_requests)
     }
 
     /// Device count
+    #[inline(always)]
     pub fn device_count(&self) -> usize {
         self.devices.len()
     }
 
     /// Process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.priorities.len()
     }

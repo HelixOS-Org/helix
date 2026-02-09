@@ -35,6 +35,7 @@ impl TelemetryHistogram {
     }
 
     /// Create with custom boundaries
+    #[inline]
     pub fn with_boundaries(boundaries: Vec<f64>) -> Self {
         let n_buckets = boundaries.len() + 1; // +1 for overflow bucket
         Self {
@@ -48,6 +49,7 @@ impl TelemetryHistogram {
     }
 
     /// Create histogram for latency (microseconds)
+    #[inline]
     pub fn for_latency() -> Self {
         Self::with_boundaries(vec![
             1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0, 10000.0,
@@ -55,6 +57,7 @@ impl TelemetryHistogram {
     }
 
     /// Create histogram for sizes (bytes)
+    #[inline]
     pub fn for_size() -> Self {
         Self::with_boundaries(vec![
             64.0, 256.0, 1024.0, 4096.0, 16384.0, 65536.0, 262144.0, 1048576.0,
@@ -78,6 +81,7 @@ impl TelemetryHistogram {
     }
 
     /// Get bucket counts
+    #[inline]
     pub fn buckets(&self) -> Vec<(f64, u64)> {
         let mut result = Vec::new();
         for (i, &boundary) in self.boundaries.iter().enumerate() {
@@ -89,16 +93,19 @@ impl TelemetryHistogram {
     }
 
     /// Get count
+    #[inline(always)]
     pub fn count(&self) -> u64 {
         self.count
     }
 
     /// Get sum
+    #[inline(always)]
     pub fn sum(&self) -> f64 {
         self.sum
     }
 
     /// Get mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.count == 0 {
             0.0
@@ -108,11 +115,13 @@ impl TelemetryHistogram {
     }
 
     /// Get min
+    #[inline(always)]
     pub fn min(&self) -> f64 {
         self.min
     }
 
     /// Get max
+    #[inline(always)]
     pub fn max(&self) -> f64 {
         self.max
     }
@@ -146,21 +155,25 @@ impl TelemetryHistogram {
     }
 
     /// Get p50 (median)
+    #[inline(always)]
     pub fn p50(&self) -> f64 {
         self.quantile(0.5)
     }
 
     /// Get p90
+    #[inline(always)]
     pub fn p90(&self) -> f64 {
         self.quantile(0.9)
     }
 
     /// Get p99
+    #[inline(always)]
     pub fn p99(&self) -> f64 {
         self.quantile(0.99)
     }
 
     /// Reset histogram
+    #[inline]
     pub fn reset(&mut self) {
         for count in &mut self.counts {
             *count = 0;

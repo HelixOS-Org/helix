@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -127,6 +128,7 @@ pub struct Breakthrough {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct BeyondStats {
     pub total_decisions: u64,
     pub zero_latency_hits: u64,
@@ -159,7 +161,7 @@ impl BeyondStats {
 
 pub struct HolisticBeyond {
     decision_cache: BTreeMap<u64, ZeroLatencyDecision>,
-    plans: Vec<InfiniteHorizonPlan>,
+    plans: VecDeque<InfiniteHorizonPlan>,
     evolutions: Vec<EvolutionEvent>,
     breakthrough_log: Vec<Breakthrough>,
     stats: BeyondStats,
@@ -171,7 +173,7 @@ impl HolisticBeyond {
     pub fn new(seed: u64) -> Self {
         Self {
             decision_cache: BTreeMap::new(),
-            plans: Vec::new(),
+            plans: VecDeque::new(),
             evolutions: Vec::new(),
             breakthrough_log: Vec::new(),
             stats: BeyondStats::new(),
@@ -242,7 +244,7 @@ impl HolisticBeyond {
         }
         let plan_hash = fnv1a(&total_reward.to_le_bytes()) ^ fnv1a(&self.tick.to_le_bytes());
         if self.plans.len() >= MAX_PLANS {
-            self.plans.remove(0);
+            self.plans.pop_front();
         }
         let plan = InfiniteHorizonPlan {
             plan_hash,
@@ -252,7 +254,7 @@ impl HolisticBeyond {
             steps,
             convergence_tick: self.tick,
         };
-        self.plans.push(plan.clone());
+        self.plans.push_back(plan.clone());
         self.stats.plans_created = self.stats.plans_created.wrapping_add(1);
         plan
     }
@@ -294,6 +296,7 @@ impl HolisticBeyond {
     }
 
     /// Attempt an impossible optimisation — one that exceeds known bounds.
+    #[inline]
     pub fn impossible_optimization(&mut self) -> (u64, u64, bool) {
         self.advance_tick();
         let bound = self.rng.next() % 5000;
@@ -340,18 +343,22 @@ impl HolisticBeyond {
 
     // -- accessors ----------------------------------------------------------
 
+    #[inline(always)]
     pub fn stats(&self) -> &BeyondStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn plan_count(&self) -> usize {
         self.plans.len()
     }
 
+    #[inline(always)]
     pub fn evolution_generation(&self) -> u64 {
         self.stats.evolution_generation
     }
 
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

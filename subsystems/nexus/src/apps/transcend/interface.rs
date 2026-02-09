@@ -96,6 +96,7 @@ pub struct RoadmapStep {
 
 /// Per-app performance metrics used for diagnosis.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct AppMetrics {
     pub app_id: u64,
     pub name: String,
@@ -110,6 +111,7 @@ pub struct AppMetrics {
 
 /// Statistics for the interface engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct InterfaceStats {
     pub bottlenecks_diagnosed: u64,
     pub advice_generated: u64,
@@ -402,6 +404,7 @@ impl AppsInterface {
     }
 
     /// Return current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &InterfaceStats {
         &self.stats
     }

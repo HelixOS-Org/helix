@@ -10,6 +10,7 @@ use super::{Pid, ProfileId, SyscallCategory, SyscallNum};
 
 /// Syscall usage stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SyscallStats {
     /// Call count
     pub count: u64,
@@ -86,6 +87,7 @@ impl SyscallProfile {
     }
 
     /// Record blocked syscall
+    #[inline]
     pub fn record_blocked(&mut self, syscall: SyscallNum, timestamp: u64) {
         let stats = self.syscalls.entry(syscall).or_default();
         stats.blocked_count += 1;
@@ -93,11 +95,13 @@ impl SyscallProfile {
     }
 
     /// Get unique syscalls used
+    #[inline(always)]
     pub fn unique_syscalls(&self) -> usize {
         self.syscalls.len()
     }
 
     /// Get most frequent syscalls
+    #[inline]
     pub fn top_syscalls(&self, n: usize) -> Vec<(SyscallNum, u64)> {
         let mut sorted: Vec<_> = self.syscalls.iter().map(|(s, st)| (*s, st.count)).collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
@@ -106,12 +110,14 @@ impl SyscallProfile {
     }
 
     /// Finish profiling
+    #[inline(always)]
     pub fn finish(&mut self, timestamp: u64) {
         self.end_time = Some(timestamp);
         self.complete = true;
     }
 
     /// Profile duration
+    #[inline(always)]
     pub fn duration(&self) -> Option<u64> {
         self.end_time.map(|end| end - self.start_time)
     }

@@ -122,6 +122,7 @@ impl BenchmarkResult {
     }
 
     /// Get summary string
+    #[inline]
     pub fn summary(&self) -> String {
         format!(
             "{}: mean={:.0} cycles, median={:.0}, std_dev={:.0}, min={}, max={}, p95={:.0}, p99={:.0}, throughput={:.0} ops/sec",
@@ -130,6 +131,7 @@ impl BenchmarkResult {
     }
 
     /// Compare with another result (returns speedup factor)
+    #[inline]
     pub fn compare(&self, other: &BenchmarkResult) -> f64 {
         if self.mean == 0.0 {
             return 0.0;
@@ -138,11 +140,13 @@ impl BenchmarkResult {
     }
 
     /// Is this faster than another result?
+    #[inline(always)]
     pub fn is_faster_than(&self, other: &BenchmarkResult) -> bool {
         self.mean < other.mean
     }
 
     /// Check if regression occurred (within threshold)
+    #[inline]
     pub fn is_regression(&self, baseline: &BenchmarkResult, threshold: f64) -> bool {
         if baseline.mean == 0.0 {
             return false;

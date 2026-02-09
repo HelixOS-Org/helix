@@ -41,16 +41,19 @@ impl HolisticQuotaEntry {
         Self { id, quota_type: qt, block_soft: 0, block_hard: 0, block_used: 0, inode_soft: 0, inode_hard: 0, inode_used: 0, grace_ns: 0 }
     }
 
+    #[inline]
     pub fn state(&self) -> QuotaState {
         if self.block_hard > 0 && self.block_used >= self.block_hard { QuotaState::HardLimitReached }
         else if self.block_soft > 0 && self.block_used >= self.block_soft { QuotaState::SoftLimitExceeded }
         else { QuotaState::Ok }
     }
 
+    #[inline(always)]
     pub fn block_usage_pct(&self) -> f64 {
         if self.block_hard == 0 { 0.0 } else { self.block_used as f64 / self.block_hard as f64 }
     }
 
+    #[inline(always)]
     pub fn inode_usage_pct(&self) -> f64 {
         if self.inode_hard == 0 { 0.0 } else { self.inode_used as f64 / self.inode_hard as f64 }
     }
@@ -58,6 +61,7 @@ impl HolisticQuotaEntry {
 
 /// Holistic quota stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticQuotaStats {
     pub total_quotas: u64,
     pub over_soft: u64,
@@ -77,6 +81,7 @@ impl HolisticQuota {
         Self { quotas: BTreeMap::new(), stats: HolisticQuotaStats { total_quotas: 0, over_soft: 0, over_hard: 0, checks: 0 } }
     }
 
+    #[inline(always)]
     pub fn set_quota(&mut self, key: u64, entry: HolisticQuotaEntry) {
         self.stats.total_quotas += 1;
         self.quotas.insert(key, entry);
@@ -132,6 +137,7 @@ pub struct HolisticQuotaV2Health {
 
 /// Stats for quota analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticQuotaV2Stats {
     pub samples: u64,
     pub analyses: u64,
@@ -167,6 +173,7 @@ impl HolisticQuotaV2Manager {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, metric: HolisticQuotaV2Metric, value: u64, owner_id: u32) {
         let sample = HolisticQuotaV2Sample {
             metric,
@@ -202,6 +209,7 @@ impl HolisticQuotaV2Manager {
         &self.health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticQuotaV2Stats {
         &self.stats
     }

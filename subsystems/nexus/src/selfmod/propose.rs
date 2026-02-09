@@ -193,60 +193,70 @@ impl ProposalBuilder {
     }
 
     /// Set target region
+    #[inline(always)]
     pub fn target(mut self, region: CodeRegion) -> Self {
         self.target = Some(region);
         self
     }
 
     /// Set original code
+    #[inline(always)]
     pub fn original(mut self, code: Vec<u8>) -> Self {
         self.original_code = code;
         self
     }
 
     /// Set new code
+    #[inline(always)]
     pub fn new_code(mut self, code: Vec<u8>) -> Self {
         self.new_code = code;
         self
     }
 
     /// Set description
+    #[inline(always)]
     pub fn description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Set justification
+    #[inline(always)]
     pub fn justification(mut self, just: impl Into<String>) -> Self {
         self.justification = just.into();
         self
     }
 
     /// Set expected performance impact
+    #[inline(always)]
     pub fn performance_impact(mut self, percent: f64) -> Self {
         self.expected_impact.performance = percent;
         self
     }
 
     /// Set expected memory impact
+    #[inline(always)]
     pub fn memory_impact(mut self, bytes: i64) -> Self {
         self.expected_impact.memory = bytes;
         self
     }
 
     /// Set source
+    #[inline(always)]
     pub fn source(mut self, source: ProposalSource) -> Self {
         self.source = source;
         self
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn priority(mut self, priority: ProposalPriority) -> Self {
         self.priority = priority;
         self
     }
 
     /// Add dependency
+    #[inline(always)]
     pub fn depends_on(mut self, id: ProposalId) -> Self {
         self.dependencies.push(id);
         self
@@ -326,6 +336,7 @@ impl Default for ProposalConfig {
 
 /// Proposal statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ProposalStats {
     /// Total proposals created
     pub total_created: u64,
@@ -485,11 +496,13 @@ impl ProposalManager {
     }
 
     /// Get proposal
+    #[inline(always)]
     pub fn get(&self, id: ProposalId) -> Option<&Proposal> {
         self.proposals.get(&id)
     }
 
     /// Get all pending proposals
+    #[inline]
     pub fn pending(&self) -> impl Iterator<Item = &Proposal> {
         self.submitted
             .iter()
@@ -497,6 +510,7 @@ impl ProposalManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ProposalStats {
         &self.stats
     }
@@ -555,6 +569,7 @@ pub trait ProposalStrategy: Send + Sync {
 
 /// Analysis context for proposal generation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AnalysisContext {
     /// Code region being analyzed
     pub region: CodeRegion,
@@ -568,6 +583,7 @@ pub struct AnalysisContext {
 
 /// Performance metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PerformanceMetrics {
     /// Execution time (cycles)
     pub execution_time: u64,
@@ -641,6 +657,7 @@ impl AutoProposer {
     }
 
     /// Add strategy
+    #[inline(always)]
     pub fn add_strategy(&mut self, strategy: Box<dyn ProposalStrategy>) {
         self.strategies.push(strategy);
     }

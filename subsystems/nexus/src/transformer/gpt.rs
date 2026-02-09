@@ -70,6 +70,7 @@ impl GPT {
     }
 
     /// Create GPT-2 small
+    #[inline(always)]
     pub fn gpt2_small(seed: u64) -> Self {
         Self::new(TransformerConfig::gpt_small(), seed)
     }
@@ -306,11 +307,13 @@ impl Default for LlamaConfig {
 
 impl LlamaConfig {
     /// LLaMA 7B config
+    #[inline(always)]
     pub fn llama_7b() -> Self {
         Self::default()
     }
 
     /// LLaMA 13B config
+    #[inline]
     pub fn llama_13b() -> Self {
         Self {
             d_model: 5120,
@@ -324,6 +327,7 @@ impl LlamaConfig {
     }
 
     /// Tiny config for testing
+    #[inline]
     pub fn tiny() -> Self {
         Self {
             d_model: 64,
@@ -369,6 +373,7 @@ impl Llama {
     }
 
     /// Forward pass
+    #[inline]
     pub fn forward(&self, input_ids: &[usize]) -> Tensor2 {
         let mut hidden = self.embed.forward(input_ids);
 
@@ -566,6 +571,7 @@ impl MistralLayer {
     }
 
     /// Forward pass
+    #[inline]
     pub fn forward(&self, x: &Tensor2) -> Tensor2 {
         let normed1 = self.attn_norm.forward(x);
         let attn_out = self.attn.forward(&normed1);
@@ -606,6 +612,7 @@ impl Default for MistralConfig {
 
 impl MistralConfig {
     /// Tiny config for testing
+    #[inline]
     pub fn tiny() -> Self {
         Self {
             d_model: 64,
@@ -652,6 +659,7 @@ impl Mistral {
     }
 
     /// Forward pass
+    #[inline]
     pub fn forward(&self, input_ids: &[usize]) -> Tensor2 {
         let mut hidden = self.embed.forward(input_ids);
 

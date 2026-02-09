@@ -68,6 +68,7 @@ impl MultiHeadAttention {
     }
 
     /// Enable weight storage
+    #[inline]
     pub fn with_weight_storage(mut self) -> Self {
         self.store_weights = true;
         self.attention = self.attention.with_weight_storage();
@@ -75,6 +76,7 @@ impl MultiHeadAttention {
     }
 
     /// Set training mode
+    #[inline(always)]
     pub fn train(&mut self, training: bool) {
         self.dropout.train(training);
     }
@@ -197,6 +199,7 @@ impl MultiHeadAttention {
     }
 
     /// Self-attention forward
+    #[inline(always)]
     pub fn self_attention(&mut self, x: &Matrix, mask: &AttentionMask) -> AttentionOutput {
         self.forward(x, x, x, mask)
     }
@@ -208,6 +211,7 @@ impl MultiHeadAttention {
 
 /// KV Cache for incremental decoding
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KVCache {
     /// Cached keys per layer
     pub keys: Vec<Matrix>,
@@ -296,6 +300,7 @@ impl KVCache {
     }
 
     /// Get cached KV for layer
+    #[inline]
     pub fn get(&self, layer: usize) -> Option<(&Matrix, &Matrix)> {
         if layer < self.keys.len() && self.keys[layer].rows > 0 {
             Some((&self.keys[layer], &self.values[layer]))
@@ -305,23 +310,27 @@ impl KVCache {
     }
 
     /// Clear cache
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.keys.clear();
         self.values.clear();
     }
 
     /// Get current length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.keys.first().map(|k| k.rows).unwrap_or(0)
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.keys.is_empty() || self.keys[0].rows == 0
     }
 }
 
 /// Multi-head attention with KV cache
+#[repr(align(64))]
 pub struct CachedMultiHeadAttention {
     /// Base attention
     inner: MultiHeadAttention,

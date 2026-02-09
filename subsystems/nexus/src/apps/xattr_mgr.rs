@@ -29,6 +29,7 @@ pub enum XattrNamespace {
 }
 
 impl XattrNamespace {
+    #[inline(always)]
     pub fn requires_privilege(&self) -> bool {
         matches!(self, Self::Trusted | Self::Security | Self::Selinux | Self::Smack | Self::Capability)
     }
@@ -66,6 +67,7 @@ impl XattrEntry {
         }
     }
 
+    #[inline(always)]
     pub fn is_security_label(&self) -> bool {
         matches!(self.namespace, XattrNamespace::Security | XattrNamespace::Selinux | XattrNamespace::Smack)
     }
@@ -88,12 +90,14 @@ impl InodeXattrs {
         }
     }
 
+    #[inline]
     pub fn set(&mut self, entry: XattrEntry) {
         let old_size = self.attrs.get(&entry.name).map(|e| e.value_size).unwrap_or(0);
         self.total_value_bytes = self.total_value_bytes.saturating_sub(old_size) + entry.value_size;
         self.attrs.insert(entry.name.clone(), entry);
     }
 
+    #[inline]
     pub fn get(&mut self, name: &str) -> Option<&XattrEntry> {
         if let Some(entry) = self.attrs.get_mut(name) {
             entry.access_count += 1;
@@ -101,6 +105,7 @@ impl InodeXattrs {
         self.attrs.get(name)
     }
 
+    #[inline]
     pub fn remove(&mut self, name: &str) -> bool {
         if let Some(entry) = self.attrs.remove(name) {
             self.total_value_bytes = self.total_value_bytes.saturating_sub(entry.value_size);
@@ -110,22 +115,27 @@ impl InodeXattrs {
         }
     }
 
+    #[inline(always)]
     pub fn list(&self) -> Vec<&str> {
         self.attrs.keys().map(|s| s.as_str()).collect()
     }
 
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.attrs.len()
     }
 
+    #[inline(always)]
     pub fn has_security_labels(&self) -> bool {
         self.attrs.values().any(|e| e.is_security_label())
     }
 
+    #[inline(always)]
     pub fn security_labels(&self) -> Vec<&XattrEntry> {
         self.attrs.values().filter(|e| e.is_security_label()).collect()
     }
 
+    #[inline(always)]
     pub fn by_namespace(&self, ns: XattrNamespace) -> Vec<&XattrEntry> {
         self.attrs.values().filter(|e| e.namespace == ns).collect()
     }
@@ -175,26 +185,31 @@ impl AppXattrProfile {
         }
     }
 
+    #[inline(always)]
     pub fn record_denied(&mut self) {
         self.denied_count += 1;
     }
 
+    #[inline(always)]
     pub fn total_ops(&self) -> u64 {
         self.get_count + self.set_count + self.list_count + self.remove_count
     }
 
+    #[inline]
     pub fn write_ratio(&self) -> f64 {
         let total = self.total_ops();
         if total == 0 { return 0.0; }
         (self.set_count + self.remove_count) as f64 / total as f64
     }
 
+    #[inline]
     pub fn denial_rate(&self) -> f64 {
         let total = self.total_ops() + self.denied_count;
         if total == 0 { return 0.0; }
         self.denied_count as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn accesses_privileged(&self) -> bool {
         self.namespaces_accessed.iter().any(|ns| ns.requires_privilege())
     }
@@ -202,6 +217,7 @@ impl AppXattrProfile {
 
 /// Xattr manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct XattrMgrStats {
     pub total_inodes_tracked: u64,
     pub total_xattrs: u64,
@@ -238,6 +254,7 @@ impl AppXattrMgr {
         }
     }
 
+    #[inline(always)]
     pub fn register_app(&mut self, pid: u64) {
         self.profiles.insert(pid, AppXattrProfile::new(pid));
     }
@@ -313,6 +330,7 @@ impl AppXattrMgr {
         }
     }
 
+    #[inline]
     pub fn listxattr(&mut self, pid: u64, inode: u64) -> Vec<String> {
         if let Some(prof) = self.profiles.get_mut(&pid) {
             prof.record_op(XattrOp::List, XattrNamespace::User);
@@ -324,6 +342,7 @@ impl AppXattrMgr {
         }
     }
 
+    #[inline]
     pub fn deny_access(&mut self, pid: u64) {
         if let Some(prof) = self.profiles.get_mut(&pid) {
             prof.record_denied();
@@ -331,6 +350,7 @@ impl AppXattrMgr {
         self.stats.total_denials += 1;
     }
 
+    #[inline]
     pub fn inodes_with_security_labels(&self) -> Vec<u64> {
         self.inodes.iter()
             .filter(|(_, ix)| ix.has_security_labels())
@@ -338,6 +358,7 @@ impl AppXattrMgr {
             .collect()
     }
 
+    #[inline]
     pub fn heaviest_inodes(&self, top: usize) -> Vec<(u64, usize)> {
         let mut v: Vec<(u64, usize)> = self.inodes.iter()
             .map(|(&ino, ix)| (ino, ix.total_value_bytes))
@@ -347,6 +368,7 @@ impl AppXattrMgr {
         v
     }
 
+    #[inline]
     pub fn most_active_apps(&self, top: usize) -> Vec<(u64, u64)> {
         let mut v: Vec<(u64, u64)> = self.profiles.iter()
             .map(|(&pid, p)| (pid, p.total_ops()))
@@ -356,14 +378,17 @@ impl AppXattrMgr {
         v
     }
 
+    #[inline(always)]
     pub fn get_inode_xattrs(&self, inode: u64) -> Option<&InodeXattrs> {
         self.inodes.get(&inode)
     }
 
+    #[inline(always)]
     pub fn get_profile(&self, pid: u64) -> Option<&AppXattrProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &XattrMgrStats {
         &self.stats
     }

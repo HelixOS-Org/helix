@@ -39,6 +39,7 @@ impl ForecastResult {
     }
 
     /// Add a forecasted value
+    #[inline(always)]
     pub fn add_value(
         &mut self,
         timestamp: u64,
@@ -51,6 +52,7 @@ impl ForecastResult {
     }
 
     /// Set trend
+    #[inline]
     pub fn with_trend(mut self, trend: f64, strength: f64) -> Self {
         self.trend = trend;
         self.trend_strength = strength.clamp(0.0, 1.0);
@@ -58,6 +60,7 @@ impl ForecastResult {
     }
 
     /// Get forecasted value at a specific time
+    #[inline]
     pub fn value_at(&self, timestamp: u64) -> Option<f64> {
         // Find closest point
         self.values

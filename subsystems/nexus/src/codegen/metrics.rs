@@ -6,7 +6,9 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
@@ -67,6 +69,7 @@ pub enum MetricValue {
 }
 
 impl MetricValue {
+    #[inline]
     pub fn as_u64(&self) -> u64 {
         match self {
             MetricValue::Count(n) => *n,
@@ -76,6 +79,7 @@ impl MetricValue {
         }
     }
 
+    #[inline]
     pub fn as_f64(&self) -> f64 {
         match self {
             MetricValue::Count(n) | MetricValue::Cycles(n) => *n as f64,
@@ -87,6 +91,7 @@ impl MetricValue {
 
 /// Metric result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricResult {
     /// Metric kind
     pub kind: MetricKind,
@@ -100,6 +105,7 @@ pub struct MetricResult {
 
 /// Metric report
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricReport {
     /// Module name
     pub module_name: String,
@@ -113,6 +119,7 @@ pub struct MetricReport {
 
 /// Halstead metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HalsteadMetrics {
     /// Distinct operators
     pub n1: u64,
@@ -126,16 +133,19 @@ pub struct HalsteadMetrics {
 
 impl HalsteadMetrics {
     /// Vocabulary
+    #[inline(always)]
     pub fn vocabulary(&self) -> u64 {
         self.n1 + self.n2
     }
 
     /// Length
+    #[inline(always)]
     pub fn length(&self) -> u64 {
         self.big_n1 + self.big_n2
     }
 
     /// Calculated length
+    #[inline]
     pub fn calculated_length(&self) -> f64 {
         let n1 = self.n1 as f64;
         let n2 = self.n2 as f64;
@@ -147,6 +157,7 @@ impl HalsteadMetrics {
     }
 
     /// Volume
+    #[inline]
     pub fn volume(&self) -> f64 {
         let n = self.vocabulary() as f64;
         if n > 0.0 {
@@ -157,6 +168,7 @@ impl HalsteadMetrics {
     }
 
     /// Difficulty
+    #[inline]
     pub fn difficulty(&self) -> f64 {
         let n2 = self.n2 as f64;
         let big_n2 = self.big_n2 as f64;
@@ -168,16 +180,19 @@ impl HalsteadMetrics {
     }
 
     /// Effort
+    #[inline(always)]
     pub fn effort(&self) -> f64 {
         self.difficulty() * self.volume()
     }
 
     /// Time to implement (seconds)
+    #[inline(always)]
     pub fn time(&self) -> f64 {
         self.effort() / 18.0
     }
 
     /// Bugs estimation
+    #[inline(always)]
     pub fn bugs(&self) -> f64 {
         self.volume() / 3000.0
     }
@@ -223,19 +238,21 @@ impl MaintainabilityIndex {
 // ============================================================================
 
 /// Metrics collector
+#[repr(align(64))]
 pub struct MetricsCollector {
     /// Collected metrics
     metrics: BTreeMap<String, Vec<MetricResult>>,
     /// Thresholds
     thresholds: BTreeMap<MetricKind, MetricValue>,
     /// Historical data
-    history: Vec<MetricReport>,
+    history: VecDeque<MetricReport>,
     /// Configuration
     config: MetricsConfig,
 }
 
 /// Metrics configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricsConfig {
     /// Enable all metrics
     pub enable_all: bool,
@@ -264,7 +281,7 @@ impl MetricsCollector {
         let mut collector = Self {
             metrics: BTreeMap::new(),
             thresholds: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             config,
         };
 
@@ -319,9 +336,9 @@ impl MetricsCollector {
 
         // Store in history
         if self.config.store_history {
-            self.history.push(report.clone());
+            self.history.push_back(report.clone());
             if self.history.len() > self.config.history_limit {
-                self.history.remove(0);
+                self.history.pop_front();
             }
         }
 
@@ -418,7 +435,7 @@ impl MetricsCollector {
     }
 
     fn calculate_block_depth(&self, func: &IRFunction) -> u32 {
-        let mut depths: BTreeMap<u64, u32> = BTreeMap::new();
+        let mut depths: LinearMap<u32, 64> = BTreeMap::new();
         depths.insert(func.entry, 0);
 
         let mut changed = true;
@@ -522,7 +539,7 @@ impl MetricsCollector {
                 *operands.entry(format!("{}", n)).or_insert(0) += 1;
             },
             IRValue::Param(n) => {
-                *operands.entry(format!("param_{}", n)).or_insert(0) += 1;
+                *operands.entry(crate::fast::fast_hash::FastHasher::new().write_str("param_").write_u64(n as u64).finish()).or_insert(0) += 1;
             },
             _ => {},
         }
@@ -667,11 +684,13 @@ impl MetricsCollector {
     }
 
     /// Get metric history
+    #[inline(always)]
     pub fn history(&self) -> &[MetricReport] {
         &self.history
     }
 
     /// Set threshold
+    #[inline(always)]
     pub fn set_threshold(&mut self, kind: MetricKind, value: MetricValue) {
         self.thresholds.insert(kind, value);
     }
@@ -710,6 +729,7 @@ impl MetricsCollector {
 
 /// Metric change
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricChange {
     pub kind: MetricKind,
     pub before: MetricValue,
@@ -720,6 +740,7 @@ pub struct MetricChange {
 
 /// Metric comparison
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricComparison {
     pub before_score: f64,
     pub after_score: f64,

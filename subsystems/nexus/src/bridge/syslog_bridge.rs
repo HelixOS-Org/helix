@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Syslog facility
@@ -57,8 +58,9 @@ pub struct SyslogMessage {
 
 /// Syslog ring buffer
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct SyslogRingBuffer {
-    pub messages: Vec<SyslogMessage>,
+    pub messages: VecDeque<SyslogMessage>,
     pub capacity: usize,
     pub next_seq: u64,
     pub dropped_count: u64,
@@ -66,18 +68,20 @@ pub struct SyslogRingBuffer {
 }
 
 impl SyslogRingBuffer {
-    pub fn new(capacity: usize) -> Self { Self { messages: Vec::new(), capacity, next_seq: 1, dropped_count: 0, read_position: 0 } }
+    pub fn new(capacity: usize) -> Self { Self { messages: VecDeque::new(), capacity, next_seq: 1, dropped_count: 0, read_position: 0 } }
 
+    #[inline]
     pub fn write(&mut self, facility: SyslogFacility, severity: SyslogSeverity, msg_hash: u64, pid: u64, now: u64) -> u64 {
         let seq = self.next_seq; self.next_seq += 1;
-        if self.messages.len() >= self.capacity { self.messages.remove(0); self.dropped_count += 1; }
-        self.messages.push(SyslogMessage { seq, facility, severity, msg_hash, timestamp: now, pid, dropped: false });
+        if self.messages.len() >= self.capacity { self.messages.pop_front(); self.dropped_count += 1; }
+        self.messages.push_back(SyslogMessage { seq, facility, severity, msg_hash, timestamp: now, pid, dropped: false });
         seq
     }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyslogBridgeStats {
     pub total_messages: u64,
     pub buffer_used: u32,
@@ -95,10 +99,12 @@ pub struct BridgeSyslog {
 impl BridgeSyslog {
     pub fn new(capacity: usize) -> Self { Self { buffer: SyslogRingBuffer::new(capacity) } }
 
+    #[inline(always)]
     pub fn log(&mut self, facility: SyslogFacility, severity: SyslogSeverity, msg_hash: u64, pid: u64, now: u64) -> u64 {
         self.buffer.write(facility, severity, msg_hash, pid, now)
     }
 
+    #[inline]
     pub fn stats(&self) -> SyslogBridgeStats {
         let errors = self.buffer.messages.iter().filter(|m| matches!(m.severity, SyslogSeverity::Error | SyslogSeverity::Critical | SyslogSeverity::Alert | SyslogSeverity::Emergency)).count() as u64;
         let warnings = self.buffer.messages.iter().filter(|m| m.severity == SyslogSeverity::Warning).count() as u64;
@@ -179,6 +185,7 @@ impl SyslogV2Ring {
         }
     }
 
+    #[inline]
     pub fn write(&mut self, entry: SyslogV2Entry) {
         if self.entries.len() < self.capacity {
             self.entries.push(entry);
@@ -191,16 +198,19 @@ impl SyslogV2Ring {
         self.total_written += 1;
     }
 
+    #[inline]
     pub fn read_recent(&self, count: usize) -> Vec<&SyslogV2Entry> {
         let len = self.entries.len();
         let start = if len > count { len - count } else { 0 };
         self.entries[start..].iter().collect()
     }
 
+    #[inline(always)]
     pub fn filter_level(&self, max_level: SyslogV2Level) -> Vec<&SyslogV2Entry> {
         self.entries.iter().filter(|e| e.level <= max_level).collect()
     }
 
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.entries.clear();
         self.write_pos = 0;
@@ -209,6 +219,7 @@ impl SyslogV2Ring {
 
 /// Statistics for syslog V2 bridge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyslogV2BridgeStats {
     pub total_messages: u64,
     pub emergency_count: u64,
@@ -272,14 +283,17 @@ impl BridgeSyslogV2 {
         }
     }
 
+    #[inline(always)]
     pub fn read_recent(&self, count: usize) -> Vec<&SyslogV2Entry> {
         self.ring.read_recent(count)
     }
 
+    #[inline(always)]
     pub fn set_console_level(&mut self, level: SyslogV2Level) {
         self.console_level = level;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SyslogV2BridgeStats {
         &self.stats
     }

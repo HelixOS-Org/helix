@@ -78,6 +78,7 @@ impl RwLockInstance {
         }
     }
 
+    #[inline]
     pub fn try_write(&mut self, tid: u64) -> bool {
         if self.state == RwLockState::Free {
             self.state = RwLockState::WriteLocked;
@@ -90,6 +91,7 @@ impl RwLockInstance {
         }
     }
 
+    #[inline]
     pub fn read_unlock(&mut self) {
         if self.reader_count > 0 {
             self.reader_count -= 1;
@@ -99,6 +101,7 @@ impl RwLockInstance {
         }
     }
 
+    #[inline(always)]
     pub fn write_unlock(&mut self) {
         self.state = RwLockState::Free;
         self.writer_id = None;
@@ -107,6 +110,7 @@ impl RwLockInstance {
 
 /// Statistics for RwLock coop
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RwLockStats {
     pub locks_created: u64,
     pub read_acquisitions: u64,
@@ -137,6 +141,7 @@ impl CoopRwLock {
         }
     }
 
+    #[inline]
     pub fn create_lock(&mut self, fairness: RwLockFairness) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -159,6 +164,7 @@ impl CoopRwLock {
         false
     }
 
+    #[inline]
     pub fn write_lock(&mut self, lock_id: u64, tid: u64) -> bool {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             if lock.try_write(tid) {
@@ -170,18 +176,21 @@ impl CoopRwLock {
         false
     }
 
+    #[inline]
     pub fn read_unlock(&mut self, lock_id: u64) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.read_unlock();
         }
     }
 
+    #[inline]
     pub fn write_unlock(&mut self, lock_id: u64) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.write_unlock();
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &RwLockStats {
         &self.stats
     }
@@ -266,6 +275,7 @@ impl RwLockV2Instance {
         }
     }
 
+    #[inline]
     pub fn try_write_lock(&mut self, pid: u64) -> bool {
         if self.state == RwLockV2State::Unlocked {
             self.state = RwLockV2State::WriteLocked;
@@ -278,6 +288,7 @@ impl RwLockV2Instance {
         }
     }
 
+    #[inline]
     pub fn read_unlock(&mut self) {
         let prev = self.reader_count.fetch_sub(1, Ordering::AcqRel);
         if prev <= 1 {
@@ -286,11 +297,13 @@ impl RwLockV2Instance {
         }
     }
 
+    #[inline(always)]
     pub fn write_unlock(&mut self) {
         self.state = RwLockV2State::Unlocked;
         self.writer_pid = None;
     }
 
+    #[inline]
     pub fn downgrade(&mut self) -> bool {
         if self.state == RwLockV2State::WriteLocked {
             self.reader_count.store(1, Ordering::Release);
@@ -302,6 +315,7 @@ impl RwLockV2Instance {
         }
     }
 
+    #[inline]
     pub fn contention_ratio(&self) -> f64 {
         let total = self.total_read_acquires + self.total_write_acquires;
         if total == 0 {
@@ -313,6 +327,7 @@ impl RwLockV2Instance {
 
 /// Statistics for rwlock V2.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RwLockV2Stats {
     pub total_locks: u64,
     pub total_read_acquires: u64,
@@ -345,6 +360,7 @@ impl CoopRwLockV2 {
         }
     }
 
+    #[inline]
     pub fn create_lock(&mut self, fairness: RwLockV2Fairness) -> u64 {
         let id = self.next_lock_id;
         self.next_lock_id += 1;
@@ -354,6 +370,7 @@ impl CoopRwLockV2 {
         id
     }
 
+    #[inline(always)]
     pub fn lock_count(&self) -> usize {
         self.locks.len()
     }

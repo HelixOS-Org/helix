@@ -102,6 +102,7 @@ impl FencePoint {
     }
 
     /// Signal completion
+    #[inline]
     pub fn signal(&mut self, now: u64) {
         if self.state == FenceState::Pending {
             self.state = FenceState::Signaled;
@@ -110,6 +111,7 @@ impl FencePoint {
     }
 
     /// Check timeout
+    #[inline]
     pub fn check_timeout(&mut self, now: u64) -> bool {
         if self.state == FenceState::Pending {
             if now.saturating_sub(self.created_at) >= self.timeout_ns {
@@ -121,16 +123,19 @@ impl FencePoint {
     }
 
     /// Is complete?
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.state == FenceState::Signaled
     }
 
     /// Latency (if signaled)
+    #[inline(always)]
     pub fn latency_ns(&self) -> Option<u64> {
         self.signaled_at.map(|s| s.saturating_sub(self.created_at))
     }
 
     /// Add dependency
+    #[inline]
     pub fn add_dependency(&mut self, fence_id: u64) {
         if !self.dependencies.contains(&fence_id) {
             self.dependencies.push(fence_id);
@@ -163,16 +168,19 @@ impl FenceChain {
     }
 
     /// Add fence to chain
+    #[inline(always)]
     pub fn push(&mut self, fence_id: u64) {
         self.fences.push(fence_id);
     }
 
     /// Current fence
+    #[inline(always)]
     pub fn current(&self) -> Option<u64> {
         self.fences.get(self.position).copied()
     }
 
     /// Advance to next
+    #[inline]
     pub fn advance(&mut self) -> Option<u64> {
         if self.position < self.fences.len() {
             self.position += 1;
@@ -181,11 +189,13 @@ impl FenceChain {
     }
 
     /// Is complete?
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.position >= self.fences.len()
     }
 
     /// Remaining count
+    #[inline(always)]
     pub fn remaining(&self) -> usize {
         self.fences.len().saturating_sub(self.position)
     }
@@ -197,6 +207,7 @@ impl FenceChain {
 
 /// Pool of reusable fence objects
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct FencePool {
     /// Available fence ids
     available: Vec<u64>,
@@ -216,6 +227,7 @@ impl FencePool {
     }
 
     /// Allocate fence id
+    #[inline]
     pub fn allocate(&mut self) -> u64 {
         if let Some(id) = self.available.pop() {
             id
@@ -227,6 +239,7 @@ impl FencePool {
     }
 
     /// Return fence id to pool
+    #[inline]
     pub fn release(&mut self, id: u64) {
         if self.available.len() < self.capacity {
             self.available.push(id);
@@ -234,6 +247,7 @@ impl FencePool {
     }
 
     /// Available count
+    #[inline(always)]
     pub fn available_count(&self) -> usize {
         self.available.len()
     }
@@ -245,6 +259,7 @@ impl FencePool {
 
 /// Fence stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeFenceStats {
     /// Active fences
     pub active_fences: usize,
@@ -259,6 +274,7 @@ pub struct BridgeFenceStats {
 }
 
 /// Bridge fence manager
+#[repr(align(64))]
 pub struct BridgeFenceManager {
     /// Active fences
     fences: BTreeMap<u64, FencePoint>,
@@ -289,6 +305,7 @@ impl BridgeFenceManager {
     }
 
     /// Create fence
+    #[inline]
     pub fn create_fence(
         &mut self,
         fence_type: FenceType,
@@ -319,6 +336,7 @@ impl BridgeFenceManager {
     }
 
     /// Check timeouts
+    #[inline]
     pub fn check_timeouts(&mut self, now: u64) -> Vec<u64> {
         let mut timed_out = Vec::new();
         for (id, fence) in self.fences.iter_mut() {
@@ -331,6 +349,7 @@ impl BridgeFenceManager {
     }
 
     /// Clean up completed fences
+    #[inline]
     pub fn cleanup(&mut self) {
         let complete_ids: Vec<u64> = self.fences.iter()
             .filter(|(_, f)| f.state != FenceState::Pending)
@@ -344,6 +363,7 @@ impl BridgeFenceManager {
     }
 
     /// Create chain
+    #[inline]
     pub fn create_chain(&mut self) -> u64 {
         let id = self.next_chain_id;
         self.next_chain_id += 1;
@@ -352,6 +372,7 @@ impl BridgeFenceManager {
     }
 
     /// Get fence
+    #[inline(always)]
     pub fn fence(&self, id: u64) -> Option<&FencePoint> {
         self.fences.get(&id)
     }
@@ -364,6 +385,7 @@ impl BridgeFenceManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeFenceStats {
         &self.stats
     }

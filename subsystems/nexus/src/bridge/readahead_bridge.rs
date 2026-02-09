@@ -27,6 +27,7 @@ pub enum ReadaheadState {
 
 /// File readahead context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReadaheadContext {
     pub fd: i32,
     pub state: ReadaheadState,
@@ -93,6 +94,7 @@ impl ReadaheadContext {
         self.prev_offset = offset;
     }
 
+    #[inline]
     pub fn grow_window(&mut self) {
         if self.window_pages < self.max_window_pages {
             self.window_pages = (self.window_pages * 2).min(self.max_window_pages);
@@ -100,6 +102,7 @@ impl ReadaheadContext {
         }
     }
 
+    #[inline]
     pub fn shrink_window(&mut self) {
         self.window_pages = (self.window_pages / 2).max(4);
         if self.window_pages <= 4 {
@@ -107,17 +110,20 @@ impl ReadaheadContext {
         }
     }
 
+    #[inline]
     pub fn trigger_async(&mut self) {
         self.state = ReadaheadState::Async;
         self.async_size = self.window_pages / 4;
         self.pages_fetched += self.window_pages as u64;
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
         if total == 0 { 0.0 } else { self.hits as f64 / total as f64 }
     }
 
+    #[inline]
     pub fn waste_pct(&self) -> f64 {
         if self.pages_fetched == 0 { 0.0 }
         else {
@@ -129,6 +135,7 @@ impl ReadaheadContext {
 
 /// Readahead bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReadaheadBridgeStats {
     pub total_files: u64,
     pub total_reads: u64,
@@ -139,6 +146,7 @@ pub struct ReadaheadBridgeStats {
 
 /// Main bridge readahead
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeReadahead {
     pub contexts: BTreeMap<i32, ReadaheadContext>,
     pub stats: ReadaheadBridgeStats,
@@ -160,6 +168,7 @@ impl BridgeReadahead {
         }
     }
 
+    #[inline]
     pub fn get_or_create(&mut self, fd: i32) -> &mut ReadaheadContext {
         if !self.contexts.contains_key(&fd) {
             self.contexts.insert(fd, ReadaheadContext::new(fd, self.default_max_window));
@@ -168,12 +177,14 @@ impl BridgeReadahead {
         self.contexts.get_mut(&fd).unwrap()
     }
 
+    #[inline]
     pub fn record_read(&mut self, fd: i32, offset: u64, len: u32) {
         self.stats.total_reads += 1;
         let ctx = self.get_or_create(fd);
         ctx.record_read(offset, len);
     }
 
+    #[inline]
     pub fn advise(&mut self, fd: i32, offset: u64, len: u64) {
         let ctx = self.get_or_create(fd);
         ctx.start_page = offset / 4096;
@@ -181,6 +192,7 @@ impl BridgeReadahead {
         ctx.state = ReadaheadState::Active;
     }
 
+    #[inline(always)]
     pub fn overall_hit_rate(&self) -> f64 {
         let total = self.stats.total_hits + self.stats.total_misses;
         if total == 0 { 0.0 } else { self.stats.total_hits as f64 / total as f64 }

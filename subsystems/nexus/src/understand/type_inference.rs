@@ -105,6 +105,7 @@ impl TypeEnv {
         }
     }
 
+    #[inline]
     pub fn with_parent(parent: TypeEnv) -> Self {
         Self {
             bindings: BTreeMap::new(),
@@ -112,10 +113,12 @@ impl TypeEnv {
         }
     }
 
+    #[inline(always)]
     pub fn bind(&mut self, name: &str, ty: Type) {
         self.bindings.insert(name.into(), ty);
     }
 
+    #[inline]
     pub fn lookup(&self, name: &str) -> Option<Type> {
         if let Some(ty) = self.bindings.get(name) {
             Some(ty.clone())
@@ -182,6 +185,7 @@ impl Substitution {
         }
     }
 
+    #[inline(always)]
     pub fn extend(&mut self, var: u64, ty: Type) {
         self.mappings.insert(var, ty);
     }
@@ -271,6 +275,7 @@ impl Default for InferenceConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct InferenceStats {
     /// Variables created
     pub variables_created: u64,
@@ -294,6 +299,7 @@ impl TypeInferenceEngine {
     }
 
     /// Create fresh type variable
+    #[inline]
     pub fn fresh_var(&mut self) -> Type {
         let id = self.next_var.fetch_add(1, Ordering::Relaxed);
         self.stats.variables_created += 1;
@@ -301,6 +307,7 @@ impl TypeInferenceEngine {
     }
 
     /// Add constraint
+    #[inline]
     pub fn constrain(&mut self, kind: ConstraintKind, location: &str) {
         let id = self.next_var.fetch_add(1, Ordering::Relaxed);
 
@@ -555,16 +562,19 @@ impl TypeInferenceEngine {
     }
 
     /// Get substitution
+    #[inline(always)]
     pub fn substitution(&self) -> &Substitution {
         &self.substitution
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &InferenceStats {
         &self.stats
     }
 
     /// Reset engine
+    #[inline]
     pub fn reset(&mut self) {
         self.constraints.clear();
         self.substitution = Substitution::new();

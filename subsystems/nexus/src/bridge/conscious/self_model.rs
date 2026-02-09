@@ -43,6 +43,7 @@ fn fnv1a_hash(data: &[u8]) -> u64 {
 
 /// A single tracked capability of the bridge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Capability {
     /// Human-readable name
     pub name: String,
@@ -84,6 +85,7 @@ impl Capability {
     }
 
     /// Push a new observation, update EMA and variance
+    #[inline]
     pub fn observe(&mut self, raw: f32, tick: u64) {
         let clamped = raw.max(0.0).min(1.0);
         self.last_raw = clamped;
@@ -110,6 +112,7 @@ impl Capability {
     }
 
     /// 95% confidence interval half-width
+    #[inline]
     pub fn confidence_half_width(&self) -> f32 {
         if self.observations < 2 {
             return 0.5;
@@ -120,6 +123,7 @@ impl Capability {
     }
 
     /// Confidence interval (low, high) around the EMA score
+    #[inline(always)]
     pub fn confidence_interval(&self) -> (f32, f32) {
         let hw = self.confidence_half_width();
         ((self.score - hw).max(0.0), (self.score + hw).min(1.0))
@@ -180,6 +184,7 @@ pub struct Limitation {
 
 /// Aggregate statistics about the self-model
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SelfModelStats {
     pub total_capabilities: usize,
     pub total_limitations: usize,
@@ -198,6 +203,7 @@ pub struct SelfModelStats {
 /// The bridge's complete model of itself — capabilities, limitations,
 /// performance metrics with EMA smoothing and confidence intervals.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeSelfModel {
     /// All tracked capabilities keyed by FNV-1a hash of name
     capabilities: BTreeMap<u64, Capability>,
@@ -223,6 +229,7 @@ impl BridgeSelfModel {
     }
 
     /// Register or update a capability with a new observation
+    #[inline]
     pub fn update_capability(&mut self, name: &str, raw_score: f32) {
         self.tick += 1;
         let id = fnv1a_hash(name.as_bytes());
@@ -235,6 +242,7 @@ impl BridgeSelfModel {
     }
 
     /// Register or update a limitation assessment
+    #[inline]
     pub fn assess_limitation(
         &mut self,
         name: &str,
@@ -264,6 +272,7 @@ impl BridgeSelfModel {
     }
 
     /// Mark a limitation as mitigated with an effectiveness score
+    #[inline]
     pub fn mitigate_limitation(&mut self, name: &str, effectiveness: f32) {
         let id = fnv1a_hash(name.as_bytes());
         if let Some(lim) = self.limitations.get_mut(&id) {
@@ -305,12 +314,14 @@ impl BridgeSelfModel {
     }
 
     /// Get the EMA-smoothed score for a named capability
+    #[inline(always)]
     pub fn capability_score(&self, name: &str) -> Option<f32> {
         let id = fnv1a_hash(name.as_bytes());
         self.capabilities.get(&id).map(|c| c.score)
     }
 
     /// Get improvement rate across all capabilities
+    #[inline]
     pub fn improvement_rate(&self) -> f32 {
         if self.capabilities.is_empty() {
             return 0.0;
@@ -362,6 +373,7 @@ impl BridgeSelfModel {
     }
 
     /// List all capabilities with their confidence intervals
+    #[inline]
     pub fn capability_report(&self) -> Vec<(String, f32, f32, f32)> {
         self.capabilities
             .values()
@@ -373,6 +385,7 @@ impl BridgeSelfModel {
     }
 
     /// List all unmitigated limitations sorted by severity (descending)
+    #[inline]
     pub fn critical_limitations(&self) -> Vec<&Limitation> {
         let mut lims: Vec<&Limitation> =
             self.limitations.values().filter(|l| !l.mitigated).collect();

@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Copy direction
@@ -89,11 +90,13 @@ impl CopyRequest {
     }
 
     /// Is this a large copy that benefits from zero-copy?
+    #[inline(always)]
     pub fn is_large(&self) -> bool {
         self.length >= 4096
     }
 
     /// Is page-aligned?
+    #[inline(always)]
     pub fn is_page_aligned(&self) -> bool {
         (self.src_addr & 0xFFF) == 0 && (self.dst_addr & 0xFFF) == 0
     }
@@ -110,6 +113,7 @@ pub struct CopyCompletion {
 }
 
 impl CopyCompletion {
+    #[inline(always)]
     pub fn bandwidth_mbps(&self) -> f64 {
         if self.duration_ns == 0 { return 0.0; }
         (self.bytes_copied as f64 / (1024.0 * 1024.0)) / (self.duration_ns as f64 / 1_000_000_000.0)
@@ -128,6 +132,7 @@ pub struct PinnedPages {
 
 /// Copy engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeCopyEngineStats {
     pub total_copies: u64,
     pub total_bytes: u64,
@@ -140,8 +145,9 @@ pub struct BridgeCopyEngineStats {
 }
 
 /// Bridge Copy Engine
+#[repr(align(64))]
 pub struct BridgeCopyEngine {
-    completions: Vec<CopyCompletion>,
+    completions: VecDeque<CopyCompletion>,
     pinned: BTreeMap<u64, PinnedPages>,
     max_completions: usize,
     total_bandwidth_sum: f64,
@@ -153,7 +159,7 @@ pub struct BridgeCopyEngine {
 impl BridgeCopyEngine {
     pub fn new() -> Self {
         Self {
-            completions: Vec::new(),
+            completions: VecDeque::new(),
             pinned: BTreeMap::new(),
             max_completions: 256,
             total_bandwidth_sum: 0.0,
@@ -164,6 +170,7 @@ impl BridgeCopyEngine {
     }
 
     /// Choose optimal copy method
+    #[inline]
     pub fn select_method(&self, request: &CopyRequest) -> CopyMethod {
         if request.length >= self.zero_copy_threshold && request.is_page_aligned() {
             return CopyMethod::PageRemap;
@@ -191,12 +198,13 @@ impl BridgeCopyEngine {
         self.stats.avg_bandwidth_mbps = self.total_bandwidth_sum / self.total_bandwidth_count as f64;
 
         if self.completions.len() >= self.max_completions {
-            self.completions.remove(0);
+            self.completions.pop_front();
         }
-        self.completions.push(completion);
+        self.completions.push_back(completion);
     }
 
     /// Pin pages for DMA
+    #[inline]
     pub fn pin_pages(&mut self, start_pfn: u64, count: u32, pid: u64) {
         let entry = self.pinned.entry(start_pfn).or_insert(PinnedPages {
             start_pfn,
@@ -210,6 +218,7 @@ impl BridgeCopyEngine {
     }
 
     /// Unpin pages
+    #[inline]
     pub fn unpin_pages(&mut self, start_pfn: u64) {
         if let Some(entry) = self.pinned.get_mut(&start_pfn) {
             entry.pin_count = entry.pin_count.saturating_sub(1);
@@ -221,11 +230,13 @@ impl BridgeCopyEngine {
     }
 
     /// Zero-copy ratio
+    #[inline(always)]
     pub fn zero_copy_ratio(&self) -> f64 {
         if self.stats.total_bytes == 0 { return 0.0; }
         self.stats.zero_copy_bytes as f64 / self.stats.total_bytes as f64
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCopyEngineStats {
         &self.stats
     }

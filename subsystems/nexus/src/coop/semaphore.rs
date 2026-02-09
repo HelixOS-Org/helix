@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Semaphore type
@@ -38,7 +39,7 @@ pub struct SemaphoreV2 {
     pub sem_type: SemTypeV2,
     pub value: i32,
     pub max_value: i32,
-    pub waiters: Vec<SemWaiter>,
+    pub waiters: VecDeque<SemWaiter>,
     pub total_acquires: u64,
     pub total_releases: u64,
     pub total_timeouts: u64,
@@ -47,9 +48,10 @@ pub struct SemaphoreV2 {
 
 impl SemaphoreV2 {
     pub fn new(id: u64, stype: SemTypeV2, initial: i32, max: i32) -> Self {
-        Self { id, sem_type: stype, value: initial, max_value: max, waiters: Vec::new(), total_acquires: 0, total_releases: 0, total_timeouts: 0, contention_count: 0 }
+        Self { id, sem_type: stype, value: initial, max_value: max, waiters: VecDeque::new(), total_acquires: 0, total_releases: 0, total_timeouts: 0, contention_count: 0 }
     }
 
+    #[inline]
     pub fn try_acquire(&mut self, count: u32) -> bool {
         if self.value >= count as i32 {
             self.value -= count as i32;
@@ -58,6 +60,7 @@ impl SemaphoreV2 {
         } else { self.contention_count += 1; false }
     }
 
+    #[inline]
     pub fn release(&mut self, count: u32) {
         self.value = (self.value + count as i32).min(self.max_value);
         self.total_releases += 1;
@@ -78,11 +81,13 @@ impl SemaphoreV2 {
         self.waiters.retain(|w| !w.granted);
     }
 
+    #[inline(always)]
     pub fn pending(&self) -> u32 { self.waiters.len() as u32 }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemaphoreV2Stats {
     pub total_semaphores: u32,
     pub total_acquires: u64,
@@ -101,20 +106,24 @@ pub struct CoopSemaphoreV2 {
 impl CoopSemaphoreV2 {
     pub fn new() -> Self { Self { semaphores: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, stype: SemTypeV2, initial: i32, max: i32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.semaphores.insert(id, SemaphoreV2::new(id, stype, initial, max));
         id
     }
 
+    #[inline(always)]
     pub fn acquire(&mut self, sem: u64, count: u32) -> bool {
         self.semaphores.get_mut(&sem).map(|s| s.try_acquire(count)).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn release(&mut self, sem: u64, count: u32) {
         if let Some(s) = self.semaphores.get_mut(&sem) { s.release(count); }
     }
 
+    #[inline]
     pub fn stats(&self) -> SemaphoreV2Stats {
         let acq: u64 = self.semaphores.values().map(|s| s.total_acquires).sum();
         let rel: u64 = self.semaphores.values().map(|s| s.total_releases).sum();
@@ -151,7 +160,7 @@ pub struct SemaphoreV3 {
     pub id: u64,
     pub count: i64,
     pub max_count: u32,
-    pub waiters: Vec<SemV3Waiter>,
+    pub waiters: VecDeque<SemV3Waiter>,
     pub total_acquires: u64,
     pub total_releases: u64,
     pub total_wait_ns: u64,
@@ -159,9 +168,10 @@ pub struct SemaphoreV3 {
 
 impl SemaphoreV3 {
     pub fn new(id: u64, initial: u32) -> Self {
-        Self { id, count: initial as i64, max_count: initial, waiters: Vec::new(), total_acquires: 0, total_releases: 0, total_wait_ns: 0 }
+        Self { id, count: initial as i64, max_count: initial, waiters: VecDeque::new(), total_acquires: 0, total_releases: 0, total_wait_ns: 0 }
     }
 
+    #[inline]
     pub fn try_acquire(&mut self, n: u32) -> bool {
         if self.count >= n as i64 {
             self.count -= n as i64;
@@ -170,8 +180,9 @@ impl SemaphoreV3 {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn enqueue_waiter(&mut self, tid: u64, n: u32, now: u64) {
-        self.waiters.push(SemV3Waiter { tid, count: n, enqueue_time: now });
+        self.waiters.push_back(SemV3Waiter { tid, count: n, enqueue_time: now });
     }
 
     pub fn release(&mut self, n: u32, now: u64) -> Vec<u64> {
@@ -179,7 +190,7 @@ impl SemaphoreV3 {
         self.total_releases += 1;
         let mut woken = Vec::new();
         while !self.waiters.is_empty() && self.count >= self.waiters[0].count as i64 {
-            let w = self.waiters.remove(0);
+            let w = self.waiters.pop_front().unwrap();
             self.count -= w.count as i64;
             self.total_wait_ns += now.saturating_sub(w.enqueue_time);
             woken.push(w.tid);
@@ -187,6 +198,7 @@ impl SemaphoreV3 {
         woken
     }
 
+    #[inline]
     pub fn state(&self) -> SemaphoreV3State {
         if self.count > 0 { SemaphoreV3State::Available }
         else if self.count == 0 { SemaphoreV3State::Depleted }
@@ -196,6 +208,7 @@ impl SemaphoreV3 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemaphoreV3Stats {
     pub total_semaphores: u32,
     pub total_acquires: u64,
@@ -212,22 +225,27 @@ pub struct CoopSemaphoreV3 {
 impl CoopSemaphoreV3 {
     pub fn new() -> Self { Self { sems: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, initial: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.sems.insert(id, SemaphoreV3::new(id, initial));
         id
     }
 
+    #[inline(always)]
     pub fn try_acquire(&mut self, id: u64, n: u32) -> bool {
         if let Some(s) = self.sems.get_mut(&id) { s.try_acquire(n) } else { false }
     }
 
+    #[inline(always)]
     pub fn release(&mut self, id: u64, n: u32, now: u64) -> Vec<u64> {
         if let Some(s) = self.sems.get_mut(&id) { s.release(n, now) } else { Vec::new() }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, id: u64) { self.sems.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> SemaphoreV3Stats {
         let acq: u64 = self.sems.values().map(|s| s.total_acquires).sum();
         let rel: u64 = self.sems.values().map(|s| s.total_releases).sum();
@@ -289,7 +307,7 @@ pub struct SemaphoreV4Instance {
     pub sem_id: u64,
     pub count: i64,
     pub max_count: i64,
-    pub waiters: Vec<SemaphoreV4Waiter>,
+    pub waiters: VecDeque<SemaphoreV4Waiter>,
     pub total_acquires: u64,
     pub total_releases: u64,
     pub total_timeouts: u64,
@@ -304,7 +322,7 @@ impl SemaphoreV4Instance {
             sem_id,
             count: initial,
             max_count: initial,
-            waiters: Vec::new(),
+            waiters: VecDeque::new(),
             total_acquires: 0,
             total_releases: 0,
             total_timeouts: 0,
@@ -327,6 +345,7 @@ impl SemaphoreV4Instance {
         }
     }
 
+    #[inline]
     pub fn release(&mut self, weight: u32) {
         self.count += weight as i64;
         if self.count > self.max_count {
@@ -337,8 +356,9 @@ impl SemaphoreV4Instance {
         self.waiters.sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
+    #[inline]
     pub fn enqueue_waiter(&mut self, waiter: SemaphoreV4Waiter) {
-        self.waiters.push(waiter);
+        self.waiters.push_back(waiter);
         let len = self.waiters.len() as u32;
         if len > self.peak_waiters {
             self.peak_waiters = len;
@@ -362,6 +382,7 @@ impl SemaphoreV4Instance {
         acquired
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.max_count == 0 {
             return 0.0;
@@ -372,6 +393,7 @@ impl SemaphoreV4Instance {
 
 /// Statistics for semaphore V4.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemaphoreV4Stats {
     pub total_semaphores: u64,
     pub total_acquires: u64,
@@ -404,6 +426,7 @@ impl CoopSemaphoreV4 {
         }
     }
 
+    #[inline]
     pub fn create_semaphore(&mut self, initial: i64) -> u64 {
         let id = self.next_sem_id;
         self.next_sem_id += 1;
@@ -413,6 +436,7 @@ impl CoopSemaphoreV4 {
         id
     }
 
+    #[inline(always)]
     pub fn semaphore_count(&self) -> usize {
         self.semaphores.len()
     }

@@ -74,11 +74,13 @@ impl Objective {
         }
     }
 
+    #[inline(always)]
     pub fn with_target(mut self, target: f64) -> Self {
         self.target = Some(target);
         self
     }
 
+    #[inline(always)]
     pub fn with_threshold(mut self, threshold: f64) -> Self {
         self.threshold = Some(threshold);
         self
@@ -145,6 +147,7 @@ pub enum Value {
 
 /// Evaluator statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct EvaluatorStats {
     /// Total evaluations
     pub evaluations: u64,
@@ -167,16 +170,19 @@ impl FitnessEvaluator {
     }
 
     /// Add objective
+    #[inline(always)]
     pub fn add_objective(&mut self, objective: Objective) {
         self.objectives.push(objective);
     }
 
     /// Add test case
+    #[inline(always)]
     pub fn add_test_case(&mut self, test_case: TestCase) {
         self.test_cases.push(test_case);
     }
 
     /// Add benchmark
+    #[inline(always)]
     pub fn add_benchmark(&mut self, benchmark: Benchmark) {
         self.benchmarks.push(benchmark);
     }
@@ -472,11 +478,13 @@ impl FitnessEvaluator {
     }
 
     /// Clear cache
+    #[inline(always)]
     pub fn clear_cache(&mut self) {
         self.cache.clear();
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &EvaluatorStats {
         &self.stats
     }

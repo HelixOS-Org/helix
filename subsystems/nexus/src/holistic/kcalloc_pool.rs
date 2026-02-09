@@ -25,6 +25,7 @@ pub enum SizeClass {
 }
 
 impl SizeClass {
+    #[inline]
     pub fn from_size(size: usize) -> Self {
         match size {
             0..=32 => SizeClass::Tiny,
@@ -36,6 +37,7 @@ impl SizeClass {
         }
     }
 
+    #[inline]
     pub fn slab_size(&self) -> usize {
         match self {
             SizeClass::Tiny => 32,
@@ -72,6 +74,7 @@ pub struct ObjectHeader {
 
 /// Per-CPU cache
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuCache {
     pub cpu_id: u32,
     pub size_class: SizeClass,
@@ -92,12 +95,14 @@ impl CpuCache {
         }
     }
 
+    #[inline]
     pub fn try_alloc(&mut self) -> Option<u64> {
         let addr = self.freelist.pop()?;
         self.allocs += 1;
         Some(addr)
     }
 
+    #[inline]
     pub fn try_free(&mut self, addr: u64) -> bool {
         if self.freelist.len() >= self.cache_capacity { return false; }
         self.freelist.push(addr);
@@ -105,6 +110,7 @@ impl CpuCache {
         true
     }
 
+    #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
         if self.cache_capacity == 0 { return 0.0; }
         self.freelist.len() as f64 / self.cache_capacity as f64
@@ -132,12 +138,15 @@ impl SlabPage {
         }
     }
 
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
         if self.objects_total == 0 { return 0.0; }
         self.objects_used as f64 / self.objects_total as f64
     }
 
+    #[inline(always)]
     pub fn is_full(&self) -> bool { self.objects_used >= self.objects_total }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.objects_used == 0 }
 }
 
@@ -155,7 +164,9 @@ impl EmergencyReserve {
         Self { reserved_pages: pages, used_pages: 0, min_pages: pages / 4, emergency_allocs: 0 }
     }
 
+    #[inline(always)]
     pub fn can_allocate(&self) -> bool { self.used_pages < self.reserved_pages }
+    #[inline(always)]
     pub fn is_critical(&self) -> bool { self.reserved_pages - self.used_pages <= self.min_pages }
 }
 
@@ -172,6 +183,7 @@ pub struct LeakSuspect {
 
 /// Kcalloc pool stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct KcallocPoolStats {
     pub total_allocated: u64,
     pub total_freed: u64,
@@ -186,6 +198,7 @@ pub struct KcallocPoolStats {
 }
 
 /// Holistic kernel calloc pool
+#[repr(align(64))]
 pub struct HolisticKcallocPool {
     slabs: BTreeMap<u64, SlabPage>,
     objects: BTreeMap<u64, ObjectHeader>,
@@ -208,6 +221,7 @@ impl HolisticKcallocPool {
         }
     }
 
+    #[inline(always)]
     pub fn init_cpu_cache(&mut self, cpu: u32, class: SizeClass, capacity: usize) {
         let key = (cpu, class.slab_size());
         self.cpu_caches.insert(key, CpuCache::new(cpu, class, capacity));
@@ -239,6 +253,7 @@ impl HolisticKcallocPool {
         Some(addr)
     }
 
+    #[inline]
     pub fn free(&mut self, addr: u64, cpu: u32, ts: u64) {
         if let Some(obj) = self.objects.get_mut(&addr) {
             obj.state = AllocState::Free;
@@ -251,6 +266,7 @@ impl HolisticKcallocPool {
         }
     }
 
+    #[inline]
     pub fn detect_leaks(&self, now: u64) -> Vec<LeakSuspect> {
         self.objects.values()
             .filter(|o| o.state == AllocState::Allocated && now.saturating_sub(o.alloc_ts) > self.leak_threshold_ns)
@@ -277,5 +293,6 @@ impl HolisticKcallocPool {
         self.stats.emergency_allocs = self.reserve.emergency_allocs;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &KcallocPoolStats { &self.stats }
 }

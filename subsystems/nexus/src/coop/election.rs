@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -95,6 +96,7 @@ impl ElectionNode {
     }
 
     /// Become candidate
+    #[inline]
     pub fn become_candidate(&mut self, new_term: u64) {
         self.role = NodeRole::Candidate;
         self.term = new_term;
@@ -102,11 +104,13 @@ impl ElectionNode {
     }
 
     /// Become leader
+    #[inline(always)]
     pub fn become_leader(&mut self) {
         self.role = NodeRole::Leader;
     }
 
     /// Step down to follower
+    #[inline]
     pub fn step_down(&mut self, new_term: u64) {
         self.role = NodeRole::Follower;
         self.term = new_term;
@@ -114,6 +118,7 @@ impl ElectionNode {
     }
 
     /// Receive heartbeat
+    #[inline]
     pub fn receive_heartbeat(&mut self, from_term: u64, now: u64) {
         if from_term >= self.term {
             self.term = from_term;
@@ -123,6 +128,7 @@ impl ElectionNode {
     }
 
     /// Heartbeat timed out?
+    #[inline(always)]
     pub fn heartbeat_timeout(&self, now: u64) -> bool {
         now.saturating_sub(self.last_heartbeat) > self.heartbeat_timeout_ns
     }
@@ -160,7 +166,7 @@ pub struct Election {
     /// Initiator
     pub initiator: u64,
     /// Votes received: candidate -> count
-    pub votes: BTreeMap<u64, u32>,
+    pub votes: LinearMap<u32, 64>,
     /// Total voters
     pub total_voters: u32,
     /// Winner
@@ -188,7 +194,7 @@ impl Election {
             algorithm,
             state: ElectionState::Started,
             initiator,
-            votes: BTreeMap::new(),
+            votes: LinearMap::new(),
             total_voters,
             winner: None,
             started_at: now,
@@ -198,8 +204,9 @@ impl Election {
     }
 
     /// Record vote
+    #[inline(always)]
     pub fn record_vote(&mut self, candidate: u64) {
-        *self.votes.entry(candidate).or_insert(0) += 1;
+        self.votes.add(candidate, 1);
         self.state = ElectionState::Voting;
     }
 
@@ -218,6 +225,7 @@ impl Election {
     }
 
     /// Bully algorithm winner (highest id)
+    #[inline]
     pub fn bully_winner(&mut self, alive_nodes: &[u64], now: u64) -> Option<u64> {
         let winner = alive_nodes.iter().copied().max();
         if let Some(w) = winner {
@@ -229,11 +237,13 @@ impl Election {
     }
 
     /// Is timed out?
+    #[inline(always)]
     pub fn is_timed_out(&self, now: u64) -> bool {
         now.saturating_sub(self.started_at) > self.timeout_ns
     }
 
     /// Election duration (ns)
+    #[inline(always)]
     pub fn duration_ns(&self, now: u64) -> u64 {
         let end = self.decided_at.unwrap_or(now);
         end.saturating_sub(self.started_at)
@@ -246,6 +256,7 @@ impl Election {
 
 /// Election stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopElectionStats {
     /// Total nodes
     pub total_nodes: usize,
@@ -291,12 +302,14 @@ impl CoopElectionManager {
     }
 
     /// Register node
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, priority: u32) {
         self.nodes.insert(pid, ElectionNode::new(pid, priority));
         self.update_stats();
     }
 
     /// Remove node
+    #[inline]
     pub fn remove(&mut self, pid: u64) {
         if let Some(node) = self.nodes.get_mut(&pid) {
             node.alive = false;
@@ -414,6 +427,7 @@ impl CoopElectionManager {
     }
 
     /// Send heartbeat from leader
+    #[inline]
     pub fn heartbeat(&mut self, now: u64) {
         if let Some(leader) = self.current_leader {
             let term = self.current_term;
@@ -426,6 +440,7 @@ impl CoopElectionManager {
     }
 
     /// Check for leader timeout
+    #[inline]
     pub fn check_leader_timeout(&mut self, now: u64) -> bool {
         if self.current_leader.is_none() {
             return true;
@@ -436,6 +451,7 @@ impl CoopElectionManager {
     }
 
     /// Get leader
+    #[inline(always)]
     pub fn leader(&self) -> Option<u64> {
         self.current_leader
     }
@@ -447,6 +463,7 @@ impl CoopElectionManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopElectionStats {
         &self.stats
     }

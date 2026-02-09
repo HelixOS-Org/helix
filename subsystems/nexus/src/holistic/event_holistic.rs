@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -71,7 +72,7 @@ pub struct SystemEvent {
     /// Affected entity (pid, device id, etc.)
     pub entity: u64,
     /// Key-value data (encoded as hash->value)
-    pub data: BTreeMap<u64, u64>,
+    pub data: LinearMap<u64, 64>,
 }
 
 impl SystemEvent {
@@ -90,11 +91,12 @@ impl SystemEvent {
             event_code,
             timestamp,
             entity,
-            data: BTreeMap::new(),
+            data: LinearMap::new(),
         }
     }
 
     /// Add data
+    #[inline(always)]
     pub fn with_data(mut self, key: u64, value: u64) -> Self {
         self.data.insert(key, value);
         self
@@ -180,6 +182,7 @@ impl EventPattern {
         }
     }
 
+    #[inline(always)]
     pub fn add_condition(&mut self, condition: PatternCondition) {
         self.conditions.push(condition);
     }
@@ -218,11 +221,13 @@ impl CorrelatedGroup {
     }
 
     /// Duration
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.end_time.saturating_sub(self.start_time)
     }
 
     /// Event count
+    #[inline(always)]
     pub fn event_count(&self) -> usize {
         self.event_ids.len()
     }
@@ -274,6 +279,7 @@ impl AggregationWindow {
     }
 
     /// Flush window
+    #[inline]
     pub fn flush(&mut self) {
         self.events.clear();
         self.source_counts.clear();
@@ -281,11 +287,13 @@ impl AggregationWindow {
     }
 
     /// Event count in current window
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.events.len()
     }
 
     /// Event rate (events per second)
+    #[inline]
     pub fn rate(&self) -> f64 {
         if self.events.is_empty() {
             return 0.0;
@@ -304,6 +312,7 @@ impl AggregationWindow {
 
 /// Event stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticEventStats {
     /// Total events processed
     pub total_events: u64,
@@ -343,6 +352,7 @@ impl HolisticEventEngine {
     }
 
     /// Register pattern
+    #[inline]
     pub fn register_pattern(&mut self, mut pattern: EventPattern) {
         pattern.id = self.patterns.len() as u64 + 1;
         self.patterns.push(pattern);
@@ -367,6 +377,7 @@ impl HolisticEventEngine {
     }
 
     /// Create correlation group
+    #[inline]
     pub fn correlate(&mut self, event_ids: Vec<u64>, root_cause: Option<u64>, now: u64) -> u64 {
         let id = self.next_group_id;
         self.next_group_id += 1;
@@ -379,6 +390,7 @@ impl HolisticEventEngine {
     }
 
     /// Get recent groups
+    #[inline]
     pub fn recent_groups(&self, max: usize) -> &[CorrelatedGroup] {
         let start = if self.groups.len() > max {
             self.groups.len() - max
@@ -394,6 +406,7 @@ impl HolisticEventEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticEventStats {
         &self.stats
     }

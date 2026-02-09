@@ -105,11 +105,13 @@ impl NetworkIntelligence {
     }
 
     /// Register interface
+    #[inline(always)]
     pub fn register_interface(&mut self, interface: NetworkInterface) {
         self.manager.register_interface(interface);
     }
 
     /// Update stats
+    #[inline(always)]
     pub fn update_stats(&mut self, index: IfIndex, stats: InterfaceStats) {
         self.manager.update_stats(index, stats);
     }
@@ -245,11 +247,13 @@ impl NetworkIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &NetworkManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut NetworkManager {
         &mut self.manager
     }

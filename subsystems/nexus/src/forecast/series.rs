@@ -1,6 +1,7 @@
 //! Time series for forecasting.
 
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::point::TimePoint;
@@ -11,7 +12,7 @@ pub struct TimeSeries {
     /// Name
     pub name: String,
     /// Data points
-    points: Vec<TimePoint>,
+    points: VecDeque<TimePoint>,
     /// Maximum points to keep
     max_points: usize,
 }
@@ -21,7 +22,7 @@ impl TimeSeries {
     pub fn new(name: impl Into<String>, max_points: usize) -> Self {
         Self {
             name: name.into(),
-            points: Vec::new(),
+            points: VecDeque::new(),
             max_points,
         }
     }
@@ -38,26 +39,30 @@ impl TimeSeries {
 
         // Enforce max points
         while self.points.len() > self.max_points {
-            self.points.remove(0);
+            self.points.pop_front();
         }
     }
 
     /// Add value with current timestamp
+    #[inline(always)]
     pub fn add_now(&mut self, value: f64) {
         self.add(TimePoint::now(value));
     }
 
     /// Get points
+    #[inline(always)]
     pub fn points(&self) -> &[TimePoint] {
         &self.points
     }
 
     /// Get latest value
+    #[inline(always)]
     pub fn latest(&self) -> Option<f64> {
-        self.points.last().map(|p| p.value)
+        self.points.back().map(|p| p.value)
     }
 
     /// Get mean value
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.points.is_empty() {
             return 0.0;
@@ -95,6 +100,7 @@ impl TimeSeries {
     }
 
     /// Get min value
+    #[inline]
     pub fn min(&self) -> f64 {
         self.points
             .iter()
@@ -103,6 +109,7 @@ impl TimeSeries {
     }
 
     /// Get max value
+    #[inline]
     pub fn max(&self) -> f64 {
         self.points
             .iter()
@@ -126,16 +133,19 @@ impl TimeSeries {
     }
 
     /// Get length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.points.len()
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.points.is_empty()
     }
 
     /// Clear
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.points.clear();
     }

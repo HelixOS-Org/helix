@@ -12,6 +12,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -176,7 +177,7 @@ pub struct ReflectionEngine {
     /// Current session
     current_session: Option<u64>,
     /// Performance history
-    performance: Vec<PerformanceRecord>,
+    performance: VecDeque<PerformanceRecord>,
     /// Next ID
     next_id: AtomicU64,
     /// Configuration
@@ -224,6 +225,7 @@ impl Default for ReflectionConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ReflectionStats {
     /// Sessions completed
     pub sessions_completed: u64,
@@ -243,7 +245,7 @@ impl ReflectionEngine {
         Self {
             sessions: BTreeMap::new(),
             current_session: None,
-            performance: Vec::new(),
+            performance: VecDeque::new(),
             next_id: AtomicU64::new(1),
             config,
             stats: ReflectionStats::default(),
@@ -298,7 +300,7 @@ impl ReflectionEngine {
 
     /// Record performance metric
     pub fn record_performance(&mut self, metric: &str, value: f64, context: Option<&str>) {
-        self.performance.push(PerformanceRecord {
+        self.performance.push_back(PerformanceRecord {
             timestamp: Timestamp::now(),
             metric: metric.into(),
             value,
@@ -307,7 +309,7 @@ impl ReflectionEngine {
 
         // Trim history
         while self.performance.len() > self.config.history_size {
-            self.performance.remove(0);
+            self.performance.pop_front();
         }
     }
 
@@ -546,6 +548,7 @@ impl ReflectionEngine {
     }
 
     /// Update recommendation status
+    #[inline]
     pub fn update_recommendation(
         &mut self,
         session_id: u64,
@@ -564,16 +567,19 @@ impl ReflectionEngine {
     }
 
     /// Get session
+    #[inline(always)]
     pub fn get_session(&self, id: u64) -> Option<&ReflectionSession> {
         self.sessions.get(&id)
     }
 
     /// Get current session
+    #[inline(always)]
     pub fn current(&self) -> Option<&ReflectionSession> {
         self.current_session.and_then(|id| self.sessions.get(&id))
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ReflectionStats {
         &self.stats
     }

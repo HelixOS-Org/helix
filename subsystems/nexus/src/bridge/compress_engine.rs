@@ -76,6 +76,7 @@ pub struct DictionaryEntry {
 
 /// Compression dictionary
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CompressionDictionary {
     /// Entries, keyed by hash
     entries: BTreeMap<u64, DictionaryEntry>,
@@ -112,6 +113,7 @@ impl CompressionDictionary {
     }
 
     /// Lookup pattern
+    #[inline(always)]
     pub fn lookup(&self, hash: u64) -> Option<&DictionaryEntry> {
         self.entries.get(&hash)
     }
@@ -139,6 +141,7 @@ impl CompressionDictionary {
     }
 
     /// Size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.entries.len()
     }
@@ -150,6 +153,7 @@ impl CompressionDictionary {
 
 /// Run-length encoding stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RleStats {
     /// Bytes in
     pub bytes_in: u64,
@@ -204,6 +208,7 @@ impl RleEncoder {
     }
 
     /// Compression ratio
+    #[inline]
     pub fn ratio(&self) -> f64 {
         if self.stats.bytes_in == 0 {
             return 1.0;
@@ -218,6 +223,7 @@ impl RleEncoder {
 
 /// Delta encoding stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DeltaStats {
     /// Sequences processed
     pub sequences: u64,
@@ -296,6 +302,7 @@ pub struct SyscallCompressionProfile {
 
 impl SyscallCompressionProfile {
     /// Compression ratio
+    #[inline]
     pub fn ratio(&self) -> f64 {
         if self.total_original == 0 {
             return 1.0;
@@ -306,6 +313,7 @@ impl SyscallCompressionProfile {
 
 /// Bridge compression stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeCompressionStats {
     /// Total bytes processed
     pub bytes_processed: u64,
@@ -320,6 +328,7 @@ pub struct BridgeCompressionStats {
 }
 
 /// Bridge compression engine
+#[repr(align(64))]
 pub struct BridgeCompressionEngine {
     /// Dictionary
     dictionary: CompressionDictionary,
@@ -435,6 +444,7 @@ impl BridgeCompressionEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCompressionStats {
         &self.stats
     }

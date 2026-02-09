@@ -216,6 +216,7 @@ impl Default for ValidationConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ValidationStats {
     /// Validations performed
     pub validations: u64,
@@ -502,11 +503,13 @@ impl ValidationEngine {
     }
 
     /// Get validation result
+    #[inline(always)]
     pub fn get_result(&self, target_id: u64) -> Option<&ValidationResult> {
         self.results.get(&target_id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ValidationStats {
         &self.stats
     }

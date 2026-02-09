@@ -49,6 +49,7 @@ pub enum DnsCacheState {
 
 /// DNS cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DnsCacheEntry {
     pub name_hash: u64,
     pub record_type: DnsRecordType,
@@ -87,6 +88,7 @@ impl DnsCacheEntry {
         }
     }
 
+    #[inline]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         if self.state == DnsCacheState::Pinned {
             return false;
@@ -95,6 +97,7 @@ impl DnsCacheEntry {
         age_sec > self.ttl_sec as u64
     }
 
+    #[inline]
     pub fn remaining_ttl_sec(&self, now_ns: u64) -> u64 {
         if self.state == DnsCacheState::Pinned {
             return u64::MAX;
@@ -107,17 +110,20 @@ impl DnsCacheEntry {
         }
     }
 
+    #[inline(always)]
     pub fn touch(&mut self, now_ns: u64) {
         self.last_used_ns = now_ns;
         self.hit_count += 1;
     }
 
+    #[inline]
     pub fn mark_stale(&mut self) {
         if self.state == DnsCacheState::Fresh {
             self.state = DnsCacheState::Stale;
         }
     }
 
+    #[inline]
     pub fn refresh(&mut self, address: u64, ttl_sec: u32, now_ns: u64) {
         self.address = address;
         self.ttl_sec = ttl_sec;
@@ -129,6 +135,7 @@ impl DnsCacheEntry {
 
 /// DNS server state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DnsServerState {
     pub server_ip: u32,
     pub queries_sent: u64,
@@ -150,16 +157,19 @@ impl DnsServerState {
         }
     }
 
+    #[inline(always)]
     pub fn record_query(&mut self) {
         self.queries_sent += 1;
     }
 
+    #[inline]
     pub fn record_response(&mut self, latency_ns: u64) {
         self.responses_received += 1;
         self.total_latency_ns += latency_ns;
         self.avg_latency_ns = self.total_latency_ns / self.responses_received;
     }
 
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.queries_sent == 0 {
             return 0.0;
@@ -170,6 +180,7 @@ impl DnsServerState {
 
 /// DNS cache stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DnsCacheStats {
     pub total_entries: u64,
     pub total_lookups: u64,
@@ -182,6 +193,7 @@ pub struct DnsCacheStats {
 
 /// Main holistic DNS cache manager
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct HolisticDnsCache {
     pub entries: BTreeMap<u64, DnsCacheEntry>,
     pub servers: Vec<DnsServerState>,
@@ -234,6 +246,7 @@ impl HolisticDnsCache {
         None
     }
 
+    #[inline]
     pub fn insert(&mut self, entry: DnsCacheEntry) {
         let hash = entry.name_hash;
         if self.entries.len() as u32 >= self.max_entries && !self.entries.contains_key(&hash) {
@@ -245,6 +258,7 @@ impl HolisticDnsCache {
         self.entries.insert(hash, entry);
     }
 
+    #[inline]
     pub fn evict_oldest(&mut self) {
         if let Some((&key, _)) = self.entries.iter().min_by_key(|(_, e)| e.last_used_ns) {
             self.entries.remove(&key);
@@ -253,6 +267,7 @@ impl HolisticDnsCache {
         }
     }
 
+    #[inline]
     pub fn gc_expired(&mut self, now_ns: u64) {
         let expired: Vec<u64> = self.entries.iter()
             .filter(|(_, e)| e.is_expired(now_ns))
@@ -265,6 +280,7 @@ impl HolisticDnsCache {
         }
     }
 
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         if self.stats.total_lookups == 0 {
             return 0.0;
@@ -272,6 +288,7 @@ impl HolisticDnsCache {
         self.stats.cache_hits as f64 / self.stats.total_lookups as f64
     }
 
+    #[inline(always)]
     pub fn add_server(&mut self, server_ip: u32) {
         self.servers.push(DnsServerState::new(server_ip));
     }

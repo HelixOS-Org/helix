@@ -26,6 +26,7 @@ pub enum Activation {
 
 impl Activation {
     /// Apply activation
+    #[inline]
     pub fn apply(&self, x: f64) -> f64 {
         match self {
             Self::ReLU => x.max(0.0),
@@ -148,6 +149,7 @@ impl DenseLayer {
     }
 
     /// Output size
+    #[inline(always)]
     pub fn output_size(&self) -> usize {
         self.weights.len()
     }
@@ -175,11 +177,13 @@ impl TinyNN {
     }
 
     /// Add layer
+    #[inline(always)]
     pub fn add_layer(&mut self, layer: DenseLayer) {
         self.layers.push(layer);
     }
 
     /// Forward pass
+    #[inline]
     pub fn forward(&mut self, input: &[f64]) -> Vec<f64> {
         let mut current = input.to_vec();
         for layer in &mut self.layers {
@@ -215,6 +219,7 @@ impl TinyNN {
     }
 
     /// Predict
+    #[inline(always)]
     pub fn predict(&mut self, input: &[f64]) -> Vec<f64> {
         self.forward(input)
     }

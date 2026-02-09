@@ -35,11 +35,13 @@ impl SignalAnalysis {
     }
 
     /// Check if healthy
+    #[inline(always)]
     pub fn is_healthy(&self) -> bool {
         self.health_score >= 80.0
     }
 
     /// Check if has critical issues
+    #[inline(always)]
     pub fn has_critical_issues(&self) -> bool {
         self.issues.iter().any(|i| i.severity >= 8)
     }
@@ -70,6 +72,7 @@ impl SignalIssue {
     }
 
     /// Set involved signal
+    #[inline(always)]
     pub fn with_signal(mut self, signo: SignalNumber) -> Self {
         self.signal = Some(signo);
         self
@@ -122,12 +125,14 @@ impl SignalRecommendation {
     }
 
     /// Set signal
+    #[inline(always)]
     pub fn with_signal(mut self, signo: SignalNumber) -> Self {
         self.signal = Some(signo);
         self
     }
 
     /// Set expected improvement
+    #[inline(always)]
     pub fn with_improvement(mut self, improvement: f32) -> Self {
         self.expected_improvement = improvement;
         self

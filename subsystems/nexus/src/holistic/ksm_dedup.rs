@@ -21,6 +21,7 @@ pub struct PageFingerprint {
 }
 
 impl PageFingerprint {
+    #[inline]
     pub fn from_content(data: &[u8]) -> Self {
         let mut h1: u64 = 0xcbf29ce484222325;
         let mut h2: u64 = 0x6c62272e07bb0142;
@@ -33,6 +34,7 @@ impl PageFingerprint {
         Self { hash_high: h1, hash_low: h2 }
     }
 
+    #[inline(always)]
     pub fn matches(&self, other: &Self) -> bool {
         self.hash_high == other.hash_high && self.hash_low == other.hash_low
     }
@@ -70,16 +72,19 @@ impl KsmPage {
         }
     }
 
+    #[inline(always)]
     pub fn mark_stable(&mut self, ts: u64) {
         self.state = KsmPageState::Stable;
         self.stable_since = ts;
     }
 
+    #[inline(always)]
     pub fn merge_with(&mut self) {
         self.state = KsmPageState::Shared;
         self.share_count += 1;
     }
 
+    #[inline]
     pub fn cow_break(&mut self) {
         self.cow_breaks += 1;
         self.share_count = self.share_count.saturating_sub(1);
@@ -88,6 +93,7 @@ impl KsmPage {
         }
     }
 
+    #[inline(always)]
     pub fn savings_pages(&self) -> u32 {
         if self.share_count > 1 { self.share_count - 1 } else { 0 }
     }
@@ -107,11 +113,13 @@ impl StableTreeNode {
         Self { fingerprint: fp, representative_addr: addr, merged_pages: Vec::new(), total_shares: 1 }
     }
 
+    #[inline(always)]
     pub fn add_page(&mut self, addr: u64) {
         self.merged_pages.push(addr);
         self.total_shares += 1;
     }
 
+    #[inline(always)]
     pub fn savings(&self) -> u32 {
         if self.total_shares > 1 { self.total_shares - 1 } else { 0 }
     }
@@ -157,6 +165,7 @@ impl Default for KsmScanConfig {
 
 /// KSM dedup stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct KsmDedupStats {
     pub total_pages_tracked: usize,
     pub stable_nodes: usize,
@@ -191,6 +200,7 @@ impl HolisticKsmDedup {
         }
     }
 
+    #[inline(always)]
     pub fn register_page(&mut self, addr: u64, owner: u64) {
         self.pages.insert(addr, KsmPage::new(addr, owner));
         self.process_info.entry(owner).or_insert_with(|| ProcessKsmInfo::new(owner));
@@ -262,6 +272,7 @@ impl HolisticKsmDedup {
         }
     }
 
+    #[inline]
     pub fn adapt_scan_rate(&mut self) {
         if !self.config.adaptive_scan { return; }
         let merge_rate = self.stats.merge_rate;
@@ -290,7 +301,10 @@ impl HolisticKsmDedup {
         }
     }
 
+    #[inline(always)]
     pub fn process_info(&self, pid: u64) -> Option<&ProcessKsmInfo> { self.process_info.get(&pid) }
+    #[inline(always)]
     pub fn config(&self) -> &KsmScanConfig { &self.config }
+    #[inline(always)]
     pub fn stats(&self) -> &KsmDedupStats { &self.stats }
 }

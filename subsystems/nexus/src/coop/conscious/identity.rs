@@ -141,6 +141,7 @@ pub enum CoopEvolutionType {
 
 /// Aggregate identity statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct IdentityStats {
     pub protocol_count: usize,
     pub experimental_count: usize,

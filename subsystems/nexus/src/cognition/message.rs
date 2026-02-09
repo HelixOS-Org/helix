@@ -10,6 +10,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -136,6 +137,7 @@ pub struct TopicPattern {
 
 impl TopicPattern {
     /// Create exact match pattern
+    #[inline]
     pub fn exact(topic: &str) -> Self {
         Self {
             pattern: topic.into(),
@@ -144,6 +146,7 @@ impl TopicPattern {
     }
 
     /// Create prefix pattern (topic.*)
+    #[inline]
     pub fn prefix(prefix: &str) -> Self {
         Self {
             pattern: format!("{}.*", prefix),
@@ -152,6 +155,7 @@ impl TopicPattern {
     }
 
     /// Create all pattern (*)
+    #[inline]
     pub fn all() -> Self {
         Self {
             pattern: "*".into(),
@@ -233,9 +237,9 @@ pub struct MessageBus {
     /// Subscriptions by topic
     by_topic: BTreeMap<String, Vec<u64>>,
     /// Pending messages
-    pending: Vec<Message>,
+    pending: VecDeque<Message>,
     /// Message history
-    history: Vec<Message>,
+    history: VecDeque<Message>,
     /// Next message ID
     next_message_id: AtomicU64,
     /// Next subscription ID
@@ -290,6 +294,7 @@ impl Default for MessageBusConfig {
 
 /// Message bus statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MessageBusStats {
     /// Total messages published
     pub total_published: u64,
@@ -311,8 +316,8 @@ impl MessageBus {
         Self {
             subscriptions: BTreeMap::new(),
             by_topic: BTreeMap::new(),
-            pending: Vec::new(),
-            history: Vec::new(),
+            pending: VecDeque::new(),
+            history: VecDeque::new(),
             next_message_id: AtomicU64::new(1),
             next_sub_id: AtomicU64::new(1),
             pending_requests: BTreeMap::new(),
@@ -372,11 +377,11 @@ impl MessageBus {
     pub fn publish(&mut self, message: Message) -> u64 {
         let id = message.id;
         self.stats.total_published += 1;
-        self.pending.push(message);
+        self.pending.push_back(message);
 
         // Limit pending
         while self.pending.len() > self.config.max_pending {
-            self.pending.remove(0);
+            self.pending.pop_front();
             self.stats.total_expired += 1;
         }
 
@@ -561,9 +566,9 @@ impl MessageBus {
 
             // Add to history
             if self.history.len() >= self.config.max_history {
-                self.history.remove(0);
+                self.history.pop_front();
             }
-            self.history.push(msg.clone());
+            self.history.push_back(msg.clone());
         }
 
         delivered
@@ -613,11 +618,13 @@ impl MessageBus {
     }
 
     /// Get subscription
+    #[inline(always)]
     pub fn get_subscription(&self, id: u64) -> Option<&Subscription> {
         self.subscriptions.get(&id)
     }
 
     /// Get subscriptions for domain
+    #[inline]
     pub fn subscriptions_for(&self, domain: DomainId) -> Vec<&Subscription> {
         self.subscriptions.values()
             .filter(|s| s.subscriber == domain)
@@ -625,11 +632,13 @@ impl MessageBus {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MessageBusStats {
         &self.stats
     }
 
     /// Get pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }
@@ -676,41 +685,49 @@ impl MessageBuilder {
         }
     }
 
+    #[inline(always)]
     pub fn topic(mut self, topic: &str) -> Self {
         self.topic = topic.into();
         self
     }
 
+    #[inline(always)]
     pub fn recipient(mut self, recipient: DomainId) -> Self {
         self.recipient = Some(recipient);
         self
     }
 
+    #[inline(always)]
     pub fn payload(mut self, payload: MessagePayload) -> Self {
         self.payload = payload;
         self
     }
 
+    #[inline(always)]
     pub fn header(mut self, key: &str, value: &str) -> Self {
         self.headers.insert(key.into(), value.into());
         self
     }
 
+    #[inline(always)]
     pub fn reply_to(mut self, msg_id: u64) -> Self {
         self.reply_to = Some(msg_id);
         self
     }
 
+    #[inline(always)]
     pub fn correlation_id(mut self, id: u64) -> Self {
         self.correlation_id = Some(id);
         self
     }
 
+    #[inline(always)]
     pub fn ttl(mut self, ttl_ns: u64) -> Self {
         self.ttl_ns = Some(ttl_ns);
         self
     }
 
+    #[inline(always)]
     pub fn priority(mut self, priority: MessagePriority) -> Self {
         self.priority = priority;
         self

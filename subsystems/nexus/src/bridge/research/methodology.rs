@@ -138,6 +138,7 @@ struct CheckRecord {
 
 /// Methodology statistics.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct MethodologyStats {
     pub total_validations: u64,
     pub passed_validations: u64,
@@ -166,6 +167,7 @@ pub struct ImprovementSuggestion {
 // ============================================================================
 
 /// Research methodology validation framework.
+#[repr(align(64))]
 pub struct BridgeMethodology {
     experiments: BTreeMap<u64, ExperimentDesign>,
     check_history: Vec<CheckRecord>,
@@ -364,21 +366,25 @@ impl BridgeMethodology {
     }
 
     /// Check if sample size is adequate.
+    #[inline(always)]
     pub fn sample_size_check(&self, n: usize) -> (bool, f32) {
         self.evaluate_sample_size(n)
     }
 
     /// Check if control group is adequate.
+    #[inline(always)]
     pub fn control_group_check(&self, control_n: usize, total_n: usize) -> (bool, f32) {
         self.evaluate_control_group(control_n, total_n)
     }
 
     /// Check randomization quality.
+    #[inline(always)]
     pub fn randomization_check(&self, assignments: &[bool]) -> (bool, f32) {
         self.evaluate_randomization(assignments, assignments.len())
     }
 
     /// Overall methodology score across all validated experiments.
+    #[inline(always)]
     pub fn methodology_score(&self) -> f32 {
         self.stats.avg_score_ema
     }
@@ -453,11 +459,13 @@ impl BridgeMethodology {
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &MethodologyStats {
         &self.stats
     }
 
     /// Number of registered experiments.
+    #[inline(always)]
     pub fn experiment_count(&self) -> usize {
         self.experiments.len()
     }

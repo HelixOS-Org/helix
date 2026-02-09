@@ -23,6 +23,7 @@ pub enum HubPortState {
 
 impl HubPortState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Empty => "empty",
@@ -62,6 +63,7 @@ impl HubPort {
     }
 
     /// Is occupied
+    #[inline]
     pub fn is_occupied(&self) -> bool {
         matches!(
             self.state,
@@ -105,21 +107,25 @@ impl UsbHub {
     }
 
     /// Get port
+    #[inline(always)]
     pub fn get_port(&self, number: u8) -> Option<&HubPort> {
         self.ports.iter().find(|p| p.number == number)
     }
 
     /// Get port mutably
+    #[inline(always)]
     pub fn get_port_mut(&mut self, number: u8) -> Option<&mut HubPort> {
         self.ports.iter_mut().find(|p| p.number == number)
     }
 
     /// Connected port count
+    #[inline(always)]
     pub fn connected_ports(&self) -> usize {
         self.ports.iter().filter(|p| p.is_occupied()).count()
     }
 
     /// Available ports
+    #[inline]
     pub fn available_ports(&self) -> usize {
         self.ports
             .iter()

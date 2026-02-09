@@ -14,6 +14,7 @@ use super::types::{CacheId, CacheKey, CacheLevel, EvictionPolicy};
 // ============================================================================
 
 /// Manages a single cache
+#[repr(align(64))]
 pub struct CacheManager {
     /// Cache ID
     id: CacheId,
@@ -95,6 +96,7 @@ impl CacheManager {
     }
 
     /// Remove entry
+    #[inline]
     pub fn remove(&mut self, key: CacheKey) -> bool {
         if let Some(entry) = self.entries.remove(&key) {
             self.current_size -= entry.size as u64;
@@ -105,26 +107,31 @@ impl CacheManager {
     }
 
     /// Contains key
+    #[inline(always)]
     pub fn contains(&self, key: CacheKey) -> bool {
         self.entries.contains_key(&key)
     }
 
     /// Get entry
+    #[inline(always)]
     pub fn get(&self, key: CacheKey) -> Option<&CacheEntry> {
         self.entries.get(&key)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CacheStats {
         &self.stats
     }
 
     /// Get pattern tracker
+    #[inline(always)]
     pub fn pattern(&self) -> &AccessPatternTracker {
         &self.pattern
     }
 
     /// Get prefetch suggestions
+    #[inline]
     pub fn prefetch_suggestions(&self, count: usize) -> Vec<CacheKey> {
         self.pattern
             .prefetch_suggestions(count)
@@ -134,6 +141,7 @@ impl CacheManager {
     }
 
     /// Get fill ratio
+    #[inline]
     pub fn fill_ratio(&self) -> f64 {
         if self.max_size == 0 {
             0.0
@@ -143,16 +151,19 @@ impl CacheManager {
     }
 
     /// Get entry count
+    #[inline(always)]
     pub fn entry_count(&self) -> usize {
         self.entries.len()
     }
 
     /// Set eviction policy
+    #[inline(always)]
     pub fn set_eviction_policy(&mut self, policy: EvictionPolicy) {
         self.eviction.set_policy(policy);
     }
 
     /// Clear cache
+    #[inline]
     pub fn clear(&mut self) {
         self.entries.clear();
         self.current_size = 0;

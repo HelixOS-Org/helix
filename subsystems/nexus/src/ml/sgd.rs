@@ -39,6 +39,7 @@ impl SGDClassifier {
     }
 
     /// Set regularization
+    #[inline(always)]
     pub fn with_alpha(mut self, alpha: f64) -> Self {
         self.alpha = alpha;
         self
@@ -64,6 +65,7 @@ impl SGDClassifier {
     }
 
     /// Batch fit
+    #[inline]
     pub fn fit(&mut self, samples: &[LabeledSample], epochs: usize) {
         for _ in 0..epochs {
             for sample in samples {
@@ -73,11 +75,13 @@ impl SGDClassifier {
     }
 
     /// Decision function (raw score)
+    #[inline(always)]
     pub fn decision_function(&self, features: &FeatureVector) -> f64 {
         features.dot(&self.weights) + self.bias
     }
 
     /// Predict class (0 or 1)
+    #[inline]
     pub fn predict(&self, features: &FeatureVector) -> f64 {
         if self.decision_function(features) > 0.0 {
             1.0
@@ -87,16 +91,19 @@ impl SGDClassifier {
     }
 
     /// Predict probability
+    #[inline(always)]
     pub fn predict_proba(&self, features: &FeatureVector) -> f64 {
         sigmoid(self.decision_function(features))
     }
 
     /// Get weights
+    #[inline(always)]
     pub fn weights(&self) -> &[f64] {
         &self.weights
     }
 
     /// Get number of updates
+    #[inline(always)]
     pub fn n_updates(&self) -> u64 {
         self.n_updates.load(Ordering::Relaxed)
     }

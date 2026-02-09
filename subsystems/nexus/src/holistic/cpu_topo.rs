@@ -26,6 +26,7 @@ pub enum CacheType {
 
 /// Cache descriptor
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheInfo {
     pub level: CacheLevel,
     pub cache_type: CacheType,
@@ -38,7 +39,9 @@ pub struct CacheInfo {
 }
 
 impl CacheInfo {
+    #[inline(always)]
     pub fn total_size(&self) -> u64 { self.size_kb as u64 * 1024 }
+    #[inline(always)]
     pub fn associativity(&self) -> u32 { self.ways }
 }
 
@@ -83,8 +86,11 @@ impl CpuFeatures {
     pub const XSAVE: u32 = 14;
     pub const SMT: u32 = 15;
 
+    #[inline(always)]
     pub fn empty() -> Self { Self { bits: [0; 4] } }
+    #[inline(always)]
     pub fn set(&mut self, feat: u32) { if feat < 256 { self.bits[feat as usize / 64] |= 1 << (feat % 64); } }
+    #[inline(always)]
     pub fn has(&self, feat: u32) -> bool {
         if feat >= 256 { false } else { (self.bits[feat as usize / 64] >> (feat % 64)) & 1 != 0 }
     }
@@ -118,7 +124,9 @@ impl LogicalCpu {
         }
     }
 
+    #[inline(always)]
     pub fn is_smt_primary(&self) -> bool { self.smt_sibling.is_some() && self.cpu_id < self.smt_sibling.unwrap() }
+    #[inline(always)]
     pub fn cache_size(&self, level: CacheLevel) -> u32 {
         self.caches.iter().find(|c| c.level == level).map(|c| c.size_kb).unwrap_or(0)
     }
@@ -135,10 +143,12 @@ pub struct TopologyDistances {
 }
 
 impl TopologyDistances {
+    #[inline(always)]
     pub fn default_x86() -> Self {
         Self { same_core: 1, same_package: 10, same_die: 5, same_numa: 20, cross_numa: 100 }
     }
 
+    #[inline]
     pub fn distance(&self, cpu_a: &LogicalCpu, cpu_b: &LogicalCpu) -> u32 {
         if cpu_a.cpu_id == cpu_b.cpu_id { return 0; }
         if cpu_a.core_id == cpu_b.core_id && cpu_a.package_id == cpu_b.package_id { return self.same_core; }
@@ -151,6 +161,7 @@ impl TopologyDistances {
 
 /// CPU topology stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuTopoV2Stats {
     pub total_cpus: u32,
     pub online_cpus: u32,
@@ -172,22 +183,28 @@ impl HolisticCpuTopoV2 {
         Self { cpus: BTreeMap::new(), distances: TopologyDistances::default_x86() }
     }
 
+    #[inline(always)]
     pub fn add_cpu(&mut self, cpu: LogicalCpu) { self.cpus.insert(cpu.cpu_id, cpu); }
 
+    #[inline(always)]
     pub fn get_cpu(&self, id: u32) -> Option<&LogicalCpu> { self.cpus.get(&id) }
 
+    #[inline(always)]
     pub fn online_cpus(&self) -> Vec<u32> {
         self.cpus.values().filter(|c| c.online).map(|c| c.cpu_id).collect()
     }
 
+    #[inline(always)]
     pub fn cpus_in_package(&self, pkg: u32) -> Vec<u32> {
         self.cpus.values().filter(|c| c.package_id == pkg).map(|c| c.cpu_id).collect()
     }
 
+    #[inline(always)]
     pub fn cpus_on_node(&self, node: u32) -> Vec<u32> {
         self.cpus.values().filter(|c| c.numa_node == node).map(|c| c.cpu_id).collect()
     }
 
+    #[inline]
     pub fn distance(&self, a: u32, b: u32) -> u32 {
         let cpu_a = match self.cpus.get(&a) { Some(c) => c, None => return u32::MAX };
         let cpu_b = match self.cpus.get(&b) { Some(c) => c, None => return u32::MAX };

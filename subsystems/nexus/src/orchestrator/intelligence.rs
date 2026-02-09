@@ -142,6 +142,7 @@ impl OrchestratorIntelligence {
     }
 
     /// Report subsystem health
+    #[inline]
     pub fn report_health(&mut self, subsystem: SubsystemId, score: u32, timestamp: u64) {
         if let Some(state) = self.manager.get_subsystem_mut(subsystem) {
             state.set_health_score(score);
@@ -151,6 +152,7 @@ impl OrchestratorIntelligence {
     }
 
     /// Request decision
+    #[inline(always)]
     pub fn request_decision(
         &mut self,
         decision_type: DecisionType,
@@ -267,11 +269,13 @@ impl OrchestratorIntelligence {
     }
 
     /// Get manager
+    #[inline(always)]
     pub fn manager(&self) -> &OrchestratorManager {
         &self.manager
     }
 
     /// Get manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut OrchestratorManager {
         &mut self.manager
     }

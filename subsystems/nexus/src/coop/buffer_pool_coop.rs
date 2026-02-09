@@ -9,6 +9,7 @@ pub enum BufferPoolCoopEvent { PoolShare, BufferRecycle, FragmentMerge, SkbClone
 
 /// Buffer pool coop record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BufferPoolCoopRecord {
     pub event: BufferPoolCoopEvent,
     pub buffers: u32,
@@ -22,14 +23,17 @@ impl BufferPoolCoopRecord {
 
 /// Buffer pool coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BufferPoolCoopStats { pub total_events: u64, pub shares: u64, pub recycled: u64, pub bytes_saved: u64 }
 
 /// Main coop buffer pool
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CoopBufferPool { pub stats: BufferPoolCoopStats }
 
 impl CoopBufferPool {
     pub fn new() -> Self { Self { stats: BufferPoolCoopStats { total_events: 0, shares: 0, recycled: 0, bytes_saved: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &BufferPoolCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

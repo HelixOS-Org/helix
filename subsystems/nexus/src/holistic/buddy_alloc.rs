@@ -48,6 +48,7 @@ impl BuddyZone {
         }
     }
 
+    #[inline(always)]
     pub fn add_free(&mut self, pfn: u64, order: u8) {
         if (order as usize) < MAX_ORDER { self.free_lists[order as usize].push(FreeBlock { pfn, order }); }
     }
@@ -90,6 +91,7 @@ impl BuddyZone {
         self.free_lists[current_order].push(FreeBlock { pfn: current_pfn, order: current_order as u8 });
     }
 
+    #[inline]
     pub fn fragmentation(&self) -> f64 {
         if self.free_pages == 0 { return 0.0; }
         let largest_free_order = (0..MAX_ORDER).rev().find(|&o| !self.free_lists[o].is_empty()).unwrap_or(0);
@@ -99,6 +101,7 @@ impl BuddyZone {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BuddyAllocStats {
     pub total_zones: u32,
     pub total_pages: u64,
@@ -116,12 +119,14 @@ pub struct HolisticBuddyAlloc {
 impl HolisticBuddyAlloc {
     pub fn new() -> Self { Self { zones: Vec::new() } }
 
+    #[inline]
     pub fn add_zone(&mut self, start: u64, end: u64) -> u32 {
         let id = self.zones.len() as u32;
         self.zones.push(BuddyZone::new(id, start, end));
         id
     }
 
+    #[inline]
     pub fn alloc(&mut self, order: u8) -> Option<u64> {
         for zone in &mut self.zones {
             if let Some(pfn) = zone.alloc(order) { return Some(pfn); }
@@ -129,6 +134,7 @@ impl HolisticBuddyAlloc {
         None
     }
 
+    #[inline]
     pub fn stats(&self) -> BuddyAllocStats {
         let total: u64 = self.zones.iter().map(|z| z.total_pages).sum();
         let free: u64 = self.zones.iter().map(|z| z.free_pages).sum();
@@ -160,7 +166,9 @@ pub enum BuddyV2Order {
 }
 
 impl BuddyV2Order {
+    #[inline(always)]
     pub fn pages(&self) -> u64 { 1 << (*self as u32) }
+    #[inline(always)]
     pub fn as_u32(&self) -> u32 { *self as u32 }
 }
 
@@ -214,6 +222,7 @@ impl BuddyV2Zone {
         None
     }
 
+    #[inline]
     pub fn free(&mut self, pfn: u64, order: u32) {
         if order as usize > 10 { return; }
         self.free_lists[order as usize].push(pfn);
@@ -224,6 +233,7 @@ impl BuddyV2Zone {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BuddyAllocV2Stats {
     pub total_pages: u64,
     pub free_pages: u64,
@@ -240,9 +250,12 @@ pub struct HolisticBuddyAllocV2 {
 
 impl HolisticBuddyAllocV2 {
     pub fn new(total: u64) -> Self { Self { zone: BuddyV2Zone::new(total) } }
+    #[inline(always)]
     pub fn alloc(&mut self, order: u32) -> Option<u64> { self.zone.alloc(order) }
+    #[inline(always)]
     pub fn free(&mut self, pfn: u64, order: u32) { self.zone.free(pfn, order) }
 
+    #[inline(always)]
     pub fn stats(&self) -> BuddyAllocV2Stats {
         BuddyAllocV2Stats { total_pages: self.zone.total_pages, free_pages: self.zone.free_pages, allocs: self.zone.alloc_count, frees: self.zone.free_count, splits: self.zone.split_count, merges: self.zone.merge_count }
     }

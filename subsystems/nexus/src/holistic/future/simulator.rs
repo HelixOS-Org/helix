@@ -11,6 +11,8 @@
 
 extern crate alloc;
 
+use crate::fast::fast_hash::FastHasher;
+
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -152,6 +154,7 @@ pub struct FidelityReport {
 
 /// Aggregate simulation statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SimulatorStats {
     pub total_simulations: u64,
     pub total_scenarios: u64,
@@ -297,7 +300,7 @@ impl HolisticSimulator {
             ResourceDomain::Cpu
         };
 
-        let id = fnv1a_hash(format!("{:?}-{}", kind, self.tick).as_bytes())
+        let id = FastHasher::new().feed_u64(kind as u64).feed_str("-").feed_u64(self.tick as u64).finish()
             ^ xorshift64(&mut self.rng_state);
 
         self.stability_ema = EMA_ALPHA * final_stability + (1.0 - EMA_ALPHA) * self.stability_ema;
@@ -324,6 +327,7 @@ impl HolisticSimulator {
     }
 
     /// Run multiple scenarios in parallel and return all results
+    #[inline]
     pub fn parallel_scenarios(
         &mut self,
         kinds: &[ScenarioKind],
@@ -352,7 +356,7 @@ impl HolisticSimulator {
                 let mem_diff = (sa[i].mem_used_pct - sb[i].mem_used_pct).abs();
 
                 if cpu_diff > 10.0 {
-                    let rec_id = fnv1a_hash(format!("div-cpu-{}", i).as_bytes());
+                    let rec_id = FastHasher::new().feed_str("div-cpu-").feed_u64(i as u64).finish();
                     records.push(DivergenceRecord {
                         scenario_a: id_a,
                         scenario_b: id_b,
@@ -366,7 +370,7 @@ impl HolisticSimulator {
                 }
 
                 if mem_diff > 0.1 {
-                    let rec_id = fnv1a_hash(format!("div-mem-{}", i).as_bytes());
+                    let rec_id = FastHasher::new().feed_str("div-mem-").feed_u64(i as u64).finish();
                     records.push(DivergenceRecord {
                         scenario_a: id_a,
                         scenario_b: id_b,
@@ -428,6 +432,7 @@ impl HolisticSimulator {
     }
 
     /// Measure simulation fidelity against actual observations
+    #[inline]
     pub fn simulation_fidelity(
         &mut self,
         scenario_id: u64,
@@ -504,7 +509,7 @@ impl HolisticSimulator {
                 cascading.push(ResourceDomain::ThermalPower);
             }
 
-            let id = fnv1a_hash(format!("bneck-{}", domain_key).as_bytes());
+            let id = FastHasher::new().feed_str("bneck-").feed_u64(domain_key as u64).finish();
             predictions.push(BottleneckPrediction {
                 id,
                 domain,

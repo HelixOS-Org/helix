@@ -2,6 +2,7 @@
 //! NEXUS Holistic — Thread (holistic thread analysis)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -28,6 +29,7 @@ pub struct HolisticThreadEntry {
 
 /// Thread holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticThreadStats {
     pub total_analyzed: u64,
     pub worker_pools: u64,
@@ -40,7 +42,7 @@ pub struct HolisticThreadStats {
 /// Manager for holistic thread analysis
 pub struct HolisticThreadManager {
     entries: Vec<HolisticThreadEntry>,
-    group_counts: BTreeMap<u64, u32>,
+    group_counts: LinearMap<u32, 64>,
     stats: HolisticThreadStats,
 }
 
@@ -48,7 +50,7 @@ impl HolisticThreadManager {
     pub fn new() -> Self {
         Self {
             entries: Vec::new(),
-            group_counts: BTreeMap::new(),
+            group_counts: LinearMap::new(),
             stats: HolisticThreadStats {
                 total_analyzed: 0,
                 worker_pools: 0,
@@ -91,6 +93,7 @@ impl HolisticThreadManager {
         pattern
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticThreadStats {
         &self.stats
     }

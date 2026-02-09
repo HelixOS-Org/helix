@@ -67,6 +67,7 @@ impl CongestionLevel {
     }
 
     /// Numeric severity
+    #[inline]
     pub fn severity(&self) -> u32 {
         match self {
             CongestionLevel::None => 0,
@@ -178,11 +179,13 @@ impl CongestionWindow {
     }
 
     /// Available capacity
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.cwnd
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.max_cwnd == 0 {
             return 0.0;
@@ -234,6 +237,7 @@ impl ResourceCongestion {
     }
 
     /// Update queue state
+    #[inline]
     pub fn update_queue(&mut self, depth: u64) {
         self.queue_depth = depth;
         let util = if self.queue_capacity > 0 {
@@ -245,18 +249,21 @@ impl ResourceCongestion {
     }
 
     /// Update rates
+    #[inline(always)]
     pub fn update_rates(&mut self, arrival: f64, service: f64) {
         self.arrival_rate = arrival;
         self.service_rate = service;
     }
 
     /// Update latency (EMA alpha=0.1)
+    #[inline(always)]
     pub fn update_latency(&mut self, latency_ns: u64) {
         let alpha = 0.1;
         self.avg_latency_ns = alpha * latency_ns as f64 + (1.0 - alpha) * self.avg_latency_ns;
     }
 
     /// Traffic intensity (rho = arrival / service)
+    #[inline]
     pub fn traffic_intensity(&self) -> f64 {
         if self.service_rate <= 0.0 {
             return f64::MAX;
@@ -265,6 +272,7 @@ impl ResourceCongestion {
     }
 
     /// Determine backpressure action
+    #[inline]
     pub fn backpressure_action(&self) -> BackpressureAction {
         match self.level {
             CongestionLevel::None => BackpressureAction::NoAction,
@@ -282,6 +290,7 @@ impl ResourceCongestion {
 
 /// Congestion stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticCongestionStats {
     /// Resources tracked
     pub resources_tracked: usize,
@@ -313,6 +322,7 @@ impl HolisticCongestionEngine {
     }
 
     /// Register resource
+    #[inline]
     pub fn register(&mut self, resource: CongestionResource, capacity: u64) {
         let key = resource as u8;
         self.resources.insert(key, ResourceCongestion::new(resource, capacity));
@@ -336,6 +346,7 @@ impl HolisticCongestionEngine {
     }
 
     /// Record successful operation
+    #[inline]
     pub fn on_success(&mut self, resource: CongestionResource) {
         let key = resource as u8;
         if let Some(rc) = self.resources.get_mut(&key) {
@@ -344,6 +355,7 @@ impl HolisticCongestionEngine {
     }
 
     /// Record congestion event
+    #[inline]
     pub fn on_congestion(&mut self, resource: CongestionResource) {
         let key = resource as u8;
         if let Some(rc) = self.resources.get_mut(&key) {
@@ -352,6 +364,7 @@ impl HolisticCongestionEngine {
     }
 
     /// Get congested resources
+    #[inline]
     pub fn congested_resources(&self) -> Vec<CongestionResource> {
         self.resources
             .values()
@@ -361,6 +374,7 @@ impl HolisticCongestionEngine {
     }
 
     /// Global backpressure action
+    #[inline]
     pub fn global_action(&self) -> BackpressureAction {
         match self.global_level {
             CongestionLevel::None => BackpressureAction::NoAction,
@@ -387,6 +401,7 @@ impl HolisticCongestionEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCongestionStats {
         &self.stats
     }

@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -87,6 +88,7 @@ impl ArgFilter {
     }
 
     /// Check argument
+    #[inline]
     pub fn matches(&self, arg_value: u64) -> bool {
         match self.comparison {
             ArgComparison::Equal => arg_value == self.value,
@@ -181,6 +183,7 @@ impl FilterChain {
     }
 
     /// Add rule
+    #[inline]
     pub fn add_rule(&mut self, mut rule: FilterRule) -> u64 {
         rule.id = self.next_id;
         self.next_id += 1;
@@ -192,11 +195,13 @@ impl FilterChain {
     }
 
     /// Remove rule
+    #[inline(always)]
     pub fn remove_rule(&mut self, id: u64) {
         self.rules.retain(|r| r.id != id);
     }
 
     /// Evaluate chain
+    #[inline]
     pub fn evaluate(&mut self, syscall_nr: u32, args: &[u64]) -> FilterAction {
         for rule in &mut self.rules {
             if rule.matches(syscall_nr, args) {
@@ -208,6 +213,7 @@ impl FilterChain {
     }
 
     /// Rule count
+    #[inline(always)]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }
@@ -236,7 +242,7 @@ pub struct AuditEntry {
 #[derive(Debug)]
 pub struct AuditLog {
     /// Entries
-    entries: Vec<AuditEntry>,
+    entries: VecDeque<AuditEntry>,
     /// Max entries
     max_entries: usize,
     /// Total logged
@@ -246,22 +252,24 @@ pub struct AuditLog {
 impl AuditLog {
     pub fn new(max_entries: usize) -> Self {
         Self {
-            entries: Vec::new(),
+            entries: VecDeque::new(),
             max_entries,
             total_logged: 0,
         }
     }
 
     /// Log entry
+    #[inline]
     pub fn log(&mut self, entry: AuditEntry) {
         if self.entries.len() >= self.max_entries {
-            self.entries.remove(0);
+            self.entries.pop_front();
         }
-        self.entries.push(entry);
+        self.entries.push_back(entry);
         self.total_logged += 1;
     }
 
     /// Recent entries
+    #[inline]
     pub fn recent(&self, count: usize) -> &[AuditEntry] {
         let start = if self.entries.len() > count {
             self.entries.len() - count
@@ -272,6 +280,7 @@ impl AuditLog {
     }
 
     /// Denied entries for pid
+    #[inline]
     pub fn denied_for(&self, pid: u64) -> Vec<&AuditEntry> {
         self.entries.iter()
             .filter(|e| e.pid == pid && matches!(e.action, FilterAction::Deny | FilterAction::LogDeny | FilterAction::Kill))
@@ -285,6 +294,7 @@ impl AuditLog {
 
 /// Isolation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeIsolationStats {
     /// Processes with filters
     pub filtered_processes: usize,
@@ -297,6 +307,7 @@ pub struct BridgeIsolationStats {
 }
 
 /// Bridge isolation manager
+#[repr(align(64))]
 pub struct BridgeIsolationManager {
     /// Per-process filter chains
     chains: BTreeMap<u64, FilterChain>,
@@ -319,17 +330,20 @@ impl BridgeIsolationManager {
     }
 
     /// Create filter chain for process
+    #[inline(always)]
     pub fn create_chain(&mut self, pid: u64, default_action: FilterAction) {
         self.chains.insert(pid, FilterChain::new(default_action));
         self.stats.filtered_processes = self.chains.len();
     }
 
     /// Add rule to process chain
+    #[inline(always)]
     pub fn add_process_rule(&mut self, pid: u64, rule: FilterRule) -> Option<u64> {
         self.chains.get_mut(&pid).map(|chain| chain.add_rule(rule))
     }
 
     /// Add global rule
+    #[inline(always)]
     pub fn add_global_rule(&mut self, rule: FilterRule) -> u64 {
         self.global_chain.add_rule(rule)
     }
@@ -369,12 +383,14 @@ impl BridgeIsolationManager {
     }
 
     /// Remove process chain
+    #[inline(always)]
     pub fn remove_chain(&mut self, pid: u64) {
         self.chains.remove(&pid);
         self.stats.filtered_processes = self.chains.len();
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeIsolationStats {
         &self.stats
     }

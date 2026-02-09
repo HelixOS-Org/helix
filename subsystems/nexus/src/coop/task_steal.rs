@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Task priority for steal ordering
@@ -71,24 +72,29 @@ impl StealTask {
         }
     }
 
+    #[inline(always)]
     pub fn wait_time(&self, now: u64) -> u64 { now.saturating_sub(self.enqueued_at) }
 
+    #[inline]
     pub fn execution_time(&self) -> u64 {
         if self.completed_at > 0 && self.started_at > 0 {
             self.completed_at.saturating_sub(self.started_at)
         } else { 0 }
     }
 
+    #[inline(always)]
     pub fn start(&mut self, now: u64) {
         self.state = StealTaskState::Running;
         self.started_at = now;
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, now: u64) {
         self.state = StealTaskState::Completed;
         self.completed_at = now;
     }
 
+    #[inline]
     pub fn mark_stolen(&mut self, new_owner: u32) {
         self.state = StealTaskState::Stolen;
         self.owner_queue = new_owner;
@@ -98,9 +104,10 @@ impl StealTask {
 
 /// Per-CPU work queue for the steal scheduler
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct WorkQueue {
     pub cpu_id: u32,
-    pub tasks: Vec<StealTask>,
+    pub tasks: VecDeque<StealTask>,
     pub capacity: u32,
     pub total_enqueued: u64,
     pub total_dequeued: u64,
@@ -111,25 +118,28 @@ pub struct WorkQueue {
 impl WorkQueue {
     pub fn new(cpu_id: u32, capacity: u32) -> Self {
         Self {
-            cpu_id, tasks: Vec::new(), capacity,
+            cpu_id, tasks: VecDeque::new(), capacity,
             total_enqueued: 0, total_dequeued: 0,
             total_stolen_from: 0, total_stolen_to: 0,
         }
     }
 
+    #[inline]
     pub fn push(&mut self, task: StealTask) -> bool {
         if self.tasks.len() as u32 >= self.capacity { return false; }
-        self.tasks.push(task);
+        self.tasks.push_back(task);
         self.total_enqueued += 1;
         true
     }
 
+    #[inline]
     pub fn pop(&mut self) -> Option<StealTask> {
         if self.tasks.is_empty() { return None; }
         self.total_dequeued += 1;
-        Some(self.tasks.remove(0))
+        self.tasks.pop_front()
     }
 
+    #[inline]
     pub fn steal_half(&mut self) -> Vec<StealTask> {
         let n = self.tasks.len() / 2;
         if n == 0 { return Vec::new(); }
@@ -138,12 +148,14 @@ impl WorkQueue {
         stolen
     }
 
+    #[inline]
     pub fn steal_one(&mut self) -> Option<StealTask> {
         if self.tasks.is_empty() { return None; }
         self.total_stolen_from += 1;
         Some(self.tasks.remove(self.tasks.len() - 1))
     }
 
+    #[inline]
     pub fn steal_by_priority(&mut self, min_priority: StealPriority) -> Vec<StealTask> {
         let mut stolen = Vec::new();
         let mut remaining = Vec::new();
@@ -156,8 +168,10 @@ impl WorkQueue {
         stolen
     }
 
+    #[inline(always)]
     pub fn load(&self) -> u32 { self.tasks.len() as u32 }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 { return 0.0; }
         self.tasks.len() as f64 / self.capacity as f64
@@ -166,6 +180,7 @@ impl WorkQueue {
 
 /// Task steal stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TaskStealStats {
     pub total_queues: u32,
     pub total_tasks: u64,
@@ -205,14 +220,17 @@ impl CoopTaskSteal {
         x
     }
 
+    #[inline(always)]
     pub fn add_queue(&mut self, cpu_id: u32, capacity: u32) {
         self.queues.entry(cpu_id).or_insert_with(|| WorkQueue::new(cpu_id, capacity));
     }
 
+    #[inline(always)]
     pub fn submit(&mut self, cpu_id: u32, task: StealTask) -> bool {
         self.queues.get_mut(&cpu_id).map(|q| q.push(task)).unwrap_or(false)
     }
 
+    #[inline]
     pub fn dequeue(&mut self, cpu_id: u32) -> Option<StealTask> {
         if let Some(task) = self.queues.get_mut(&cpu_id).and_then(|q| q.pop()) {
             return Some(task);
@@ -265,6 +283,7 @@ impl CoopTaskSteal {
         }
     }
 
+    #[inline]
     pub fn complete_task(&mut self, mut task: StealTask, now: u64) {
         task.complete(now);
         if self.completed.len() >= self.max_completed {
@@ -273,6 +292,7 @@ impl CoopTaskSteal {
         self.completed.push(task);
     }
 
+    #[inline]
     pub fn balance(&mut self) {
         let loads: Vec<(u32, u32)> = self.queues.iter()
             .map(|(&id, q)| (id, q.load())).collect();

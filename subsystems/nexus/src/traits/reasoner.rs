@@ -88,12 +88,14 @@ impl CausalLink {
     }
 
     /// With delay
+    #[inline(always)]
     pub fn with_delay(mut self, delay: Duration) -> Self {
         self.delay = delay;
         self
     }
 
     /// With link type
+    #[inline(always)]
     pub fn with_type(mut self, link_type: CausalLinkType) -> Self {
         self.link_type = link_type;
         self
@@ -119,6 +121,7 @@ pub enum CausalLinkType {
 
 impl CausalLinkType {
     /// Get type name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Direct => "direct",
@@ -131,6 +134,7 @@ impl CausalLinkType {
     }
 
     /// Is this a true causal link (not just correlation)?
+    #[inline(always)]
     pub const fn is_causal(&self) -> bool {
         !matches!(self, Self::Correlation)
     }
@@ -170,6 +174,7 @@ pub struct TrendInfo {
 
 impl TrendInfo {
     /// Create stable trend
+    #[inline]
     pub fn stable() -> Self {
         Self {
             direction: TrendDirection::Stable,
@@ -180,6 +185,7 @@ impl TrendInfo {
     }
 
     /// Is significant trend?
+    #[inline(always)]
     pub fn is_significant(&self) -> bool {
         self.confidence.meets(Confidence::MEDIUM)
             && !matches!(self.direction, TrendDirection::Stable)
@@ -203,6 +209,7 @@ pub enum TrendDirection {
 
 impl TrendDirection {
     /// Get direction name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Rising => "rising",
@@ -231,11 +238,13 @@ pub struct Forecast {
 
 impl Forecast {
     /// Get prediction interval width
+    #[inline(always)]
     pub fn interval_width(&self) -> f64 {
         self.upper_bound - self.lower_bound
     }
 
     /// Is value within interval?
+    #[inline(always)]
     pub fn contains(&self, value: f64) -> bool {
         value >= self.lower_bound && value <= self.upper_bound
     }

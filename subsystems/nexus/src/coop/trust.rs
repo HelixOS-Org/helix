@@ -9,6 +9,7 @@
 //! - Trust decay and recovery
 //! - Trust-based access control
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -238,7 +239,7 @@ struct ProcessTrust {
     /// Last decay time
     last_decay: u64,
     /// Interactions with other processes (pid → interaction count)
-    interactions: BTreeMap<u64, u32>,
+    interactions: LinearMap<u32, 64>,
 }
 
 impl ProcessTrust {
@@ -278,7 +279,7 @@ impl ProcessTrust {
             level: TrustLevel::Minimal,
             created_at: timestamp,
             last_decay: timestamp,
-            interactions: BTreeMap::new(),
+            interactions: LinearMap::new(),
         }
     }
 
@@ -329,7 +330,7 @@ impl ProcessTrust {
                 if let Some(dim) = self.dimensions.get_mut(&(TrustDimension::Social as u8)) {
                     dim.positive(0.5, timestamp);
                 }
-                *self.interactions.entry(partner_pid).or_insert(0) += 1;
+                self.interactions.add(partner_pid, 1);
             }
             TrustEvidence::UncooperativeAction { victim_pid: _ } => {
                 if let Some(dim) = self.dimensions.get_mut(&(TrustDimension::Social as u8)) {
@@ -429,18 +430,21 @@ impl TrustManager {
     }
 
     /// Register a process
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, timestamp: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessTrust::new(pid, timestamp));
         self.update_level_counts();
     }
 
     /// Unregister a process
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.update_level_counts();
     }
 
     /// Submit trust evidence
+    #[inline]
     pub fn submit_evidence(
         &mut self,
         pid: u64,
@@ -487,6 +491,7 @@ impl TrustManager {
     }
 
     /// Get overall trust score
+    #[inline]
     pub fn trust_score(&self, pid: u64) -> f64 {
         self.profiles
             .get(&pid)
@@ -494,6 +499,7 @@ impl TrustManager {
     }
 
     /// Get trust level
+    #[inline]
     pub fn trust_level(&self, pid: u64) -> TrustLevel {
         self.profiles
             .get(&pid)
@@ -501,11 +507,13 @@ impl TrustManager {
     }
 
     /// Check if process meets trust requirement
+    #[inline(always)]
     pub fn meets_requirement(&self, pid: u64, required_level: TrustLevel) -> bool {
         self.trust_level(pid) >= required_level
     }
 
     /// Decay all profiles
+    #[inline]
     pub fn decay_all(&mut self, current_time: u64) {
         for profile in self.profiles.values_mut() {
             profile.decay(current_time);
@@ -529,6 +537,7 @@ impl TrustManager {
     }
 
     /// Average trust score
+    #[inline]
     pub fn average_trust(&self) -> f64 {
         if self.profiles.is_empty() {
             return 0.0;
@@ -538,6 +547,7 @@ impl TrustManager {
     }
 
     /// Process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.profiles.len()
     }

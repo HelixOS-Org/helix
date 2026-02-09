@@ -42,11 +42,13 @@ impl CausalChain {
     }
 
     /// Add node
+    #[inline(always)]
     pub fn add_node(&mut self, node_id: CausalNodeId) {
         self.nodes.push(node_id);
     }
 
     /// Add edge
+    #[inline]
     pub fn add_edge(&mut self, edge_id: CausalEdgeId, confidence: f32, strength: f32) {
         self.edges.push(edge_id);
         self.total_confidence *= confidence;
@@ -54,26 +56,31 @@ impl CausalChain {
     }
 
     /// Chain length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.nodes.is_empty()
     }
 
     /// Root cause (first node)
+    #[inline(always)]
     pub fn root_cause(&self) -> Option<CausalNodeId> {
         self.nodes.first().copied()
     }
 
     /// Terminal effect (last node)
+    #[inline(always)]
     pub fn terminal_effect(&self) -> Option<CausalNodeId> {
         self.nodes.last().copied()
     }
 
     /// Average strength
+    #[inline]
     pub fn average_strength(&self) -> f32 {
         if self.edges.is_empty() {
             return 0.0;
@@ -82,6 +89,7 @@ impl CausalChain {
     }
 
     /// Set time span
+    #[inline(always)]
     pub fn set_time_span(&mut self, span: u64) {
         self.time_span = span;
     }
@@ -203,6 +211,7 @@ impl CausalChainBuilder {
     }
 
     /// Build chain count
+    #[inline(always)]
     pub fn chain_count(&self) -> u64 {
         self.chain_counter.load(Ordering::Relaxed)
     }

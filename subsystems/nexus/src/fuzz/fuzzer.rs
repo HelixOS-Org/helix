@@ -52,18 +52,21 @@ impl Fuzzer {
     }
 
     /// Set corpus
+    #[inline(always)]
     pub fn with_corpus(mut self, corpus: Corpus) -> Self {
         self.corpus = corpus;
         self
     }
 
     /// Set mutator
+    #[inline(always)]
     pub fn with_mutator(mut self, mutator: Mutator) -> Self {
         self.mutator = mutator;
         self
     }
 
     /// Add seed input
+    #[inline(always)]
     pub fn add_seed(&mut self, data: Vec<u8>) {
         let input = FuzzInput::new(data);
         self.corpus.add(input);
@@ -150,26 +153,31 @@ impl Fuzzer {
     }
 
     /// Stop fuzzing
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::SeqCst);
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &FuzzStats {
         &self.stats
     }
 
     /// Get crashes
+    #[inline(always)]
     pub fn crashes(&self) -> &[FuzzInput] {
         &self.crashes
     }
 
     /// Get corpus
+    #[inline(always)]
     pub fn corpus(&self) -> &Corpus {
         &self.corpus
     }
 
     /// Get mutable corpus
+    #[inline(always)]
     pub fn corpus_mut(&mut self) -> &mut Corpus {
         &mut self.corpus
     }

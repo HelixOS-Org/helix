@@ -40,6 +40,7 @@ pub enum SemaphoreResult {
 
 /// Semaphore record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemaphoreRecord {
     pub op: SemaphoreOp,
     pub result: SemaphoreResult,
@@ -57,6 +58,7 @@ impl SemaphoreRecord {
 
 /// Semaphore bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemaphoreBridgeStats {
     pub total_ops: u64,
     pub semops: u64,
@@ -67,6 +69,7 @@ pub struct SemaphoreBridgeStats {
 
 /// Main bridge semaphore
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeSemaphore {
     pub stats: SemaphoreBridgeStats,
 }
@@ -76,6 +79,7 @@ impl BridgeSemaphore {
         Self { stats: SemaphoreBridgeStats { total_ops: 0, semops: 0, sets_created: 0, blocks: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SemaphoreRecord) {
         self.stats.total_ops += 1;
         match rec.op {

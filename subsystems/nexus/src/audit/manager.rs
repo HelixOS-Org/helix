@@ -34,6 +34,7 @@ impl AuditManager {
     }
 
     /// Add rule
+    #[inline]
     pub fn add_rule(&mut self, action: RuleAction, list: RuleList, timestamp: u64) -> AuditRuleId {
         let id = AuditRuleId::new(self.next_rule_id.fetch_add(1, Ordering::Relaxed));
         let rule = AuditRule::new(id, action, list, timestamp);
@@ -42,26 +43,31 @@ impl AuditManager {
     }
 
     /// Remove rule
+    #[inline(always)]
     pub fn remove_rule(&mut self, id: AuditRuleId) -> bool {
         self.rules.remove(&id).is_some()
     }
 
     /// Get rule
+    #[inline(always)]
     pub fn get_rule(&self, id: AuditRuleId) -> Option<&AuditRule> {
         self.rules.get(&id)
     }
 
     /// Get rule mutably
+    #[inline(always)]
     pub fn get_rule_mut(&mut self, id: AuditRuleId) -> Option<&mut AuditRule> {
         self.rules.get_mut(&id)
     }
 
     /// Get all rules
+    #[inline(always)]
     pub fn all_rules(&self) -> impl Iterator<Item = &AuditRule> {
         self.rules.values()
     }
 
     /// Rule count
+    #[inline(always)]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }
@@ -90,26 +96,31 @@ impl AuditManager {
     }
 
     /// Get log
+    #[inline(always)]
     pub fn log(&self) -> &AuditLog {
         &self.log
     }
 
     /// Get log mutably
+    #[inline(always)]
     pub fn log_mut(&mut self) -> &mut AuditLog {
         &mut self.log
     }
 
     /// Get total events
+    #[inline(always)]
     pub fn total_events(&self) -> u64 {
         self.total_events.load(Ordering::Relaxed)
     }
 
     /// Get filtered events
+    #[inline(always)]
     pub fn filtered_events(&self) -> u64 {
         self.filtered_events.load(Ordering::Relaxed)
     }
 
     /// Check if rules are empty
+    #[inline(always)]
     pub fn has_rules(&self) -> bool {
         !self.rules.is_empty()
     }

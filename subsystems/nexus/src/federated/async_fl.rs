@@ -1,5 +1,6 @@
 //! Asynchronous federated learning.
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 
 use crate::federated::model::FederatedModel;
@@ -30,7 +31,7 @@ pub struct AsyncFedAggregator {
     /// Staleness decay factor
     pub decay_factor: f64,
     /// Client versions
-    pub client_versions: BTreeMap<u32, u64>,
+    pub client_versions: ArrayMap<u64, 32>,
 }
 
 impl AsyncFedAggregator {
@@ -41,7 +42,7 @@ impl AsyncFedAggregator {
             staleness_strategy: strategy,
             max_staleness: 10,
             decay_factor: 0.5,
-            client_versions: BTreeMap::new(),
+            client_versions: ArrayMap::new(0),
         }
     }
 
@@ -89,6 +90,7 @@ impl AsyncFedAggregator {
     }
 
     /// Get model for client
+    #[inline(always)]
     pub fn get_model_for_client(&self, _client_id: u32) -> (FederatedModel, u64) {
         let version = self.global_model.version;
         (self.global_model.clone(), version)

@@ -152,6 +152,7 @@ impl EscrowContract {
     }
 
     /// Deposit resource
+    #[inline]
     pub fn deposit(&mut self, resource: EscrowResource) {
         if self.state == EscrowState::Pending {
             self.resources.push(resource);
@@ -162,6 +163,7 @@ impl EscrowContract {
     }
 
     /// Mark condition as met
+    #[inline]
     pub fn satisfy_condition(&mut self, index: usize) {
         if index < self.conditions_met.len() {
             self.conditions_met[index] = true;
@@ -172,11 +174,13 @@ impl EscrowContract {
     }
 
     /// All conditions satisfied?
+    #[inline(always)]
     pub fn all_conditions_met(&self) -> bool {
         self.conditions_met.iter().all(|&m| m)
     }
 
     /// Release to recipient
+    #[inline]
     pub fn release(&mut self, now: u64) -> bool {
         if self.state == EscrowState::Ready || self.state == EscrowState::Funded {
             self.state = EscrowState::Released;
@@ -188,6 +192,7 @@ impl EscrowContract {
     }
 
     /// Refund to depositor
+    #[inline]
     pub fn refund(&mut self, now: u64) -> bool {
         if self.state == EscrowState::Funded || self.state == EscrowState::Pending {
             self.state = EscrowState::Refunded;
@@ -199,6 +204,7 @@ impl EscrowContract {
     }
 
     /// Raise dispute
+    #[inline]
     pub fn dispute(&mut self) -> bool {
         if self.state == EscrowState::Funded || self.state == EscrowState::Ready {
             self.state = EscrowState::Disputed;
@@ -223,11 +229,13 @@ impl EscrowContract {
     }
 
     /// Total escrowed amount
+    #[inline(always)]
     pub fn total_amount(&self) -> u64 {
         self.resources.iter().map(|r| r.amount).sum()
     }
 
     /// Duration held (ns)
+    #[inline(always)]
     pub fn held_duration(&self, now: u64) -> u64 {
         let end = self.released_at.unwrap_or(now);
         end.saturating_sub(self.created_at)
@@ -240,6 +248,7 @@ impl EscrowContract {
 
 /// Escrow stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopEscrowStats {
     /// Active escrows
     pub active_count: usize,
@@ -277,6 +286,7 @@ impl CoopEscrowManager {
     }
 
     /// Create new escrow
+    #[inline]
     pub fn create(
         &mut self,
         depositor: u64,
@@ -295,6 +305,7 @@ impl CoopEscrowManager {
     }
 
     /// Deposit to escrow
+    #[inline]
     pub fn deposit(&mut self, id: u64, resource: EscrowResource) -> bool {
         if let Some(contract) = self.contracts.get_mut(&id) {
             contract.deposit(resource);
@@ -306,6 +317,7 @@ impl CoopEscrowManager {
     }
 
     /// Satisfy condition
+    #[inline]
     pub fn satisfy(&mut self, id: u64, condition_index: usize) -> bool {
         if let Some(contract) = self.contracts.get_mut(&id) {
             contract.satisfy_condition(condition_index);
@@ -346,6 +358,7 @@ impl CoopEscrowManager {
     }
 
     /// Check all for expiry
+    #[inline]
     pub fn check_expiry(&mut self, now: u64) {
         let ids: Vec<u64> = self.contracts.keys().copied().collect();
         for id in ids {
@@ -359,6 +372,7 @@ impl CoopEscrowManager {
     }
 
     /// Get contract
+    #[inline(always)]
     pub fn contract(&self, id: u64) -> Option<&EscrowContract> {
         self.contracts.get(&id)
     }
@@ -378,6 +392,7 @@ impl CoopEscrowManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopEscrowStats {
         &self.stats
     }

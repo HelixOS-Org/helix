@@ -74,6 +74,7 @@ pub struct WorkloadDistribution {
 
 impl WorkloadDistribution {
     /// Update distribution parameters with a new sample (online)
+    #[inline]
     fn update(&mut self, value: f32) {
         self.sample_count += 1;
         let old_mean = self.mean;
@@ -161,6 +162,7 @@ pub struct WorkloadSample {
 
 /// Aggregate Monte Carlo statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct MonteCarloStats {
     pub distributions_tracked: usize,
     pub total_trials_run: u64,
@@ -231,6 +233,7 @@ impl AppsMonteCarlo {
     }
 
     /// Run Monte Carlo trials for a distribution
+    #[inline]
     pub fn run_trials(
         &mut self,
         distribution_id: u64,
@@ -290,6 +293,7 @@ impl AppsMonteCarlo {
     }
 
     /// Compute percentile forecasts from trial results
+    #[inline]
     pub fn percentile_forecast(&mut self, distribution_id: u64) -> PercentileForecast {
         let trials = if let Some(existing) = self.trial_results.get(&distribution_id) {
             existing.clone()
@@ -429,17 +433,20 @@ impl AppsMonteCarlo {
     }
 
     /// Get a reference to a distribution model
+    #[inline(always)]
     pub fn get_distribution(&self, id: u64) -> Option<&WorkloadDistribution> {
         self.distributions.get(&id)
     }
 
     /// Remove a distribution
+    #[inline(always)]
     pub fn remove_distribution(&mut self, id: u64) {
         self.distributions.remove(&id);
         self.trial_results.remove(&id);
     }
 
     /// Get aggregate statistics
+    #[inline]
     pub fn stats(&self) -> MonteCarloStats {
         MonteCarloStats {
             distributions_tracked: self.distributions.len(),

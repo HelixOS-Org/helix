@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -38,6 +39,7 @@ pub enum QosClass {
 
 impl QosClass {
     /// Priority weight
+    #[inline]
     pub fn weight(&self) -> u32 {
         match self {
             QosClass::BestEffort => 1,
@@ -51,6 +53,7 @@ impl QosClass {
     }
 
     /// Max latency target (us)
+    #[inline]
     pub fn latency_target_us(&self) -> u64 {
         match self {
             QosClass::BestEffort => 100_000,
@@ -64,6 +67,7 @@ impl QosClass {
     }
 
     /// All classes in priority order
+    #[inline]
     pub fn all_desc() -> &'static [QosClass] {
         &[
             QosClass::Emergency,
@@ -124,12 +128,14 @@ impl ResourceGuarantee {
         }
     }
 
+    #[inline(always)]
     pub fn with_burst(mut self, burst: u64) -> Self {
         self.burst = burst;
         self
     }
 
     /// Check if within limits
+    #[inline]
     pub fn is_within_limits(&self) -> bool {
         if self.maximum == 0 {
             return true;
@@ -138,6 +144,7 @@ impl ResourceGuarantee {
     }
 
     /// Utilization against guarantee
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.minimum == 0 {
             return 0.0;
@@ -146,6 +153,7 @@ impl ResourceGuarantee {
     }
 
     /// Headroom
+    #[inline]
     pub fn headroom(&self) -> u64 {
         if self.maximum == 0 {
             return u64::MAX;
@@ -200,20 +208,24 @@ impl QosPolicy {
         }
     }
 
+    #[inline(always)]
     pub fn add_guarantee(&mut self, guarantee: ResourceGuarantee) {
         self.guarantees.push(guarantee);
     }
 
+    #[inline(always)]
     pub fn set_enforcement(&mut self, mode: QosEnforcementMode) {
         self.enforcement = mode;
     }
 
     /// Check all guarantees
+    #[inline(always)]
     pub fn check_compliance(&self) -> bool {
         self.guarantees.iter().all(|g| g.is_within_limits())
     }
 
     /// Find violated guarantees
+    #[inline]
     pub fn violations(&self) -> Vec<QosResource> {
         self.guarantees
             .iter()
@@ -242,6 +254,7 @@ pub enum QosAdmissionResult {
 
 /// Admission control state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AdmissionState {
     /// Available capacity per resource
     pub available: BTreeMap<u8, u64>,
@@ -264,6 +277,7 @@ impl AdmissionState {
     }
 
     /// Set available capacity
+    #[inline(always)]
     pub fn set_capacity(&mut self, resource: QosResource, capacity: u64) {
         self.available.insert(resource as u8, capacity);
     }
@@ -294,6 +308,7 @@ impl AdmissionState {
     }
 
     /// Release reservation
+    #[inline]
     pub fn release(&mut self, policy: &QosPolicy) {
         for guarantee in &policy.guarantees {
             let key = guarantee.resource as u8;
@@ -304,6 +319,7 @@ impl AdmissionState {
     }
 
     /// Admission rate
+    #[inline]
     pub fn admission_rate(&self) -> f64 {
         let total = self.admissions + self.rejections;
         if total == 0 {
@@ -319,6 +335,7 @@ impl AdmissionState {
 
 /// QoS manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticQosStats {
     /// Active policies
     pub active_policies: usize,
@@ -339,7 +356,7 @@ pub struct HolisticQosManager {
     /// Admission control
     admission: AdmissionState,
     /// Violation history (process → violation count)
-    violations: BTreeMap<u64, u64>,
+    violations: LinearMap<u64, 64>,
     /// QoS adaptation state (class → current multiplier)
     adaptation: BTreeMap<u8, f64>,
     /// Stats
@@ -351,18 +368,20 @@ impl HolisticQosManager {
         Self {
             process_policies: BTreeMap::new(),
             admission: AdmissionState::new(),
-            violations: BTreeMap::new(),
+            violations: LinearMap::new(),
             adaptation: BTreeMap::new(),
             stats: HolisticQosStats::default(),
         }
     }
 
     /// Set system capacity
+    #[inline(always)]
     pub fn set_capacity(&mut self, resource: QosResource, capacity: u64) {
         self.admission.set_capacity(resource, capacity);
     }
 
     /// Register process with QoS policy
+    #[inline]
     pub fn register_process(&mut self, pid: u64, policy: QosPolicy) -> QosAdmissionResult {
         let result = self.admission.try_admit(&policy);
         match result {
@@ -376,10 +395,11 @@ impl HolisticQosManager {
     }
 
     /// Unregister process
+    #[inline]
     pub fn unregister_process(&mut self, pid: u64) {
         if let Some(policy) = self.process_policies.remove(&pid) {
             self.admission.release(&policy);
-            self.violations.remove(&pid);
+            self.violations.remove(pid);
             self.update_stats();
         }
     }
@@ -396,23 +416,26 @@ impl HolisticQosManager {
             // Check violations
             let viols = policy.violations();
             if !viols.is_empty() {
-                *self.violations.entry(pid).or_insert(0) += viols.len() as u64;
+                self.violations.add(pid, viols);
                 self.stats.total_violations += viols.len() as u64;
             }
         }
     }
 
     /// Get process QoS class
+    #[inline(always)]
     pub fn process_class(&self, pid: u64) -> Option<QosClass> {
         self.process_policies.get(&pid).map(|p| p.class)
     }
 
     /// Get policy
+    #[inline(always)]
     pub fn policy(&self, pid: u64) -> Option<&QosPolicy> {
         self.process_policies.get(&pid)
     }
 
     /// Adapt QoS under pressure
+    #[inline]
     pub fn adapt(&mut self, class: QosClass, pressure: f64) {
         let key = class as u8;
         let multiplier = if pressure > 0.9 {
@@ -426,6 +449,7 @@ impl HolisticQosManager {
     }
 
     /// Get adaptation multiplier
+    #[inline(always)]
     pub fn adaptation_multiplier(&self, class: QosClass) -> f64 {
         self.adaptation.get(&(class as u8)).copied().unwrap_or(1.0)
     }
@@ -457,6 +481,7 @@ impl HolisticQosManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticQosStats {
         &self.stats
     }
@@ -549,16 +574,19 @@ impl ResourceAllocation {
     }
 
     /// Headroom (how much more can be used)
+    #[inline(always)]
     pub fn headroom(&self) -> f64 {
         (self.limit - self.current_usage).max(0.0)
     }
 
     /// Using guaranteed?
+    #[inline(always)]
     pub fn using_guaranteed(&self) -> bool {
         self.current_usage <= self.guaranteed
     }
 
     /// Over limit?
+    #[inline(always)]
     pub fn over_limit(&self) -> bool {
         self.current_usage > self.limit
     }
@@ -601,6 +629,7 @@ impl QosSloV2 {
     }
 
     /// Record measurement
+    #[inline]
     pub fn record(&mut self, value: f64) {
         self.current = value;
         self.history[self.pos % self.history.len()] = value;
@@ -613,6 +642,7 @@ impl QosSloV2 {
     }
 
     /// Check violation
+    #[inline]
     pub fn is_violated(&self) -> bool {
         match self.slo_type {
             QosSloType::MaxLatency | QosSloType::MaxJitter => self.current > self.target,
@@ -645,6 +675,7 @@ impl QosSloV2 {
     }
 
     /// Compliance rate (0..1)
+    #[inline]
     pub fn compliance_rate(&self) -> f64 {
         if self.samples == 0 {
             return 1.0;
@@ -653,6 +684,7 @@ impl QosSloV2 {
     }
 
     /// Percentile from history
+    #[inline]
     pub fn percentile(&self, p: f64) -> f64 {
         let count = self.pos.min(self.history.len());
         if count == 0 {
@@ -704,16 +736,19 @@ impl QosGroupV2 {
     }
 
     /// Add resource allocation
+    #[inline(always)]
     pub fn add_allocation(&mut self, alloc: ResourceAllocation) {
         self.allocations.insert(alloc.resource as u8, alloc);
     }
 
     /// Add SLO
+    #[inline(always)]
     pub fn add_slo(&mut self, slo: QosSloV2) {
         self.slos.push(slo);
     }
 
     /// Worst SLO violation
+    #[inline]
     pub fn worst_violation(&self) -> SloViolation {
         self.slos.iter()
             .map(|s| s.severity())
@@ -722,6 +757,7 @@ impl QosGroupV2 {
     }
 
     /// Overall compliance
+    #[inline]
     pub fn overall_compliance(&self) -> f64 {
         if self.slos.is_empty() {
             return 1.0;
@@ -732,6 +768,7 @@ impl QosGroupV2 {
     }
 
     /// Resource headroom for a specific resource
+    #[inline]
     pub fn resource_headroom(&self, resource: QosResourceV2) -> f64 {
         self.allocations.get(&(resource as u8))
             .map(|a| a.headroom())
@@ -745,6 +782,7 @@ impl QosGroupV2 {
 
 /// QoS V2 stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticQosV2Stats {
     /// Active groups
     pub active_groups: usize,
@@ -775,6 +813,7 @@ impl HolisticQosV2 {
     }
 
     /// Create group
+    #[inline]
     pub fn create_group(&mut self, name: &str, class: QosClassV2) -> u64 {
         let group = QosGroupV2::new(name, class);
         let id = group.group_id;
@@ -784,6 +823,7 @@ impl HolisticQosV2 {
     }
 
     /// Add SLO to group
+    #[inline]
     pub fn add_slo(&mut self, group_id: u64, slo_type: QosSloType, target: f64) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.add_slo(QosSloV2::new(slo_type, target));
@@ -791,6 +831,7 @@ impl HolisticQosV2 {
     }
 
     /// Record SLO measurement
+    #[inline]
     pub fn record_slo(&mut self, group_id: u64, slo_idx: usize, value: f64) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             if let Some(slo) = group.slos.get_mut(slo_idx) {
@@ -801,6 +842,7 @@ impl HolisticQosV2 {
     }
 
     /// Get groups with violations
+    #[inline]
     pub fn violated_groups(&self) -> Vec<(u64, SloViolation)> {
         self.groups.iter()
             .filter_map(|(&id, g)| {
@@ -837,6 +879,7 @@ impl HolisticQosV2 {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticQosV2Stats {
         &self.stats
     }

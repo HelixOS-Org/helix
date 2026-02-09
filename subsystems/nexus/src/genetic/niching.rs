@@ -46,11 +46,13 @@ impl Niche {
     }
 
     /// Check if genome belongs to this niche
+    #[inline(always)]
     pub fn contains(&self, genome: &CodeGenome) -> bool {
         self.center.distance(genome) <= self.radius
     }
 
     /// Add member
+    #[inline]
     pub fn add_member(&mut self, id: GenomeId) {
         if !self.members.contains(&id) {
             self.members.push(id);
@@ -58,11 +60,13 @@ impl Niche {
     }
 
     /// Clear members
+    #[inline(always)]
     pub fn clear_members(&mut self) {
         self.members.clear();
     }
 
     /// Get size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.members.len()
     }
@@ -135,6 +139,7 @@ pub struct NichingManager {
 
 /// Niching statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NichingStats {
     /// Total niches created
     pub niches_created: u64,
@@ -158,6 +163,7 @@ impl NichingManager {
     }
 
     /// Apply niching to population
+    #[inline]
     pub fn apply(&mut self, population: &mut Population) {
         if self.config.fitness_sharing {
             self.apply_fitness_sharing(population);
@@ -355,11 +361,13 @@ impl NichingManager {
     }
 
     /// Get niche count
+    #[inline(always)]
     pub fn niche_count(&self) -> usize {
         self.niches.len()
     }
 
     /// Get niches
+    #[inline(always)]
     pub fn niches(&self) -> impl Iterator<Item = &Niche> {
         self.niches.values()
     }
@@ -377,6 +385,7 @@ impl NichingManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &NichingStats {
         &self.stats
     }

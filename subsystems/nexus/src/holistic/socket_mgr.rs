@@ -55,6 +55,7 @@ pub enum SocketShutMode {
 
 /// Socket buffer
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketBuffer {
     pub capacity: u32,
     pub used: u32,
@@ -76,6 +77,7 @@ impl SocketBuffer {
         }
     }
 
+    #[inline]
     pub fn write(&mut self, bytes: u32) -> u32 {
         let avail = self.capacity - self.used;
         let written = if bytes > avail { avail } else { bytes };
@@ -85,6 +87,7 @@ impl SocketBuffer {
         written
     }
 
+    #[inline]
     pub fn read(&mut self, bytes: u32) -> u32 {
         let readable = if bytes > self.used { self.used } else { bytes };
         self.used -= readable;
@@ -92,6 +95,7 @@ impl SocketBuffer {
         readable
     }
 
+    #[inline]
     pub fn utilization_pct(&self) -> f64 {
         if self.capacity == 0 {
             return 0.0;
@@ -99,10 +103,12 @@ impl SocketBuffer {
         (self.used as f64 / self.capacity as f64) * 100.0
     }
 
+    #[inline(always)]
     pub fn is_readable(&self) -> bool {
         self.used >= self.low_watermark
     }
 
+    #[inline(always)]
     pub fn is_writable(&self) -> bool {
         self.used < self.high_watermark
     }
@@ -151,6 +157,7 @@ impl ManagedSocket {
         }
     }
 
+    #[inline]
     pub fn bind(&mut self, addr: &[u8]) {
         let mut h: u64 = 0xcbf29ce484222325;
         for b in addr {
@@ -161,6 +168,7 @@ impl ManagedSocket {
         self.state = SocketMgrState::Bound;
     }
 
+    #[inline]
     pub fn connect(&mut self, addr: &[u8]) {
         let mut h: u64 = 0xcbf29ce484222325;
         for b in addr {
@@ -171,15 +179,18 @@ impl ManagedSocket {
         self.state = SocketMgrState::Connected;
     }
 
+    #[inline(always)]
     pub fn listen(&mut self, backlog: u32) {
         self.backlog = backlog;
         self.state = SocketMgrState::Listening;
     }
 
+    #[inline(always)]
     pub fn close(&mut self) {
         self.state = SocketMgrState::Closed;
     }
 
+    #[inline(always)]
     pub fn idle_ms(&self, now_ns: u64) -> u64 {
         (now_ns.saturating_sub(self.last_activity_ns)) / 1_000_000
     }
@@ -187,6 +198,7 @@ impl ManagedSocket {
 
 /// Socket manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketMgrStats {
     pub total_created: u64,
     pub active_sockets: u64,
@@ -236,6 +248,7 @@ impl HolisticSocketMgr {
         Some(fd)
     }
 
+    #[inline]
     pub fn close_socket(&mut self, fd: u64) -> bool {
         if let Some(sock) = self.sockets.get_mut(&fd) {
             sock.close();
@@ -246,10 +259,12 @@ impl HolisticSocketMgr {
         }
     }
 
+    #[inline(always)]
     pub fn get_socket(&self, fd: u64) -> Option<&ManagedSocket> {
         self.sockets.get(&fd)
     }
 
+    #[inline]
     pub fn active_by_domain(&self, domain: SocketDomain) -> u64 {
         self.sockets.values()
             .filter(|s| s.domain == domain && s.state != SocketMgrState::Closed)

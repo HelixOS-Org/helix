@@ -42,22 +42,27 @@ pub struct AddrProt {
 }
 
 impl AddrProt {
+    #[inline(always)]
     pub const fn none() -> Self {
         Self { read: false, write: false, execute: false, user: false }
     }
 
+    #[inline(always)]
     pub const fn ro_user() -> Self {
         Self { read: true, write: false, execute: false, user: true }
     }
 
+    #[inline(always)]
     pub const fn rw_user() -> Self {
         Self { read: true, write: true, execute: false, user: true }
     }
 
+    #[inline(always)]
     pub const fn rx_user() -> Self {
         Self { read: true, write: false, execute: true, user: true }
     }
 
+    #[inline]
     pub fn as_bits(&self) -> u32 {
         let mut bits = 0u32;
         if self.read { bits |= 1; }
@@ -67,6 +72,7 @@ impl AddrProt {
         bits
     }
 
+    #[inline(always)]
     pub fn violates_wx(&self) -> bool {
         self.write && self.execute
     }
@@ -103,26 +109,32 @@ impl VmaRegion {
         }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> u64 {
         self.end.saturating_sub(self.start)
     }
 
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool {
         addr >= self.start && addr < self.end
     }
 
+    #[inline(always)]
     pub fn overlaps(&self, start: u64, end: u64) -> bool {
         self.start < end && start < self.end
     }
 
+    #[inline(always)]
     pub fn record_fault(&mut self) {
         self.fault_count = self.fault_count.saturating_add(1);
     }
 
+    #[inline(always)]
     pub fn record_cow(&mut self) {
         self.cow_count = self.cow_count.saturating_add(1);
     }
 
+    #[inline(always)]
     pub fn page_count(&self) -> u64 {
         (self.size() + 4095) / 4096
     }
@@ -142,6 +154,7 @@ pub enum AslrPolicy {
 }
 
 impl AslrPolicy {
+    #[inline]
     pub fn entropy_bits(&self) -> u32 {
         match self {
             Self::Disabled => 0,
@@ -185,6 +198,7 @@ impl ProcessAddrSpace {
         }
     }
 
+    #[inline(always)]
     pub fn find_region(&self, addr: u64) -> Option<usize> {
         self.regions.iter().position(|r| r.contains(addr))
     }
@@ -210,10 +224,12 @@ impl ProcessAddrSpace {
         None
     }
 
+    #[inline(always)]
     pub fn total_virtual_size(&self) -> u64 {
         self.total_mapped
     }
 
+    #[inline(always)]
     pub fn region_count(&self) -> usize {
         self.regions.len()
     }
@@ -248,6 +264,7 @@ pub struct AddrTranslation {
 
 /// Bridge address space stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AddrSpaceStats {
     pub total_processes: u64,
     pub total_regions: u64,
@@ -259,6 +276,7 @@ pub struct AddrSpaceStats {
 }
 
 /// Main bridge address space manager
+#[repr(align(64))]
 pub struct BridgeAddrSpace {
     spaces: BTreeMap<u64, ProcessAddrSpace>,
     translations: Vec<AddrTranslation>,
@@ -286,6 +304,7 @@ impl BridgeAddrSpace {
         }
     }
 
+    #[inline]
     pub fn create_space(&mut self, pid: u64) -> bool {
         if self.spaces.contains_key(&pid) {
             return false;
@@ -450,6 +469,7 @@ impl BridgeAddrSpace {
         }
     }
 
+    #[inline]
     pub fn set_aslr_policy(&mut self, pid: u64, policy: AslrPolicy) -> bool {
         if let Some(space) = self.spaces.get_mut(&pid) {
             space.aslr = policy;
@@ -459,11 +479,13 @@ impl BridgeAddrSpace {
         }
     }
 
+    #[inline(always)]
     pub fn process_stats(&self, pid: u64) -> Option<(u64, usize, f64)> {
         let space = self.spaces.get(&pid)?;
         Some((space.total_mapped, space.regions.len(), space.fragmentation_ratio()))
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AddrSpaceStats {
         &self.stats
     }

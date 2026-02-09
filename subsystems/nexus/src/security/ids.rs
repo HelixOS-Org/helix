@@ -1,6 +1,7 @@
 //! Intrusion Detection System (IDS).
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::vec::Vec;
 
@@ -28,7 +29,7 @@ pub struct IntrusionDetectionSystem {
     /// Active threats
     active_threats: Vec<Threat>,
     /// Threat history
-    threat_history: Vec<Threat>,
+    threat_history: VecDeque<Threat>,
     /// Max history size
     max_history: usize,
     /// Detection mode
@@ -50,6 +51,7 @@ pub enum DetectionMode {
 
 /// IDS statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IDSStats {
     /// Total threats detected
     pub threats_detected: u64,
@@ -70,7 +72,7 @@ impl IntrusionDetectionSystem {
             memory_monitor: MemorySecurityMonitor::new(),
             network_monitor: NetworkSecurityMonitor::new(),
             active_threats: Vec::new(),
-            threat_history: Vec::new(),
+            threat_history: VecDeque::new(),
             max_history: 10000,
             mode: DetectionMode::Active,
             stats: IDSStats::default(),
@@ -78,6 +80,7 @@ impl IntrusionDetectionSystem {
     }
 
     /// Get or create behavioral profile
+    #[inline]
     pub fn get_profile(&mut self, process_id: u64) -> &mut BehavioralProfile {
         self.profiles
             .entry(process_id)
@@ -169,15 +172,16 @@ impl IntrusionDetectionSystem {
         }
 
         self.active_threats.push(threat.clone());
-        self.threat_history.push(threat);
+        self.threat_history.push_back(threat);
 
         // Evict old history
         if self.threat_history.len() > self.max_history {
-            self.threat_history.remove(0);
+            self.threat_history.pop_front();
         }
     }
 
     /// Resolve threat
+    #[inline]
     pub fn resolve_threat(&mut self, threat_id: u64) {
         if let Some(pos) = self.active_threats.iter().position(|t| t.id == threat_id) {
             let mut threat = self.active_threats.remove(pos);
@@ -186,17 +190,20 @@ impl IntrusionDetectionSystem {
     }
 
     /// Mark false positive
+    #[inline(always)]
     pub fn mark_false_positive(&mut self, threat_id: u64) {
         self.resolve_threat(threat_id);
         self.stats.false_positives += 1;
     }
 
     /// Get active threats
+    #[inline(always)]
     pub fn active_threats(&self) -> &[Threat] {
         &self.active_threats
     }
 
     /// Get active critical threats
+    #[inline]
     pub fn critical_threats(&self) -> Vec<&Threat> {
         self.active_threats
             .iter()
@@ -205,36 +212,43 @@ impl IntrusionDetectionSystem {
     }
 
     /// Set detection mode
+    #[inline(always)]
     pub fn set_mode(&mut self, mode: DetectionMode) {
         self.mode = mode;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &IDSStats {
         &self.stats
     }
 
     /// Get syscall monitor
+    #[inline(always)]
     pub fn syscall_monitor(&self) -> &SyscallMonitor {
         &self.syscall_monitor
     }
 
     /// Get memory monitor
+    #[inline(always)]
     pub fn memory_monitor(&self) -> &MemorySecurityMonitor {
         &self.memory_monitor
     }
 
     /// Get mutable memory monitor
+    #[inline(always)]
     pub fn memory_monitor_mut(&mut self) -> &mut MemorySecurityMonitor {
         &mut self.memory_monitor
     }
 
     /// Get network monitor
+    #[inline(always)]
     pub fn network_monitor(&self) -> &NetworkSecurityMonitor {
         &self.network_monitor
     }
 
     /// Get mutable network monitor
+    #[inline(always)]
     pub fn network_monitor_mut(&mut self) -> &mut NetworkSecurityMonitor {
         &mut self.network_monitor
     }

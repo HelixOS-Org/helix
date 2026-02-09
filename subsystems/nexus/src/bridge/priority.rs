@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -37,6 +38,7 @@ pub enum SyscallPriority {
 
 impl SyscallPriority {
     /// Numeric value
+    #[inline]
     pub fn value(&self) -> u32 {
         match self {
             SyscallPriority::Idle => 0,
@@ -114,6 +116,7 @@ impl PriorityRequest {
     }
 
     /// Apply boost
+    #[inline]
     pub fn boost(&mut self, reason: BoostReason, new_priority: SyscallPriority) {
         if new_priority > self.effective_priority {
             self.effective_priority = new_priority;
@@ -124,16 +127,19 @@ impl PriorityRequest {
     }
 
     /// Update wait time
+    #[inline(always)]
     pub fn update_wait(&mut self, now: u64) {
         self.wait_time_ns = now.saturating_sub(self.enqueue_time);
     }
 
     /// Is past deadline?
+    #[inline(always)]
     pub fn is_past_deadline(&self, now: u64) -> bool {
         self.deadline_ns > 0 && now > self.deadline_ns
     }
 
     /// Time to deadline (ns)
+    #[inline]
     pub fn time_to_deadline(&self, now: u64) -> Option<u64> {
         if self.deadline_ns == 0 {
             return None;
@@ -152,6 +158,7 @@ impl PriorityRequest {
 
 /// Multi-level priority queue
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PriorityQueue {
     /// Queues per priority level
     levels: BTreeMap<u32, Vec<PriorityRequest>>,
@@ -171,6 +178,7 @@ impl PriorityQueue {
     }
 
     /// Enqueue
+    #[inline]
     pub fn enqueue(&mut self, request: PriorityRequest) -> bool {
         let level = request.effective_priority.value();
         let queue = self.levels.entry(level).or_insert_with(Vec::new);
@@ -189,7 +197,7 @@ impl PriorityQueue {
         if let Some(key) = highest_key {
             if let Some(queue) = self.levels.get_mut(&key) {
                 if !queue.is_empty() {
-                    let req = queue.remove(0);
+                    let req = queue.pop_front().unwrap();
                     self.total_items -= 1;
                     if queue.is_empty() {
                         self.levels.remove(&key);
@@ -202,6 +210,7 @@ impl PriorityQueue {
     }
 
     /// Peek highest priority
+    #[inline]
     pub fn peek(&self) -> Option<&PriorityRequest> {
         let highest_key = self.levels.keys().next_back().copied();
         if let Some(key) = highest_key {
@@ -212,11 +221,13 @@ impl PriorityQueue {
     }
 
     /// Items at priority
+    #[inline(always)]
     pub fn count_at(&self, priority: SyscallPriority) -> usize {
         self.levels.get(&priority.value()).map(|q| q.len()).unwrap_or(0)
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.total_items == 0
     }
@@ -265,6 +276,7 @@ impl StarvationDetector {
 
 /// Priority stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgePriorityStats {
     /// Queued items
     pub queued_items: usize,
@@ -279,6 +291,7 @@ pub struct BridgePriorityStats {
 }
 
 /// Bridge priority engine
+#[repr(align(64))]
 pub struct BridgePriorityEngine {
     /// Priority queue
     queue: PriorityQueue,
@@ -304,6 +317,7 @@ impl BridgePriorityEngine {
     }
 
     /// Set process priority
+    #[inline(always)]
     pub fn set_priority(&mut self, pid: u64, priority: SyscallPriority) {
         self.process_priorities.insert(pid, priority);
     }
@@ -330,6 +344,7 @@ impl BridgePriorityEngine {
     }
 
     /// Dispatch next request
+    #[inline]
     pub fn dispatch(&mut self) -> Option<PriorityRequest> {
         let req = self.queue.dequeue();
         if req.is_some() {
@@ -340,6 +355,7 @@ impl BridgePriorityEngine {
     }
 
     /// Run starvation check
+    #[inline]
     pub fn check_starvation(&mut self, now: u64) {
         let boosted = self.starvation.check(&mut self.queue, now);
         self.stats.total_boosted += boosted as u64;
@@ -349,6 +365,7 @@ impl BridgePriorityEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgePriorityStats {
         &self.stats
     }

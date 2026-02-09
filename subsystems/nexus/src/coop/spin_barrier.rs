@@ -29,6 +29,7 @@ impl SpinBarrier {
         Self { id, parties, count: AtomicU32::new(0), generation: 0, total_waits: 0, total_completions: 0 }
     }
 
+    #[inline]
     pub fn arrive(&mut self) -> bool {
         let prev = self.count.fetch_add(1, Ordering::AcqRel);
         self.total_waits += 1;
@@ -40,6 +41,7 @@ impl SpinBarrier {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.count.store(0, Ordering::Release);
         self.generation += 1;
@@ -48,6 +50,7 @@ impl SpinBarrier {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SpinBarrierStats {
     pub total_barriers: u32,
     pub total_waits: u64,
@@ -63,16 +66,19 @@ pub struct CoopSpinBarrier {
 impl CoopSpinBarrier {
     pub fn new() -> Self { Self { barriers: Vec::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, parties: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.barriers.push(SpinBarrier::new(id, parties));
         id
     }
 
+    #[inline(always)]
     pub fn arrive(&mut self, idx: usize) -> bool {
         if idx < self.barriers.len() { self.barriers[idx].arrive() } else { false }
     }
 
+    #[inline]
     pub fn stats(&self) -> SpinBarrierStats {
         let waits: u64 = self.barriers.iter().map(|b| b.total_waits).sum();
         let comps: u64 = self.barriers.iter().map(|b| b.total_completions).sum();

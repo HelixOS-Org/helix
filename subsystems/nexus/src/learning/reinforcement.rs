@@ -26,6 +26,7 @@ use crate::math::F64Ext;
 
 /// State identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct StateId(pub u32);
 
 /// Action identifier
@@ -34,6 +35,7 @@ pub struct ActionId(pub u32);
 
 /// State space definition
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateSpace {
     /// States in the space
     states: Vec<StateId>,
@@ -57,6 +59,7 @@ impl StateSpace {
     }
 
     /// Add state
+    #[inline]
     pub fn add_state(&mut self, id: StateId, name: String, features: Vec<f64>) {
         self.states.push(id);
         self.names.insert(id, name);
@@ -66,16 +69,19 @@ impl StateSpace {
     }
 
     /// Get state count
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.states.len()
     }
 
     /// Get features for state
+    #[inline(always)]
     pub fn get_features(&self, state: StateId) -> Option<&Vec<f64>> {
         self.features.get(&state)
     }
 
     /// Get all states
+    #[inline(always)]
     pub fn states(&self) -> &[StateId] {
         &self.states
     }
@@ -103,6 +109,7 @@ impl ActionSpace {
     }
 
     /// Add action
+    #[inline]
     pub fn add_action(&mut self, id: ActionId, name: String, cost: f64) {
         self.actions.push(id);
         self.names.insert(id, name);
@@ -110,16 +117,19 @@ impl ActionSpace {
     }
 
     /// Get action count
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.actions.len()
     }
 
     /// Get action cost
+    #[inline(always)]
     pub fn get_cost(&self, action: ActionId) -> f64 {
         self.costs.get(&action).copied().unwrap_or(0.0)
     }
 
     /// Get all actions
+    #[inline(always)]
     pub fn actions(&self) -> &[ActionId] {
         &self.actions
     }
@@ -150,6 +160,7 @@ pub struct RewardSignal {
 
 impl RewardSignal {
     /// Create simple reward
+    #[inline]
     pub fn simple(reward: f64) -> Self {
         Self {
             immediate: reward,
@@ -160,23 +171,27 @@ impl RewardSignal {
     }
 
     /// Get total reward
+    #[inline(always)]
     pub fn total(&self) -> f64 {
         self.immediate + self.shaping + self.intrinsic - self.penalty
     }
 
     /// Add shaping
+    #[inline(always)]
     pub fn with_shaping(mut self, shaping: f64) -> Self {
         self.shaping = shaping;
         self
     }
 
     /// Add intrinsic motivation
+    #[inline(always)]
     pub fn with_intrinsic(mut self, intrinsic: f64) -> Self {
         self.intrinsic = intrinsic;
         self
     }
 
     /// Add penalty
+    #[inline(always)]
     pub fn with_penalty(mut self, penalty: f64) -> Self {
         self.penalty = penalty;
         self
@@ -224,6 +239,7 @@ impl Episode {
     }
 
     /// Add experience
+    #[inline]
     pub fn add(&mut self, exp: Experience) {
         self.total_return += exp.reward;
         self.length += 1;
@@ -257,6 +273,7 @@ impl Default for Episode {
 
 /// Experience replay buffer
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ReplayBuffer {
     /// Buffer capacity
     capacity: usize,
@@ -277,6 +294,7 @@ impl ReplayBuffer {
     }
 
     /// Add experience
+    #[inline]
     pub fn push(&mut self, exp: Experience) {
         if self.buffer.len() < self.capacity {
             self.buffer.push(exp);
@@ -306,11 +324,13 @@ impl ReplayBuffer {
     }
 
     /// Get buffer size
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.buffer.len()
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
     }
@@ -380,11 +400,13 @@ impl QLearner {
     }
 
     /// Get Q-value
+    #[inline(always)]
     pub fn get_q(&self, state: StateId, action: ActionId) -> f64 {
         self.q_table.get(&(state, action)).copied().unwrap_or(0.0)
     }
 
     /// Set Q-value
+    #[inline(always)]
     pub fn set_q(&mut self, state: StateId, action: ActionId, value: f64) {
         self.q_table.insert((state, action), value);
     }
@@ -428,6 +450,7 @@ impl QLearner {
     }
 
     /// Get max Q-value for state
+    #[inline(always)]
     pub fn max_q(&self, state: StateId) -> f64 {
         let best = self.best_action(state);
         self.get_q(state, best)
@@ -480,6 +503,7 @@ impl QLearner {
     }
 
     /// End episode (decay epsilon, clear traces)
+    #[inline]
     pub fn end_episode(&mut self) {
         self.episodes += 1;
         self.config.epsilon =
@@ -488,11 +512,13 @@ impl QLearner {
     }
 
     /// Get current epsilon
+    #[inline(always)]
     pub fn epsilon(&self) -> f64 {
         self.config.epsilon
     }
 
     /// Get training statistics
+    #[inline]
     pub fn stats(&self) -> QLearnerStats {
         QLearnerStats {
             steps: self.steps,
@@ -505,6 +531,7 @@ impl QLearner {
 
 /// Q-Learner statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QLearnerStats {
     /// Total training steps
     pub steps: u64,
@@ -654,11 +681,13 @@ impl PolicyGradient {
     }
 
     /// Get policy parameters
+    #[inline(always)]
     pub fn get_weights(&self) -> &Vec<Vec<f64>> {
         &self.weights
     }
 
     /// Set learning rate
+    #[inline(always)]
     pub fn set_learning_rate(&mut self, lr: f64) {
         self.learning_rate = lr;
     }
@@ -698,6 +727,7 @@ impl ActorCritic {
     }
 
     /// Get state value from critic
+    #[inline]
     pub fn value(&self, state_features: &[f64]) -> f64 {
         if state_features.len() != self.feature_dim {
             return 0.0;
@@ -711,6 +741,7 @@ impl ActorCritic {
     }
 
     /// Select action
+    #[inline(always)]
     pub fn select_action(&self, state_features: &[f64], seed: u64) -> usize {
         self.actor.select_action(state_features, seed)
     }
@@ -755,11 +786,13 @@ impl ActorCritic {
     }
 
     /// Get action probabilities
+    #[inline(always)]
     pub fn action_probs(&self, state_features: &[f64]) -> Vec<f64> {
         self.actor.action_probs(state_features)
     }
 
     /// Get training steps
+    #[inline(always)]
     pub fn steps(&self) -> u64 {
         self.steps
     }
@@ -782,6 +815,7 @@ pub struct KernelRLAgent {
 }
 
 /// Kernel state encoder
+#[repr(align(64))]
 pub struct KernelStateEncoder {
     /// State ID counter
     next_id: u32,
@@ -791,6 +825,7 @@ pub struct KernelStateEncoder {
 
 /// Kernel state representation
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct KernelState {
     /// CPU load bucket (0-10)
     pub cpu_bucket: u8,
@@ -888,6 +923,7 @@ impl KernelActionDecoder {
     }
 
     /// Decode action ID to action
+    #[inline]
     pub fn decode(&self, action: ActionId) -> KernelAction {
         let idx = action.0 as usize;
         if idx < self.actions.len() {
@@ -898,6 +934,7 @@ impl KernelActionDecoder {
     }
 
     /// Get action space
+    #[inline]
     pub fn action_space(&self) -> ActionSpace {
         let mut space = ActionSpace::new();
         for (i, action) in self.actions.iter().enumerate() {
@@ -991,6 +1028,7 @@ impl KernelRLAgent {
     }
 
     /// Observe current state and select action
+    #[inline]
     pub fn decide(
         &mut self,
         cpu_load: f64,
@@ -1044,6 +1082,7 @@ impl KernelRLAgent {
     }
 
     /// End episode
+    #[inline(always)]
     pub fn end_episode(&mut self) {
         self.q_learner.end_episode();
     }

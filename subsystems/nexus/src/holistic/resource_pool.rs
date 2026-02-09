@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -57,6 +57,7 @@ pub enum PartitionMode {
 
 /// A partition within a pool
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PoolPartition {
     /// Partition ID
     pub id: u64,
@@ -91,18 +92,21 @@ impl PoolPartition {
     }
 
     /// Available to allocate
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         let total = self.capacity + self.borrowed;
         total.saturating_sub(self.used + self.lent)
     }
 
     /// Available to lend
+    #[inline(always)]
     pub fn lendable(&self) -> u64 {
         let effective = self.capacity.saturating_sub(self.lent);
         effective.saturating_sub(self.reserved.max(self.used))
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 {
             return 0.0;
@@ -111,11 +115,13 @@ impl PoolPartition {
     }
 
     /// Effective capacity (with borrows)
+    #[inline(always)]
     pub fn effective_capacity(&self) -> u64 {
         self.capacity + self.borrowed - self.lent
     }
 
     /// Allocate
+    #[inline]
     pub fn allocate(&mut self, amount: u64) -> bool {
         if self.available() >= amount {
             self.used += amount;
@@ -126,11 +132,13 @@ impl PoolPartition {
     }
 
     /// Release
+    #[inline(always)]
     pub fn release(&mut self, amount: u64) {
         self.used = self.used.saturating_sub(amount);
     }
 
     /// Lend resources
+    #[inline]
     pub fn lend(&mut self, amount: u64) -> bool {
         if self.lendable() >= amount {
             self.lent += amount;
@@ -141,16 +149,19 @@ impl PoolPartition {
     }
 
     /// Return lent resources
+    #[inline(always)]
     pub fn return_lent(&mut self, amount: u64) {
         self.lent = self.lent.saturating_sub(amount);
     }
 
     /// Receive borrowed resources
+    #[inline(always)]
     pub fn receive_borrow(&mut self, amount: u64) {
         self.borrowed += amount;
     }
 
     /// Return borrowed resources
+    #[inline(always)]
     pub fn return_borrowed(&mut self, amount: u64) {
         self.borrowed = self.borrowed.saturating_sub(amount);
     }
@@ -175,6 +186,7 @@ pub enum PoolState {
 
 /// A resource pool
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ResourcePool {
     /// Pool ID
     pub id: u64,
@@ -217,32 +229,38 @@ impl ResourcePool {
     }
 
     /// Add partition
+    #[inline(always)]
     pub fn add_partition(&mut self, partition: PoolPartition) {
         self.partitions.insert(partition.id, partition);
     }
 
     /// Remove partition
+    #[inline(always)]
     pub fn remove_partition(&mut self, id: u64) -> Option<PoolPartition> {
         self.partitions.remove(&id)
     }
 
     /// Total allocated across partitions
+    #[inline(always)]
     pub fn total_allocated(&self) -> u64 {
         self.partitions.values().map(|p| p.capacity).sum()
     }
 
     /// Total used across partitions
+    #[inline(always)]
     pub fn total_used(&self) -> u64 {
         self.partitions.values().map(|p| p.used).sum()
     }
 
     /// Unpartitioned capacity
+    #[inline(always)]
     pub fn unpartitioned(&self) -> u64 {
         let virtual_cap = (self.total_capacity as f64 * self.overcommit_ratio) as u64;
         virtual_cap.saturating_sub(self.total_allocated())
     }
 
     /// Overall utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total_capacity == 0 {
             return 0.0;
@@ -265,6 +283,7 @@ impl ResourcePool {
     }
 
     /// Allocate from partition
+    #[inline]
     pub fn allocate(&mut self, partition_id: u64, amount: u64) -> bool {
         if let Some(partition) = self.partitions.get_mut(&partition_id) {
             if partition.allocate(amount) {
@@ -278,6 +297,7 @@ impl ResourcePool {
     }
 
     /// Release from partition
+    #[inline]
     pub fn release(&mut self, partition_id: u64, amount: u64) {
         if let Some(partition) = self.partitions.get_mut(&partition_id) {
             partition.release(amount);
@@ -286,12 +306,7 @@ impl ResourcePool {
     }
 
     /// Transfer resources between partitions
-    pub fn transfer(
-        &mut self,
-        from_id: u64,
-        to_id: u64,
-        amount: u64,
-    ) -> bool {
+    pub fn transfer(&mut self, from_id: u64, to_id: u64, amount: u64) -> bool {
         // Check lendable
         let lendable = self
             .partitions
@@ -325,6 +340,7 @@ impl ResourcePool {
     }
 
     /// Failure rate
+    #[inline]
     pub fn failure_rate(&self) -> f64 {
         let total = self.allocation_count + self.failure_count;
         if total == 0 {
@@ -340,6 +356,7 @@ impl ResourcePool {
 
 /// Fragmentation metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FragmentationMetrics {
     /// External fragmentation (0.0-1.0)
     pub external: f64,
@@ -374,11 +391,7 @@ impl FragmentationMetrics {
         }
 
         // External fragmentation: how spread out is free space
-        let partition_frees: Vec<u64> = pool
-            .partitions
-            .values()
-            .map(|p| p.available())
-            .collect();
+        let partition_frees: Vec<u64> = pool.partitions.values().map(|p| p.available()).collect();
 
         let max_free = partition_frees.iter().copied().max().unwrap_or(0);
         metrics.largest_free = max_free;
@@ -406,6 +419,7 @@ impl FragmentationMetrics {
 
 /// Pool manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ResourcePoolStats {
     /// Total pools
     pub pool_count: usize,
@@ -420,13 +434,14 @@ pub struct ResourcePoolStats {
 }
 
 /// Global resource pool manager
+#[repr(align(64))]
 pub struct HolisticResourcePoolManager {
     /// Pools by ID
     pools: BTreeMap<u64, ResourcePool>,
     /// Resource type → pool ID mapping
     type_mapping: BTreeMap<u8, Vec<u64>>,
     /// Transfer history (from, to, amount)
-    transfer_history: Vec<(u64, u64, u64)>,
+    transfer_history: VecDeque<(u64, u64, u64)>,
     /// Next pool ID
     next_id: u64,
     /// Stats
@@ -438,7 +453,7 @@ impl HolisticResourcePoolManager {
         Self {
             pools: BTreeMap::new(),
             type_mapping: BTreeMap::new(),
-            transfer_history: Vec::new(),
+            transfer_history: VecDeque::new(),
             next_id: 1,
             stats: ResourcePoolStats::default(),
         }
@@ -464,16 +479,19 @@ impl HolisticResourcePoolManager {
     }
 
     /// Get pool
+    #[inline(always)]
     pub fn pool(&self, id: u64) -> Option<&ResourcePool> {
         self.pools.get(&id)
     }
 
     /// Get pool mut
+    #[inline(always)]
     pub fn pool_mut(&mut self, id: u64) -> Option<&mut ResourcePool> {
         self.pools.get_mut(&id)
     }
 
     /// Find pools by resource type
+    #[inline]
     pub fn pools_for_type(&self, resource_type: PoolResourceType) -> Vec<u64> {
         self.type_mapping
             .get(&(resource_type as u8))
@@ -482,6 +500,7 @@ impl HolisticResourcePoolManager {
     }
 
     /// Allocate from pool
+    #[inline]
     pub fn allocate(&mut self, pool_id: u64, partition_id: u64, amount: u64) -> bool {
         if let Some(pool) = self.pools.get_mut(&pool_id) {
             let result = pool.allocate(partition_id, amount);
@@ -493,6 +512,7 @@ impl HolisticResourcePoolManager {
     }
 
     /// Release from pool
+    #[inline]
     pub fn release(&mut self, pool_id: u64, partition_id: u64, amount: u64) {
         if let Some(pool) = self.pools.get_mut(&pool_id) {
             pool.release(partition_id, amount);
@@ -512,9 +532,9 @@ impl HolisticResourcePoolManager {
             let result = pool.transfer(from_partition, to_partition, amount);
             if result {
                 self.transfer_history
-                    .push((from_partition, to_partition, amount));
+                    .push_back((from_partition, to_partition, amount));
                 if self.transfer_history.len() > 1000 {
-                    self.transfer_history.remove(0);
+                    self.transfer_history.pop_front();
                 }
             }
             self.update_stats();
@@ -525,10 +545,9 @@ impl HolisticResourcePoolManager {
     }
 
     /// Analyze fragmentation
+    #[inline]
     pub fn analyze_fragmentation(&self, pool_id: u64) -> Option<FragmentationMetrics> {
-        self.pools
-            .get(&pool_id)
-            .map(FragmentationMetrics::compute)
+        self.pools.get(&pool_id).map(FragmentationMetrics::compute)
     }
 
     fn update_stats(&mut self) {
@@ -549,6 +568,7 @@ impl HolisticResourcePoolManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &ResourcePoolStats {
         &self.stats
     }

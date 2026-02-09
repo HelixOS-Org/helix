@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -34,6 +35,7 @@ pub enum PsiWindow {
 }
 
 impl PsiWindow {
+    #[inline]
     pub fn seconds(&self) -> u64 {
         match self {
             Self::Avg10 => 10,
@@ -71,6 +73,7 @@ impl PsiReading {
         }
     }
 
+    #[inline]
     pub fn get_some(&self, window: PsiWindow) -> f64 {
         match window {
             PsiWindow::Avg10 => self.some_avg10,
@@ -80,6 +83,7 @@ impl PsiReading {
         }
     }
 
+    #[inline]
     pub fn get_full(&self, window: PsiWindow) -> f64 {
         match window {
             PsiWindow::Avg10 => self.full_avg10,
@@ -89,6 +93,7 @@ impl PsiReading {
         }
     }
 
+    #[inline]
     pub fn max_pressure(&self) -> f64 {
         let vals = [
             self.some_avg10, self.some_avg60, self.some_avg300,
@@ -97,6 +102,7 @@ impl PsiReading {
         vals.iter().cloned().fold(0.0_f64, f64::max)
     }
 
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.full_avg10 > 50.0 || self.some_avg10 > 80.0
     }
@@ -127,6 +133,7 @@ impl PsiTrigger {
         }
     }
 
+    #[inline]
     pub fn should_fire(&self, reading: &PsiReading, now: u64) -> bool {
         if !self.enabled { return false; }
         if now.saturating_sub(self.last_fired) < self.cooldown_us { return false; }
@@ -171,6 +178,7 @@ impl CgroupPsi {
         }
     }
 
+    #[inline]
     pub fn reading(&self, resource: PsiResource) -> &PsiReading {
         match resource {
             PsiResource::Cpu => &self.cpu,
@@ -179,11 +187,13 @@ impl CgroupPsi {
         }
     }
 
+    #[inline(always)]
     pub fn overall_pressure(&self) -> f64 {
         let vals = [self.cpu.max_pressure(), self.memory.max_pressure(), self.io.max_pressure()];
         vals.iter().cloned().fold(0.0_f64, f64::max)
     }
 
+    #[inline(always)]
     pub fn has_pressure(&self) -> bool {
         self.overall_pressure() > 0.0
     }
@@ -191,6 +201,7 @@ impl CgroupPsi {
 
 /// PSI monitor stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PsiMonitorStats {
     pub trigger_count: u32,
     pub active_triggers: u32,
@@ -206,7 +217,7 @@ pub struct HolisticPsiMonitor {
     system_psi: BTreeMap<u8, PsiReading>,
     cgroup_psi: BTreeMap<u64, CgroupPsi>,
     triggers: BTreeMap<u32, PsiTrigger>,
-    alerts: Vec<PsiAlert>,
+    alerts: VecDeque<PsiAlert>,
     max_alerts: usize,
     next_trigger_id: u32,
     stats: PsiMonitorStats,
@@ -218,7 +229,7 @@ impl HolisticPsiMonitor {
             system_psi: BTreeMap::new(),
             cgroup_psi: BTreeMap::new(),
             triggers: BTreeMap::new(),
-            alerts: Vec::new(),
+            alerts: VecDeque::new(),
             max_alerts: 4096,
             next_trigger_id: 1,
             stats: PsiMonitorStats {
@@ -266,6 +277,7 @@ impl HolisticPsiMonitor {
         }
     }
 
+    #[inline]
     pub fn add_trigger(&mut self, resource: PsiResource, psi_type: PsiType,
                         threshold_pct: f64, window_us: u64) -> u32 {
         let id = self.next_trigger_id;
@@ -306,13 +318,14 @@ impl HolisticPsiMonitor {
         self.stats.total_alerts += fired.len() as u64;
         for alert in &fired {
             if self.alerts.len() >= self.max_alerts {
-                self.alerts.remove(0);
+                self.alerts.pop_front();
             }
-            self.alerts.push(alert.clone());
+            self.alerts.push_back(alert.clone());
         }
         fired
     }
 
+    #[inline]
     pub fn highest_pressure_cgroups(&self, n: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<_> = self.cgroup_psi.iter()
             .map(|(&id, cg)| (id, cg.overall_pressure()))
@@ -322,6 +335,7 @@ impl HolisticPsiMonitor {
         v
     }
 
+    #[inline]
     pub fn critical_resources(&self) -> Vec<PsiResource> {
         self.system_psi.values()
             .filter(|r| r.is_critical())
@@ -329,6 +343,7 @@ impl HolisticPsiMonitor {
             .collect()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PsiMonitorStats {
         &self.stats
     }

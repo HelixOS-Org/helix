@@ -107,6 +107,7 @@ pub enum DataValue {
 
 impl DataValue {
     /// Get data type
+    #[inline]
     pub fn data_type(&self) -> DataType {
         match self {
             DataValue::String(_) => DataType::String,
@@ -154,11 +155,13 @@ pub enum ClassExpression {
 
 impl ClassExpression {
     /// Is this a named class?
+    #[inline(always)]
     pub fn is_named(&self) -> bool {
         matches!(self, ClassExpression::Named(_))
     }
 
     /// Get the named class ID if this is a named class
+    #[inline]
     pub fn as_named(&self) -> Option<ClassId> {
         match self {
             ClassExpression::Named(id) => Some(*id),
@@ -207,6 +210,7 @@ impl OntologyClass {
     }
 
     /// Add a superclass
+    #[inline]
     pub fn add_superclass(&mut self, superclass: ClassId) {
         if !self.superclasses.contains(&superclass) {
             self.superclasses.push(superclass);
@@ -214,11 +218,13 @@ impl OntologyClass {
     }
 
     /// Add an equivalent class expression
+    #[inline(always)]
     pub fn add_equivalent(&mut self, expr: ClassExpression) {
         self.equivalent.push(expr);
     }
 
     /// Mark as disjoint with another class
+    #[inline]
     pub fn add_disjoint(&mut self, other: ClassId) {
         if !self.disjoint_with.contains(&other) {
             self.disjoint_with.push(other);
@@ -327,6 +333,7 @@ impl OntologyProperty {
     }
 
     /// Add a characteristic
+    #[inline]
     pub fn add_characteristic(&mut self, char: PropertyCharacteristic) {
         if !self.characteristics.contains(&char) {
             self.characteristics.push(char);
@@ -334,18 +341,21 @@ impl OntologyProperty {
     }
 
     /// Check if functional
+    #[inline(always)]
     pub fn is_functional(&self) -> bool {
         self.characteristics
             .contains(&PropertyCharacteristic::Functional)
     }
 
     /// Check if transitive
+    #[inline(always)]
     pub fn is_transitive(&self) -> bool {
         self.characteristics
             .contains(&PropertyCharacteristic::Transitive)
     }
 
     /// Check if symmetric
+    #[inline(always)]
     pub fn is_symmetric(&self) -> bool {
         self.characteristics
             .contains(&PropertyCharacteristic::Symmetric)
@@ -393,6 +403,7 @@ impl Individual {
     }
 
     /// Add a type
+    #[inline]
     pub fn add_type(&mut self, class: ClassId) {
         if !self.types.contains(&class) {
             self.types.push(class);
@@ -400,6 +411,7 @@ impl Individual {
     }
 
     /// Add an object property value
+    #[inline]
     pub fn add_object_property(&mut self, property: PropertyId, value: IndividualId) {
         self.object_properties
             .entry(property)
@@ -408,6 +420,7 @@ impl Individual {
     }
 
     /// Add a data property value
+    #[inline]
     pub fn add_data_property(&mut self, property: PropertyId, value: DataValue) {
         self.data_properties
             .entry(property)
@@ -416,6 +429,7 @@ impl Individual {
     }
 
     /// Get object property values
+    #[inline]
     pub fn get_object_property(&self, property: PropertyId) -> &[IndividualId] {
         self.object_properties
             .get(&property)
@@ -424,6 +438,7 @@ impl Individual {
     }
 
     /// Get data property values
+    #[inline]
     pub fn get_data_property(&self, property: PropertyId) -> &[DataValue] {
         self.data_properties
             .get(&property)
@@ -538,6 +553,7 @@ impl Ontology {
     }
 
     /// Add a subclass relationship
+    #[inline]
     pub fn add_subclass(&mut self, subclass: ClassId, superclass: ClassId) {
         if let Some(class) = self.classes.get_mut(&subclass) {
             class.add_superclass(superclass);
@@ -546,6 +562,7 @@ impl Ontology {
     }
 
     /// Add disjoint classes
+    #[inline]
     pub fn add_disjoint(&mut self, class1: ClassId, class2: ClassId) {
         if let Some(c) = self.classes.get_mut(&class1) {
             c.add_disjoint(class2);
@@ -556,11 +573,13 @@ impl Ontology {
     }
 
     /// Get a class by ID
+    #[inline(always)]
     pub fn get_class(&self, id: ClassId) -> Option<&OntologyClass> {
         self.classes.get(&id)
     }
 
     /// Get a class by name
+    #[inline]
     pub fn get_class_by_name(&self, name: &str) -> Option<&OntologyClass> {
         self.class_names
             .get(name)
@@ -568,6 +587,7 @@ impl Ontology {
     }
 
     /// Get all direct superclasses
+    #[inline]
     pub fn get_superclasses(&self, class: ClassId) -> Vec<ClassId> {
         self.classes
             .get(&class)
@@ -576,6 +596,7 @@ impl Ontology {
     }
 
     /// Get all superclasses (transitive)
+    #[inline]
     pub fn get_all_superclasses(&mut self, class: ClassId) -> BTreeSet<ClassId> {
         self.ensure_hierarchy();
         self.class_hierarchy
@@ -585,6 +606,7 @@ impl Ontology {
     }
 
     /// Get all subclasses (transitive)
+    #[inline]
     pub fn get_all_subclasses(&mut self, class: ClassId) -> BTreeSet<ClassId> {
         self.ensure_hierarchy();
         self.class_hierarchy
@@ -630,6 +652,7 @@ impl Ontology {
     }
 
     /// Set property domain
+    #[inline]
     pub fn set_property_domain(&mut self, property: PropertyId, domain: ClassId) {
         if let Some(p) = self.properties.get_mut(&property) {
             if !p.domain.contains(&domain) {
@@ -639,6 +662,7 @@ impl Ontology {
     }
 
     /// Set property range (for object properties)
+    #[inline]
     pub fn set_property_range(&mut self, property: PropertyId, range: ClassId) {
         if let Some(p) = self.properties.get_mut(&property) {
             if !p.range_classes.contains(&range) {
@@ -648,6 +672,7 @@ impl Ontology {
     }
 
     /// Set inverse property
+    #[inline]
     pub fn set_inverse_property(&mut self, property: PropertyId, inverse: PropertyId) {
         if let Some(p) = self.properties.get_mut(&property) {
             p.inverse_of = Some(inverse);
@@ -658,6 +683,7 @@ impl Ontology {
     }
 
     /// Make property transitive
+    #[inline]
     pub fn make_transitive(&mut self, property: PropertyId) {
         if let Some(p) = self.properties.get_mut(&property) {
             p.add_characteristic(PropertyCharacteristic::Transitive);
@@ -665,6 +691,7 @@ impl Ontology {
     }
 
     /// Make property symmetric
+    #[inline]
     pub fn make_symmetric(&mut self, property: PropertyId) {
         if let Some(p) = self.properties.get_mut(&property) {
             p.add_characteristic(PropertyCharacteristic::Symmetric);
@@ -672,6 +699,7 @@ impl Ontology {
     }
 
     /// Make property functional
+    #[inline]
     pub fn make_functional(&mut self, property: PropertyId) {
         if let Some(p) = self.properties.get_mut(&property) {
             p.add_characteristic(PropertyCharacteristic::Functional);
@@ -679,6 +707,7 @@ impl Ontology {
     }
 
     /// Get a property by ID
+    #[inline(always)]
     pub fn get_property(&self, id: PropertyId) -> Option<&OntologyProperty> {
         self.properties.get(&id)
     }
@@ -705,6 +734,7 @@ impl Ontology {
     }
 
     /// Assert that an individual is of a type
+    #[inline]
     pub fn add_type_assertion(&mut self, individual: IndividualId, class: ClassId) {
         if let Some(ind) = self.individuals.get_mut(&individual) {
             ind.add_type(class);
@@ -734,6 +764,7 @@ impl Ontology {
     }
 
     /// Add a data property assertion
+    #[inline]
     pub fn add_data_property_assertion(
         &mut self,
         subject: IndividualId,
@@ -746,11 +777,13 @@ impl Ontology {
     }
 
     /// Get an individual by ID
+    #[inline(always)]
     pub fn get_individual(&self, id: IndividualId) -> Option<&Individual> {
         self.individuals.get(&id)
     }
 
     /// Get all individuals of a class (including subclass instances)
+    #[inline]
     pub fn get_instances(&mut self, class: ClassId) -> Vec<IndividualId> {
         self.ensure_hierarchy();
         self.class_hierarchy
@@ -1263,6 +1296,7 @@ impl KernelOntology {
     }
 
     /// Add a process to the ontology
+    #[inline]
     pub fn add_process(&mut self, name: &str, pid: i64) -> IndividualId {
         let id = self.ontology.add_individual(String::from(name));
         self.ontology.add_type_assertion(id, self.classes.process);
@@ -1275,6 +1309,7 @@ impl KernelOntology {
     }
 
     /// Add a thread
+    #[inline]
     pub fn add_thread(&mut self, name: &str, parent: IndividualId) -> IndividualId {
         let id = self.ontology.add_individual(String::from(name));
         self.ontology.add_type_assertion(id, self.classes.thread);
@@ -1284,6 +1319,7 @@ impl KernelOntology {
     }
 
     /// Add a lock
+    #[inline]
     pub fn add_lock(&mut self, name: &str) -> IndividualId {
         let id = self.ontology.add_individual(String::from(name));
         self.ontology.add_type_assertion(id, self.classes.lock);
@@ -1291,33 +1327,39 @@ impl KernelOntology {
     }
 
     /// Record lock hold
+    #[inline(always)]
     pub fn record_lock_held(&mut self, holder: IndividualId, lock: IndividualId) {
         self.ontology
             .add_object_property_assertion(holder, self.properties.holds_lock, lock);
     }
 
     /// Record lock wait
+    #[inline(always)]
     pub fn record_lock_wait(&mut self, waiter: IndividualId, lock: IndividualId) {
         self.ontology
             .add_object_property_assertion(waiter, self.properties.waits_for_lock, lock);
     }
 
     /// Query all processes
+    #[inline(always)]
     pub fn get_all_processes(&mut self) -> Vec<IndividualId> {
         self.ontology.get_instances(self.classes.process)
     }
 
     /// Query all tasks (processes and threads)
+    #[inline(always)]
     pub fn get_all_tasks(&mut self) -> Vec<IndividualId> {
         self.ontology.get_instances(self.classes.task)
     }
 
     /// Check if entity is a process
+    #[inline(always)]
     pub fn is_process(&mut self, entity: IndividualId) -> bool {
         self.ontology.is_instance_of(entity, self.classes.process)
     }
 
     /// Check if entity is a task
+    #[inline(always)]
     pub fn is_task(&mut self, entity: IndividualId) -> bool {
         self.ontology.is_instance_of(entity, self.classes.task)
     }

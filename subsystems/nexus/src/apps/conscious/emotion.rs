@@ -101,6 +101,7 @@ impl EmotionKind {
     }
 
     /// Human-readable label
+    #[inline]
     pub fn label(&self) -> &'static str {
         match self {
             EmotionKind::Stress => "stress",
@@ -145,6 +146,7 @@ impl EmotionSignal {
         }
     }
 
+    #[inline]
     fn update(&mut self, raw: f32, tick: u64) {
         self.raw_latest = raw;
         self.trigger_count += 1;
@@ -259,6 +261,7 @@ impl AppEmotionalProfile {
 
 /// Aggregate stats for the emotion engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EmotionStats {
     pub total_apps_tracked: usize,
     pub total_evaluations: u64,
@@ -376,6 +379,7 @@ impl AppsEmotionEngine {
     }
 
     /// Return the dominant emotion for a specific application
+    #[inline]
     pub fn dominant_emotion(&self, app_id: u64) -> Option<(EmotionKind, f32)> {
         let profile = self.profiles.get(&app_id)?;
         let sig = profile.signal(profile.dominant)?;
@@ -383,6 +387,7 @@ impl AppsEmotionEngine {
     }
 
     /// Return the full emotional profile for an app
+    #[inline(always)]
     pub fn emotion_for_app(&self, app_id: u64) -> Option<&AppEmotionalProfile> {
         self.profiles.get(&app_id)
     }
@@ -402,6 +407,7 @@ impl AppsEmotionEngine {
     }
 
     /// Assess classification confidence across all apps
+    #[inline]
     pub fn confidence_assessment(&self) -> Vec<(u64, f32)> {
         let mut result = Vec::new();
         for (id, profile) in &self.profiles {
@@ -497,6 +503,7 @@ impl AppsEmotionEngine {
     }
 
     /// Decay all emotion signals (call periodically)
+    #[inline]
     pub fn decay_all(&mut self) {
         for (_, profile) in self.profiles.iter_mut() {
             profile.decay_all();
@@ -506,6 +513,7 @@ impl AppsEmotionEngine {
     }
 
     /// Return trend for a specific emotion across all apps
+    #[inline]
     pub fn emotion_trend(&self, kind: EmotionKind) -> f32 {
         let mut sum = 0.0_f32;
         let mut count = 0u32;
@@ -519,11 +527,13 @@ impl AppsEmotionEngine {
     }
 
     /// Number of apps tracked
+    #[inline(always)]
     pub fn app_count(&self) -> usize {
         self.profiles.len()
     }
 
     /// Current tick
+    #[inline(always)]
     pub fn current_tick(&self) -> u64 {
         self.tick
     }

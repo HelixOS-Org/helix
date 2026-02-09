@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Futex operation
@@ -44,6 +45,7 @@ pub struct CoopFutexBucket {
 impl CoopFutexBucket {
     pub fn new() -> Self { Self { waiters: Vec::new(), wake_count: 0, wait_count: 0 } }
 
+    #[inline(always)]
     pub fn wait(&mut self, waiter: CoopFutexWaiter) {
         self.wait_count += 1;
         self.waiters.push(waiter);
@@ -74,6 +76,7 @@ fn hash_addr(addr: u64) -> u64 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopFutexStats {
     pub total_buckets: u32,
     pub total_waiters: u32,
@@ -98,17 +101,20 @@ impl CoopFutex {
         hash_addr(addr) % self.bucket_count as u64
     }
 
+    #[inline(always)]
     pub fn wait(&mut self, waiter: CoopFutexWaiter) {
         let bid = self.bucket_id(waiter.addr);
         if let Some(b) = self.buckets.get_mut(&bid) { b.wait(waiter); }
     }
 
+    #[inline]
     pub fn wake(&mut self, addr: u64, count: u32, bitset: u32) -> u32 {
         let bid = self.bucket_id(addr);
         if let Some(b) = self.buckets.get_mut(&bid) { b.wake(count, bitset) }
         else { 0 }
     }
 
+    #[inline]
     pub fn stats(&self) -> CoopFutexStats {
         let waiters: u32 = self.buckets.values().map(|b| b.waiters.len() as u32).sum();
         let waits: u64 = self.buckets.values().map(|b| b.wait_count).sum();
@@ -186,6 +192,7 @@ impl CoopFutexV2Instance {
         woken
     }
 
+    #[inline]
     pub fn wake_all(&mut self) -> u64 {
         let count = self.waiters.len() as u64;
         self.waiters.clear();
@@ -196,6 +203,7 @@ impl CoopFutexV2Instance {
 
 /// Statistics for coop futex V2
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopFutexV2Stats {
     pub futexes_created: u64,
     pub total_waits: u64,
@@ -223,6 +231,7 @@ impl CoopFutexV2 {
         }
     }
 
+    #[inline]
     pub fn get_or_create(&mut self, addr: u64, value: u32) -> &mut CoopFutexV2Instance {
         if !self.futexes.contains_key(&addr) {
             self.futexes.insert(addr, CoopFutexV2Instance::new(addr, value));
@@ -231,6 +240,7 @@ impl CoopFutexV2 {
         self.futexes.get_mut(&addr).unwrap()
     }
 
+    #[inline]
     pub fn wait(&mut self, addr: u64, tid: u64, expected: u32, tick: u64) -> bool {
         let futex = self.get_or_create(addr, expected);
         let ok = futex.wait(tid, expected, tick);
@@ -238,6 +248,7 @@ impl CoopFutexV2 {
         ok
     }
 
+    #[inline]
     pub fn wake(&mut self, addr: u64, count: usize) -> u64 {
         if let Some(futex) = self.futexes.get_mut(&addr) {
             let woken = futex.wake(count);
@@ -246,6 +257,7 @@ impl CoopFutexV2 {
         } else { 0 }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopFutexV2Stats {
         &self.stats
     }
@@ -311,7 +323,7 @@ impl FutexV3Waiter {
 #[derive(Debug, Clone)]
 pub struct FutexV3Instance {
     pub address: u64,
-    pub waiters: Vec<FutexV3Waiter>,
+    pub waiters: VecDeque<FutexV3Waiter>,
     pub owner_pid: Option<u64>,
     pub is_pi: bool,
     pub is_robust: bool,
@@ -326,7 +338,7 @@ impl FutexV3Instance {
     pub fn new(address: u64) -> Self {
         Self {
             address,
-            waiters: Vec::new(),
+            waiters: VecDeque::new(),
             owner_pid: None,
             is_pi: false,
             is_robust: false,
@@ -338,22 +350,23 @@ impl FutexV3Instance {
         }
     }
 
+    #[inline]
     pub fn enqueue_waiter(&mut self, waiter: FutexV3Waiter) {
         self.total_waits += 1;
         if waiter.is_pi {
             self.is_pi = true;
         }
-        self.waiters.push(waiter);
+        self.waiters.push_back(waiter);
     }
 
     pub fn wake(&mut self, count: usize, bitset: u32) -> Vec<FutexV3Waiter> {
         let mut woken = Vec::new();
-        let mut remaining = Vec::new();
+        let mut remaining = VecDeque::new();
         for w in self.waiters.drain(..) {
             if woken.len() < count && (w.bitset & bitset) != 0 {
                 woken.push(w);
             } else {
-                remaining.push(w);
+                remaining.push_back(w);
             }
         }
         self.total_wakes += woken.len() as u64;
@@ -361,17 +374,19 @@ impl FutexV3Instance {
         woken
     }
 
+    #[inline]
     pub fn requeue_to(&mut self, target: &mut FutexV3Instance, count: usize) -> u64 {
         let mut moved = 0u64;
         while !self.waiters.is_empty() && moved < count as u64 {
-            let w = self.waiters.remove(0);
-            target.waiters.push(w);
+            let w = self.waiters.pop_front().unwrap();
+            target.waiters.push_back(w);
             moved += 1;
         }
         self.total_requeues += moved;
         moved
     }
 
+    #[inline]
     pub fn handle_owner_death(&mut self) -> Vec<FutexV3Waiter> {
         self.owner_died_count += 1;
         self.owner_pid = None;
@@ -379,11 +394,12 @@ impl FutexV3Instance {
         if self.is_pi {
             let all = core::mem::take(&mut self.waiters);
             self.total_wakes += all.len() as u64;
-            return all;
+            return all.into_iter().collect();
         }
         Vec::new()
     }
 
+    #[inline(always)]
     pub fn waiter_count(&self) -> usize {
         self.waiters.len()
     }
@@ -391,6 +407,7 @@ impl FutexV3Instance {
 
 /// Statistics for futex V3.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FutexV3Stats {
     pub total_futexes: u64,
     pub total_waits: u64,
@@ -425,6 +442,7 @@ impl CoopFutexV3 {
         }
     }
 
+    #[inline]
     pub fn get_or_create(&mut self, address: u64) -> &mut FutexV3Instance {
         if !self.futexes.contains_key(&address) {
             let inst = FutexV3Instance::new(address);
@@ -434,10 +452,12 @@ impl CoopFutexV3 {
         self.futexes.get_mut(&address).unwrap()
     }
 
+    #[inline(always)]
     pub fn register_robust_list(&mut self, pid: u64, addresses: Vec<u64>) {
         self.robust_lists.insert(pid, addresses);
     }
 
+    #[inline(always)]
     pub fn futex_count(&self) -> usize {
         self.futexes.len()
     }

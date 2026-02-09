@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -126,6 +127,7 @@ pub struct UncertaintyBudget {
 
 /// Rolling statistics for the confidence interval engine.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct ConfidenceIntervalStats {
     pub intervals_computed: u64,
     pub trust_intervals: u64,
@@ -166,17 +168,17 @@ struct PredictionOutcome {
 #[derive(Clone, Debug)]
 struct DomainSamples {
     domain_hash: u64,
-    samples: Vec<u64>,
+    samples: VecDeque<u64>,
     ema_mean: u64,
     ema_variance: u64,
-    prediction_outcomes: Vec<PredictionOutcome>,
+    prediction_outcomes: VecDeque<PredictionOutcome>,
 }
 
 /// Internal width tracking for narrowing analysis.
 #[derive(Clone, Debug)]
 struct WidthHistory {
     domain_hash: u64,
-    widths: Vec<u64>,
+    widths: VecDeque<u64>,
     ema_width: u64,
 }
 
@@ -214,10 +216,10 @@ impl CoopConfidenceInterval {
         self.add_sample(&mut self.trust_samples.clone(), partner_id, trust_value);
         let domain = self.trust_samples.entry(partner_id).or_insert_with(|| DomainSamples {
             domain_hash: partner_id,
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             ema_mean: trust_value,
             ema_variance: 100,
-            prediction_outcomes: Vec::new(),
+            prediction_outcomes: VecDeque::new(),
         });
         domain.samples.push(trust_value);
         domain.ema_mean = ema_update(domain.ema_mean, trust_value, 200, 1000);
@@ -228,7 +230,7 @@ impl CoopConfidenceInterval {
         };
         domain.ema_variance = ema_update(domain.ema_variance, diff.saturating_mul(diff), 150, 1000);
         if domain.samples.len() > self.max_samples {
-            domain.samples.remove(0);
+            domain.samples.pop_front().unwrap();
         }
     }
 
@@ -236,10 +238,10 @@ impl CoopConfidenceInterval {
     pub fn record_contention_sample(&mut self, resource_id: u64, contention_value: u64) {
         let domain = self.contention_samples.entry(resource_id).or_insert_with(|| DomainSamples {
             domain_hash: resource_id,
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             ema_mean: contention_value,
             ema_variance: 100,
-            prediction_outcomes: Vec::new(),
+            prediction_outcomes: VecDeque::new(),
         });
         domain.samples.push(contention_value);
         domain.ema_mean = ema_update(domain.ema_mean, contention_value, 200, 1000);
@@ -250,7 +252,7 @@ impl CoopConfidenceInterval {
         };
         domain.ema_variance = ema_update(domain.ema_variance, diff.saturating_mul(diff), 150, 1000);
         if domain.samples.len() > self.max_samples {
-            domain.samples.remove(0);
+            domain.samples.pop_front().unwrap();
         }
     }
 
@@ -258,10 +260,10 @@ impl CoopConfidenceInterval {
     pub fn record_sharing_sample(&mut self, pair_hash: u64, sharing_value: u64) {
         let domain = self.sharing_samples.entry(pair_hash).or_insert_with(|| DomainSamples {
             domain_hash: pair_hash,
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             ema_mean: sharing_value,
             ema_variance: 100,
-            prediction_outcomes: Vec::new(),
+            prediction_outcomes: VecDeque::new(),
         });
         domain.samples.push(sharing_value);
         domain.ema_mean = ema_update(domain.ema_mean, sharing_value, 200, 1000);
@@ -272,7 +274,7 @@ impl CoopConfidenceInterval {
         };
         domain.ema_variance = ema_update(domain.ema_variance, diff.saturating_mul(diff), 150, 1000);
         if domain.samples.len() > self.max_samples {
-            domain.samples.remove(0);
+            domain.samples.pop_front().unwrap();
         }
     }
 
@@ -517,23 +519,25 @@ impl CoopConfidenceInterval {
         if let Some(domain) = self.trust_samples.get_mut(&domain_hash) {
             domain.prediction_outcomes.push(outcome.clone());
             if domain.prediction_outcomes.len() > self.max_samples {
-                domain.prediction_outcomes.remove(0);
+                domain.prediction_outcomes.pop_front().unwrap();
             }
         }
         if let Some(domain) = self.contention_samples.get_mut(&domain_hash) {
             domain.prediction_outcomes.push(outcome.clone());
             if domain.prediction_outcomes.len() > self.max_samples {
-                domain.prediction_outcomes.remove(0);
+                domain.prediction_outcomes.pop_front().unwrap();
             }
         }
     }
 
     /// Advance the internal tick.
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.current_tick = self.current_tick.wrapping_add(1);
     }
 
     /// Retrieve current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &ConfidenceIntervalStats {
         &self.stats
     }
@@ -570,13 +574,13 @@ impl CoopConfidenceInterval {
     fn track_width(&mut self, domain_hash: u64, width: u64) {
         let wh = self.width_history.entry(domain_hash).or_insert_with(|| WidthHistory {
             domain_hash,
-            widths: Vec::new(),
+            widths: VecDeque::new(),
             ema_width: width,
         });
         wh.widths.push(width);
         wh.ema_width = ema_update(wh.ema_width, width, 200, 1000);
         if wh.widths.len() > 128 {
-            wh.widths.remove(0);
+            wh.widths.pop_front().unwrap();
         }
     }
 

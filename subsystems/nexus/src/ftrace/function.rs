@@ -43,22 +43,26 @@ impl FunctionInfo {
     }
 
     /// Record hit
+    #[inline(always)]
     pub fn record_hit(&self, duration_ns: u64) {
         self.hit_count.fetch_add(1, Ordering::Relaxed);
         self.total_time_ns.fetch_add(duration_ns, Ordering::Relaxed);
     }
 
     /// Get hit count
+    #[inline(always)]
     pub fn hit_count(&self) -> u64 {
         self.hit_count.load(Ordering::Relaxed)
     }
 
     /// Get total time
+    #[inline(always)]
     pub fn total_time_ns(&self) -> u64 {
         self.total_time_ns.load(Ordering::Relaxed)
     }
 
     /// Average time
+    #[inline]
     pub fn avg_time_ns(&self) -> u64 {
         let hits = self.hit_count();
         if hits == 0 {
@@ -68,6 +72,7 @@ impl FunctionInfo {
     }
 
     /// Full name
+    #[inline]
     pub fn full_name(&self) -> String {
         if let Some(ref module) = self.module {
             alloc::format!("{}:{}", module, self.name)

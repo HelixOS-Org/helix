@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -140,6 +141,7 @@ pub struct CoopLesson {
 
 /// Aggregate reflection statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ReflectionStats {
     pub total_reflections: u64,
     pub avg_quality: f32,
@@ -204,6 +206,7 @@ impl CoopReflection {
     }
 
     /// Reflect on a completed negotiation cycle
+    #[inline]
     pub fn reflect_on_negotiation(
         &mut self,
         participant_count: u32,
@@ -278,7 +281,7 @@ impl CoopReflection {
             .or_insert_with(Vec::new);
         outcomes.push(clamped_quality);
         if outcomes.len() > MAX_PATTERNS {
-            outcomes.remove(0);
+            outcomes.pop_front();
         }
 
         // Auto-detect patterns
@@ -372,6 +375,7 @@ impl CoopReflection {
     }
 
     /// Extract lessons from detected patterns
+    #[inline]
     pub fn lesson_extraction(&mut self) -> usize {
         let mut new_lessons = 0_usize;
 

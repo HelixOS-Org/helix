@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -103,6 +104,7 @@ pub struct TimelineRisk {
 
 /// Rolling statistics for the timeline projector.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct TimelineStats {
     pub contracts_tracked: u64,
     pub leases_tracked: u64,
@@ -166,7 +168,7 @@ pub struct CoopTimeline {
     trust_models: BTreeMap<u64, TrustDecayModel>,
     leases: BTreeMap<u64, LeaseRecord>,
     negotiations: BTreeMap<u64, NegotiationEntry>,
-    risk_history: Vec<u64>,
+    risk_history: VecDeque<u64>,
     stats: TimelineStats,
     rng_state: u64,
     current_tick: u64,
@@ -181,7 +183,7 @@ impl CoopTimeline {
             trust_models: BTreeMap::new(),
             leases: BTreeMap::new(),
             negotiations: BTreeMap::new(),
-            risk_history: Vec::new(),
+            risk_history: VecDeque::new(),
             stats: TimelineStats::new(),
             rng_state: seed | 1,
             current_tick: 0,
@@ -190,6 +192,7 @@ impl CoopTimeline {
     }
 
     /// Advance the internal clock.
+    #[inline(always)]
     pub fn tick(&mut self, now: u64) {
         self.current_tick = now;
     }
@@ -228,6 +231,7 @@ impl CoopTimeline {
     }
 
     /// Register a trust decay model for a partner.
+    #[inline]
     pub fn register_trust_model(
         &mut self,
         partner_id: u64,
@@ -478,9 +482,9 @@ impl CoopTimeline {
             .min(1000);
 
         if self.risk_history.len() >= 64 {
-            self.risk_history.remove(0);
+            self.risk_history.pop_front();
         }
-        self.risk_history.push(overall_risk);
+        self.risk_history.push_back(overall_risk);
         self.stats.avg_risk_score = ema_update(self.stats.avg_risk_score, overall_risk, 3, 10);
 
         TimelineRisk {
@@ -494,6 +498,7 @@ impl CoopTimeline {
     }
 
     /// Get the current statistics snapshot.
+    #[inline(always)]
     pub fn stats(&self) -> &TimelineStats {
         &self.stats
     }

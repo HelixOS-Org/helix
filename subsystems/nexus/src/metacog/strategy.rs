@@ -107,6 +107,7 @@ impl ResourceBudget {
     }
 
     /// Create a tight budget
+    #[inline]
     pub fn tight() -> Self {
         Self {
             max_cycles: 10_000,
@@ -118,6 +119,7 @@ impl ResourceBudget {
     }
 
     /// Create a normal budget
+    #[inline]
     pub fn normal() -> Self {
         Self {
             max_cycles: 1_000_000,
@@ -129,6 +131,7 @@ impl ResourceBudget {
     }
 
     /// Create a generous budget
+    #[inline]
     pub fn generous() -> Self {
         Self {
             max_cycles: 100_000_000,
@@ -140,6 +143,7 @@ impl ResourceBudget {
     }
 
     /// Check if another budget fits within this one
+    #[inline]
     pub fn fits(&self, other: &ResourceBudget) -> bool {
         other.max_cycles <= self.max_cycles
             && other.max_memory <= self.max_memory
@@ -211,6 +215,7 @@ impl StrategyParameter {
     }
 
     /// Clamp value to valid range
+    #[inline(always)]
     pub fn clamp(&mut self) {
         self.value = self.value.clamp(self.min, self.max);
     }
@@ -235,22 +240,26 @@ impl CognitiveStrategy {
     }
 
     /// Check if applicable to task type
+    #[inline(always)]
     pub fn is_applicable(&self, task_type: TaskType) -> bool {
         self.applicable_tasks.contains(&task_type)
             || self.applicable_tasks.contains(&TaskType::Generic)
     }
 
     /// Check if fits within budget
+    #[inline(always)]
     pub fn fits_budget(&self, budget: &ResourceBudget) -> bool {
         budget.fits(&self.resource_requirements)
     }
 
     /// Get parameter value
+    #[inline(always)]
     pub fn get_parameter(&self, name: &str) -> Option<f64> {
         self.parameters.get(name).map(|p| p.value)
     }
 
     /// Set parameter value
+    #[inline]
     pub fn set_parameter(&mut self, name: &str, value: f64) -> bool {
         if let Some(param) = self.parameters.get_mut(name) {
             param.value = value;
@@ -443,18 +452,21 @@ impl StrategySelector {
     }
 
     /// Set selection algorithm
+    #[inline(always)]
     pub fn with_algorithm(mut self, algorithm: SelectionAlgorithm) -> Self {
         self.algorithm = algorithm;
         self
     }
 
     /// Set exploration rate
+    #[inline(always)]
     pub fn with_exploration_rate(mut self, rate: f64) -> Self {
         self.exploration_rate = rate.clamp(0.0, 1.0);
         self
     }
 
     /// Register a strategy
+    #[inline]
     pub fn register_strategy(&mut self, strategy: CognitiveStrategy) -> StrategyId {
         let id = strategy.id;
         self.performance.insert(id, StrategyPerformance::new(id));
@@ -463,6 +475,7 @@ impl StrategySelector {
     }
 
     /// Create and register a new strategy
+    #[inline]
     pub fn create_strategy(&mut self, name: String) -> StrategyId {
         let id = StrategyId(self.next_strategy_id);
         self.next_strategy_id += 1;
@@ -784,21 +797,25 @@ impl StrategySelector {
     }
 
     /// Get strategy
+    #[inline(always)]
     pub fn get_strategy(&self, id: StrategyId) -> Option<&CognitiveStrategy> {
         self.strategies.get(&id)
     }
 
     /// Get mutable strategy
+    #[inline(always)]
     pub fn get_strategy_mut(&mut self, id: StrategyId) -> Option<&mut CognitiveStrategy> {
         self.strategies.get_mut(&id)
     }
 
     /// Get performance
+    #[inline(always)]
     pub fn get_performance(&self, id: StrategyId) -> Option<&StrategyPerformance> {
         self.performance.get(&id)
     }
 
     /// Get all strategies for task type
+    #[inline]
     pub fn get_strategies_for_task(&self, task_type: TaskType) -> Vec<&CognitiveStrategy> {
         self.strategies
             .values()
@@ -855,6 +872,7 @@ pub enum CompositionType {
 
 impl CompositeStrategy {
     /// Create a pipeline
+    #[inline]
     pub fn pipeline(id: StrategyId, name: String, components: Vec<StrategyId>) -> Self {
         Self {
             id,
@@ -866,6 +884,7 @@ impl CompositeStrategy {
     }
 
     /// Create a weighted ensemble
+    #[inline]
     pub fn ensemble(
         id: StrategyId,
         name: String,
@@ -882,6 +901,7 @@ impl CompositeStrategy {
     }
 
     /// Create a fallback chain
+    #[inline]
     pub fn fallback(id: StrategyId, name: String, components: Vec<StrategyId>) -> Self {
         Self {
             id,
@@ -902,6 +922,7 @@ pub struct StrategyFactory;
 
 impl StrategyFactory {
     /// Create a fast/simple strategy
+    #[inline]
     pub fn fast_simple(id: StrategyId) -> CognitiveStrategy {
         let mut strategy = CognitiveStrategy::new(id, String::from("FastSimple"));
         strategy.description = String::from("Quick heuristic-based approach");
@@ -914,6 +935,7 @@ impl StrategyFactory {
     }
 
     /// Create a balanced strategy
+    #[inline]
     pub fn balanced(id: StrategyId) -> CognitiveStrategy {
         let mut strategy = CognitiveStrategy::new(id, String::from("Balanced"));
         strategy.description = String::from("Balanced speed/accuracy trade-off");
@@ -926,6 +948,7 @@ impl StrategyFactory {
     }
 
     /// Create a high-accuracy strategy
+    #[inline]
     pub fn high_accuracy(id: StrategyId) -> CognitiveStrategy {
         let mut strategy = CognitiveStrategy::new(id, String::from("HighAccuracy"));
         strategy.description = String::from("Thorough analysis for high accuracy");

@@ -4,6 +4,7 @@
 //! and routes them through the optimization pipeline.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -82,11 +83,13 @@ impl SyscallType {
     }
 
     /// Whether this is a memory syscall
+    #[inline(always)]
     pub fn is_memory(&self) -> bool {
         matches!(self, Self::Mmap | Self::Munmap | Self::Mprotect | Self::Brk)
     }
 
     /// Whether this is a process syscall
+    #[inline]
     pub fn is_process(&self) -> bool {
         matches!(
             self,
@@ -109,6 +112,7 @@ impl SyscallType {
     }
 
     /// Whether this syscall can be batched with others of the same type
+    #[inline]
     pub fn is_batchable(&self) -> bool {
         matches!(
             self,
@@ -131,6 +135,7 @@ impl SyscallType {
     }
 
     /// Typical latency category (0=fast, 1=medium, 2=slow)
+    #[inline]
     pub fn latency_class(&self) -> u8 {
         match self {
             Self::ClockGettime | Self::Brk => 0,
@@ -182,6 +187,7 @@ impl SyscallType {
 
 /// Rich context attached to each syscall invocation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallContext {
     /// Unique ID for this invocation
     pub id: SyscallId,
@@ -223,24 +229,28 @@ impl SyscallContext {
     }
 
     /// Attach a timestamp
+    #[inline(always)]
     pub fn with_timestamp(mut self, ts: u64) -> Self {
         self.timestamp = ts;
         self
     }
 
     /// Attach arguments
+    #[inline(always)]
     pub fn with_args(mut self, args: [u64; 6]) -> Self {
         self.args = args;
         self
     }
 
     /// Attach data size
+    #[inline(always)]
     pub fn with_data_size(mut self, size: usize) -> Self {
         self.data_size = size;
         self
     }
 
     /// Add an optimization hint
+    #[inline(always)]
     pub fn add_hint(&mut self, hint: OptimizationHint) {
         self.hints.push(hint);
     }
@@ -283,6 +293,7 @@ pub enum OptimizationHint {
 
 /// Result of a syscall execution
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallResult {
     /// The syscall context
     pub id: SyscallId,
@@ -300,6 +311,7 @@ pub struct SyscallResult {
 
 impl SyscallResult {
     /// Create a success result
+    #[inline]
     pub fn success(id: SyscallId, return_value: i64, latency_ns: u64) -> Self {
         Self {
             id,
@@ -312,6 +324,7 @@ impl SyscallResult {
     }
 
     /// Create an error result
+    #[inline]
     pub fn error(id: SyscallId, errno: i64, latency_ns: u64) -> Self {
         Self {
             id,
@@ -324,6 +337,7 @@ impl SyscallResult {
     }
 
     /// Mark as optimized
+    #[inline]
     pub fn with_optimization(mut self, desc: &str) -> Self {
         self.optimized = true;
         self.optimization_applied = Some(String::from(desc));
@@ -337,6 +351,7 @@ impl SyscallResult {
 
 /// Aggregated metrics for syscall performance
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallMetrics {
     /// Total syscalls intercepted
     pub total_intercepted: u64,
@@ -358,6 +373,7 @@ pub struct SyscallMetrics {
 
 /// Metrics for a specific syscall type
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TypeMetrics {
     pub count: u64,
     pub total_latency_ns: u64,
@@ -411,6 +427,7 @@ impl SyscallMetrics {
     }
 
     /// Optimization hit rate
+    #[inline]
     pub fn optimization_rate(&self) -> f64 {
         if self.total_intercepted == 0 {
             return 0.0;
@@ -419,6 +436,7 @@ impl SyscallMetrics {
     }
 
     /// Prediction hit rate
+    #[inline]
     pub fn prediction_rate(&self) -> f64 {
         if self.total_intercepted == 0 {
             return 0.0;
@@ -472,6 +490,7 @@ impl SyscallType {
 /// The intelligent syscall interceptor — sits between userland and the kernel
 /// execution path, enriching each syscall with context, predictions, and
 /// optimization decisions.
+#[repr(align(64))]
 pub struct SyscallInterceptor {
     /// Rolling ID counter
     next_id: u64,
@@ -498,11 +517,13 @@ impl SyscallInterceptor {
     }
 
     /// Enable the interceptor
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.active = true;
     }
 
     /// Disable the interceptor (passthrough mode)
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.active = false;
     }
@@ -528,7 +549,7 @@ impl SyscallInterceptor {
             .entry(pid)
             .or_insert_with(|| Vec::with_capacity(self.history_window));
         if hist.len() >= self.history_window {
-            hist.remove(0);
+            hist.pop_front();
         }
         hist.push(syscall_type);
 
@@ -550,16 +571,19 @@ impl SyscallInterceptor {
     }
 
     /// Record a completed syscall result
+    #[inline(always)]
     pub fn complete(&mut self, result: &SyscallResult, syscall_type: SyscallType) {
         self.metrics.record(result, syscall_type);
     }
 
     /// Get current metrics
+    #[inline(always)]
     pub fn metrics(&self) -> &SyscallMetrics {
         &self.metrics
     }
 
     /// Get recent history for a process
+    #[inline(always)]
     pub fn process_history(&self, pid: u64) -> Option<&[SyscallType]> {
         self.history.get(&pid).map(|v| v.as_slice())
     }

@@ -59,6 +59,7 @@ impl OperationType {
     }
 
     /// Get memory footprint for this operation
+    #[inline]
     pub fn memory_bytes(&self, input_size: usize, output_size: usize) -> usize {
         match self {
             Self::Zero | Self::Skip => 0,

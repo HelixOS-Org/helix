@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -39,15 +40,18 @@ pub struct BwLimit {
 }
 
 impl BwLimit {
+    #[inline(always)]
     pub fn unlimited() -> Self {
         Self { bps_read: u64::MAX, bps_write: u64::MAX, iops_read: u64::MAX, iops_write: u64::MAX }
     }
 
+    #[inline(always)]
     pub fn is_unlimited(&self) -> bool {
         self.bps_read == u64::MAX && self.bps_write == u64::MAX
             && self.iops_read == u64::MAX && self.iops_write == u64::MAX
     }
 
+    #[inline]
     pub fn check_bps(&self, dir: IoDirection, bytes: u64) -> bool {
         match dir {
             IoDirection::Read => bytes <= self.bps_read,
@@ -55,6 +59,7 @@ impl BwLimit {
         }
     }
 
+    #[inline]
     pub fn check_iops(&self, dir: IoDirection, ios: u64) -> bool {
         match dir {
             IoDirection::Read => ios <= self.iops_read,
@@ -100,20 +105,24 @@ impl CgroupIoStat {
         }
     }
 
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.bytes_read + self.bytes_written
     }
 
+    #[inline(always)]
     pub fn total_ios(&self) -> u64 {
         self.ios_read + self.ios_written
     }
 
+    #[inline]
     pub fn throttle_ratio(&self) -> f64 {
         let total = self.total_bytes();
         if total == 0 { return 0.0; }
         self.throttled_bytes as f64 / total as f64
     }
 
+    #[inline]
     pub fn avg_io_size(&self) -> u64 {
         let ios = self.total_ios();
         if ios == 0 { return 0; }
@@ -149,15 +158,18 @@ impl ThrottleDevice {
         }
     }
 
+    #[inline(always)]
     pub fn queue_utilization(&self) -> f64 {
         if self.max_queue_depth == 0 { return 0.0; }
         self.pending_ios as f64 / self.max_queue_depth as f64
     }
 
+    #[inline(always)]
     pub fn is_congested(&self) -> bool {
         self.queue_utilization() > 0.8
     }
 
+    #[inline(always)]
     pub fn avg_io_size(&self) -> u64 {
         if self.dispatched_ios == 0 { return 0; }
         self.dispatched_bytes / self.dispatched_ios
@@ -188,6 +200,7 @@ pub enum ThrottleReason {
 
 /// Throttle stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BlkThrottleStats {
     pub total_throttle_events: u64,
     pub total_bytes_throttled: u64,
@@ -202,7 +215,7 @@ pub struct HolisticBlkThrottle {
     devices: BTreeMap<u64, ThrottleDevice>,
     cgroup_io: BTreeMap<(u64, u64), CgroupIoStat>,
     cgroup_limits: BTreeMap<(u64, u64), BwLimit>,
-    events: Vec<ThrottleEvent>,
+    events: VecDeque<ThrottleEvent>,
     max_events: usize,
     stats: BlkThrottleStats,
 }
@@ -213,7 +226,7 @@ impl HolisticBlkThrottle {
             devices: BTreeMap::new(),
             cgroup_io: BTreeMap::new(),
             cgroup_limits: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 4096,
             stats: BlkThrottleStats {
                 total_throttle_events: 0, total_bytes_throttled: 0,
@@ -223,11 +236,13 @@ impl HolisticBlkThrottle {
         }
     }
 
+    #[inline(always)]
     pub fn add_device(&mut self, dev: ThrottleDevice) {
         self.stats.device_count += 1;
         self.devices.insert(dev.device_id, dev);
     }
 
+    #[inline(always)]
     pub fn set_limit(&mut self, cgroup_id: u64, device_id: u64, limit: BwLimit) {
         self.cgroup_limits.insert((cgroup_id, device_id), limit);
     }
@@ -262,11 +277,12 @@ impl HolisticBlkThrottle {
         }
 
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event);
+        self.events.push_back(event);
     }
 
+    #[inline]
     pub fn should_throttle(&self, cgroup_id: u64, device_id: u64, dir: IoDirection, bytes: u64) -> bool {
         if let Some(limit) = self.cgroup_limits.get(&(cgroup_id, device_id)) {
             if limit.is_unlimited() { return false; }
@@ -275,6 +291,7 @@ impl HolisticBlkThrottle {
         false
     }
 
+    #[inline]
     pub fn congested_devices(&self) -> Vec<u64> {
         self.devices.iter()
             .filter(|(_, d)| d.is_congested())
@@ -282,6 +299,7 @@ impl HolisticBlkThrottle {
             .collect()
     }
 
+    #[inline]
     pub fn most_throttled_cgroups(&self, n: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<_> = self.cgroup_io.values()
             .map(|s| (s.cgroup_id, s.throttle_ratio()))
@@ -292,6 +310,7 @@ impl HolisticBlkThrottle {
         v
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BlkThrottleStats {
         &self.stats
     }

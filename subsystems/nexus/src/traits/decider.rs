@@ -51,6 +51,7 @@ pub struct ValidationResult {
 
 impl ValidationResult {
     /// Create valid result
+    #[inline]
     pub fn valid() -> Self {
         Self {
             valid: true,
@@ -60,6 +61,7 @@ impl ValidationResult {
     }
 
     /// Create invalid result with violations
+    #[inline]
     pub fn invalid(violations: Vec<PolicyViolation>) -> Self {
         Self {
             valid: false,
@@ -69,12 +71,14 @@ impl ValidationResult {
     }
 
     /// Add a warning
+    #[inline(always)]
     pub fn with_warning(mut self, warning: impl Into<String>) -> Self {
         self.warnings.push(warning.into());
         self
     }
 
     /// Add a violation (makes result invalid)
+    #[inline]
     pub fn with_violation(mut self, violation: PolicyViolation) -> Self {
         self.valid = false;
         self.violations.push(violation);
@@ -82,11 +86,13 @@ impl ValidationResult {
     }
 
     /// Has warnings?
+    #[inline(always)]
     pub fn has_warnings(&self) -> bool {
         !self.warnings.is_empty()
     }
 
     /// Total issue count (violations + warnings)
+    #[inline(always)]
     pub fn issue_count(&self) -> usize {
         self.violations.len() + self.warnings.len()
     }
@@ -130,18 +136,21 @@ impl PolicyViolation {
     }
 
     /// With policy name
+    #[inline(always)]
     pub fn with_name(mut self, name: impl Into<String>) -> Self {
         self.policy_name = name.into();
         self
     }
 
     /// With severity
+    #[inline(always)]
     pub fn with_severity(mut self, severity: Severity) -> Self {
         self.severity = severity;
         self
     }
 
     /// As non-blocking warning
+    #[inline(always)]
     pub fn as_warning(mut self) -> Self {
         self.blocking = false;
         self

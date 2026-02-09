@@ -1,6 +1,8 @@
 //! Intelligent memory allocation advisor.
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -12,9 +14,9 @@ use crate::core::NexusTimestamp;
 /// Intelligent memory allocation advisor
 pub struct AllocationIntelligence {
     /// Allocation history
-    history: Vec<AllocationRecord>,
+    history: VecDeque<AllocationRecord>,
     /// Size distribution
-    size_distribution: BTreeMap<u32, u32>, // size_class -> count
+    size_distribution: ArrayMap<u32, 32>, // size_class -> count
     /// Lifetime analysis
     lifetime_analysis: BTreeMap<u32, Vec<u64>>, // size_class -> lifetimes
     /// Fragmentation metrics
@@ -44,6 +46,7 @@ struct AllocationRecord {
 
 /// Fragmentation metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FragmentationMetrics {
     /// External fragmentation ratio
     pub external: f64,
@@ -61,8 +64,8 @@ impl AllocationIntelligence {
     /// Create new allocation intelligence
     pub fn new() -> Self {
         Self {
-            history: Vec::new(),
-            size_distribution: BTreeMap::new(),
+            history: VecDeque::new(),
+            size_distribution: ArrayMap::new(0),
             lifetime_analysis: BTreeMap::new(),
             fragmentation: FragmentationMetrics::default(),
             max_history: 10000,
@@ -80,15 +83,15 @@ impl AllocationIntelligence {
             source,
         };
 
-        self.history.push(record);
+        self.history.push_back(record);
 
         // Update size distribution
         let size_class = self.size_to_class(size);
-        *self.size_distribution.entry(size_class).or_insert(0) += 1;
+        self.size_distribution.add(size_class as usize, 1);
 
         // Evict old history
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
@@ -195,16 +198,19 @@ impl AllocationIntelligence {
     }
 
     /// Update fragmentation metrics
+    #[inline(always)]
     pub fn update_fragmentation(&mut self, metrics: FragmentationMetrics) {
         self.fragmentation = metrics;
     }
 
     /// Get fragmentation level (0.0 = none, 1.0 = severe)
+    #[inline(always)]
     pub fn fragmentation_level(&self) -> f64 {
         (self.fragmentation.external * 0.6 + self.fragmentation.internal * 0.4).min(1.0)
     }
 
     /// Should compact memory?
+    #[inline(always)]
     pub fn should_compact(&self) -> bool {
         self.fragmentation_level() > 0.5
     }
@@ -243,6 +249,7 @@ impl Default for AllocationIntelligence {
 
 /// Allocation statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AllocationStats {
     /// Total allocations tracked
     pub total_allocations: u64,

@@ -18,6 +18,7 @@ pub struct PruningMask {
 
 impl PruningMask {
     /// Create a full mask (all weights active)
+    #[inline]
     pub fn full(layer_sizes: &[(usize, usize)], task_id: u64) -> Self {
         let masks = layer_sizes
             .iter()
@@ -28,6 +29,7 @@ impl PruningMask {
     }
 
     /// Apply mask to weights
+    #[inline]
     pub fn apply(&self, weights: &[Vec<f64>]) -> Vec<Vec<f64>> {
         weights
             .iter()
@@ -37,6 +39,7 @@ impl PruningMask {
     }
 
     /// Count active weights
+    #[inline]
     pub fn active_count(&self) -> usize {
         self.masks
             .iter()
@@ -46,11 +49,13 @@ impl PruningMask {
     }
 
     /// Total weights
+    #[inline(always)]
     pub fn total_count(&self) -> usize {
         self.masks.iter().map(|m| m.len()).sum()
     }
 
     /// Sparsity ratio
+    #[inline]
     pub fn sparsity(&self) -> f64 {
         let active = self.active_count();
         let total = self.total_count();

@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Worker state
@@ -49,48 +49,68 @@ pub struct WorkItem {
 /// Per-worker deque (double-ended queue)
 #[derive(Debug, Clone)]
 pub struct WorkerDeque {
-    items: Vec<WorkItem>,
+    items: VecDeque<WorkItem>,
     capacity: usize,
 }
 
 impl WorkerDeque {
     pub fn new(capacity: usize) -> Self {
-        Self { items: Vec::new(), capacity }
+        Self {
+            items: VecDeque::new(),
+            capacity,
+        }
     }
 
+    #[inline]
     pub fn push_back(&mut self, item: WorkItem) -> bool {
-        if self.items.len() >= self.capacity { return false; }
-        self.items.push(item);
+        if self.items.len() >= self.capacity {
+            return false;
+        }
+        self.items.push_back(item);
         true
     }
 
+    #[inline(always)]
     pub fn pop_back(&mut self) -> Option<WorkItem> {
-        self.items.pop()
+        self.items.pop_back()
     }
 
+    #[inline(always)]
     pub fn pop_front(&mut self) -> Option<WorkItem> {
-        if self.items.is_empty() { None }
-        else { Some(self.items.remove(0)) }
+        self.items.pop_front()
     }
 
     /// Steal half of the deque items (from front)
+    #[inline]
     pub fn steal_half(&mut self) -> Vec<WorkItem> {
         let n = self.items.len() / 2;
         if n == 0 && !self.items.is_empty() {
-            return alloc::vec![self.items.remove(0)];
+            return alloc::vec![self.items.pop_front().unwrap()];
         }
         let stolen: Vec<WorkItem> = self.items.drain(..n).collect();
         stolen
     }
 
+    #[inline(always)]
     pub fn steal_n(&mut self, count: usize) -> Vec<WorkItem> {
-        let n = if count > self.items.len() { self.items.len() } else { count };
+        let n = if count > self.items.len() {
+            self.items.len()
+        } else {
+            count
+        };
         self.items.drain(..n).collect()
     }
 
-    pub fn len(&self) -> usize { self.items.len() }
-    pub fn is_empty(&self) -> bool { self.items.is_empty() }
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
 
+    #[inline(always)]
     pub fn total_cost(&self) -> u64 {
         self.items.iter().map(|w| w.estimated_cost).sum()
     }
@@ -98,6 +118,7 @@ impl WorkerDeque {
 
 /// Per-worker statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct WorkerStats {
     pub tasks_executed: u64,
     pub tasks_stolen_from: u64,
@@ -110,15 +131,21 @@ pub struct WorkerStats {
 }
 
 impl WorkerStats {
+    #[inline]
     pub fn steal_success_rate(&self) -> f64 {
-        if self.steal_attempts == 0 { return 0.0; }
+        if self.steal_attempts == 0 {
+            return 0.0;
+        }
         let successes = self.steal_attempts.saturating_sub(self.steal_failures);
         successes as f64 / self.steal_attempts as f64
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         let total = self.busy_ns + self.idle_ns;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.busy_ns as f64 / total as f64
     }
 }
@@ -169,19 +196,26 @@ impl CoopWorkStealer {
         }
     }
 
+    #[inline(always)]
     pub fn add_worker(&mut self, worker_id: u32, numa_node: u32, deque_cap: usize) {
-        self.workers.entry(worker_id)
+        self.workers
+            .entry(worker_id)
             .or_insert_with(|| StealWorker::new(worker_id, numa_node, deque_cap));
     }
 
     /// Submit a work item to a specific worker
+    #[inline]
     pub fn submit(&mut self, worker_id: u32, item: WorkItem) -> bool {
         if let Some(worker) = self.workers.get_mut(&worker_id) {
             if worker.deque.push_back(item) {
                 self.total_tasks_submitted += 1;
                 true
-            } else { false }
-        } else { false }
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 
     /// Submit with automatic load balancing — pick least loaded worker
@@ -189,14 +223,18 @@ impl CoopWorkStealer {
         let affinity = item.affinity_hint;
         let target = if let Some(hint) = affinity {
             // Prefer affinity-matching worker
-            self.workers.values()
+            self.workers
+                .values()
                 .filter(|w| w.numa_node == hint)
                 .min_by_key(|w| w.deque.len())
                 .map(|w| w.worker_id)
-        } else { None };
+        } else {
+            None
+        };
 
         let target = target.unwrap_or_else(|| {
-            self.workers.values()
+            self.workers
+                .values()
                 .min_by_key(|w| w.deque.len())
                 .map(|w| w.worker_id)
                 .unwrap_or(0)
@@ -206,6 +244,7 @@ impl CoopWorkStealer {
     }
 
     /// Worker tries to pop local work
+    #[inline]
     pub fn local_pop(&mut self, worker_id: u32) -> Option<WorkItem> {
         if let Some(worker) = self.workers.get_mut(&worker_id) {
             let item = worker.deque.pop_back();
@@ -214,7 +253,9 @@ impl CoopWorkStealer {
                 worker.state = WorkerStateCoop::Active;
             }
             item
-        } else { None }
+        } else {
+            None
+        }
     }
 
     /// Worker attempts to steal from another worker
@@ -225,10 +266,16 @@ impl CoopWorkStealer {
         }
 
         // Pick a victim — prefer same NUMA first
-        let thief_numa = self.workers.get(&thief_id).map(|w| w.numa_node).unwrap_or(0);
+        let thief_numa = self
+            .workers
+            .get(&thief_id)
+            .map(|w| w.numa_node)
+            .unwrap_or(0);
 
         // Collect victim candidates sorted by load (descending)
-        let mut candidates: Vec<(u32, usize, u32)> = self.workers.iter()
+        let mut candidates: Vec<(u32, usize, u32)> = self
+            .workers
+            .iter()
             .filter(|(&wid, _)| wid != thief_id)
             .filter(|(_, w)| !w.deque.is_empty())
             .map(|(&wid, w)| (wid, w.deque.len(), w.numa_node))
@@ -257,12 +304,18 @@ impl CoopWorkStealer {
                 StealStrategyCoop::One => {
                     if let Some(item) = victim.deque.pop_front() {
                         alloc::vec![item]
-                    } else { Vec::new() }
-                }
+                    } else {
+                        Vec::new()
+                    }
+                },
                 StealStrategyCoop::Half => victim.deque.steal_half(),
                 StealStrategyCoop::Batch(n) => victim.deque.steal_n(n as usize),
                 StealStrategyCoop::Adaptive => {
-                    let thief_load = self.workers.get(&thief_id).map(|w| w.deque.len()).unwrap_or(0);
+                    let thief_load = self
+                        .workers
+                        .get(&thief_id)
+                        .map(|w| w.deque.len())
+                        .unwrap_or(0);
                     let diff = victim.deque.len().saturating_sub(thief_load);
                     let count = diff / 2;
                     if count == 0 && !victim.deque.is_empty() {
@@ -270,11 +323,13 @@ impl CoopWorkStealer {
                     } else {
                         victim.deque.steal_n(count)
                     }
-                }
+                },
             };
             victim.stats.tasks_stolen_from += items.len() as u64;
             items
-        } else { Vec::new() };
+        } else {
+            Vec::new()
+        };
 
         if stolen.is_empty() {
             if let Some(thief) = self.workers.get_mut(&thief_id) {
@@ -302,24 +357,39 @@ impl CoopWorkStealer {
         self.rng_state
     }
 
+    #[inline(always)]
     pub fn worker(&self, id: u32) -> Option<&StealWorker> {
         self.workers.get(&id)
     }
 
+    #[inline(always)]
     pub fn total_pending(&self) -> usize {
         self.workers.values().map(|w| w.deque.len()).sum()
     }
 
-    pub fn total_steals(&self) -> u64 { self.total_steals }
+    #[inline(always)]
+    pub fn total_steals(&self) -> u64 {
+        self.total_steals
+    }
 
+    #[inline]
     pub fn load_imbalance(&self) -> f64 {
-        if self.workers.is_empty() { return 0.0; }
+        if self.workers.is_empty() {
+            return 0.0;
+        }
         let loads: Vec<usize> = self.workers.values().map(|w| w.deque.len()).collect();
         let mean = loads.iter().sum::<usize>() as f64 / loads.len() as f64;
-        if mean < 0.001 { return 0.0; }
-        let variance = loads.iter()
-            .map(|&l| { let d = l as f64 - mean; d * d })
-            .sum::<f64>() / loads.len() as f64;
+        if mean < 0.001 {
+            return 0.0;
+        }
+        let variance = loads
+            .iter()
+            .map(|&l| {
+                let d = l as f64 - mean;
+                d * d
+            })
+            .sum::<f64>()
+            / loads.len() as f64;
         libm::sqrt(variance) / mean
     }
 }
@@ -360,26 +430,34 @@ pub struct WorkStealV2Task {
 impl WorkStealV2Task {
     pub fn new(id: u64, priority: u32, worker: u32, cost: u64) -> Self {
         Self {
-            id, priority, state: WorkStealV2TaskState::Pending,
-            origin_worker: worker, current_worker: worker,
-            steal_count: 0, estimated_cost: cost,
+            id,
+            priority,
+            state: WorkStealV2TaskState::Pending,
+            origin_worker: worker,
+            current_worker: worker,
+            steal_count: 0,
+            estimated_cost: cost,
         }
     }
 
+    #[inline]
     pub fn steal_to(&mut self, new_worker: u32) {
         self.current_worker = new_worker;
         self.steal_count += 1;
         self.state = WorkStealV2TaskState::Stolen;
     }
 
-    pub fn was_stolen(&self) -> bool { self.steal_count > 0 }
+    #[inline(always)]
+    pub fn was_stolen(&self) -> bool {
+        self.steal_count > 0
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct WorkStealV2Deque {
     pub worker_id: u32,
     pub numa_node: u32,
-    pub tasks: Vec<WorkStealV2Task>,
+    pub tasks: VecDeque<WorkStealV2Task>,
     pub total_pushed: u64,
     pub total_popped: u64,
     pub total_stolen_from: u64,
@@ -389,42 +467,65 @@ pub struct WorkStealV2Deque {
 impl WorkStealV2Deque {
     pub fn new(worker_id: u32, numa_node: u32) -> Self {
         Self {
-            worker_id, numa_node, tasks: Vec::new(),
-            total_pushed: 0, total_popped: 0,
-            total_stolen_from: 0, total_stolen_to: 0,
+            worker_id,
+            numa_node,
+            tasks: VecDeque::new(),
+            total_pushed: 0,
+            total_popped: 0,
+            total_stolen_from: 0,
+            total_stolen_to: 0,
         }
     }
 
+    #[inline(always)]
     pub fn push(&mut self, task: WorkStealV2Task) {
-        self.tasks.push(task);
+        self.tasks.push_back(task);
         self.total_pushed += 1;
     }
 
+    #[inline]
     pub fn pop(&mut self) -> Option<WorkStealV2Task> {
-        if let Some(t) = self.tasks.pop() {
+        if let Some(t) = self.tasks.pop_back() {
             self.total_popped += 1;
             Some(t)
-        } else { None }
+        } else {
+            None
+        }
     }
 
+    #[inline]
     pub fn steal(&mut self) -> Option<WorkStealV2Task> {
-        if self.tasks.is_empty() { return None; }
-        let mut task = self.tasks.remove(0);
+        if self.tasks.is_empty() {
+            return None;
+        }
+        let mut task = self.tasks.pop_front().unwrap();
         task.state = WorkStealV2TaskState::Stolen;
         self.total_stolen_from += 1;
         Some(task)
     }
 
-    pub fn len(&self) -> usize { self.tasks.len() }
-    pub fn is_empty(&self) -> bool { self.tasks.is_empty() }
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        self.tasks.len()
+    }
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.tasks.is_empty()
+    }
 
+    #[inline(always)]
     pub fn steal_rate(&self) -> u64 {
         let total = self.total_popped + self.total_stolen_from;
-        if total == 0 { 0 } else { (self.total_stolen_from * 100) / total }
+        if total == 0 {
+            0
+        } else {
+            (self.total_stolen_from * 100) / total
+        }
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkStealV2Stats {
     pub total_workers: u32,
     pub total_tasks: u64,
@@ -446,18 +547,24 @@ impl CoopWorkStealV2 {
             deques: BTreeMap::new(),
             policy,
             stats: WorkStealV2Stats {
-                total_workers: 0, total_tasks: 0,
-                total_steals: 0, numa_local_steals: 0,
-                numa_remote_steals: 0, avg_queue_depth: 0,
+                total_workers: 0,
+                total_tasks: 0,
+                total_steals: 0,
+                numa_local_steals: 0,
+                numa_remote_steals: 0,
+                avg_queue_depth: 0,
             },
         }
     }
 
+    #[inline(always)]
     pub fn add_worker(&mut self, worker_id: u32, numa_node: u32) {
-        self.deques.insert(worker_id, WorkStealV2Deque::new(worker_id, numa_node));
+        self.deques
+            .insert(worker_id, WorkStealV2Deque::new(worker_id, numa_node));
         self.stats.total_workers += 1;
     }
 
+    #[inline]
     pub fn push_task(&mut self, worker_id: u32, task: WorkStealV2Task) {
         if let Some(d) = self.deques.get_mut(&worker_id) {
             d.push(task);
@@ -483,5 +590,8 @@ impl CoopWorkStealV2 {
         None
     }
 
-    pub fn stats(&self) -> &WorkStealV2Stats { &self.stats }
+    #[inline(always)]
+    pub fn stats(&self) -> &WorkStealV2Stats {
+        &self.stats
+    }
 }

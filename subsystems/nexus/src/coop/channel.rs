@@ -101,6 +101,7 @@ impl InlinePayload {
         }
     }
 
+    #[inline]
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let mut p = Self::new();
         let copy_len = bytes.len().min(128);
@@ -109,6 +110,7 @@ impl InlinePayload {
         p
     }
 
+    #[inline(always)]
     pub fn as_bytes(&self) -> &[u8] {
         &self.data[..self.len as usize]
     }
@@ -247,6 +249,7 @@ impl Default for FlowControl {
 
 /// Channel statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ChannelStats {
     /// Total sent
     pub total_sent: u64,
@@ -317,6 +320,7 @@ impl Channel {
     }
 
     /// Open the channel
+    #[inline(always)]
     pub fn open(&mut self) {
         self.state = ChannelState::Open;
     }
@@ -365,6 +369,7 @@ impl Channel {
     }
 
     /// Receive next message (highest priority first)
+    #[inline]
     pub fn receive(&mut self) -> Option<ChannelMessage> {
         // Check from highest priority to lowest
         for lane_idx in (0..4).rev() {
@@ -377,6 +382,7 @@ impl Channel {
     }
 
     /// Peek next message
+    #[inline]
     pub fn peek(&self) -> Option<&ChannelMessage> {
         for lane_idx in (0..4).rev() {
             if let Some(msg) = self.lanes[lane_idx].peek() {
@@ -426,11 +432,13 @@ impl Channel {
     }
 
     /// Is channel empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.lanes.iter().all(|l| l.is_empty())
     }
 
     /// Close channel (drain first)
+    #[inline]
     pub fn close(&mut self) {
         if self.is_empty() {
             self.state = ChannelState::Closed;
@@ -532,16 +540,19 @@ impl ChannelManager {
     }
 
     /// Get channel
+    #[inline(always)]
     pub fn get(&self, id: ChannelId) -> Option<&Channel> {
         self.channels.get(&id.0)
     }
 
     /// Get mutable channel
+    #[inline(always)]
     pub fn get_mut(&mut self, id: ChannelId) -> Option<&mut Channel> {
         self.channels.get_mut(&id.0)
     }
 
     /// Send on channel
+    #[inline]
     pub fn send(
         &mut self,
         id: ChannelId,
@@ -560,6 +571,7 @@ impl ChannelManager {
     }
 
     /// Receive from channel
+    #[inline]
     pub fn receive(&mut self, id: ChannelId) -> Result<Option<ChannelMessage>, ChannelError> {
         let channel = self
             .channels
@@ -569,6 +581,7 @@ impl ChannelManager {
     }
 
     /// Close a channel
+    #[inline]
     pub fn close(&mut self, id: ChannelId) {
         if let Some(channel) = self.channels.get_mut(&id.0) {
             channel.close();
@@ -577,6 +590,7 @@ impl ChannelManager {
     }
 
     /// Close all channels for a PID
+    #[inline]
     pub fn close_all_for_pid(&mut self, pid: u64) {
         if let Some(ids) = self.pid_channels.remove(&pid) {
             for id in ids {
@@ -589,6 +603,7 @@ impl ChannelManager {
     }
 
     /// Active channel count
+    #[inline]
     pub fn active_count(&self) -> usize {
         self.channels
             .values()
@@ -597,6 +612,7 @@ impl ChannelManager {
     }
 
     /// Total channel count
+    #[inline(always)]
     pub fn total_count(&self) -> usize {
         self.channels.len()
     }
@@ -654,11 +670,13 @@ impl ChannelMsg {
         }
     }
 
+    #[inline(always)]
     pub fn with_priority(mut self, prio: u32) -> Self {
         self.priority = prio;
         self
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         self.deadline_ns > 0 && now_ns > self.deadline_ns
     }
@@ -679,15 +697,18 @@ impl ChannelSender {
         Self { id, pid, sends: 0, blocked_count: 0, bytes_sent: 0 }
     }
 
+    #[inline(always)]
     pub fn record_send(&mut self, size: usize) {
         self.sends += 1;
         self.bytes_sent += size as u64;
     }
 
+    #[inline(always)]
     pub fn record_blocked(&mut self) {
         self.blocked_count += 1;
     }
 
+    #[inline(always)]
     pub fn block_rate(&self) -> f64 {
         if self.sends == 0 { return 0.0; }
         self.blocked_count as f64 / (self.sends + self.blocked_count) as f64
@@ -710,17 +731,20 @@ impl ChannelReceiver {
         Self { id, pid, receives: 0, empty_polls: 0, bytes_received: 0, total_latency_ns: 0 }
     }
 
+    #[inline]
     pub fn record_receive(&mut self, size: usize, latency_ns: u64) {
         self.receives += 1;
         self.bytes_received += size as u64;
         self.total_latency_ns += latency_ns;
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> f64 {
         if self.receives == 0 { return 0.0; }
         self.total_latency_ns as f64 / self.receives as f64
     }
 
+    #[inline]
     pub fn empty_rate(&self) -> f64 {
         let total = self.receives + self.empty_polls;
         if total == 0 { return 0.0; }
@@ -767,10 +791,12 @@ impl ChannelInstance {
         }
     }
 
+    #[inline(always)]
     pub fn add_sender(&mut self, id: u64, pid: u64) {
         self.senders.push(ChannelSender::new(id, pid));
     }
 
+    #[inline(always)]
     pub fn add_receiver(&mut self, id: u64, pid: u64) {
         self.receivers.push(ChannelReceiver::new(id, pid));
     }
@@ -832,15 +858,18 @@ impl ChannelInstance {
         Some(msg)
     }
 
+    #[inline(always)]
     pub fn pending(&self) -> usize {
         self.queue.len()
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 { return 0.0; }
         self.queue.len() as f64 / self.capacity as f64
     }
 
+    #[inline]
     pub fn close_sender(&mut self) {
         self.state = match self.state {
             ChannelState::ReceiverClosed => ChannelState::FullyClosed,
@@ -848,6 +877,7 @@ impl ChannelInstance {
         };
     }
 
+    #[inline]
     pub fn close_receiver(&mut self) {
         self.state = match self.state {
             ChannelState::SenderClosed => ChannelState::FullyClosed,
@@ -855,6 +885,7 @@ impl ChannelInstance {
         };
     }
 
+    #[inline(always)]
     pub fn throughput_ratio(&self) -> f64 {
         if self.total_sends == 0 { return 0.0; }
         self.total_receives as f64 / self.total_sends as f64
@@ -863,6 +894,7 @@ impl ChannelInstance {
 
 /// Channel v2 stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ChannelV2Stats {
     pub total_channels: u64,
     pub total_sends: u64,
@@ -897,6 +929,7 @@ impl CoopChannelV2 {
         }
     }
 
+    #[inline]
     pub fn create_channel(&mut self, name: String, ch_type: ChannelType, capacity: usize) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -906,6 +939,7 @@ impl CoopChannelV2 {
         id
     }
 
+    #[inline]
     pub fn register_sender(&mut self, chan_id: u64, pid: u64) -> u64 {
         let eid = self.next_endpoint_id;
         self.next_endpoint_id += 1;
@@ -915,6 +949,7 @@ impl CoopChannelV2 {
         eid
     }
 
+    #[inline]
     pub fn register_receiver(&mut self, chan_id: u64, pid: u64) -> u64 {
         let eid = self.next_endpoint_id;
         self.next_endpoint_id += 1;
@@ -939,6 +974,7 @@ impl CoopChannelV2 {
         }
     }
 
+    #[inline]
     pub fn receive(&mut self, chan_id: u64, receiver_pid: u64, now_ns: u64) -> Option<ChannelMsg> {
         if let Some(ch) = self.channels.get_mut(&chan_id) {
             let msg = ch.receive(receiver_pid, now_ns);
@@ -951,6 +987,7 @@ impl CoopChannelV2 {
         }
     }
 
+    #[inline]
     pub fn close_channel(&mut self, chan_id: u64) {
         if let Some(ch) = self.channels.get_mut(&chan_id) {
             ch.close_sender();
@@ -959,6 +996,7 @@ impl CoopChannelV2 {
         }
     }
 
+    #[inline]
     pub fn fullest_channels(&self, top: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<(u64, f64)> = self.channels.iter()
             .filter(|(_, ch)| ch.capacity > 0)
@@ -969,10 +1007,12 @@ impl CoopChannelV2 {
         v
     }
 
+    #[inline(always)]
     pub fn get_channel(&self, id: u64) -> Option<&ChannelInstance> {
         self.channels.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ChannelV2Stats {
         &self.stats
     }

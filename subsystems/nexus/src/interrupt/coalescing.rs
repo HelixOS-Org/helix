@@ -35,6 +35,7 @@ impl Default for CoalescingSettings {
 
 /// Coalescing performance metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoalescingMetrics {
     /// Average interrupts per second
     pub avg_rate: f64,
@@ -67,16 +68,19 @@ impl CoalescingOptimizer {
     }
 
     /// Set settings for IRQ
+    #[inline(always)]
     pub fn set_settings(&mut self, irq: Irq, settings: CoalescingSettings) {
         self.settings.insert(irq, settings);
     }
 
     /// Get settings for IRQ
+    #[inline(always)]
     pub fn get_settings(&self, irq: Irq) -> CoalescingSettings {
         self.settings.get(&irq).copied().unwrap_or_default()
     }
 
     /// Record metrics
+    #[inline]
     pub fn record_metrics(&mut self, irq: Irq, rate: f64, latency_us: f64, throughput: f64) {
         let metrics = self.metrics.entry(irq).or_default();
         let alpha = 0.1;
@@ -155,11 +159,13 @@ impl CoalescingOptimizer {
     }
 
     /// Get optimization history
+    #[inline(always)]
     pub fn history(&self) -> &[(Irq, CoalescingSettings, alloc::string::String)] {
         &self.history
     }
 
     /// Get metrics for IRQ
+    #[inline(always)]
     pub fn get_metrics(&self, irq: Irq) -> Option<&CoalescingMetrics> {
         self.metrics.get(&irq)
     }

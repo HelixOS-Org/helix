@@ -110,6 +110,7 @@ impl HypothesisManager {
     }
 
     /// Create hypothesis
+    #[inline]
     pub fn create(&mut self, statement: String) -> HypothesisId {
         let id = HypothesisId(self.counter.fetch_add(1, Ordering::Relaxed));
         let hypothesis = Hypothesis::new(id, statement);
@@ -118,11 +119,13 @@ impl HypothesisManager {
     }
 
     /// Get hypothesis
+    #[inline(always)]
     pub fn get(&self, id: HypothesisId) -> Option<&Hypothesis> {
         self.hypotheses.get(&id)
     }
 
     /// Add evidence
+    #[inline]
     pub fn add_evidence(&mut self, id: HypothesisId, supports: bool, timestamp: u64) {
         if let Some(h) = self.hypotheses.get_mut(&id) {
             h.add_evidence(supports, Timestamp::new(timestamp));
@@ -130,6 +133,7 @@ impl HypothesisManager {
     }
 
     /// Find confirmed
+    #[inline]
     pub fn find_confirmed(&self) -> Vec<&Hypothesis> {
         self.hypotheses
             .values()
@@ -138,6 +142,7 @@ impl HypothesisManager {
     }
 
     /// Count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.hypotheses.len()
     }

@@ -85,6 +85,7 @@ impl Channel {
     }
 
     /// Receive message
+    #[inline]
     pub fn receive(&mut self) -> Option<Message> {
         let msg = self.queue.pop();
         if msg.is_some() {
@@ -94,6 +95,7 @@ impl Channel {
     }
 
     /// Receive all pending messages
+    #[inline]
     pub fn receive_all(&mut self) -> alloc::vec::Vec<Message> {
         let messages = self.queue.drain();
         self.received
@@ -102,26 +104,31 @@ impl Channel {
     }
 
     /// Peek at next message
+    #[inline(always)]
     pub fn peek(&self) -> Option<&Message> {
         self.queue.peek()
     }
 
     /// Pending count
+    #[inline(always)]
     pub fn pending(&self) -> usize {
         self.queue.len()
     }
 
     /// Close channel
+    #[inline(always)]
     pub fn close(&self) {
         self.open.store(false, Ordering::Release);
     }
 
     /// Reopen channel
+    #[inline(always)]
     pub fn reopen(&self) {
         self.open.store(true, Ordering::Release);
     }
 
     /// Is open
+    #[inline(always)]
     pub fn is_open(&self) -> bool {
         self.open.load(Ordering::Acquire)
     }
@@ -141,6 +148,7 @@ impl Channel {
     }
 
     /// Reset stats
+    #[inline]
     pub fn reset_stats(&self) {
         self.sent.store(0, Ordering::Relaxed);
         self.received.store(0, Ordering::Relaxed);
@@ -148,6 +156,7 @@ impl Channel {
     }
 
     /// Expire old messages
+    #[inline(always)]
     pub fn expire(&mut self, now: Timestamp) -> usize {
         self.queue.expire(now)
     }
@@ -159,6 +168,7 @@ impl Channel {
 
 /// Channel statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ChannelStats {
     /// Channel ID
     pub id: StreamId,
@@ -180,6 +190,7 @@ pub struct ChannelStats {
 
 impl ChannelStats {
     /// Get throughput (received / sent ratio)
+    #[inline]
     pub fn throughput(&self) -> f64 {
         if self.sent == 0 {
             1.0
@@ -189,6 +200,7 @@ impl ChannelStats {
     }
 
     /// Get drop rate
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.sent + self.dropped;
         if total == 0 {

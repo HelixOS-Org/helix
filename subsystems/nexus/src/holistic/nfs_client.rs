@@ -96,18 +96,22 @@ impl NfsMountInstance {
         }
     }
 
+    #[inline(always)]
     pub fn renew_lease(&mut self, now: u64) {
         self.lease_renew_time = now;
     }
 
+    #[inline(always)]
     pub fn is_lease_expired(&self, now: u64) -> bool {
         now > self.lease_renew_time + self.lease_time_sec as u64
     }
 
+    #[inline(always)]
     pub fn add_delegation(&mut self, del: NfsDelegation) {
         self.delegations.push(del);
     }
 
+    #[inline]
     pub fn recall_delegation(&mut self, delegation_id: u64) -> bool {
         for d in &mut self.delegations {
             if d.delegation_id == delegation_id {
@@ -118,6 +122,7 @@ impl NfsMountInstance {
         false
     }
 
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         if self.rpc_calls == 0 {
             return 0.0;
@@ -128,6 +133,7 @@ impl NfsMountInstance {
 
 /// Statistics for NFS client.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NfsClientStats {
     pub total_mounts: u64,
     pub active_delegations: u64,
@@ -162,6 +168,7 @@ impl HolisticNfsClient {
         }
     }
 
+    #[inline]
     pub fn create_mount(&mut self, version: NfsVersion) -> u64 {
         let id = self.next_mount_id;
         self.next_mount_id += 1;
@@ -171,6 +178,7 @@ impl HolisticNfsClient {
         id
     }
 
+    #[inline(always)]
     pub fn mount_count(&self) -> usize {
         self.mounts.len()
     }

@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -46,6 +48,7 @@ pub enum WorkerState {
 
 /// Individual worker stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkerStats {
     pub tid: u64,
     pub name: String,
@@ -82,6 +85,7 @@ impl WorkerStats {
     }
 
     /// Utilization ratio
+    #[inline]
     pub fn utilization(&self) -> f64 {
         let total = self.total_busy_ns + self.total_idle_ns + self.total_blocked_ns;
         if total == 0 {
@@ -91,6 +95,7 @@ impl WorkerStats {
     }
 
     /// Block ratio
+    #[inline]
     pub fn block_ratio(&self) -> f64 {
         let total = self.total_busy_ns + self.total_idle_ns + self.total_blocked_ns;
         if total == 0 {
@@ -100,11 +105,13 @@ impl WorkerStats {
     }
 
     /// Is this worker a CPU-bound profile?
+    #[inline(always)]
     pub fn is_cpu_bound(&self) -> bool {
         self.utilization() > 0.7 && self.block_ratio() < 0.1
     }
 
     /// Is this worker an IO-bound profile?
+    #[inline(always)]
     pub fn is_io_bound(&self) -> bool {
         self.block_ratio() > 0.4
     }
@@ -127,6 +134,7 @@ impl WorkerStats {
 
 /// Detected thread pool
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct DetectedPool {
     pub pool_id: u64,
     pub name: String,
@@ -152,18 +160,22 @@ impl DetectedPool {
         }
     }
 
+    #[inline(always)]
     pub fn add_worker(&mut self, tid: u64) {
         self.workers.entry(tid).or_insert_with(|| WorkerStats::new(tid));
     }
 
+    #[inline(always)]
     pub fn worker_count(&self) -> usize {
         self.workers.len()
     }
 
+    #[inline(always)]
     pub fn active_workers(&self) -> usize {
         self.workers.values().filter(|w| w.state == WorkerState::Active).count()
     }
 
+    #[inline]
     pub fn idle_workers(&self) -> usize {
         self.workers.values()
             .filter(|w| matches!(w.state, WorkerState::Idle | WorkerState::Parked))
@@ -171,6 +183,7 @@ impl DetectedPool {
     }
 
     /// Average worker utilization
+    #[inline]
     pub fn avg_utilization(&self) -> f64 {
         if self.workers.is_empty() {
             return 0.0;
@@ -224,11 +237,13 @@ impl DetectedPool {
     }
 
     /// Is the pool over-provisioned?
+    #[inline(always)]
     pub fn is_over_provisioned(&self) -> bool {
         self.avg_utilization() < 0.3 && self.workers.len() > 2
     }
 
     /// Is the pool under-provisioned?
+    #[inline(always)]
     pub fn is_under_provisioned(&self) -> bool {
         self.avg_utilization() > 0.9 && self.queue_depth > self.workers.len() as u64
     }
@@ -251,6 +266,7 @@ impl DetectedPool {
         }
     }
 
+    #[inline(always)]
     pub fn get_worker(&mut self, tid: u64) -> Option<&mut WorkerStats> {
         self.workers.get_mut(&tid)
     }
@@ -258,6 +274,7 @@ impl DetectedPool {
 
 /// Thread pool profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppThreadPoolStats {
     pub detected_pools: usize,
     pub total_workers: usize,
@@ -269,10 +286,11 @@ pub struct AppThreadPoolStats {
 }
 
 /// App Thread Pool Profiler
+#[repr(align(64))]
 pub struct AppThreadPoolProfiler {
     pools: BTreeMap<u64, DetectedPool>,
     /// TID to pool mapping
-    tid_to_pool: BTreeMap<u64, u64>,
+    tid_to_pool: LinearMap<u64, 64>,
     stats: AppThreadPoolStats,
     next_pool_id: u64,
 }
@@ -281,13 +299,14 @@ impl AppThreadPoolProfiler {
     pub fn new() -> Self {
         Self {
             pools: BTreeMap::new(),
-            tid_to_pool: BTreeMap::new(),
+            tid_to_pool: LinearMap::new(),
             stats: AppThreadPoolStats::default(),
             next_pool_id: 1,
         }
     }
 
     /// Register a pool
+    #[inline]
     pub fn register_pool(&mut self, name: String) -> u64 {
         let id = self.next_pool_id;
         self.next_pool_id += 1;
@@ -296,6 +315,7 @@ impl AppThreadPoolProfiler {
     }
 
     /// Add worker to pool
+    #[inline]
     pub fn add_worker(&mut self, pool_id: u64, tid: u64) {
         if let Some(pool) = self.pools.get_mut(&pool_id) {
             pool.add_worker(tid);
@@ -304,8 +324,9 @@ impl AppThreadPoolProfiler {
     }
 
     /// Record worker state transition
+    #[inline]
     pub fn worker_transition(&mut self, tid: u64, state: WorkerState, now_ns: u64) {
-        if let Some(&pool_id) = self.tid_to_pool.get(&tid) {
+        if let Some(&pool_id) = self.tid_to_pool.get(tid) {
             if let Some(pool) = self.pools.get_mut(&pool_id) {
                 if let Some(worker) = pool.get_worker(tid) {
                     worker.transition(state, now_ns);
@@ -315,6 +336,7 @@ impl AppThreadPoolProfiler {
     }
 
     /// Classify all pools
+    #[inline]
     pub fn classify_all(&mut self) {
         for pool in self.pools.values_mut() {
             pool.classify();
@@ -340,6 +362,7 @@ impl AppThreadPoolProfiler {
             .filter(|p| p.pool_type == PoolType::IoBound).count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppThreadPoolStats {
         &self.stats
     }
@@ -380,6 +403,7 @@ pub enum PoolTaskStatus {
 
 /// Thread pool task
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PoolTask {
     pub id: u64,
     pub priority: PoolTaskPriority,
@@ -400,13 +424,18 @@ impl PoolTask {
         }
     }
 
+    #[inline(always)]
     pub fn start(&mut self, ts: u64) { self.status = PoolTaskStatus::Running; self.start_ns = ts; }
+    #[inline(always)]
     pub fn complete(&mut self, ts: u64) { self.status = PoolTaskStatus::Completed; self.complete_ns = ts; }
+    #[inline(always)]
     pub fn fail(&mut self, ts: u64) { self.status = PoolTaskStatus::Failed; self.complete_ns = ts; }
 
+    #[inline(always)]
     pub fn queue_latency(&self) -> u64 {
         if self.start_ns > self.submit_ns { self.start_ns - self.submit_ns } else { 0 }
     }
+    #[inline(always)]
     pub fn execution_time(&self) -> u64 {
         if self.complete_ns > self.start_ns { self.complete_ns - self.start_ns } else { 0 }
     }
@@ -414,12 +443,13 @@ impl PoolTask {
 
 /// Worker thread (V2)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PoolWorkerV2 {
     pub id: u32,
     pub thread_id: u64,
     pub state: WorkerStateV2,
     pub cpu_affinity: Option<u32>,
-    pub local_queue: Vec<PoolTask>,
+    pub local_queue: VecDeque<PoolTask>,
     pub tasks_completed: u64,
     pub tasks_stolen: u64,
     pub total_busy_ns: u64,
@@ -432,15 +462,17 @@ impl PoolWorkerV2 {
     pub fn new(id: u32, tid: u64, ts: u64) -> Self {
         Self {
             id, thread_id: tid, state: WorkerStateV2::Idle,
-            cpu_affinity: None, local_queue: Vec::new(),
+            cpu_affinity: None, local_queue: VecDeque::new(),
             tasks_completed: 0, tasks_stolen: 0,
             total_busy_ns: 0, total_idle_ns: 0,
             last_state_change_ns: ts, current_task: None,
         }
     }
 
-    pub fn push_task(&mut self, task: PoolTask) { self.local_queue.push(task); }
+    #[inline(always)]
+    pub fn push_task(&mut self, task: PoolTask) { self.local_queue.push_back(task); }
 
+    #[inline]
     pub fn pop_task(&mut self) -> Option<PoolTask> {
         if self.local_queue.is_empty() { return None; }
         let mut best_idx = 0;
@@ -450,11 +482,13 @@ impl PoolWorkerV2 {
         Some(self.local_queue.remove(best_idx))
     }
 
+    #[inline(always)]
     pub fn steal_task(&mut self) -> Option<PoolTask> {
         if self.local_queue.is_empty() { return None; }
-        Some(self.local_queue.remove(0))
+        self.local_queue.pop_front()
     }
 
+    #[inline]
     pub fn update_state(&mut self, new_state: WorkerStateV2, ts: u64) {
         let elapsed = ts.saturating_sub(self.last_state_change_ns);
         match self.state {
@@ -466,12 +500,14 @@ impl PoolWorkerV2 {
         self.last_state_change_ns = ts;
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         let total = self.total_busy_ns + self.total_idle_ns;
         if total == 0 { return 0.0; }
         self.total_busy_ns as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn queue_depth(&self) -> usize { self.local_queue.len() }
 }
 
@@ -486,6 +522,7 @@ pub enum PoolSizingStrategy {
 
 /// Thread pool stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsThreadPoolV2Stats {
     pub worker_count: usize,
     pub active_workers: usize,
@@ -498,6 +535,7 @@ pub struct AppsThreadPoolV2Stats {
 }
 
 /// Apps Thread Pool Manager V2
+#[repr(align(64))]
 pub struct AppsThreadPoolV2 {
     workers: BTreeMap<u32, PoolWorkerV2>,
     global_queue: Vec<PoolTask>,
@@ -527,6 +565,7 @@ impl AppsThreadPoolV2 {
         }
     }
 
+    #[inline]
     pub fn spawn_worker(&mut self, tid: u64, ts: u64) -> u32 {
         let id = self.next_worker_id;
         self.next_worker_id += 1;
@@ -594,6 +633,7 @@ impl AppsThreadPoolV2 {
         None
     }
 
+    #[inline]
     pub fn worker_complete_task(&mut self, worker_id: u32, ts: u64) {
         if let Some(worker) = self.workers.get_mut(&worker_id) {
             worker.tasks_completed += 1;
@@ -602,10 +642,12 @@ impl AppsThreadPoolV2 {
         }
     }
 
+    #[inline(always)]
     pub fn park_worker(&mut self, worker_id: u32, ts: u64) {
         if let Some(w) = self.workers.get_mut(&worker_id) { w.update_state(WorkerStateV2::Parked, ts); }
     }
 
+    #[inline(always)]
     pub fn unpark_worker(&mut self, worker_id: u32, ts: u64) {
         if let Some(w) = self.workers.get_mut(&worker_id) { w.update_state(WorkerStateV2::Idle, ts); }
     }
@@ -624,6 +666,8 @@ impl AppsThreadPoolV2 {
             else { utils.iter().sum::<f64>() / utils.len() as f64 };
     }
 
+    #[inline(always)]
     pub fn worker(&self, id: u32) -> Option<&PoolWorkerV2> { self.workers.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsThreadPoolV2Stats { &self.stats }
 }

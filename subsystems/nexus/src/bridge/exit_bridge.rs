@@ -39,6 +39,7 @@ pub struct BridgeExitRecord {
 
 /// Stats for exit operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeExitStats {
     pub total_exits: u64,
     pub normal_exits: u64,
@@ -49,6 +50,7 @@ pub struct BridgeExitStats {
 }
 
 /// Manager for exit bridge operations
+#[repr(align(64))]
 pub struct BridgeExitManager {
     exit_records: Vec<BridgeExitRecord>,
     pending_cleanup: BTreeMap<u64, Vec<BridgeExitCleanup>>,
@@ -97,6 +99,7 @@ impl BridgeExitManager {
         self.pending_cleanup.insert(pid, cleanups);
     }
 
+    #[inline]
     pub fn process_cleanup(&mut self, pid: u64) -> usize {
         if let Some(cleanups) = self.pending_cleanup.remove(&pid) {
             cleanups.len()
@@ -105,10 +108,12 @@ impl BridgeExitManager {
         }
     }
 
+    #[inline(always)]
     pub fn pending_cleanups(&self) -> usize {
         self.pending_cleanup.len()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeExitStats {
         &self.stats
     }

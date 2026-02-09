@@ -41,16 +41,19 @@ pub enum VerificationOutcome {
 
 impl VerificationOutcome {
     /// Is this a successful verification?
+    #[inline(always)]
     pub fn is_success(&self) -> bool {
         matches!(self, Self::Verified | Self::Vacuous)
     }
 
     /// Is this a failure?
+    #[inline(always)]
     pub fn is_failure(&self) -> bool {
         matches!(self, Self::Falsified)
     }
 
     /// Is this inconclusive?
+    #[inline(always)]
     pub fn is_unknown(&self) -> bool {
         matches!(self, Self::Unknown | Self::Error)
     }

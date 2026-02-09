@@ -69,21 +69,25 @@ impl AppSocketEntry {
         }
     }
 
+    #[inline(always)]
     pub fn bind(&mut self, port: u16) {
         self.local_port = port;
         self.state = AppSocketState::Bound;
     }
 
+    #[inline(always)]
     pub fn connect(&mut self, port: u16) {
         self.remote_port = port;
         self.state = AppSocketState::Connected;
     }
 
+    #[inline(always)]
     pub fn send(&mut self, bytes: u64) {
         self.bytes_sent += bytes;
         self.send_calls += 1;
     }
 
+    #[inline(always)]
     pub fn recv(&mut self, bytes: u64) {
         self.bytes_recv += bytes;
         self.recv_calls += 1;
@@ -92,6 +96,7 @@ impl AppSocketEntry {
 
 /// Statistics for socket app
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketAppStats {
     pub sockets_created: u64,
     pub sockets_closed: u64,
@@ -124,12 +129,14 @@ impl AppSocket {
         }
     }
 
+    #[inline]
     pub fn create_socket(&mut self, fd: u64, pid: u64, domain: AppSocketDomain, sock_type: AppSocketType, tick: u64) {
         self.sockets.insert(fd, AppSocketEntry::new(fd, pid, domain, sock_type, tick));
         self.pid_sockets.entry(pid).or_insert_with(Vec::new).push(fd);
         self.stats.sockets_created += 1;
     }
 
+    #[inline]
     pub fn bind(&mut self, fd: u64, port: u16) -> bool {
         if let Some(sock) = self.sockets.get_mut(&fd) {
             sock.bind(port);
@@ -138,6 +145,7 @@ impl AppSocket {
         } else { false }
     }
 
+    #[inline]
     pub fn connect(&mut self, fd: u64, port: u16) -> bool {
         if let Some(sock) = self.sockets.get_mut(&fd) {
             sock.connect(port);
@@ -146,6 +154,7 @@ impl AppSocket {
         } else { false }
     }
 
+    #[inline]
     pub fn send(&mut self, fd: u64, bytes: u64) -> bool {
         if let Some(sock) = self.sockets.get_mut(&fd) {
             sock.send(bytes);
@@ -154,6 +163,7 @@ impl AppSocket {
         } else { false }
     }
 
+    #[inline]
     pub fn recv(&mut self, fd: u64, bytes: u64) -> bool {
         if let Some(sock) = self.sockets.get_mut(&fd) {
             sock.recv(bytes);
@@ -162,6 +172,7 @@ impl AppSocket {
         } else { false }
     }
 
+    #[inline]
     pub fn close_socket(&mut self, fd: u64) -> bool {
         if let Some(sock) = self.sockets.remove(&fd) {
             if let Some(fds) = self.pid_sockets.get_mut(&sock.pid) {
@@ -172,6 +183,7 @@ impl AppSocket {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SocketAppStats {
         &self.stats
     }
@@ -248,6 +260,7 @@ impl SocketV2Instance {
         }
     }
 
+    #[inline]
     pub fn bind(&mut self, addr: &[u8]) {
         let mut h: u64 = 0xcbf29ce484222325;
         for &b in addr { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
@@ -255,6 +268,7 @@ impl SocketV2Instance {
         self.state = SocketV2State::Bound;
     }
 
+    #[inline]
     pub fn connect(&mut self, addr: &[u8]) {
         let mut h: u64 = 0xcbf29ce484222325;
         for &b in addr { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
@@ -262,26 +276,31 @@ impl SocketV2Instance {
         self.state = SocketV2State::Connected;
     }
 
+    #[inline(always)]
     pub fn send(&mut self, bytes: u64) {
         self.bytes_sent += bytes;
         self.send_calls += 1;
     }
 
+    #[inline(always)]
     pub fn recv(&mut self, bytes: u64) {
         self.bytes_recv += bytes;
         self.recv_calls += 1;
     }
 
+    #[inline(always)]
     pub fn avg_send_size(&self) -> u64 {
         if self.send_calls == 0 { 0 } else { self.bytes_sent / self.send_calls }
     }
 
+    #[inline(always)]
     pub fn avg_recv_size(&self) -> u64 {
         if self.recv_calls == 0 { 0 } else { self.bytes_recv / self.recv_calls }
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketV2AppStats {
     pub total_sockets: u64,
     pub active_connections: u64,
@@ -307,17 +326,20 @@ impl AppSocketV2 {
         }
     }
 
+    #[inline(always)]
     pub fn create_socket(&mut self, fd: u64, domain: SocketV2Domain, sock_type: SocketV2Type, proto: u32) {
         self.sockets.insert(fd, SocketV2Instance::new(fd, domain, sock_type, proto));
         self.stats.total_sockets += 1;
     }
 
+    #[inline]
     pub fn close_socket(&mut self, fd: u64) {
         if let Some(s) = self.sockets.get_mut(&fd) {
             s.state = SocketV2State::Closed;
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SocketV2AppStats { &self.stats }
 }
 
@@ -350,6 +372,7 @@ impl SocketV3Request {
 
 /// Socket v3 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketV3AppStats { pub total_creates: u64, pub streams: u64, pub dgrams: u64, pub failures: u64 }
 
 /// Main app socket v3
@@ -358,6 +381,7 @@ pub struct AppSocketV3 { pub stats: SocketV3AppStats }
 
 impl AppSocketV3 {
     pub fn new() -> Self { Self { stats: SocketV3AppStats { total_creates: 0, streams: 0, dgrams: 0, failures: 0 } } }
+    #[inline]
     pub fn request(&mut self, req: &SocketV3Request) -> i32 {
         self.stats.total_creates += 1;
         match req.sock_type {

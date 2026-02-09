@@ -25,11 +25,13 @@ pub struct ApiVersion {
 }
 
 impl ApiVersion {
+    #[inline(always)]
     pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
         Self { major, minor, patch }
     }
 
     /// Is compatible with (same major, >= minor)
+    #[inline(always)]
     pub fn is_compatible_with(&self, other: &ApiVersion) -> bool {
         self.major == other.major && self.minor >= other.minor
     }
@@ -103,6 +105,7 @@ impl GatewayRateLimiter {
     }
 
     /// Try to consume a token
+    #[inline]
     pub fn try_consume(&mut self, now: u64) -> bool {
         self.refill(now);
         if self.tokens >= 1.0 {
@@ -128,6 +131,7 @@ impl GatewayRateLimiter {
     }
 
     /// Utilization (denied / total)
+    #[inline]
     pub fn denial_rate(&self) -> f64 {
         let total = self.total_allowed + self.total_denied;
         if total == 0 {
@@ -174,21 +178,25 @@ impl CallerProfile {
     }
 
     /// Enable feature
+    #[inline(always)]
     pub fn enable_feature(&mut self, feature: FeatureFlag) {
         self.features |= 1u64 << (feature as u8);
     }
 
     /// Disable feature
+    #[inline(always)]
     pub fn disable_feature(&mut self, feature: FeatureFlag) {
         self.features &= !(1u64 << (feature as u8));
     }
 
     /// Has feature?
+    #[inline(always)]
     pub fn has_feature(&self, feature: FeatureFlag) -> bool {
         self.features & (1u64 << (feature as u8)) != 0
     }
 
     /// Process request
+    #[inline]
     pub fn process_request(&mut self, now: u64) -> bool {
         self.total_requests += 1;
         if self.rate_limiter.try_consume(now) {
@@ -206,6 +214,7 @@ impl CallerProfile {
 
 /// Gateway stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeGatewayStats {
     /// Registered callers
     pub registered_callers: usize,
@@ -218,6 +227,7 @@ pub struct BridgeGatewayStats {
 }
 
 /// Bridge gateway manager
+#[repr(align(64))]
 pub struct BridgeGatewayManager {
     /// Current state
     pub state: GatewayState,
@@ -246,6 +256,7 @@ impl BridgeGatewayManager {
     }
 
     /// Register caller
+    #[inline]
     pub fn register(&mut self, pid: u64, version: ApiVersion, rate_per_sec: f64, now: u64) -> bool {
         if !version.is_compatible_with(&self.min_version) {
             return false;
@@ -257,6 +268,7 @@ impl BridgeGatewayManager {
     }
 
     /// Unregister caller
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) {
         self.callers.remove(&pid);
         self.update_stats();
@@ -293,6 +305,7 @@ impl BridgeGatewayManager {
     }
 
     /// Enable feature for caller
+    #[inline]
     pub fn enable_feature(&mut self, pid: u64, feature: FeatureFlag) {
         if let Some(caller) = self.callers.get_mut(&pid) {
             caller.enable_feature(feature);
@@ -300,12 +313,14 @@ impl BridgeGatewayManager {
     }
 
     /// Set gateway state
+    #[inline(always)]
     pub fn set_state(&mut self, state: GatewayState) {
         self.state = state;
         self.stats.is_open = state == GatewayState::Open;
     }
 
     /// Get caller profile
+    #[inline(always)]
     pub fn caller(&self, pid: u64) -> Option<&CallerProfile> {
         self.callers.get(&pid)
     }
@@ -316,6 +331,7 @@ impl BridgeGatewayManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeGatewayStats {
         &self.stats
     }

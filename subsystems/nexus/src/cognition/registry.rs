@@ -122,6 +122,7 @@ impl Version {
         }
     }
 
+    #[inline(always)]
     pub fn is_compatible_with(&self, other: &Self) -> bool {
         self.major == other.major
     }
@@ -155,26 +156,31 @@ impl LookupQuery {
         Self::default()
     }
 
+    #[inline(always)]
     pub fn with_name(mut self, pattern: &str) -> Self {
         self.name_pattern = Some(pattern.into());
         self
     }
 
+    #[inline(always)]
     pub fn with_type(mut self, entry_type: EntryType) -> Self {
         self.entry_type = Some(entry_type);
         self
     }
 
+    #[inline(always)]
     pub fn with_status(mut self, status: EntryStatus) -> Self {
         self.status = Some(status);
         self
     }
 
+    #[inline(always)]
     pub fn with_tags(mut self, tags: Vec<String>) -> Self {
         self.tags = Some(tags);
         self
     }
 
+    #[inline(always)]
     pub fn with_capabilities(mut self, caps: Vec<String>) -> Self {
         self.capabilities = Some(caps);
         self
@@ -261,6 +267,7 @@ impl Default for RegistryConfig {
 
 /// Registry statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RegistryStats {
     /// Total entries
     pub total_entries: u64,
@@ -428,6 +435,7 @@ impl CognitiveRegistry {
     }
 
     /// Update entry metadata
+    #[inline]
     pub fn set_metadata(&mut self, id: u64, key: &str, value: &str) -> Result<(), &'static str> {
         let entry = self.entries.get_mut(&id).ok_or("Entry not found")?;
         entry.metadata.insert(key.into(), value.into());
@@ -511,17 +519,20 @@ impl CognitiveRegistry {
     }
 
     /// Get entry by ID
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&RegistryEntry> {
         self.entries.get(&id)
     }
 
     /// Get entry by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&RegistryEntry> {
         let id = self.by_name.get(name)?;
         self.entries.get(id)
     }
 
     /// Get entries by type
+    #[inline]
     pub fn get_by_type(&self, entry_type: EntryType) -> Vec<&RegistryEntry> {
         self.by_type
             .get(&entry_type)
@@ -530,6 +541,7 @@ impl CognitiveRegistry {
     }
 
     /// Get entries by owner
+    #[inline]
     pub fn get_by_owner(&self, owner: DomainId) -> Vec<&RegistryEntry> {
         self.by_owner
             .get(&owner)
@@ -538,6 +550,7 @@ impl CognitiveRegistry {
     }
 
     /// Get dependencies
+    #[inline]
     pub fn get_dependencies(&self, id: u64) -> Vec<&RegistryEntry> {
         self.entries
             .get(&id)
@@ -551,6 +564,7 @@ impl CognitiveRegistry {
     }
 
     /// Get dependents
+    #[inline]
     pub fn get_dependents(&self, id: u64) -> Vec<&RegistryEntry> {
         self.entries
             .values()
@@ -559,6 +573,7 @@ impl CognitiveRegistry {
     }
 
     /// Add watcher
+    #[inline]
     pub fn watch(&mut self, filter: LookupQuery, events: Vec<RegistryEvent>) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
 
@@ -569,11 +584,13 @@ impl CognitiveRegistry {
     }
 
     /// Remove watcher
+    #[inline(always)]
     pub fn unwatch(&mut self, id: u64) {
         self.watchers.remove(&id);
     }
 
     /// Get all active services
+    #[inline]
     pub fn active_services(&self) -> Vec<&RegistryEntry> {
         self.entries
             .values()
@@ -582,6 +599,7 @@ impl CognitiveRegistry {
     }
 
     /// Get all active components
+    #[inline]
     pub fn active_components(&self) -> Vec<&RegistryEntry> {
         self.entries
             .values()
@@ -590,6 +608,7 @@ impl CognitiveRegistry {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &RegistryStats {
         &self.stats
     }

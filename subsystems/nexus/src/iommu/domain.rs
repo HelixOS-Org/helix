@@ -32,6 +32,7 @@ pub enum DomainType {
 
 impl DomainType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Unmanaged => "unmanaged",
@@ -45,11 +46,13 @@ impl DomainType {
     }
 
     /// Has translation
+    #[inline(always)]
     pub fn has_translation(&self) -> bool {
         matches!(self, Self::Dma | Self::DmaFq | Self::Sva)
     }
 
     /// Is isolated
+    #[inline(always)]
     pub fn is_isolated(&self) -> bool {
         matches!(self, Self::Dma | Self::DmaFq | Self::Sva | Self::Blocked)
     }
@@ -108,6 +111,7 @@ impl IommuDomain {
     }
 
     /// Attach device
+    #[inline]
     pub fn attach_device(&mut self, device: DeviceId) {
         if !self.devices.contains(&device) {
             self.devices.push(device);
@@ -115,6 +119,7 @@ impl IommuDomain {
     }
 
     /// Detach device
+    #[inline]
     pub fn detach_device(&mut self, device: DeviceId) -> bool {
         if let Some(pos) = self.devices.iter().position(|d| *d == device) {
             self.devices.remove(pos);
@@ -125,12 +130,14 @@ impl IommuDomain {
     }
 
     /// Record mapping
+    #[inline(always)]
     pub fn record_mapping(&self, bytes: u64) {
         self.mapping_count.fetch_add(1, Ordering::Relaxed);
         self.mapped_bytes.fetch_add(bytes, Ordering::Relaxed);
     }
 
     /// Record unmapping
+    #[inline]
     pub fn record_unmapping(&self, bytes: u64) {
         let count = self.mapping_count.load(Ordering::Relaxed);
         if count > 0 {
@@ -143,16 +150,19 @@ impl IommuDomain {
     }
 
     /// Get mapping count
+    #[inline(always)]
     pub fn mapping_count(&self) -> u64 {
         self.mapping_count.load(Ordering::Relaxed)
     }
 
     /// Get mapped bytes
+    #[inline(always)]
     pub fn mapped_bytes(&self) -> u64 {
         self.mapped_bytes.load(Ordering::Relaxed)
     }
 
     /// Get device count
+    #[inline(always)]
     pub fn device_count(&self) -> usize {
         self.devices.len()
     }

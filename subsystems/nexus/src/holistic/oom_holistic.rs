@@ -16,6 +16,7 @@ use alloc::vec::Vec;
 pub enum MemPressureLevel { Low, Medium, High, Critical, OOM }
 
 impl MemPressureLevel {
+    #[inline]
     pub fn from_free_ratio(ratio: f64) -> Self {
         if ratio > 0.25 { Self::Low }
         else if ratio > 0.15 { Self::Medium }
@@ -23,6 +24,7 @@ impl MemPressureLevel {
         else if ratio > 0.01 { Self::Critical }
         else { Self::OOM }
     }
+    #[inline]
     pub fn severity(&self) -> u32 {
         match self {
             Self::Low => 0, Self::Medium => 1,
@@ -59,6 +61,7 @@ pub struct RecoveryScore {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OomHolisticStats {
     pub oom_events: u64,
     pub early_warnings: u64,
@@ -91,6 +94,7 @@ impl OomHolisticManager {
     }
 
     /// Record current free page count
+    #[inline(always)]
     pub fn sample_free_pages(&mut self, free_pages: u64, now: u64) {
         self.free_history.push((now, free_pages));
         if self.free_history.len() > 512 { self.free_history.drain(..256); }
@@ -169,6 +173,7 @@ impl OomHolisticManager {
     }
 
     /// Record a kill event
+    #[inline]
     pub fn record_kill(&mut self, pid: u64, pages: u64, now: u64) {
         self.kill_history.entry(pid).or_insert_with(Vec::new).push((now, pages));
         self.stats.total_killed += 1;
@@ -176,6 +181,7 @@ impl OomHolisticManager {
     }
 
     /// Record an OOM event's recovery
+    #[inline]
     pub fn record_recovery(&mut self, score: RecoveryScore) {
         self.stats.avg_recovery_time_ns = (self.stats.avg_recovery_time_ns * 7
             + score.time_to_stable_ns) / 8;
@@ -184,11 +190,13 @@ impl OomHolisticManager {
     }
 
     /// Should we issue an early warning?
+    #[inline]
     pub fn should_warn(&self, now: u64) -> bool {
         let forecast = self.forecast(now);
         forecast.predicted_level.severity() >= MemPressureLevel::High.severity()
             && forecast.confidence > 0.5
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &OomHolisticStats { &self.stats }
 }

@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -115,13 +116,14 @@ pub struct HolisticAnomaly {
 
 /// Sliding window metric tracker for anomaly detection
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricTracker {
     /// Metric ID
     pub metric_id: u64,
     /// Source
     pub source: AnomalySource,
     /// Recent values
-    values: Vec<f64>,
+    values: VecDeque<f64>,
     /// Max window size
     max_window: usize,
     /// Running sum
@@ -141,7 +143,7 @@ impl MetricTracker {
         Self {
             metric_id,
             source,
-            values: Vec::new(),
+            values: VecDeque::new(),
             max_window: 200,
             sum: 0.0,
             sum_sq: 0.0,
@@ -151,17 +153,20 @@ impl MetricTracker {
         }
     }
 
+    #[inline(always)]
     pub fn with_z_threshold(mut self, z: f64) -> Self {
         self.z_threshold = z;
         self
     }
 
+    #[inline(always)]
     pub fn with_roc_threshold(mut self, roc: f64) -> Self {
         self.roc_threshold = roc;
         self
     }
 
     /// Mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.count == 0 {
             return 0.0;
@@ -188,9 +193,9 @@ impl MetricTracker {
         let old_mean = self.mean();
         let old_stddev = self.stddev();
 
-        self.values.push(value);
+        self.values.push_back(value);
         if self.values.len() > self.max_window {
-            let removed = self.values.remove(0);
+            let removed = self.values.pop_front().unwrap();
             self.sum -= removed;
             self.sum_sq -= removed * removed;
             self.count -= 1;
@@ -259,6 +264,7 @@ impl MetricTracker {
 
 /// Correlation between two metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricCorrelation {
     /// Metric A
     pub metric_a: u64,
@@ -297,6 +303,7 @@ pub struct CascadeEvent {
 
 /// Anomaly manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticAnomalyStats {
     /// Total anomalies detected
     pub total_detected: u64,
@@ -317,7 +324,7 @@ pub struct HolisticAnomalyManager {
     /// Metric trackers
     trackers: BTreeMap<u64, MetricTracker>,
     /// Detected anomalies
-    anomalies: Vec<HolisticAnomaly>,
+    anomalies: VecDeque<HolisticAnomaly>,
     /// Cascade events
     cascades: Vec<CascadeEvent>,
     /// Next anomaly ID
@@ -334,7 +341,7 @@ impl HolisticAnomalyManager {
     pub fn new() -> Self {
         Self {
             trackers: BTreeMap::new(),
-            anomalies: Vec::new(),
+            anomalies: VecDeque::new(),
             cascades: Vec::new(),
             next_id: 1,
             stats: HolisticAnomalyStats::default(),
@@ -344,6 +351,7 @@ impl HolisticAnomalyManager {
     }
 
     /// Register metric tracker
+    #[inline(always)]
     pub fn register_tracker(&mut self, tracker: MetricTracker) {
         self.trackers.insert(tracker.metric_id, tracker);
         self.stats.trackers = self.trackers.len();
@@ -369,9 +377,9 @@ impl HolisticAnomalyManager {
         *self.stats.by_source.entry(anomaly.source as u8).or_insert(0) += 1;
         self.stats.total_detected += 1;
 
-        self.anomalies.push(anomaly);
+        self.anomalies.push_back(anomaly);
         if self.anomalies.len() > self.max_anomalies {
-            self.anomalies.remove(0);
+            self.anomalies.pop_front();
         }
 
         self.stats.active = self.anomalies.len();
@@ -412,17 +420,20 @@ impl HolisticAnomalyManager {
     }
 
     /// Get recent anomalies
+    #[inline(always)]
     pub fn recent_anomalies(&self, count: usize) -> &[HolisticAnomaly] {
         let start = self.anomalies.len().saturating_sub(count);
         &self.anomalies[start..]
     }
 
     /// Get anomaly
+    #[inline(always)]
     pub fn anomaly(&self, id: u64) -> Option<&HolisticAnomaly> {
         self.anomalies.iter().find(|a| a.id == id)
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticAnomalyStats {
         &self.stats
     }

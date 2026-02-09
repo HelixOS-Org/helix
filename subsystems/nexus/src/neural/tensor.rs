@@ -24,6 +24,7 @@ pub struct TensorShape {
 }
 
 impl TensorShape {
+    #[inline]
     pub fn scalar() -> Self {
         Self {
             dims: [1, 1, 1, 1],
@@ -31,6 +32,7 @@ impl TensorShape {
         }
     }
 
+    #[inline]
     pub fn vector(size: usize) -> Self {
         Self {
             dims: [size, 1, 1, 1],
@@ -38,6 +40,7 @@ impl TensorShape {
         }
     }
 
+    #[inline]
     pub fn matrix(rows: usize, cols: usize) -> Self {
         Self {
             dims: [rows, cols, 1, 1],
@@ -45,6 +48,7 @@ impl TensorShape {
         }
     }
 
+    #[inline]
     pub fn tensor3d(d0: usize, d1: usize, d2: usize) -> Self {
         Self {
             dims: [d0, d1, d2, 1],
@@ -52,6 +56,7 @@ impl TensorShape {
         }
     }
 
+    #[inline]
     pub fn tensor4d(d0: usize, d1: usize, d2: usize, d3: usize) -> Self {
         Self {
             dims: [d0, d1, d2, d3],
@@ -59,6 +64,7 @@ impl TensorShape {
         }
     }
 
+    #[inline]
     pub fn from_slice(dims: &[usize]) -> Self {
         let mut shape = Self {
             dims: [1; MAX_DIMS],
@@ -70,18 +76,22 @@ impl TensorShape {
         shape
     }
 
+    #[inline(always)]
     pub fn ndim(&self) -> usize {
         self.ndim
     }
 
+    #[inline(always)]
     pub fn dim(&self, i: usize) -> usize {
         if i < self.ndim { self.dims[i] } else { 1 }
     }
 
+    #[inline(always)]
     pub fn total_elements(&self) -> usize {
         self.dims[..self.ndim.max(1)].iter().product()
     }
 
+    #[inline]
     pub fn strides(&self) -> [usize; MAX_DIMS] {
         let mut strides = [1; MAX_DIMS];
         for i in (0..self.ndim.saturating_sub(1)).rev() {
@@ -90,6 +100,7 @@ impl TensorShape {
         strides
     }
 
+    #[inline]
     pub fn is_compatible_for_matmul(&self, other: &TensorShape) -> bool {
         if self.ndim < 2 || other.ndim < 2 {
             return false;
@@ -97,6 +108,7 @@ impl TensorShape {
         self.dims[self.ndim - 1] == other.dims[other.ndim - 2]
     }
 
+    #[inline]
     pub fn matmul_result_shape(&self, other: &TensorShape) -> Option<TensorShape> {
         if !self.is_compatible_for_matmul(other) {
             return None;
@@ -122,6 +134,7 @@ pub struct Tensor {
 
 impl Tensor {
     /// Create a new tensor with zeros
+    #[inline]
     pub fn zeros(shape: TensorShape) -> Self {
         let size = shape.total_elements();
         Self {
@@ -131,6 +144,7 @@ impl Tensor {
     }
 
     /// Create a new tensor with ones
+    #[inline]
     pub fn ones(shape: TensorShape) -> Self {
         let size = shape.total_elements();
         Self {
@@ -140,6 +154,7 @@ impl Tensor {
     }
 
     /// Create a tensor filled with a value
+    #[inline]
     pub fn full(shape: TensorShape, value: f32) -> Self {
         let size = shape.total_elements();
         Self {
@@ -149,12 +164,14 @@ impl Tensor {
     }
 
     /// Create a tensor from data
+    #[inline(always)]
     pub fn from_data(shape: TensorShape, data: Vec<f32>) -> Self {
         debug_assert_eq!(data.len(), shape.total_elements());
         Self { data, shape }
     }
 
     /// Create a 1D tensor from slice
+    #[inline]
     pub fn from_slice(data: &[f32]) -> Self {
         Self {
             data: data.to_vec(),
@@ -203,33 +220,40 @@ impl Tensor {
         tensor
     }
 
+    #[inline(always)]
     pub fn shape(&self) -> &TensorShape {
         &self.shape
     }
 
+    #[inline(always)]
     pub fn data(&self) -> &[f32] {
         &self.data
     }
 
+    #[inline(always)]
     pub fn data_mut(&mut self) -> &mut [f32] {
         &mut self.data
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
 
     /// Get element at index
+    #[inline(always)]
     pub fn get(&self, indices: &[usize]) -> Option<f32> {
         let idx = self.flat_index(indices)?;
         self.data.get(idx).copied()
     }
 
     /// Set element at index
+    #[inline]
     pub fn set(&mut self, indices: &[usize], value: f32) -> bool {
         if let Some(idx) = self.flat_index(indices) {
             if idx < self.data.len() {
@@ -259,6 +283,7 @@ impl Tensor {
     }
 
     /// Reshape tensor (must have same total elements)
+    #[inline]
     pub fn reshape(&self, new_shape: TensorShape) -> Option<Self> {
         if new_shape.total_elements() != self.shape.total_elements() {
             return None;
@@ -271,6 +296,7 @@ impl Tensor {
     }
 
     /// Flatten to 1D
+    #[inline]
     pub fn flatten(&self) -> Self {
         Self {
             data: self.data.clone(),
@@ -357,6 +383,7 @@ impl Tensor {
     }
 
     /// Scalar addition
+    #[inline]
     pub fn add_scalar(&self, scalar: f32) -> Self {
         let data: Vec<f32> = self.data.iter().map(|x| x + scalar).collect();
         Self {
@@ -366,6 +393,7 @@ impl Tensor {
     }
 
     /// Scalar multiplication
+    #[inline]
     pub fn mul_scalar(&self, scalar: f32) -> Self {
         let data: Vec<f32> = self.data.iter().map(|x| x * scalar).collect();
         Self {
@@ -375,6 +403,7 @@ impl Tensor {
     }
 
     /// Element-wise negation
+    #[inline]
     pub fn neg(&self) -> Self {
         let data: Vec<f32> = self.data.iter().map(|x| -x).collect();
         Self {
@@ -384,6 +413,7 @@ impl Tensor {
     }
 
     /// Element-wise absolute value
+    #[inline]
     pub fn abs(&self) -> Self {
         let data: Vec<f32> = self.data.iter().map(|x| x.abs()).collect();
         Self {
@@ -393,6 +423,7 @@ impl Tensor {
     }
 
     /// Element-wise square
+    #[inline]
     pub fn square(&self) -> Self {
         let data: Vec<f32> = self.data.iter().map(|x| x * x).collect();
         Self {
@@ -402,6 +433,7 @@ impl Tensor {
     }
 
     /// Element-wise square root
+    #[inline]
     pub fn sqrt(&self) -> Self {
         let data: Vec<f32> = self.data.iter().map(|x| libm::sqrtf(x.max(0.0))).collect();
         Self {
@@ -411,6 +443,7 @@ impl Tensor {
     }
 
     /// Element-wise exponential
+    #[inline]
     pub fn exp(&self) -> Self {
         let data: Vec<f32> = self.data.iter().map(|x| libm::expf(*x)).collect();
         Self {
@@ -420,6 +453,7 @@ impl Tensor {
     }
 
     /// Element-wise natural logarithm
+    #[inline]
     pub fn log(&self) -> Self {
         let data: Vec<f32> = self.data.iter().map(|x| libm::logf(x.max(1e-10))).collect();
         Self {
@@ -429,6 +463,7 @@ impl Tensor {
     }
 
     /// Element-wise clamp
+    #[inline]
     pub fn clamp(&self, min: f32, max: f32) -> Self {
         let data: Vec<f32> = self.data.iter().map(|x| x.clamp(min, max)).collect();
         Self {
@@ -440,11 +475,13 @@ impl Tensor {
     // ========== Reduction Operations ==========
 
     /// Sum of all elements
+    #[inline(always)]
     pub fn sum(&self) -> f32 {
         self.data.iter().sum()
     }
 
     /// Mean of all elements
+    #[inline]
     pub fn mean(&self) -> f32 {
         if self.data.is_empty() {
             0.0
@@ -454,16 +491,19 @@ impl Tensor {
     }
 
     /// Maximum element
+    #[inline(always)]
     pub fn max(&self) -> f32 {
         self.data.iter().cloned().fold(f32::NEG_INFINITY, f32::max)
     }
 
     /// Minimum element
+    #[inline(always)]
     pub fn min(&self) -> f32 {
         self.data.iter().cloned().fold(f32::INFINITY, f32::min)
     }
 
     /// Variance
+    #[inline]
     pub fn variance(&self) -> f32 {
         let mean = self.mean();
         let sq_diff: f32 = self.data.iter().map(|x| (x - mean) * (x - mean)).sum();
@@ -471,17 +511,20 @@ impl Tensor {
     }
 
     /// Standard deviation
+    #[inline(always)]
     pub fn std(&self) -> f32 {
         libm::sqrtf(self.variance())
     }
 
     /// L2 norm (Frobenius norm)
+    #[inline(always)]
     pub fn norm(&self) -> f32 {
         let sq_sum: f32 = self.data.iter().map(|x| x * x).sum();
         libm::sqrtf(sq_sum)
     }
 
     /// Argmax - index of maximum element
+    #[inline]
     pub fn argmax(&self) -> usize {
         self.data
             .iter()
@@ -492,6 +535,7 @@ impl Tensor {
     }
 
     /// Argmin - index of minimum element
+    #[inline]
     pub fn argmin(&self) -> usize {
         self.data
             .iter()
@@ -659,6 +703,7 @@ pub struct TensorView<'a> {
 }
 
 impl<'a> TensorView<'a> {
+    #[inline]
     pub fn from_tensor(tensor: &'a Tensor) -> Self {
         Self {
             data: &tensor.data,
@@ -668,6 +713,7 @@ impl<'a> TensorView<'a> {
         }
     }
 
+    #[inline(always)]
     pub fn shape(&self) -> &TensorShape {
         &self.shape
     }

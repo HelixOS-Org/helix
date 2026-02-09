@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -73,11 +74,13 @@ pub struct ConfidenceInterval {
 
 impl ConfidenceInterval {
     /// Width of the interval
+    #[inline(always)]
     pub fn width(&self) -> f32 {
         self.upper - self.lower
     }
 
     /// Check if a value falls within this interval
+    #[inline(always)]
     pub fn contains(&self, value: f32) -> bool {
         value >= self.lower && value <= self.upper
     }
@@ -128,6 +131,7 @@ impl CalibrationRecord {
         }
     }
 
+    #[inline]
     fn update(&mut self, contained: bool, width: f32) {
         self.total_predictions += 1;
         if contained {
@@ -163,11 +167,11 @@ impl CalibrationRecord {
 struct PredictorHistory {
     predictor_id: u64,
     /// Recent prediction residuals (actual - predicted)
-    residuals: Vec<f32>,
+    residuals: VecDeque<f32>,
     /// Recent actual values
-    actuals: Vec<f32>,
+    actuals: VecDeque<f32>,
     /// Recent predicted values
-    predictions: Vec<f32>,
+    predictions: VecDeque<f32>,
     /// Total predictions made
     total: u64,
     /// Variance of residuals (EMA)
@@ -180,26 +184,27 @@ impl PredictorHistory {
     fn new(id: u64) -> Self {
         Self {
             predictor_id: id,
-            residuals: Vec::new(),
-            actuals: Vec::new(),
-            predictions: Vec::new(),
+            residuals: VecDeque::new(),
+            actuals: VecDeque::new(),
+            predictions: VecDeque::new(),
             total: 0,
             variance_ema: 0.01,
             bias_ema: 0.0,
         }
     }
 
+    #[inline]
     fn record(&mut self, predicted: f32, actual: f32) {
         let residual = actual - predicted;
-        self.residuals.push(residual);
-        self.actuals.push(actual);
-        self.predictions.push(predicted);
+        self.residuals.push_back(residual);
+        self.actuals.push_back(actual);
+        self.predictions.push_back(predicted);
         self.total += 1;
 
         if self.residuals.len() > MAX_HISTORY {
-            self.residuals.remove(0);
-            self.actuals.remove(0);
-            self.predictions.remove(0);
+            self.residuals.pop_front();
+            self.actuals.pop_front();
+            self.predictions.pop_front();
         }
 
         self.bias_ema = self.bias_ema * (1.0 - EMA_ALPHA) + residual * EMA_ALPHA;
@@ -223,6 +228,7 @@ impl PredictorHistory {
 
 /// Statistics for the confidence interval engine.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConfidenceIntervalStats {
     pub total_predictions_with_ci: u64,
     pub total_calibration_checks: u64,
@@ -262,6 +268,7 @@ impl ConfidenceIntervalStats {
 /// Wraps every prediction in confidence intervals at 50%, 90%, 99% levels
 /// using bootstrap resampling. Adaptively calibrates interval widths so
 /// coverage rates match their nominal levels.
+#[repr(align(64))]
 pub struct BridgeConfidenceInterval {
     /// Per-predictor history
     histories: BTreeMap<u64, PredictorHistory>,
@@ -503,6 +510,7 @@ impl BridgeConfidenceInterval {
     }
 
     /// Get the average interval width for a given confidence level index.
+    #[inline]
     pub fn interval_width(&self, level_idx: usize) -> f32 {
         match level_idx {
             0 => self.stats.avg_interval_width_50,
@@ -513,6 +521,7 @@ impl BridgeConfidenceInterval {
     }
 
     /// Get the empirical coverage rate for a given confidence level index.
+    #[inline]
     pub fn coverage_rate(&self, level_idx: usize) -> f32 {
         match level_idx {
             0 => self.stats.coverage_50,
@@ -579,11 +588,13 @@ impl BridgeConfidenceInterval {
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &ConfidenceIntervalStats {
         &self.stats
     }
 
     /// Get the number of tracked predictors.
+    #[inline(always)]
     pub fn predictor_count(&self) -> usize {
         self.histories.len()
     }

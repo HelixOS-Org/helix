@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -23,6 +24,7 @@ pub struct LatencyBucketBridge {
 
 /// Latency histogram
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LatencyHistogram {
     buckets: Vec<LatencyBucketBridge>,
     total_samples: u64,
@@ -59,11 +61,13 @@ impl LatencyHistogram {
         }
     }
 
+    #[inline(always)]
     pub fn avg_ns(&self) -> u64 {
         if self.total_samples == 0 { return 0; }
         self.sum_ns / self.total_samples
     }
 
+    #[inline]
     pub fn percentile(&self, pct: f64) -> u64 {
         let target = (self.total_samples as f64 * pct / 100.0) as u64;
         let mut cumulative = 0u64;
@@ -76,13 +80,17 @@ impl LatencyHistogram {
         self.max_ns
     }
 
+    #[inline(always)]
     pub fn p50(&self) -> u64 { self.percentile(50.0) }
+    #[inline(always)]
     pub fn p95(&self) -> u64 { self.percentile(95.0) }
+    #[inline(always)]
     pub fn p99(&self) -> u64 { self.percentile(99.0) }
 }
 
 /// Error tracking by errno
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ErrnoTracker {
     pub errors: BTreeMap<i32, u64>, // errno → count
     pub total_errors: u64,
@@ -94,21 +102,25 @@ impl ErrnoTracker {
         Self { errors: BTreeMap::new(), total_errors: 0, total_calls: 0 }
     }
 
+    #[inline(always)]
     pub fn record_success(&mut self) {
         self.total_calls += 1;
     }
 
+    #[inline]
     pub fn record_error(&mut self, errno: i32) {
         self.total_calls += 1;
         self.total_errors += 1;
         *self.errors.entry(errno).or_insert(0) += 1;
     }
 
+    #[inline(always)]
     pub fn error_rate(&self) -> f64 {
         if self.total_calls == 0 { return 0.0; }
         self.total_errors as f64 / self.total_calls as f64
     }
 
+    #[inline]
     pub fn top_error(&self) -> Option<(i32, u64)> {
         self.errors.iter()
             .max_by_key(|(_, &count)| count)
@@ -127,13 +139,14 @@ pub struct SyscallPair {
 
 /// Per-syscall profile
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallProfileV2 {
     pub syscall_nr: u32,
     pub call_count: u64,
     pub latency: LatencyHistogram,
     pub errors: ErrnoTracker,
     pub last_call_ns: u64,
-    pub caller_sites: BTreeMap<u64, u64>, // return_addr → count
+    pub caller_sites: LinearMap<u64, 64>, // return_addr → count
 }
 
 impl SyscallProfileV2 {
@@ -144,7 +157,7 @@ impl SyscallProfileV2 {
             latency: LatencyHistogram::new(),
             errors: ErrnoTracker::new(),
             last_call_ns: 0,
-            caller_sites: BTreeMap::new(),
+            caller_sites: LinearMap::new(),
         }
     }
 
@@ -159,9 +172,10 @@ impl SyscallProfileV2 {
             self.errors.record_success();
         }
 
-        *self.caller_sites.entry(caller_addr).or_insert(0) += 1;
+        self.caller_sites.add(caller_addr, 1);
     }
 
+    #[inline]
     pub fn top_caller(&self) -> Option<(u64, u64)> {
         self.caller_sites.iter()
             .max_by_key(|(_, &count)| count)
@@ -171,6 +185,7 @@ impl SyscallProfileV2 {
 
 /// Bridge Syscall Profiler V2 stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeSyscallProfilerV2Stats {
     pub total_syscalls_tracked: usize,
     pub total_calls: u64,
@@ -181,6 +196,7 @@ pub struct BridgeSyscallProfilerV2Stats {
 }
 
 /// Bridge Syscall Profiler V2
+#[repr(align(64))]
 pub struct BridgeSyscallProfilerV2 {
     profiles: BTreeMap<u32, SyscallProfileV2>,
     pairs: Vec<SyscallPair>,
@@ -225,6 +241,7 @@ impl BridgeSyscallProfilerV2 {
     }
 
     /// Find hot pairs (common sequences)
+    #[inline(always)]
     pub fn hot_pairs(&self, min_count: u64) -> Vec<&SyscallPair> {
         self.pairs.iter().filter(|p| p.count >= min_count).collect()
     }
@@ -245,6 +262,8 @@ impl BridgeSyscallProfilerV2 {
         }
     }
 
+    #[inline(always)]
     pub fn profile(&self, nr: u32) -> Option<&SyscallProfileV2> { self.profiles.get(&nr) }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeSyscallProfilerV2Stats { &self.stats }
 }

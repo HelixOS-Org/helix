@@ -118,12 +118,14 @@ impl RegisteredCapability {
     }
 
     /// Is available for use?
+    #[inline(always)]
     pub fn is_available(&self) -> bool {
         self.status == CapabilityStatus::Available
             && (self.capacity == 0 || self.current_users < self.capacity)
     }
 
     /// Record a usage
+    #[inline]
     pub fn record_use(&mut self, response_us: u64) {
         self.use_count += 1;
         // Rolling average
@@ -135,6 +137,7 @@ impl RegisteredCapability {
     }
 
     /// Acquire (increment user count)
+    #[inline]
     pub fn acquire(&mut self) -> bool {
         if self.is_available() {
             self.current_users += 1;
@@ -145,6 +148,7 @@ impl RegisteredCapability {
     }
 
     /// Release (decrement user count)
+    #[inline]
     pub fn release(&mut self) {
         if self.current_users > 0 {
             self.current_users -= 1;
@@ -276,6 +280,7 @@ impl CapabilityRegistry {
     }
 
     /// Find capabilities by category
+    #[inline]
     pub fn find_by_category(&self, category: CapabilityCategory) -> Vec<&RegisteredCapability> {
         let cat_key = category as u8;
         if let Some(ids) = self.category_index.get(&cat_key) {
@@ -317,16 +322,19 @@ impl CapabilityRegistry {
     }
 
     /// Get capability by ID
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&RegisteredCapability> {
         self.capabilities.get(&id)
     }
 
     /// Get mutable capability by ID
+    #[inline(always)]
     pub fn get_mut(&mut self, id: u64) -> Option<&mut RegisteredCapability> {
         self.capabilities.get_mut(&id)
     }
 
     /// Get all capabilities for a process
+    #[inline]
     pub fn get_for_pid(&self, pid: u64) -> Vec<&RegisteredCapability> {
         if let Some(ids) = self.pid_index.get(&pid) {
             ids.iter()
@@ -338,16 +346,19 @@ impl CapabilityRegistry {
     }
 
     /// Total registered capabilities
+    #[inline(always)]
     pub fn total_count(&self) -> usize {
         self.capabilities.len()
     }
 
     /// Available capabilities count
+    #[inline(always)]
     pub fn available_count(&self) -> usize {
         self.capabilities.values().filter(|c| c.is_available()).count()
     }
 
     /// Health check — mark offline any cap not checked recently
+    #[inline]
     pub fn health_check(&mut self, current_time: u64, timeout_ms: u64) {
         for cap in self.capabilities.values_mut() {
             if current_time.saturating_sub(cap.last_health_check) > timeout_ms {
@@ -357,6 +368,7 @@ impl CapabilityRegistry {
     }
 
     /// Update health check timestamp
+    #[inline]
     pub fn update_health(&mut self, id: u64, timestamp: u64) {
         if let Some(cap) = self.capabilities.get_mut(&id) {
             cap.last_health_check = timestamp;
@@ -421,6 +433,7 @@ impl ServiceDirectory {
     }
 
     /// Check if all deps for a service are available
+    #[inline]
     pub fn deps_satisfied(&self, service_id: u64) -> bool {
         if let Some(deps) = self.dependencies.get(&service_id) {
             deps.iter().all(|dep_id| {
@@ -434,11 +447,13 @@ impl ServiceDirectory {
     }
 
     /// Get registry
+    #[inline(always)]
     pub fn registry(&self) -> &CapabilityRegistry {
         &self.registry
     }
 
     /// Get mutable registry
+    #[inline(always)]
     pub fn registry_mut(&mut self) -> &mut CapabilityRegistry {
         &mut self.registry
     }

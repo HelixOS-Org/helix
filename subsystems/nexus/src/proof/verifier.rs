@@ -58,6 +58,7 @@ impl Default for VerifierConfig {
 
 /// Verifier statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct VerifierStats {
     /// Total verifications
     pub total_verifications: u64,
@@ -221,11 +222,13 @@ impl Verifier {
     }
 
     /// Quick check a predicate on current states
+    #[inline(always)]
     pub fn quick_check(&self, pred: &Predicate) -> bool {
         self.explored.values().all(|s| pred.check(s))
     }
 
     /// Get verification history
+    #[inline(always)]
     pub fn history(&self) -> &[VerificationResult] {
         &self.history
     }
@@ -252,32 +255,38 @@ impl Verifier {
     }
 
     /// Enable verifier
+    #[inline(always)]
     pub fn enable(&self) {
         self.enabled.store(true, Ordering::SeqCst);
     }
 
     /// Disable verifier
+    #[inline(always)]
     pub fn disable(&self) {
         self.enabled.store(false, Ordering::SeqCst);
     }
 
     /// Is verifier enabled?
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::SeqCst)
     }
 
     /// Clear cache
+    #[inline(always)]
     pub fn clear_cache(&mut self) {
         self.explored.clear();
         self.pending.clear();
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &VerifierConfig {
         &self.config
     }
 
     /// Set configuration
+    #[inline(always)]
     pub fn set_config(&mut self, config: VerifierConfig) {
         self.config = config;
     }

@@ -73,12 +73,14 @@ impl PowerDevice {
         }
     }
 
+    #[inline]
     pub fn transition(&mut self, new_state: PowerState, now: u64) {
         self.state = new_state;
         self.transitions += 1;
         self.last_transition = now;
     }
 
+    #[inline]
     pub fn activity_ratio(&self) -> f64 {
         let total = self.active_time_ns + self.idle_time_ns;
         if total == 0 { return 0.0; }
@@ -112,18 +114,23 @@ impl PowerDomain {
         }
     }
 
+    #[inline(always)]
     pub fn add_device(&mut self, dev_id: u64) { self.devices.push(dev_id); }
+    #[inline(always)]
     pub fn add_child(&mut self, child_id: u32) { self.children.push(child_id); }
 
+    #[inline(always)]
     pub fn can_power_down(&self) -> bool {
         self.devices.is_empty() || self.state >= PowerState::D1Light
     }
 
+    #[inline(always)]
     pub fn power_on(&mut self) {
         self.state = PowerState::D0Active;
         self.on_transitions += 1;
     }
 
+    #[inline(always)]
     pub fn power_off(&mut self) {
         self.state = PowerState::D3Cold;
         self.off_transitions += 1;
@@ -132,6 +139,7 @@ impl PowerDomain {
 
 /// Power domain stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PowerDomainStats {
     pub total_domains: u32,
     pub active_domains: u32,
@@ -153,6 +161,7 @@ impl HolisticPowerDomain {
         Self { domains: BTreeMap::new(), devices: BTreeMap::new(), next_domain_id: 1 }
     }
 
+    #[inline]
     pub fn create_domain(&mut self, dtype: PowerDomainType) -> u32 {
         let id = self.next_domain_id;
         self.next_domain_id += 1;
@@ -160,20 +169,24 @@ impl HolisticPowerDomain {
         id
     }
 
+    #[inline(always)]
     pub fn set_parent(&mut self, domain_id: u32, parent_id: u32) {
         if let Some(d) = self.domains.get_mut(&domain_id) { d.parent_id = Some(parent_id); }
         if let Some(p) = self.domains.get_mut(&parent_id) { p.add_child(domain_id); }
     }
 
+    #[inline(always)]
     pub fn add_device(&mut self, dev_id: u64, domain_id: u32) {
         self.devices.insert(dev_id, PowerDevice::new(dev_id, domain_id));
         if let Some(d) = self.domains.get_mut(&domain_id) { d.add_device(dev_id); }
     }
 
+    #[inline(always)]
     pub fn transition_device(&mut self, dev_id: u64, state: PowerState, now: u64) {
         if let Some(dev) = self.devices.get_mut(&dev_id) { dev.transition(state, now); }
     }
 
+    #[inline]
     pub fn domain_power(&self, domain_id: u32) -> u64 {
         let domain = match self.domains.get(&domain_id) { Some(d) => d, None => return 0 };
         domain.devices.iter()
@@ -182,6 +195,7 @@ impl HolisticPowerDomain {
             .sum()
     }
 
+    #[inline]
     pub fn stats(&self) -> PowerDomainStats {
         let active = self.domains.values().filter(|d| d.state <= PowerState::D0Idle).count() as u32;
         let total_power: u64 = self.devices.values().map(|d| d.power_mw as u64).sum();

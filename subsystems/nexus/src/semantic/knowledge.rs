@@ -85,6 +85,7 @@ pub enum AttributeValue {
 }
 
 impl AttributeValue {
+    #[inline]
     pub fn as_string(&self) -> Option<&String> {
         match self {
             Self::String(s) => Some(s),
@@ -92,6 +93,7 @@ impl AttributeValue {
         }
     }
 
+    #[inline]
     pub fn as_int(&self) -> Option<i64> {
         match self {
             Self::Int(i) => Some(*i),
@@ -99,6 +101,7 @@ impl AttributeValue {
         }
     }
 
+    #[inline]
     pub fn as_float(&self) -> Option<f64> {
         match self {
             Self::Float(f) => Some(*f),
@@ -106,6 +109,7 @@ impl AttributeValue {
         }
     }
 
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Self::Bool(b) => Some(*b),
@@ -127,24 +131,29 @@ impl Entity {
         }
     }
 
+    #[inline(always)]
     pub fn with_attribute(mut self, key: impl Into<String>, value: AttributeValue) -> Self {
         self.attributes.insert(key.into(), value);
         self
     }
 
+    #[inline(always)]
     pub fn with_embedding(mut self, embedding: EmbeddingId) -> Self {
         self.embedding = Some(embedding);
         self
     }
 
+    #[inline(always)]
     pub fn set_attribute(&mut self, key: impl Into<String>, value: AttributeValue) {
         self.attributes.insert(key.into(), value);
     }
 
+    #[inline(always)]
     pub fn get_attribute(&self, key: &str) -> Option<&AttributeValue> {
         self.attributes.get(key)
     }
 
+    #[inline(always)]
     pub fn has_attribute(&self, key: &str) -> bool {
         self.attributes.contains_key(key)
     }
@@ -194,21 +203,25 @@ impl Relation {
         }
     }
 
+    #[inline(always)]
     pub fn with_inverse(mut self, name: impl Into<String>) -> Self {
         self.inverse_name = Some(name.into());
         self
     }
 
+    #[inline(always)]
     pub fn with_cardinality(mut self, cardinality: Cardinality) -> Self {
         self.cardinality = cardinality;
         self
     }
 
+    #[inline(always)]
     pub fn symmetric(mut self) -> Self {
         self.symmetric = true;
         self
     }
 
+    #[inline(always)]
     pub fn transitive(mut self) -> Self {
         self.transitive = true;
         self
@@ -246,22 +259,26 @@ impl Fact {
         }
     }
 
+    #[inline(always)]
     pub fn with_confidence(mut self, confidence: f32) -> Self {
         self.confidence = confidence.clamp(0.0, 1.0);
         self
     }
 
+    #[inline(always)]
     pub fn with_source(mut self, source: impl Into<String>) -> Self {
         self.source = Some(source.into());
         self
     }
 
+    #[inline]
     pub fn with_validity(mut self, from: u64, until: Option<u64>) -> Self {
         self.valid_from = from;
         self.valid_until = until;
         self
     }
 
+    #[inline]
     pub fn is_valid_at(&self, time: u64) -> bool {
         if time < self.valid_from {
             return false;
@@ -381,6 +398,7 @@ impl KnowledgeBase {
 
     // ========== Entity Operations ==========
 
+    #[inline]
     pub fn add_entity(&mut self, mut entity: Entity) -> EntityId {
         let id = EntityId::new(self.next_entity_id);
         self.next_entity_id += 1;
@@ -391,14 +409,17 @@ impl KnowledgeBase {
         id
     }
 
+    #[inline(always)]
     pub fn get_entity(&self, id: EntityId) -> Option<&Entity> {
         self.entities.get(&id)
     }
 
+    #[inline(always)]
     pub fn get_entity_mut(&mut self, id: EntityId) -> Option<&mut Entity> {
         self.entities.get_mut(&id)
     }
 
+    #[inline]
     pub fn get_entity_by_name(&self, name: &str) -> Option<&Entity> {
         self.entity_name_index
             .get(name)
@@ -427,6 +448,7 @@ impl KnowledgeBase {
         }
     }
 
+    #[inline(always)]
     pub fn entity_count(&self) -> usize {
         self.entities.len()
     }
@@ -447,16 +469,19 @@ impl KnowledgeBase {
         id
     }
 
+    #[inline(always)]
     pub fn get_relation(&self, id: RelationId) -> Option<&Relation> {
         self.relations.get(&id)
     }
 
+    #[inline]
     pub fn get_relation_by_name(&self, name: &str) -> Option<&Relation> {
         self.relation_name_index
             .get(name)
             .and_then(|id| self.relations.get(id))
     }
 
+    #[inline(always)]
     pub fn relation_count(&self) -> usize {
         self.relations.len()
     }
@@ -491,6 +516,7 @@ impl KnowledgeBase {
         id
     }
 
+    #[inline]
     pub fn add_fact_with_confidence(
         &mut self,
         subject: EntityId,
@@ -505,10 +531,12 @@ impl KnowledgeBase {
         id
     }
 
+    #[inline(always)]
     pub fn get_fact(&self, id: FactId) -> Option<&Fact> {
         self.facts.get(&id)
     }
 
+    #[inline]
     pub fn remove_fact(&mut self, id: FactId) -> Option<Fact> {
         if let Some(fact) = self.facts.remove(&id) {
             self.indexes.remove_fact(&fact);
@@ -518,6 +546,7 @@ impl KnowledgeBase {
         }
     }
 
+    #[inline(always)]
     pub fn fact_count(&self) -> usize {
         self.facts.len()
     }
@@ -525,6 +554,7 @@ impl KnowledgeBase {
     // ========== Query Operations ==========
 
     /// Get all facts about an entity (as subject)
+    #[inline]
     pub fn facts_about(&self, entity: EntityId) -> Vec<&Fact> {
         self.indexes
             .by_subject
@@ -534,6 +564,7 @@ impl KnowledgeBase {
     }
 
     /// Get all facts referencing an entity (as object)
+    #[inline]
     pub fn facts_referencing(&self, entity: EntityId) -> Vec<&Fact> {
         self.indexes
             .by_object
@@ -571,6 +602,7 @@ impl KnowledgeBase {
     }
 
     /// Check if a fact exists
+    #[inline]
     pub fn has_fact(&self, subject: EntityId, relation: RelationId, object: EntityId) -> bool {
         self.indexes
             .by_subject_relation
@@ -681,6 +713,7 @@ impl KnowledgeQuery {
         }
     }
 
+    #[inline(always)]
     pub fn add_pattern(
         mut self,
         subject: QueryPattern,
@@ -691,6 +724,7 @@ impl KnowledgeQuery {
         self
     }
 
+    #[inline(always)]
     pub fn with_binding(mut self, var: impl Into<String>, entity: EntityId) -> Self {
         self.bindings.insert(var.into(), entity);
         self

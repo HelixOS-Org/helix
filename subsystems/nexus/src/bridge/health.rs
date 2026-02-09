@@ -54,6 +54,7 @@ pub enum BridgeComponent {
 
 /// Health check result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HealthCheckResult {
     /// Component
     pub component: BridgeComponent,
@@ -103,6 +104,7 @@ impl Heartbeat {
     }
 
     /// Record heartbeat
+    #[inline]
     pub fn beat(&mut self, now: u64) {
         self.last_heartbeat = now;
         self.missed_beats = 0;
@@ -110,6 +112,7 @@ impl Heartbeat {
     }
 
     /// Check for missed heartbeat
+    #[inline]
     pub fn check(&mut self, now: u64) -> bool {
         let elapsed = now.saturating_sub(self.last_heartbeat);
         if elapsed > self.expected_interval_ns && self.last_heartbeat > 0 {
@@ -121,6 +124,7 @@ impl Heartbeat {
     }
 
     /// Is alive?
+    #[inline(always)]
     pub fn is_alive(&self) -> bool {
         self.missed_beats <= self.max_missed
     }
@@ -169,6 +173,7 @@ impl ComponentStatus {
     }
 
     /// Record success
+    #[inline]
     pub fn record_success(&mut self) {
         self.success_count += 1;
         self.consecutive_failures = 0;
@@ -176,6 +181,7 @@ impl ComponentStatus {
     }
 
     /// Record error
+    #[inline]
     pub fn record_error(&mut self) {
         self.error_count += 1;
         self.total_errors += 1;
@@ -217,6 +223,7 @@ impl ComponentStatus {
     }
 
     /// Error rate
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         let total = self.success_count + self.error_count;
         if total == 0 {
@@ -264,6 +271,7 @@ pub struct HealingTrigger {
 
 /// Health stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeHealthStats {
     /// Components monitored
     pub components_monitored: usize,
@@ -278,6 +286,7 @@ pub struct BridgeHealthStats {
 }
 
 /// Bridge health monitor
+#[repr(align(64))]
 pub struct BridgeHealthMonitor {
     /// Component statuses
     components: BTreeMap<u8, ComponentStatus>,
@@ -303,6 +312,7 @@ impl BridgeHealthMonitor {
     }
 
     /// Register component
+    #[inline]
     pub fn register(&mut self, component: BridgeComponent, heartbeat_interval_ns: u64) {
         let key = component as u8;
         self.components.insert(key, ComponentStatus::new(component, heartbeat_interval_ns));
@@ -310,6 +320,7 @@ impl BridgeHealthMonitor {
     }
 
     /// Record heartbeat
+    #[inline]
     pub fn heartbeat(&mut self, component: BridgeComponent, now: u64) {
         let key = component as u8;
         if let Some(status) = self.components.get_mut(&key) {
@@ -318,6 +329,7 @@ impl BridgeHealthMonitor {
     }
 
     /// Record success
+    #[inline]
     pub fn record_success(&mut self, component: BridgeComponent) {
         let key = component as u8;
         if let Some(status) = self.components.get_mut(&key) {
@@ -360,6 +372,7 @@ impl BridgeHealthMonitor {
     }
 
     /// Overall health
+    #[inline]
     pub fn overall_health(&self) -> ComponentHealth {
         if self.components.is_empty() {
             return ComponentHealth::Unknown;
@@ -383,6 +396,7 @@ impl BridgeHealthMonitor {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeHealthStats {
         &self.stats
     }

@@ -60,35 +60,41 @@ impl Policy {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, description: impl Into<String>) -> Self {
         self.description = description.into();
         self
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: u32) -> Self {
         self.priority = priority;
         self
     }
 
     /// Add condition
+    #[inline(always)]
     pub fn with_condition(mut self, condition: PolicyCondition) -> Self {
         self.conditions.push(condition);
         self
     }
 
     /// Add exception
+    #[inline(always)]
     pub fn with_exception(mut self, exception: PolicyException) -> Self {
         self.exceptions.push(exception);
         self
     }
 
     /// Disable policy
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.enabled = false;
     }
 
     /// Enable policy
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.enabled = true;
     }
@@ -117,12 +123,14 @@ impl PolicyCondition {
     }
 
     /// Set parameters
+    #[inline(always)]
     pub fn with_parameters(mut self, parameters: ConditionParameters) -> Self {
         self.parameters = parameters;
         self
     }
 
     /// Create action type condition
+    #[inline]
     pub fn action_type(action_types: Vec<ActionType>) -> Self {
         Self {
             condition_type: ConditionType::ActionType,
@@ -134,6 +142,7 @@ impl PolicyCondition {
     }
 
     /// Create severity condition
+    #[inline]
     pub fn severity(severities: Vec<Severity>) -> Self {
         Self {
             condition_type: ConditionType::Severity,
@@ -145,6 +154,7 @@ impl PolicyCondition {
     }
 
     /// Create confidence threshold condition
+    #[inline]
     pub fn confidence_above(threshold: f64) -> Self {
         Self {
             condition_type: ConditionType::ConfidenceAbove,
@@ -156,6 +166,7 @@ impl PolicyCondition {
     }
 
     /// Create always-true condition
+    #[inline]
     pub fn always() -> Self {
         Self {
             condition_type: ConditionType::Always,
@@ -246,6 +257,7 @@ impl ActionModification {
     }
 
     /// Add warning
+    #[inline(always)]
     pub fn with_warning(mut self, warning: impl Into<String>) -> Self {
         self.add_warnings.push(warning.into());
         self
@@ -304,6 +316,7 @@ pub struct PolicyResult {
 
 impl PolicyResult {
     /// Create allowed result
+    #[inline]
     pub fn allowed() -> Self {
         Self {
             allowed: true,
@@ -316,6 +329,7 @@ impl PolicyResult {
     }
 
     /// Create denied result
+    #[inline]
     pub fn denied(policy_id: PolicyId) -> Self {
         Self {
             allowed: false,
@@ -412,26 +426,31 @@ impl PolicyEngine {
     }
 
     /// Register a policy
+    #[inline(always)]
     pub fn register(&mut self, policy: Policy) {
         self.policies.insert(policy.id, policy);
     }
 
     /// Unregister a policy
+    #[inline(always)]
     pub fn unregister(&mut self, id: PolicyId) -> Option<Policy> {
         self.policies.remove(&id)
     }
 
     /// Get a policy
+    #[inline(always)]
     pub fn get(&self, id: PolicyId) -> Option<&Policy> {
         self.policies.get(&id)
     }
 
     /// Get mutable policy
+    #[inline(always)]
     pub fn get_mut(&mut self, id: PolicyId) -> Option<&mut Policy> {
         self.policies.get_mut(&id)
     }
 
     /// List all policies
+    #[inline(always)]
     pub fn list(&self) -> impl Iterator<Item = &Policy> {
         self.policies.values()
     }
@@ -526,6 +545,7 @@ impl PolicyEngine {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> PolicyStats {
         PolicyStats {
             policies_registered: self.policies.len(),
@@ -543,6 +563,7 @@ impl Default for PolicyEngine {
 
 /// Policy statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PolicyStats {
     /// Number of registered policies
     pub policies_registered: usize,

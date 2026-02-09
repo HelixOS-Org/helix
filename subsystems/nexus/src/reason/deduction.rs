@@ -165,6 +165,7 @@ impl Default for DeductionConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DeductionStats {
     /// Propositions added
     pub propositions_added: u64,
@@ -187,6 +188,7 @@ impl DeductionEngine {
     }
 
     /// Assert proposition
+    #[inline]
     pub fn assert(&mut self, content: PropositionContent) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
 
@@ -457,11 +459,13 @@ impl DeductionEngine {
     }
 
     /// Get proof
+    #[inline(always)]
     pub fn get_proof(&self, id: u64) -> Option<&Proof> {
         self.proofs.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &DeductionStats {
         &self.stats
     }
@@ -495,6 +499,7 @@ impl PropBuilder {
     }
 
     /// Create atom
+    #[inline]
     pub fn atom(&self, name: &str) -> Proposition {
         Proposition {
             id: self.next_id(),
@@ -503,6 +508,7 @@ impl PropBuilder {
     }
 
     /// Create negation
+    #[inline]
     pub fn not(&self, p: Proposition) -> Proposition {
         Proposition {
             id: self.next_id(),
@@ -511,6 +517,7 @@ impl PropBuilder {
     }
 
     /// Create conjunction
+    #[inline]
     pub fn and(&self, a: Proposition, b: Proposition) -> Proposition {
         Proposition {
             id: self.next_id(),
@@ -519,6 +526,7 @@ impl PropBuilder {
     }
 
     /// Create disjunction
+    #[inline]
     pub fn or(&self, a: Proposition, b: Proposition) -> Proposition {
         Proposition {
             id: self.next_id(),
@@ -527,6 +535,7 @@ impl PropBuilder {
     }
 
     /// Create implication
+    #[inline]
     pub fn implies(&self, a: Proposition, b: Proposition) -> Proposition {
         Proposition {
             id: self.next_id(),

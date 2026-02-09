@@ -4,6 +4,7 @@
 //! detecting anomalies and issues in the cognitive system.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -34,6 +35,7 @@ pub enum CognitiveStatus {
 
 impl CognitiveStatus {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Optimal => "Optimal",
@@ -141,6 +143,7 @@ impl CognitiveIssue {
     }
 
     /// Is critical?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.severity == Severity::Critical
     }
@@ -165,6 +168,7 @@ pub struct DomainHealth {
 
 impl DomainHealth {
     /// Create healthy status
+    #[inline]
     pub fn healthy(domain: Domain, score: u8) -> Self {
         Self {
             domain,
@@ -175,11 +179,13 @@ impl DomainHealth {
     }
 
     /// Add issue
+    #[inline(always)]
     pub fn add_issue(&mut self, issue: CognitiveIssue) {
         self.issues.push(issue);
     }
 
     /// Has issues?
+    #[inline(always)]
     pub fn has_issues(&self) -> bool {
         !self.issues.is_empty()
     }
@@ -222,6 +228,7 @@ impl CognitiveHealth {
     }
 
     /// Is healthy?
+    #[inline]
     pub fn is_healthy(&self) -> bool {
         matches!(
             self.status,
@@ -230,6 +237,7 @@ impl CognitiveHealth {
     }
 
     /// Get critical issues
+    #[inline(always)]
     pub fn critical_issues(&self) -> Vec<&CognitiveIssue> {
         self.issues.iter().filter(|i| i.is_critical()).collect()
     }
@@ -260,22 +268,25 @@ impl Introspector {
     }
 
     /// Record domain metrics
+    #[inline]
     pub fn record(&mut self, metrics: DomainMetrics) {
         let domain = metrics.domain;
         let history = self.history.entry(domain).or_default();
         history.push(metrics);
 
         if history.len() > self.max_history {
-            history.remove(0);
+            history.pop_front();
         }
     }
 
     /// Get current metrics for domain
+    #[inline(always)]
     pub fn current(&self, domain: Domain) -> Option<&DomainMetrics> {
         self.history.get(&domain)?.last()
     }
 
     /// Get metrics history for domain
+    #[inline(always)]
     pub fn history(&self, domain: Domain) -> Option<&[DomainMetrics]> {
         self.history.get(&domain).map(|v| v.as_slice())
     }
@@ -409,11 +420,13 @@ impl Introspector {
     }
 
     /// Convert score to status
+    #[inline(always)]
     pub fn score_to_status(&self, score: u8) -> CognitiveStatus {
         CognitiveStatus::from_score(score)
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> IntrospectorStats {
         IntrospectorStats {
             domains_monitored: self.history.len(),
@@ -431,6 +444,7 @@ impl Default for Introspector {
 
 /// Introspector statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IntrospectorStats {
     /// Domains being monitored
     pub domains_monitored: usize,

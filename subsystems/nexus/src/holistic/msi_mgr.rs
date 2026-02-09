@@ -46,6 +46,7 @@ pub struct DeviceMsi {
 impl DeviceMsi {
     pub fn new(dev: u64, max: u32) -> Self { Self { device_id: dev, entries: Vec::new(), max_vectors: max, allocated_vectors: 0, total_irqs: 0 } }
 
+    #[inline]
     pub fn allocate(&mut self, vector: u32, mt: MsiType, cpu: u32) -> bool {
         if self.allocated_vectors >= self.max_vectors { return false; }
         self.entries.push(MsiEntry::new(vector, mt, cpu));
@@ -56,6 +57,7 @@ impl DeviceMsi {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsiMgrStats {
     pub total_devices: u32,
     pub total_vectors: u32,
@@ -73,16 +75,19 @@ pub struct HolisticMsiMgr {
 impl HolisticMsiMgr {
     pub fn new() -> Self { Self { devices: BTreeMap::new(), next_vector: 32 } }
 
+    #[inline(always)]
     pub fn register_device(&mut self, dev_id: u64, max_vectors: u32) {
         self.devices.insert(dev_id, DeviceMsi::new(dev_id, max_vectors));
     }
 
+    #[inline]
     pub fn allocate_vector(&mut self, dev_id: u64, mt: MsiType, cpu: u32) -> Option<u32> {
         let vec = self.next_vector; self.next_vector += 1;
         let dev = self.devices.get_mut(&dev_id)?;
         if dev.allocate(vec, mt, cpu) { Some(vec) } else { None }
     }
 
+    #[inline]
     pub fn stats(&self) -> MsiMgrStats {
         let vecs: u32 = self.devices.values().map(|d| d.allocated_vectors).sum();
         let msi: u32 = self.devices.values().flat_map(|d| d.entries.iter()).filter(|e| e.msi_type == MsiType::Msi).count() as u32;

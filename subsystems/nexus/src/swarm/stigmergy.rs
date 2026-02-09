@@ -56,12 +56,14 @@ impl MultiChannelStigmergy {
     }
 
     /// Add signal channel
+    #[inline(always)]
     pub fn add_channel(&mut self, signal_type: SignalType, decay_rate: f64) {
         let grid = StigmergyGrid::new(self.width, self.height, decay_rate);
         self.channels.push((signal_type, grid));
     }
 
     /// Get channel by type
+    #[inline]
     pub fn get_channel(&self, signal_type: SignalType) -> Option<&StigmergyGrid> {
         self.channels
             .iter()
@@ -70,6 +72,7 @@ impl MultiChannelStigmergy {
     }
 
     /// Get mutable channel
+    #[inline]
     pub fn get_channel_mut(&mut self, signal_type: SignalType) -> Option<&mut StigmergyGrid> {
         self.channels
             .iter_mut()
@@ -78,6 +81,7 @@ impl MultiChannelStigmergy {
     }
 
     /// Deposit signal
+    #[inline]
     pub fn deposit(&mut self, signal_type: SignalType, x: usize, y: usize, amount: f64) {
         if let Some(grid) = self.get_channel_mut(signal_type) {
             grid.deposit(x, y, amount);
@@ -85,6 +89,7 @@ impl MultiChannelStigmergy {
     }
 
     /// Get combined signal (weighted sum)
+    #[inline]
     pub fn combined_signal(&self, x: usize, y: usize, weights: &[(SignalType, f64)]) -> f64 {
         let mut total = 0.0;
 
@@ -98,6 +103,7 @@ impl MultiChannelStigmergy {
     }
 
     /// Decay all channels
+    #[inline]
     pub fn decay_all(&mut self) {
         for (_, grid) in &mut self.channels {
             grid.decay();
@@ -105,6 +111,7 @@ impl MultiChannelStigmergy {
     }
 
     /// Diffuse all channels
+    #[inline]
     pub fn diffuse_all(&mut self, rate: f64) {
         for (_, grid) in &mut self.channels {
             grid.diffuse(rate);
@@ -161,23 +168,27 @@ impl StigmergicAgent {
     }
 
     /// Get position as tuple
+    #[inline(always)]
     pub fn position(&self) -> (usize, usize) {
         (self.x, self.y)
     }
 
     /// Move to new position
+    #[inline(always)]
     pub fn move_to(&mut self, x: usize, y: usize) {
         self.x = x;
         self.y = y;
     }
 
     /// Pick up resource
+    #[inline(always)]
     pub fn pickup(&mut self) {
         self.carrying = true;
         self.state = AgentState::Returning;
     }
 
     /// Drop resource
+    #[inline(always)]
     pub fn drop_resource(&mut self) {
         self.carrying = false;
         self.state = AgentState::Searching;
@@ -229,6 +240,7 @@ impl ForagingSimulation {
     }
 
     /// Add food source
+    #[inline]
     pub fn add_food(&mut self, x: usize, y: usize, amount: f64) {
         self.food_sources.push((x, y, amount));
 
@@ -395,6 +407,7 @@ impl ForagingSimulation {
     }
 
     /// Run simulation for n steps
+    #[inline]
     pub fn run(&mut self, steps: usize) -> f64 {
         for _ in 0..steps {
             self.step();
@@ -450,6 +463,7 @@ impl ConstructionSimulation {
     }
 
     /// Get building value at position
+    #[inline]
     pub fn get_building(&self, x: usize, y: usize) -> f64 {
         if x < self.width && y < self.height {
             self.building[y * self.width + x]
@@ -534,6 +548,7 @@ impl ConstructionSimulation {
     }
 
     /// Get total material placed
+    #[inline(always)]
     pub fn total_material(&self) -> f64 {
         self.building.iter().sum()
     }

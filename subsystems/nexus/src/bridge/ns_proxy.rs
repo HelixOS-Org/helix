@@ -70,12 +70,14 @@ pub struct IdMapping {
 }
 
 impl IdMapping {
+    #[inline]
     pub fn translate_to_outer(&self, inner: u32) -> Option<u32> {
         if inner >= self.inner_start && inner < self.inner_start + self.count {
             Some(self.outer_start + (inner - self.inner_start))
         } else { None }
     }
 
+    #[inline]
     pub fn translate_to_inner(&self, outer: u32) -> Option<u32> {
         if outer >= self.outer_start && outer < self.outer_start + self.count {
             Some(self.inner_start + (outer - self.outer_start))
@@ -146,6 +148,7 @@ impl ProcessNsSet {
 
 /// Bridge Namespace Proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeNsProxyStats {
     pub total_namespaces: usize,
     pub total_pid_mappings: usize,
@@ -155,6 +158,7 @@ pub struct BridgeNsProxyStats {
 }
 
 /// Bridge Namespace Proxy
+#[repr(align(64))]
 pub struct BridgeNsProxy {
     namespaces: BTreeMap<u64, NamespaceDesc>,
     pid_mappings: Vec<PidMapping>,
@@ -191,14 +195,17 @@ impl BridgeNsProxy {
         id
     }
 
+    #[inline(always)]
     pub fn add_pid_mapping(&mut self, inner: u64, outer: u64, ns_id: u64) {
         self.pid_mappings.push(PidMapping { inner_pid: inner, outer_pid: outer, ns_id });
     }
 
+    #[inline(always)]
     pub fn add_id_mapping(&mut self, mapping: IdMapping) {
         self.id_mappings.push(mapping);
     }
 
+    #[inline(always)]
     pub fn set_process_ns(&mut self, pid: u64, ns_set: ProcessNsSet) {
         self.process_ns.insert(pid, ns_set);
     }
@@ -238,17 +245,20 @@ impl BridgeNsProxy {
         None
     }
 
+    #[inline(always)]
     pub fn add_reference(&mut self, ns_ref: NsReference) {
         self.references.push(ns_ref);
     }
 
     /// Check if two processes share a namespace
+    #[inline]
     pub fn shares_namespace(&self, pid_a: u64, pid_b: u64, ns_type: NsType) -> bool {
         let ns_a = self.process_ns.get(&pid_a).map(|s| s.ns_for_type(ns_type));
         let ns_b = self.process_ns.get(&pid_b).map(|s| s.ns_for_type(ns_type));
         ns_a.is_some() && ns_a == ns_b
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_namespaces = self.namespaces.len();
         self.stats.total_pid_mappings = self.pid_mappings.len();
@@ -256,7 +266,10 @@ impl BridgeNsProxy {
         self.stats.cross_ns_refs = self.references.len();
     }
 
+    #[inline(always)]
     pub fn namespace(&self, id: u64) -> Option<&NamespaceDesc> { self.namespaces.get(&id) }
+    #[inline(always)]
     pub fn process_nset(&self, pid: u64) -> Option<&ProcessNsSet> { self.process_ns.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeNsProxyStats { &self.stats }
 }

@@ -44,7 +44,9 @@ impl IrqDesc {
         Self { irq, source, affinity_mask: u64::MAX, effective_affinity: 0, name_hash: irq as u64, count: 0, rate: 0, spurious: 0, last_cpu: 0, enabled: true }
     }
 
+    #[inline(always)]
     pub fn handle(&mut self, cpu: u32) { self.count += 1; self.last_cpu = cpu; }
+    #[inline(always)]
     pub fn set_affinity(&mut self, mask: u64) { self.affinity_mask = mask; }
 }
 
@@ -59,11 +61,13 @@ pub struct CpuIrqLoad {
 
 impl CpuIrqLoad {
     pub fn new(cpu: u32) -> Self { Self { cpu, irq_count: 0, irqs: Vec::new(), softirq_time_ns: 0 } }
+    #[inline(always)]
     pub fn load(&self) -> u64 { self.irq_count }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IrqAffinityStats {
     pub total_irqs: u32,
     pub total_cpus: u32,
@@ -82,14 +86,18 @@ pub struct HolisticIrqAffinity {
 impl HolisticIrqAffinity {
     pub fn new() -> Self { Self { irqs: BTreeMap::new(), cpu_loads: BTreeMap::new(), mode: IrqBalanceMode::Performance } }
 
+    #[inline(always)]
     pub fn add_irq(&mut self, irq: u32, source: IrqSourceType) { self.irqs.insert(irq, IrqDesc::new(irq, source)); }
+    #[inline(always)]
     pub fn add_cpu(&mut self, cpu: u32) { self.cpu_loads.insert(cpu, CpuIrqLoad::new(cpu)); }
 
+    #[inline(always)]
     pub fn handle_irq(&mut self, irq: u32, cpu: u32) {
         if let Some(desc) = self.irqs.get_mut(&irq) { desc.handle(cpu); }
         if let Some(load) = self.cpu_loads.get_mut(&cpu) { load.irq_count += 1; }
     }
 
+    #[inline]
     pub fn stats(&self) -> IrqAffinityStats {
         let total: u64 = self.irqs.values().map(|i| i.count).sum();
         let loads: Vec<u64> = self.cpu_loads.values().map(|c| c.load()).collect();

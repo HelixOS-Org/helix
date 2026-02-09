@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -159,6 +160,7 @@ pub struct ConfidenceBounds {
 
 /// Aggregate Monte Carlo statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct MonteCarloStats {
     pub total_trials: u64,
     pub total_simulations: u64,
@@ -178,7 +180,7 @@ pub struct MonteCarloStats {
 /// computes probability distributions for all key metrics.
 #[derive(Debug)]
 pub struct HolisticMonteCarlo {
-    trial_results: Vec<TrialResult>,
+    trial_results: VecDeque<TrialResult>,
     distributions: BTreeMap<u64, PerformanceDistribution>,
     exhaustion_estimates: BTreeMap<u8, ExhaustionEstimate>,
     rare_events: BTreeMap<u64, RareEvent>,
@@ -195,7 +197,7 @@ pub struct HolisticMonteCarlo {
 impl HolisticMonteCarlo {
     pub fn new() -> Self {
         Self {
-            trial_results: Vec::new(),
+            trial_results: VecDeque::new(),
             distributions: BTreeMap::new(),
             exhaustion_estimates: BTreeMap::new(),
             rare_events: BTreeMap::new(),
@@ -294,10 +296,10 @@ impl HolisticMonteCarlo {
 
         // Store results (keeping bounded)
         for r in &results {
-            self.trial_results.push(r.clone());
+            self.trial_results.push_back(r.clone());
         }
         while self.trial_results.len() > MAX_TRIALS {
-            self.trial_results.remove(0);
+            self.trial_results.pop_front();
         }
 
         results
@@ -543,6 +545,7 @@ impl HolisticMonteCarlo {
     }
 
     /// Compute confidence bounds for key estimates
+    #[inline]
     pub fn confidence_bounds(&mut self, dimension: &str) -> ConfidenceBounds {
         let values: Vec<f32> = match dimension {
             "cpu" => self.trial_results.iter().map(|t| t.final_cpu).collect(),

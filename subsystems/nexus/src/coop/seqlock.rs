@@ -61,6 +61,7 @@ impl Seqlock {
         }
     }
 
+    #[inline]
     pub fn write_begin(&mut self, thread_id: u64, now_ns: u64) -> bool {
         if self.state == SeqlockState::Writing { return false; }
         self.sequence += 1; // Odd = write in progress
@@ -70,6 +71,7 @@ impl Seqlock {
         true
     }
 
+    #[inline]
     pub fn write_end(&mut self, now_ns: u64) {
         self.sequence += 1; // Even = no write in progress
         self.state = SeqlockState::Idle;
@@ -82,6 +84,7 @@ impl Seqlock {
         }
     }
 
+    #[inline(always)]
     pub fn read_begin(&self) -> u64 {
         self.sequence
     }
@@ -121,24 +124,29 @@ impl Seqlock {
         ReadOutcome::GaveUp
     }
 
+    #[inline(always)]
     pub fn is_writing(&self) -> bool {
         self.state == SeqlockState::Writing
     }
 
+    #[inline(always)]
     pub fn current_sequence(&self) -> u64 {
         self.sequence
     }
 
+    #[inline(always)]
     pub fn retry_rate(&self) -> f64 {
         if self.read_attempts == 0 { return 0.0; }
         self.read_retries as f64 / self.read_attempts as f64
     }
 
+    #[inline(always)]
     pub fn avg_write_ns(&self) -> f64 {
         if self.write_count == 0 { return 0.0; }
         self.total_write_ns as f64 / self.write_count as f64
     }
 
+    #[inline(always)]
     pub fn read_write_ratio(&self) -> f64 {
         if self.write_count == 0 { return 0.0; }
         self.read_successes as f64 / self.write_count as f64
@@ -160,19 +168,23 @@ impl Seqcount {
         Self { id, sequence: 0, reads: 0, writes: 0, retries: 0 }
     }
 
+    #[inline(always)]
     pub fn begin_write(&mut self) {
         self.sequence += 1;
     }
 
+    #[inline(always)]
     pub fn end_write(&mut self) {
         self.sequence += 1;
         self.writes += 1;
     }
 
+    #[inline(always)]
     pub fn read_begin(&self) -> u64 {
         self.sequence
     }
 
+    #[inline]
     pub fn read_check(&mut self, start: u64) -> bool {
         self.reads += 1;
         if start & 1 != 0 || self.sequence != start {
@@ -186,6 +198,7 @@ impl Seqcount {
 
 /// Seqlock stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeqlockStats {
     pub total_seqlocks: u64,
     pub total_seqcounts: u64,
@@ -220,6 +233,7 @@ impl CoopSeqlock {
         }
     }
 
+    #[inline]
     pub fn create_seqlock(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -228,6 +242,7 @@ impl CoopSeqlock {
         id
     }
 
+    #[inline]
     pub fn create_seqcount(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -250,6 +265,7 @@ impl CoopSeqlock {
         }
     }
 
+    #[inline]
     pub fn write_end(&mut self, id: u64, now_ns: u64) {
         if let Some(sl) = self.seqlocks.get_mut(&id) {
             sl.write_end(now_ns);
@@ -258,6 +274,7 @@ impl CoopSeqlock {
         }
     }
 
+    #[inline]
     pub fn read_begin(&self, id: u64) -> Option<u64> {
         if let Some(sl) = self.seqlocks.get(&id) {
             Some(sl.read_begin())
@@ -283,6 +300,7 @@ impl CoopSeqlock {
         }
     }
 
+    #[inline]
     pub fn most_contended(&self, top: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<(u64, f64)> = self.seqlocks.iter()
             .map(|(&id, sl)| (id, sl.retry_rate()))
@@ -292,10 +310,12 @@ impl CoopSeqlock {
         v
     }
 
+    #[inline(always)]
     pub fn get_seqlock(&self, id: u64) -> Option<&Seqlock> {
         self.seqlocks.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SeqlockStats {
         &self.stats
     }
@@ -330,12 +350,14 @@ impl SeqlockV2 {
         Self { id, sequence: 0, state: SeqlockV2State::Idle, total_writes: 0, total_reads: 0, total_retries: 0, max_retries: 0, data_hash: 0 }
     }
 
+    #[inline]
     pub fn write_begin(&mut self) -> u64 {
         self.sequence += 1;
         self.state = SeqlockV2State::Writing;
         self.sequence
     }
 
+    #[inline]
     pub fn write_end(&mut self, data_hash: u64) {
         self.data_hash = data_hash;
         self.sequence += 1;
@@ -343,8 +365,10 @@ impl SeqlockV2 {
         self.state = SeqlockV2State::Idle;
     }
 
+    #[inline(always)]
     pub fn read_begin(&self) -> u64 { self.sequence }
 
+    #[inline]
     pub fn read_validate(&mut self, start_seq: u64, retries: u32) -> bool {
         self.total_reads += 1;
         self.total_retries += retries as u64;
@@ -352,6 +376,7 @@ impl SeqlockV2 {
         self.sequence == start_seq && (start_seq & 1) == 0
     }
 
+    #[inline(always)]
     pub fn avg_retries(&self) -> f64 {
         if self.total_reads == 0 { 0.0 }
         else { self.total_retries as f64 / self.total_reads as f64 }
@@ -360,6 +385,7 @@ impl SeqlockV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeqlockV2Stats {
     pub total_locks: u32,
     pub total_writes: u64,
@@ -377,23 +403,28 @@ pub struct CoopSeqlockV2 {
 impl CoopSeqlockV2 {
     pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.locks.insert(id, SeqlockV2::new(id));
         id
     }
 
+    #[inline(always)]
     pub fn write_begin(&mut self, id: u64) -> u64 {
         if let Some(l) = self.locks.get_mut(&id) { l.write_begin() }
         else { 0 }
     }
 
+    #[inline(always)]
     pub fn write_end(&mut self, id: u64, data_hash: u64) {
         if let Some(l) = self.locks.get_mut(&id) { l.write_end(data_hash); }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, id: u64) { self.locks.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> SeqlockV2Stats {
         let writes: u64 = self.locks.values().map(|l| l.total_writes).sum();
         let reads: u64 = self.locks.values().map(|l| l.total_reads).sum();
@@ -453,6 +484,7 @@ impl SeqlockV3Instance {
         }
     }
 
+    #[inline]
     pub fn write_begin(&mut self, pid: u64) -> u64 {
         let seq = self.sequence.fetch_add(1, Ordering::AcqRel);
         self.state = SeqlockV3State::Writing;
@@ -460,6 +492,7 @@ impl SeqlockV3Instance {
         seq
     }
 
+    #[inline]
     pub fn write_end(&mut self) {
         self.sequence.fetch_add(1, Ordering::AcqRel);
         self.state = SeqlockV3State::Idle;
@@ -467,10 +500,12 @@ impl SeqlockV3Instance {
         self.total_writes += 1;
     }
 
+    #[inline(always)]
     pub fn read_begin(&self) -> u64 {
         self.sequence.load(Ordering::Acquire)
     }
 
+    #[inline]
     pub fn read_validate(&mut self, start_seq: u64) -> bool {
         let current = self.sequence.load(Ordering::Acquire);
         let valid = current == start_seq && (start_seq & 1) == 0;
@@ -482,6 +517,7 @@ impl SeqlockV3Instance {
         valid
     }
 
+    #[inline]
     pub fn retry_rate(&self) -> f64 {
         let total = self.total_reads + self.total_retries;
         if total == 0 {
@@ -493,6 +529,7 @@ impl SeqlockV3Instance {
 
 /// Per-reader retry tracking.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeqlockV3ReaderStats {
     pub pid: u64,
     pub total_reads: u64,
@@ -513,6 +550,7 @@ impl SeqlockV3ReaderStats {
 
 /// Statistics for seqlock V3.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeqlockV3Stats {
     pub total_seqlocks: u64,
     pub total_writes: u64,
@@ -545,6 +583,7 @@ impl CoopSeqlockV3 {
         }
     }
 
+    #[inline]
     pub fn create_seqlock(&mut self, variant: SeqlockV3Variant) -> u64 {
         let id = self.next_lock_id;
         self.next_lock_id += 1;
@@ -557,6 +596,7 @@ impl CoopSeqlockV3 {
         id
     }
 
+    #[inline(always)]
     pub fn seqlock_count(&self) -> usize {
         self.seqlocks.len()
     }

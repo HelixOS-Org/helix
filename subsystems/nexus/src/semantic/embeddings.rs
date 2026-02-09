@@ -55,27 +55,32 @@ impl Embedding {
         }
     }
 
+    #[inline(always)]
     pub fn with_name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self
     }
 
+    #[inline(always)]
     pub fn with_metadata(mut self, metadata: EmbeddingMetadata) -> Self {
         self.metadata = metadata;
         self
     }
 
+    #[inline(always)]
     pub fn dim(&self) -> usize {
         self.vector.len()
     }
 
     /// L2 norm of the embedding
+    #[inline(always)]
     pub fn norm(&self) -> f32 {
         let sum_sq: f32 = self.vector.iter().map(|x| x * x).sum();
         libm::sqrtf(sum_sq)
     }
 
     /// Normalize to unit vector
+    #[inline]
     pub fn normalize(&mut self) {
         let n = self.norm();
         if n > 1e-10 {
@@ -86,6 +91,7 @@ impl Embedding {
     }
 
     /// Return normalized copy
+    #[inline]
     pub fn normalized(&self) -> Self {
         let mut copy = self.clone();
         copy.normalize();
@@ -93,6 +99,7 @@ impl Embedding {
     }
 
     /// Dot product with another embedding
+    #[inline]
     pub fn dot(&self, other: &Embedding) -> f32 {
         self.vector
             .iter()
@@ -102,6 +109,7 @@ impl Embedding {
     }
 
     /// Cosine similarity with another embedding
+    #[inline]
     pub fn cosine_similarity(&self, other: &Embedding) -> f32 {
         let dot = self.dot(other);
         let norm_a = self.norm();
@@ -115,6 +123,7 @@ impl Embedding {
     }
 
     /// Euclidean distance to another embedding
+    #[inline]
     pub fn euclidean_distance(&self, other: &Embedding) -> f32 {
         let sum_sq: f32 = self
             .vector
@@ -126,6 +135,7 @@ impl Embedding {
     }
 
     /// Add two embeddings element-wise
+    #[inline]
     pub fn add(&self, other: &Embedding) -> Embedding {
         let vector: Vec<f32> = self
             .vector
@@ -138,6 +148,7 @@ impl Embedding {
     }
 
     /// Subtract embedding element-wise
+    #[inline]
     pub fn sub(&self, other: &Embedding) -> Embedding {
         let vector: Vec<f32> = self
             .vector
@@ -150,6 +161,7 @@ impl Embedding {
     }
 
     /// Scale embedding by scalar
+    #[inline]
     pub fn scale(&self, factor: f32) -> Embedding {
         let vector: Vec<f32> = self.vector.iter().map(|x| x * factor).collect();
 
@@ -157,6 +169,7 @@ impl Embedding {
     }
 
     /// Hadamard (element-wise) product
+    #[inline]
     pub fn hadamard(&self, other: &Embedding) -> Embedding {
         let vector: Vec<f32> = self
             .vector
@@ -169,6 +182,7 @@ impl Embedding {
     }
 
     /// Linear interpolation between two embeddings
+    #[inline]
     pub fn lerp(&self, other: &Embedding, t: f32) -> Embedding {
         let vector: Vec<f32> = self
             .vector
@@ -205,14 +219,17 @@ impl EmbeddingSpace {
         }
     }
 
+    #[inline(always)]
     pub fn dimension(&self) -> usize {
         self.dimension
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.embeddings.len()
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.embeddings.is_empty()
     }
@@ -238,11 +255,13 @@ impl EmbeddingSpace {
     }
 
     /// Get embedding by ID
+    #[inline(always)]
     pub fn get(&self, id: EmbeddingId) -> Option<&Embedding> {
         self.embeddings.get(&id)
     }
 
     /// Get embedding by name
+    #[inline]
     pub fn get_by_name(&self, name: &str) -> Option<&Embedding> {
         self.name_index
             .get(name)
@@ -250,6 +269,7 @@ impl EmbeddingSpace {
     }
 
     /// Remove an embedding
+    #[inline]
     pub fn remove(&mut self, id: EmbeddingId) -> Option<Embedding> {
         if let Some(embedding) = self.embeddings.remove(&id) {
             if let Some(ref name) = embedding.name {
@@ -314,6 +334,7 @@ impl EmbeddingSpace {
     }
 
     /// Get all embeddings
+    #[inline(always)]
     pub fn all(&self) -> impl Iterator<Item = &Embedding> {
         self.embeddings.values()
     }
@@ -343,6 +364,7 @@ impl HashEncoder {
         }
     }
 
+    #[inline(always)]
     pub fn with_seed(mut self, seed: u64) -> Self {
         self.seed = seed;
         self
@@ -401,6 +423,7 @@ impl OneHotEncoder {
         }
     }
 
+    #[inline]
     pub fn add_category(&mut self, category: impl Into<String>) -> usize {
         let cat = category.into();
         if let Some(&idx) = self.categories.get(&cat) {
@@ -413,6 +436,7 @@ impl OneHotEncoder {
         }
     }
 
+    #[inline]
     pub fn encode_category(&self, category: &str) -> Option<Embedding> {
         self.categories.get(category).map(|&idx| {
             let mut vector = vec![0.0f32; self.dimension];
@@ -458,6 +482,7 @@ impl NearestDecoder {
         Self { space }
     }
 
+    #[inline]
     pub fn decode_to_name(&self, embedding: &Embedding) -> Option<String> {
         let neighbors = self.space.knn(embedding, 1);
         neighbors
@@ -488,6 +513,7 @@ impl LinearTransform {
         }
     }
 
+    #[inline]
     pub fn identity(dim: usize) -> Self {
         let mut transform = Self::new(dim, dim);
         for i in 0..dim {
@@ -523,6 +549,7 @@ impl LinearTransform {
         transform
     }
 
+    #[inline]
     pub fn apply(&self, embedding: &Embedding) -> Embedding {
         let mut output = vec![0.0f32; self.output_dim];
 
@@ -535,10 +562,12 @@ impl LinearTransform {
         Embedding::new(EmbeddingId::new(0), output)
     }
 
+    #[inline(always)]
     pub fn input_dim(&self) -> usize {
         self.input_dim
     }
 
+    #[inline(always)]
     pub fn output_dim(&self) -> usize {
         self.output_dim
     }

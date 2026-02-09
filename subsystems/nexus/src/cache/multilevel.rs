@@ -15,6 +15,7 @@ use super::types::{CacheId, CacheKey, CacheLevel};
 // ============================================================================
 
 /// Multi-level cache coordinator
+#[repr(align(64))]
 pub struct MultiLevelCache {
     /// Caches by level
     caches: BTreeMap<CacheLevel, CacheManager>,
@@ -49,6 +50,7 @@ impl MultiLevelCache {
     }
 
     /// Add cache level
+    #[inline(always)]
     pub fn add_level(&mut self, id: CacheId, level: CacheLevel, size: u64) {
         self.caches
             .insert(level, CacheManager::new(id, level, size));
@@ -147,21 +149,25 @@ impl MultiLevelCache {
     }
 
     /// Get cache at level
+    #[inline(always)]
     pub fn get_level(&self, level: CacheLevel) -> Option<&CacheManager> {
         self.caches.get(&level)
     }
 
     /// Get mutable cache at level
+    #[inline(always)]
     pub fn get_level_mut(&mut self, level: CacheLevel) -> Option<&mut CacheManager> {
         self.caches.get_mut(&level)
     }
 
     /// Set inclusion policy
+    #[inline(always)]
     pub fn set_inclusion(&mut self, policy: InclusionPolicy) {
         self.inclusion = policy;
     }
 
     /// Get total accesses
+    #[inline(always)]
     pub fn total_accesses(&self) -> u64 {
         self.total_accesses.load(Ordering::Relaxed)
     }

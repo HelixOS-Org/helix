@@ -12,6 +12,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -24,6 +25,7 @@ use crate::types::Timestamp;
 
 /// Cognitive state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CognitiveState {
     /// State ID
     pub id: u64,
@@ -116,7 +118,7 @@ pub struct SelfModel {
     /// Preferences
     pub preferences: BTreeMap<String, f64>,
     /// History accuracy
-    pub accuracy_history: Vec<f64>,
+    pub accuracy_history: VecDeque<f64>,
 }
 
 /// Monitoring result
@@ -162,7 +164,7 @@ pub struct MetaCognitiveEngine {
     /// Current state
     current_state: CognitiveState,
     /// State history
-    state_history: Vec<CognitiveState>,
+    state_history: VecDeque<CognitiveState>,
     /// Judgments
     judgments: BTreeMap<u64, MetaJudgment>,
     /// Actions taken
@@ -200,6 +202,7 @@ impl Default for MetaCognitiveConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MetaCognitiveStats {
     /// Judgments made
     pub judgments_made: u64,
@@ -223,7 +226,7 @@ impl MetaCognitiveEngine {
                 load: 0.0,
                 timestamp: now,
             },
-            state_history: Vec::new(),
+            state_history: VecDeque::new(),
             judgments: BTreeMap::new(),
             actions: Vec::new(),
             self_model: SelfModel {
@@ -231,7 +234,7 @@ impl MetaCognitiveEngine {
                 strengths: BTreeMap::new(),
                 weaknesses: BTreeMap::new(),
                 preferences: BTreeMap::new(),
-                accuracy_history: Vec::new(),
+                accuracy_history: VecDeque::new(),
             },
             next_id: AtomicU64::new(2),
             config,
@@ -240,6 +243,7 @@ impl MetaCognitiveEngine {
     }
 
     /// Update knowledge
+    #[inline]
     pub fn update_knowledge(&mut self, domain: &str, level: f64) {
         self.current_state
             .knowledge
@@ -248,12 +252,14 @@ impl MetaCognitiveEngine {
     }
 
     /// Update attention
+    #[inline(always)]
     pub fn focus_attention(&mut self, targets: Vec<String>) {
         self.current_state.attention = targets;
         self.current_state.timestamp = Timestamp::now();
     }
 
     /// Update cognitive load
+    #[inline(always)]
     pub fn update_load(&mut self, load: f64) {
         self.current_state.load = load.clamp(0.0, 1.0);
         self.current_state.timestamp = Timestamp::now();
@@ -338,6 +344,7 @@ impl MetaCognitiveEngine {
     }
 
     /// Judgment of learning
+    #[inline]
     pub fn judgment_of_learning(&mut self, item: &str, ease: f64) -> f64 {
         let jol = ease * 0.7 + self.current_state.confidence * 0.3;
 
@@ -476,11 +483,12 @@ impl MetaCognitiveEngine {
 
         // Limit history
         if self.self_model.accuracy_history.len() > self.config.history_size {
-            self.self_model.accuracy_history.remove(0);
+            self.self_model.accuracy_history.pop_front().unwrap();
         }
     }
 
     /// Get calibration (how accurate are judgments)
+    #[inline]
     pub fn calibration(&self) -> f64 {
         if self.self_model.accuracy_history.is_empty() {
             return 0.5;
@@ -491,26 +499,30 @@ impl MetaCognitiveEngine {
     }
 
     /// Snapshot state
+    #[inline]
     pub fn snapshot(&mut self) {
         self.current_state.id = self.next_id.fetch_add(1, Ordering::Relaxed);
-        self.state_history.push(self.current_state.clone());
+        self.state_history.push_back(self.current_state.clone());
 
         if self.state_history.len() > self.config.history_size {
-            self.state_history.remove(0);
+            self.state_history.pop_front();
         }
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn state(&self) -> &CognitiveState {
         &self.current_state
     }
 
     /// Get self model
+    #[inline(always)]
     pub fn self_model(&self) -> &SelfModel {
         &self.self_model
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MetaCognitiveStats {
         &self.stats
     }

@@ -143,6 +143,7 @@ impl DebounceEntry {
     }
 
     /// Suppression rate
+    #[inline]
     pub fn suppression_rate(&self) -> f64 {
         if self.total_attempts == 0 {
             return 0.0;
@@ -157,6 +158,7 @@ impl DebounceEntry {
 
 /// Per-process debounce tracker
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessDebounce {
     /// Process id
     pub pid: u64,
@@ -179,6 +181,7 @@ impl ProcessDebounce {
     }
 
     /// Check syscall
+    #[inline]
     pub fn check(&mut self, syscall_nr: u32, now: u64, value_hash: u64) -> DebounceResult {
         let entry = self.entries.entry(syscall_nr).or_insert_with(|| {
             DebounceEntry::new(self.default_interval_ns, self.default_strategy)
@@ -187,11 +190,13 @@ impl ProcessDebounce {
     }
 
     /// Get entry
+    #[inline(always)]
     pub fn entry(&self, syscall_nr: u32) -> Option<&DebounceEntry> {
         self.entries.get(&syscall_nr)
     }
 
     /// Total suppression rate
+    #[inline]
     pub fn overall_suppression_rate(&self) -> f64 {
         let total_attempts: u64 = self.entries.values().map(|e| e.total_attempts).sum();
         let total_allowed: u64 = self.entries.values().map(|e| e.total_allowed).sum();
@@ -208,6 +213,7 @@ impl ProcessDebounce {
 
 /// Debounce stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeDebounceStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -220,6 +226,7 @@ pub struct BridgeDebounceStats {
 }
 
 /// Bridge debounce manager
+#[repr(align(64))]
 pub struct BridgeDebounceManager {
     /// Per-process trackers
     processes: BTreeMap<u64, ProcessDebounce>,
@@ -260,17 +267,20 @@ impl BridgeDebounceManager {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.stats.tracked_processes = self.processes.len();
     }
 
     /// Get process tracker
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcessDebounce> {
         self.processes.get(&pid)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeDebounceStats {
         &self.stats
     }

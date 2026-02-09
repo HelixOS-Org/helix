@@ -73,6 +73,7 @@ impl SysfsAttr {
         Self { name, attr_type: atype, mode, value: Vec::new(), size: 0, read_count: 0, write_count: 0 }
     }
 
+    #[inline]
     pub fn write(&mut self, data: &[u8]) -> bool {
         match self.attr_type {
             AttrType::ReadOnly => false,
@@ -80,6 +81,7 @@ impl SysfsAttr {
         }
     }
 
+    #[inline]
     pub fn read(&mut self) -> Option<&[u8]> {
         match self.attr_type {
             AttrType::WriteOnly => None,
@@ -122,6 +124,7 @@ pub struct UeventFilter {
 
 /// Sysfs proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SysfsProxyStats {
     pub total_kobjects: usize,
     pub total_attrs: usize,
@@ -132,6 +135,7 @@ pub struct SysfsProxyStats {
 }
 
 /// Bridge sysfs proxy
+#[repr(align(64))]
 pub struct BridgeSysfsProxy {
     kobjects: BTreeMap<u64, KObject>,
     uevents: Vec<Uevent>,
@@ -146,6 +150,7 @@ impl BridgeSysfsProxy {
         Self { kobjects: BTreeMap::new(), uevents: Vec::new(), filters: Vec::new(), stats: SysfsProxyStats::default(), next_id: 1, uevent_seq: 0 }
     }
 
+    #[inline]
     pub fn create_kobject(&mut self, name: String, subsys: SysfsSubsystem, parent: Option<u64>) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let kobj = KObject::new(id, name, subsys, parent);
@@ -154,6 +159,7 @@ impl BridgeSysfsProxy {
         id
     }
 
+    #[inline]
     pub fn destroy_kobject(&mut self, id: u64) -> bool {
         let has_children = self.kobjects.get(&id).map(|k| !k.children.is_empty()).unwrap_or(true);
         if has_children { return false; }
@@ -163,10 +169,12 @@ impl BridgeSysfsProxy {
         true
     }
 
+    #[inline(always)]
     pub fn add_attr(&mut self, kobj_id: u64, attr: SysfsAttr) {
         if let Some(k) = self.kobjects.get_mut(&kobj_id) { k.attrs.push(attr); }
     }
 
+    #[inline]
     pub fn write_attr(&mut self, kobj_id: u64, attr_name: &str, data: &[u8]) -> bool {
         if let Some(k) = self.kobjects.get_mut(&kobj_id) {
             for a in k.attrs.iter_mut() { if a.name == attr_name { return a.write(data); } }
@@ -174,6 +182,7 @@ impl BridgeSysfsProxy {
         false
     }
 
+    #[inline]
     pub fn read_attr(&mut self, kobj_id: u64, attr_name: &str) -> Option<Vec<u8>> {
         if let Some(k) = self.kobjects.get_mut(&kobj_id) {
             for a in k.attrs.iter_mut() { if a.name == attr_name { return a.read().map(|v| v.to_vec()); } }
@@ -195,12 +204,15 @@ impl BridgeSysfsProxy {
         }
     }
 
+    #[inline(always)]
     pub fn add_filter(&mut self, subsys: Option<SysfsSubsystem>, action: Option<UeventAction>) {
         self.filters.push(UeventFilter { subsystem: subsys, action, match_count: 0 });
     }
 
+    #[inline(always)]
     pub fn children(&self, id: u64) -> Vec<u64> { self.kobjects.get(&id).map(|k| k.children.clone()).unwrap_or_default() }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_kobjects = self.kobjects.len();
         self.stats.total_attrs = self.kobjects.values().map(|k| k.attrs.len()).sum();
@@ -209,6 +221,8 @@ impl BridgeSysfsProxy {
         self.stats.total_uevents = self.uevent_seq;
     }
 
+    #[inline(always)]
     pub fn kobject(&self, id: u64) -> Option<&KObject> { self.kobjects.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &SysfsProxyStats { &self.stats }
 }

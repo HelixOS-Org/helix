@@ -6,6 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 /// LCG random number generator
+#[inline]
 pub fn lcg_next(state: u64) -> u64 {
     state
         .wrapping_mul(6364136223846793005)

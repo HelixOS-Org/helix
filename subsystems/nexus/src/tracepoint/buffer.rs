@@ -8,6 +8,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use super::EventData;
 
 /// Ring buffer for event storage
+#[repr(align(64))]
 pub struct EventRingBuffer {
     /// Buffer data
     data: Vec<EventData>,
@@ -78,6 +79,7 @@ impl EventRingBuffer {
     }
 
     /// Peek at next event without consuming
+    #[inline]
     pub fn peek(&self) -> Option<&EventData> {
         if !self.is_full && self.read_pos >= self.write_pos {
             return None;
@@ -86,16 +88,19 @@ impl EventRingBuffer {
     }
 
     /// Get events written count
+    #[inline(always)]
     pub fn events_written(&self) -> u64 {
         self.events_written.load(Ordering::Relaxed)
     }
 
     /// Get events lost count
+    #[inline(always)]
     pub fn events_lost(&self) -> u64 {
         self.events_lost.load(Ordering::Relaxed)
     }
 
     /// Get available events count
+    #[inline]
     pub fn available(&self) -> usize {
         if self.is_full {
             self.capacity
@@ -107,16 +112,19 @@ impl EventRingBuffer {
     }
 
     /// Check if buffer is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.available() == 0
     }
 
     /// Check if buffer is full
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.is_full
     }
 
     /// Clear buffer
+    #[inline]
     pub fn clear(&mut self) {
         self.write_pos = 0;
         self.read_pos = 0;
@@ -125,11 +133,13 @@ impl EventRingBuffer {
     }
 
     /// Get capacity
+    #[inline(always)]
     pub fn capacity(&self) -> usize {
         self.capacity
     }
 
     /// Get current length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.available()
     }

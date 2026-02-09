@@ -58,18 +58,21 @@ impl DegradationEvent {
     }
 
     /// Set component
+    #[inline(always)]
     pub fn with_component(mut self, component: ComponentId) -> Self {
         self.component = Some(component);
         self
     }
 
     /// Set trend
+    #[inline(always)]
     pub fn with_trend(mut self, trend: f64) -> Self {
         self.trend = trend;
         self
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self

@@ -50,6 +50,7 @@ impl Default for DecideConfig {
 
 impl DecideConfig {
     /// Create minimal configuration
+    #[inline]
     pub fn minimal() -> Self {
         Self {
             max_options: 5,
@@ -61,6 +62,7 @@ impl DecideConfig {
     }
 
     /// Create aggressive configuration
+    #[inline]
     pub fn aggressive() -> Self {
         Self {
             max_options: 20,
@@ -72,6 +74,7 @@ impl DecideConfig {
     }
 
     /// Create safe configuration
+    #[inline]
     pub fn safe() -> Self {
         Self {
             max_options: 10,
@@ -129,41 +132,49 @@ impl DecideDomain {
     }
 
     /// Get domain ID
+    #[inline(always)]
     pub fn id(&self) -> DomainId {
         self.id
     }
 
     /// Is running?
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Acquire)
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &DecideConfig {
         &self.config
     }
 
     /// Get policy engine
+    #[inline(always)]
     pub fn policy_engine(&self) -> &PolicyEngine {
         &self.policy_engine
     }
 
     /// Get mutable policy engine
+    #[inline(always)]
     pub fn policy_engine_mut(&mut self) -> &mut PolicyEngine {
         &mut self.policy_engine
     }
 
     /// Get option generator
+    #[inline(always)]
     pub fn generator(&self) -> &OptionGenerator {
         &self.generator
     }
 
     /// Get mutable option generator
+    #[inline(always)]
     pub fn generator_mut(&mut self) -> &mut OptionGenerator {
         &mut self.generator
     }
 
     /// Start the domain
+    #[inline]
     pub fn start(&mut self) -> Result<(), DecideError> {
         if self.running.load(Ordering::Acquire) {
             return Err(DecideError::AlreadyRunning);
@@ -173,6 +184,7 @@ impl DecideDomain {
     }
 
     /// Stop the domain
+    #[inline]
     pub fn stop(&mut self) -> Result<(), DecideError> {
         if !self.running.load(Ordering::Acquire) {
             return Err(DecideError::NotRunning);
@@ -182,21 +194,25 @@ impl DecideDomain {
     }
 
     /// Submit a conclusion for decision
+    #[inline(always)]
     pub fn submit(&mut self, conclusion: Conclusion) {
         self.pending.push(conclusion);
     }
 
     /// Submit multiple conclusions
+    #[inline(always)]
     pub fn submit_batch(&mut self, conclusions: Vec<Conclusion>) {
         self.pending.extend(conclusions);
     }
 
     /// Get pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }
 
     /// Clear pending
+    #[inline(always)]
     pub fn clear_pending(&mut self) {
         self.pending.clear();
     }
@@ -297,6 +313,7 @@ impl DecideDomain {
     }
 
     /// Decide on a single conclusion immediately
+    #[inline(always)]
     pub fn decide(&self, conclusion: &Conclusion, now: Timestamp) -> Option<Intent> {
         self.process_conclusion(conclusion, now)
     }
@@ -328,6 +345,7 @@ impl Default for DecideDomain {
 
 /// Decide domain statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DecideStats {
     /// Domain ID
     pub domain_id: DomainId,
@@ -368,6 +386,7 @@ pub enum DecideError {
 
 impl DecideError {
     /// Get error message
+    #[inline]
     pub fn message(&self) -> &str {
         match self {
             Self::AlreadyRunning => "Domain already running",

@@ -67,10 +67,12 @@ impl LockWaiter {
         }
     }
 
+    #[inline(always)]
     pub fn wait_ns(&self, now_ns: u64) -> u64 {
         now_ns.saturating_sub(self.enqueue_ns)
     }
 
+    #[inline(always)]
     pub fn bump_priority(&mut self) {
         self.age_bumps += 1;
         self.effective_priority = self.priority.saturating_add(self.age_bumps);
@@ -157,6 +159,7 @@ impl FairLock {
         true
     }
 
+    #[inline]
     pub fn enqueue(&mut self, thread_id: u64, hold_type: HoldType, priority: u32, now_ns: u64) -> u64 {
         let ticket = self.next_ticket;
         self.next_ticket += 1;
@@ -227,6 +230,7 @@ impl FairLock {
         }
     }
 
+    #[inline]
     pub fn age_waiters(&mut self, now_ns: u64) {
         for w in &mut self.waiters {
             if w.wait_ns(now_ns) > self.starvation_threshold_ns / 2 {
@@ -235,28 +239,34 @@ impl FairLock {
         }
     }
 
+    #[inline(always)]
     pub fn waiter_count(&self) -> usize {
         self.waiters.len()
     }
 
+    #[inline(always)]
     pub fn holder_count(&self) -> usize {
         self.holders.len()
     }
 
+    #[inline(always)]
     pub fn is_held(&self) -> bool {
         !self.holders.is_empty()
     }
 
+    #[inline(always)]
     pub fn contention_level(&self) -> f64 {
         if self.total_acquires == 0 { return 0.0; }
         self.total_waits as f64 / self.total_acquires as f64
     }
 
+    #[inline(always)]
     pub fn avg_wait_ns(&self) -> f64 {
         if self.total_waits == 0 { return 0.0; }
         self.total_wait_ns as f64 / self.total_waits as f64
     }
 
+    #[inline(always)]
     pub fn avg_hold_ns(&self) -> f64 {
         if self.total_releases == 0 { return 0.0; }
         self.total_hold_ns as f64 / self.total_releases as f64
@@ -265,6 +275,7 @@ impl FairLock {
 
 /// Fair lock stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FairLockStats {
     pub total_locks: u64,
     pub total_acquires: u64,
@@ -295,6 +306,7 @@ impl CoopFairLock {
         }
     }
 
+    #[inline]
     pub fn create_lock(&mut self, policy: FairnessPolicy) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -303,6 +315,7 @@ impl CoopFairLock {
         id
     }
 
+    #[inline]
     pub fn try_acquire(&mut self, lock_id: u64, thread_id: u64, hold_type: HoldType, priority: u32, now_ns: u64) -> bool {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             let result = lock.try_acquire(thread_id, hold_type, priority, now_ns);
@@ -315,6 +328,7 @@ impl CoopFairLock {
         }
     }
 
+    #[inline]
     pub fn enqueue_waiter(&mut self, lock_id: u64, thread_id: u64, hold_type: HoldType, priority: u32, now_ns: u64) -> Option<u64> {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             Some(lock.enqueue(thread_id, hold_type, priority, now_ns))
@@ -337,12 +351,14 @@ impl CoopFairLock {
         }
     }
 
+    #[inline]
     pub fn age_all_waiters(&mut self, now_ns: u64) {
         for lock in self.locks.values_mut() {
             lock.age_waiters(now_ns);
         }
     }
 
+    #[inline]
     pub fn most_contended(&self, top: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<(u64, f64)> = self.locks.iter()
             .map(|(&id, l)| (id, l.contention_level()))
@@ -352,10 +368,12 @@ impl CoopFairLock {
         v
     }
 
+    #[inline(always)]
     pub fn get_lock(&self, id: u64) -> Option<&FairLock> {
         self.locks.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &FairLockStats {
         &self.stats
     }
@@ -388,7 +406,9 @@ impl McsNode {
         Self { thread_id: tid, state: McsNodeState::Waiting, next: None, spin_count: 0, wait_start: now, wait_end: 0 }
     }
 
+    #[inline(always)]
     pub fn grant(&mut self, now: u64) { self.state = McsNodeState::Granted; self.wait_end = now; }
+    #[inline(always)]
     pub fn wait_time(&self) -> u64 { if self.wait_end > 0 { self.wait_end - self.wait_start } else { 0 } }
 }
 
@@ -440,11 +460,13 @@ impl FairLockV2 {
         }
     }
 
+    #[inline(always)]
     pub fn avg_wait(&self) -> u64 { if self.acquisitions == 0 { 0 } else { self.total_wait_ns / self.acquisitions } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FairLockV2Stats {
     pub total_locks: u32,
     pub total_acquisitions: u64,
@@ -462,12 +484,14 @@ pub struct CoopFairLockV2 {
 impl CoopFairLockV2 {
     pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.locks.insert(id, FairLockV2::new(id));
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> FairLockV2Stats {
         let acqs: u64 = self.locks.values().map(|l| l.acquisitions).sum();
         let conts: u64 = self.locks.values().map(|l| l.contentions).sum();

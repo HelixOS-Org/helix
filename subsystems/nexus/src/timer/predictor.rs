@@ -3,6 +3,7 @@
 //! Predicts timer deadlines and patterns.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -12,6 +13,7 @@ use super::TimerId;
 
 /// Timer pattern
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerPattern {
     /// Timer ID
     pub timer_id: TimerId,
@@ -82,7 +84,7 @@ impl DeadlinePredictor {
         let samples = self.samples.entry(timer_id).or_default();
         samples.push(sample);
         if samples.len() > self.max_samples {
-            samples.remove(0);
+            samples.pop_front();
         }
 
         self.analyze_pattern(timer_id);
@@ -138,6 +140,7 @@ impl DeadlinePredictor {
     }
 
     /// Predict next deadline
+    #[inline]
     pub fn predict(&self, timer_id: TimerId, current_deadline: u64) -> Option<u64> {
         let pattern = self.patterns.get(&timer_id)?;
 
@@ -149,11 +152,13 @@ impl DeadlinePredictor {
     }
 
     /// Get pattern
+    #[inline(always)]
     pub fn get_pattern(&self, timer_id: TimerId) -> Option<&TimerPattern> {
         self.patterns.get(&timer_id)
     }
 
     /// Get periodic timers
+    #[inline]
     pub fn periodic_timers(&self) -> Vec<TimerId> {
         self.patterns
             .iter()

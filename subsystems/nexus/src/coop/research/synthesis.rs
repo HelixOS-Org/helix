@@ -151,6 +151,7 @@ pub struct RollbackRecord {
 
 /// Aggregate synthesis statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SynthesisStats {
     pub total_synthesized: u64,
     pub total_deployed: u64,
@@ -397,6 +398,7 @@ impl CoopSynthesis {
     }
 
     /// Deploy a protocol (mark as deployed)
+    #[inline]
     pub fn deploy(&mut self, protocol_id: u64) -> bool {
         self.tick += 1;
         if let Some(proto) = self.protocols.get_mut(&protocol_id) {
@@ -480,6 +482,7 @@ impl CoopSynthesis {
     }
 
     /// Get current synthesis engine statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SynthesisStats {
         &self.stats
     }

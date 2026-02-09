@@ -206,6 +206,7 @@ impl Default for HotPatchConfig {
 
 /// Hot patch statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HotPatchStats {
     /// Total patches applied
     pub patches_applied: u64,
@@ -461,21 +462,25 @@ impl HotPatcher {
     }
 
     /// Enable hot patching
+    #[inline(always)]
     pub fn enable(&self) {
         self.active.store(true, Ordering::SeqCst);
     }
 
     /// Disable hot patching
+    #[inline(always)]
     pub fn disable(&self) {
         self.active.store(false, Ordering::SeqCst);
     }
 
     /// Get patch by ID
+    #[inline(always)]
     pub fn get_patch(&self, id: PatchId) -> Option<&HotPatch> {
         self.patches.get(&id)
     }
 
     /// Get all applied patches
+    #[inline]
     pub fn applied_patches(&self) -> impl Iterator<Item = &HotPatch> {
         self.patches
             .values()
@@ -483,6 +488,7 @@ impl HotPatcher {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &HotPatchStats {
         &self.stats
     }

@@ -92,6 +92,7 @@ impl CompatibilityAnalyzer {
     }
 
     /// Record compatibility issue
+    #[inline]
     pub fn record_issue(&mut self, issue: CompatibilityIssue) {
         let key = if issue.driver_a < issue.driver_b {
             (issue.driver_a, issue.driver_b)
@@ -103,6 +104,7 @@ impl CompatibilityAnalyzer {
     }
 
     /// Check compatibility
+    #[inline]
     pub fn check_compatibility(
         &self,
         driver_a: DriverId,
@@ -118,6 +120,7 @@ impl CompatibilityAnalyzer {
     }
 
     /// Record conflict
+    #[inline]
     pub fn record_conflict(&mut self, drivers: Vec<DriverId>, description: &str) {
         self.conflicts.push(DriverConflict {
             drivers,
@@ -128,6 +131,7 @@ impl CompatibilityAnalyzer {
     }
 
     /// Resolve conflict
+    #[inline]
     pub fn resolve_conflict(&mut self, index: usize) {
         if let Some(conflict) = self.conflicts.get_mut(index) {
             conflict.resolved = true;
@@ -135,11 +139,13 @@ impl CompatibilityAnalyzer {
     }
 
     /// Set hardware compatibility
+    #[inline(always)]
     pub fn set_hardware_compat(&mut self, driver_id: DriverId, device_ids: Vec<String>) {
         self.hardware_compat.insert(driver_id, device_ids);
     }
 
     /// Check hardware compatibility
+    #[inline]
     pub fn check_hardware(&self, driver_id: DriverId, device_id: &str) -> bool {
         self.hardware_compat
             .get(&driver_id)
@@ -148,6 +154,7 @@ impl CompatibilityAnalyzer {
     }
 
     /// Get all issues for driver
+    #[inline]
     pub fn get_issues(&self, driver_id: DriverId) -> Vec<&CompatibilityIssue> {
         self.issues
             .values()
@@ -156,6 +163,7 @@ impl CompatibilityAnalyzer {
     }
 
     /// Get unresolved conflicts
+    #[inline(always)]
     pub fn unresolved_conflicts(&self) -> Vec<&DriverConflict> {
         self.conflicts.iter().filter(|c| !c.resolved).collect()
     }

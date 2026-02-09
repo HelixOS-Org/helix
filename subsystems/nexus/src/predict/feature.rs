@@ -7,6 +7,7 @@
 
 extern crate alloc;
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::Trend;
@@ -45,7 +46,7 @@ pub struct Feature {
     /// Current value
     pub value: f64,
     /// Historical values (sliding window)
-    pub history: Vec<f64>,
+    pub history: VecDeque<f64>,
     /// Window size
     pub window_size: usize,
 }
@@ -64,16 +65,18 @@ impl Feature {
     }
 
     /// Update feature value
+    #[inline]
     pub fn update(&mut self, value: f64) {
         self.value = value;
 
         if self.history.len() >= self.window_size {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(value);
+        self.history.push_back(value);
     }
 
     /// Get mean of history
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.history.is_empty() {
             return 0.0;
@@ -126,11 +129,13 @@ impl Feature {
     }
 
     /// Get trend
+    #[inline(always)]
     pub fn trend(&self) -> Trend {
         Trend::from_gradient(self.gradient())
     }
 
     /// Get z-score of current value
+    #[inline]
     pub fn z_score(&self) -> f64 {
         let std = self.std_dev();
         if std == 0.0 {
@@ -140,6 +145,7 @@ impl Feature {
     }
 
     /// Is current value anomalous? (|z| > 2)
+    #[inline(always)]
     pub fn is_anomalous(&self) -> bool {
         self.z_score().abs() > 2.0
     }

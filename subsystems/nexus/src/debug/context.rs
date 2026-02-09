@@ -45,12 +45,14 @@ impl StackFrame {
     }
 
     /// Set function name
+    #[inline(always)]
     pub fn with_function(mut self, name: impl Into<String>) -> Self {
         self.function = Some(name.into());
         self
     }
 
     /// Set file info
+    #[inline]
     pub fn with_location(mut self, file: impl Into<String>, line: u32) -> Self {
         self.file = Some(file.into());
         self.line = Some(line);
@@ -64,6 +66,7 @@ impl StackFrame {
 
 /// Context for debugging
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DebugContext {
     /// Error message
     pub error: String,
@@ -96,24 +99,28 @@ impl DebugContext {
     }
 
     /// Set component
+    #[inline(always)]
     pub fn with_component(mut self, component: ComponentId) -> Self {
         self.component = Some(component);
         self
     }
 
     /// Add stack frame
+    #[inline(always)]
     pub fn with_frame(mut self, frame: StackFrame) -> Self {
         self.stack_trace.push(frame);
         self
     }
 
     /// Add register
+    #[inline(always)]
     pub fn with_register(mut self, name: impl Into<String>, value: u64) -> Self {
         self.registers.insert(name.into(), value);
         self
     }
 
     /// Add recent event
+    #[inline(always)]
     pub fn with_event(mut self, event: impl Into<String>) -> Self {
         self.recent_events.push(event.into());
         self

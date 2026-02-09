@@ -56,14 +56,19 @@ impl LogEntry {
         }
     }
 
+    #[inline(always)]
     pub fn commit(&mut self, ts: u64) { self.state = LogEntryState::Committed; self.committed_ts = Some(ts); }
+    #[inline(always)]
     pub fn apply(&mut self, ts: u64) { self.state = LogEntryState::Applied; self.applied_ts = Some(ts); }
+    #[inline(always)]
     pub fn compact(&mut self) { self.state = LogEntryState::Compacted; }
 
+    #[inline(always)]
     pub fn commit_latency_ns(&self) -> Option<u64> {
         self.committed_ts.map(|ct| ct.saturating_sub(self.created_ts))
     }
 
+    #[inline(always)]
     pub fn apply_latency_ns(&self) -> Option<u64> {
         self.applied_ts.map(|at| at.saturating_sub(self.created_ts))
     }
@@ -111,6 +116,7 @@ impl ReplicationProgress {
         }
     }
 
+    #[inline]
     pub fn advance(&mut self, new_match: u64) {
         if new_match > self.match_index {
             self.match_index = new_match;
@@ -120,13 +126,16 @@ impl ReplicationProgress {
         }
     }
 
+    #[inline(always)]
     pub fn can_send(&self) -> bool { self.in_flight < self.max_in_flight }
 
+    #[inline(always)]
     pub fn lag(&self, leader_last: u64) -> u64 { leader_last.saturating_sub(self.match_index) }
 }
 
 /// Consensus log stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ConsensusLogStats {
     pub total_entries: usize,
     pub committed_entries: usize,
@@ -163,14 +172,17 @@ impl CoopConsensusLog {
         }
     }
 
+    #[inline(always)]
     pub fn last_index(&self) -> u64 {
         self.entries.keys().last().copied().unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn last_term(&self) -> u64 {
         self.entries.values().last().map(|e| e.term).unwrap_or(0)
     }
 
+    #[inline]
     pub fn append(&mut self, term: u64, etype: LogEntryType, proposer: u64, ts: u64) -> u64 {
         let index = self.last_index() + 1;
         self.entries.insert(index, LogEntry::new(index, term, etype, proposer, ts));
@@ -178,6 +190,7 @@ impl CoopConsensusLog {
         index
     }
 
+    #[inline]
     pub fn commit_up_to(&mut self, index: u64, ts: u64) {
         for i in (self.commit_index + 1)..=index {
             if let Some(entry) = self.entries.get_mut(&i) {
@@ -187,6 +200,7 @@ impl CoopConsensusLog {
         self.commit_index = index;
     }
 
+    #[inline]
     pub fn apply_up_to(&mut self, index: u64, ts: u64) {
         for i in (self.last_applied + 1)..=index.min(self.commit_index) {
             if let Some(entry) = self.entries.get_mut(&i) {
@@ -196,27 +210,32 @@ impl CoopConsensusLog {
         self.last_applied = index.min(self.commit_index);
     }
 
+    #[inline(always)]
     pub fn truncate_after(&mut self, index: u64) {
         let to_remove: Vec<u64> = self.entries.range((index + 1)..).map(|(&k, _)| k).collect();
         for k in to_remove { self.entries.remove(&k); }
     }
 
+    #[inline]
     pub fn compact_before(&mut self, index: u64) {
         let to_compact: Vec<u64> = self.entries.range(..index).map(|(&k, _)| k).collect();
         for k in to_compact { self.entries.remove(&k); }
         self.first_index = index;
     }
 
+    #[inline(always)]
     pub fn take_snapshot(&mut self, index: u64, term: u64, size: u64, ts: u64) {
         self.snapshots.push(SnapshotMeta::new(index, term, size, ts));
         self.compact_before(index);
     }
 
+    #[inline(always)]
     pub fn add_follower(&mut self, node_id: u64) {
         let next = self.last_index() + 1;
         self.followers.insert(node_id, ReplicationProgress::new(node_id, next));
     }
 
+    #[inline]
     pub fn follower_ack(&mut self, node_id: u64, match_index: u64, ts: u64) {
         if let Some(f) = self.followers.get_mut(&node_id) {
             f.advance(match_index);
@@ -224,6 +243,7 @@ impl CoopConsensusLog {
         }
     }
 
+    #[inline]
     pub fn compute_commit_index(&self) -> u64 {
         if self.followers.is_empty() { return self.last_index(); }
         let mut matches: Vec<u64> = self.followers.values().map(|f| f.match_index).collect();
@@ -233,6 +253,7 @@ impl CoopConsensusLog {
         matches[majority_idx]
     }
 
+    #[inline(always)]
     pub fn entry(&self, index: u64) -> Option<&LogEntry> { self.entries.get(&index) }
 
     pub fn recompute(&mut self) {
@@ -252,5 +273,6 @@ impl CoopConsensusLog {
         self.stats.avg_commit_latency_ns = if commit_lats.is_empty() { 0.0 } else { commit_lats.iter().sum::<u64>() as f64 / commit_lats.len() as f64 };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ConsensusLogStats { &self.stats }
 }

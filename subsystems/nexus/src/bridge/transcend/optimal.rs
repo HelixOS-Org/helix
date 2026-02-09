@@ -133,6 +133,7 @@ pub struct RobustOptimal {
 
 /// Aggregate statistics for the optimal decision engine.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct OptimalStats {
     pub problems_solved: u64,
     pub proven_optimal_count: u64,
@@ -166,6 +167,7 @@ struct ProblemRecord {
 /// Computes mathematically optimal handling paths for syscalls, with
 /// proofs of optimality, regret bounds, and Pareto trade-off analysis.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeOptimal {
     problems: BTreeMap<u64, ProblemRecord>,
     pareto_cache: BTreeMap<u64, Vec<ParetoPoint>>,
@@ -321,6 +323,7 @@ impl BridgeOptimal {
     /// Compute a regret bound for a decision set. Regret is the maximum
     /// difference between the chosen objective and the best possible
     /// objective across a sample of random perturbations.
+    #[inline]
     pub fn regret_bound(&mut self, problem_id: u64, samples: u64) -> RegretBound {
         self.stats.regret_analyses += 1;
         let (best_obj, dim) = if let Some(r) = self.problems.get(&problem_id) {
@@ -468,6 +471,7 @@ impl BridgeOptimal {
     }
 
     /// Aggregate statistics.
+    #[inline(always)]
     pub fn stats(&self) -> OptimalStats {
         self.stats
     }

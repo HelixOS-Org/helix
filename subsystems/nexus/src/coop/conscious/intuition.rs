@@ -131,6 +131,7 @@ impl IntuitionTemplate {
     }
 
     /// Record a use outcome
+    #[inline]
     pub fn record_outcome(&mut self, success: bool, quality: f32, tick: u64) {
         self.use_count += 1;
         if success {
@@ -155,12 +156,14 @@ impl IntuitionTemplate {
     }
 
     /// Decay template relevance over time
+    #[inline(always)]
     pub fn decay(&mut self) {
         self.confidence *= TEMPLATE_DECAY;
         self.success_rate *= TEMPLATE_DECAY;
     }
 
     /// Is this template reliable enough for use?
+    #[inline(always)]
     pub fn is_reliable(&self) -> bool {
         self.confidence >= CONFIDENCE_THRESHOLD && self.success_rate >= SUCCESS_RATE_GOOD
     }
@@ -185,6 +188,7 @@ pub struct ScenarioRecord {
 // ============================================================================
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopIntuitionStats {
     pub total_templates: usize,
     pub reliable_templates: usize,
@@ -270,6 +274,7 @@ impl CoopIntuitionEngine {
     ///
     /// Returns the recommended action if a reliable template is found,
     /// or `DeferToNegotiation` if no suitable template exists.
+    #[inline]
     pub fn intuitive_cooperate(&mut self, scenario_description: &str) -> CoopAction {
         self.tick += 1;
         self.total_lookups += 1;
@@ -293,6 +298,7 @@ impl CoopIntuitionEngine {
     }
 
     /// Record the outcome of an intuitive decision
+    #[inline]
     pub fn record_intuitive_outcome(
         &mut self,
         scenario_description: &str,
@@ -345,6 +351,7 @@ impl CoopIntuitionEngine {
     // ========================================================================
 
     /// How often do templates match incoming cooperation scenarios?
+    #[inline]
     pub fn template_hit_rate(&self) -> f32 {
         if self.total_lookups == 0 {
             return 0.0;
@@ -353,6 +360,7 @@ impl CoopIntuitionEngine {
     }
 
     /// Raw hit rate (not EMA-smoothed)
+    #[inline]
     pub fn raw_hit_rate(&self) -> f32 {
         if self.total_lookups == 0 {
             return 0.0;
@@ -368,6 +376,7 @@ impl CoopIntuitionEngine {
     ///
     /// Hashes the conflict fingerprint and looks up a template. Returns
     /// the action and confidence level, or defers if no template fits.
+    #[inline]
     pub fn fast_mediation(
         &mut self,
         process_a: u64,
@@ -403,6 +412,7 @@ impl CoopIntuitionEngine {
     // ========================================================================
 
     /// Compare intuition outcome against full negotiation for the same scenario
+    #[inline]
     pub fn intuition_vs_negotiation(
         &mut self,
         scenario_hash: u64,
@@ -427,6 +437,7 @@ impl CoopIntuitionEngine {
     }
 
     /// Average intuition advantage across recorded comparisons
+    #[inline(always)]
     pub fn avg_intuition_advantage(&self) -> f32 {
         self.advantage_ema
     }
@@ -515,18 +526,22 @@ impl CoopIntuitionEngine {
     // QUERIES
     // ========================================================================
 
+    #[inline(always)]
     pub fn template(&self, hash: u64) -> Option<&IntuitionTemplate> {
         self.templates.get(&hash)
     }
 
+    #[inline(always)]
     pub fn template_count(&self) -> usize {
         self.templates.len()
     }
 
+    #[inline(always)]
     pub fn reliable_template_count(&self) -> usize {
         self.templates.values().filter(|t| t.is_reliable()).count()
     }
 
+    #[inline(always)]
     pub fn snapshot_stats(&self) -> CoopIntuitionStats {
         self.stats.clone()
     }

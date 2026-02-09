@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -143,6 +144,7 @@ pub struct ValidationReport {
 
 /// Aggregate validation statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     pub total_validations: u64,
     pub total_passed: u64,
@@ -162,19 +164,19 @@ pub struct ValidatorStats {
 /// Internal gate-by-gate checker
 #[derive(Debug)]
 struct GateChecker {
-    regression_results: BTreeMap<u64, bool>,
-    safety_results: BTreeMap<u64, bool>,
-    significance_results: BTreeMap<u64, bool>,
-    reproducibility_results: BTreeMap<u64, bool>,
+    regression_results: LinearMap<bool, 64>,
+    safety_results: LinearMap<bool, 64>,
+    significance_results: LinearMap<bool, 64>,
+    reproducibility_results: LinearMap<bool, 64>,
 }
 
 impl GateChecker {
     fn new() -> Self {
         Self {
-            regression_results: BTreeMap::new(),
-            safety_results: BTreeMap::new(),
-            significance_results: BTreeMap::new(),
-            reproducibility_results: BTreeMap::new(),
+            regression_results: LinearMap::new(),
+            safety_results: LinearMap::new(),
+            significance_results: LinearMap::new(),
+            reproducibility_results: LinearMap::new(),
         }
     }
 
@@ -224,6 +226,7 @@ impl GateChecker {
 
 /// Validates discovered improvements through four rigorous gates
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeDiscoveryValidator {
     discoveries: BTreeMap<u64, Discovery>,
     gate_checker: GateChecker,
@@ -365,6 +368,7 @@ impl BridgeDiscoveryValidator {
     }
 
     /// Reproducibility test: check that improvement reproduces across trials
+    #[inline]
     pub fn reproducibility_test(&mut self, discovery_id: u64) -> f32 {
         let disc = match self.discoveries.get(&discovery_id) {
             Some(d) => d,
@@ -557,6 +561,7 @@ impl BridgeDiscoveryValidator {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> ValidatorStats {
         self.stats
     }

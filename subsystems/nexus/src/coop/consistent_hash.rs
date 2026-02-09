@@ -36,11 +36,13 @@ impl RingNode {
         }
     }
 
+    #[inline(always)]
     pub fn load_factor(&self) -> f64 {
         if self.capacity == 0 { return 1.0; }
         self.load as f64 / self.capacity as f64
     }
 
+    #[inline(always)]
     pub fn is_overloaded(&self, avg_load: f64, bound: f64) -> bool {
         self.load as f64 > avg_load * bound
     }
@@ -91,6 +93,7 @@ pub enum RebalanceReason {
 
 /// Consistent hash ring stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ConsistentHashStats {
     pub total_physical_nodes: usize,
     pub alive_nodes: usize,
@@ -133,6 +136,7 @@ impl CoopConsistentHash {
         h
     }
 
+    #[inline]
     pub fn add_node(&mut self, id: u64, name: String, weight: u32, capacity: u64, ts: u64) {
         let node = RingNode::new(id, name, weight, capacity, ts);
         let vnodes = node.virtual_nodes;
@@ -209,6 +213,7 @@ impl CoopConsistentHash {
         replicas
     }
 
+    #[inline]
     pub fn place_item(&mut self, key: u64, ts: u64) -> Option<u64> {
         let primary = self.find_node(key)?;
         let replicas = self.find_replicas(key);
@@ -236,7 +241,10 @@ impl CoopConsistentHash {
         self.stats.load_std_dev = libm::sqrt(variance);
     }
 
+    #[inline(always)]
     pub fn node(&self, id: u64) -> Option<&RingNode> { self.physical_nodes.get(&id) }
+    #[inline(always)]
     pub fn placement(&self, key: u64) -> Option<&ItemPlacement> { self.placements.get(&key) }
+    #[inline(always)]
     pub fn stats(&self) -> &ConsistentHashStats { &self.stats }
 }

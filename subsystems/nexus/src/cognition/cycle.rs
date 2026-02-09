@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -161,7 +162,7 @@ pub struct CycleManager {
     /// Current cycle
     current: Option<CognitiveCycle>,
     /// Cycle history
-    history: Vec<CycleSummary>,
+    history: VecDeque<CycleSummary>,
     /// Next cycle ID
     next_id: AtomicU64,
     /// Current cycle number
@@ -224,6 +225,7 @@ impl Default for CycleConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CycleStats {
     /// Total cycles run
     pub total_cycles: u64,
@@ -254,7 +256,7 @@ impl CycleManager {
     pub fn new(config: CycleConfig) -> Self {
         Self {
             current: None,
-            history: Vec::new(),
+            history: VecDeque::new(),
             next_id: AtomicU64::new(1),
             cycle_number: 0,
             config,
@@ -312,6 +314,7 @@ impl CycleManager {
     }
 
     /// Record phase result
+    #[inline]
     pub fn record_phase_result(&mut self, result: PhaseResult) {
         if let Some(cycle) = self.current.as_mut() {
             cycle.phase_results.insert(result.phase, result);
@@ -319,6 +322,7 @@ impl CycleManager {
     }
 
     /// Record signal
+    #[inline]
     pub fn record_signal(&mut self) {
         if let Some(cycle) = self.current.as_mut() {
             cycle.signals_processed += 1;
@@ -327,6 +331,7 @@ impl CycleManager {
     }
 
     /// Record pattern
+    #[inline]
     pub fn record_pattern(&mut self) {
         if let Some(cycle) = self.current.as_mut() {
             cycle.patterns_detected += 1;
@@ -335,6 +340,7 @@ impl CycleManager {
     }
 
     /// Record action
+    #[inline]
     pub fn record_action(&mut self) {
         if let Some(cycle) = self.current.as_mut() {
             cycle.actions_taken += 1;
@@ -343,6 +349,7 @@ impl CycleManager {
     }
 
     /// Record error
+    #[inline]
     pub fn record_error(
         &mut self,
         phase: CyclePhase,
@@ -400,9 +407,9 @@ impl CycleManager {
 
         // Add to history
         if self.history.len() >= self.config.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(summary.clone());
+        self.history.push_back(summary.clone());
 
         Some(summary)
     }
@@ -422,36 +429,43 @@ impl CycleManager {
     }
 
     /// Get current cycle
+    #[inline(always)]
     pub fn current(&self) -> Option<&CognitiveCycle> {
         self.current.as_ref()
     }
 
     /// Get current phase
+    #[inline(always)]
     pub fn current_phase(&self) -> Option<CyclePhase> {
         self.current.as_ref().map(|c| c.phase)
     }
 
     /// Get cycle number
+    #[inline(always)]
     pub fn cycle_number(&self) -> u64 {
         self.cycle_number
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[CycleSummary] {
         &self.history
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CycleStats {
         &self.stats
     }
 
     /// Check if cycle is running
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.current.is_some()
     }
 
     /// Get elapsed time for current cycle
+    #[inline]
     pub fn elapsed(&self) -> Option<u64> {
         self.current
             .as_ref()
@@ -459,6 +473,7 @@ impl CycleManager {
     }
 
     /// Check if current cycle is overrunning
+    #[inline]
     pub fn is_overrunning(&self) -> bool {
         self.elapsed()
             .map(|e| e > self.config.max_duration_ns)
@@ -515,28 +530,33 @@ impl CycleScheduler {
     }
 
     /// Check if should start new cycle
+    #[inline(always)]
     pub fn should_start(&self) -> bool {
         let now = Timestamp::now();
         now.elapsed_since(self.last_cycle) >= self.min_interval_ns
     }
 
     /// Mark cycle started
+    #[inline(always)]
     pub fn cycle_started(&mut self) {
         self.last_cycle = Timestamp::now();
         self.budget.used_ns = 0;
     }
 
     /// Get remaining budget
+    #[inline(always)]
     pub fn remaining_budget(&self) -> u64 {
         self.budget.total_ns.saturating_sub(self.budget.used_ns)
     }
 
     /// Record usage
+    #[inline(always)]
     pub fn record_usage(&mut self, ns: u64) {
         self.budget.used_ns += ns;
     }
 
     /// Get phase budget
+    #[inline]
     pub fn phase_budget(&self, phase: CyclePhase) -> u64 {
         self.budget
             .phase_budgets
@@ -546,6 +566,7 @@ impl CycleScheduler {
     }
 
     /// Set phase budget
+    #[inline(always)]
     pub fn set_phase_budget(&mut self, phase: CyclePhase, budget_ns: u64) {
         self.budget.phase_budgets.insert(phase, budget_ns);
     }

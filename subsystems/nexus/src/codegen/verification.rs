@@ -64,6 +64,7 @@ pub struct VerificationFailure {
 
 /// Counterexample
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Counterexample {
     /// Input values
     pub inputs: BTreeMap<String, Value>,
@@ -175,6 +176,7 @@ pub struct PathCondition {
 
 /// Symbolic state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SymbolicState {
     /// Variable values
     pub values: BTreeMap<String, SymbolicValue>,
@@ -245,23 +247,28 @@ impl SMTSolver {
         Self::default()
     }
 
+    #[inline(always)]
     pub fn push(&mut self) {
         // Push context
     }
 
+    #[inline(always)]
     pub fn pop(&mut self) {
         // Pop context
     }
 
+    #[inline(always)]
     pub fn assert(&mut self, expr: SymbolicExpr) {
         self.assertions.push(expr);
     }
 
+    #[inline(always)]
     pub fn check_sat(&self) -> SatResult {
         // Simplified - would call actual SMT solver
         SatResult::Unknown
     }
 
+    #[inline(always)]
     pub fn get_model(&self) -> Option<Model> {
         None
     }
@@ -313,6 +320,7 @@ impl Default for VerifyConfig {
 
 /// Verification statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct VerifyStats {
     /// Total verifications
     pub total_verifications: u64,
@@ -678,6 +686,7 @@ impl VerificationEngine {
     }
 
     /// Create proof certificate
+    #[inline]
     pub fn create_certificate(&self, proof: &VerificationProof) -> ProofCertificate {
         ProofCertificate {
             id: proof.id,
@@ -688,6 +697,7 @@ impl VerificationEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &VerifyStats {
         &self.stats
     }

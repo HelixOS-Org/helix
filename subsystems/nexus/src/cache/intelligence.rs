@@ -1,5 +1,6 @@
 //! AI-powered cache intelligence coordination.
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::multilevel::MultiLevelCache;
@@ -11,13 +12,14 @@ use super::warmer::CacheWarmer;
 // ============================================================================
 
 /// Central cache intelligence coordinator
+#[repr(align(64))]
 pub struct CacheIntelligence {
     /// Multi-level cache
     mlc: MultiLevelCache,
     /// Cache warmer
     warmer: CacheWarmer,
     /// Hit rate history
-    hit_rate_history: Vec<f64>,
+    hit_rate_history: VecDeque<f64>,
     /// Max history
     max_history: usize,
 }
@@ -36,23 +38,26 @@ impl CacheIntelligence {
         Self {
             mlc,
             warmer: CacheWarmer::default(),
-            hit_rate_history: Vec::new(),
+            hit_rate_history: VecDeque::new(),
             max_history: 1000,
         }
     }
 
     /// Access cache
+    #[inline(always)]
     pub fn access(&mut self, key: CacheKey) -> Option<CacheLevel> {
         self.mlc.access(key)
     }
 
     /// Insert into cache
+    #[inline(always)]
     pub fn insert(&mut self, key: CacheKey, size: u32) {
         // Default to lowest level
         self.mlc.insert(key, size, CacheLevel::Memory);
     }
 
     /// Get prefetch suggestions
+    #[inline]
     pub fn prefetch_suggestions(&self, level: CacheLevel, count: usize) -> Vec<CacheKey> {
         self.mlc
             .get_level(level)
@@ -61,16 +66,18 @@ impl CacheIntelligence {
     }
 
     /// Sample hit rate
+    #[inline]
     pub fn sample(&mut self) {
         let stats = self.mlc.aggregate_stats();
-        self.hit_rate_history.push(stats.hit_rate());
+        self.hit_rate_history.push_back(stats.hit_rate());
 
         if self.hit_rate_history.len() > self.max_history {
-            self.hit_rate_history.remove(0);
+            self.hit_rate_history.pop_front();
         }
     }
 
     /// Get hit rate trend
+    #[inline]
     pub fn hit_rate_trend(&self) -> f64 {
         if self.hit_rate_history.len() < 10 {
             return 0.0;
@@ -84,31 +91,37 @@ impl CacheIntelligence {
     }
 
     /// Get current hit rate
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         self.mlc.aggregate_stats().hit_rate()
     }
 
     /// Get multi-level cache
+    #[inline(always)]
     pub fn mlc(&self) -> &MultiLevelCache {
         &self.mlc
     }
 
     /// Get mutable multi-level cache
+    #[inline(always)]
     pub fn mlc_mut(&mut self) -> &mut MultiLevelCache {
         &mut self.mlc
     }
 
     /// Get warmer
+    #[inline(always)]
     pub fn warmer(&self) -> &CacheWarmer {
         &self.warmer
     }
 
     /// Get mutable warmer
+    #[inline(always)]
     pub fn warmer_mut(&mut self) -> &mut CacheWarmer {
         &mut self.warmer
     }
 
     /// Warm cache from candidates
+    #[inline]
     pub fn warm(&mut self, count: usize) {
         let candidates = self.warmer.next_candidates(count);
         for key in candidates {

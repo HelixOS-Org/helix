@@ -85,30 +85,35 @@ impl CausalNode {
     }
 
     /// Set component
+    #[inline(always)]
     pub fn with_component(mut self, component: ComponentId) -> Self {
         self.component = Some(component);
         self
     }
 
     /// Set span
+    #[inline(always)]
     pub fn with_span(mut self, span_id: SpanId) -> Self {
         self.span_id = Some(span_id);
         self
     }
 
     /// Set trace
+    #[inline(always)]
     pub fn with_trace(mut self, trace_id: TraceId) -> Self {
         self.trace_id = Some(trace_id);
         self
     }
 
     /// Set duration
+    #[inline(always)]
     pub fn with_duration(mut self, duration: u64) -> Self {
         self.duration = Some(duration);
         self
     }
 
     /// Add metadata
+    #[inline(always)]
     pub fn with_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.metadata.insert(key.into(), value.into());
         self

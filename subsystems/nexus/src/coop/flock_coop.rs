@@ -41,8 +41,11 @@ impl CoopFileLock {
         Self { inode, owner_id, lock_type, state: CoopLockState::Waiting, start: 0, end: u64::MAX, wait_ns: 0, grants: 0 }
     }
 
+    #[inline(always)]
     pub fn grant(&mut self) { self.state = CoopLockState::Granted; self.grants += 1; }
+    #[inline(always)]
     pub fn release(&mut self) { self.state = CoopLockState::Released; }
+    #[inline(always)]
     pub fn is_compatible(&self, other: &CoopFileLock) -> bool {
         matches!((self.lock_type, other.lock_type), (CoopLockType::SharedRead, CoopLockType::SharedRead) | (CoopLockType::IntentShared, CoopLockType::IntentShared))
     }
@@ -59,17 +62,20 @@ pub struct CoopLockFairness {
 
 impl CoopLockFairness {
     pub fn new() -> Self { Self { total_waits: 0, total_wait_ns: 0, max_wait_ns: 0, starvation_count: 0 } }
+    #[inline]
     pub fn record_wait(&mut self, wait_ns: u64) {
         self.total_waits += 1;
         self.total_wait_ns += wait_ns;
         if wait_ns > self.max_wait_ns { self.max_wait_ns = wait_ns; }
         if wait_ns > 10_000_000_000 { self.starvation_count += 1; }
     }
+    #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 { if self.total_waits == 0 { 0 } else { self.total_wait_ns / self.total_waits } }
 }
 
 /// Coop flock stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopFlockStats {
     pub total_locks: u64,
     pub granted: u64,
@@ -89,6 +95,7 @@ impl CoopFlock {
         Self { fairness: CoopLockFairness::new(), stats: CoopFlockStats { total_locks: 0, granted: 0, conflicts: 0, deadlocks_prevented: 0 } }
     }
 
+    #[inline]
     pub fn request(&mut self, granted: bool, wait_ns: u64) {
         self.stats.total_locks += 1;
         if granted { self.stats.granted += 1; } else { self.stats.conflicts += 1; }
@@ -126,6 +133,7 @@ pub struct CoopFlockV2Entry {
 
 /// Stats for flock cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopFlockV2Stats {
     pub total_locks: u64,
     pub active_locks: u64,
@@ -199,6 +207,7 @@ impl CoopFlockV2Manager {
         s1 < e2 && s2 < e1
     }
 
+    #[inline]
     pub fn release(&mut self, lock_id: u64) -> bool {
         if let Some(entry) = self.locks.remove(&lock_id) {
             if let Some(list) = self.inode_locks.get_mut(&entry.inode) {
@@ -211,6 +220,7 @@ impl CoopFlockV2Manager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopFlockV2Stats {
         &self.stats
     }

@@ -30,12 +30,14 @@ static REPLICA_COUNTER: AtomicU64 = AtomicU64::new(1);
 static SEGMENT_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl ReplicaId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(REPLICA_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
 }
 
 impl SegmentId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(SEGMENT_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -210,6 +212,7 @@ impl LoadBasedPlacement {
         }
     }
 
+    #[inline(always)]
     pub fn update_load(&mut self, node_id: NodeId, load: u64) {
         self.loads.insert(node_id, load);
     }
@@ -329,6 +332,7 @@ impl ReplicationLog {
     }
 
     /// Commit up to index
+    #[inline]
     pub fn commit(&mut self, up_to: u64) {
         for entry in &mut self.entries {
             if entry.index <= up_to && !entry.committed {
@@ -339,16 +343,19 @@ impl ReplicationLog {
     }
 
     /// Get uncommitted entries
+    #[inline(always)]
     pub fn uncommitted(&self) -> Vec<&ReplicationLogEntry> {
         self.entries.iter().filter(|e| !e.committed).collect()
     }
 
     /// Get entries from index
+    #[inline(always)]
     pub fn from_index(&self, from: u64) -> Vec<&ReplicationLogEntry> {
         self.entries.iter().filter(|e| e.index >= from).collect()
     }
 
     /// Last index
+    #[inline(always)]
     pub fn last_index(&self) -> u64 {
         self.entries.last().map(|e| e.index).unwrap_or(0)
     }
@@ -417,6 +424,7 @@ impl Default for ReplicationConfig {
 
 /// Replication statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ReplicationStats {
     /// Segments created
     pub segments_created: u64,
@@ -452,11 +460,13 @@ impl ReplicationManager {
     }
 
     /// Start the manager
+    #[inline(always)]
     pub fn start(&self) {
         self.running.store(true, Ordering::Release);
     }
 
     /// Stop the manager
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::Release);
     }
@@ -718,11 +728,13 @@ impl ReplicationManager {
     }
 
     /// Get segment
+    #[inline(always)]
     pub fn get_segment(&self, id: SegmentId) -> Option<&CodeSegment> {
         self.segments.get(&id)
     }
 
     /// Get replicas for segment
+    #[inline]
     pub fn get_replicas(&self, segment_id: SegmentId) -> Vec<&Replica> {
         self.segment_replicas
             .get(&segment_id)
@@ -731,16 +743,19 @@ impl ReplicationManager {
     }
 
     /// Set placement strategy
+    #[inline(always)]
     pub fn set_placement(&mut self, placement: Box<dyn ReplicaPlacement>) {
         self.placement = placement;
     }
 
     /// Set replication strategy
+    #[inline(always)]
     pub fn set_strategy(&mut self, strategy: ReplicationStrategy) {
         self.strategy = strategy;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ReplicationStats {
         &self.stats
     }

@@ -12,6 +12,8 @@
 
 extern crate alloc;
 
+use crate::fast::fast_hash::FastHasher;
+
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -132,6 +134,7 @@ pub struct RiskEvaluation {
 
 /// Counterfactual analysis — "what if we did something else?"
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualResult {
     pub id: u64,
     pub original_decision: u64,
@@ -160,6 +163,7 @@ pub struct RehearsalRecommendation {
 
 /// Aggregate rehearsal statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct RehearsalStats {
     pub total_rehearsals: u64,
     pub total_counterfactuals: u64,
@@ -216,6 +220,7 @@ impl HolisticRehearsal {
     }
 
     /// Rehearse a major system decision
+    #[inline]
     pub fn rehearse_decision(
         &mut self,
         kind: DecisionKind,
@@ -416,6 +421,7 @@ impl HolisticRehearsal {
     }
 
     /// Counterfactual analysis: what if a different decision was made?
+    #[inline]
     pub fn counterfactual_analysis(
         &mut self,
         original_id: u64,
@@ -445,7 +451,7 @@ impl HolisticRehearsal {
 
         self.regret_ema = EMA_ALPHA * regret + (1.0 - EMA_ALPHA) * self.regret_ema;
 
-        let id = fnv1a_hash(format!("cf-{}-{:?}", original_id, alternative).as_bytes())
+        let id = FastHasher::new().feed_str("cf-").feed_u64(original_id as u64).feed_str("-").feed_u64(alternative as u64).finish()
             ^ xorshift64(&mut self.rng_state);
 
         let result = CounterfactualResult {

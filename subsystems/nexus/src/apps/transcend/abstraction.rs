@@ -117,6 +117,7 @@ pub struct AbstractionHistory {
 
 /// Aggregated statistics for the abstraction engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct AbstractionStats {
     pub total_abstractions: u64,
     pub total_categories: u64,
@@ -290,6 +291,7 @@ impl AppsAbstraction {
     }
 
     /// Return the utility score of an abstraction (0–100).
+    #[inline(always)]
     pub fn abstraction_utility(&self, abstraction_id: u64) -> Option<u64> {
         self.abstractions.get(&abstraction_id).map(|a| a.utility)
     }
@@ -389,16 +391,19 @@ impl AppsAbstraction {
     }
 
     /// Return current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &AbstractionStats {
         &self.stats
     }
 
     /// Return the history of an abstraction.
+    #[inline(always)]
     pub fn get_history(&self, abstraction_id: u64) -> Option<&AbstractionHistory> {
         self.histories.get(&abstraction_id)
     }
 
     /// Return the taxonomy depth (max nesting of abstractions).
+    #[inline(always)]
     pub fn taxonomy_depth(&self) -> u64 {
         self.stats.taxonomy_depth
     }

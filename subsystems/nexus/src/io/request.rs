@@ -51,39 +51,46 @@ impl IoRequest {
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: IoPriority) -> Self {
         self.priority = priority;
         self
     }
 
     /// Set process ID
+    #[inline(always)]
     pub fn with_process(mut self, pid: u64) -> Self {
         self.process_id = pid;
         self
     }
 
     /// Mark as completed
+    #[inline(always)]
     pub fn complete(&mut self) {
         self.completed_at = Some(NexusTimestamp::now());
     }
 
     /// Get latency in ticks
+    #[inline(always)]
     pub fn latency(&self) -> Option<u64> {
         self.completed_at
             .map(|c| c.duration_since(self.submitted_at))
     }
 
     /// Is read operation?
+    #[inline(always)]
     pub fn is_read(&self) -> bool {
         self.op_type == IoOpType::Read
     }
 
     /// Is write operation?
+    #[inline(always)]
     pub fn is_write(&self) -> bool {
         self.op_type == IoOpType::Write
     }
 
     /// End offset
+    #[inline(always)]
     pub fn end_offset(&self) -> u64 {
         self.offset + self.size as u64
     }

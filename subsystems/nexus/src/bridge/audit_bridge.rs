@@ -57,6 +57,7 @@ pub struct AuditRecord {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AuditBridgeStats {
     pub total_records: u64,
     pub total_rules: u32,
@@ -66,6 +67,7 @@ pub struct AuditBridgeStats {
 }
 
 /// Main audit bridge
+#[repr(align(64))]
 pub struct BridgeAudit {
     rules: Vec<AuditRule>,
     records: BTreeMap<u64, AuditRecord>,
@@ -77,12 +79,14 @@ pub struct BridgeAudit {
 impl BridgeAudit {
     pub fn new(backlog: u32) -> Self { Self { rules: Vec::new(), records: BTreeMap::new(), next_seq: 1, backlog_limit: backlog, dropped: 0 } }
 
+    #[inline]
     pub fn add_rule(&mut self, field: AuditField, value: u64) -> u64 {
         let id = self.rules.len() as u64 + 1;
         self.rules.push(AuditRule { id, field, value, enabled: true, hit_count: 0 });
         id
     }
 
+    #[inline]
     pub fn log(&mut self, msg_type: AuditMsgType, pid: u64, uid: u32, syscall: u32, success: bool, now: u64) -> u64 {
         if self.records.len() as u32 >= self.backlog_limit { self.dropped += 1; return 0; }
         let seq = self.next_seq; self.next_seq += 1;
@@ -90,6 +94,7 @@ impl BridgeAudit {
         seq
     }
 
+    #[inline]
     pub fn stats(&self) -> AuditBridgeStats {
         let enabled = self.rules.iter().filter(|r| r.enabled).count() as u32;
         let hits: u64 = self.rules.iter().map(|r| r.hit_count).sum();
@@ -157,6 +162,7 @@ impl AuditV2Record {
 
 /// Audit v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AuditV2BridgeStats {
     pub total_ops: u64,
     pub events_emitted: u64,
@@ -176,6 +182,7 @@ impl BridgeAuditV2 {
         Self { stats: AuditV2BridgeStats { total_ops: 0, events_emitted: 0, rules_added: 0, buffer_overflows: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &AuditV2Record) {
         self.stats.total_ops += 1;
         match rec.op {

@@ -72,6 +72,7 @@ impl F2fsSegment {
         }
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total_blocks == 0 {
             return 0.0;
@@ -79,6 +80,7 @@ impl F2fsSegment {
         self.valid_blocks as f64 / self.total_blocks as f64
     }
 
+    #[inline]
     pub fn gc_benefit(&self) -> f64 {
         // Cost-benefit: (1 - u) * age / (2 * u)
         let u = self.utilization();
@@ -119,6 +121,7 @@ impl F2fsGcRound {
 
 /// Statistics for F2FS GC.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct F2fsGcStats {
     pub total_gc_rounds: u64,
     pub foreground_gcs: u64,
@@ -161,6 +164,7 @@ impl HolisticF2fsGc {
         }
     }
 
+    #[inline]
     pub fn add_segment(&mut self, seg_type: F2fsSegmentType, blocks: u32) -> u64 {
         let id = self.next_segment_id;
         self.next_segment_id += 1;
@@ -190,6 +194,7 @@ impl HolisticF2fsGc {
         best_id
     }
 
+    #[inline(always)]
     pub fn segment_count(&self) -> usize {
         self.segments.len()
     }

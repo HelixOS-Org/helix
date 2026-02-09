@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -52,6 +53,7 @@ pub enum DeliveryState {
 
 /// Signal entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SignalEntry {
     /// Signal number
     pub signum: u32,
@@ -98,6 +100,7 @@ impl SignalEntry {
     }
 
     /// Is real-time signal?
+    #[inline(always)]
     pub fn is_realtime(&self) -> bool {
         self.signum >= 34
     }
@@ -105,6 +108,7 @@ impl SignalEntry {
 
 /// Per-process signal state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessSignalState {
     /// PID
     pub pid: u64,
@@ -113,9 +117,9 @@ pub struct ProcessSignalState {
     /// Pending signals
     pending: Vec<SignalEntry>,
     /// Signal counts by number
-    signal_counts: BTreeMap<u32, u64>,
+    signal_counts: ArrayMap<u64, 32>,
     /// Handler latency per signal (EMA ns)
-    handler_latency: BTreeMap<u32, f64>,
+    handler_latency: ArrayMap<f64, 32>,
     /// Total signals received
     pub total_received: u64,
     /// Total signals coalesced
@@ -128,8 +132,8 @@ impl ProcessSignalState {
             pid,
             blocked_mask: 0,
             pending: Vec::new(),
-            signal_counts: BTreeMap::new(),
-            handler_latency: BTreeMap::new(),
+            signal_counts: ArrayMap::new(0),
+            handler_latency: ArrayMap::new(0.0),
             total_received: 0,
             total_coalesced: 0,
         }
@@ -152,13 +156,14 @@ impl ProcessSignalState {
             }
         }
 
-        *self.signal_counts.entry(signum).or_insert(0) += 1;
+        self.signal_counts.add(signum as usize, 1);
         self.total_received += 1;
         self.pending.push(entry);
         DeliveryState::Pending
     }
 
     /// Dequeue next signal for delivery
+    #[inline]
     pub fn dequeue_next(&mut self) -> Option<SignalEntry> {
         // Real-time signals have priority by number (lower = higher)
         // Standard signals FIFO
@@ -171,17 +176,20 @@ impl ProcessSignalState {
     }
 
     /// Record handler completion
+    #[inline(always)]
     pub fn record_handler_done(&mut self, signum: u32, latency_ns: u64) {
         let entry = self.handler_latency.entry(signum).or_insert(0.0);
         *entry = 0.8 * *entry + 0.2 * latency_ns as f64;
     }
 
     /// Pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.iter().filter(|e| e.state == DeliveryState::Pending).count()
     }
 
     /// Most frequent signal
+    #[inline]
     pub fn most_frequent(&self) -> Option<(u32, u64)> {
         self.signal_counts.iter()
             .max_by_key(|&(_, &count)| count)
@@ -191,6 +199,7 @@ impl ProcessSignalState {
 
 /// Signal proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeSignalProxyStats {
     pub tracked_processes: usize,
     pub total_pending: usize,
@@ -200,6 +209,7 @@ pub struct BridgeSignalProxyStats {
 }
 
 /// Bridge signal proxy
+#[repr(align(64))]
 pub struct BridgeSignalProxy {
     /// Per-process state
     processes: BTreeMap<u64, ProcessSignalState>,
@@ -216,11 +226,13 @@ impl BridgeSignalProxy {
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.insert(pid, ProcessSignalState::new(pid));
     }
 
     /// Send signal
+    #[inline]
     pub fn send_signal(&mut self, signum: u32, src_pid: u64, dst_pid: u64, now_ns: u64) -> DeliveryState {
         let entry = SignalEntry::new(signum, src_pid, dst_pid, now_ns);
         let state = self.processes
@@ -232,11 +244,13 @@ impl BridgeSignalProxy {
     }
 
     /// Deliver next signal for process
+    #[inline(always)]
     pub fn deliver_next(&mut self, pid: u64) -> Option<SignalEntry> {
         self.processes.get_mut(&pid).and_then(|p| p.dequeue_next())
     }
 
     /// Set blocked mask
+    #[inline]
     pub fn set_blocked(&mut self, pid: u64, mask: u64) {
         if let Some(proc_state) = self.processes.get_mut(&pid) {
             proc_state.blocked_mask = mask;
@@ -262,6 +276,7 @@ impl BridgeSignalProxy {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeSignalProxyStats {
         &self.stats
     }

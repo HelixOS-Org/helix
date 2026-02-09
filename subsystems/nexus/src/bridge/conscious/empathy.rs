@@ -16,6 +16,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -114,6 +115,7 @@ pub struct SubsystemSignal {
 
 /// Empathy model for a single subsystem
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EmpathyModel {
     pub target_subsystem: String,
     pub subsystem_hash: u64,
@@ -121,7 +123,7 @@ pub struct EmpathyModel {
     pub confidence: f32,
     pub last_update: u64,
     pub stress_ema: f32,
-    pub signal_history: Vec<SubsystemSignal>,
+    pub signal_history: VecDeque<SubsystemSignal>,
     pub predictions_made: u64,
     pub predictions_correct: u64,
     pub consecutive_correct: u32,
@@ -137,7 +139,7 @@ impl EmpathyModel {
             confidence: CONFIDENCE_INITIAL,
             last_update: tick,
             stress_ema: 0.0,
-            signal_history: Vec::new(),
+            signal_history: VecDeque::new(),
             predictions_made: 0,
             predictions_correct: 0,
             consecutive_correct: 0,
@@ -145,15 +147,16 @@ impl EmpathyModel {
         }
     }
 
+    #[inline]
     fn record_signal(&mut self, signal: SubsystemSignal) {
         self.total_signals_received += 1;
         self.stress_ema = ema_update(self.stress_ema, signal.value, EMA_ALPHA);
         self.last_update = signal.tick;
 
         if self.signal_history.len() >= MAX_SIGNALS_PER_SUBSYSTEM {
-            self.signal_history.remove(0);
+            self.signal_history.pop_front();
         }
-        self.signal_history.push(signal);
+        self.signal_history.push_back(signal);
 
         self.inferred_state = SubsystemState::from_stress(self.stress_ema);
     }
@@ -230,6 +233,7 @@ pub struct CrossSubsystemInsight {
 
 /// Empathy engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EmpathyStats {
     pub tracked_subsystems: usize,
     pub total_signals: u64,
@@ -246,9 +250,10 @@ pub struct EmpathyStats {
 
 /// Engine for inferring and tracking other subsystems' internal states
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeEmpathyEngine {
     models: BTreeMap<u64, EmpathyModel>,
-    history: Vec<EmpathyHistoryEntry>,
+    history: VecDeque<EmpathyHistoryEntry>,
     cross_insights: Vec<CrossSubsystemInsight>,
     current_tick: u64,
     total_signals: u64,
@@ -262,7 +267,7 @@ impl BridgeEmpathyEngine {
     pub fn new() -> Self {
         Self {
             models: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             cross_insights: Vec::new(),
             current_tick: 0,
             total_signals: 0,
@@ -294,9 +299,9 @@ impl BridgeEmpathyEngine {
 
             // Record history
             if self.history.len() >= MAX_EMPATHY_HISTORY {
-                self.history.remove(0);
+                self.history.pop_front();
             }
-            self.history.push(EmpathyHistoryEntry {
+            self.history.push_back(EmpathyHistoryEntry {
                 subsystem_hash: hash,
                 inferred_state: model.inferred_state,
                 confidence: model.confidence,
@@ -306,6 +311,7 @@ impl BridgeEmpathyEngine {
     }
 
     /// Infer a subsystem's current state
+    #[inline]
     pub fn infer_subsystem_state(&self, subsystem: &str) -> (SubsystemState, f32) {
         let hash = fnv1a_hash(subsystem.as_bytes());
         match self.models.get(&hash) {
@@ -331,6 +337,7 @@ impl BridgeEmpathyEngine {
     }
 
     /// Verify empathy accuracy by providing actual subsystem state
+    #[inline]
     pub fn empathy_accuracy(&mut self, subsystem: &str, actual_state: SubsystemState) -> f32 {
         self.current_tick += 1;
         self.total_predictions += 1;
@@ -401,6 +408,7 @@ impl BridgeEmpathyEngine {
     }
 
     /// Overall empathy score across all subsystems
+    #[inline]
     pub fn empathy_score(&self) -> f32 {
         if self.models.is_empty() {
             return 0.0;
@@ -412,6 +420,7 @@ impl BridgeEmpathyEngine {
     }
 
     /// Get the most stressed subsystem
+    #[inline]
     pub fn most_stressed_subsystem(&self) -> Option<(String, f32)> {
         self.models
             .values()
@@ -424,6 +433,7 @@ impl BridgeEmpathyEngine {
     }
 
     /// Count stale models that need refreshing
+    #[inline]
     pub fn stale_model_count(&self) -> usize {
         self.models
             .values()
@@ -452,6 +462,7 @@ impl BridgeEmpathyEngine {
     }
 
     /// Reset all empathy models
+    #[inline]
     pub fn reset(&mut self) {
         self.models.clear();
         self.history.clear();

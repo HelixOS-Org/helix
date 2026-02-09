@@ -30,6 +30,7 @@ pub enum FeedbackType {
 
 impl FeedbackType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Positive => "positive",
@@ -42,6 +43,7 @@ impl FeedbackType {
     }
 
     /// Reward value (-1.0 to 1.0)
+    #[inline]
     pub fn reward(&self) -> f32 {
         match self {
             Self::Positive => 1.0,
@@ -93,12 +95,14 @@ impl FeedbackEntry {
     }
 
     /// With context
+    #[inline(always)]
     pub fn with_context(mut self, key: &str, value: &str) -> Self {
         self.context.insert(String::from(key), String::from(value));
         self
     }
 
     /// With reward override
+    #[inline(always)]
     pub fn with_reward(mut self, reward: f32) -> Self {
         self.reward = reward.clamp(-1.0, 1.0);
         self
@@ -107,6 +111,7 @@ impl FeedbackEntry {
 
 /// Action statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ActionStats {
     /// Action name
     pub action: String,
@@ -153,6 +158,7 @@ impl ActionStats {
     }
 
     /// Success rate
+    #[inline]
     pub fn success_rate(&self) -> f32 {
         if self.count == 0 {
             return 0.0;
@@ -188,6 +194,7 @@ impl FeedbackLoop {
     }
 
     /// Set learning rate
+    #[inline(always)]
     pub fn set_learning_rate(&mut self, rate: f32) {
         self.learning_rate = rate.clamp(0.001, 1.0);
     }
@@ -241,6 +248,7 @@ impl FeedbackLoop {
     }
 
     /// Get action stats
+    #[inline(always)]
     pub fn get_stats(&self, action: &str) -> Option<&ActionStats> {
         self.action_stats.get(action)
     }
@@ -261,16 +269,19 @@ impl FeedbackLoop {
     }
 
     /// History length
+    #[inline(always)]
     pub fn history_len(&self) -> usize {
         self.history.len()
     }
 
     /// Action count
+    #[inline(always)]
     pub fn action_count(&self) -> usize {
         self.action_stats.len()
     }
 
     /// Recent feedback
+    #[inline(always)]
     pub fn recent(&self, limit: usize) -> &[FeedbackEntry] {
         let start = self.history.len().saturating_sub(limit);
         &self.history[start..]

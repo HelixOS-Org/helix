@@ -26,14 +26,17 @@ impl InotifyMask {
     pub const IN_MOVE_SELF: Self = Self(0x0000_0800);
     pub const IN_ALL_EVENTS: Self = Self(0x0000_0FFF);
 
+    #[inline(always)]
     pub fn contains(&self, other: Self) -> bool {
         (self.0 & other.0) == other.0
     }
 
+    #[inline(always)]
     pub fn matches(&self, event_mask: Self) -> bool {
         (self.0 & event_mask.0) != 0
     }
 
+    #[inline(always)]
     pub fn combine(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
@@ -62,6 +65,7 @@ impl WatchDescriptor {
         }
     }
 
+    #[inline(always)]
     pub fn should_report(&self, event_mask: InotifyMask) -> bool {
         self.mask.matches(event_mask)
     }
@@ -78,10 +82,12 @@ pub struct InotifyEvent {
 }
 
 impl InotifyEvent {
+    #[inline(always)]
     pub fn is_move_pair(&self, other: &Self) -> bool {
         self.cookie != 0 && self.cookie == other.cookie
     }
 
+    #[inline(always)]
     pub fn event_size(&self) -> usize {
         // struct inotify_event header (16) + name length aligned to 4
         16 + ((self.name.len() + 4) & !3)
@@ -90,6 +96,7 @@ impl InotifyEvent {
 
 /// Per-process inotify instance
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct InotifyInstance {
     pub fd: i32,
     pub pid: u64,
@@ -131,6 +138,7 @@ impl InotifyInstance {
         Some(wd)
     }
 
+    #[inline(always)]
     pub fn remove_watch(&mut self, wd: i32) -> bool {
         self.watches.remove(&wd).is_some()
     }
@@ -149,23 +157,28 @@ impl InotifyInstance {
         true
     }
 
+    #[inline(always)]
     pub fn read_events(&mut self, max: usize) -> Vec<InotifyEvent> {
         let count = max.min(self.event_queue.len());
         self.event_queue.drain(..count).collect()
     }
 
+    #[inline(always)]
     pub fn pending_events(&self) -> usize {
         self.event_queue.len()
     }
 
+    #[inline(always)]
     pub fn pending_bytes(&self) -> usize {
         self.event_queue.iter().map(|e| e.event_size()).sum()
     }
 
+    #[inline(always)]
     pub fn watch_count(&self) -> usize {
         self.watches.len()
     }
 
+    #[inline]
     pub fn watches_for_path(&self, path: &str) -> Vec<i32> {
         self.watches
             .iter()
@@ -186,6 +199,7 @@ pub struct CoalesceConfig {
 }
 
 impl CoalesceConfig {
+    #[inline]
     pub fn default_config() -> Self {
         Self {
             enabled: true,
@@ -197,6 +211,7 @@ impl CoalesceConfig {
 
 /// Inotify bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InotifyBridgeStats {
     pub instances_created: u64,
     pub watches_active: u64,
@@ -207,6 +222,7 @@ pub struct InotifyBridgeStats {
 }
 
 /// Main inotify bridge manager
+#[repr(align(64))]
 pub struct BridgeInotify {
     instances: BTreeMap<i32, InotifyInstance>,
     next_fd: i32,
@@ -235,6 +251,7 @@ impl BridgeInotify {
         }
     }
 
+    #[inline]
     pub fn create_instance(&mut self, pid: u64) -> Option<i32> {
         let per_process = self.instances.values().filter(|i| i.pid == pid).count() as u32;
         if per_process >= self.max_instances_per_process {
@@ -261,6 +278,7 @@ impl BridgeInotify {
         }
     }
 
+    #[inline]
     pub fn add_watch(&mut self, fd: i32, path: String, mask: InotifyMask) -> Option<i32> {
         let inst = self.instances.get_mut(&fd)?;
         let wd = inst.add_watch(path.clone(), mask)?;
@@ -318,6 +336,7 @@ impl BridgeInotify {
         delivered
     }
 
+    #[inline]
     pub fn read_events(&mut self, fd: i32, max: usize) -> Vec<InotifyEvent> {
         if let Some(inst) = self.instances.get_mut(&fd) {
             inst.read_events(max)
@@ -326,10 +345,12 @@ impl BridgeInotify {
         }
     }
 
+    #[inline(always)]
     pub fn set_coalesce_config(&mut self, config: CoalesceConfig) {
         self.coalesce = config;
     }
 
+    #[inline]
     pub fn most_watched_paths(&self, top_n: usize) -> Vec<(String, u32)> {
         let mut paths: Vec<(String, u32)> = self.path_watch_count
             .iter()
@@ -340,6 +361,7 @@ impl BridgeInotify {
         paths
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &InotifyBridgeStats {
         &self.stats
     }
@@ -407,12 +429,14 @@ impl InotifyV2Instance {
         Self { fd, watches: Vec::new(), event_queue: Vec::new(), max_queued, overflow_count: 0 }
     }
 
+    #[inline]
     pub fn add_watch(&mut self, path_hash: u64, mask: u32) -> i32 {
         let wd = self.watches.len() as i32 + 1;
         self.watches.push(InotifyV2Watch::new(wd, path_hash, mask));
         wd
     }
 
+    #[inline]
     pub fn queue_event(&mut self, wd: i32, mask: u32, cookie: u32, name_hash: u64, now: u64) {
         if self.event_queue.len() as u32 >= self.max_queued { self.overflow_count += 1; return; }
         self.event_queue.push(InotifyV2Event { wd, mask, cookie, name_hash, timestamp: now });
@@ -422,6 +446,7 @@ impl InotifyV2Instance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InotifyV2BridgeStats {
     pub total_instances: u32,
     pub total_watches: u32,
@@ -430,6 +455,7 @@ pub struct InotifyV2BridgeStats {
 }
 
 /// Main inotify v2 bridge
+#[repr(align(64))]
 pub struct BridgeInotifyV2 {
     instances: BTreeMap<u64, InotifyV2Instance>,
     next_fd: u64,
@@ -438,12 +464,14 @@ pub struct BridgeInotifyV2 {
 impl BridgeInotifyV2 {
     pub fn new() -> Self { Self { instances: BTreeMap::new(), next_fd: 1 } }
 
+    #[inline]
     pub fn create(&mut self, max_queued: u32) -> u64 {
         let fd = self.next_fd; self.next_fd += 1;
         self.instances.insert(fd, InotifyV2Instance::new(fd, max_queued));
         fd
     }
 
+    #[inline]
     pub fn stats(&self) -> InotifyV2BridgeStats {
         let watches: u32 = self.instances.values().map(|i| i.watches.len() as u32).sum();
         let events: u64 = self.instances.values().flat_map(|i| i.watches.iter()).map(|w| w.events_received).sum();
@@ -505,6 +533,7 @@ pub struct InotifyV3Watch {
 
 /// An inotify instance with event queue
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InotifyV3Instance {
     pub fd: u64,
     pub watches: BTreeMap<i64, InotifyV3Watch>,
@@ -543,6 +572,7 @@ impl InotifyV3Instance {
         wd
     }
 
+    #[inline(always)]
     pub fn remove_watch(&mut self, wd: i64) -> bool {
         self.watches.remove(&wd).is_some()
     }
@@ -561,11 +591,13 @@ impl InotifyV3Instance {
         true
     }
 
+    #[inline(always)]
     pub fn read_events(&mut self, max: usize) -> Vec<InotifyV3Event> {
         let count = max.min(self.event_queue.len());
         self.event_queue.drain(..count).collect()
     }
 
+    #[inline(always)]
     pub fn pending_events(&self) -> usize {
         self.event_queue.len()
     }
@@ -573,6 +605,7 @@ impl InotifyV3Instance {
 
 /// Statistics for inotify V3 bridge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InotifyV3BridgeStats {
     pub instances_created: u64,
     pub watches_added: u64,
@@ -585,6 +618,7 @@ pub struct InotifyV3BridgeStats {
 
 /// Main inotify V3 bridge manager
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeInotifyV3 {
     instances: BTreeMap<u64, InotifyV3Instance>,
     next_fd: u64,
@@ -608,6 +642,7 @@ impl BridgeInotifyV3 {
         }
     }
 
+    #[inline]
     pub fn create_instance(&mut self, max_queue: usize) -> u64 {
         let fd = self.next_fd;
         self.next_fd += 1;
@@ -629,6 +664,7 @@ impl BridgeInotifyV3 {
         }
     }
 
+    #[inline]
     pub fn read_events(&mut self, fd: u64, max: usize) -> Vec<InotifyV3Event> {
         if let Some(inst) = self.instances.get_mut(&fd) {
             let events = inst.read_events(max);
@@ -639,6 +675,7 @@ impl BridgeInotifyV3 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &InotifyV3BridgeStats {
         &self.stats
     }

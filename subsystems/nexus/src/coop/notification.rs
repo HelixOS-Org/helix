@@ -127,17 +127,20 @@ impl Notification {
     }
 
     /// Is expired?
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now >= self.expires_at
     }
 
     /// Can retry?
+    #[inline(always)]
     pub fn can_retry(&self) -> bool {
         self.attempts < self.max_attempts
             && self.guarantee != DeliveryGuarantee::AtMostOnce
     }
 
     /// Record delivery attempt
+    #[inline(always)]
     pub fn attempt(&mut self) -> bool {
         self.attempts += 1;
         self.attempts <= self.max_attempts
@@ -255,6 +258,7 @@ impl Topic {
 
 /// Notification stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopNotificationStats {
     /// Total topics
     pub total_topics: usize,
@@ -319,6 +323,7 @@ impl CoopNotificationManager {
     }
 
     /// Create topic
+    #[inline]
     pub fn create_topic(&mut self, name: String) -> u64 {
         let key = Self::topic_key(&name);
         self.topics.entry(key).or_insert_with(|| Topic::new(name));
@@ -477,6 +482,7 @@ impl CoopNotificationManager {
     }
 
     /// Cleanup old dedup entries
+    #[inline(always)]
     pub fn cleanup_dedup(&mut self, now: u64, max_age_ns: u64) {
         let cutoff = now.saturating_sub(max_age_ns);
         self.dedup.retain(|_, &mut ts| ts >= cutoff);
@@ -489,6 +495,7 @@ impl CoopNotificationManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopNotificationStats {
         &self.stats
     }

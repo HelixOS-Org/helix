@@ -116,6 +116,7 @@ pub enum DeliveryPreference {
 
 /// Per-signal statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SignalStats {
     /// Total sent
     pub sent: u64,
@@ -206,6 +207,7 @@ impl SignalCoalescer {
     }
 
     /// Add coalescing rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: CoalescingRule) {
         self.rules.insert(rule.signal, rule);
     }
@@ -421,11 +423,13 @@ impl AppSignalAnalyzer {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessSignalProfile> {
         self.profiles.get(&pid)
     }
 
     /// Unregister process
+    #[inline(always)]
     pub fn unregister_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
     }

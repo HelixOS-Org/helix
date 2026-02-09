@@ -49,6 +49,7 @@ impl Default for TracerConfig {
 
 /// Tracer statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TracerStats {
     /// Buffer slots used
     pub buffer_used: usize,
@@ -94,16 +95,19 @@ impl Tracer {
     }
 
     /// Enable tracing
+    #[inline(always)]
     pub fn enable(&self) {
         self.enabled.store(true, Ordering::SeqCst);
     }
 
     /// Disable tracing
+    #[inline(always)]
     pub fn disable(&self) {
         self.enabled.store(false, Ordering::SeqCst);
     }
 
     /// Check if enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::SeqCst)
     }
@@ -162,6 +166,7 @@ impl Tracer {
     }
 
     /// Read records
+    #[inline]
     pub fn drain(&mut self) -> Vec<TraceRecord> {
         let mut records = Vec::new();
         while let Some(record) = self.buffer.read() {
@@ -171,6 +176,7 @@ impl Tracer {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> TracerStats {
         TracerStats {
             buffer_used: self.buffer.len(),
@@ -182,6 +188,7 @@ impl Tracer {
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &TracerConfig {
         &self.config
     }

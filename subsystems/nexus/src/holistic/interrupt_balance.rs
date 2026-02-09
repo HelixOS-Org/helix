@@ -47,6 +47,7 @@ pub enum BalanceStrategy {
 
 /// Per-IRQ tracking
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IrqStats {
     pub irq_number: u32,
     pub irq_type: InterruptType,
@@ -78,6 +79,7 @@ impl IrqStats {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, handler_ns: u64) {
         self.total_count += 1;
         // EMA for handler time
@@ -87,11 +89,13 @@ impl IrqStats {
     }
 
     /// Load contribution (rate * handler time)
+    #[inline(always)]
     pub fn load(&self) -> f64 {
         self.rate_per_sec * self.avg_handler_ns as f64 / 1_000_000_000.0
     }
 
     /// Is this a storm? (>100k/sec)
+    #[inline(always)]
     pub fn is_storm(&self) -> bool {
         self.rate_per_sec > 100_000.0
     }
@@ -118,10 +122,12 @@ impl CpuIrqLoad {
         }
     }
 
+    #[inline(always)]
     pub fn total_interrupt_load(&self) -> f64 {
         self.total_irq_time_frac + self.softirq_time_frac
     }
 
+    #[inline(always)]
     pub fn is_overloaded(&self) -> bool {
         self.total_interrupt_load() > 0.5
     }
@@ -147,6 +153,7 @@ pub struct CoalesceSuggestion {
 
 /// IRQ balance stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticIrqBalanceStats {
     pub tracked_irqs: usize,
     pub total_irq_rate: f64,
@@ -193,18 +200,21 @@ impl HolisticIrqBalance {
         }
     }
 
+    #[inline]
     pub fn register_cpu(&mut self, cpu_id: u32) {
         self.cpu_loads
             .entry(cpu_id)
             .or_insert_with(|| CpuIrqLoad::new(cpu_id));
     }
 
+    #[inline]
     pub fn record_interrupt(&mut self, irq_number: u32, handler_ns: u64) {
         if let Some(irq) = self.irqs.get_mut(&irq_number) {
             irq.record(handler_ns);
         }
     }
 
+    #[inline]
     pub fn update_irq_rate(&mut self, irq_number: u32, rate: f64) {
         if let Some(irq) = self.irqs.get_mut(&irq_number) {
             irq.rate_per_sec = rate;
@@ -336,14 +346,17 @@ impl HolisticIrqBalance {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticIrqBalanceStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn rebalance_suggestions(&self) -> &[IrqRebalance] {
         &self.rebalances
     }
 
+    #[inline(always)]
     pub fn coalesce_suggestions(&self) -> &[CoalesceSuggestion] {
         &self.coalesce_suggestions
     }

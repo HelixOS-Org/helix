@@ -44,6 +44,7 @@ impl FeedForward {
     }
 
     /// Create from config
+    #[inline]
     pub fn from_config(config: &TransformerConfig, seed: u64) -> Self {
         Self::new(
             config.d_model,
@@ -55,6 +56,7 @@ impl FeedForward {
     }
 
     /// Forward pass
+    #[inline]
     pub fn forward(&mut self, input: &Tensor2, training: bool) -> Tensor2 {
         // input: (seq_len, d_model)
         let hidden = self.fc1.forward(input);
@@ -241,6 +243,7 @@ impl MultiHeadSelfAttention {
     }
 
     /// Create from config
+    #[inline(always)]
     pub fn from_config(config: &TransformerConfig, seed: u64) -> Self {
         Self::new(config.d_model, config.n_heads, config.dropout, seed)
     }
@@ -315,6 +318,7 @@ impl MultiHeadSelfAttention {
     }
 
     /// Create causal mask
+    #[inline]
     pub fn causal_mask(seq_len: usize) -> Tensor2 {
         let mut mask = Tensor2::new(seq_len, seq_len);
         for i in 0..seq_len {

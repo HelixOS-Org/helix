@@ -25,6 +25,7 @@ pub struct MessageId(pub u64);
 static MESSAGE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl MessageId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(MESSAGE_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -393,24 +394,28 @@ impl MessageBuilder {
     }
 
     /// Set destination
+    #[inline(always)]
     pub fn to(mut self, destination: NodeId) -> Self {
         self.destination = Some(destination);
         self
     }
 
     /// Set broadcast
+    #[inline(always)]
     pub fn broadcast(mut self) -> Self {
         self.destination = None;
         self
     }
 
     /// Set payload
+    #[inline(always)]
     pub fn payload(mut self, payload: MessagePayload) -> Self {
         self.payload = payload;
         self
     }
 
     /// Set TTL
+    #[inline(always)]
     pub fn ttl(mut self, ttl: u8) -> Self {
         self.ttl = ttl;
         self
@@ -431,6 +436,7 @@ impl MessageBuilder {
     }
 
     /// Build join request
+    #[inline]
     pub fn join_request(self, node_info: NodeInfo) -> Message {
         let mut msg = self;
         msg.message_type = MessageType::JoinRequest;
@@ -487,6 +493,7 @@ impl DefaultProtocolHandler {
     }
 
     /// Register handler for message type
+    #[inline(always)]
     pub fn register<F>(&mut self, message_type: MessageType, handler: F)
     where
         F: Fn(&Message) -> Option<Message> + Send + Sync + 'static,
@@ -542,6 +549,7 @@ pub struct PendingMessage {
 
 /// Router statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RouterStats {
     /// Messages routed
     pub messages_routed: u64,
@@ -563,6 +571,7 @@ impl MessageRouter {
     }
 
     /// Add handler
+    #[inline(always)]
     pub fn add_handler(&mut self, handler: Box<dyn ProtocolHandler>) {
         self.handlers.push(handler);
     }
@@ -596,6 +605,7 @@ impl MessageRouter {
     }
 
     /// Send and wait for response
+    #[inline]
     pub fn send_with_response(&mut self, message: Message, timeout: u64) {
         let pending = PendingMessage {
             message_id: message.id,
@@ -607,6 +617,7 @@ impl MessageRouter {
     }
 
     /// Check for response
+    #[inline(always)]
     pub fn check_response(&mut self, message_id: MessageId) -> Option<PendingMessage> {
         self.pending.remove(&message_id)
     }
@@ -623,6 +634,7 @@ impl MessageRouter {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &RouterStats {
         &self.stats
     }

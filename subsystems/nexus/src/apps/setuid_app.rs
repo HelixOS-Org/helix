@@ -46,6 +46,7 @@ impl SetuidRecord {
 
 /// Setuid app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SetuidAppStats {
     pub total_ops: u64,
     pub successful: u64,
@@ -69,6 +70,7 @@ impl AppSetuid {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SetuidRecord) {
         self.stats.total_ops += 1;
         match rec.result {

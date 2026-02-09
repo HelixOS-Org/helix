@@ -54,6 +54,7 @@ pub struct ProcessNsSet {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NamespaceBridgeStats {
     pub total_namespaces: u32,
     pub by_type: [u32; 8],
@@ -62,6 +63,7 @@ pub struct NamespaceBridgeStats {
 }
 
 /// Main namespace bridge
+#[repr(align(64))]
 pub struct BridgeNamespace {
     namespaces: BTreeMap<u64, Namespace>,
     next_id: u64,
@@ -70,16 +72,19 @@ pub struct BridgeNamespace {
 impl BridgeNamespace {
     pub fn new() -> Self { Self { namespaces: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, nt: NsType, creator: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.namespaces.insert(id, Namespace::new(id, nt, creator, now));
         id
     }
 
+    #[inline(always)]
     pub fn enter(&mut self, ns_id: u64, pid: u64) {
         if let Some(ns) = self.namespaces.get_mut(&ns_id) { ns.processes.push(pid); ns.ref_count += 1; }
     }
 
+    #[inline]
     pub fn stats(&self) -> NamespaceBridgeStats {
         let mut by_type = [0u32; 8];
         for ns in self.namespaces.values() {
@@ -130,6 +135,7 @@ pub struct NsV2IdMapping {
 }
 
 impl NsV2IdMapping {
+    #[inline]
     pub fn translate_to_outside(&self, inside_id: u32) -> Option<u32> {
         if inside_id >= self.inside_start && inside_id < self.inside_start + self.count {
             Some(self.outside_start + (inside_id - self.inside_start))
@@ -138,6 +144,7 @@ impl NsV2IdMapping {
         }
     }
 
+    #[inline]
     pub fn translate_to_inside(&self, outside_id: u32) -> Option<u32> {
         if outside_id >= self.outside_start && outside_id < self.outside_start + self.count {
             Some(self.inside_start + (outside_id - self.outside_start))
@@ -177,6 +184,7 @@ impl NsV2Instance {
         }
     }
 
+    #[inline]
     pub fn add_uid_mapping(&mut self, inside: u32, outside: u32, count: u32) {
         self.uid_mappings.push(NsV2IdMapping {
             inside_start: inside,
@@ -185,6 +193,7 @@ impl NsV2Instance {
         });
     }
 
+    #[inline]
     pub fn translate_uid(&self, inside_uid: u32) -> Option<u32> {
         for map in &self.uid_mappings {
             if let Some(outside) = map.translate_to_outside(inside_uid) {
@@ -194,18 +203,21 @@ impl NsV2Instance {
         None
     }
 
+    #[inline]
     pub fn drain(&mut self) {
         if self.state == NsV2State::Active {
             self.state = NsV2State::Draining;
         }
     }
 
+    #[inline(always)]
     pub fn is_ancestor_of(&self, child_depth: u32) -> bool {
         child_depth > self.depth
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NsV2BridgeStats {
     pub total_namespaces: u64,
     pub active_namespaces: u64,
@@ -214,6 +226,7 @@ pub struct NsV2BridgeStats {
     pub total_translations: u64,
 }
 
+#[repr(align(64))]
 pub struct BridgeNamespaceV2 {
     namespaces: BTreeMap<u64, NsV2Instance>,
     children: BTreeMap<u64, Vec<u64>>,
@@ -256,6 +269,7 @@ impl BridgeNamespaceV2 {
         id
     }
 
+    #[inline]
     pub fn destroy_namespace(&mut self, id: u64) {
         if let Some(ns) = self.namespaces.get_mut(&id) {
             ns.state = NsV2State::Destroyed;
@@ -265,6 +279,7 @@ impl BridgeNamespaceV2 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &NsV2BridgeStats {
         &self.stats
     }
@@ -309,6 +324,7 @@ pub enum BridgeNsV3Op {
 
 /// Stats for namespace operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeNsV3Stats {
     pub total_namespaces: u64,
     pub active_namespaces: u64,
@@ -318,6 +334,7 @@ pub struct BridgeNsV3Stats {
 }
 
 /// Manager for namespace bridge operations
+#[repr(align(64))]
 pub struct BridgeNamespaceV3Manager {
     namespaces: BTreeMap<u64, BridgeNsV3Entry>,
     pid_to_ns: BTreeMap<u64, Vec<u64>>,
@@ -358,6 +375,7 @@ impl BridgeNamespaceV3Manager {
         id
     }
 
+    #[inline]
     pub fn enter_ns(&mut self, pid: u64, ns_id: u64) -> bool {
         if let Some(ns) = self.namespaces.get_mut(&ns_id) {
             ns.member_count += 1;
@@ -382,6 +400,7 @@ impl BridgeNamespaceV3Manager {
         }
     }
 
+    #[inline]
     pub fn destroy_ns(&mut self, ns_id: u64) -> bool {
         if self.namespaces.remove(&ns_id).is_some() {
             self.stats.active_namespaces = self.stats.active_namespaces.saturating_sub(1);
@@ -391,6 +410,7 @@ impl BridgeNamespaceV3Manager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeNsV3Stats {
         &self.stats
     }

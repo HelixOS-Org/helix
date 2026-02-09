@@ -45,6 +45,7 @@ pub enum TransformType {
 
 /// A transformation rule
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TransformRule {
     /// Rule identifier
     pub id: u32,
@@ -86,18 +87,21 @@ impl TransformRule {
         }
     }
 
+    #[inline(always)]
     pub fn with_priority(mut self, priority: u8) -> Self {
         self.priority = priority;
         self
     }
 
     /// Record that this rule was applied
+    #[inline(always)]
     pub fn record_application(&mut self, saved_ns: u64) {
         self.apply_count += 1;
         self.latency_saved_ns += saved_ns;
     }
 
     /// Average latency saved per application
+    #[inline]
     pub fn avg_saved_ns(&self) -> u64 {
         if self.apply_count == 0 {
             0
@@ -113,6 +117,7 @@ impl TransformRule {
 
 /// A syscall after transformation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TransformedSyscall {
     /// Original syscall type
     pub original_type: SyscallType,
@@ -205,6 +210,7 @@ pub struct CoalescedIo {
 }
 
 /// I/O coalescing engine
+#[repr(align(64))]
 pub struct CoalesceEngine {
     /// Pending I/O operations grouped by (fd, is_read)
     pending: BTreeMap<(i64, bool), Vec<PendingIo>>,
@@ -232,6 +238,7 @@ impl CoalesceEngine {
     }
 
     /// Submit a pending I/O operation
+    #[inline(always)]
     pub fn submit(&mut self, io: PendingIo) {
         let key = (io.fd, io.is_read);
         self.pending.entry(key).or_insert_with(Vec::new).push(io);
@@ -303,6 +310,7 @@ impl CoalesceEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> (u64, u64) {
         (self.total_coalesced, self.total_operations_saved)
     }
@@ -313,6 +321,7 @@ impl CoalesceEngine {
 // ============================================================================
 
 /// The main transformation engine
+#[repr(align(64))]
 pub struct TransformEngine {
     /// Transformation rules
     rules: Vec<TransformRule>,
@@ -428,12 +437,14 @@ impl TransformEngine {
     }
 
     /// Add a custom rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: TransformRule) {
         self.rules.push(rule);
         self.rules.sort_by_key(|r| r.priority);
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> (u64, u64, u64) {
         (
             self.total_transforms,
@@ -443,6 +454,7 @@ impl TransformEngine {
     }
 
     /// Get the coalesce engine
+    #[inline(always)]
     pub fn coalesce_engine(&mut self) -> &mut CoalesceEngine {
         &mut self.coalesce
     }

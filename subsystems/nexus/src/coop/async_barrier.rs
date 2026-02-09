@@ -29,6 +29,7 @@ impl AsyncWaiter {
         Self { id, phase: AsyncBarrierPhase::Waiting, arrival_time: now, release_time: 0, wait_ns: 0 }
     }
 
+    #[inline]
     pub fn release(&mut self, now: u64) {
         self.phase = AsyncBarrierPhase::Released;
         self.release_time = now;
@@ -50,6 +51,7 @@ impl AsyncBarrier {
         Self { generation: 0, threshold, waiters: Vec::new(), completed_generations: 0 }
     }
 
+    #[inline]
     pub fn arrive(&mut self, id: u64, now: u64) -> bool {
         self.waiters.push(AsyncWaiter::new(id, now));
         if self.waiters.len() as u32 >= self.threshold {
@@ -60,6 +62,7 @@ impl AsyncBarrier {
         } else { false }
     }
 
+    #[inline]
     pub fn drain_released(&mut self) -> Vec<u64> {
         let ids: Vec<u64> = self.waiters.iter().filter(|w| w.phase == AsyncBarrierPhase::Released).map(|w| w.id).collect();
         self.waiters.retain(|w| w.phase == AsyncBarrierPhase::Waiting);
@@ -69,6 +72,7 @@ impl AsyncBarrier {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AsyncBarrierStats {
     pub total_generations: u64,
     pub current_waiters: u32,
@@ -84,16 +88,19 @@ pub struct CoopAsyncBarrier {
 impl CoopAsyncBarrier {
     pub fn new() -> Self { Self { barriers: Vec::new() } }
 
+    #[inline]
     pub fn create(&mut self, threshold: u32) -> usize {
         let idx = self.barriers.len();
         self.barriers.push(AsyncBarrier::new(threshold));
         idx
     }
 
+    #[inline(always)]
     pub fn arrive(&mut self, idx: usize, id: u64, now: u64) -> bool {
         if let Some(b) = self.barriers.get_mut(idx) { b.arrive(id, now) } else { false }
     }
 
+    #[inline]
     pub fn stats(&self) -> Vec<AsyncBarrierStats> {
         self.barriers.iter().map(|b| {
             let total_wait: u64 = b.waiters.iter().map(|w| w.wait_ns).sum();

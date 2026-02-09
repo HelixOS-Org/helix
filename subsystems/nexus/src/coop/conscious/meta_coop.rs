@@ -115,6 +115,7 @@ pub struct MetaNegotiationInsight {
 
 /// Aggregate meta-cognition statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct MetaCognitionStats {
     pub protocols_tracked: usize,
     pub optimal_protocols: usize,
@@ -246,6 +247,7 @@ impl CoopMetaCognition {
     }
 
     /// Suggest protocol optimizations based on evaluation history
+    #[inline]
     pub fn protocol_optimization(
         &mut self,
         name: &str,
@@ -284,6 +286,7 @@ impl CoopMetaCognition {
     }
 
     /// Meta-negotiate: reason about how to improve the negotiation process itself
+    #[inline]
     pub fn meta_negotiate(&mut self) -> usize {
         self.tick += 1;
         let mut new_insights = 0_usize;
@@ -347,6 +350,7 @@ impl CoopMetaCognition {
     }
 
     /// Cognitive efficiency: value produced per unit of meta-cognitive effort
+    #[inline]
     pub fn cognitive_efficiency(&mut self) -> f32 {
         if self.protocols.is_empty() {
             return 0.0;

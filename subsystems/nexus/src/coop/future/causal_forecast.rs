@@ -7,7 +7,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -129,6 +131,7 @@ pub struct CooperationForecastResult {
 
 /// Rolling statistics for the causal forecast engine.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct CausalForecastStats {
     pub factors_recorded: u64,
     pub trust_predictions: u64,
@@ -169,7 +172,7 @@ struct ObservationRecord {
 struct CausalVariable {
     variable_id: u64,
     ema_value: u64,
-    history: Vec<u64>,
+    history: VecDeque<u64>,
     incoming_edges: Vec<u64>,
     outgoing_edges: Vec<u64>,
 }
@@ -215,20 +218,20 @@ impl CoopCausalForecast {
         let records = self.observations.entry(event_id).or_insert_with(Vec::new);
         records.push(obs);
         if records.len() > self.max_history {
-            records.remove(0);
+            records.pop_front();
         }
 
         let var = self.variables.entry(event_id).or_insert_with(|| CausalVariable {
             variable_id: event_id,
             ema_value: value,
-            history: Vec::new(),
+            history: VecDeque::new(),
             incoming_edges: Vec::new(),
             outgoing_edges: Vec::new(),
         });
         var.ema_value = ema_update(var.ema_value, value, 200, 1000);
         var.history.push(value);
         if var.history.len() > self.max_history {
-            var.history.remove(0);
+            var.history.pop_front().unwrap();
         }
 
         for &pred in preceding {
@@ -264,7 +267,7 @@ impl CoopCausalForecast {
         let mut causal_path: Vec<u64> = Vec::new();
         let mut mechanism_chain: Vec<CausalMechanism> = Vec::new();
         let mut current = contention_var;
-        let mut visited: BTreeMap<u64, bool> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
         let mut root_event = contention_var;
 
         for _ in 0..16 {
@@ -322,6 +325,7 @@ impl CoopCausalForecast {
     }
 
     /// Build and return the cooperation causal graph as a list of edges.
+    #[inline(always)]
     pub fn cooperation_causal_graph(&self) -> Vec<CausalEdge> {
         self.edges.values().cloned().collect()
     }
@@ -386,7 +390,7 @@ impl CoopCausalForecast {
     pub fn causal_explanation(&mut self, outcome_id: u64) -> CausalExplanation {
         let mut chain: Vec<CausalFactor> = Vec::new();
         let mut current = outcome_id;
-        let mut visited: BTreeMap<u64, bool> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
         let mut primary_mech = CausalMechanism::DirectResource;
 
         for _ in 0..12 {
@@ -469,11 +473,13 @@ impl CoopCausalForecast {
     }
 
     /// Advance the internal tick.
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.current_tick = self.current_tick.wrapping_add(1);
     }
 
     /// Retrieve current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &CausalForecastStats {
         &self.stats
     }

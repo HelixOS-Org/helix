@@ -8,6 +8,7 @@
 
 extern crate alloc;
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -23,7 +24,7 @@ pub struct PredictionEngine {
     /// Decision trees for different prediction kinds
     trees: Vec<(PredictionKind, DecisionNode)>,
     /// Recent predictions
-    predictions: Vec<CrashPrediction>,
+    predictions: VecDeque<CrashPrediction>,
     /// Maximum predictions to keep
     max_predictions: usize,
     /// Minimum confidence threshold
@@ -44,7 +45,7 @@ impl PredictionEngine {
         Self {
             features: Vec::new(),
             trees: Vec::new(),
-            predictions: Vec::new(),
+            predictions: VecDeque::new(),
             max_predictions: 1000,
             min_confidence: 0.7,
             horizon_ms: 30_000,
@@ -167,16 +168,19 @@ impl PredictionEngine {
     }
 
     /// Add a feature
+    #[inline(always)]
     pub fn add_feature(&mut self, feature: Feature) {
         self.features.push(feature);
     }
 
     /// Add a decision tree
+    #[inline(always)]
     pub fn add_tree(&mut self, kind: PredictionKind, tree: DecisionNode) {
         self.trees.push((kind, tree));
     }
 
     /// Update a feature value
+    #[inline]
     pub fn update_feature(&mut self, feature_id: u16, value: f64) {
         if let Some(feature) = self.features.iter_mut().find(|f| f.id == feature_id) {
             feature.update(value);
@@ -214,9 +218,9 @@ impl PredictionEngine {
 
                     // Store prediction
                     if self.predictions.len() >= self.max_predictions {
-                        self.predictions.remove(0);
+                        self.predictions.pop_front();
                     }
-                    self.predictions.push(prediction);
+                    self.predictions.push_back(prediction);
                 }
             }
         }
@@ -225,6 +229,7 @@ impl PredictionEngine {
     }
 
     /// Get prediction accuracy
+    #[inline]
     pub fn accuracy(&self) -> f32 {
         let total = self.total_predictions.load(Ordering::Relaxed);
         let correct = self.correct_predictions.load(Ordering::Relaxed);
@@ -237,6 +242,7 @@ impl PredictionEngine {
     }
 
     /// Validate a prediction (after the fact)
+    #[inline]
     pub fn validate_prediction(&mut self, prediction_id: u64, correct: bool) {
         if let Some(pred) = self.predictions.iter_mut().find(|p| p.id == prediction_id) {
             pred.validate(correct);
@@ -247,51 +253,61 @@ impl PredictionEngine {
     }
 
     /// Enable/disable engine
+    #[inline(always)]
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
 
     /// Is engine enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }
 
     /// Get recent predictions
+    #[inline(always)]
     pub fn recent_predictions(&self) -> &[CrashPrediction] {
         &self.predictions
     }
 
     /// Get feature by ID
+    #[inline(always)]
     pub fn feature(&self, id: u16) -> Option<&Feature> {
         self.features.iter().find(|f| f.id == id)
     }
 
     /// Get mutable feature by ID
+    #[inline(always)]
     pub fn feature_mut(&mut self, id: u16) -> Option<&mut Feature> {
         self.features.iter_mut().find(|f| f.id == id)
     }
 
     /// Get all features
+    #[inline(always)]
     pub fn features(&self) -> &[Feature] {
         &self.features
     }
 
     /// Get total predictions count
+    #[inline(always)]
     pub fn total_predictions(&self) -> u64 {
         self.total_predictions.load(Ordering::Relaxed)
     }
 
     /// Get correct predictions count
+    #[inline(always)]
     pub fn correct_predictions(&self) -> u64 {
         self.correct_predictions.load(Ordering::Relaxed)
     }
 
     /// Set minimum confidence threshold
+    #[inline(always)]
     pub fn set_min_confidence(&mut self, threshold: f32) {
         self.min_confidence = threshold.clamp(0.0, 1.0);
     }
 
     /// Get prediction horizon
+    #[inline(always)]
     pub fn horizon_ms(&self) -> u64 {
         self.horizon_ms
     }

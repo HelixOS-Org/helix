@@ -18,6 +18,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -60,6 +61,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f32, sample: f32) -> f32 {
     EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * current
 }
@@ -118,7 +120,7 @@ pub struct MasterEnsembleResult {
     pub prediction: f32,
     pub variance: f32,
     pub confidence: f32,
-    pub subsystem_contributions: BTreeMap<u64, f32>,
+    pub subsystem_contributions: LinearMap<f32, 64>,
     pub total_weight: f32,
     pub active_models: usize,
     pub diversity_index: f32,
@@ -194,7 +196,7 @@ pub struct EnsembleDominance {
 #[derive(Debug, Clone)]
 pub struct MetaAccuracy {
     pub overall_accuracy: f32,
-    pub accuracy_by_source: BTreeMap<u64, f32>,
+    pub accuracy_by_source: LinearMap<f32, 64>,
     pub recent_accuracy: f32,
     pub accuracy_trend: f32,
     pub total_evaluations: u64,
@@ -207,6 +209,7 @@ pub struct MetaAccuracy {
 
 /// Runtime statistics for the ensemble engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EnsembleStats {
     pub master_fusions: u64,
     pub cross_fusions: u64,
@@ -293,6 +296,7 @@ impl HolisticEnsemble {
     }
 
     /// Submit a prediction from a model member
+    #[inline]
     pub fn submit_prediction(&mut self, model_id: u64, prediction: f32, variance: f32) {
         if let Some(member) = self.members.get_mut(&model_id) {
             member.prediction = prediction;
@@ -337,7 +341,7 @@ impl HolisticEnsemble {
             1.0
         };
 
-        let mut contributions: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut contributions: LinearMap<f32, 64> = BTreeMap::new();
         for (id, _, w, _) in &active_members {
             let contrib = if total_weight > 0.0 { w / total_weight } else { 0.0 };
             contributions.insert(*id, contrib);
@@ -608,7 +612,7 @@ impl HolisticEnsemble {
             0.5
         };
 
-        let mut accuracy_by_source: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut accuracy_by_source: LinearMap<f32, 64> = BTreeMap::new();
         for (k, (err, cnt)) in &source_errors {
             let acc = if *cnt > 0 { 1.0 - (err / *cnt as f32).min(1.0) } else { 0.5 };
             accuracy_by_source.insert(*k, acc);
@@ -635,6 +639,7 @@ impl HolisticEnsemble {
     }
 
     /// Record an actual outcome for meta-accuracy tracking
+    #[inline]
     pub fn record_outcome(&mut self, prediction: f32, actual: f32, source: EnsembleSource) {
         let key = fnv1a_hash(&[source as u8]);
         if self.accuracy_log.len() < MAX_FUSION_HISTORY {
@@ -643,6 +648,7 @@ impl HolisticEnsemble {
     }
 
     /// Get current statistics
+    #[inline(always)]
     pub fn stats(&self) -> &EnsembleStats {
         &self.stats
     }

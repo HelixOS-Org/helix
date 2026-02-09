@@ -39,6 +39,7 @@ pub enum DecisionNode {
 
 impl DecisionNode {
     /// Create a leaf node
+    #[inline]
     pub fn leaf(kind: PredictionKind, confidence: f32, time_to_failure_ms: u64) -> Self {
         Self::Leaf {
             kind,
@@ -48,6 +49,7 @@ impl DecisionNode {
     }
 
     /// Create a split node
+    #[inline]
     pub fn split(feature_id: u16, threshold: f64, left: DecisionNode, right: DecisionNode) -> Self {
         Self::Split {
             feature_id,
@@ -83,6 +85,7 @@ impl DecisionNode {
     }
 
     /// Get tree depth
+    #[inline]
     pub fn depth(&self) -> usize {
         match self {
             Self::Leaf { .. } => 1,
@@ -91,6 +94,7 @@ impl DecisionNode {
     }
 
     /// Count nodes
+    #[inline]
     pub fn node_count(&self) -> usize {
         match self {
             Self::Leaf { .. } => 1,
@@ -99,6 +103,7 @@ impl DecisionNode {
     }
 
     /// Get all feature IDs used in the tree
+    #[inline]
     pub fn feature_ids(&self) -> alloc::vec::Vec<u16> {
         let mut ids = alloc::vec::Vec::new();
         self.collect_feature_ids(&mut ids);

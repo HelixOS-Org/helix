@@ -13,6 +13,7 @@
 //! - **I/O Multiplexing**: epoll/select patterns, event-driven architectures
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -75,6 +76,7 @@ pub enum IntentType {
 
 impl IntentType {
     /// Whether this intent benefits from prefetching
+    #[inline]
     pub fn benefits_from_prefetch(&self) -> bool {
         matches!(
             self,
@@ -87,6 +89,7 @@ impl IntentType {
     }
 
     /// Whether this intent benefits from batching
+    #[inline]
     pub fn benefits_from_batching(&self) -> bool {
         matches!(
             self,
@@ -169,6 +172,7 @@ impl IntentConfidence {
     }
 
     /// Strengthen this detection with additional evidence
+    #[inline]
     pub fn strengthen(&mut self, additional_confidence: f64, timestamp: u64) {
         self.evidence_count += 1;
         self.last_seen = timestamp;
@@ -178,12 +182,14 @@ impl IntentConfidence {
     }
 
     /// Decay confidence over time
+    #[inline(always)]
     pub fn decay(&mut self, elapsed_ms: u64) {
         let decay_factor = 1.0 / (1.0 + elapsed_ms as f64 / 5000.0);
         self.confidence *= decay_factor;
     }
 
     /// Whether this detection is strong enough to act on
+    #[inline(always)]
     pub fn is_actionable(&self) -> bool {
         self.confidence >= 0.6 && self.evidence_count >= 3
     }
@@ -267,11 +273,12 @@ const MAX_ACTIVE_INTENTS: usize = 8;
 
 /// Per-process intent state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessIntentState {
     /// Process ID
     pub pid: u64,
     /// Recent syscall window
-    window: Vec<SyscallType>,
+    window: VecDeque<SyscallType>,
     /// Active detected intents
     active_intents: Vec<IntentConfidence>,
     /// Syscall type frequency counters
@@ -295,11 +302,12 @@ impl ProcessIntentState {
     }
 
     /// Record a syscall
+    #[inline]
     pub fn record(&mut self, syscall_type: SyscallType) {
         if self.window.len() >= WINDOW_SIZE {
-            self.window.remove(0);
+            self.window.pop_front();
         }
-        self.window.push(syscall_type);
+        self.window.push_back(syscall_type);
         self.total_syscalls += 1;
 
         let key = syscall_type as u8;
@@ -307,11 +315,13 @@ impl ProcessIntentState {
     }
 
     /// Get the current syscall window
+    #[inline(always)]
     pub fn window(&self) -> &[SyscallType] {
         &self.window
     }
 
     /// Get the dominant intent (highest confidence)
+    #[inline]
     pub fn dominant_intent(&self) -> Option<&IntentConfidence> {
         self.active_intents.iter().max_by(|a, b| {
             a.confidence
@@ -321,6 +331,7 @@ impl ProcessIntentState {
     }
 
     /// Get all actionable intents
+    #[inline]
     pub fn actionable_intents(&self) -> Vec<&IntentConfidence> {
         self.active_intents
             .iter()
@@ -357,6 +368,7 @@ impl ProcessIntentState {
     }
 
     /// Decay all intents
+    #[inline]
     pub fn decay_all(&mut self, elapsed_ms: u64) {
         for intent in &mut self.active_intents {
             intent.decay(elapsed_ms);
@@ -492,6 +504,7 @@ impl ProcessIntentState {
 // ============================================================================
 
 /// The global intent analyzer manages per-process intent detection
+#[repr(align(64))]
 pub struct IntentAnalyzer {
     /// Per-process state
     processes: BTreeMap<u64, ProcessIntentState>,
@@ -514,6 +527,7 @@ impl IntentAnalyzer {
     }
 
     /// Get or create process state
+    #[inline]
     pub fn process_state(&mut self, pid: u64) -> &mut ProcessIntentState {
         self.processes
             .entry(pid)
@@ -548,7 +562,7 @@ impl IntentAnalyzer {
         }
 
         // Pattern-based detection
-        let window: Vec<SyscallType> = state.window().to_vec();
+        let window: VecDeque<SyscallType> = state.window().to_vec();
         let patterns = &self.patterns;
         let mut pattern_matches = Vec::new();
         for pattern in patterns {
@@ -567,6 +581,7 @@ impl IntentAnalyzer {
     }
 
     /// Get the current intent for a process
+    #[inline]
     pub fn get_intent(&self, pid: u64) -> Option<IntentType> {
         self.processes
             .get(&pid)
@@ -575,6 +590,7 @@ impl IntentAnalyzer {
     }
 
     /// Get all active intents for a process
+    #[inline]
     pub fn get_all_intents(&self, pid: u64) -> Vec<(IntentType, f64)> {
         self.processes
             .get(&pid)
@@ -588,11 +604,13 @@ impl IntentAnalyzer {
     }
 
     /// Remove a process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
     }
 
     /// Decay all process intents
+    #[inline]
     pub fn decay_all(&mut self, elapsed_ms: u64) {
         for state in self.processes.values_mut() {
             state.decay_all(elapsed_ms);
@@ -600,6 +618,7 @@ impl IntentAnalyzer {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> (usize, u64, u64) {
         (self.processes.len(), self.analyses, self.detections)
     }

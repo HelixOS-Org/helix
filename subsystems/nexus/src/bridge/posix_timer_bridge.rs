@@ -31,6 +31,7 @@ pub enum TimerNotify {
 
 /// Interval timer
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PosixTimer {
     pub id: u64,
     pub clock_id: PosixClockId,
@@ -54,6 +55,7 @@ impl PosixTimer {
         }
     }
 
+    #[inline]
     pub fn arm(&mut self, value: u64, interval: u64, absolute: bool) {
         self.value_ns = value;
         self.interval_ns = interval;
@@ -61,8 +63,10 @@ impl PosixTimer {
         self.armed = true;
     }
 
+    #[inline(always)]
     pub fn disarm(&mut self) { self.armed = false; }
 
+    #[inline]
     pub fn fire(&mut self, now: u64) {
         self.fire_count += 1;
         self.last_fire = now;
@@ -73,10 +77,12 @@ impl PosixTimer {
         }
     }
 
+    #[inline(always)]
     pub fn check_expired(&self, now: u64) -> bool {
         self.armed && now >= self.value_ns
     }
 
+    #[inline]
     pub fn compute_overrun(&mut self, now: u64) {
         if self.interval_ns > 0 && self.last_fire > 0 {
             let elapsed = now.saturating_sub(self.last_fire);
@@ -85,11 +91,13 @@ impl PosixTimer {
         }
     }
 
+    #[inline(always)]
     pub fn is_periodic(&self) -> bool { self.interval_ns > 0 }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PosixTimerBridgeStats {
     pub total_timers: u32,
     pub armed_timers: u32,
@@ -100,6 +108,7 @@ pub struct PosixTimerBridgeStats {
 }
 
 /// Main posix timer bridge
+#[repr(align(64))]
 pub struct BridgePosixTimer {
     timers: BTreeMap<u64, PosixTimer>,
     next_id: u64,
@@ -108,20 +117,24 @@ pub struct BridgePosixTimer {
 impl BridgePosixTimer {
     pub fn new() -> Self { Self { timers: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, clock: PosixClockId, notify: TimerNotify, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.timers.insert(id, PosixTimer::new(id, clock, notify, now));
         id
     }
 
+    #[inline(always)]
     pub fn arm(&mut self, id: u64, value: u64, interval: u64, absolute: bool) {
         if let Some(t) = self.timers.get_mut(&id) { t.arm(value, interval, absolute); }
     }
 
+    #[inline(always)]
     pub fn disarm(&mut self, id: u64) {
         if let Some(t) = self.timers.get_mut(&id) { t.disarm(); }
     }
 
+    #[inline]
     pub fn tick(&mut self, now: u64) -> Vec<u64> {
         let mut fired = Vec::new();
         for timer in self.timers.values_mut() {
@@ -133,6 +146,7 @@ impl BridgePosixTimer {
         fired
     }
 
+    #[inline(always)]
     pub fn delete(&mut self, id: u64) { self.timers.remove(&id); }
 
     pub fn stats(&self) -> PosixTimerBridgeStats {

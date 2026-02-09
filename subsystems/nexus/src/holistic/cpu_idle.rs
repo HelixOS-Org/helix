@@ -56,6 +56,7 @@ impl CStateLevel {
         }
     }
 
+    #[inline]
     pub fn depth(&self) -> u8 {
         match self {
             CStateLevel::C0 => 0, CStateLevel::C1 => 1, CStateLevel::C1e => 2,
@@ -88,6 +89,7 @@ pub enum WakeSource {
 
 /// Per-CPU idle state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuIdleState {
     pub cpu_id: u32,
     pub current_state: CStateLevel,
@@ -117,6 +119,7 @@ impl CpuIdleState {
         }
     }
 
+    #[inline]
     pub fn enter_idle(&mut self, state: CStateLevel, predicted: u64) {
         self.current_state = state;
         self.predicted_us = predicted;
@@ -136,11 +139,13 @@ impl CpuIdleState {
         self.current_state = CStateLevel::C0;
     }
 
+    #[inline(always)]
     pub fn idle_pct(&self) -> f64 {
         let total = self.total_idle_us + self.total_active_us;
         if total == 0 { 0.0 } else { self.total_idle_us as f64 / total as f64 * 100.0 }
     }
 
+    #[inline]
     pub fn prediction_accuracy(&self) -> f64 {
         if self.predicted_us == 0 || self.actual_us == 0 { return 0.0; }
         let diff = if self.predicted_us > self.actual_us { self.predicted_us - self.actual_us } else { self.actual_us - self.predicted_us };
@@ -148,15 +153,20 @@ impl CpuIdleState {
         if max == 0 { 0.0 } else { (1.0 - diff as f64 / max as f64) * 100.0 }
     }
 
+    #[inline(always)]
     pub fn avg_idle_us(&self) -> u64 {
         let non_zero: Vec<u64> = self.prediction_history.iter().copied().filter(|&v| v > 0).collect();
         if non_zero.is_empty() { 0 } else { non_zero.iter().sum::<u64>() / non_zero.len() as u64 }
     }
 
+    #[inline(always)]
     pub fn is_disabled(&self, state: CStateLevel) -> bool { (self.disable_mask >> state.depth()) & 1 != 0 }
+    #[inline(always)]
     pub fn disable_state(&mut self, state: CStateLevel) { self.disable_mask |= 1 << state.depth(); }
+    #[inline(always)]
     pub fn enable_state(&mut self, state: CStateLevel) { self.disable_mask &= !(1 << state.depth()); }
 
+    #[inline]
     pub fn select_state(&self) -> CStateLevel {
         let avg = self.avg_idle_us();
         let states = [CStateLevel::C10, CStateLevel::C8, CStateLevel::C7, CStateLevel::C6, CStateLevel::C3, CStateLevel::C2, CStateLevel::C1e, CStateLevel::C1];
@@ -171,6 +181,7 @@ impl CpuIdleState {
 
 /// Package C-state info
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PackageCState {
     pub package_id: u32,
     pub cpu_ids: Vec<u32>,
@@ -187,6 +198,7 @@ impl PackageCState {
 
 /// CPU idle stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CpuIdleStats {
     pub total_cpus: usize,
     pub avg_idle_pct: f64,
@@ -210,16 +222,19 @@ impl HolisticCpuIdle {
         Self { cpus: BTreeMap::new(), packages: BTreeMap::new(), stats: CpuIdleStats::default(), global_governor: IdleGovernor::Menu }
     }
 
+    #[inline(always)]
     pub fn add_cpu(&mut self, id: u32, pkg: u32) {
         self.cpus.insert(id, CpuIdleState::new(id));
         self.packages.entry(pkg).or_insert_with(|| PackageCState::new(pkg)).cpu_ids.push(id);
     }
 
+    #[inline(always)]
     pub fn set_governor(&mut self, gov: IdleGovernor) {
         self.global_governor = gov;
         for c in self.cpus.values_mut() { c.governor = gov; }
     }
 
+    #[inline]
     pub fn enter_idle(&mut self, cpu: u32, predicted: u64) {
         if let Some(c) = self.cpus.get_mut(&cpu) {
             let state = c.select_state();
@@ -227,13 +242,17 @@ impl HolisticCpuIdle {
         }
     }
 
+    #[inline(always)]
     pub fn exit_idle(&mut self, cpu: u32, actual: u64, wake: WakeSource) {
         if let Some(c) = self.cpus.get_mut(&cpu) { c.exit_idle(actual, wake); }
     }
 
+    #[inline(always)]
     pub fn disable_state(&mut self, cpu: u32, state: CStateLevel) { if let Some(c) = self.cpus.get_mut(&cpu) { c.disable_state(state); } }
+    #[inline(always)]
     pub fn enable_state(&mut self, cpu: u32, state: CStateLevel) { if let Some(c) = self.cpus.get_mut(&cpu) { c.enable_state(state); } }
 
+    #[inline(always)]
     pub fn set_max_depth(&mut self, cpu: u32, max: CStateLevel) { if let Some(c) = self.cpus.get_mut(&cpu) { c.deepest_allowed = max; } }
 
     pub fn update_packages(&mut self) {
@@ -249,6 +268,7 @@ impl HolisticCpuIdle {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_cpus = self.cpus.len();
         if !self.cpus.is_empty() {
@@ -259,8 +279,11 @@ impl HolisticCpuIdle {
         self.stats.deepest_used = self.cpus.values().flat_map(|c| c.residency_us.keys()).copied().max().unwrap_or(0);
     }
 
+    #[inline(always)]
     pub fn cpu(&self, id: u32) -> Option<&CpuIdleState> { self.cpus.get(&id) }
+    #[inline(always)]
     pub fn package(&self, id: u32) -> Option<&PackageCState> { self.packages.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &CpuIdleStats { &self.stats }
 }
 
@@ -292,6 +315,7 @@ pub enum IdleGovernor {
 
 /// Per-CPU idle state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CpuIdleState {
     pub cpu_id: u32,
     pub current_cstate: CState,
@@ -316,6 +340,7 @@ impl CpuIdleState {
         }
     }
 
+    #[inline]
     pub fn enter_idle(&mut self, target: CState, predicted_ns: u64, now: u64) {
         self.current_cstate = target;
         self.last_idle_enter = now;
@@ -324,6 +349,7 @@ impl CpuIdleState {
         *self.entry_count.entry(key).or_insert(0) += 1;
     }
 
+    #[inline]
     pub fn exit_idle(&mut self, now: u64) {
         let duration = now.saturating_sub(self.last_idle_enter);
         let key = self.current_cstate as u8;
@@ -336,12 +362,14 @@ impl CpuIdleState {
         self.current_cstate = CState::C0;
     }
 
+    #[inline]
     pub fn idle_ratio(&self) -> f64 {
         let total = self.total_idle_ns + self.total_active_ns;
         if total == 0 { return 0.0; }
         self.total_idle_ns as f64 / total as f64
     }
 
+    #[inline]
     pub fn prediction_accuracy(&self) -> f64 {
         let total_entries: u64 = self.entry_count.values().sum();
         if total_entries == 0 { return 1.0; }
@@ -351,6 +379,7 @@ impl CpuIdleState {
 
 /// C-state latency table
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CStateLatency {
     pub cstate: CState,
     pub entry_latency_ns: u64,
@@ -361,6 +390,7 @@ pub struct CStateLatency {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuIdleV2Stats {
     pub total_cpus: u32,
     pub idle_cpus: u32,
@@ -388,14 +418,17 @@ impl HolisticCpuIdleV2 {
         Self { cpus: BTreeMap::new(), latency_table: table }
     }
 
+    #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32, governor: IdleGovernor) {
         self.cpus.insert(cpu_id, CpuIdleState::new(cpu_id, governor));
     }
 
+    #[inline(always)]
     pub fn enter_idle(&mut self, cpu_id: u32, target: CState, predicted: u64, now: u64) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) { cpu.enter_idle(target, predicted, now); }
     }
 
+    #[inline(always)]
     pub fn exit_idle(&mut self, cpu_id: u32, now: u64) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) { cpu.exit_idle(now); }
     }

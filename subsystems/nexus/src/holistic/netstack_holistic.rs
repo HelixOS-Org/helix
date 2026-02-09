@@ -22,6 +22,7 @@ impl NetstackHolisticRecord {
 
 /// Netstack holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetstackHolisticStats { pub total_samples: u64, pub total_drops: u64, pub slowest_layer_ns: u64, pub peak_queue: u32 }
 
 /// Main holistic netstack
@@ -30,6 +31,7 @@ pub struct HolisticNetstack { pub stats: NetstackHolisticStats }
 
 impl HolisticNetstack {
     pub fn new() -> Self { Self { stats: NetstackHolisticStats { total_samples: 0, total_drops: 0, slowest_layer_ns: 0, peak_queue: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &NetstackHolisticRecord) {
         self.stats.total_samples += 1;
         self.stats.total_drops += rec.drops as u64;

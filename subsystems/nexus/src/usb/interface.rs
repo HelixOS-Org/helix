@@ -41,11 +41,13 @@ impl UsbInterface {
     }
 
     /// Add endpoint
+    #[inline(always)]
     pub fn add_endpoint(&mut self, endpoint: UsbEndpoint) {
         self.endpoints.push(endpoint);
     }
 
     /// Has driver
+    #[inline(always)]
     pub fn has_driver(&self) -> bool {
         self.driver.is_some()
     }
@@ -79,11 +81,13 @@ impl UsbConfiguration {
     }
 
     /// Add interface
+    #[inline(always)]
     pub fn add_interface(&mut self, interface: UsbInterface) {
         self.interfaces.push(interface);
     }
 
     /// Interface count
+    #[inline(always)]
     pub fn interface_count(&self) -> usize {
         self.interfaces.len()
     }

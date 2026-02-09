@@ -44,7 +44,9 @@ impl BlkPartition {
         Self { part_num, start_sector: start, nr_sectors, fs_type_hash: 0, flags: 0 }
     }
 
+    #[inline(always)]
     pub fn size_bytes(&self) -> u64 { self.nr_sectors * 512 }
+    #[inline(always)]
     pub fn end_sector(&self) -> u64 { self.start_sector + self.nr_sectors }
 }
 
@@ -76,19 +78,25 @@ impl BlkdevInstance {
         }
     }
 
+    #[inline(always)]
     pub fn capacity_bytes(&self) -> u64 { self.total_sectors * self.sector_size as u64 }
+    #[inline(always)]
     pub fn add_partition(&mut self, part: BlkPartition) { self.partitions.push(part); }
+    #[inline(always)]
     pub fn is_rotational(&self) -> bool { self.dev_type == BlkdevType::Hdd }
 
+    #[inline(always)]
     pub fn record_io(&mut self, read: bool, bytes: u64) {
         if read { self.read_bytes += bytes; } else { self.write_bytes += bytes; }
     }
 
+    #[inline(always)]
     pub fn throughput_bytes(&self) -> u64 { self.read_bytes + self.write_bytes }
 }
 
 /// Blkdev holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticBlkdevStats {
     pub total_devices: u64,
     pub total_capacity_bytes: u64,
@@ -111,12 +119,14 @@ impl HolisticBlkdev {
         }
     }
 
+    #[inline]
     pub fn register(&mut self, dev: BlkdevInstance) {
         self.stats.total_devices += 1;
         self.stats.total_capacity_bytes += dev.capacity_bytes();
         self.devices.insert(dev.dev_id, dev);
     }
 
+    #[inline]
     pub fn record_io(&mut self, dev_id: u64, read: bool, bytes: u64) {
         if let Some(dev) = self.devices.get_mut(&dev_id) {
             dev.record_io(read, bytes);

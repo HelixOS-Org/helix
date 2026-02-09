@@ -319,6 +319,7 @@ impl KnowledgeGraph {
     }
 
     /// Create with default dimension
+    #[inline(always)]
     pub fn with_default_dim() -> Self {
         Self::new(DEFAULT_EMBEDDING_DIM)
     }
@@ -472,11 +473,13 @@ impl KnowledgeGraph {
     }
 
     /// Get an entity by ID
+    #[inline(always)]
     pub fn get_entity(&self, id: EntityId) -> Option<&Entity> {
         self.entities.get(&id)
     }
 
     /// Get an entity by name
+    #[inline]
     pub fn get_entity_by_name(&self, name: &str) -> Option<&Entity> {
         self.entity_names
             .get(name)
@@ -484,21 +487,25 @@ impl KnowledgeGraph {
     }
 
     /// Get a relation by ID
+    #[inline(always)]
     pub fn get_relation(&self, id: RelationId) -> Option<&Relation> {
         self.relations.get(&id)
     }
 
     /// Get all outgoing edges from an entity
+    #[inline(always)]
     pub fn get_outgoing(&self, entity: EntityId) -> Vec<(RelationId, EntityId)> {
         self.head_index.get(&entity).cloned().unwrap_or_default()
     }
 
     /// Get all incoming edges to an entity
+    #[inline(always)]
     pub fn get_incoming(&self, entity: EntityId) -> Vec<(EntityId, RelationId)> {
         self.tail_index.get(&entity).cloned().unwrap_or_default()
     }
 
     /// Get all entities of a specific type
+    #[inline]
     pub fn get_entities_by_type(&self, entity_type: EntityType) -> Vec<EntityId> {
         self.entities
             .values()
@@ -508,6 +515,7 @@ impl KnowledgeGraph {
     }
 
     /// Check if a triple exists
+    #[inline]
     pub fn has_triple(&self, head: EntityId, relation: RelationId, tail: EntityId) -> bool {
         if let Some(outgoing) = self.head_index.get(&head) {
             outgoing.contains(&(relation, tail))
@@ -725,6 +733,7 @@ impl TransEModel {
     }
 
     /// Predict tail entity given head and relation
+    #[inline]
     pub fn predict_tail(
         &self,
         head: EntityId,
@@ -743,6 +752,7 @@ impl TransEModel {
     }
 
     /// Predict head entity given relation and tail
+    #[inline]
     pub fn predict_head(
         &self,
         relation: RelationId,
@@ -854,11 +864,13 @@ impl<'a> PathReasoner<'a> {
     }
 
     /// Check if a path exists (reachability)
+    #[inline(always)]
     pub fn is_reachable(&self, source: EntityId, target: EntityId) -> bool {
         !self.find_paths(source, target).is_empty()
     }
 
     /// Find common ancestors of two entities
+    #[inline]
     pub fn find_common_ancestors(&self, e1: EntityId, e2: EntityId) -> Vec<EntityId> {
         let mut ancestors1 = self.find_ancestors(e1);
         let ancestors2 = self.find_ancestors(e2);
@@ -1201,6 +1213,7 @@ impl KernelKnowledgeGraph {
     }
 
     /// Add a process entity
+    #[inline]
     pub fn add_process(&mut self, pid: u64, name: String) -> EntityId {
         let mut attrs = BTreeMap::new();
         attrs.insert(String::from("pid"), AttributeValue::Integer(pid as i64));
@@ -1208,6 +1221,7 @@ impl KernelKnowledgeGraph {
     }
 
     /// Add a thread entity
+    #[inline]
     pub fn add_thread(&mut self, tid: u64, name: String, parent: EntityId) -> EntityId {
         let mut attrs = BTreeMap::new();
         attrs.insert(String::from("tid"), AttributeValue::Integer(tid as i64));
@@ -1233,6 +1247,7 @@ impl KernelKnowledgeGraph {
     }
 
     /// Add a lock entity
+    #[inline]
     pub fn add_lock(&mut self, lock_id: u64, name: String) -> EntityId {
         let mut attrs = BTreeMap::new();
         attrs.insert(
@@ -1243,12 +1258,14 @@ impl KernelKnowledgeGraph {
     }
 
     /// Record lock acquisition
+    #[inline(always)]
     pub fn record_lock_held(&mut self, holder: EntityId, lock: EntityId) {
         self.graph
             .add_triple(holder, self.relations.holds_lock, lock, 1.0);
     }
 
     /// Record lock wait
+    #[inline(always)]
     pub fn record_lock_wait(&mut self, waiter: EntityId, lock: EntityId) {
         self.graph
             .add_triple(waiter, self.relations.waits_lock, lock, 1.0);
@@ -1364,6 +1381,7 @@ impl TemporalKnowledgeGraph {
     }
 
     /// Set current time
+    #[inline(always)]
     pub fn set_time(&mut self, time: u64) {
         self.current_time = time;
     }
@@ -1390,6 +1408,7 @@ impl TemporalKnowledgeGraph {
     }
 
     /// Invalidate a triple at given time
+    #[inline]
     pub fn invalidate_triple(&mut self, triple_id: TripleId, end_time: u64) {
         for tt in &mut self.temporal_triples {
             if tt.triple.id == triple_id {
@@ -1400,6 +1419,7 @@ impl TemporalKnowledgeGraph {
     }
 
     /// Query triples valid at a specific time
+    #[inline]
     pub fn query_at_time(&self, time: u64) -> Vec<&TemporalTriple> {
         self.temporal_triples
             .iter()
@@ -1408,6 +1428,7 @@ impl TemporalKnowledgeGraph {
     }
 
     /// Get history of a relationship
+    #[inline]
     pub fn get_relationship_history(
         &self,
         head: EntityId,

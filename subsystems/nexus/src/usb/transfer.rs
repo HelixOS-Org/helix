@@ -3,6 +3,7 @@
 //! USB transfer tracking and device management.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 
@@ -27,6 +28,7 @@ pub enum TransferStatus {
 
 impl TransferStatus {
     /// Get status name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Pending => "pending",
@@ -39,6 +41,7 @@ impl TransferStatus {
     }
 
     /// Is success
+    #[inline(always)]
     pub fn is_success(&self) -> bool {
         matches!(self, Self::Completed)
     }
@@ -90,11 +93,13 @@ impl UsbTransfer {
     }
 
     /// Duration
+    #[inline(always)]
     pub fn duration(&self) -> u64 {
         self.end_time.saturating_sub(self.start_time)
     }
 
     /// Throughput (bytes/sec)
+    #[inline]
     pub fn throughput(&self) -> u64 {
         let duration = self.duration();
         if duration > 0 {
@@ -112,7 +117,7 @@ pub struct UsbManager {
     /// All devices (flat index)
     all_devices: BTreeMap<UsbDeviceId, UsbDeviceId>,
     /// Transfer history
-    transfers: Vec<UsbTransfer>,
+    transfers: VecDeque<UsbTransfer>,
     /// Max transfers
     max_transfers: usize,
     /// Device count
@@ -129,7 +134,7 @@ impl UsbManager {
         Self {
             buses: BTreeMap::new(),
             all_devices: BTreeMap::new(),
-            transfers: Vec::new(),
+            transfers: VecDeque::new(),
             max_transfers: 10000,
             device_count: AtomicU32::new(0),
             total_transfers: AtomicU64::new(0),
@@ -138,21 +143,25 @@ impl UsbManager {
     }
 
     /// Register bus
+    #[inline(always)]
     pub fn register_bus(&mut self, bus: UsbBus) {
         self.buses.insert(bus.id, bus);
     }
 
     /// Get bus
+    #[inline(always)]
     pub fn get_bus(&self, id: BusId) -> Option<&UsbBus> {
         self.buses.get(&id)
     }
 
     /// Get bus mutably
+    #[inline(always)]
     pub fn get_bus_mut(&mut self, id: BusId) -> Option<&mut UsbBus> {
         self.buses.get_mut(&id)
     }
 
     /// Register device
+    #[inline]
     pub fn register_device(&mut self, bus_id: BusId, device: UsbDevice) {
         let id = device.id;
         if let Some(bus) = self.buses.get_mut(&bus_id) {
@@ -163,36 +172,42 @@ impl UsbManager {
     }
 
     /// Find device
+    #[inline(always)]
     pub fn find_device(&self, id: UsbDeviceId) -> Option<&UsbDevice> {
         self.buses.get(&id.bus)?.get_device(id.address)
     }
 
     /// Record transfer
+    #[inline]
     pub fn record_transfer(&mut self, transfer: UsbTransfer) {
         self.total_transfers.fetch_add(1, Ordering::Relaxed);
 
         if self.transfers.len() >= self.max_transfers {
-            self.transfers.remove(0);
+            self.transfers.pop_front();
         }
-        self.transfers.push(transfer);
+        self.transfers.push_back(transfer);
     }
 
     /// Get device count
+    #[inline(always)]
     pub fn device_count(&self) -> u32 {
         self.device_count.load(Ordering::Relaxed)
     }
 
     /// Get bus count
+    #[inline(always)]
     pub fn bus_count(&self) -> usize {
         self.buses.len()
     }
 
     /// Get buses
+    #[inline(always)]
     pub fn buses(&self) -> &BTreeMap<BusId, UsbBus> {
         &self.buses
     }
 
     /// Get devices by class
+    #[inline]
     pub fn devices_by_class(&self, class: UsbClass) -> Vec<UsbDeviceId> {
         self.buses
             .values()
@@ -203,11 +218,13 @@ impl UsbManager {
     }
 
     /// Get storage devices
+    #[inline(always)]
     pub fn storage_devices(&self) -> Vec<UsbDeviceId> {
         self.devices_by_class(UsbClass::MassStorage)
     }
 
     /// Get HID devices
+    #[inline(always)]
     pub fn hid_devices(&self) -> Vec<UsbDeviceId> {
         self.devices_by_class(UsbClass::Hid)
     }

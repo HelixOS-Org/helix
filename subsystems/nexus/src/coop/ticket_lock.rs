@@ -23,6 +23,7 @@ impl TicketLock {
         Self { id, next_ticket: 0, now_serving: 0, owner_tid: None, acquisitions: 0, contentions: 0, total_spin_ns: 0, max_spin_ns: 0 }
     }
 
+    #[inline]
     pub fn take_ticket(&mut self) -> u64 {
         let ticket = self.next_ticket;
         self.next_ticket += 1;
@@ -30,6 +31,7 @@ impl TicketLock {
         ticket
     }
 
+    #[inline]
     pub fn try_lock(&mut self, ticket: u64, tid: u64) -> bool {
         if ticket == self.now_serving {
             self.owner_tid = Some(tid);
@@ -38,17 +40,21 @@ impl TicketLock {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn unlock(&mut self) {
         self.owner_tid = None;
         self.now_serving += 1;
     }
 
+    #[inline(always)]
     pub fn waiters(&self) -> u64 { self.next_ticket - self.now_serving - if self.owner_tid.is_some() { 1 } else { 0 } }
+    #[inline(always)]
     pub fn contention_rate(&self) -> f64 { if self.acquisitions == 0 { 0.0 } else { self.contentions as f64 / self.acquisitions as f64 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TicketLockStats {
     pub total_locks: u32,
     pub total_acquisitions: u64,
@@ -66,12 +72,14 @@ pub struct CoopTicketLock {
 impl CoopTicketLock {
     pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.locks.insert(id, TicketLock::new(id));
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> TicketLockStats {
         let acqs: u64 = self.locks.values().map(|l| l.acquisitions).sum();
         let conts: u64 = self.locks.values().map(|l| l.contentions).sum();
@@ -113,6 +121,7 @@ impl TicketLockV2 {
         Self { id, next_ticket: 0, now_serving: 0, state: TicketLockV2State::Free, owner_tid: 0, total_acquires: 0, total_releases: 0, total_spins: 0, max_wait_spins: 0, hold_time_total: 0 }
     }
 
+    #[inline]
     pub fn acquire(&mut self, tid: u64, spins: u64) -> u64 {
         let ticket = self.next_ticket;
         self.next_ticket += 1;
@@ -125,6 +134,7 @@ impl TicketLockV2 {
         ticket
     }
 
+    #[inline]
     pub fn release(&mut self, hold_ns: u64) {
         self.total_releases += 1;
         self.hold_time_total += hold_ns;
@@ -133,14 +143,17 @@ impl TicketLockV2 {
         else { self.state = TicketLockV2State::Contended; }
     }
 
+    #[inline(always)]
     pub fn avg_hold_ns(&self) -> u64 {
         if self.total_releases == 0 { 0 } else { self.hold_time_total / self.total_releases }
     }
 
+    #[inline(always)]
     pub fn avg_spins(&self) -> f64 {
         if self.total_acquires == 0 { 0.0 } else { self.total_spins as f64 / self.total_acquires as f64 }
     }
 
+    #[inline(always)]
     pub fn waiters(&self) -> u64 {
         if self.next_ticket > self.now_serving { self.next_ticket - self.now_serving }
         else { 0 }
@@ -149,6 +162,7 @@ impl TicketLockV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TicketLockV2Stats {
     pub total_locks: u32,
     pub total_acquires: u64,
@@ -166,23 +180,28 @@ pub struct CoopTicketLockV2 {
 impl CoopTicketLockV2 {
     pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.locks.insert(id, TicketLockV2::new(id));
         id
     }
 
+    #[inline(always)]
     pub fn acquire(&mut self, lock_id: u64, tid: u64, spins: u64) -> u64 {
         if let Some(l) = self.locks.get_mut(&lock_id) { l.acquire(tid, spins) }
         else { 0 }
     }
 
+    #[inline(always)]
     pub fn release(&mut self, lock_id: u64, hold_ns: u64) {
         if let Some(l) = self.locks.get_mut(&lock_id) { l.release(hold_ns); }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, lock_id: u64) { self.locks.remove(&lock_id); }
 
+    #[inline]
     pub fn stats(&self) -> TicketLockV2Stats {
         let acqs: u64 = self.locks.values().map(|l| l.total_acquires).sum();
         let spins: u64 = self.locks.values().map(|l| l.total_spins).sum();
@@ -243,15 +262,18 @@ impl TicketLockV3Instance {
         ticket
     }
 
+    #[inline(always)]
     pub fn release(&mut self) {
         self.holder_tid = None;
         self.now_serving.fetch_add(1, Ordering::Release);
     }
 
+    #[inline(always)]
     pub fn is_locked(&self) -> bool {
         self.next_ticket.load(Ordering::Relaxed) != self.now_serving.load(Ordering::Relaxed)
     }
 
+    #[inline]
     pub fn waiter_count(&self) -> u64 {
         let next = self.next_ticket.load(Ordering::Relaxed);
         let serving = self.now_serving.load(Ordering::Relaxed);
@@ -261,6 +283,7 @@ impl TicketLockV3Instance {
 
 /// Statistics for ticket lock V3
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TicketLockV3Stats {
     pub locks_created: u64,
     pub total_acquisitions: u64,
@@ -290,6 +313,7 @@ impl CoopTicketLockV3 {
         }
     }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -312,12 +336,14 @@ impl CoopTicketLockV3 {
         } else { None }
     }
 
+    #[inline]
     pub fn release(&mut self, lock_id: u64) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.release();
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &TicketLockV3Stats {
         &self.stats
     }
@@ -409,6 +435,7 @@ impl TicketV4Instance {
         ticket
     }
 
+    #[inline]
     pub fn release(&mut self) {
         self.head.fetch_add(1, Ordering::AcqRel);
         self.state = TicketV4State::Free;
@@ -416,12 +443,14 @@ impl TicketV4Instance {
         self.handoff_count += 1;
     }
 
+    #[inline]
     pub fn queue_depth(&self) -> u64 {
         let tail = self.tail.load(Ordering::Acquire);
         let head = self.head.load(Ordering::Acquire);
         tail.saturating_sub(head)
     }
 
+    #[inline]
     pub fn numa_locality_rate(&self) -> f64 {
         let total = self.numa_local_acquires + self.numa_remote_acquires;
         if total == 0 {
@@ -433,6 +462,7 @@ impl TicketV4Instance {
 
 /// Statistics for ticket lock V4.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TicketV4Stats {
     pub total_locks: u64,
     pub total_acquires: u64,
@@ -463,6 +493,7 @@ impl CoopTicketLockV4 {
         }
     }
 
+    #[inline]
     pub fn create_lock(&mut self, backoff: TicketV4BackoffMode) -> u64 {
         let id = self.next_lock_id;
         self.next_lock_id += 1;
@@ -472,6 +503,7 @@ impl CoopTicketLockV4 {
         id
     }
 
+    #[inline(always)]
     pub fn lock_count(&self) -> usize {
         self.locks.len()
     }

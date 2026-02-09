@@ -58,6 +58,7 @@ impl RandomRecord {
         }
     }
 
+    #[inline(always)]
     pub fn was_partial(&self) -> bool {
         self.bytes_returned < self.bytes_requested
     }
@@ -65,6 +66,7 @@ impl RandomRecord {
 
 /// Random bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RandomBridgeStats {
     pub total_ops: u64,
     pub bytes_generated: u64,

@@ -66,14 +66,46 @@ pub mod literature;
 /// Conflict-free staged synthesis and rollout of validated improvements
 pub mod synthesis;
 
+/// System-wide statistical meta-analysis across all research results
+pub mod analysis;
+
+/// System-wide curiosity engine driving exploration of the unknown
+pub mod curiosity;
+
+/// Master cross-subsystem peer review and consensus building
+pub mod peer_review;
+
+/// The grand cross-referenced, searchable system knowledge repository
+pub mod knowledge_base;
+
+/// System-level breakthrough detection and cascade tracking
+pub mod breakthrough;
+
+/// Master methodology framework enforcing scientific rigour
+pub mod methodology;
+
+/// System-wide replication engine ensuring reproducibility
+pub mod replication;
+
+/// System-wide paradigm shift detection and transition management
+pub mod paradigm;
+
 // ============================================================================
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
 
+pub use self::analysis::HolisticAnalysisEngine;
+pub use self::breakthrough::HolisticBreakthroughDetector;
+pub use self::curiosity::HolisticCuriosityEngine;
 pub use self::experiment::HolisticExperiment;
 pub use self::explorer::HolisticExplorer;
 pub use self::hypothesis::HolisticHypothesisEngine;
 pub use self::journal::HolisticJournal;
+pub use self::knowledge_base::HolisticKnowledgeBase;
 pub use self::literature::HolisticLiterature;
+pub use self::methodology::HolisticMethodology;
+pub use self::paradigm::HolisticParadigm;
+pub use self::peer_review::HolisticPeerReview;
+pub use self::replication::HolisticReplication;
 pub use self::synthesis::HolisticSynthesis;
 pub use self::validator::HolisticDiscoveryValidator;

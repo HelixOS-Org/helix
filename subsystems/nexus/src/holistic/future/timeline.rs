@@ -11,7 +11,10 @@
 
 extern crate alloc;
 
+use crate::fast::fast_hash::FastHasher;
+
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -151,6 +154,7 @@ pub struct MergeResult {
 
 /// Aggregate timeline projection statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct TimelineStats {
     pub total_projections: u64,
     pub total_branches: u64,
@@ -170,11 +174,11 @@ pub struct TimelineStats {
 /// is continuously validated and corrected against reality.
 #[derive(Debug)]
 pub struct HolisticTimeline {
-    main_timeline: Vec<TimelinePoint>,
+    main_timeline: VecDeque<TimelinePoint>,
     branches: BTreeMap<u64, TimelineBranch>,
     corrections: BTreeMap<u64, CourseCorrection>,
-    accuracy_samples: Vec<AccuracySample>,
-    comparison_log: Vec<PredictedVsActual>,
+    accuracy_samples: VecDeque<AccuracySample>,
+    comparison_log: VecDeque<PredictedVsActual>,
     total_projections: u64,
     total_branches: u64,
     total_merges: u64,
@@ -188,11 +192,11 @@ pub struct HolisticTimeline {
 impl HolisticTimeline {
     pub fn new() -> Self {
         Self {
-            main_timeline: Vec::new(),
+            main_timeline: VecDeque::new(),
             branches: BTreeMap::new(),
             corrections: BTreeMap::new(),
-            accuracy_samples: Vec::new(),
-            comparison_log: Vec::new(),
+            accuracy_samples: VecDeque::new(),
+            comparison_log: VecDeque::new(),
             total_projections: 0,
             total_branches: 0,
             total_merges: 0,
@@ -205,6 +209,7 @@ impl HolisticTimeline {
     }
 
     /// Project the complete system state forward by a number of ticks
+    #[inline]
     pub fn project_system(
         &mut self,
         current_cpu: f32,
@@ -259,10 +264,10 @@ impl HolisticTimeline {
         };
 
         for p in &points {
-            self.main_timeline.push(p.clone());
+            self.main_timeline.push_back(p.clone());
         }
         while self.main_timeline.len() > MAX_TIMELINE_POINTS {
-            self.main_timeline.remove(0);
+            self.main_timeline.pop_front();
         }
 
         points
@@ -388,6 +393,7 @@ impl HolisticTimeline {
     }
 
     /// Measure overall timeline accuracy
+    #[inline]
     pub fn timeline_accuracy(&self) -> f32 {
         if self.accuracy_samples.is_empty() {
             return self.accuracy_ema;
@@ -397,6 +403,7 @@ impl HolisticTimeline {
     }
 
     /// Compare predicted vs actual and log the comparison
+    #[inline]
     pub fn predicted_vs_actual(
         &mut self,
         actual_cpu: f32,
@@ -430,14 +437,14 @@ impl HolisticTimeline {
         let accuracy = 1.0 - error_mag.clamp(0.0, 1.0);
         self.accuracy_ema = EMA_ALPHA * accuracy + (1.0 - EMA_ALPHA) * self.accuracy_ema;
 
-        self.accuracy_samples.push(AccuracySample {
+        self.accuracy_samples.push_back(AccuracySample {
             tick: self.tick,
             horizon_ticks: 1,
             accuracy,
             dimension: String::from("composite"),
         });
         while self.accuracy_samples.len() > MAX_ACCURACY_SAMPLES {
-            self.accuracy_samples.remove(0);
+            self.accuracy_samples.pop_front();
         }
 
         let comparison = PredictedVsActual {
@@ -451,9 +458,9 @@ impl HolisticTimeline {
             error_magnitude: error_mag,
         };
 
-        self.comparison_log.push(comparison.clone());
+        self.comparison_log.push_back(comparison.clone());
         while self.comparison_log.len() > MAX_ACCURACY_SAMPLES {
-            self.comparison_log.remove(0);
+            self.comparison_log.pop_front();
         }
 
         comparison
@@ -477,7 +484,7 @@ impl HolisticTimeline {
                     CorrectionReason::IoDivergence
                 };
 
-            let id = fnv1a_hash(format!("corr-{}-{:?}", cmp.tick, reason).as_bytes());
+            let id = FastHasher::new().feed_str("corr-").feed_u64(cmp.tick as u64).feed_str("-").feed_u64(reason as u64).finish();
 
             if self.corrections.contains_key(&id) {
                 continue;

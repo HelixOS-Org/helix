@@ -16,6 +16,7 @@ pub struct AtomicCounter {
 
 impl AtomicCounter {
     /// Create a new counter with value 0
+    #[inline]
     pub const fn new() -> Self {
         Self {
             value: AtomicU64::new(0),
@@ -23,6 +24,7 @@ impl AtomicCounter {
     }
 
     /// Create a counter with an initial value
+    #[inline]
     pub const fn with_value(value: u64) -> Self {
         Self {
             value: AtomicU64::new(value),

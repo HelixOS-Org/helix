@@ -11,6 +11,7 @@ use super::{CgroupId, CgroupInfo, CgroupVersion, ProcessId};
 
 /// Hierarchy statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HierarchyStats {
     /// Total cgroups
     pub total_cgroups: u64,
@@ -52,6 +53,7 @@ impl HierarchyManager {
     }
 
     /// Initialize root cgroup
+    #[inline]
     pub fn init_root(&mut self, timestamp: u64) -> CgroupId {
         let id = CgroupId::ROOT;
         let info = CgroupInfo::new(id, String::from("/"), String::from("/"), timestamp);
@@ -64,6 +66,7 @@ impl HierarchyManager {
     }
 
     /// Allocate cgroup ID
+    #[inline(always)]
     pub fn allocate_id(&self) -> CgroupId {
         CgroupId::new(self.next_id.fetch_add(1, Ordering::Relaxed))
     }
@@ -128,16 +131,19 @@ impl HierarchyManager {
     }
 
     /// Get cgroup by ID
+    #[inline(always)]
     pub fn get_cgroup(&self, id: CgroupId) -> Option<&CgroupInfo> {
         self.cgroups.get(&id)
     }
 
     /// Get cgroup by ID mutably
+    #[inline(always)]
     pub fn get_cgroup_mut(&mut self, id: CgroupId) -> Option<&mut CgroupInfo> {
         self.cgroups.get_mut(&id)
     }
 
     /// Get cgroup by path
+    #[inline(always)]
     pub fn get_by_path(&self, path: &str) -> Option<&CgroupInfo> {
         let id = self.by_path.get(path)?;
         self.cgroups.get(id)
@@ -162,6 +168,7 @@ impl HierarchyManager {
     }
 
     /// Remove process from cgroup
+    #[inline]
     pub fn remove_process(&mut self, pid: ProcessId) -> bool {
         if let Some(cgroup) = self.process_cgroup.remove(&pid) {
             if let Some(info) = self.cgroups.get_mut(&cgroup) {
@@ -174,6 +181,7 @@ impl HierarchyManager {
     }
 
     /// Get cgroup for process
+    #[inline(always)]
     pub fn get_process_cgroup(&self, pid: ProcessId) -> Option<CgroupId> {
         self.process_cgroup.get(&pid).copied()
     }
@@ -215,16 +223,19 @@ impl HierarchyManager {
     }
 
     /// Get version
+    #[inline(always)]
     pub fn version(&self) -> CgroupVersion {
         self.version
     }
 
     /// List all cgroups
+    #[inline(always)]
     pub fn list_cgroups(&self) -> Vec<&CgroupInfo> {
         self.cgroups.values().collect()
     }
 
     /// Cgroup count
+    #[inline(always)]
     pub fn cgroup_count(&self) -> usize {
         self.cgroups.len()
     }

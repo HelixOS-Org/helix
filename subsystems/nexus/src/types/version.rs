@@ -43,21 +43,25 @@ impl Version {
     }
 
     /// Bump major version
+    #[inline(always)]
     pub const fn bump_major(self) -> Self {
         Self::new(self.major + 1, 0, 0)
     }
 
     /// Bump minor version
+    #[inline(always)]
     pub const fn bump_minor(self) -> Self {
         Self::new(self.major, self.minor + 1, 0)
     }
 
     /// Bump patch version
+    #[inline(always)]
     pub const fn bump_patch(self) -> Self {
         Self::new(self.major, self.minor, self.patch + 1)
     }
 
     /// Is this a pre-release version (0.x.x)?
+    #[inline(always)]
     pub const fn is_prerelease(&self) -> bool {
         self.major == 0
     }
@@ -115,6 +119,7 @@ pub struct VersionReq {
 
 impl VersionReq {
     /// Create exact version requirement
+    #[inline]
     pub const fn exact(version: Version) -> Self {
         Self {
             min: version,
@@ -127,6 +132,7 @@ impl VersionReq {
     }
 
     /// Create compatible requirement (same major version)
+    #[inline]
     pub const fn compatible(version: Version) -> Self {
         Self {
             min: version,
@@ -135,6 +141,7 @@ impl VersionReq {
     }
 
     /// Create minimum version requirement
+    #[inline]
     pub const fn at_least(version: Version) -> Self {
         Self {
             min: version,
@@ -143,6 +150,7 @@ impl VersionReq {
     }
 
     /// Create any version requirement
+    #[inline]
     pub const fn any() -> Self {
         Self {
             min: Version::ZERO,
@@ -151,6 +159,7 @@ impl VersionReq {
     }
 
     /// Check if version matches requirement
+    #[inline]
     pub fn matches(&self, version: Version) -> bool {
         if version.cmp_version(&self.min) == core::cmp::Ordering::Less {
             return false;

@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -46,6 +47,7 @@ pub enum SnapshotState {
 
 /// Register state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RegisterState {
     /// General purpose registers
     pub gpr: [u64; 16],
@@ -58,6 +60,7 @@ pub struct RegisterState {
 }
 
 impl RegisterState {
+    #[inline]
     pub fn empty() -> Self {
         Self {
             gpr: [0u64; 16],
@@ -148,11 +151,13 @@ impl ProcessSnapshot {
     }
 
     /// Memory size
+    #[inline(always)]
     pub fn total_memory(&self) -> usize {
         self.memory_regions.iter().map(|r| r.size).sum()
     }
 
     /// Fd count
+    #[inline(always)]
     pub fn fd_count(&self) -> usize {
         self.fds.len()
     }
@@ -164,6 +169,7 @@ impl ProcessSnapshot {
 
 /// Full system snapshot
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeSnapshot {
     /// Snapshot id
     pub id: u64,
@@ -176,7 +182,7 @@ pub struct BridgeSnapshot {
     /// Process snapshots
     pub processes: BTreeMap<u64, ProcessSnapshot>,
     /// Global counters
-    pub counters: BTreeMap<u32, u64>,
+    pub counters: ArrayMap<u64, 32>,
     /// Parent snapshot (for differential)
     pub parent_id: Option<u64>,
     /// Size estimate (bytes)
@@ -191,13 +197,14 @@ impl BridgeSnapshot {
             state: SnapshotState::Creating,
             timestamp: now,
             processes: BTreeMap::new(),
-            counters: BTreeMap::new(),
+            counters: ArrayMap::new(0),
             parent_id: None,
             size_bytes: 0,
         }
     }
 
     /// Add process
+    #[inline]
     pub fn add_process(&mut self, snap: ProcessSnapshot) {
         let mem = snap.total_memory() as u64;
         self.size_bytes += mem;
@@ -205,11 +212,13 @@ impl BridgeSnapshot {
     }
 
     /// Complete
+    #[inline(always)]
     pub fn complete(&mut self) {
         self.state = SnapshotState::Complete;
     }
 
     /// Process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }
@@ -238,6 +247,7 @@ pub struct SnapshotDiff {
 
 /// Snapshot stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeSnapshotStats {
     /// Total snapshots
     pub total_snapshots: u64,
@@ -250,6 +260,7 @@ pub struct BridgeSnapshotStats {
 }
 
 /// Bridge snapshot manager
+#[repr(align(64))]
 pub struct BridgeSnapshotManager {
     /// Snapshots
     snapshots: BTreeMap<u64, BridgeSnapshot>,
@@ -292,6 +303,7 @@ impl BridgeSnapshotManager {
     }
 
     /// Add process to snapshot
+    #[inline]
     pub fn add_process(&mut self, snap_id: u64, process: ProcessSnapshot) {
         if let Some(snap) = self.snapshots.get_mut(&snap_id) {
             snap.add_process(process);
@@ -299,6 +311,7 @@ impl BridgeSnapshotManager {
     }
 
     /// Complete snapshot
+    #[inline]
     pub fn complete(&mut self, snap_id: u64) {
         if let Some(snap) = self.snapshots.get_mut(&snap_id) {
             snap.complete();
@@ -307,6 +320,7 @@ impl BridgeSnapshotManager {
     }
 
     /// Get snapshot
+    #[inline(always)]
     pub fn get(&self, snap_id: u64) -> Option<&BridgeSnapshot> {
         self.snapshots.get(&snap_id)
     }
@@ -366,6 +380,7 @@ impl BridgeSnapshotManager {
     }
 
     /// List snapshots
+    #[inline]
     pub fn list(&self) -> Vec<(u64, SnapshotScope, SnapshotState, u64)> {
         self.snapshots
             .values()
@@ -374,6 +389,7 @@ impl BridgeSnapshotManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeSnapshotStats {
         &self.stats
     }

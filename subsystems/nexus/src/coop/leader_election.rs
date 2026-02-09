@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -63,16 +64,19 @@ impl ElectionNode {
         }
     }
 
+    #[inline]
     pub fn start_election(&mut self) {
         self.current_term += 1;
         self.role = ElectionRole::Candidate;
         self.voted_for = Some(self.node_id); // Vote for self
     }
 
+    #[inline(always)]
     pub fn become_leader(&mut self) {
         self.role = ElectionRole::Leader;
     }
 
+    #[inline]
     pub fn become_follower(&mut self, term: u64) {
         self.role = ElectionRole::Follower;
         if term > self.current_term {
@@ -110,10 +114,12 @@ pub struct LeaderLease {
 }
 
 impl LeaderLease {
+    #[inline(always)]
     pub fn is_valid(&self, now: u64) -> bool {
         now < self.granted_at + self.lease_duration_ns
     }
 
+    #[inline(always)]
     pub fn remaining_ns(&self, now: u64) -> u64 {
         (self.granted_at + self.lease_duration_ns).saturating_sub(now)
     }
@@ -127,7 +133,7 @@ pub struct Election {
     pub current_term: u64,
     pub leader_id: Option<u64>,
     pub lease: Option<LeaderLease>,
-    pub votes: BTreeMap<u64, u64>, // voter_id -> candidate_id
+    pub votes: LinearMap<u64, 64>, // voter_id -> candidate_id
     pub election_timeout_ns: u64,
     pub election_start_ts: u64,
     pub total_elections: u64,
@@ -142,7 +148,7 @@ impl Election {
             current_term: 0,
             leader_id: None,
             lease: None,
-            votes: BTreeMap::new(),
+            votes: LinearMap::new(),
             election_timeout_ns: 5_000_000_000, // 5 seconds
             election_start_ts: 0,
             total_elections: 0,
@@ -150,6 +156,7 @@ impl Election {
         }
     }
 
+    #[inline]
     pub fn start(&mut self, now: u64) {
         self.current_term += 1;
         self.state = ElectionState::Voting;
@@ -158,13 +165,14 @@ impl Election {
         self.total_elections += 1;
     }
 
+    #[inline(always)]
     pub fn record_vote(&mut self, voter_id: u64, candidate_id: u64) {
         self.votes.insert(voter_id, candidate_id);
     }
 
     pub fn tally(&self, total_nodes: usize) -> Option<u64> {
         let majority = total_nodes / 2 + 1;
-        let mut vote_counts: BTreeMap<u64, usize> = BTreeMap::new();
+        let mut vote_counts: LinearMap<usize, 64> = BTreeMap::new();
         for &candidate in self.votes.values() {
             *vote_counts.entry(candidate).or_insert(0) += 1;
         }
@@ -176,6 +184,7 @@ impl Election {
         None
     }
 
+    #[inline]
     pub fn decide(&mut self, winner_id: u64, now: u64, lease_ns: u64) {
         self.leader_id = Some(winner_id);
         self.state = ElectionState::Decided;
@@ -188,11 +197,13 @@ impl Election {
         });
     }
 
+    #[inline(always)]
     pub fn is_timed_out(&self, now: u64) -> bool {
         self.state == ElectionState::Voting
             && now > self.election_start_ts + self.election_timeout_ns
     }
 
+    #[inline]
     pub fn lease_expired(&self, now: u64) -> bool {
         if let Some(ref lease) = self.lease {
             !lease.is_valid(now)
@@ -202,6 +213,7 @@ impl Election {
 
 /// Coop leader election stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopLeaderElectionStats {
     pub total_elections_tracked: usize,
     pub active_leaders: usize,
@@ -228,10 +240,12 @@ impl CoopLeaderElection {
         }
     }
 
+    #[inline(always)]
     pub fn register_node(&mut self, node_id: u64, priority: i32) {
         self.nodes.entry(node_id).or_insert_with(|| ElectionNode::new(node_id, priority));
     }
 
+    #[inline]
     pub fn create_election(&mut self) -> u64 {
         let id = self.next_election_id;
         self.next_election_id += 1;
@@ -240,6 +254,7 @@ impl CoopLeaderElection {
         id
     }
 
+    #[inline]
     pub fn start_election(&mut self, election_id: u64, now: u64) {
         if let Some(election) = self.elections.get_mut(&election_id) {
             election.start(now);
@@ -294,10 +309,12 @@ impl CoopLeaderElection {
             .filter(|e| e.lease.is_none() && e.total_terms > 0).count();
     }
 
+    #[inline(always)]
     pub fn election(&self, id: u64) -> Option<&Election> {
         self.elections.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopLeaderElectionStats {
         &self.stats
     }

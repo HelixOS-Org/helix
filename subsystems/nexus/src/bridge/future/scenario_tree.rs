@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -152,6 +154,7 @@ pub struct ScenarioPath {
 
 /// Statistics for the scenario tree engine.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ScenarioTreeStats {
     pub total_trees_built: u64,
     pub total_nodes_created: u64,
@@ -199,6 +202,7 @@ struct TransitionEntry {
 /// Builds trees of possible futures up to depth 8. Each node represents a
 /// possible system state, and edges are events. Uses minimax evaluation to
 /// find optimal and worst-case paths through the tree.
+#[repr(align(64))]
 pub struct BridgeScenarioTree {
     /// Arena of all nodes in the current tree
     arena: Vec<ScenarioNode>,
@@ -207,7 +211,7 @@ pub struct BridgeScenarioTree {
     /// Transition table: state_hash -> possible next events
     transitions: BTreeMap<u64, TransitionEntry>,
     /// Outcome estimator: state_hash -> estimated quality
-    outcome_cache: BTreeMap<u64, f32>,
+    outcome_cache: LinearMap<f32, 64>,
     /// Running statistics
     stats: ScenarioTreeStats,
     /// PRNG state
@@ -227,7 +231,7 @@ impl BridgeScenarioTree {
             arena: Vec::new(),
             root: None,
             transitions: BTreeMap::new(),
-            outcome_cache: BTreeMap::new(),
+            outcome_cache: LinearMap::new(),
             stats: ScenarioTreeStats::new(),
             rng: DEFAULT_SEED,
             max_depth: MAX_TREE_DEPTH,
@@ -314,7 +318,7 @@ impl BridgeScenarioTree {
             if depth as usize >= self.max_depth {
                 // Assign leaf outcome
                 let sh = self.arena[node_idx].state_hash;
-                let outcome = self.outcome_cache.get(&sh).copied().unwrap_or(0.5);
+                let outcome = self.outcome_cache.get(sh).copied().unwrap_or(0.5);
                 self.arena[node_idx].outcome_estimate = outcome;
                 continue;
             }
@@ -342,7 +346,7 @@ impl BridgeScenarioTree {
             } else {
                 // No transitions known: generate synthetic children
                 let sh = state_hash;
-                let outcome = self.outcome_cache.get(&sh).copied().unwrap_or(0.5);
+                let outcome = self.outcome_cache.get(sh).copied().unwrap_or(0.5);
                 self.arena[node_idx].outcome_estimate = outcome;
             }
         }
@@ -481,6 +485,7 @@ impl BridgeScenarioTree {
     }
 
     /// Compute the probability-weighted expected value across all leaf nodes.
+    #[inline]
     pub fn expected_value(&mut self) -> f32 {
         self.stats.expected_value_queries += 1;
         if self.arena.is_empty() {
@@ -501,7 +506,7 @@ impl BridgeScenarioTree {
             let hist = self.evaluation_history.entry(root_hash).or_insert_with(Vec::new);
             hist.push(ev);
             if hist.len() > 64 {
-                hist.remove(0);
+                hist.pop_front();
             }
             self.quality_ema = self.quality_ema * (1.0 - EMA_ALPHA) + ev * EMA_ALPHA;
             ev
@@ -526,6 +531,7 @@ impl BridgeScenarioTree {
     }
 
     /// Return the maximum depth of the current tree.
+    #[inline]
     pub fn tree_depth(&self) -> usize {
         let mut max_d = 0usize;
         for node in &self.arena {
@@ -554,26 +560,31 @@ impl BridgeScenarioTree {
     }
 
     /// Get the total number of nodes in the current tree.
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.arena.len()
     }
 
     /// Get the number of leaf nodes in the current tree.
+    #[inline(always)]
     pub fn leaf_count(&self) -> usize {
         self.arena.iter().filter(|n| n.is_leaf()).count()
     }
 
     /// Get current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &ScenarioTreeStats {
         &self.stats
     }
 
     /// Get the EMA quality score across all tree evaluations.
+    #[inline(always)]
     pub fn quality_score(&self) -> f32 {
         self.quality_ema
     }
 
     /// Evaluate a specific scenario identifier and return its expected value.
+    #[inline]
     pub fn evaluate_scenario(&mut self, scenario_id: u64) -> f32 {
         let hash_bytes = scenario_id.to_le_bytes();
         let state_hash = fnv1a_hash(&hash_bytes);

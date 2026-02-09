@@ -32,17 +32,20 @@ impl Transition {
     }
 
     /// Add guard
+    #[inline(always)]
     pub fn with_guard(mut self, guard: fn(&State) -> bool) -> Self {
         self.guard = Some(guard);
         self
     }
 
     /// Is enabled in state?
+    #[inline(always)]
     pub fn is_enabled(&self, state: &State) -> bool {
         self.guard.map(|g| g(state)).unwrap_or(true)
     }
 
     /// Apply transition
+    #[inline]
     pub fn apply(&self, state: &State) -> State {
         let mut next = (self.effect)(state);
         next.parent = Some(state.id);

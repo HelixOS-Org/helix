@@ -22,8 +22,10 @@ impl SeqLock {
         Self { id, sequence: 0, write_in_progress: false, read_count: 0, write_count: 0, retry_count: 0, writer_tid: None }
     }
 
+    #[inline(always)]
     pub fn read_begin(&self) -> u64 { self.sequence }
 
+    #[inline]
     pub fn read_retry(&mut self, start_seq: u64) -> bool {
         let retry = start_seq & 1 != 0 || self.sequence != start_seq;
         if retry { self.retry_count += 1; }
@@ -31,12 +33,14 @@ impl SeqLock {
         retry
     }
 
+    #[inline]
     pub fn write_begin(&mut self, tid: u64) {
         self.sequence += 1;
         self.write_in_progress = true;
         self.writer_tid = Some(tid);
     }
 
+    #[inline]
     pub fn write_end(&mut self) {
         self.sequence += 1;
         self.write_in_progress = false;
@@ -44,6 +48,7 @@ impl SeqLock {
         self.write_count += 1;
     }
 
+    #[inline(always)]
     pub fn contention_ratio(&self) -> f64 {
         let total = self.read_count + self.retry_count;
         if total == 0 { 0.0 } else { self.retry_count as f64 / total as f64 }
@@ -52,6 +57,7 @@ impl SeqLock {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeqLockStats {
     pub total_locks: u32,
     pub total_reads: u64,
@@ -69,12 +75,14 @@ pub struct CoopSeqLock {
 impl CoopSeqLock {
     pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.locks.insert(id, SeqLock::new(id));
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> SeqLockStats {
         let reads: u64 = self.locks.values().map(|l| l.read_count).sum();
         let writes: u64 = self.locks.values().map(|l| l.write_count).sum();

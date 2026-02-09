@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -58,6 +59,7 @@ impl ResourceShare {
     }
 
     /// Fair share based on weight
+    #[inline]
     pub fn fair_share(&self, total_weight: u32) -> u64 {
         if total_weight == 0 {
             return 0;
@@ -66,11 +68,13 @@ impl ResourceShare {
     }
 
     /// Is over-allocated?
+    #[inline(always)]
     pub fn over_allocated(&self, total_weight: u32) -> bool {
         self.current_allocation > self.fair_share(total_weight)
     }
 
     /// Allocation ratio (current / fair_share)
+    #[inline]
     pub fn allocation_ratio(&self, total_weight: u32) -> f64 {
         let fair = self.fair_share(total_weight);
         if fair == 0 {
@@ -123,6 +127,7 @@ impl ProcessFairness {
     }
 
     /// Set resource share
+    #[inline(always)]
     pub fn set_share(&mut self, resource: FairnessResource, share: ResourceShare) {
         self.shares.insert(resource as u8, share);
     }
@@ -157,6 +162,7 @@ impl ProcessFairness {
 // ============================================================================
 
 /// Fairness metrics using Gini coefficient and Jain's index
+#[repr(align(64))]
 pub struct FairnessMetrics;
 
 impl FairnessMetrics {
@@ -283,7 +289,7 @@ pub struct FairnessEngine {
     /// Starvation config
     starvation_config: StarvationConfig,
     /// Active boosts (pid → remaining boost)
-    boosts: BTreeMap<u64, u32>,
+    boosts: LinearMap<u32, 64>,
     /// Total evaluations
     pub total_evaluations: u64,
     /// Total anti-starvation boosts
@@ -296,13 +302,14 @@ impl FairnessEngine {
             processes: BTreeMap::new(),
             total_weights: BTreeMap::new(),
             starvation_config: StarvationConfig::default(),
-            boosts: BTreeMap::new(),
+            boosts: LinearMap::new(),
             total_evaluations: 0,
             total_boosts: 0,
         }
     }
 
     /// Register a process
+    #[inline]
     pub fn register(&mut self, pid: u64, group_id: u64) {
         self.processes
             .entry(pid)
@@ -310,13 +317,15 @@ impl FairnessEngine {
     }
 
     /// Unregister a process
+    #[inline]
     pub fn unregister(&mut self, pid: u64) {
         self.processes.remove(&pid);
-        self.boosts.remove(&pid);
+        self.boosts.remove(pid);
         self.recalculate_weights();
     }
 
     /// Set resource share for a process
+    #[inline]
     pub fn set_share(
         &mut self,
         pid: u64,
@@ -331,6 +340,7 @@ impl FairnessEngine {
     }
 
     /// Update current allocation
+    #[inline]
     pub fn update_allocation(
         &mut self,
         pid: u64,
@@ -439,17 +449,19 @@ impl FairnessEngine {
             .collect();
 
         for pid in starved_pids {
-            *self.boosts.entry(pid).or_insert(0) += self.starvation_config.boost_amount;
+            self.boosts.add(pid, self);
             self.total_boosts += 1;
         }
     }
 
     /// Get boost for process
+    #[inline(always)]
     pub fn get_boost(&self, pid: u64) -> u32 {
-        self.boosts.get(&pid).copied().unwrap_or(0)
+        self.boosts.get(pid).copied().unwrap_or(0)
     }
 
     /// Decay boosts
+    #[inline]
     pub fn decay_boosts(&mut self) {
         let decay = self.starvation_config.boost_decay;
         self.boosts.retain(|_, boost| {
@@ -459,6 +471,7 @@ impl FairnessEngine {
     }
 
     /// Process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }
@@ -515,11 +528,13 @@ impl EntityAllocation {
         }
     }
 
+    #[inline(always)]
     pub fn set_allocation(&mut self, resource: FairnessResource, fraction: f64) {
         self.allocations.insert(resource, fraction.clamp(0.0, 1.0));
         self.recompute_dominant();
     }
 
+    #[inline(always)]
     pub fn set_demand(&mut self, resource: FairnessResource, fraction: f64) {
         self.demands.insert(resource, fraction.clamp(0.0, 1.0));
     }
@@ -582,6 +597,7 @@ pub struct MaxMinResult {
 
 /// Fairness V2 stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticFairnessV2Stats {
     pub tracked_entities: usize,
     pub jain_index_cpu: f64,
@@ -614,21 +630,25 @@ impl HolisticFairnessV2 {
         }
     }
 
+    #[inline(always)]
     pub fn add_entity(&mut self, entity_id: u64, weight: u32) {
         self.entities
             .insert(entity_id, EntityAllocation::new(entity_id, weight));
     }
 
+    #[inline(always)]
     pub fn remove_entity(&mut self, entity_id: u64) {
         self.entities.remove(&entity_id);
     }
 
+    #[inline]
     pub fn update_allocation(&mut self, entity_id: u64, resource: FairnessResource, fraction: f64) {
         if let Some(e) = self.entities.get_mut(&entity_id) {
             e.set_allocation(resource, fraction);
         }
     }
 
+    #[inline]
     pub fn update_demand(&mut self, entity_id: u64, resource: FairnessResource, fraction: f64) {
         if let Some(e) = self.entities.get_mut(&entity_id) {
             e.set_demand(resource, fraction);
@@ -833,14 +853,17 @@ impl HolisticFairnessV2 {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticFairnessV2Stats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn violations(&self) -> &[FairnessViolation] {
         &self.violations
     }
 
+    #[inline(always)]
     pub fn envy_pairs(&self) -> &[EnvyPair] {
         &self.envy_pairs
     }

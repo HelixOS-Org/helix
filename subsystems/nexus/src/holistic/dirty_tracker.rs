@@ -67,6 +67,7 @@ impl DirtyPage {
         }
     }
 
+    #[inline]
     pub fn re_dirty(&mut self, ts: u64) {
         self.state = DirtyState::Dirty;
         self.write_count += 1;
@@ -77,6 +78,7 @@ impl DirtyPage {
 
 /// Per-process dirty state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessDirtyState {
     pub pid: u32,
     pub dirty_pages: u64,
@@ -97,11 +99,13 @@ impl ProcessDirtyState {
         }
     }
 
+    #[inline(always)]
     pub fn dirty_ratio(&self) -> f64 {
         if self.dirty_limit == 0 { return 0.0; }
         self.dirty_pages as f64 / self.dirty_limit as f64
     }
 
+    #[inline(always)]
     pub fn needs_throttle(&self) -> bool { self.dirty_pages >= self.dirty_limit }
 }
 
@@ -140,6 +144,7 @@ pub struct WritebackBatch {
 
 /// Dirty tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DirtyTrackerStats {
     pub total_dirty: u64,
     pub total_writeback: u64,
@@ -174,10 +179,12 @@ impl HolisticDirtyTracker {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u32) {
         self.processes.insert(pid, ProcessDirtyState::new(pid, self.limits.per_process_limit_pages));
     }
 
+    #[inline]
     pub fn mark_dirty(&mut self, pfn: u64, pid: u32, inode: u64, ts: u64) {
         if let Some(page) = self.pages.get_mut(&pfn) {
             page.re_dirty(ts);
@@ -190,6 +197,7 @@ impl HolisticDirtyTracker {
         }
     }
 
+    #[inline]
     pub fn complete_writeback(&mut self, pfn: u64) {
         if let Some(page) = self.pages.get_mut(&pfn) {
             let pid = page.owner_pid;
@@ -272,5 +280,6 @@ impl HolisticDirtyTracker {
         self.stats.emergency_writebacks = self.emergency_writebacks;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &DirtyTrackerStats { &self.stats }
 }

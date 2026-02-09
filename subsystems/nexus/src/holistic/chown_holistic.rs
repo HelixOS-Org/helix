@@ -69,6 +69,7 @@ impl ChownChangeRecord {
 
 /// Holistic chown stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticChownStats {
     pub total_changes: u64,
     pub escalations: u64,

@@ -104,6 +104,7 @@ pub struct ClassificationBias {
 
 /// Aggregate statistics about classification introspection
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct IntrospectionStats {
     pub total_classifications: u64,
     pub avg_reasoning_depth: f32,
@@ -140,6 +141,7 @@ impl CategoryTracker {
         }
     }
 
+    #[inline]
     fn record(&mut self, confidence: f32, outcome: f32, success: bool) {
         self.total_decisions += 1;
         if success {
@@ -268,6 +270,7 @@ impl AppsIntrospector {
     }
 
     /// Assess quality of a classification after outcome is known
+    #[inline]
     pub fn quality_assessment(
         &mut self,
         record_id: u64,

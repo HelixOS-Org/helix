@@ -52,13 +52,17 @@ impl CoopRouteEntry {
         }
     }
 
+    #[inline(always)]
     pub fn matches(&self, dest_hash: u64) -> bool {
         let mask = if self.prefix_len >= 64 { u64::MAX } else { !((1u64 << (64 - self.prefix_len)) - 1) };
         (dest_hash & mask) == (self.prefix_hash & mask)
     }
 
+    #[inline(always)]
     pub fn use_route(&mut self) { self.use_count += 1; }
+    #[inline(always)]
     pub fn share(&mut self) { self.ref_count += 1; }
+    #[inline(always)]
     pub fn unshare(&mut self) { self.ref_count = self.ref_count.saturating_sub(1); }
 }
 
@@ -76,6 +80,7 @@ impl SharedRouteTable {
         Self { table_id, routes: Vec::new(), subscribers: Vec::new(), version: 0 }
     }
 
+    #[inline(always)]
     pub fn add_route(&mut self, route: CoopRouteEntry) {
         self.routes.push(route);
         self.version += 1;
@@ -96,6 +101,7 @@ impl SharedRouteTable {
         } else { None }
     }
 
+    #[inline]
     pub fn subscribe(&mut self, ns_id: u64) {
         if !self.subscribers.contains(&ns_id) {
             self.subscribers.push(ns_id);
@@ -105,6 +111,7 @@ impl SharedRouteTable {
 
 /// Coop route stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopRouteStats {
     pub total_tables: u64,
     pub total_routes: u64,
@@ -127,11 +134,13 @@ impl CoopRoute {
         }
     }
 
+    #[inline(always)]
     pub fn create_table(&mut self, table_id: u32) {
         self.tables.insert(table_id, SharedRouteTable::new(table_id));
         self.stats.total_tables += 1;
     }
 
+    #[inline]
     pub fn add_route(&mut self, table_id: u32, route: CoopRouteEntry) -> bool {
         if let Some(table) = self.tables.get_mut(&table_id) {
             table.add_route(route);

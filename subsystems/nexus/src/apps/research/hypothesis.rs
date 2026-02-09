@@ -13,7 +13,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -108,7 +110,7 @@ pub struct Hypothesis {
     pub statement: String,
     pub phase: HypothesisPhase,
     pub confidence: f32,
-    pub evidence: Vec<Evidence>,
+    pub evidence: VecDeque<Evidence>,
     pub test_criteria: Option<TestCriteria>,
     pub expected_impact: f32,
     pub created_tick: u64,
@@ -133,6 +135,7 @@ pub struct RankedHypothesis {
 
 /// Aggregate hypothesis engine statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct HypothesisStats {
     pub total_generated: u64,
     pub total_confirmed: u64,
@@ -153,17 +156,17 @@ pub struct HypothesisStats {
 /// Tracks recent classification anomalies and detects recurring patterns
 #[derive(Debug)]
 struct AnomalyTracker {
-    anomalies: Vec<(u64, ClassificationAnomaly, f32, u64)>,
-    type_counts: BTreeMap<u64, u64>,
-    pattern_hashes: BTreeMap<u64, u32>,
+    anomalies: VecDeque<(u64, ClassificationAnomaly, f32, u64)>,
+    type_counts: LinearMap<u64, 64>,
+    pattern_hashes: LinearMap<u32, 64>,
 }
 
 impl AnomalyTracker {
     fn new() -> Self {
         Self {
-            anomalies: Vec::new(),
-            type_counts: BTreeMap::new(),
-            pattern_hashes: BTreeMap::new(),
+            anomalies: VecDeque::new(),
+            type_counts: LinearMap::new(),
+            pattern_hashes: LinearMap::new(),
         }
     }
 
@@ -174,9 +177,9 @@ impl AnomalyTracker {
         let pattern = fnv1a_hash(&ctx_hash.to_le_bytes()) ^ type_key;
         let freq = self.pattern_hashes.entry(pattern).or_insert(0);
         *freq += 1;
-        self.anomalies.push((tick, anomaly_type, severity, ctx_hash));
+        self.anomalies.push_back((tick, anomaly_type, severity, ctx_hash));
         if self.anomalies.len() > MAX_ANOMALIES {
-            self.anomalies.remove(0);
+            self.anomalies.pop_front();
         }
     }
 
@@ -263,7 +266,7 @@ impl AppsHypothesisEngine {
             statement,
             phase: HypothesisPhase::Formulated,
             confidence: initial_confidence.clamp(0.0, 1.0),
-            evidence: Vec::new(),
+            evidence: VecDeque::new(),
             test_criteria: None,
             expected_impact: expected_impact.clamp(0.0, 1.0),
             created_tick: tick,
@@ -323,7 +326,7 @@ impl AppsHypothesisEngine {
             None => return false,
         };
         if hypothesis.evidence.len() >= MAX_EVIDENCE_PER_HYPOTHESIS {
-            hypothesis.evidence.remove(0);
+            hypothesis.evidence.pop_front().unwrap();
         }
         let ev_id = fnv1a_hash(evidence_desc.as_bytes()) ^ xorshift64(&mut self.rng_state);
         hypothesis.evidence.push(Evidence {
@@ -353,6 +356,7 @@ impl AppsHypothesisEngine {
     }
 
     /// Update confidence of a hypothesis based on accumulated evidence
+    #[inline]
     pub fn confidence_update(&mut self, hypothesis_id: u64, tick: u64) -> f32 {
         self.current_tick = tick;
         let ev_str = self.evidence_strength(hypothesis_id);
@@ -401,6 +405,7 @@ impl AppsHypothesisEngine {
     }
 
     /// Mark a hypothesis as confirmed
+    #[inline]
     pub fn confirm(&mut self, hypothesis_id: u64) {
         if let Some(h) = self.hypotheses.get_mut(&hypothesis_id) {
             h.phase = HypothesisPhase::Confirmed;
@@ -409,6 +414,7 @@ impl AppsHypothesisEngine {
     }
 
     /// Mark a hypothesis as rejected
+    #[inline]
     pub fn reject(&mut self, hypothesis_id: u64) {
         if let Some(h) = self.hypotheses.get_mut(&hypothesis_id) {
             h.phase = HypothesisPhase::Rejected;
@@ -444,11 +450,13 @@ impl AppsHypothesisEngine {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> HypothesisStats {
         self.stats
     }
 
     /// Get recurring anomaly patterns
+    #[inline(always)]
     pub fn recurring_patterns(&self) -> Vec<(u64, u32)> {
         self.anomaly_tracker.recurring_patterns()
     }

@@ -91,24 +91,28 @@ static IMPROVEMENT_COUNTER: AtomicU64 = AtomicU64::new(1);
 static SESSION_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl NodeId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(NODE_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
 }
 
 impl ClusterId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(CLUSTER_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
 }
 
 impl ImprovementId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(IMPROVEMENT_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
 }
 
 impl SessionId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(SESSION_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -209,6 +213,7 @@ pub struct NodeAddress {
 
 /// Node metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NodeMetrics {
     /// CPU usage (0-100)
     pub cpu_usage: u32,
@@ -417,6 +422,7 @@ pub struct DistributedEvolutionEngine {
 
 /// Cluster state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ClusterState {
     /// Cluster ID
     pub id: ClusterId,
@@ -526,6 +532,7 @@ pub struct EventHandlers {
 
 /// Distributed statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DistributedStats {
     /// Improvements proposed
     pub improvements_proposed: u64,
@@ -587,6 +594,7 @@ impl DistributedEvolutionEngine {
     }
 
     /// Start the engine
+    #[inline]
     pub fn start(&mut self) -> Result<(), DistributedError> {
         if self.running.load(Ordering::Acquire) {
             return Err(DistributedError::AlreadyRunning);
@@ -599,6 +607,7 @@ impl DistributedEvolutionEngine {
     }
 
     /// Stop the engine
+    #[inline(always)]
     pub fn stop(&mut self) {
         self.running.store(false, Ordering::Release);
         self.local_node.state = NodeState::Offline;
@@ -719,46 +728,55 @@ impl DistributedEvolutionEngine {
     }
 
     /// Get local node info
+    #[inline(always)]
     pub fn local_node(&self) -> &NodeInfo {
         &self.local_node
     }
 
     /// Get cluster state
+    #[inline(always)]
     pub fn cluster(&self) -> Option<&ClusterState> {
         self.cluster.as_ref()
     }
 
     /// Get all nodes
+    #[inline(always)]
     pub fn nodes(&self) -> impl Iterator<Item = &NodeInfo> {
         self.nodes.values()
     }
 
     /// Get improvements
+    #[inline(always)]
     pub fn improvements(&self) -> impl Iterator<Item = &Improvement> {
         self.improvements.values()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &DistributedStats {
         &self.stats
     }
 
     /// Is running
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Acquire)
     }
 
     /// Is leader
+    #[inline(always)]
     pub fn is_leader(&self) -> bool {
         self.local_node.role == NodeRole::Leader
     }
 
     /// Current epoch
+    #[inline(always)]
     pub fn epoch(&self) -> Epoch {
         self.current_epoch
     }
 
     /// Current term
+    #[inline(always)]
     pub fn term(&self) -> Term {
         self.current_term
     }
@@ -809,16 +827,19 @@ use spin::RwLock;
 static DISTRIBUTED_ENGINE: spin::Once<RwLock<DistributedEvolutionEngine>> = spin::Once::new();
 
 /// Initialize global distributed engine
+#[inline(always)]
 pub fn init_distributed_engine(config: DistributedConfig) {
     DISTRIBUTED_ENGINE.call_once(|| RwLock::new(DistributedEvolutionEngine::new(config)));
 }
 
 /// Get distributed engine (read access)
+#[inline(always)]
 pub fn distributed_engine() -> Option<spin::RwLockReadGuard<'static, DistributedEvolutionEngine>> {
     DISTRIBUTED_ENGINE.get().map(|e| e.read())
 }
 
 /// Get distributed engine (write access)
+#[inline(always)]
 pub fn distributed_engine_mut()
 -> Option<spin::RwLockWriteGuard<'static, DistributedEvolutionEngine>> {
     DISTRIBUTED_ENGINE.get().map(|e| e.write())

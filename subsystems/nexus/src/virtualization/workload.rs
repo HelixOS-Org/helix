@@ -50,6 +50,7 @@ impl WorkloadInfo {
     }
 
     /// Set resources
+    #[inline]
     pub fn with_resources(mut self, vcpus: u32, memory: u64) -> Self {
         self.vcpus = vcpus;
         self.memory = memory;
@@ -57,28 +58,33 @@ impl WorkloadInfo {
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: WorkloadPriority) -> Self {
         self.priority = priority;
         self
     }
 
     /// Set host node
+    #[inline(always)]
     pub fn on_host(mut self, node: u32) -> Self {
         self.host_node = Some(node);
         self
     }
 
     /// Is running?
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.state == WorkloadState::Running
     }
 
     /// Is migratable?
+    #[inline(always)]
     pub fn is_migratable(&self) -> bool {
         matches!(self.state, WorkloadState::Running | WorkloadState::Paused)
     }
 
     /// Get uptime
+    #[inline(always)]
     pub fn uptime(&self) -> u64 {
         NexusTimestamp::now().duration_since(self.created_at)
     }

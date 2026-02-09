@@ -94,6 +94,7 @@ pub struct DistillationResult {
 
 /// Training state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TrainingState {
     /// Current epoch
     pub epoch: u32,
@@ -158,6 +159,7 @@ impl Default for DistillationConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DistillationStats {
     /// Teachers registered
     pub teachers_registered: u64,
@@ -527,21 +529,25 @@ impl DistillationEngine {
     }
 
     /// Get teacher
+    #[inline(always)]
     pub fn get_teacher(&self, id: u64) -> Option<&TeacherModel> {
         self.teachers.get(&id)
     }
 
     /// Get student
+    #[inline(always)]
     pub fn get_student(&self, id: u64) -> Option<&StudentModel> {
         self.students.get(&id)
     }
 
     /// Get training state
+    #[inline(always)]
     pub fn training_state(&self) -> Option<&TrainingState> {
         self.training_state.as_ref()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &DistillationStats {
         &self.stats
     }

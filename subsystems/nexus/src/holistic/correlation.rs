@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -60,9 +61,9 @@ pub struct CorrelationSeries {
     /// Metric source
     pub source: CorrelationMetricSource,
     /// Values
-    values: Vec<f64>,
+    values: VecDeque<f64>,
     /// Timestamps
-    timestamps: Vec<u64>,
+    timestamps: VecDeque<u64>,
     /// Max length
     max_len: usize,
 }
@@ -71,28 +72,31 @@ impl CorrelationSeries {
     pub fn new(source: CorrelationMetricSource, max_len: usize) -> Self {
         Self {
             source,
-            values: Vec::new(),
-            timestamps: Vec::new(),
+            values: VecDeque::new(),
+            timestamps: VecDeque::new(),
             max_len,
         }
     }
 
     /// Add sample
+    #[inline]
     pub fn add(&mut self, value: f64, timestamp: u64) {
-        self.values.push(value);
-        self.timestamps.push(timestamp);
+        self.values.push_back(value);
+        self.timestamps.push_back(timestamp);
         if self.values.len() > self.max_len {
-            self.values.remove(0);
-            self.timestamps.remove(0);
+            self.values.pop_front();
+            self.timestamps.pop_front();
         }
     }
 
     /// Length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.values.len()
     }
 
     /// Mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.values.is_empty() {
             return 0.0;
@@ -116,6 +120,7 @@ impl CorrelationSeries {
     }
 
     /// Get values slice
+    #[inline(always)]
     pub fn values(&self) -> &[f64] {
         &self.values
     }
@@ -146,6 +151,7 @@ pub struct CorrelationResult {
 
 impl CorrelationResult {
     /// Is significant
+    #[inline(always)]
     pub fn is_significant(&self) -> bool {
         libm::fabs(self.pearson) > 0.5 && self.confidence > 0.7
     }
@@ -235,6 +241,7 @@ pub struct CorrelationCluster {
 
 /// Correlation engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticCorrelationStats {
     /// Series tracked
     pub series_count: usize,
@@ -272,6 +279,7 @@ impl HolisticCorrelationEngine {
     }
 
     /// Add sample
+    #[inline]
     pub fn add_sample(&mut self, source: CorrelationMetricSource, value: f64, timestamp: u64) {
         let series = self
             .series
@@ -338,6 +346,7 @@ impl HolisticCorrelationEngine {
     }
 
     /// Get significant correlations
+    #[inline]
     pub fn significant_correlations(&self) -> Vec<&CorrelationResult> {
         self.correlations
             .iter()
@@ -346,6 +355,7 @@ impl HolisticCorrelationEngine {
     }
 
     /// Get correlation between two sources
+    #[inline]
     pub fn correlation(
         &self,
         a: CorrelationMetricSource,
@@ -357,6 +367,7 @@ impl HolisticCorrelationEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCorrelationStats {
         &self.stats
     }

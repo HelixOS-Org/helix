@@ -18,6 +18,7 @@ use super::queue::EventQueue;
 
 /// Event bus statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventBusStats {
     /// Total events processed
     pub events_processed: u64,
@@ -59,6 +60,7 @@ impl EventBus {
     }
 
     /// Register an event handler
+    #[inline]
     pub fn register(&mut self, handler: Box<dyn EventHandler>) {
         self.handlers.push(handler);
         // Sort by priority (descending)
@@ -67,11 +69,13 @@ impl EventBus {
     }
 
     /// Publish an event
+    #[inline(always)]
     pub fn publish(&mut self, event: NexusEvent) -> bool {
         self.queue.push(event)
     }
 
     /// Process one event
+    #[inline]
     pub fn process_one(&mut self) -> bool {
         if let Some(event) = self.queue.pop() {
             self.events_processed += 1;
@@ -83,6 +87,7 @@ impl EventBus {
     }
 
     /// Process events with a budget
+    #[inline]
     pub fn process_with_budget(&mut self, max_events: usize) -> usize {
         let mut processed = 0;
         while processed < max_events {
@@ -190,11 +195,13 @@ impl EventBus {
     }
 
     /// Get pending event count
+    #[inline(always)]
     pub fn pending(&self) -> usize {
         self.queue.len()
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> EventBusStats {
         EventBusStats {
             events_processed: self.events_processed,

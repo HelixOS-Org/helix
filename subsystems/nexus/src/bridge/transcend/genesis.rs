@@ -78,6 +78,7 @@ pub enum CapabilityStatus {
 
 /// A syscall pattern that a capability targets.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallPattern {
     pub pattern_id: u64,
     pub syscall_ids: Vec<u32>,
@@ -88,6 +89,7 @@ pub struct SyscallPattern {
 
 /// A dynamically created capability.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Capability {
     pub capability_id: u64,
     pub name: String,
@@ -142,6 +144,7 @@ pub struct CapabilityInventory {
 
 /// Aggregate statistics for the genesis engine.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct GenesisStats {
     pub total_capabilities_created: u64,
     pub total_genesis_events: u64,
@@ -169,6 +172,7 @@ impl PatternMiner {
         }
     }
 
+    #[inline]
     fn observe(&mut self, syscall_ids: &[u32], latency_ns: f32) {
         let hash = fnv1a_hash(
             &syscall_ids
@@ -206,6 +210,7 @@ impl PatternMiner {
 /// Dynamic capability creation engine. Discovers, creates, tests, and
 /// manages new syscall optimisation capabilities at runtime.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeGenesis {
     capabilities: BTreeMap<u64, Capability>,
     genesis_log: Vec<GenesisEvent>,
@@ -458,6 +463,7 @@ impl BridgeGenesis {
     }
 
     /// Activate a capability for use.
+    #[inline]
     pub fn activate_capability(&mut self, capability_id: u64) -> bool {
         if let Some(cap) = self.capabilities.get_mut(&capability_id) {
             if cap.status == CapabilityStatus::Proposed || cap.status == CapabilityStatus::Testing {
@@ -470,6 +476,7 @@ impl BridgeGenesis {
     }
 
     /// Record usage of a capability with outcome feedback.
+    #[inline]
     pub fn record_usage(&mut self, capability_id: u64, success: bool, latency_improvement: f32) {
         if let Some(cap) = self.capabilities.get_mut(&capability_id) {
             cap.activation_count += 1;
@@ -497,6 +504,7 @@ impl BridgeGenesis {
     }
 
     /// Observe a syscall pattern for the pattern miner.
+    #[inline(always)]
     pub fn observe_pattern(&mut self, syscall_ids: &[u32], latency_ns: f32) {
         self.miner.observe(syscall_ids, latency_ns);
     }
@@ -519,6 +527,7 @@ impl BridgeGenesis {
     }
 
     /// Aggregate statistics.
+    #[inline(always)]
     pub fn stats(&self) -> GenesisStats {
         self.stats
     }

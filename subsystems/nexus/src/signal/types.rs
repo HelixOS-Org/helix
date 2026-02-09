@@ -8,11 +8,13 @@ pub struct ProcessId(pub u64);
 
 impl ProcessId {
     /// Create a new process ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +26,13 @@ pub struct ThreadId(pub u64);
 
 impl ThreadId {
     /// Create a new thread ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -79,11 +83,13 @@ impl SignalNumber {
     pub const SIGTSTP: Self = Self(20);
 
     /// Create a new signal number
+    #[inline(always)]
     pub const fn new(num: u32) -> Self {
         Self(num)
     }
 
     /// Get the raw number value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -115,16 +121,19 @@ impl SignalNumber {
     }
 
     /// Check if signal is fatal by default
+    #[inline(always)]
     pub fn is_fatal(&self) -> bool {
         matches!(self.0, 1 | 2 | 3 | 4 | 6 | 7 | 8 | 9 | 11 | 13 | 14 | 15)
     }
 
     /// Check if signal can be caught
+    #[inline(always)]
     pub fn can_catch(&self) -> bool {
         !matches!(self.0, 9 | 19) // SIGKILL and SIGSTOP cannot be caught
     }
 
     /// Check if signal is real-time signal
+    #[inline(always)]
     pub fn is_realtime(&self) -> bool {
         self.0 >= 32
     }

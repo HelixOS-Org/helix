@@ -21,21 +21,25 @@ impl Canary {
     }
 
     /// Check if canary is intact
+    #[inline(always)]
     pub fn check(&self) -> bool {
         self.value.load(Ordering::SeqCst) == self.expected
     }
 
     /// Get the current value
+    #[inline(always)]
     pub fn value(&self) -> u64 {
         self.value.load(Ordering::SeqCst)
     }
 
     /// Get expected value
+    #[inline(always)]
     pub fn expected(&self) -> u64 {
         self.expected
     }
 
     /// Reset canary to expected value
+    #[inline(always)]
     pub fn reset(&self) {
         self.value.store(self.expected, Ordering::SeqCst);
     }

@@ -16,6 +16,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -178,6 +179,7 @@ struct AuditEntry {
 
 /// Conscience statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConscienceStats {
     pub total_checks: u64,
     pub total_violations: u64,
@@ -195,11 +197,12 @@ pub struct ConscienceStats {
 
 /// Ethical decision framework for bridge operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeConscience {
     principles: BTreeMap<u64, ConscienceRule>,
     processes: BTreeMap<u64, ProcessTracker>,
-    violations: Vec<Violation>,
-    audit_log: Vec<AuditEntry>,
+    violations: VecDeque<Violation>,
+    audit_log: VecDeque<AuditEntry>,
     current_tick: u64,
     total_checks: u64,
     total_approvals: u64,
@@ -216,8 +219,8 @@ impl BridgeConscience {
         let mut conscience = Self {
             principles: BTreeMap::new(),
             processes: BTreeMap::new(),
-            violations: Vec::new(),
-            audit_log: Vec::new(),
+            violations: VecDeque::new(),
+            audit_log: VecDeque::new(),
             current_tick: 0,
             total_checks: 0,
             total_approvals: 0,
@@ -246,6 +249,7 @@ impl BridgeConscience {
     }
 
     /// Register a process for tracking
+    #[inline]
     pub fn register_process(&mut self, pid: u64, name: &str, priority: u32) {
         self.current_tick += 1;
         if self.processes.len() < MAX_PROCESS_TRACKING {
@@ -255,6 +259,7 @@ impl BridgeConscience {
     }
 
     /// Record that a process was served
+    #[inline]
     pub fn record_service(&mut self, pid: u64) {
         self.current_tick += 1;
         self.total_resources_allocated += 1;
@@ -264,6 +269,7 @@ impl BridgeConscience {
     }
 
     /// Record that a process was denied service
+    #[inline]
     pub fn record_denial(&mut self, pid: u64) {
         self.current_tick += 1;
         if let Some(proc) = self.processes.get_mut(&pid) {
@@ -344,9 +350,9 @@ impl BridgeConscience {
         // Audit log
         let action_hash = fnv1a_hash(action.as_bytes());
         if self.audit_log.len() >= MAX_AUDIT_LOG {
-            self.audit_log.remove(0);
+            self.audit_log.pop_front();
         }
-        self.audit_log.push(AuditEntry {
+        self.audit_log.push_back(AuditEntry {
             tick: self.current_tick,
             action_hash,
             approved,
@@ -375,10 +381,10 @@ impl BridgeConscience {
         }
 
         if self.violations.len() >= MAX_VIOLATION_HISTORY {
-            self.violations.remove(0);
+            self.violations.pop_front();
         }
 
-        self.violations.push(Violation {
+        self.violations.push_back(Violation {
             principle_hash: hash,
             description: String::from(principle),
             severity,
@@ -390,6 +396,7 @@ impl BridgeConscience {
     }
 
     /// Compute overall fairness score (0.0 = completely unfair, 1.0 = perfectly fair)
+    #[inline(always)]
     pub fn fairness_score(&self) -> f32 {
         self.fairness_ema
     }
@@ -424,6 +431,7 @@ impl BridgeConscience {
     }
 
     /// Detect processes currently being starved
+    #[inline]
     pub fn detect_starvation(&self) -> Vec<(u64, String, u64)> {
         self.processes
             .iter()
@@ -457,6 +465,7 @@ impl BridgeConscience {
     }
 
     /// Generate a conscience report
+    #[inline]
     pub fn conscience_report(&self) -> Vec<(String, u64, f32)> {
         self.principles
             .values()
@@ -465,6 +474,7 @@ impl BridgeConscience {
     }
 
     /// Moral weight of a specific principle
+    #[inline]
     pub fn moral_weight(&self, principle: &str) -> f32 {
         let hash = fnv1a_hash(principle.as_bytes());
         self.principles
@@ -474,6 +484,7 @@ impl BridgeConscience {
     }
 
     /// Is the conscience clear? (No active violations, high fairness)
+    #[inline]
     pub fn is_clear(&self) -> bool {
         self.fairness_ema >= CONSCIENCE_CLEAR_THRESHOLD
             && self.detect_starvation().is_empty()
@@ -499,6 +510,7 @@ impl BridgeConscience {
     }
 
     /// Reset the conscience
+    #[inline]
     pub fn reset(&mut self) {
         self.processes.clear();
         self.violations.clear();

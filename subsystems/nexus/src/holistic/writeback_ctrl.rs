@@ -36,6 +36,7 @@ pub enum WritebackState {
 
 /// Backing device info
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BdiState {
     pub id: u64,
     pub write_bw_bps: u64,
@@ -55,12 +56,14 @@ impl BdiState {
         Self { id, write_bw_bps: 0, avg_write_bw: 0, dirty_pages: 0, writeback_pages: 0, reclaimable_pages: 0, dirty_exceeded: false, max_ratio: 100, min_ratio: 0, state: WritebackState::Idle, completions: 0 }
     }
 
+    #[inline]
     pub fn update_bw(&mut self, bw: u64) {
         if self.avg_write_bw == 0 { self.avg_write_bw = bw; }
         else { self.avg_write_bw = (self.avg_write_bw * 7 + bw) / 8; }
         self.write_bw_bps = bw;
     }
 
+    #[inline(always)]
     pub fn dirty_ratio(&self) -> f64 {
         let total = self.dirty_pages + self.writeback_pages;
         if total + self.reclaimable_pages == 0 { 0.0 } else { self.dirty_pages as f64 / (total + self.reclaimable_pages) as f64 }
@@ -79,11 +82,14 @@ pub struct DirtyLimits {
 }
 
 impl DirtyLimits {
+    #[inline(always)]
     pub fn default_limits() -> Self {
         Self { dirty_ratio: 20, dirty_background_ratio: 10, dirty_bytes_limit: 0, dirty_background_bytes: 0, dirty_writeback_interval_ms: 500, dirty_expire_interval_ms: 3000 }
     }
 
+    #[inline(always)]
     pub fn thresh_pages(&self, total: u64) -> u64 { total * self.dirty_ratio as u64 / 100 }
+    #[inline(always)]
     pub fn bg_thresh_pages(&self, total: u64) -> u64 { total * self.dirty_background_ratio as u64 / 100 }
 }
 
@@ -106,13 +112,17 @@ impl WritebackWork {
         Self { id, bdi_id: bdi, reason, nr_to_write: nr, nr_written: 0, nr_skipped: 0, start_ts: ts, end_ts: 0, complete: false }
     }
 
+    #[inline(always)]
     pub fn progress(&mut self, written: u64, skipped: u64) { self.nr_written += written; self.nr_skipped += skipped; }
+    #[inline(always)]
     pub fn finish(&mut self, ts: u64) { self.complete = true; self.end_ts = ts; }
+    #[inline(always)]
     pub fn latency(&self) -> u64 { self.end_ts.saturating_sub(self.start_ts) }
 }
 
 /// Inode writeback state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InodeWbState {
     pub inode: u64,
     pub bdi_id: u64,
@@ -133,6 +143,7 @@ pub struct ThrottleInfo {
 
 /// Writeback stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct WritebackStats {
     pub total_dirty_pages: u64,
     pub total_writeback_pages: u64,
@@ -166,36 +177,44 @@ impl HolisticWritebackCtrl {
         }
     }
 
+    #[inline(always)]
     pub fn add_bdi(&mut self, id: u64) { self.bdis.insert(id, BdiState::new(id)); }
 
+    #[inline(always)]
     pub fn update_bdi_dirty(&mut self, bdi: u64, dirty: u64, wb: u64) {
         if let Some(b) = self.bdis.get_mut(&bdi) { b.dirty_pages = dirty; b.writeback_pages = wb; }
     }
 
+    #[inline(always)]
     pub fn update_bdi_bw(&mut self, bdi: u64, bw: u64) {
         if let Some(b) = self.bdis.get_mut(&bdi) { b.update_bw(bw); }
     }
 
+    #[inline(always)]
     pub fn should_writeback(&self) -> bool {
         let total_dirty: u64 = self.bdis.values().map(|b| b.dirty_pages).sum();
         total_dirty >= self.limits.bg_thresh_pages(self.total_memory_pages)
     }
 
+    #[inline(always)]
     pub fn should_throttle(&self) -> bool {
         let total_dirty: u64 = self.bdis.values().map(|b| b.dirty_pages).sum();
         total_dirty >= self.limits.thresh_pages(self.total_memory_pages)
     }
 
+    #[inline]
     pub fn submit_work(&mut self, bdi: u64, reason: WritebackReason, nr: u64, ts: u64) -> u64 {
         let id = self.next_work_id; self.next_work_id += 1;
         self.work_items.insert(id, WritebackWork::new(id, bdi, reason, nr, ts));
         id
     }
 
+    #[inline(always)]
     pub fn progress_work(&mut self, work_id: u64, written: u64, skipped: u64) {
         if let Some(w) = self.work_items.get_mut(&work_id) { w.progress(written, skipped); }
     }
 
+    #[inline]
     pub fn complete_work(&mut self, work_id: u64, ts: u64) {
         if let Some(w) = self.work_items.get_mut(&work_id) {
             w.finish(ts);
@@ -203,16 +222,20 @@ impl HolisticWritebackCtrl {
         }
     }
 
+    #[inline(always)]
     pub fn throttle_task(&mut self, task: u64, bdi: u64, pause_ns: u64, rate: u64, ts: u64) {
         self.throttles.push(ThrottleInfo { task_id: task, pause_ns, dirty_rate_bps: rate, bdi_id: bdi, ts });
     }
 
+    #[inline(always)]
     pub fn track_inode(&mut self, inode: u64, bdi: u64, dirty: u64, ts: u64) {
         self.inodes.insert(inode, InodeWbState { inode, bdi_id: bdi, dirty_pages: dirty, under_writeback: false, dirty_ts: ts });
     }
 
+    #[inline(always)]
     pub fn set_limits(&mut self, limits: DirtyLimits) { self.limits = limits; }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_dirty_pages = self.bdis.values().map(|b| b.dirty_pages).sum();
         self.stats.total_writeback_pages = self.bdis.values().map(|b| b.writeback_pages).sum();
@@ -224,8 +247,11 @@ impl HolisticWritebackCtrl {
         self.stats.total_bandwidth_bps = self.bdis.values().map(|b| b.avg_write_bw).sum();
     }
 
+    #[inline(always)]
     pub fn bdi(&self, id: u64) -> Option<&BdiState> { self.bdis.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &WritebackStats { &self.stats }
+    #[inline(always)]
     pub fn limits(&self) -> &DirtyLimits { &self.limits }
 }
 
@@ -362,6 +388,7 @@ impl WbV2BdiEntry {
         }
     }
 
+    #[inline]
     pub fn mark_dirty(&mut self, pages: u64) {
         self.dirty_pages += pages;
         if self.dirty_pages >= self.dirty_threshold {
@@ -369,6 +396,7 @@ impl WbV2BdiEntry {
         }
     }
 
+    #[inline]
     pub fn complete_writeback(&mut self, pages: u64) {
         self.writeback_pages = self.writeback_pages.saturating_sub(pages);
         self.dirty_pages = self.dirty_pages.saturating_sub(pages);
@@ -400,6 +428,7 @@ impl WbV2CgroupCtx {
         }
     }
 
+    #[inline(always)]
     pub fn should_throttle(&self) -> bool {
         self.dirty_pages >= self.dirty_limit
     }
@@ -407,6 +436,7 @@ impl WbV2CgroupCtx {
 
 /// Statistics for the writeback controller V2.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WritebackCtrlV2Stats {
     pub total_bdis: u64,
     pub total_cgroup_contexts: u64,
@@ -449,6 +479,7 @@ impl HolisticWritebackCtrlV2 {
         }
     }
 
+    #[inline]
     pub fn register_bdi(&mut self, name: String) -> u64 {
         let id = self.next_bdi_id;
         self.next_bdi_id += 1;
@@ -458,6 +489,7 @@ impl HolisticWritebackCtrlV2 {
         id
     }
 
+    #[inline]
     pub fn register_cgroup(&mut self, cgroup_id: u64) {
         if !self.cgroup_contexts.contains_key(&cgroup_id) {
             let ctx = WbV2CgroupCtx::new(cgroup_id);
@@ -466,6 +498,7 @@ impl HolisticWritebackCtrlV2 {
         }
     }
 
+    #[inline]
     pub fn mark_dirty(&mut self, bdi_id: u64, pages: u64) -> bool {
         if let Some(bdi) = self.bdis.get_mut(&bdi_id) {
             bdi.mark_dirty(pages);
@@ -477,6 +510,7 @@ impl HolisticWritebackCtrlV2 {
         }
     }
 
+    #[inline]
     pub fn complete_writeback(&mut self, bdi_id: u64, pages: u64) -> bool {
         if let Some(bdi) = self.bdis.get_mut(&bdi_id) {
             bdi.complete_writeback(pages);
@@ -488,10 +522,12 @@ impl HolisticWritebackCtrlV2 {
         }
     }
 
+    #[inline(always)]
     pub fn bdi_count(&self) -> usize {
         self.bdis.len()
     }
 
+    #[inline(always)]
     pub fn cgroup_count(&self) -> usize {
         self.cgroup_contexts.len()
     }

@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -75,17 +76,27 @@ impl GraphTask {
         }
     }
 
+    #[inline(always)]
     pub fn add_dep(&mut self, dep: u64) { if !self.deps.contains(&dep) { self.deps.push(dep); } }
+    #[inline(always)]
     pub fn add_dependent(&mut self, d: u64) { if !self.dependents.contains(&d) { self.dependents.push(d); } }
 
+    #[inline(always)]
     pub fn start(&mut self, worker: u64, ts: u64) { self.status = GraphTaskStatus::Running; self.assigned_to = Some(worker); self.start_ts = ts; }
+    #[inline(always)]
     pub fn complete(&mut self, result: u64, ts: u64) { self.status = GraphTaskStatus::Complete; self.result_hash = result; self.end_ts = ts; self.cost_ns = ts.saturating_sub(self.start_ts); }
+    #[inline(always)]
     pub fn fail(&mut self, ts: u64) { self.retries += 1; if self.retries >= self.max_retries { self.status = GraphTaskStatus::Failed; } else { self.status = GraphTaskStatus::Pending; } self.end_ts = ts; }
+    #[inline(always)]
     pub fn cancel(&mut self) { self.status = GraphTaskStatus::Cancelled; }
+    #[inline(always)]
     pub fn skip(&mut self) { self.status = GraphTaskStatus::Skipped; }
+    #[inline(always)]
     pub fn use_cache(&mut self, result: u64) { self.status = GraphTaskStatus::Cached; self.result_hash = result; self.cached = true; }
 
+    #[inline(always)]
     pub fn is_terminal(&self) -> bool { matches!(self.status, GraphTaskStatus::Complete | GraphTaskStatus::Failed | GraphTaskStatus::Cancelled | GraphTaskStatus::Skipped | GraphTaskStatus::Cached) }
+    #[inline(always)]
     pub fn is_success(&self) -> bool { matches!(self.status, GraphTaskStatus::Complete | GraphTaskStatus::Cached) }
 }
 
@@ -106,6 +117,7 @@ pub struct CriticalPathSegment {
 
 /// Result cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheEntry {
     pub input_hash: u64,
     pub result_hash: u64,
@@ -115,6 +127,7 @@ pub struct CacheEntry {
 
 /// Graph execution stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct GraphStats {
     pub total_tasks: usize,
     pub complete: usize,
@@ -141,19 +154,21 @@ impl CoopTaskGraph {
         Self { tasks: BTreeMap::new(), cache: BTreeMap::new(), topo_order: Vec::new(), stats: GraphStats::default(), next_id: 1 }
     }
 
+    #[inline]
     pub fn add_task(&mut self, name_hash: u64, prio: GraphTaskPriority, policy: FailurePolicy) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.tasks.insert(id, GraphTask::new(id, name_hash, prio, policy));
         id
     }
 
+    #[inline(always)]
     pub fn add_dep(&mut self, task: u64, dep: u64) {
         if let Some(t) = self.tasks.get_mut(&task) { t.add_dep(dep); }
         if let Some(d) = self.tasks.get_mut(&dep) { d.add_dependent(task); }
     }
 
     pub fn topological_sort(&mut self) -> bool {
-        let mut in_deg: BTreeMap<u64, usize> = BTreeMap::new();
+        let mut in_deg: LinearMap<usize, 64> = BTreeMap::new();
         for (&id, t) in &self.tasks { in_deg.insert(id, t.deps.len()); }
         let mut queue: Vec<u64> = in_deg.iter().filter(|(_, &d)| d == 0).map(|(&id, _)| id).collect();
         queue.sort_by(|a, b| {
@@ -177,6 +192,7 @@ impl CoopTaskGraph {
         valid
     }
 
+    #[inline]
     pub fn ready_tasks(&self) -> Vec<u64> {
         self.tasks.values()
             .filter(|t| t.status == GraphTaskStatus::Pending)
@@ -199,6 +215,7 @@ impl CoopTaskGraph {
         if let Some(t) = self.tasks.get_mut(&id) { t.start(worker, ts); }
     }
 
+    #[inline]
     pub fn complete_task(&mut self, id: u64, result: u64, ts: u64) {
         if let Some(t) = self.tasks.get_mut(&id) {
             let nh = t.name_hash;
@@ -235,7 +252,7 @@ impl CoopTaskGraph {
     }
 
     pub fn critical_path(&self) -> Vec<CriticalPathSegment> {
-        let mut longest: BTreeMap<u64, u64> = BTreeMap::new();
+        let mut longest: LinearMap<u64, 64> = BTreeMap::new();
         let mut prev: BTreeMap<u64, Option<u64>> = BTreeMap::new();
         for &id in &self.topo_order {
             let cost = self.tasks.get(&id).map(|t| t.cost_ns).unwrap_or(0);
@@ -263,7 +280,7 @@ impl CoopTaskGraph {
 
     pub fn execution_levels(&self) -> Vec<ExecLevel> {
         let mut levels: BTreeMap<u32, Vec<u64>> = BTreeMap::new();
-        let mut depth: BTreeMap<u64, u32> = BTreeMap::new();
+        let mut depth: LinearMap<u32, 64> = BTreeMap::new();
         for &id in &self.topo_order {
             let d = self.tasks.get(&id).map(|t| {
                 t.deps.iter().map(|dep| depth.get(dep).copied().unwrap_or(0) + 1).max().unwrap_or(0)
@@ -288,7 +305,10 @@ impl CoopTaskGraph {
         }
     }
 
+    #[inline(always)]
     pub fn task(&self, id: u64) -> Option<&GraphTask> { self.tasks.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &GraphStats { &self.stats }
+    #[inline(always)]
     pub fn topo_order(&self) -> &[u64] { &self.topo_order }
 }

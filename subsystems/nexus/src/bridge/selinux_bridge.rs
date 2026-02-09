@@ -30,6 +30,7 @@ pub enum SelinuxResult {
 
 /// SELinux record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SelinuxRecord {
     pub op: SelinuxOp,
     pub result: SelinuxResult,
@@ -84,6 +85,7 @@ impl AvcEntry {
             hits: 0,
         }
     }
+    #[inline(always)]
     pub fn hit(&mut self) {
         self.hits += 1;
     }
@@ -91,6 +93,7 @@ impl AvcEntry {
 
 /// SELinux bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SelinuxBridgeStats {
     pub total_ops: u64,
     pub access_checks: u64,
@@ -118,6 +121,7 @@ impl BridgeSelinux {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SelinuxRecord) {
         self.stats.total_ops += 1;
         if matches!(rec.op, SelinuxOp::AccessCheck | SelinuxOp::ComputeAv) {

@@ -33,6 +33,7 @@ pub struct CoopPidMapping {
 
 /// PID cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopPidStats {
     pub total_namespaces: u64,
     pub total_mappings: u64,
@@ -82,6 +83,7 @@ impl CoopPidManager {
         ns_id
     }
 
+    #[inline]
     pub fn add_mapping(&mut self, ns_id: u64, local: u64, global: u64) {
         self.local_to_global.insert((ns_id, local), global);
         self.global_to_local.insert((ns_id, global), local);
@@ -91,16 +93,19 @@ impl CoopPidManager {
         self.stats.total_mappings += 1;
     }
 
+    #[inline(always)]
     pub fn translate_to_global(&mut self, ns_id: u64, local: u64) -> Option<u64> {
         self.stats.translations += 1;
         self.local_to_global.get(&(ns_id, local)).cloned()
     }
 
+    #[inline(always)]
     pub fn translate_to_local(&mut self, ns_id: u64, global: u64) -> Option<u64> {
         self.stats.translations += 1;
         self.global_to_local.get(&(ns_id, global)).cloned()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopPidStats {
         &self.stats
     }

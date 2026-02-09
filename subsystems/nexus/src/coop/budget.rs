@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -88,12 +88,14 @@ impl ResourceBudgetEntry {
     }
 
     /// Available budget
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         let total = self.allocation + self.borrowed;
         total.saturating_sub(self.usage + self.lent)
     }
 
     /// Usage percentage
+    #[inline]
     pub fn usage_pct(&self) -> u32 {
         if self.allocation == 0 {
             return 100;
@@ -134,6 +136,7 @@ impl ResourceBudgetEntry {
     }
 
     /// Reset for new period
+    #[inline]
     pub fn reset_period(&mut self) {
         if self.usage > self.allocation {
             self.deficit_periods += 1;
@@ -177,12 +180,16 @@ impl ProcessBudget {
     }
 
     /// Add resource budget
+    #[inline(always)]
     pub fn add_resource(&mut self, resource: BudgetResource, allocation: u64) {
-        self.resources
-            .insert(resource as u8, ResourceBudgetEntry::new(resource, allocation));
+        self.resources.insert(
+            resource as u8,
+            ResourceBudgetEntry::new(resource, allocation),
+        );
     }
 
     /// Consume resource
+    #[inline]
     pub fn consume(&mut self, resource: BudgetResource, amount: u64) -> BudgetState {
         if let Some(entry) = self.resources.get_mut(&(resource as u8)) {
             entry.consume(amount)
@@ -192,6 +199,7 @@ impl ProcessBudget {
     }
 
     /// Available for resource
+    #[inline]
     pub fn available(&self, resource: BudgetResource) -> u64 {
         self.resources
             .get(&(resource as u8))
@@ -200,6 +208,7 @@ impl ProcessBudget {
     }
 
     /// Worst state across all resources
+    #[inline]
     pub fn worst_state(&self) -> BudgetState {
         self.resources
             .values()
@@ -209,11 +218,13 @@ impl ProcessBudget {
     }
 
     /// Total deficit
+    #[inline(always)]
     pub fn total_deficit(&self) -> u64 {
         self.resources.values().map(|e| e.deficit).sum()
     }
 
     /// Reset all for new period
+    #[inline]
     pub fn reset_period(&mut self) {
         for entry in self.resources.values_mut() {
             entry.reset_period();
@@ -277,6 +288,7 @@ impl BudgetGroup {
     }
 
     /// Add member
+    #[inline]
     pub fn add_member(&mut self, pid: u64) -> bool {
         if self.members.len() >= self.max_members {
             return false;
@@ -288,25 +300,24 @@ impl BudgetGroup {
     }
 
     /// Remove member
+    #[inline(always)]
     pub fn remove_member(&mut self, pid: u64) {
         self.members.retain(|&p| p != pid);
     }
 
     /// Set pool for resource
+    #[inline(always)]
     pub fn set_pool(&mut self, resource: BudgetResource, amount: u64) {
         self.pool.insert(resource as u8, amount);
     }
 
     /// Fair share per member
+    #[inline]
     pub fn fair_share(&self, resource: BudgetResource) -> u64 {
         if self.members.is_empty() {
             return 0;
         }
-        self.pool
-            .get(&(resource as u8))
-            .copied()
-            .unwrap_or(0)
-            / self.members.len() as u64
+        self.pool.get(&(resource as u8)).copied().unwrap_or(0) / self.members.len() as u64
     }
 }
 
@@ -339,6 +350,7 @@ pub struct BudgetForecast {
 
 /// Budget manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BudgetManagerStats {
     /// Total processes
     pub total_processes: usize,
@@ -363,7 +375,7 @@ pub struct CoopBudgetManager {
     /// Next loan ID
     next_loan_id: u64,
     /// Usage history for forecasting (pid → resource → recent usages)
-    history: BTreeMap<u64, BTreeMap<u8, Vec<u64>>>,
+    history: BTreeMap<u64, BTreeMap<u8, VecDeque<u64>>>,
     /// Max history per resource
     max_history: usize,
     /// Stats
@@ -384,12 +396,14 @@ impl CoopBudgetManager {
     }
 
     /// Register process with budget
+    #[inline(always)]
     pub fn register(&mut self, budget: ProcessBudget) {
         self.budgets.insert(budget.pid, budget);
         self.stats.total_processes = self.budgets.len();
     }
 
     /// Consume resource
+    #[inline]
     pub fn consume(&mut self, pid: u64, resource: BudgetResource, amount: u64) -> BudgetState {
         if let Some(budget) = self.budgets.get_mut(&pid) {
             budget.consume(resource, amount)
@@ -409,10 +423,7 @@ impl CoopBudgetManager {
         duration_ms: u64,
     ) -> Option<u64> {
         // Check lender has enough
-        let available = self
-            .budgets
-            .get(&lender_pid)?
-            .available(resource);
+        let available = self.budgets.get(&lender_pid)?.available(resource);
 
         if available < amount {
             return None;
@@ -454,11 +465,15 @@ impl CoopBudgetManager {
 
     /// Return loan
     pub fn return_loan(&mut self, loan_id: u64) -> bool {
-        let loan = match self.loans.iter_mut().find(|l| l.id == loan_id && !l.returned) {
+        let loan = match self
+            .loans
+            .iter_mut()
+            .find(|l| l.id == loan_id && !l.returned)
+        {
             Some(l) => {
                 l.returned = true;
                 l.clone()
-            }
+            },
             None => return false,
         };
 
@@ -499,10 +514,10 @@ impl CoopBudgetManager {
         for (pid, budget) in &self.budgets {
             let pid_history = self.history.entry(*pid).or_insert_with(BTreeMap::new);
             for (res_key, entry) in &budget.resources {
-                let res_hist = pid_history.entry(*res_key).or_insert_with(Vec::new);
-                res_hist.push(entry.usage);
+                let res_hist = pid_history.entry(*res_key).or_insert_with(VecDeque::new);
+                res_hist.push_back(entry.usage);
                 if res_hist.len() > self.max_history {
-                    res_hist.remove(0);
+                    res_hist.pop_front();
                 }
             }
         }
@@ -528,7 +543,7 @@ impl CoopBudgetManager {
             Some(h) if h.len() >= 3 => {
                 let avg: u64 = h.iter().sum::<u64>() / h.len() as u64;
                 // Simple trend: compare last to average
-                let last = *h.last().unwrap_or(&0);
+                let last = *h.back().unwrap_or(&0);
                 let trend = if last > avg {
                     last + (last - avg) / 4
                 } else {
@@ -536,7 +551,7 @@ impl CoopBudgetManager {
                 };
                 let conf = 0.5 + (h.len() as f64 / (self.max_history as f64 * 2.0)).min(0.4);
                 (trend, conf)
-            }
+            },
             _ => (entry.usage, 0.3),
         };
 
@@ -567,21 +582,29 @@ impl CoopBudgetManager {
         self.stats.in_deficit = self
             .budgets
             .values()
-            .filter(|b| matches!(b.worst_state(), BudgetState::Deficit | BudgetState::Exhausted))
+            .filter(|b| {
+                matches!(
+                    b.worst_state(),
+                    BudgetState::Deficit | BudgetState::Exhausted
+                )
+            })
             .count();
     }
 
     /// Get budget
+    #[inline(always)]
     pub fn budget(&self, pid: u64) -> Option<&ProcessBudget> {
         self.budgets.get(&pid)
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &BudgetManagerStats {
         &self.stats
     }
 
     /// Unregister
+    #[inline]
     pub fn unregister(&mut self, pid: u64) {
         self.budgets.remove(&pid);
         self.history.remove(&pid);

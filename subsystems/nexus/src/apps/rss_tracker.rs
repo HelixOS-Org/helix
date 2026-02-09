@@ -60,15 +60,18 @@ pub struct VmaRssEntry {
 }
 
 impl VmaRssEntry {
+    #[inline(always)]
     pub fn size_pages(&self) -> u64 {
         (self.end_addr - self.start_addr) / 4096
     }
 
+    #[inline(always)]
     pub fn residency_ratio(&self) -> f64 {
         let total = self.size_pages();
         if total == 0 { 0.0 } else { self.rss_pages as f64 / total as f64 }
     }
 
+    #[inline(always)]
     pub fn pss_pages(&self) -> f64 {
         self.pss_pages_x1000 as f64 / 1000.0
     }
@@ -146,6 +149,7 @@ impl ProcessRssProfile {
     }
 
     /// Update VMA breakdown
+    #[inline(always)]
     pub fn update_vma(&mut self, entry: VmaRssEntry) {
         self.vma_breakdown.insert(entry.start_addr, entry);
         self.recompute_categories();
@@ -173,6 +177,7 @@ impl ProcessRssProfile {
     }
 
     /// Shared memory ratio
+    #[inline]
     pub fn shared_ratio(&self) -> f64 {
         if self.current_rss_pages == 0 { 0.0 } else {
             self.total_shared_pages as f64 / self.current_rss_pages as f64
@@ -195,6 +200,7 @@ impl ProcessRssProfile {
     }
 
     /// Memory bloat ratio: current / peak
+    #[inline]
     pub fn bloat_ratio(&self) -> f64 {
         if self.peak_rss_pages == 0 { 0.0 } else {
             self.current_rss_pages as f64 / self.peak_rss_pages as f64
@@ -202,6 +208,7 @@ impl ProcessRssProfile {
     }
 
     /// Estimated PSS (proportional set size)
+    #[inline]
     pub fn estimated_pss_pages(&self) -> f64 {
         self.vma_breakdown.values()
             .map(|v| v.pss_pages())
@@ -209,12 +216,14 @@ impl ProcessRssProfile {
     }
 
     /// Swap pressure (swap / (rss + swap))
+    #[inline(always)]
     pub fn swap_pressure(&self) -> f64 {
         let total = self.current_rss_pages + self.current_swap_pages;
         if total == 0 { 0.0 } else { self.current_swap_pages as f64 / total as f64 }
     }
 
     /// Reclaimable pages (file-backed with low residency)
+    #[inline]
     pub fn reclaimable_estimate(&self) -> u64 {
         self.vma_breakdown.values()
             .filter(|v| v.category == VmaCategory::FileMmap && !v.referenced)
@@ -225,6 +234,7 @@ impl ProcessRssProfile {
 
 /// RSS tracker global stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppRssTrackerStats {
     pub tracked_processes: usize,
     pub total_rss_pages: u64,
@@ -249,6 +259,7 @@ impl AppRssTracker {
         }
     }
 
+    #[inline]
     pub fn record_sample(&mut self, pid: u64, sample: RssSample) {
         self.processes.entry(pid)
             .or_insert_with(|| ProcessRssProfile::new(pid))
@@ -256,6 +267,7 @@ impl AppRssTracker {
         self.update_stats();
     }
 
+    #[inline]
     pub fn update_vma(&mut self, pid: u64, entry: VmaRssEntry) {
         self.processes.entry(pid)
             .or_insert_with(|| ProcessRssProfile::new(pid))
@@ -281,11 +293,13 @@ impl AppRssTracker {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppRssTrackerStats {
         &self.stats
     }
 
     /// Top RSS consumers
+    #[inline]
     pub fn top_consumers(&self, n: usize) -> Vec<(u64, u64)> {
         let mut procs: Vec<(u64, u64)> = self.processes.iter()
             .map(|(&pid, p)| (pid, p.current_rss_pages))
@@ -296,6 +310,7 @@ impl AppRssTracker {
     }
 
     /// Processes with monotonic RSS growth (potential leaks)
+    #[inline]
     pub fn leaking_candidates(&self) -> Vec<u64> {
         self.processes.iter()
             .filter(|(_, p)| p.is_monotonic_growth() && p.current_rss_pages > 1024)

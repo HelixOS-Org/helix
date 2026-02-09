@@ -137,21 +137,25 @@ pub enum ProbeState {
 
 impl ProbeState {
     /// Is collecting data
+    #[inline(always)]
     pub const fn is_active(&self) -> bool {
         matches!(self, Self::Active)
     }
 
     /// Is paused
+    #[inline(always)]
     pub const fn is_paused(&self) -> bool {
         matches!(self, Self::Paused)
     }
 
     /// Is stopped
+    #[inline(always)]
     pub const fn is_stopped(&self) -> bool {
         matches!(self, Self::Stopped)
     }
 
     /// Is in error state
+    #[inline(always)]
     pub const fn is_failed(&self) -> bool {
         matches!(self, Self::Failed)
     }
@@ -214,6 +218,7 @@ impl Default for ProbeConfig {
 
 impl ProbeConfig {
     /// Create config for specific probe type
+    #[inline]
     pub fn for_type(probe_type: ProbeType) -> Self {
         Self {
             probe_type,
@@ -223,24 +228,28 @@ impl ProbeConfig {
     }
 
     /// With sample rate
+    #[inline(always)]
     pub fn with_sample_rate(mut self, rate: u32) -> Self {
         self.sample_rate = rate;
         self
     }
 
     /// With buffer size
+    #[inline(always)]
     pub fn with_buffer_size(mut self, size: usize) -> Self {
         self.buffer_size = size;
         self
     }
 
     /// With auto enable setting
+    #[inline(always)]
     pub fn with_auto_enable(mut self, enable: bool) -> Self {
         self.auto_enable = enable;
         self
     }
 
     /// With filter
+    #[inline(always)]
     pub fn with_filter(mut self, filter: impl Into<String>) -> Self {
         self.filter = Some(filter.into());
         self
@@ -253,6 +262,7 @@ impl ProbeConfig {
 
 /// Probe statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ProbeStats {
     /// Events collected
     pub events_collected: u64,
@@ -275,6 +285,7 @@ impl ProbeStats {
     }
 
     /// Get drop rate
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.events_collected + self.events_dropped;
         if total == 0 {
@@ -285,6 +296,7 @@ impl ProbeStats {
     }
 
     /// Get uptime
+    #[inline(always)]
     pub fn uptime(&self) -> Option<crate::types::Duration> {
         self.start_time
             .map(|start| Timestamp::now().elapsed_since(start))

@@ -46,6 +46,7 @@ impl SeccompCoopRecord {
 
 /// Seccomp coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompCoopStats {
     pub total_events: u64,
     pub syncs: u64,
@@ -71,6 +72,7 @@ impl CoopSeccomp {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SeccompCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

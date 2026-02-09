@@ -41,6 +41,7 @@ impl EventField {
     }
 
     /// Create array field
+    #[inline]
     pub fn array(
         name: String,
         element_type: FieldType,
@@ -102,6 +103,7 @@ impl TracepointDef {
     }
 
     /// Add field
+    #[inline]
     pub fn add_field(&mut self, field: EventField) {
         let end = field.offset + field.size;
         if end > self.event_size {
@@ -111,16 +113,19 @@ impl TracepointDef {
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         matches!(self.state, TracepointState::Enabled)
     }
 
     /// Has probes
+    #[inline(always)]
     pub fn has_probes(&self) -> bool {
         self.probe_count > 0
     }
 
     /// Get field by name
+    #[inline(always)]
     pub fn get_field(&self, name: &str) -> Option<&EventField> {
         self.fields.iter().find(|f| f.name == name)
     }

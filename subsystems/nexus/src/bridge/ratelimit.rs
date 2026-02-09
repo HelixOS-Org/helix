@@ -43,6 +43,7 @@ impl TokenBucket {
         }
     }
 
+    #[inline(always)]
     pub fn with_burst(mut self, burst: u64) -> Self {
         self.burst = burst;
         self
@@ -65,6 +66,7 @@ impl TokenBucket {
     }
 
     /// Try to consume tokens
+    #[inline]
     pub fn try_consume(&mut self, count: u64, now_ns: u64) -> bool {
         self.refill(now_ns);
         if self.tokens >= count {
@@ -76,11 +78,13 @@ impl TokenBucket {
     }
 
     /// Tokens available
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.tokens
     }
 
     /// Utilization (fraction of capacity used)
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 {
             return 0.0;
@@ -89,6 +93,7 @@ impl TokenBucket {
     }
 
     /// Time until next token available (ns)
+    #[inline]
     pub fn time_to_token_ns(&self) -> u64 {
         if self.tokens > 0 || self.refill_rate == 0 {
             return 0;
@@ -112,6 +117,7 @@ struct WindowSlot {
 
 /// Sliding window rate counter
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SlidingWindowCounter {
     /// Slots
     slots: Vec<WindowSlot>,
@@ -138,6 +144,7 @@ impl SlidingWindowCounter {
     }
 
     /// Get current rate
+    #[inline]
     pub fn current_rate(&self, now_ns: u64) -> u64 {
         let window_start = now_ns.saturating_sub(self.window_ns);
         self.slots
@@ -176,6 +183,7 @@ impl SlidingWindowCounter {
     }
 
     /// Rejection rate
+    #[inline]
     pub fn rejection_rate(&self) -> f64 {
         let total: u64 = self.slots.iter().map(|s| s.count).sum::<u64>() + self.rejected;
         if total == 0 {
@@ -231,11 +239,13 @@ impl RateLimitPolicy {
         }
     }
 
+    #[inline(always)]
     pub fn for_syscall(mut self, nr: u32) -> Self {
         self.syscall_nr = nr;
         self
     }
 
+    #[inline(always)]
     pub fn with_burst(mut self, burst: u64) -> Self {
         self.burst = burst;
         self
@@ -263,6 +273,7 @@ pub enum RateLimitDecision {
 
 /// Rate limiter stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RateLimiterStats {
     /// Total checks
     pub total_checks: u64,
@@ -277,6 +288,7 @@ pub struct RateLimiterStats {
 }
 
 /// Bridge rate limiter
+#[repr(align(64))]
 pub struct BridgeRateLimiter {
     /// Policies
     policies: Vec<RateLimitPolicy>,
@@ -364,11 +376,13 @@ impl BridgeRateLimiter {
     }
 
     /// Cleanup per-process buckets for exited processes
+    #[inline(always)]
     pub fn cleanup_process(&mut self, pid: u64) {
         self.process_buckets.retain(|&(_, p), _| p != pid);
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &RateLimiterStats {
         &self.stats
     }

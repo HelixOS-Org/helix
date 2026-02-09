@@ -41,6 +41,7 @@ pub enum CoopEvictionPolicy {
 
 /// Stats for page cache cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopPageCacheStats {
     pub total_pages: u64,
     pub cache_hits: u64,
@@ -51,6 +52,7 @@ pub struct CoopPageCacheStats {
 }
 
 /// Manager for page cache cooperative operations
+#[repr(align(64))]
 pub struct CoopPageCacheManager {
     pages: BTreeMap<u64, CoopPageEntry>,
     inode_pages: BTreeMap<u64, Vec<u64>>,
@@ -79,6 +81,7 @@ impl CoopPageCacheManager {
         }
     }
 
+    #[inline]
     pub fn lookup(&mut self, inode: u64, offset: u64) -> Option<&CoopPageEntry> {
         let key = inode.wrapping_mul(0x100000001b3) ^ offset;
         if let Some(page) = self.pages.get(&key) {
@@ -123,6 +126,7 @@ impl CoopPageCacheManager {
         }
     }
 
+    #[inline]
     pub fn mark_dirty(&mut self, inode: u64, offset: u64) {
         let key = inode.wrapping_mul(0x100000001b3) ^ offset;
         if let Some(page) = self.pages.get_mut(&key) {
@@ -133,6 +137,7 @@ impl CoopPageCacheManager {
         }
     }
 
+    #[inline]
     pub fn invalidate_inode(&mut self, inode: u64) -> usize {
         if let Some(keys) = self.inode_pages.remove(&inode) {
             let count = keys.len();
@@ -145,10 +150,12 @@ impl CoopPageCacheManager {
         }
     }
 
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: CoopEvictionPolicy) {
         self.policy = policy;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopPageCacheStats {
         &self.stats
     }

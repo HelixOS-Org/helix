@@ -59,6 +59,7 @@ pub enum LoadLevel {
 
 impl LoadLevel {
     /// From utilization
+    #[inline]
     pub fn from_utilization(util: f64) -> Self {
         if util < 0.7 {
             Self::Normal
@@ -72,6 +73,7 @@ impl LoadLevel {
     }
 
     /// Min priority to admit
+    #[inline]
     pub fn min_admit_priority(&self) -> AdmissionPriority {
         match self {
             Self::Normal => AdmissionPriority::Background,
@@ -88,6 +90,7 @@ impl LoadLevel {
 
 /// Queued request
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueuedRequest {
     /// Request id
     pub id: u64,
@@ -105,11 +108,13 @@ pub struct QueuedRequest {
 
 impl QueuedRequest {
     /// Wait time
+    #[inline(always)]
     pub fn wait_time(&self, now: u64) -> u64 {
         now.saturating_sub(self.enqueued_at)
     }
 
     /// Is expired?
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         self.deadline_ns.map(|d| now >= d).unwrap_or(false)
     }
@@ -121,6 +126,7 @@ impl QueuedRequest {
 
 /// Admission configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AdmissionConfig {
     /// Max concurrent requests
     pub max_concurrent: usize,
@@ -135,6 +141,7 @@ pub struct AdmissionConfig {
 }
 
 impl AdmissionConfig {
+    #[inline]
     pub fn default_config() -> Self {
         Self {
             max_concurrent: 1024,
@@ -152,6 +159,7 @@ impl AdmissionConfig {
 
 /// Per-process admission credit
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessCredit {
     /// Process id
     pub pid: u64,
@@ -183,6 +191,7 @@ impl ProcessCredit {
     }
 
     /// Try consume credit
+    #[inline]
     pub fn try_consume(&mut self, now: u64) -> bool {
         self.maybe_refill(now);
         if self.credits > 0 {
@@ -203,6 +212,7 @@ impl ProcessCredit {
     }
 
     /// Admission rate
+    #[inline]
     pub fn admission_rate(&self) -> f64 {
         let total = self.admitted_count + self.shed_count;
         if total == 0 {
@@ -218,6 +228,7 @@ impl ProcessCredit {
 
 /// Admission stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeAdmissionStats {
     /// Requests admitted
     pub admitted: u64,
@@ -238,6 +249,7 @@ pub struct BridgeAdmissionStats {
 }
 
 /// Bridge admission controller
+#[repr(align(64))]
 pub struct BridgeAdmissionController {
     /// Config
     config: AdmissionConfig,
@@ -269,12 +281,14 @@ impl BridgeAdmissionController {
     }
 
     /// Update utilization
+    #[inline(always)]
     pub fn update_utilization(&mut self, util: f64) {
         self.utilization = util;
         self.stats.load_level = LoadLevel::from_utilization(util) as u8;
     }
 
     /// Set credits for process
+    #[inline(always)]
     pub fn set_credits(&mut self, pid: u64, max_credits: u32) {
         self.credits
             .insert(pid, ProcessCredit::new(pid, max_credits));
@@ -344,6 +358,7 @@ impl BridgeAdmissionController {
     }
 
     /// Release (syscall completed)
+    #[inline]
     pub fn release(&mut self) {
         if self.concurrent > 0 {
             self.concurrent -= 1;
@@ -384,6 +399,7 @@ impl BridgeAdmissionController {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeAdmissionStats {
         &self.stats
     }

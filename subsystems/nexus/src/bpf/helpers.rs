@@ -14,11 +14,13 @@ pub struct BpfHelperId(pub u32);
 
 impl BpfHelperId {
     /// Create new helper ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get raw ID
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -58,22 +60,26 @@ impl BpfHelperInfo {
     }
 
     /// Record call
+    #[inline(always)]
     pub fn record_call(&self, duration_ns: u64) {
         self.call_count.fetch_add(1, Ordering::Relaxed);
         self.total_time_ns.fetch_add(duration_ns, Ordering::Relaxed);
     }
 
     /// Get call count
+    #[inline(always)]
     pub fn get_call_count(&self) -> u64 {
         self.call_count.load(Ordering::Relaxed)
     }
 
     /// Get total time
+    #[inline(always)]
     pub fn get_total_time(&self) -> u64 {
         self.total_time_ns.load(Ordering::Relaxed)
     }
 
     /// Get average time
+    #[inline]
     pub fn avg_time(&self) -> f32 {
         let count = self.get_call_count();
         if count == 0 {
@@ -83,6 +89,7 @@ impl BpfHelperInfo {
     }
 
     /// Add allowed program type
+    #[inline]
     pub fn add_allowed_prog_type(&mut self, prog_type: BpfProgType) {
         if !self.allowed_prog_types.contains(&prog_type) {
             self.allowed_prog_types.push(prog_type);
@@ -90,6 +97,7 @@ impl BpfHelperInfo {
     }
 
     /// Is allowed for program type
+    #[inline(always)]
     pub fn is_allowed_for(&self, prog_type: BpfProgType) -> bool {
         self.allowed_prog_types.is_empty() || self.allowed_prog_types.contains(&prog_type)
     }

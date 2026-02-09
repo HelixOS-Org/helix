@@ -41,19 +41,23 @@ impl ClosEntry {
         }
     }
 
+    #[inline(always)]
     pub fn set_ways(&mut self, mask: u64) {
         self.bitmask = mask;
         self.ways_allocated = mask.count_ones();
     }
 
+    #[inline(always)]
     pub fn assign_process(&mut self, pid: u64) {
         if !self.processes.contains(&pid) { self.processes.push(pid); }
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.retain(|&p| p != pid);
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.total_ways == 0 { return 0.0; }
         self.ways_allocated as f64 / self.total_ways as f64
@@ -62,6 +66,7 @@ impl ClosEntry {
 
 /// Cache monitoring data
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheMonitorData {
     pub clos_id: u32,
     pub occupancy_bytes: u64,
@@ -86,6 +91,7 @@ impl CdpConfig {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CachePartitionStats {
     pub total_clos: u32,
     pub active_processes: u32,
@@ -96,6 +102,7 @@ pub struct CachePartitionStats {
 }
 
 /// Main cache partition manager
+#[repr(align(64))]
 pub struct HolisticCachePartition {
     clos_entries: BTreeMap<u32, ClosEntry>,
     monitor_data: Vec<CacheMonitorData>,
@@ -113,6 +120,7 @@ impl HolisticCachePartition {
         }
     }
 
+    #[inline]
     pub fn create_clos(&mut self) -> u32 {
         let id = self.next_clos;
         self.next_clos += 1;
@@ -120,23 +128,28 @@ impl HolisticCachePartition {
         id
     }
 
+    #[inline(always)]
     pub fn set_clos_mask(&mut self, clos: u32, mask: u64) {
         if let Some(entry) = self.clos_entries.get_mut(&clos) { entry.set_ways(mask); }
     }
 
+    #[inline(always)]
     pub fn assign_process(&mut self, clos: u32, pid: u64) {
         if let Some(entry) = self.clos_entries.get_mut(&clos) { entry.assign_process(pid); }
     }
 
+    #[inline(always)]
     pub fn enable_cdp(&mut self, code_mask: u64, data_mask: u64) {
         self.cdp = Some(CdpConfig::new(code_mask, data_mask));
     }
 
+    #[inline(always)]
     pub fn record_monitor(&mut self, clos: u32, occ: u64, bw: u64, miss: f64, now: u64) {
         self.monitor_data.push(CacheMonitorData { clos_id: clos, occupancy_bytes: occ, bandwidth_bytes: bw, miss_rate: miss, timestamp: now });
         if self.monitor_data.len() > 4096 { self.monitor_data.drain(..2048); }
     }
 
+    #[inline]
     pub fn stats(&self) -> CachePartitionStats {
         let procs: u32 = self.clos_entries.values().map(|c| c.processes.len() as u32).sum();
         let alloc: u32 = self.clos_entries.values().map(|c| c.ways_allocated).sum();

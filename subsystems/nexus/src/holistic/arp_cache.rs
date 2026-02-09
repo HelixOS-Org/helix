@@ -45,18 +45,22 @@ pub enum HardwareType {
 pub struct MacAddress(pub [u8; 6]);
 
 impl MacAddress {
+    #[inline(always)]
     pub fn broadcast() -> Self {
         Self([0xff; 6])
     }
 
+    #[inline(always)]
     pub fn is_broadcast(&self) -> bool {
         self.0 == [0xff; 6]
     }
 
+    #[inline(always)]
     pub fn is_multicast(&self) -> bool {
         self.0[0] & 0x01 != 0
     }
 
+    #[inline]
     pub fn hash(&self) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
         for b in &self.0 {
@@ -108,6 +112,7 @@ impl ArpEntry {
         }
     }
 
+    #[inline]
     pub fn confirm(&mut self, ts_ns: u64) {
         self.state = NudState::Reachable;
         self.confirmed_ns = ts_ns;
@@ -115,6 +120,7 @@ impl ArpEntry {
         self.probes_sent = 0;
     }
 
+    #[inline]
     pub fn mark_stale(&mut self, ts_ns: u64) {
         if self.state == NudState::Reachable {
             self.state = NudState::Stale;
@@ -122,21 +128,25 @@ impl ArpEntry {
         }
     }
 
+    #[inline]
     pub fn start_probe(&mut self, ts_ns: u64) {
         self.state = NudState::Probe;
         self.probes_sent += 1;
         self.updated_ns = ts_ns;
     }
 
+    #[inline(always)]
     pub fn mark_failed(&mut self, ts_ns: u64) {
         self.state = NudState::Failed;
         self.updated_ns = ts_ns;
     }
 
+    #[inline(always)]
     pub fn is_valid(&self) -> bool {
         matches!(self.state, NudState::Reachable | NudState::Stale | NudState::Delay | NudState::Probe | NudState::Permanent)
     }
 
+    #[inline(always)]
     pub fn age_ms(&self, now_ns: u64) -> u64 {
         (now_ns.saturating_sub(self.updated_ns)) / 1_000_000
     }
@@ -158,6 +168,7 @@ impl ArpEntry {
 
 /// ARP cache stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ArpCacheStats {
     pub total_entries: u64,
     pub reachable_entries: u64,
@@ -171,6 +182,7 @@ pub struct ArpCacheStats {
 
 /// Main holistic ARP cache manager
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct HolisticArpCache {
     pub entries: BTreeMap<u32, ArpEntry>,
     pub stats: ArpCacheStats,
@@ -205,6 +217,7 @@ impl HolisticArpCache {
         }
     }
 
+    #[inline]
     pub fn lookup(&mut self, ip_addr: u32) -> Option<&ArpEntry> {
         self.stats.total_lookups += 1;
         if let Some(entry) = self.entries.get(&ip_addr) {
@@ -230,6 +243,7 @@ impl HolisticArpCache {
         self.entries.insert(ip, entry);
     }
 
+    #[inline]
     pub fn gc(&mut self, now_ns: u64) {
         self.stats.gc_runs += 1;
         let stale_keys: Vec<u32> = self.entries.iter()
@@ -242,6 +256,7 @@ impl HolisticArpCache {
         }
     }
 
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         if self.stats.total_lookups == 0 {
             return 0.0;

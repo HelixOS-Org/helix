@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -125,6 +126,7 @@ pub struct OptimalityCertificate {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct OptimalStats {
     pub total_decisions: u64,
     pub avg_optimality_bps: u64,
@@ -155,7 +157,7 @@ impl OptimalStats {
 
 pub struct HolisticOptimal {
     resources: BTreeMap<u64, ResourceDescriptor>,
-    decisions: Vec<Decision>,
+    decisions: VecDeque<Decision>,
     pareto_front: Vec<ParetoPoint>,
     stats: OptimalStats,
     rng: Xorshift64,
@@ -166,7 +168,7 @@ impl HolisticOptimal {
     pub fn new(seed: u64) -> Self {
         Self {
             resources: BTreeMap::new(),
-            decisions: Vec::new(),
+            decisions: VecDeque::new(),
             pareto_front: Vec::new(),
             stats: OptimalStats::new(),
             rng: Xorshift64::new(seed),
@@ -217,9 +219,9 @@ impl HolisticOptimal {
         let dh = fnv1a(&obj.to_le_bytes()) ^ fnv1a(&self.tick.to_le_bytes());
         let regret = OPTIMALITY_THRESHOLD_BPS.saturating_sub(opt_bps);
         if self.decisions.len() >= MAX_DECISION_LOG {
-            self.decisions.remove(0);
+            self.decisions.pop_front();
         }
-        self.decisions.push(Decision {
+        self.decisions.push_back(Decision {
             decision_hash: dh,
             tick: self.tick,
             objective_value: obj,
@@ -250,7 +252,7 @@ impl HolisticOptimal {
         };
         let cert_hash = fnv1a(&improved.to_le_bytes());
         self.record_decision(improved, opt_bps.min(10_000), cert_hash);
-        self.decisions.last().cloned().unwrap_or(Decision {
+        self.decisions.back().cloned().unwrap_or(Decision {
             decision_hash: 0,
             tick: self.tick,
             objective_value: 0,
@@ -277,7 +279,7 @@ impl HolisticOptimal {
             self.stats.proven_optimal = self.stats.proven_optimal.wrapping_add(1);
         }
         OptimalityCertificate {
-            decision_hash: self.decisions.last().map(|d| d.decision_hash).unwrap_or(0),
+            decision_hash: self.decisions.back().map(|d| d.decision_hash).unwrap_or(0),
             dual_bound: dual,
             primal_value: primal,
             gap_bps: gap,
@@ -287,6 +289,7 @@ impl HolisticOptimal {
     }
 
     /// Cumulative regret across all decisions.
+    #[inline(always)]
     pub fn regret_minimization(&self) -> u64 {
         self.stats.total_regret
     }
@@ -338,7 +341,7 @@ impl HolisticOptimal {
         };
         let cert = fnv1a(&obj.to_le_bytes());
         self.record_decision(obj, opt_bps.min(10_000), cert);
-        self.decisions.last().cloned().unwrap_or(Decision {
+        self.decisions.back().cloned().unwrap_or(Decision {
             decision_hash: 0,
             tick: self.tick,
             objective_value: 0,
@@ -349,6 +352,7 @@ impl HolisticOptimal {
     }
 
     /// Proof of decision quality — ratio of proven optimal to total.
+    #[inline]
     pub fn decision_quality_proof(&self) -> (u64, u64, u64) {
         let total = self.stats.total_decisions.max(1);
         let ratio = self.stats.proven_optimal.saturating_mul(10_000) / total;
@@ -357,14 +361,17 @@ impl HolisticOptimal {
 
     // -- accessors ----------------------------------------------------------
 
+    #[inline(always)]
     pub fn stats(&self) -> &OptimalStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn resource_count(&self) -> usize {
         self.resources.len()
     }
 
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

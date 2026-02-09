@@ -3,6 +3,7 @@
 //! ML-like driver matching with learning capabilities.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::{DeviceId, DeviceInfo, DriverId, DriverInfo};
@@ -33,6 +34,7 @@ pub enum MatchType {
 
 impl MatchType {
     /// Get score for match type
+    #[inline]
     pub fn base_score(&self) -> u8 {
         match self {
             Self::Exact => 100,
@@ -58,7 +60,7 @@ pub struct DriverMatcher {
     /// Registered drivers
     drivers: BTreeMap<DriverId, DriverInfo>,
     /// Match history
-    match_history: Vec<MatchHistoryEntry>,
+    match_history: VecDeque<MatchHistoryEntry>,
     /// Maximum history
     max_history: usize,
     /// Learning rate for score adjustment
@@ -80,11 +82,13 @@ impl DriverMatcher {
     }
 
     /// Register driver
+    #[inline(always)]
     pub fn register_driver(&mut self, driver: DriverInfo) {
         self.drivers.insert(driver.id, driver);
     }
 
     /// Unregister driver
+    #[inline(always)]
     pub fn unregister_driver(&mut self, id: DriverId) {
         self.drivers.remove(&id);
     }
@@ -160,9 +164,9 @@ impl DriverMatcher {
         };
 
         if self.match_history.len() >= self.max_history {
-            self.match_history.remove(0);
+            self.match_history.pop_front();
         }
-        self.match_history.push(entry);
+        self.match_history.push_back(entry);
 
         // Update score adjustment
         let key = (driver_id, device.vendor_id);
@@ -186,21 +190,25 @@ impl DriverMatcher {
     }
 
     /// Get best matching driver
+    #[inline(always)]
     pub fn best_match(&self, device: &DeviceInfo) -> Option<MatchScore> {
         self.find_matches(device).into_iter().next()
     }
 
     /// Get driver by ID
+    #[inline(always)]
     pub fn get_driver(&self, id: DriverId) -> Option<&DriverInfo> {
         self.drivers.get(&id)
     }
 
     /// Get all drivers
+    #[inline(always)]
     pub fn drivers(&self) -> impl Iterator<Item = &DriverInfo> {
         self.drivers.values()
     }
 
     /// Driver count
+    #[inline(always)]
     pub fn driver_count(&self) -> usize {
         self.drivers.len()
     }

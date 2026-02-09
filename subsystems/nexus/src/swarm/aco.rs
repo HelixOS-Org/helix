@@ -33,6 +33,7 @@ impl DistanceMatrix {
     }
 
     /// Set distance between nodes
+    #[inline]
     pub fn set(&mut self, from: usize, to: usize, dist: f64) {
         if from < self.n_nodes && to < self.n_nodes {
             self.distances[from * self.n_nodes + to] = dist;
@@ -40,12 +41,14 @@ impl DistanceMatrix {
     }
 
     /// Set symmetric distance
+    #[inline(always)]
     pub fn set_symmetric(&mut self, a: usize, b: usize, dist: f64) {
         self.set(a, b, dist);
         self.set(b, a, dist);
     }
 
     /// Get distance between nodes
+    #[inline]
     pub fn get(&self, from: usize, to: usize) -> f64 {
         if from < self.n_nodes && to < self.n_nodes {
             self.distances[from * self.n_nodes + to]
@@ -55,6 +58,7 @@ impl DistanceMatrix {
     }
 
     /// Create from edge list
+    #[inline]
     pub fn from_edges(n_nodes: usize, edges: &[(usize, usize, f64)]) -> Self {
         let mut dm = Self::new(n_nodes);
         for &(a, b, d) in edges {

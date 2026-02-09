@@ -35,11 +35,13 @@ pub enum DonationPriority {
 
 impl DonationPriority {
     /// Numeric value
+    #[inline(always)]
     pub fn value(&self) -> u32 {
         *self as u32
     }
 
     /// From numeric value
+    #[inline]
     pub fn from_value(v: u32) -> Self {
         match v {
             0 => Self::Idle,
@@ -119,11 +121,13 @@ impl PriorityDonation {
     }
 
     /// Revoke donation
+    #[inline(always)]
     pub fn revoke(&mut self) {
         self.active = false;
     }
 
     /// Duration
+    #[inline(always)]
     pub fn duration_ns(&self, now: u64) -> u64 {
         now.saturating_sub(self.created_at)
     }
@@ -135,6 +139,7 @@ impl PriorityDonation {
 
 /// Priority state for a process
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DonationPriorityState {
     /// Process id
     pub pid: u64,
@@ -163,6 +168,7 @@ impl DonationPriorityState {
     }
 
     /// Acquire resource
+    #[inline]
     pub fn acquire_resource(&mut self, resource: u64) {
         if !self.resources_held.contains(&resource) {
             self.resources_held.push(resource);
@@ -170,16 +176,19 @@ impl DonationPriorityState {
     }
 
     /// Release resource
+    #[inline(always)]
     pub fn release_resource(&mut self, resource: u64) {
         self.resources_held.retain(|&r| r != resource);
     }
 
     /// Holds resource?
+    #[inline(always)]
     pub fn holds_resource(&self, resource: u64) -> bool {
         self.resources_held.contains(&resource)
     }
 
     /// Recalculate effective priority
+    #[inline]
     pub fn recalculate(&mut self, donations: &BTreeMap<u64, PriorityDonation>) {
         let mut max = self.base_priority;
         for &did in &self.received_donations {
@@ -224,6 +233,7 @@ impl PriorityCeiling {
 
 /// Donation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopDonationStats {
     /// Active donations
     pub active: usize,
@@ -261,6 +271,7 @@ impl CoopDonationManager {
     }
 
     /// Register process
+    #[inline]
     pub fn register(&mut self, pid: u64, base: DonationPriority) {
         self.states
             .entry(pid)
@@ -268,6 +279,7 @@ impl CoopDonationManager {
     }
 
     /// Set priority ceiling for resource
+    #[inline]
     pub fn set_ceiling(&mut self, resource: u64, ceiling: DonationPriority) {
         self.ceilings
             .entry(resource)
@@ -327,6 +339,7 @@ impl CoopDonationManager {
     }
 
     /// Revoke donation
+    #[inline]
     pub fn revoke(&mut self, donation_id: u64) {
         if let Some(donation) = self.donations.get_mut(&donation_id) {
             donation.revoke();
@@ -340,6 +353,7 @@ impl CoopDonationManager {
     }
 
     /// Acquire resource (triggers ceiling protocol)
+    #[inline]
     pub fn acquire_resource(&mut self, pid: u64, resource: u64) {
         if let Some(state) = self.states.get_mut(&pid) {
             state.acquire_resource(resource);
@@ -371,6 +385,7 @@ impl CoopDonationManager {
     }
 
     /// Effective priority
+    #[inline(always)]
     pub fn effective_priority(&self, pid: u64) -> Option<DonationPriority> {
         self.states.get(&pid).map(|s| s.effective_priority)
     }
@@ -385,6 +400,7 @@ impl CoopDonationManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopDonationStats {
         &self.stats
     }

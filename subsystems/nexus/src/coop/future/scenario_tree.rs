@@ -8,6 +8,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -91,6 +92,7 @@ pub struct TreeComplexity {
 
 /// Rolling statistics for the scenario tree engine.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct ScenarioTreeStats {
     pub trees_built: u64,
     pub nash_paths_found: u64,
@@ -437,7 +439,7 @@ impl CoopScenarioTree {
             0
         };
 
-        let mut strat_set: BTreeMap<u64, bool> = BTreeMap::new();
+        let mut strat_set: LinearMap<bool, 64> = BTreeMap::new();
         for node in tree.nodes.values() {
             for s in &node.strategies {
                 strat_set.insert(s.strategy_id, true);
@@ -460,11 +462,13 @@ impl CoopScenarioTree {
     }
 
     /// Advance the internal tick counter.
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.current_tick = self.current_tick.wrapping_add(1);
     }
 
     /// Retrieve current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &ScenarioTreeStats {
         &self.stats
     }

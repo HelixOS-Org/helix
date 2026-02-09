@@ -12,6 +12,7 @@ pub struct Ipc(pub f64);
 
 impl Ipc {
     /// Calculate from instructions and cycles
+    #[inline]
     pub fn calculate(instructions: u64, cycles: u64) -> Self {
         if cycles == 0 {
             return Self(0.0);
@@ -20,11 +21,13 @@ impl Ipc {
     }
 
     /// Is good (>= 1.0 typically good for most workloads)
+    #[inline(always)]
     pub fn is_good(&self) -> bool {
         self.0 >= 1.0
     }
 
     /// Rating
+    #[inline]
     pub fn rating(&self) -> &'static str {
         if self.0 >= 2.0 {
             "Excellent"
@@ -40,10 +43,12 @@ impl Ipc {
 
 /// Cache miss rate
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct CacheMissRate(pub f64);
 
 impl CacheMissRate {
     /// Calculate from references and misses
+    #[inline]
     pub fn calculate(references: u64, misses: u64) -> Self {
         if references == 0 {
             return Self(0.0);
@@ -52,6 +57,7 @@ impl CacheMissRate {
     }
 
     /// Is good (<= 5% typically good)
+    #[inline(always)]
     pub fn is_good(&self) -> bool {
         self.0 <= 5.0
     }
@@ -63,6 +69,7 @@ pub struct BranchMissRate(pub f64);
 
 impl BranchMissRate {
     /// Calculate
+    #[inline]
     pub fn calculate(branches: u64, misses: u64) -> Self {
         if branches == 0 {
             return Self(0.0);
@@ -71,6 +78,7 @@ impl BranchMissRate {
     }
 
     /// Is good (<= 2% typically good)
+    #[inline(always)]
     pub fn is_good(&self) -> bool {
         self.0 <= 2.0
     }
@@ -82,6 +90,7 @@ impl BranchMissRate {
 
 /// Performance metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PerfMetrics {
     /// CPU cycles
     pub cycles: u64,
@@ -116,6 +125,7 @@ impl PerfMetrics {
     }
 
     /// Calculate derived metrics
+    #[inline]
     pub fn calculate_derived(&mut self) {
         if self.cycles > 0 {
             self.ipc = Some(self.instructions as f64 / self.cycles as f64);
@@ -129,6 +139,7 @@ impl PerfMetrics {
     }
 
     /// Instructions per second
+    #[inline]
     pub fn instructions_per_second(&self) -> f64 {
         if self.duration_ns == 0 {
             return 0.0;

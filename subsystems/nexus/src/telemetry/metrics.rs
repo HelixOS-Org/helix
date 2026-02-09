@@ -10,6 +10,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 // ============================================================================
 
 /// Atomic counter metric
+#[repr(align(64))]
 pub struct Counter {
     /// Name
     pub name: String,
@@ -30,27 +31,32 @@ impl Counter {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Increment by 1
+    #[inline(always)]
     pub fn inc(&self) {
         self.value.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Increment by amount
+    #[inline(always)]
     pub fn add(&self, amount: u64) {
         self.value.fetch_add(amount, Ordering::Relaxed);
     }
 
     /// Get value
+    #[inline(always)]
     pub fn get(&self) -> u64 {
         self.value.load(Ordering::Relaxed)
     }
 
     /// Reset to zero
+    #[inline(always)]
     pub fn reset(&self) {
         self.value.store(0, Ordering::Relaxed);
     }
@@ -81,18 +87,21 @@ impl Gauge {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Set value
+    #[inline(always)]
     pub fn set(&self, value: f64) {
         let bits = value.to_bits();
         self.value.store(bits, Ordering::Relaxed);
     }
 
     /// Get value
+    #[inline(always)]
     pub fn get(&self) -> f64 {
         let bits = self.value.load(Ordering::Relaxed);
         f64::from_bits(bits)
@@ -117,6 +126,7 @@ impl Gauge {
     }
 
     /// Decrement by amount
+    #[inline(always)]
     pub fn sub(&self, amount: f64) {
         self.add(-amount);
     }

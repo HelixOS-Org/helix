@@ -43,6 +43,7 @@ impl Default for EventCollectorConfig {
 
 impl EventCollectorConfig {
     /// Create small config (for testing)
+    #[inline]
     pub fn small() -> Self {
         Self {
             buffer_size: 1024,
@@ -54,6 +55,7 @@ impl EventCollectorConfig {
     }
 
     /// Create large config (for production)
+    #[inline]
     pub fn large() -> Self {
         Self {
             buffer_size: 262144,
@@ -160,11 +162,13 @@ impl EventCollector {
     }
 
     /// Get batch of events
+    #[inline(always)]
     pub fn get_batch(&mut self) -> Vec<RawEvent> {
         self.drain(self.config.batch_size)
     }
 
     /// Update rate calculation
+    #[inline]
     pub fn update_rate(&mut self, now: Timestamp) {
         let elapsed = now.elapsed_since(self.last_rate_time);
         if elapsed.as_millis() >= 1000 {
@@ -176,6 +180,7 @@ impl EventCollector {
     }
 
     /// Get current fill level (0.0 to 1.0)
+    #[inline]
     pub fn fill_level(&self) -> f32 {
         if self.config.buffer_size == 0 {
             0.0
@@ -185,16 +190,19 @@ impl EventCollector {
     }
 
     /// Is buffer full?
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.count >= self.config.buffer_size
     }
 
     /// Is buffer empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> CollectorStats {
         CollectorStats {
             total_received: self.total_received.load(Ordering::Relaxed),
@@ -206,6 +214,7 @@ impl EventCollector {
     }
 
     /// Reset statistics
+    #[inline]
     pub fn reset_stats(&self) {
         self.total_received.store(0, Ordering::Relaxed);
         self.total_dropped.store(0, Ordering::Relaxed);
@@ -213,6 +222,7 @@ impl EventCollector {
     }
 
     /// Clear buffer
+    #[inline]
     pub fn clear(&mut self) {
         self.buffer.clear();
         self.write_pos = 0;
@@ -233,6 +243,7 @@ impl Default for EventCollector {
 
 /// Collector statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CollectorStats {
     /// Total events received
     pub total_received: u64,
@@ -248,6 +259,7 @@ pub struct CollectorStats {
 
 impl CollectorStats {
     /// Get drop rate
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         if self.total_received == 0 {
             0.0
@@ -257,6 +269,7 @@ impl CollectorStats {
     }
 
     /// Get buffer utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.buffer_capacity == 0 {
             0.0

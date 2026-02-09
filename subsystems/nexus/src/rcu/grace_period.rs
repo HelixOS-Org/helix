@@ -45,11 +45,13 @@ impl GracePeriodInfo {
     }
 
     /// Get duration in nanoseconds
+    #[inline(always)]
     pub fn duration_ns(&self) -> Option<u64> {
         self.end_ns.map(|end| end.saturating_sub(self.start_ns))
     }
 
     /// Get completion percentage
+    #[inline]
     pub fn completion_pct(&self) -> f32 {
         let total = self.cpus_qs.len() + self.cpus_pending.len();
         if total == 0 {
@@ -59,6 +61,7 @@ impl GracePeriodInfo {
     }
 
     /// Check if completed
+    #[inline(always)]
     pub fn is_completed(&self) -> bool {
         self.end_ns.is_some()
     }
@@ -66,6 +69,7 @@ impl GracePeriodInfo {
 
 /// Grace period statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct GracePeriodStats {
     /// Total grace periods completed
     pub total_completed: u64,

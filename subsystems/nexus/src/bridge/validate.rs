@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -183,6 +184,7 @@ impl ArgRule {
         }
     }
 
+    #[inline(always)]
     pub fn with_optional(mut self) -> Self {
         self.optional = true;
         self
@@ -209,6 +211,7 @@ impl SyscallValidationSpec {
         }
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: ArgRule) {
         self.rules.push(rule);
     }
@@ -220,6 +223,7 @@ impl SyscallValidationSpec {
 
 /// Context for validation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ValidationContext {
     /// Process ID
     pub pid: u64,
@@ -351,7 +355,7 @@ impl ValidCache {
     ) {
         let entries = self.entries.entry(pid).or_insert_with(Vec::new);
         if entries.len() >= self.max_per_process {
-            entries.remove(0);
+            entries.pop_front();
         }
         entries.push(CachedValidation {
             syscall_nr,
@@ -369,6 +373,7 @@ impl ValidCache {
 
 /// Validation statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ValidationStats {
     /// Total validations
     pub total: u64,
@@ -385,6 +390,7 @@ pub struct ValidationStats {
 }
 
 /// Syscall validation engine
+#[repr(align(64))]
 pub struct ValidationEngine {
     /// Validation specs per syscall
     specs: BTreeMap<u32, SyscallValidationSpec>,
@@ -410,6 +416,7 @@ impl ValidationEngine {
     }
 
     /// Register validation spec
+    #[inline(always)]
     pub fn register_spec(&mut self, spec: SyscallValidationSpec) {
         self.specs.insert(spec.syscall_nr, spec);
     }
@@ -615,6 +622,7 @@ impl ValidationEngine {
     }
 
     /// Spec count
+    #[inline(always)]
     pub fn spec_count(&self) -> usize {
         self.specs.len()
     }

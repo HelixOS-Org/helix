@@ -48,6 +48,7 @@ pub enum DeferredState {
 
 /// Deferred syscall entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DeferredSyscall {
     /// Unique ID
     pub id: u64,
@@ -97,16 +98,19 @@ impl DeferredSyscall {
     }
 
     /// Is expired?
+    #[inline(always)]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         self.deadline_ns > 0 && now_ns > self.deadline_ns
     }
 
     /// Can retry?
+    #[inline(always)]
     pub fn can_retry(&self) -> bool {
         self.retries < self.max_retries
     }
 
     /// Time in queue (ns)
+    #[inline(always)]
     pub fn queue_time(&self, now_ns: u64) -> u64 {
         now_ns.saturating_sub(self.submit_ns)
     }
@@ -127,6 +131,7 @@ pub struct DeferredCompletion {
 
 /// Deferred queue stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeDeferredStats {
     pub queued: usize,
     pub executing: usize,
@@ -194,6 +199,7 @@ impl BridgeDeferredEngine {
     }
 
     /// Set deadline
+    #[inline]
     pub fn set_deadline(&mut self, id: u64, deadline_ns: u64) {
         if let Some(entry) = self.queue.iter_mut().find(|e| e.id == id) {
             entry.deadline_ns = deadline_ns;
@@ -201,6 +207,7 @@ impl BridgeDeferredEngine {
     }
 
     /// Set priority
+    #[inline]
     pub fn set_priority(&mut self, id: u64, priority: u32) {
         if let Some(entry) = self.queue.iter_mut().find(|e| e.id == id) {
             entry.priority = priority;
@@ -208,6 +215,7 @@ impl BridgeDeferredEngine {
     }
 
     /// Cancel a deferred syscall
+    #[inline]
     pub fn cancel(&mut self, id: u64) -> bool {
         if let Some(entry) = self.queue.iter_mut().find(|e| e.id == id && e.state == DeferredState::Queued) {
             entry.state = DeferredState::Cancelled;
@@ -250,6 +258,7 @@ impl BridgeDeferredEngine {
     }
 
     /// Record completion
+    #[inline]
     pub fn complete(&mut self, id: u64, pid: u64, result: i64, success: bool) {
         if success {
             self.total_completed += 1;
@@ -261,11 +270,13 @@ impl BridgeDeferredEngine {
     }
 
     /// Drain completions
+    #[inline(always)]
     pub fn drain_completions(&mut self) -> Vec<DeferredCompletion> {
         core::mem::take(&mut self.completions)
     }
 
     /// Clean up finished entries
+    #[inline(always)]
     pub fn cleanup(&mut self) {
         self.queue.retain(|e| matches!(e.state, DeferredState::Queued | DeferredState::Executing));
         self.update_stats();
@@ -284,6 +295,7 @@ impl BridgeDeferredEngine {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeDeferredStats {
         &self.stats
     }

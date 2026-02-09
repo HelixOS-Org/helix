@@ -8,6 +8,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::format;
 use alloc::vec;
 
@@ -170,6 +171,7 @@ impl Default for RetrievalConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RetrievalStats {
     /// Queries
     pub queries: u64,
@@ -275,7 +277,7 @@ impl RetrievalEngine {
     }
 
     fn retrieve_by_keywords(&self, keywords: &[String]) -> Vec<RetrievalResult> {
-        let mut scores: BTreeMap<u64, f64> = BTreeMap::new();
+        let mut scores: LinearMap<f64, 64> = BTreeMap::new();
 
         for keyword in keywords {
             if let Some(ids) = self.keyword_index.get(&keyword.to_lowercase()) {
@@ -361,7 +363,7 @@ impl RetrievalEngine {
     }
 
     fn spread_activation(&self, initial: &[RetrievalResult]) -> Vec<RetrievalResult> {
-        let mut activation: BTreeMap<u64, f64> = BTreeMap::new();
+        let mut activation: LinearMap<f64, 64> = BTreeMap::new();
 
         // Initialize with direct results
         for result in initial {
@@ -400,6 +402,7 @@ impl RetrievalEngine {
     }
 
     /// Create cue
+    #[inline]
     pub fn create_cue(&mut self, cue_type: CueType, content: CueContent) -> RetrievalCue {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
 
@@ -412,6 +415,7 @@ impl RetrievalEngine {
     }
 
     /// Add association
+    #[inline]
     pub fn associate(&mut self, from: u64, to: u64, strength: f64) {
         self.associations
             .entry(from)
@@ -420,6 +424,7 @@ impl RetrievalEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &RetrievalStats {
         &self.stats
     }
@@ -451,6 +456,7 @@ impl QueryBuilder {
     }
 
     /// Add text cue
+    #[inline]
     pub fn text(mut self, text: &str) -> Self {
         self.cues.push(RetrievalCue {
             id: self.next_id,
@@ -463,6 +469,7 @@ impl QueryBuilder {
     }
 
     /// Add keyword cue
+    #[inline]
     pub fn keywords(mut self, keywords: Vec<String>) -> Self {
         self.cues.push(RetrievalCue {
             id: self.next_id,
@@ -475,6 +482,7 @@ impl QueryBuilder {
     }
 
     /// Add time range cue
+    #[inline]
     pub fn time_range(mut self, start: Timestamp, end: Timestamp) -> Self {
         self.cues.push(RetrievalCue {
             id: self.next_id,
@@ -487,6 +495,7 @@ impl QueryBuilder {
     }
 
     /// Add association cue
+    #[inline]
     pub fn associated_with(mut self, memory_id: u64) -> Self {
         self.cues.push(RetrievalCue {
             id: self.next_id,
@@ -499,6 +508,7 @@ impl QueryBuilder {
     }
 
     /// Build cues
+    #[inline(always)]
     pub fn build(self) -> Vec<RetrievalCue> {
         self.cues
     }

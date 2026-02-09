@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -69,6 +70,7 @@ impl DevNumber {
         Self { major, minor }
     }
 
+    #[inline(always)]
     pub fn combined(&self) -> u64 {
         ((self.major as u64) << 20) | (self.minor as u64)
     }
@@ -84,6 +86,7 @@ pub struct DevResource {
 }
 
 impl DevResource {
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool {
         addr >= self.base && addr < self.base + self.size
     }
@@ -130,18 +133,22 @@ impl DevDescriptor {
         }
     }
 
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.power_state == DevPowerState::D0
     }
 
+    #[inline(always)]
     pub fn total_io_ops(&self) -> u64 {
         self.io_reads.saturating_add(self.io_writes)
     }
 
+    #[inline(always)]
     pub fn total_io_bytes(&self) -> u64 {
         self.io_bytes_read.saturating_add(self.io_bytes_written)
     }
 
+    #[inline]
     pub fn read_write_ratio(&self) -> f64 {
         if self.io_writes == 0 {
             return if self.io_reads > 0 { f64::MAX } else { 0.0 };
@@ -163,6 +170,7 @@ impl DevPermission {
         Self { uid, gid, mode }
     }
 
+    #[inline]
     pub fn can_read(&self, uid: u32, gid: u32) -> bool {
         if uid == 0 { return true; }
         if uid == self.uid { return (self.mode & 0o400) != 0; }
@@ -170,6 +178,7 @@ impl DevPermission {
         (self.mode & 0o004) != 0
     }
 
+    #[inline]
     pub fn can_write(&self, uid: u32, gid: u32) -> bool {
         if uid == 0 { return true; }
         if uid == self.uid { return (self.mode & 0o200) != 0; }
@@ -212,6 +221,7 @@ pub struct IoRequest {
 
 /// Device proxy stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DevProxyStats {
     pub devices_registered: u64,
     pub hotplug_events: u64,
@@ -222,11 +232,12 @@ pub struct DevProxyStats {
 }
 
 /// Main bridge device proxy
+#[repr(align(64))]
 pub struct BridgeDevProxy {
     devices: BTreeMap<u64, DevDescriptor>,
     permissions: BTreeMap<u64, DevPermission>,
-    hotplug_log: Vec<HotplugEvent>,
-    io_log: Vec<IoRequest>,
+    hotplug_log: VecDeque<HotplugEvent>,
+    io_log: VecDeque<IoRequest>,
     max_io_log: usize,
     max_hotplug_log: usize,
     stats: DevProxyStats,
@@ -237,8 +248,8 @@ impl BridgeDevProxy {
         Self {
             devices: BTreeMap::new(),
             permissions: BTreeMap::new(),
-            hotplug_log: Vec::new(),
-            io_log: Vec::new(),
+            hotplug_log: VecDeque::new(),
+            io_log: VecDeque::new(),
             max_io_log: 4096,
             max_hotplug_log: 1024,
             stats: DevProxyStats {
@@ -252,6 +263,7 @@ impl BridgeDevProxy {
         }
     }
 
+    #[inline]
     pub fn register_device(
         &mut self,
         dev_num: DevNumber,
@@ -267,6 +279,7 @@ impl BridgeDevProxy {
         id
     }
 
+    #[inline]
     pub fn unregister_device(&mut self, dev_id: u64) -> bool {
         if let Some(dev) = self.devices.remove(&dev_id) {
             self.permissions.remove(&dev_id);
@@ -284,13 +297,14 @@ impl BridgeDevProxy {
             timestamp_ns: 0,
             subsystem,
         };
-        self.hotplug_log.push(event);
+        self.hotplug_log.push_back(event);
         if self.hotplug_log.len() > self.max_hotplug_log {
-            self.hotplug_log.remove(0);
+            self.hotplug_log.pop_front();
         }
         self.stats.hotplug_events += 1;
     }
 
+    #[inline]
     pub fn set_permission(&mut self, dev_id: u64, perm: DevPermission) -> bool {
         if self.devices.contains_key(&dev_id) {
             self.permissions.insert(dev_id, perm);
@@ -318,6 +332,7 @@ impl BridgeDevProxy {
         }
     }
 
+    #[inline]
     pub fn close_device(&mut self, dev_id: u64) -> bool {
         if let Some(dev) = self.devices.get_mut(&dev_id) {
             if dev.open_count > 0 {
@@ -359,9 +374,9 @@ impl BridgeDevProxy {
                 timestamp_ns: 0,
                 duration_ns,
             };
-            self.io_log.push(req);
+            self.io_log.push_back(req);
             if self.io_log.len() > self.max_io_log {
-                self.io_log.remove(0);
+                self.io_log.pop_front();
             }
             self.stats.io_requests += 1;
             true
@@ -383,6 +398,7 @@ impl BridgeDevProxy {
         }
     }
 
+    #[inline]
     pub fn add_resource(&mut self, dev_id: u64, resource: DevResource) -> bool {
         if let Some(dev) = self.devices.get_mut(&dev_id) {
             dev.resources.push(resource);
@@ -392,6 +408,7 @@ impl BridgeDevProxy {
         }
     }
 
+    #[inline]
     pub fn find_device_by_resource(&self, addr: u64) -> Option<u64> {
         for (id, dev) in &self.devices {
             if dev.resources.iter().any(|r| r.contains(addr)) {
@@ -401,6 +418,7 @@ impl BridgeDevProxy {
         None
     }
 
+    #[inline]
     pub fn devices_by_class(&self, class: DevClass) -> Vec<u64> {
         self.devices
             .iter()
@@ -409,6 +427,7 @@ impl BridgeDevProxy {
             .collect()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &DevProxyStats {
         &self.stats
     }

@@ -3,6 +3,7 @@
 //! Detects abnormal process behavior.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -60,7 +61,7 @@ pub struct ProcessAnomalyDetector {
     /// Baseline CPU per process type
     type_baselines: BTreeMap<ProcessType, TypeBaseline>,
     /// Detected anomalies
-    anomalies: Vec<ProcessAnomaly>,
+    anomalies: VecDeque<ProcessAnomaly>,
     /// Max anomalies
     max_anomalies: usize,
 }
@@ -93,7 +94,7 @@ impl ProcessAnomalyDetector {
 
         Self {
             type_baselines: baselines,
-            anomalies: Vec::new(),
+            anomalies: VecDeque::new(),
             max_anomalies: 1000,
         }
     }
@@ -174,15 +175,16 @@ impl ProcessAnomalyDetector {
             description,
         };
 
-        self.anomalies.push(anomaly.clone());
+        self.anomalies.push_back(anomaly.clone());
         if self.anomalies.len() > self.max_anomalies {
-            self.anomalies.remove(0);
+            self.anomalies.pop_front();
         }
 
         anomaly
     }
 
     /// Get recent anomalies
+    #[inline(always)]
     pub fn recent_anomalies(&self, n: usize) -> &[ProcessAnomaly] {
         let start = self.anomalies.len().saturating_sub(n);
         &self.anomalies[start..]

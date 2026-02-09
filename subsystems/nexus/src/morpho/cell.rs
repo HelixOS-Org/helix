@@ -34,6 +34,7 @@ pub enum CellType {
 
 /// Cell internal state
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CellState {
     /// Activity level (0-1)
     pub activity: f64,
@@ -179,11 +180,13 @@ impl Cell {
     }
 
     /// Check if cell should die (apoptosis)
+    #[inline(always)]
     pub fn should_die(&self) -> bool {
         self.state.health < 0.1 || (self.age > 10000 && self.state.activity < 0.1)
     }
 
     /// Check if cell can divide
+    #[inline(always)]
     pub fn can_divide(&self) -> bool {
         self.state.energy > 0.8 && self.state.health > 0.8 && self.cell_type == CellType::Stem
     }
@@ -191,6 +194,7 @@ impl Cell {
 
 /// Tissue state
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TissueState {
     /// Overall health
     pub health: f64,
@@ -232,6 +236,7 @@ impl Tissue {
     }
 
     /// Add cell to tissue
+    #[inline]
     pub fn add_cell(&mut self, cell: Cell) {
         if cell.cell_type == self.tissue_type || cell.cell_type == CellType::Stem {
             self.cells.push(cell);
@@ -284,6 +289,7 @@ impl Tissue {
     }
 
     /// Get tissue size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.cells.len()
     }

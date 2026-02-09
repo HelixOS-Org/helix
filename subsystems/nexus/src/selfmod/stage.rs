@@ -178,6 +178,7 @@ pub struct StagedDeployment {
 
 /// Deployment metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DeploymentMetrics {
     /// Success count
     pub success_count: u64,
@@ -355,6 +356,7 @@ impl StagedDeployment {
     }
 
     /// Start deployment
+    #[inline]
     pub fn start(&mut self) {
         self.status = StageStatus::InProgress;
         self.start_time = 0; // Would use actual timestamp
@@ -417,18 +419,21 @@ impl StagedDeployment {
     }
 
     /// Record metrics
+    #[inline(always)]
     pub fn record_success(&mut self) {
         self.metrics.success_count += 1;
         self.metrics.total_requests += 1;
     }
 
     /// Record error
+    #[inline(always)]
     pub fn record_error(&mut self) {
         self.metrics.error_count += 1;
         self.metrics.total_requests += 1;
     }
 
     /// Trigger rollback
+    #[inline]
     pub fn rollback(&mut self) {
         self.status = StageStatus::RolledBack;
         self.metrics.rollback_count += 1;
@@ -442,6 +447,7 @@ impl StagedDeployment {
     }
 
     /// Get current stage
+    #[inline(always)]
     pub fn current_stage(&self) -> Option<&DeploymentStage> {
         self.stages.get(self.current_stage)
     }
@@ -528,6 +534,7 @@ impl Default for DeploymentConfig {
 
 /// Deployment statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DeploymentStats {
     /// Total deployments
     pub total: u64,
@@ -591,6 +598,7 @@ impl DeploymentManager {
     }
 
     /// Complete deployment
+    #[inline]
     pub fn complete(&mut self, modification_id: ModificationId) {
         if let Some(deployment) = self.active.remove(&modification_id) {
             if deployment.status == StageStatus::Completed {
@@ -603,16 +611,19 @@ impl DeploymentManager {
     }
 
     /// Get deployment
+    #[inline(always)]
     pub fn get(&self, id: ModificationId) -> Option<&StagedDeployment> {
         self.active.get(&id)
     }
 
     /// Get mutable deployment
+    #[inline(always)]
     pub fn get_mut(&mut self, id: ModificationId) -> Option<&mut StagedDeployment> {
         self.active.get_mut(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &DeploymentStats {
         &self.stats
     }

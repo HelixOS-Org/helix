@@ -125,6 +125,7 @@ pub struct RuleField {
 
 impl RuleField {
     /// Create numeric field
+    #[inline]
     pub fn numeric(field_type: FieldType, op: FieldOp, value: u64) -> Self {
         Self {
             field_type,
@@ -135,6 +136,7 @@ impl RuleField {
     }
 
     /// Create string field
+    #[inline]
     pub fn string(field_type: FieldType, op: FieldOp, str_value: String) -> Self {
         Self {
             field_type,
@@ -215,11 +217,13 @@ impl AuditRule {
     }
 
     /// Add field
+    #[inline(always)]
     pub fn add_field(&mut self, field: RuleField) {
         self.fields.push(field);
     }
 
     /// Set key
+    #[inline(always)]
     pub fn with_key(mut self, key: String) -> Self {
         self.key = Some(key);
         self
@@ -243,16 +247,19 @@ impl AuditRule {
     }
 
     /// Get hit count
+    #[inline(always)]
     pub fn hit_count(&self) -> u64 {
         self.hits.load(Ordering::Relaxed)
     }
 
     /// Enable rule
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.enabled = true;
     }
 
     /// Disable rule
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.enabled = false;
     }

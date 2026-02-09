@@ -66,27 +66,32 @@ impl FederatedModel {
     }
 
     /// Number of parameters
+    #[inline(always)]
     pub fn num_parameters(&self) -> usize {
         self.parameters.len()
     }
 
     /// Clone parameters
+    #[inline(always)]
     pub fn get_parameters(&self) -> Vec<f64> {
         self.parameters.clone()
     }
 
     /// Set parameters
+    #[inline(always)]
     pub fn set_parameters(&mut self, parameters: Vec<f64>) {
         self.parameters = parameters;
         self.version += 1;
     }
 
     /// Compute model norm
+    #[inline(always)]
     pub fn norm(&self) -> f64 {
         libm::sqrt(self.parameters.iter().map(|x| x * x).sum())
     }
 
     /// Distance to another model
+    #[inline]
     pub fn distance(&self, other: &FederatedModel) -> f64 {
         let sum_sq: f64 = self
             .parameters

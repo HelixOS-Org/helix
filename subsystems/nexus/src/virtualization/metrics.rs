@@ -2,12 +2,14 @@
 //!
 //! Resource usage metrics and time series.
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
 
 /// Resource usage metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct VirtMetrics {
     /// CPU usage (0.0 - 100.0 per vcpu)
     pub cpu_usage: f64,
@@ -33,6 +35,7 @@ pub struct VirtMetrics {
 
 impl VirtMetrics {
     /// Memory usage ratio
+    #[inline]
     pub fn memory_ratio(&self) -> f64 {
         if self.memory_available == 0 {
             0.0
@@ -42,11 +45,13 @@ impl VirtMetrics {
     }
 
     /// Is memory constrained?
+    #[inline(always)]
     pub fn is_memory_constrained(&self) -> bool {
         self.memory_ratio() > 0.9
     }
 
     /// Is CPU constrained?
+    #[inline(always)]
     pub fn is_cpu_constrained(&self) -> bool {
         self.cpu_usage > 90.0
     }
@@ -54,13 +59,14 @@ impl VirtMetrics {
 
 /// Time-series metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricsSeries {
     /// Timestamps
-    timestamps: Vec<u64>,
+    timestamps: VecDeque<u64>,
     /// CPU values
-    cpu: Vec<f64>,
+    cpu: VecDeque<f64>,
     /// Memory values
-    memory: Vec<f64>,
+    memory: VecDeque<f64>,
     /// Max samples
     max_samples: usize,
 }
@@ -81,17 +87,18 @@ impl MetricsSeries {
         let timestamp = NexusTimestamp::now().raw();
 
         if self.timestamps.len() >= self.max_samples {
-            self.timestamps.remove(0);
-            self.cpu.remove(0);
-            self.memory.remove(0);
+            self.timestamps.pop_front();
+            self.cpu.pop_front();
+            self.memory.pop_front();
         }
 
-        self.timestamps.push(timestamp);
-        self.cpu.push(metrics.cpu_usage);
-        self.memory.push(metrics.memory_ratio() * 100.0);
+        self.timestamps.push_back(timestamp);
+        self.cpu.push_back(metrics.cpu_usage);
+        self.memory.push_back(metrics.memory_ratio() * 100.0);
     }
 
     /// Get average CPU
+    #[inline]
     pub fn avg_cpu(&self) -> f64 {
         if self.cpu.is_empty() {
             0.0
@@ -101,6 +108,7 @@ impl MetricsSeries {
     }
 
     /// Get average memory
+    #[inline]
     pub fn avg_memory(&self) -> f64 {
         if self.memory.is_empty() {
             0.0
@@ -110,11 +118,13 @@ impl MetricsSeries {
     }
 
     /// Get CPU trend
+    #[inline(always)]
     pub fn cpu_trend(&self) -> f64 {
         self.calculate_trend(&self.cpu)
     }
 
     /// Get memory trend
+    #[inline(always)]
     pub fn memory_trend(&self) -> f64 {
         self.calculate_trend(&self.memory)
     }

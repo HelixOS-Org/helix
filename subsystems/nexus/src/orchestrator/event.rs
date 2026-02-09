@@ -82,18 +82,21 @@ impl OrchestratorEvent {
     }
 
     /// Set source
+    #[inline(always)]
     pub fn with_source(mut self, source: SubsystemId) -> Self {
         self.source = Some(source);
         self
     }
 
     /// Set decision
+    #[inline(always)]
     pub fn with_decision(mut self, decision: DecisionId) -> Self {
         self.decision = Some(decision);
         self
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, description: String) -> Self {
         self.description = description;
         self

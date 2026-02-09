@@ -24,6 +24,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec;
@@ -81,11 +82,13 @@ impl CausalNode {
     }
 
     /// Add an observation
+    #[inline(always)]
     pub fn add_observation(&mut self, value: f64) {
         self.values.push(value);
     }
 
     /// Get mean value
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.values.is_empty() {
             return 0.0;
@@ -94,6 +97,7 @@ impl CausalNode {
     }
 
     /// Get variance
+    #[inline]
     pub fn variance(&self) -> f64 {
         if self.values.len() < 2 {
             return 0.0;
@@ -134,6 +138,7 @@ pub enum CausalEdgeType {
 
 impl CausalEdge {
     /// Create a new direct causal edge
+    #[inline]
     pub fn direct(from: u32, to: u32) -> Self {
         Self {
             from,
@@ -145,6 +150,7 @@ impl CausalEdge {
     }
 
     /// Create a bidirectional edge (unobserved confounder)
+    #[inline]
     pub fn bidirectional(from: u32, to: u32) -> Self {
         Self {
             from,
@@ -156,6 +162,7 @@ impl CausalEdge {
     }
 
     /// Set causal effect
+    #[inline(always)]
     pub fn with_effect(mut self, effect: f64) -> Self {
         self.effect = Some(effect);
         self
@@ -187,6 +194,7 @@ impl CausalGraph {
     }
 
     /// Add a node
+    #[inline]
     pub fn add_node(&mut self, name: String, node_type: CausalNodeType) -> u32 {
         let id = self.next_id;
         self.next_id += 1;
@@ -195,17 +203,20 @@ impl CausalGraph {
     }
 
     /// Add a direct causal edge
+    #[inline(always)]
     pub fn add_edge(&mut self, from: u32, to: u32) {
         self.edges.push(CausalEdge::direct(from, to));
     }
 
     /// Add a bidirectional edge (unobserved confounder)
+    #[inline(always)]
     pub fn add_confounder(&mut self, node1: u32, node2: u32) {
         self.bidirectional.push((node1, node2));
         self.edges.push(CausalEdge::bidirectional(node1, node2));
     }
 
     /// Get parents of a node
+    #[inline]
     pub fn parents(&self, node: u32) -> Vec<u32> {
         self.edges
             .iter()
@@ -215,6 +226,7 @@ impl CausalGraph {
     }
 
     /// Get children of a node
+    #[inline]
     pub fn children(&self, node: u32) -> Vec<u32> {
         self.edges
             .iter()
@@ -252,11 +264,13 @@ impl CausalGraph {
     }
 
     /// Check if there's a path from source to target
+    #[inline(always)]
     pub fn has_path(&self, from: u32, to: u32) -> bool {
         self.descendants(from).contains(&to)
     }
 
     /// Get all nodes on paths between two nodes
+    #[inline]
     pub fn nodes_between(&self, from: u32, to: u32) -> BTreeSet<u32> {
         let from_descendants = self.descendants(from);
         let to_ancestors = self.ancestors(to);
@@ -269,7 +283,7 @@ impl CausalGraph {
 
     /// Topological sort
     pub fn topological_sort(&self) -> Vec<u32> {
-        let mut in_degree: BTreeMap<u32, usize> = BTreeMap::new();
+        let mut in_degree: ArrayMap<usize, 32> = BTreeMap::new();
 
         for &id in self.nodes.keys() {
             in_degree.insert(id, 0);
@@ -306,6 +320,7 @@ impl CausalGraph {
     }
 
     /// Check if graph is acyclic
+    #[inline(always)]
     pub fn is_acyclic(&self) -> bool {
         self.topological_sort().len() == self.nodes.len()
     }
@@ -349,6 +364,7 @@ impl StructuralEquation {
     }
 
     /// Evaluate the equation
+    #[inline]
     pub fn evaluate(&self, parent_values: &BTreeMap<u32, f64>, noise: f64) -> f64 {
         let mut result = self.intercept;
 
@@ -362,6 +378,7 @@ impl StructuralEquation {
     }
 
     /// Compute partial derivative with respect to a parent
+    #[inline]
     pub fn partial_derivative(&self, parent: u32) -> f64 {
         self.parents
             .iter()
@@ -379,9 +396,9 @@ pub struct StructuralCausalModel {
     /// Structural equations for each node
     pub equations: BTreeMap<u32, StructuralEquation>,
     /// Current variable values
-    pub values: BTreeMap<u32, f64>,
+    pub values: ArrayMap<f64, 32>,
     /// Intervention targets
-    pub interventions: BTreeMap<u32, f64>,
+    pub interventions: ArrayMap<f64, 32>,
 }
 
 impl StructuralCausalModel {
@@ -390,22 +407,25 @@ impl StructuralCausalModel {
         Self {
             graph,
             equations: BTreeMap::new(),
-            values: BTreeMap::new(),
-            interventions: BTreeMap::new(),
+            values: ArrayMap::new(0.0),
+            interventions: ArrayMap::new(0.0),
         }
     }
 
     /// Add a structural equation
+    #[inline(always)]
     pub fn add_equation(&mut self, equation: StructuralEquation) {
         self.equations.insert(equation.target, equation);
     }
 
     /// Set an intervention do(X = x)
+    #[inline(always)]
     pub fn do_intervention(&mut self, node: u32, value: f64) {
         self.interventions.insert(node, value);
     }
 
     /// Clear all interventions
+    #[inline(always)]
     pub fn clear_interventions(&mut self) {
         self.interventions.clear();
     }
@@ -416,7 +436,7 @@ impl StructuralCausalModel {
         self.values.clear();
 
         for node in order {
-            if let Some(&intervention_value) = self.interventions.get(&node) {
+            if let Some(&intervention_value) = self.interventions.try_get(node as usize) {
                 // Intervention: ignore parents
                 self.values.insert(node, intervention_value);
             } else if let Some(equation) = self.equations.get(&node) {
@@ -495,11 +515,12 @@ impl StructuralCausalModel {
 
 /// A counterfactual query
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualQuery {
     /// Observed evidence
-    pub evidence: BTreeMap<u32, f64>,
+    pub evidence: ArrayMap<f64, 32>,
     /// Hypothetical intervention
-    pub intervention: BTreeMap<u32, f64>,
+    pub intervention: ArrayMap<f64, 32>,
     /// Target variable(s)
     pub targets: Vec<u32>,
 }
@@ -508,25 +529,28 @@ impl CounterfactualQuery {
     /// Create a new counterfactual query
     pub fn new() -> Self {
         Self {
-            evidence: BTreeMap::new(),
-            intervention: BTreeMap::new(),
+            evidence: ArrayMap::new(0.0),
+            intervention: ArrayMap::new(0.0),
             targets: Vec::new(),
         }
     }
 
     /// Add observed evidence
+    #[inline(always)]
     pub fn given(mut self, node: u32, value: f64) -> Self {
         self.evidence.insert(node, value);
         self
     }
 
     /// Add hypothetical intervention
+    #[inline(always)]
     pub fn had_been(mut self, node: u32, value: f64) -> Self {
         self.intervention.insert(node, value);
         self
     }
 
     /// Set target
+    #[inline(always)]
     pub fn query(mut self, node: u32) -> Self {
         self.targets.push(node);
         self
@@ -540,11 +564,12 @@ impl Default for CounterfactualQuery {
 }
 
 /// Counterfactual reasoning engine
+#[repr(align(64))]
 pub struct CounterfactualEngine {
     /// Underlying SCM
     pub scm: StructuralCausalModel,
     /// Abduced noise values
-    abduced_noise: BTreeMap<u32, f64>,
+    abduced_noise: ArrayMap<f64, 32>,
 }
 
 impl CounterfactualEngine {
@@ -552,7 +577,7 @@ impl CounterfactualEngine {
     pub fn new(scm: StructuralCausalModel) -> Self {
         Self {
             scm,
-            abduced_noise: BTreeMap::new(),
+            abduced_noise: ArrayMap::new(0.0),
         }
     }
 
@@ -677,6 +702,7 @@ impl CounterfactualEngine {
     }
 
     /// Compute probability of sufficiency: P(Y=1 | do(X=1), X=0, Y=0)
+    #[inline]
     pub fn probability_of_sufficiency(
         &mut self,
         treatment: u32,
@@ -752,6 +778,7 @@ impl CausalDiscovery {
     }
 
     /// Add variable data
+    #[inline(always)]
     pub fn add_variable(&mut self, id: u32, name: String, observations: Vec<f64>) {
         self.names.insert(id, name);
         self.data.insert(id, observations);
@@ -1062,11 +1089,13 @@ impl CausalEstimator {
     }
 
     /// Set adjustment variables
+    #[inline(always)]
     pub fn adjust_for(&mut self, variables: Vec<u32>) {
         self.adjustment_set = variables;
     }
 
     /// Add data
+    #[inline(always)]
     pub fn add_data(&mut self, variable: u32, observations: Vec<f64>) {
         self.data.insert(variable, observations);
     }
@@ -1221,6 +1250,7 @@ impl CausalChain {
     }
 
     /// Add an event
+    #[inline]
     pub fn add_event(&mut self, timestamp: u64, event: KernelCausalEvent, value: f64) -> usize {
         let idx = self.events.len();
         self.events.push((timestamp, event, value));
@@ -1228,6 +1258,7 @@ impl CausalChain {
     }
 
     /// Add a causal link
+    #[inline(always)]
     pub fn add_link(&mut self, from: usize, to: usize, strength: f64) {
         self.links.push((from, to, strength));
     }
@@ -1344,6 +1375,7 @@ impl KernelCausalManager {
     }
 
     /// Record an event
+    #[inline]
     pub fn record_event(&mut self, event: KernelCausalEvent, value: f64, timestamp: u64) {
         if let Some(&node_id) = self.event_nodes.get(&event) {
             self.event_history.push((timestamp, node_id, value));
@@ -1355,6 +1387,7 @@ impl KernelCausalManager {
     }
 
     /// Build SCM from graph
+    #[inline(always)]
     pub fn build_scm(&mut self) {
         let scm = StructuralCausalModel::new(self.graph.clone());
         self.scm = Some(scm);
@@ -1383,7 +1416,7 @@ impl KernelCausalManager {
         let mut chain = CausalChain::new();
 
         // Add events to chain
-        let mut node_to_idx: BTreeMap<u32, usize> = BTreeMap::new();
+        let mut node_to_idx: ArrayMap<usize, 32> = BTreeMap::new();
 
         for (ts, node_id, value) in &recent {
             let event_type = self

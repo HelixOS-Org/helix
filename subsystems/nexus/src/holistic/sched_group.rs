@@ -35,19 +35,23 @@ pub struct BandwidthParams {
 }
 
 impl BandwidthParams {
+    #[inline(always)]
     pub fn unlimited() -> Self {
         Self { quota_us: -1, period_us: 100_000, burst_us: 0 }
     }
 
+    #[inline(always)]
     pub fn limited(quota_us: u64, period_us: u64) -> Self {
         Self { quota_us: quota_us as i64, period_us, burst_us: 0 }
     }
 
+    #[inline(always)]
     pub fn is_unlimited(&self) -> bool {
         self.quota_us < 0
     }
 
     /// Max utilization this bandwidth allows
+    #[inline]
     pub fn max_utilization(&self) -> f64 {
         if self.quota_us < 0 { return f64::MAX; }
         if self.period_us == 0 { return 0.0; }
@@ -156,6 +160,7 @@ impl SchedGroup {
         }
     }
 
+    #[inline]
     pub fn with_bandwidth(mut self, bw: BandwidthParams) -> Self {
         self.runtime = BandwidthRuntime::new(bw.quota_us);
         self.bandwidth = bw;
@@ -163,10 +168,12 @@ impl SchedGroup {
         self
     }
 
+    #[inline(always)]
     pub fn is_throttled(&self) -> bool {
         self.runtime.throttled
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.runtime.periods_elapsed == 0 { return 0.0; }
         let period_total = self.runtime.periods_elapsed as f64 * self.bandwidth.period_us as f64;
@@ -177,6 +184,7 @@ impl SchedGroup {
 
 /// Group hierarchy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticSchedGroupStats {
     pub total_groups: usize,
     pub root_groups: usize,
@@ -204,6 +212,7 @@ impl HolisticSchedGroup {
     }
 
     /// Create a root group
+    #[inline]
     pub fn create_root(&mut self, group_id: u64, weight: u32) {
         let group = SchedGroup::new(group_id, weight);
         self.groups.insert(group_id, group);
@@ -227,6 +236,7 @@ impl HolisticSchedGroup {
     }
 
     /// Set bandwidth for a group
+    #[inline]
     pub fn set_bandwidth(&mut self, group_id: u64, bw: BandwidthParams) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.runtime = BandwidthRuntime::new(bw.quota_us);
@@ -236,6 +246,7 @@ impl HolisticSchedGroup {
     }
 
     /// Set weight
+    #[inline]
     pub fn set_weight(&mut self, group_id: u64, weight: u32) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.weight = weight;
@@ -263,6 +274,7 @@ impl HolisticSchedGroup {
     }
 
     /// Period tick — refill all groups
+    #[inline]
     pub fn period_tick(&mut self) {
         let ids: Vec<u64> = self.groups.keys().copied().collect();
         for id in ids {
@@ -275,6 +287,7 @@ impl HolisticSchedGroup {
     }
 
     /// Update task count
+    #[inline]
     pub fn set_tasks(&mut self, group_id: u64, nr_tasks: u32, nr_running: u32) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.nr_tasks = nr_tasks;
@@ -351,10 +364,12 @@ impl HolisticSchedGroup {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticSchedGroupStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn group(&self, group_id: u64) -> Option<&SchedGroup> {
         self.groups.get(&group_id)
     }

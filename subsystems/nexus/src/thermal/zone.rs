@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicI32, AtomicU64, Ordering};
 
@@ -62,6 +63,7 @@ impl ThermalZoneType {
     }
 
     /// Is CPU related
+    #[inline(always)]
     pub fn is_cpu(&self) -> bool {
         matches!(self, Self::X86Pkg | Self::CoreTemp | Self::Soc)
     }
@@ -78,6 +80,7 @@ pub enum ThermalZoneMode {
 
 impl ThermalZoneMode {
     /// Get mode name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Enabled => "enabled",
@@ -101,6 +104,7 @@ pub enum TripPointType {
 
 impl TripPointType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Active => "active",
@@ -111,6 +115,7 @@ impl TripPointType {
     }
 
     /// Priority (higher is more severe)
+    #[inline]
     pub fn severity(&self) -> u8 {
         match self {
             Self::Active => 1,
@@ -149,11 +154,13 @@ impl TripPoint {
     }
 
     /// Is triggered
+    #[inline(always)]
     pub fn is_triggered(&self, current: Temperature) -> bool {
         current.0 >= self.temperature.0
     }
 
     /// Is cleared (with hysteresis)
+    #[inline(always)]
     pub fn is_cleared(&self, current: Temperature) -> bool {
         current.0 < (self.temperature.0 - self.hysteresis.0)
     }
@@ -176,6 +183,7 @@ pub enum ThermalGovernor {
 
 impl ThermalGovernor {
     /// Get governor name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::StepWise => "step_wise",
@@ -209,7 +217,7 @@ pub struct ThermalZone {
     /// Governor
     pub governor: ThermalGovernor,
     /// Temperature history
-    temp_history: Vec<Temperature>,
+    temp_history: VecDeque<Temperature>,
     /// Max history size
     max_history: usize,
     /// Peak temperature
@@ -231,7 +239,7 @@ impl ThermalZone {
             cooling_devices: Vec::new(),
             polling_interval_ms: 1000,
             governor: ThermalGovernor::StepWise,
-            temp_history: Vec::new(),
+            temp_history: VecDeque::new(),
             max_history: 100,
             peak_temp: AtomicI32::new(0),
             sample_count: AtomicU64::new(0),
@@ -239,6 +247,7 @@ impl ThermalZone {
     }
 
     /// Get current temperature
+    #[inline(always)]
     pub fn temperature(&self) -> Temperature {
         Temperature(self.temperature.load(Ordering::Relaxed))
     }
@@ -256,23 +265,26 @@ impl ThermalZone {
 
         // Add to history
         if self.temp_history.len() >= self.max_history {
-            self.temp_history.remove(0);
+            self.temp_history.pop_front();
         }
-        self.temp_history.push(temp);
+        self.temp_history.push_back(temp);
     }
 
     /// Get peak temperature
+    #[inline(always)]
     pub fn peak_temperature(&self) -> Temperature {
         Temperature(self.peak_temp.load(Ordering::Relaxed))
     }
 
     /// Add trip point
+    #[inline(always)]
     pub fn add_trip_point(&mut self, trip: TripPoint) {
         self.trip_points.push(trip);
         self.trip_points.sort_by_key(|t| t.temperature.0);
     }
 
     /// Get critical temperature
+    #[inline]
     pub fn critical_temperature(&self) -> Option<Temperature> {
         self.trip_points
             .iter()
@@ -281,6 +293,7 @@ impl ThermalZone {
     }
 
     /// Get triggered trip points
+    #[inline]
     pub fn triggered_trips(&self) -> Vec<&TripPoint> {
         let current = self.temperature();
         self.trip_points
@@ -290,6 +303,7 @@ impl ThermalZone {
     }
 
     /// Average temperature
+    #[inline]
     pub fn average_temperature(&self) -> Temperature {
         if self.temp_history.is_empty() {
             return self.temperature();

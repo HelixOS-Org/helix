@@ -45,6 +45,7 @@ impl Architecture {
     }
 
     /// Get architecture name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::X86_64 => "x86_64",
@@ -55,6 +56,7 @@ impl Architecture {
     }
 
     /// Get cache line size
+    #[inline]
     pub fn cache_line_size(&self) -> usize {
         match self {
             Self::X86_64 => 64,
@@ -65,6 +67,7 @@ impl Architecture {
     }
 
     /// Get typical page size
+    #[inline(always)]
     pub fn page_size(&self) -> usize {
         4096 // 4KB on most architectures
     }
@@ -141,6 +144,7 @@ impl CpuFeatures {
     }
 
     /// Has vector extensions?
+    #[inline(always)]
     pub fn has_vectors(&self) -> bool {
         self.avx || self.avx2 || self.avx512 || self.neon || self.sve || self.rvv
     }

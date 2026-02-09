@@ -99,12 +99,14 @@ impl PowerIntelligence {
     }
 
     /// Set battery status
+    #[inline(always)]
     pub fn set_battery(&mut self, level: u8, on_ac: bool) {
         self.battery_level = Some(level);
         self.on_ac = on_ac;
     }
 
     /// Set power mode
+    #[inline]
     pub fn set_mode(&mut self, mode: PowerMode) {
         self.mode = mode;
         self.pstate.set_power_mode(mode);
@@ -112,41 +114,49 @@ impl PowerIntelligence {
     }
 
     /// Get thermal manager
+    #[inline(always)]
     pub fn thermal(&self) -> &ThermalManager {
         &self.thermal
     }
 
     /// Get mutable thermal manager
+    #[inline(always)]
     pub fn thermal_mut(&mut self) -> &mut ThermalManager {
         &mut self.thermal
     }
 
     /// Get C-state selector
+    #[inline(always)]
     pub fn cstate_selector(&self) -> &CStateSelector {
         &self.cstate
     }
 
     /// Get mutable C-state selector
+    #[inline(always)]
     pub fn cstate_selector_mut(&mut self) -> &mut CStateSelector {
         &mut self.cstate
     }
 
     /// Get P-state governor
+    #[inline(always)]
     pub fn pstate_governor(&self) -> &PStateGovernor {
         &self.pstate
     }
 
     /// Get mutable P-state governor
+    #[inline(always)]
     pub fn pstate_governor_mut(&mut self) -> &mut PStateGovernor {
         &mut self.pstate
     }
 
     /// Get energy profiler
+    #[inline(always)]
     pub fn profiler(&self) -> &EnergyProfiler {
         &self.profiler
     }
 
     /// Get mutable energy profiler
+    #[inline(always)]
     pub fn profiler_mut(&mut self) -> &mut EnergyProfiler {
         &mut self.profiler
     }

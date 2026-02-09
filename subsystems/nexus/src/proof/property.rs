@@ -48,24 +48,28 @@ impl Property {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Mark as critical
+    #[inline(always)]
     pub fn critical(mut self) -> Self {
         self.critical = true;
         self
     }
 
     /// Add precondition
+    #[inline(always)]
     pub fn requires(mut self, condition: impl Into<String>) -> Self {
         self.preconditions.push(condition.into());
         self
     }
 
     /// Add postcondition
+    #[inline(always)]
     pub fn ensures(mut self, condition: impl Into<String>) -> Self {
         self.postconditions.push(condition.into());
         self
@@ -73,11 +77,13 @@ impl Property {
 }
 
 /// Create a simple safety property
+#[inline(always)]
 pub fn safety_property(name: impl Into<String>, desc: impl Into<String>) -> Property {
     Property::new(name, PropertyType::Safety).with_description(desc)
 }
 
 /// Create an invariant property
+#[inline]
 pub fn invariant(name: impl Into<String>, desc: impl Into<String>) -> Property {
     Property::new(name, PropertyType::Invariant)
         .with_description(desc)
@@ -85,6 +91,7 @@ pub fn invariant(name: impl Into<String>, desc: impl Into<String>) -> Property {
 }
 
 /// Create a progress property
+#[inline(always)]
 pub fn progress_property(name: impl Into<String>, desc: impl Into<String>) -> Property {
     Property::new(name, PropertyType::Progress).with_description(desc)
 }

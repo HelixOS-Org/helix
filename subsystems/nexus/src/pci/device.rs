@@ -86,21 +86,25 @@ impl PciDevice {
     }
 
     /// Is PCIe device
+    #[inline(always)]
     pub fn is_pcie(&self) -> bool {
         self.capabilities.iter().any(|c| c.id == CapabilityId::PCIE)
     }
 
     /// Has capability
+    #[inline(always)]
     pub fn has_capability(&self, id: CapabilityId) -> bool {
         self.capabilities.iter().any(|c| c.id == id)
     }
 
     /// Has extended capability
+    #[inline(always)]
     pub fn has_ext_capability(&self, id: ExtCapabilityId) -> bool {
         self.ext_capabilities.iter().any(|c| c.id == id)
     }
 
     /// Get total BAR memory
+    #[inline]
     pub fn total_bar_memory(&self) -> u64 {
         self.bars
             .iter()
@@ -110,6 +114,7 @@ impl PciDevice {
     }
 
     /// Get total BAR I/O
+    #[inline]
     pub fn total_bar_io(&self) -> u64 {
         self.bars
             .iter()
@@ -119,11 +124,13 @@ impl PciDevice {
     }
 
     /// Record config read
+    #[inline(always)]
     pub fn record_read(&self) {
         self.config_reads.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record config write
+    #[inline(always)]
     pub fn record_write(&self) {
         self.config_writes.fetch_add(1, Ordering::Relaxed);
     }

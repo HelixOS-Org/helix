@@ -126,6 +126,7 @@ impl CapabilityToken {
     }
 
     /// Check if active
+    #[inline(always)]
     pub fn is_valid(&self, now: u64) -> bool {
         self.state == CapabilityState::Active && (self.expires_ns == 0 || now < self.expires_ns)
     }
@@ -155,11 +156,13 @@ impl CapabilityToken {
     }
 
     /// Revoke
+    #[inline(always)]
     pub fn revoke(&mut self) {
         self.state = CapabilityState::Revoked;
     }
 
     /// Suspend
+    #[inline]
     pub fn suspend(&mut self) {
         if self.state == CapabilityState::Active {
             self.state = CapabilityState::Suspended;
@@ -167,6 +170,7 @@ impl CapabilityToken {
     }
 
     /// Resume
+    #[inline]
     pub fn resume(&mut self) {
         if self.state == CapabilityState::Suspended {
             self.state = CapabilityState::Active;
@@ -174,6 +178,7 @@ impl CapabilityToken {
     }
 
     /// Check expiry
+    #[inline]
     pub fn check_expiry(&mut self, now: u64) {
         if self.expires_ns > 0 && now >= self.expires_ns && self.state == CapabilityState::Active {
             self.state = CapabilityState::Expired;
@@ -187,6 +192,7 @@ impl CapabilityToken {
 
 /// Per-process capability table
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessCapabilityTable {
     /// Process ID
     pub pid: u64,
@@ -206,11 +212,13 @@ impl ProcessCapabilityTable {
     }
 
     /// Add capability
+    #[inline(always)]
     pub fn add(&mut self, cap: CapabilityToken) {
         self.capabilities.insert(cap.id, cap);
     }
 
     /// Check permission
+    #[inline]
     pub fn has_permission(
         &self,
         resource: ProtectedResource,
@@ -227,16 +235,19 @@ impl ProcessCapabilityTable {
     }
 
     /// Get capability
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&CapabilityToken> {
         self.capabilities.get(&id)
     }
 
     /// Get mutable
+    #[inline(always)]
     pub fn get_mut(&mut self, id: u64) -> Option<&mut CapabilityToken> {
         self.capabilities.get_mut(&id)
     }
 
     /// Revoke by ID
+    #[inline]
     pub fn revoke(&mut self, id: u64) -> bool {
         if let Some(cap) = self.capabilities.get_mut(&id) {
             cap.revoke();
@@ -247,6 +258,7 @@ impl ProcessCapabilityTable {
     }
 
     /// Count active
+    #[inline]
     pub fn active_count(&self) -> usize {
         self.capabilities
             .values()
@@ -255,6 +267,7 @@ impl ProcessCapabilityTable {
     }
 
     /// Cleanup expired/revoked
+    #[inline]
     pub fn cleanup(&mut self, now: u64) {
         for cap in self.capabilities.values_mut() {
             cap.check_expiry(now);
@@ -265,6 +278,7 @@ impl ProcessCapabilityTable {
     }
 
     /// Allocate next ID
+    #[inline]
     pub fn alloc_id(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -278,6 +292,7 @@ impl ProcessCapabilityTable {
 
 /// Capability manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeCapabilityStats {
     /// Total processes
     pub processes: usize,
@@ -296,6 +311,7 @@ pub struct BridgeCapabilityStats {
 }
 
 /// Bridge capability manager
+#[repr(align(64))]
 pub struct BridgeCapabilityManager {
     /// Per-process tables
     tables: BTreeMap<u64, ProcessCapabilityTable>,
@@ -359,6 +375,7 @@ impl BridgeCapabilityManager {
     }
 
     /// Check permission
+    #[inline]
     pub fn check(
         &mut self,
         pid: u64,
@@ -411,6 +428,7 @@ impl BridgeCapabilityManager {
     }
 
     /// Cleanup expired
+    #[inline]
     pub fn cleanup(&mut self, now: u64) {
         for table in self.tables.values_mut() {
             table.cleanup(now);
@@ -432,6 +450,7 @@ impl BridgeCapabilityManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCapabilityStats {
         &self.stats
     }

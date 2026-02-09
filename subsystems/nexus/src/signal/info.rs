@@ -41,24 +41,28 @@ impl SignalInfo {
     }
 
     /// Set error number
+    #[inline(always)]
     pub fn with_errno(mut self, errno: i32) -> Self {
         self.errno = errno;
         self
     }
 
     /// Set signal code
+    #[inline(always)]
     pub fn with_code(mut self, code: i32) -> Self {
         self.code = code;
         self
     }
 
     /// Set signal value
+    #[inline(always)]
     pub fn with_value(mut self, value: i64) -> Self {
         self.value = value;
         self
     }
 
     /// Set fault address
+    #[inline(always)]
     pub fn with_fault_addr(mut self, addr: u64) -> Self {
         self.fault_addr = Some(addr);
         self
@@ -96,17 +100,20 @@ impl PendingSignal {
     }
 
     /// Set target thread
+    #[inline(always)]
     pub fn with_target_thread(mut self, tid: ThreadId) -> Self {
         self.target_tid = Some(tid);
         self
     }
 
     /// Check if signal can be retried
+    #[inline(always)]
     pub fn can_retry(&self) -> bool {
         self.delivery_attempts < self.max_attempts
     }
 
     /// Increment delivery attempt
+    #[inline(always)]
     pub fn increment_attempt(&mut self) {
         self.delivery_attempts += 1;
     }

@@ -15,6 +15,7 @@ pub struct LifetimeBucket {
 
 /// Object lifetime statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LifetimeStats {
     /// Minimum lifetime (nanoseconds)
     pub min_ns: u64,
@@ -184,6 +185,7 @@ impl ObjectLifetimePredictor {
     }
 
     /// Predict if object will be short-lived
+    #[inline]
     pub fn predict_short_lived(&self) -> f32 {
         if self.total_samples == 0 {
             return 0.5;
@@ -192,6 +194,7 @@ impl ObjectLifetimePredictor {
     }
 
     /// Predict if object will be long-lived
+    #[inline]
     pub fn predict_long_lived(&self) -> f32 {
         if self.total_samples == 0 {
             return 0.5;
@@ -214,17 +217,20 @@ impl ObjectLifetimePredictor {
     }
 
     /// Get cache ID
+    #[inline(always)]
     pub fn cache_id(&self) -> SlabCacheId {
         self.cache_id
     }
 
     /// Set thresholds
+    #[inline(always)]
     pub fn set_thresholds(&mut self, short_ns: u64, long_ns: u64) {
         self.short_lived_threshold_ns = short_ns;
         self.long_lived_threshold_ns = long_ns;
     }
 
     /// Get sample count
+    #[inline(always)]
     pub fn sample_count(&self) -> u64 {
         self.total_samples
     }

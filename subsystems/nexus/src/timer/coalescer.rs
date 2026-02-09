@@ -34,6 +34,7 @@ pub struct CoalescedGroup {
 
 /// Coalescing statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoalescingStats {
     /// Total timers processed
     pub total_timers: u64,
@@ -49,6 +50,7 @@ pub struct CoalescingStats {
 
 impl CoalescingStats {
     /// Coalescing ratio
+    #[inline]
     pub fn ratio(&self) -> f64 {
         if self.total_timers == 0 {
             0.0
@@ -59,6 +61,7 @@ impl CoalescingStats {
 }
 
 /// Intelligent timer coalescing
+#[repr(align(64))]
 pub struct TimerCoalescer {
     /// Coalescing window (ns)
     window_ns: u64,
@@ -82,6 +85,7 @@ impl TimerCoalescer {
     }
 
     /// Add timer for potential coalescing
+    #[inline]
     pub fn add(
         &mut self,
         timer_id: TimerId,
@@ -165,16 +169,19 @@ impl TimerCoalescer {
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoalescingStats {
         &self.stats
     }
 
     /// Set window
+    #[inline(always)]
     pub fn set_window(&mut self, window_ns: u64) {
         self.window_ns = window_ns;
     }
 
     /// Get current groups
+    #[inline(always)]
     pub fn current_groups(&self) -> &[CoalescedGroup] {
         &self.groups
     }

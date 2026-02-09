@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -149,6 +150,7 @@ pub struct DynamicExtension {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct GenesisStats {
     pub total_capabilities: u64,
     pub total_events: u64,
@@ -183,7 +185,7 @@ impl GenesisStats {
 
 pub struct HolisticGenesis {
     capabilities: BTreeMap<u64, Capability>,
-    events: Vec<GenesisEvent>,
+    events: VecDeque<GenesisEvent>,
     stats: GenesisStats,
     rng: Xorshift64,
     tick: u64,
@@ -193,7 +195,7 @@ impl HolisticGenesis {
     pub fn new(seed: u64) -> Self {
         Self {
             capabilities: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             stats: GenesisStats::new(),
             rng: Xorshift64::new(seed),
             tick: 0,
@@ -211,9 +213,9 @@ impl HolisticGenesis {
     fn log_event(&mut self, kind: &str, cap_hash: u64, delta: u64, desc: &str) {
         let eh = self.gen_hash(kind);
         if self.events.len() >= MAX_EVENTS {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(GenesisEvent {
+        self.events.push_back(GenesisEvent {
             event_hash: eh,
             tick: self.tick,
             kind: String::from(kind),
@@ -380,7 +382,7 @@ impl HolisticGenesis {
             description: String::from("evolutionary_pressure_applied"),
         };
         if self.events.len() < MAX_EVENTS {
-            self.events.push(evt.clone());
+            self.events.push_back(evt.clone());
         }
         evt
     }
@@ -416,24 +418,29 @@ impl HolisticGenesis {
     }
 
     /// The genesis rate — how quickly new capabilities are being born.
+    #[inline(always)]
     pub fn genesis_rate(&self) -> u64 {
         self.stats.genesis_rate_per_1k_ticks
     }
 
     // -- accessors ----------------------------------------------------------
 
+    #[inline(always)]
     pub fn stats(&self) -> &GenesisStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn capability_count(&self) -> usize {
         self.capabilities.len()
     }
 
+    #[inline(always)]
     pub fn event_count(&self) -> usize {
         self.events.len()
     }
 
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

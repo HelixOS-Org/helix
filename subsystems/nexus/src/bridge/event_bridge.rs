@@ -67,11 +67,13 @@ impl EventInterest {
         }
     }
 
+    #[inline(always)]
     pub fn edge_triggered(mut self) -> Self {
         self.trigger = TriggerMode::EdgeTriggered;
         self
     }
 
+    #[inline(always)]
     pub fn with_priority(mut self, prio: u8) -> Self {
         self.priority = prio;
         self
@@ -90,6 +92,7 @@ pub struct ReadyEvent {
 
 /// Epoll-like instance
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventInstance {
     pub instance_id: u64,
     pub owner_pid: u64,
@@ -115,14 +118,17 @@ impl EventInstance {
         }
     }
 
+    #[inline(always)]
     pub fn add_interest(&mut self, interest: EventInterest) {
         self.interests.insert(interest.fd, interest);
     }
 
+    #[inline(always)]
     pub fn remove_interest(&mut self, fd: i32) {
         self.interests.remove(&fd);
     }
 
+    #[inline]
     pub fn modify_interest(&mut self, fd: i32, new_events: u32) {
         if let Some(interest) = self.interests.get_mut(&fd) {
             interest.events = new_events;
@@ -187,6 +193,7 @@ impl EventInstance {
         events
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.ready_list.len()
     }
@@ -194,6 +201,7 @@ impl EventInstance {
 
 /// Event bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeEventBridgeStats {
     pub active_instances: usize,
     pub total_interests: usize,
@@ -204,6 +212,7 @@ pub struct BridgeEventBridgeStats {
 }
 
 /// Bridge Event Bridge
+#[repr(align(64))]
 pub struct BridgeEventBridge {
     instances: BTreeMap<u64, EventInstance>,
     next_instance_id: u64,
@@ -219,6 +228,7 @@ impl BridgeEventBridge {
         }
     }
 
+    #[inline]
     pub fn create_instance(&mut self, owner_pid: u64) -> u64 {
         let id = self.next_instance_id;
         self.next_instance_id += 1;
@@ -227,11 +237,13 @@ impl BridgeEventBridge {
         id
     }
 
+    #[inline(always)]
     pub fn destroy_instance(&mut self, instance_id: u64) {
         self.instances.remove(&instance_id);
         self.recompute();
     }
 
+    #[inline]
     pub fn add_interest(&mut self, instance_id: u64, interest: EventInterest) {
         if let Some(inst) = self.instances.get_mut(&instance_id) {
             inst.add_interest(interest);
@@ -239,6 +251,7 @@ impl BridgeEventBridge {
         self.recompute();
     }
 
+    #[inline]
     pub fn signal_ready(&mut self, instance_id: u64, fd: i32, events: u32, now: u64) {
         if let Some(inst) = self.instances.get_mut(&instance_id) {
             inst.signal_ready(fd, events, now);
@@ -246,6 +259,7 @@ impl BridgeEventBridge {
     }
 
     /// Broadcast event to all instances watching this fd
+    #[inline]
     pub fn broadcast_ready(&mut self, fd: i32, events: u32, now: u64) {
         let ids: Vec<u64> = self.instances.keys().copied().collect();
         for id in ids {
@@ -255,6 +269,7 @@ impl BridgeEventBridge {
         }
     }
 
+    #[inline]
     pub fn wait(&mut self, instance_id: u64, max_events: usize) -> Vec<ReadyEvent> {
         if let Some(inst) = self.instances.get_mut(&instance_id) {
             let events = inst.wait(max_events);
@@ -274,6 +289,7 @@ impl BridgeEventBridge {
         self.stats.total_coalesced = self.instances.values().map(|i| i.total_coalesced).sum();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeEventBridgeStats {
         &self.stats
     }

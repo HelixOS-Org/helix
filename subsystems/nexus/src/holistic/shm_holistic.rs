@@ -23,6 +23,7 @@ impl ShmHolisticRecord {
 
 /// Shm holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ShmHolisticStats { pub total_samples: u64, pub hotspots: u64, pub thrashing: u64, pub peak_dirty: u64 }
 
 /// Main holistic shm
@@ -31,6 +32,7 @@ pub struct HolisticShm { pub stats: ShmHolisticStats }
 
 impl HolisticShm {
     pub fn new() -> Self { Self { stats: ShmHolisticStats { total_samples: 0, hotspots: 0, thrashing: 0, peak_dirty: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &ShmHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.utilization {

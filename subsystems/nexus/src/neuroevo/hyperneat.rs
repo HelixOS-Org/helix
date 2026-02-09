@@ -20,10 +20,12 @@ impl SubstratePoint {
         Self { x, y, z: 0.0 }
     }
 
+    #[inline(always)]
     pub fn new_3d(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
     }
 
+    #[inline]
     pub fn distance(&self, other: &SubstratePoint) -> f64 {
         libm::sqrt(
             (self.x - other.x).powi(2) + (self.y - other.y).powi(2) + (self.z - other.z).powi(2),
@@ -119,6 +121,7 @@ impl GeneratedNetwork {
     }
 
     /// Add a connection
+    #[inline(always)]
     pub fn add_connection(&mut self, layer: u8, from: usize, to: usize, weight: f64) {
         self.weights.push((layer, from, to, weight));
     }
@@ -238,6 +241,7 @@ impl HyperNeat {
     }
 
     /// Evolve the population
+    #[inline]
     pub fn evolve(&mut self) {
         self.cppn_population.speciate();
         self.cppn_population.calculate_adjusted_fitness();

@@ -81,6 +81,7 @@ impl BehavioralFeature {
         }
     }
 
+    #[inline]
     fn evaluate(&mut self, accuracy: f32, cost_us: f32) {
         let clamped = accuracy.max(0.0).min(1.0);
         self.evaluations += 1;
@@ -144,6 +145,7 @@ impl MetaLearningState {
         }
     }
 
+    #[inline]
     fn record_episode(&mut self, quality_improvement: f32) {
         self.episodes += 1;
         self.prev_learning_rate = self.learning_rate;
@@ -192,6 +194,7 @@ pub struct DriftEvent {
 
 /// Aggregate meta-cognition statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct MetaCognitionStats {
     pub features_tracked: usize,
     pub avg_feature_importance: f32,
@@ -241,6 +244,7 @@ impl AppsMetaCognition {
     }
 
     /// Evaluate a feature's contribution to classification accuracy
+    #[inline]
     pub fn evaluate_features(
         &mut self,
         feature_name: &str,
@@ -284,6 +288,7 @@ impl AppsMetaCognition {
     }
 
     /// Trigger a meta-learning step from observed quality improvement
+    #[inline]
     pub fn meta_learn(&mut self, quality_improvement: f32) {
         let delta = quality_improvement - self.prev_quality;
         self.meta_learning.record_episode(delta);
@@ -291,6 +296,7 @@ impl AppsMetaCognition {
     }
 
     /// Get feature importance ranking (sorted by importance descending)
+    #[inline]
     pub fn feature_importance(&self) -> Vec<(String, f32, f32)> {
         let mut ranked: Vec<(String, f32, f32)> = self
             .features

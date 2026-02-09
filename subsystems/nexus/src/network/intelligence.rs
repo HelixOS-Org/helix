@@ -81,41 +81,49 @@ impl NetworkIntelligence {
     }
 
     /// Get traffic analyzer
+    #[inline(always)]
     pub fn traffic(&self) -> &TrafficAnalyzer {
         &self.traffic
     }
 
     /// Get mutable traffic analyzer
+    #[inline(always)]
     pub fn traffic_mut(&mut self) -> &mut TrafficAnalyzer {
         &mut self.traffic
     }
 
     /// Get bandwidth predictor
+    #[inline(always)]
     pub fn bandwidth(&self) -> &BandwidthPredictor {
         &self.bandwidth
     }
 
     /// Get anomaly detector
+    #[inline(always)]
     pub fn anomaly(&self) -> &NetworkAnomalyDetector {
         &self.anomaly
     }
 
     /// Get mutable anomaly detector
+    #[inline(always)]
     pub fn anomaly_mut(&mut self) -> &mut NetworkAnomalyDetector {
         &mut self.anomaly
     }
 
     /// Get QoS engine
+    #[inline(always)]
     pub fn qos(&self) -> &QosEngine {
         &self.qos
     }
 
     /// Get mutable QoS engine
+    #[inline(always)]
     pub fn qos_mut(&mut self) -> &mut QosEngine {
         &mut self.qos
     }
 
     /// Get connection predictor
+    #[inline(always)]
     pub fn connection(&self) -> &ConnectionPredictor {
         &self.connection
     }

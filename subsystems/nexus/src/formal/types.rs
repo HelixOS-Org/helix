@@ -14,6 +14,7 @@ pub struct Literal {
 
 impl Literal {
     /// Create positive literal
+    #[inline]
     pub fn pos(var: VarId) -> Self {
         Self {
             var,
@@ -22,21 +23,25 @@ impl Literal {
     }
 
     /// Create negative literal
+    #[inline(always)]
     pub fn neg(var: VarId) -> Self {
         Self { var, negated: true }
     }
 
     /// Get underlying variable
+    #[inline(always)]
     pub fn var(&self) -> VarId {
         self.var
     }
 
     /// Is this literal negated?
+    #[inline(always)]
     pub fn is_negated(&self) -> bool {
         self.negated
     }
 
     /// Negate this literal
+    #[inline]
     pub fn negate(&self) -> Self {
         Self {
             var: self.var,
@@ -45,6 +50,7 @@ impl Literal {
     }
 
     /// To DIMACS format (positive = var+1, negative = -(var+1))
+    #[inline]
     pub fn to_dimacs(&self) -> i32 {
         if self.negated {
             -((self.var + 1) as i32)

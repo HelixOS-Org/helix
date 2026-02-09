@@ -57,6 +57,7 @@ pub enum CounterState {
 
 /// Performance counter descriptor
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerfCounter {
     pub id: u64,
     pub event_type: PmuEventType,
@@ -82,9 +83,12 @@ impl PerfCounter {
         }
     }
 
+    #[inline(always)]
     pub fn enable(&mut self) { self.state = CounterState::Enabled; }
+    #[inline(always)]
     pub fn disable(&mut self) { self.state = CounterState::Disabled; }
 
+    #[inline]
     pub fn increment(&mut self, delta: u64) {
         self.count = self.count.wrapping_add(delta);
         if self.sample_period > 0 && self.count >= self.sample_period {
@@ -93,11 +97,13 @@ impl PerfCounter {
         }
     }
 
+    #[inline(always)]
     pub fn multiplexing_ratio(&self) -> f64 {
         if self.time_enabled_ns == 0 { return 0.0; }
         self.time_running_ns as f64 / self.time_enabled_ns as f64
     }
 
+    #[inline]
     pub fn scaled_count(&self) -> u64 {
         let ratio = self.multiplexing_ratio();
         if ratio == 0.0 { return self.count; }
@@ -119,6 +125,7 @@ impl PerfEventGroup {
         Self { leader_id: leader, members: alloc::vec![leader], pinned: false, exclusive: false }
     }
 
+    #[inline(always)]
     pub fn add_member(&mut self, counter_id: u64) { self.members.push(counter_id); }
 }
 
@@ -136,6 +143,7 @@ pub struct PerfSample {
 
 /// Bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerfHwBridgeStats {
     pub total_counters: u32,
     pub active_counters: u32,
@@ -146,6 +154,7 @@ pub struct PerfHwBridgeStats {
 }
 
 /// Main perf hardware bridge
+#[repr(align(64))]
 pub struct BridgePerfHw {
     counters: BTreeMap<u64, PerfCounter>,
     groups: Vec<PerfEventGroup>,
@@ -159,6 +168,7 @@ impl BridgePerfHw {
         Self { counters: BTreeMap::new(), groups: Vec::new(), samples: Vec::new(), next_id: 1, max_samples: 8192 }
     }
 
+    #[inline]
     pub fn create_counter(&mut self, event: PmuEventType, scope: EventScope) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -166,23 +176,28 @@ impl BridgePerfHw {
         id
     }
 
+    #[inline(always)]
     pub fn create_group(&mut self, leader_id: u64) {
         self.groups.push(PerfEventGroup::new(leader_id));
     }
 
+    #[inline(always)]
     pub fn enable(&mut self, id: u64) {
         if let Some(c) = self.counters.get_mut(&id) { c.enable(); }
     }
 
+    #[inline(always)]
     pub fn disable(&mut self, id: u64) {
         if let Some(c) = self.counters.get_mut(&id) { c.disable(); }
     }
 
+    #[inline(always)]
     pub fn record_sample(&mut self, sample: PerfSample) {
         if self.samples.len() >= self.max_samples { self.samples.drain(..self.max_samples / 4); }
         self.samples.push(sample);
     }
 
+    #[inline(always)]
     pub fn read_counter(&self, id: u64) -> Option<u64> {
         self.counters.get(&id).map(|c| c.scaled_count())
     }

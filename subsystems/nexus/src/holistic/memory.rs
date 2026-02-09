@@ -38,6 +38,7 @@ pub enum MemoryZone {
 
 /// Memory zone statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ZoneStats {
     /// Zone type
     pub zone: MemoryZone,
@@ -93,21 +94,25 @@ impl ZoneStats {
     }
 
     /// Is zone under pressure?
+    #[inline(always)]
     pub fn under_pressure(&self) -> bool {
         self.free_pages < self.watermark_low
     }
 
     /// Is zone critically low?
+    #[inline(always)]
     pub fn critical(&self) -> bool {
         self.free_pages < self.watermark_min
     }
 
     /// Reclaimable pages estimate
+    #[inline(always)]
     pub fn reclaimable(&self) -> u64 {
         self.inactive_file + self.slab_reclaimable + self.inactive_anon / 2
     }
 
     /// Utilization (0.0 - 1.0)
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total_pages == 0 {
             return 0.0;
@@ -321,6 +326,7 @@ pub struct OomScore {
 
 impl OomScore {
     /// Calculate effective OOM score
+    #[inline]
     pub fn effective_score(&self) -> i32 {
         if self.is_kernel || self.is_critical {
             return -1000; // Never kill
@@ -353,16 +359,19 @@ impl OomPolicy {
     }
 
     /// Update OOM score
+    #[inline(always)]
     pub fn update_score(&mut self, score: OomScore) {
         self.scores.insert(score.pid, score);
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove(&mut self, pid: u64) {
         self.scores.remove(&pid);
     }
 
     /// Select OOM victim
+    #[inline]
     pub fn select_victim(&self) -> Option<u64> {
         self.scores
             .values()
@@ -372,6 +381,7 @@ impl OomPolicy {
     }
 
     /// Record OOM event
+    #[inline]
     pub fn record_oom(&mut self, victim_pid: u64, freed_bytes: u64) {
         self.oom_events += 1;
         self.processes_killed += 1;
@@ -380,6 +390,7 @@ impl OomPolicy {
     }
 
     /// Score count
+    #[inline(always)]
     pub fn score_count(&self) -> usize {
         self.scores.len()
     }
@@ -391,6 +402,7 @@ impl OomPolicy {
 
 /// Memory manager statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MemoryManagerStats {
     /// Total system memory (pages)
     pub total_pages: u64,
@@ -438,12 +450,14 @@ impl HolisticMemoryManager {
     }
 
     /// Add a zone
+    #[inline(always)]
     pub fn add_zone(&mut self, zone: MemoryZone, total_pages: u64) {
         self.zones
             .insert(zone as u8, ZoneStats::new(zone, total_pages));
     }
 
     /// Update zone stats
+    #[inline(always)]
     pub fn update_zone(&mut self, stats: ZoneStats) {
         self.zones.insert(stats.zone as u8, stats);
     }
@@ -478,26 +492,31 @@ impl HolisticMemoryManager {
     }
 
     /// Get pending reclaim actions
+    #[inline(always)]
     pub fn pending_actions(&self) -> &[ReclaimAction] {
         &self.pending_actions
     }
 
     /// Get current pressure
+    #[inline(always)]
     pub fn pressure(&self) -> MemoryPressure {
         self.pressure
     }
 
     /// Get OOM policy
+    #[inline(always)]
     pub fn oom_policy(&self) -> &OomPolicy {
         &self.oom_policy
     }
 
     /// Get mutable OOM policy
+    #[inline(always)]
     pub fn oom_policy_mut(&mut self) -> &mut OomPolicy {
         &mut self.oom_policy
     }
 
     /// Get stats
+    #[inline]
     pub fn stats(&self) -> MemoryManagerStats {
         MemoryManagerStats {
             total_pages: self.zones.values().map(|z| z.total_pages).sum(),
@@ -510,6 +529,7 @@ impl HolisticMemoryManager {
     }
 
     /// Zone count
+    #[inline(always)]
     pub fn zone_count(&self) -> usize {
         self.zones.len()
     }

@@ -8,6 +8,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec;
@@ -23,6 +24,7 @@ use crate::types::Timestamp;
 
 /// Metric to monitor
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Metric {
     /// Metric ID
     pub id: u64,
@@ -65,6 +67,7 @@ pub enum Direction {
 
 /// Metric value
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricValue {
     /// Value
     pub value: f64,
@@ -140,7 +143,7 @@ pub struct Baseline {
     /// Name
     pub name: String,
     /// Metric values
-    pub values: BTreeMap<u64, f64>,
+    pub values: LinearMap<f64, 64>,
     /// Created
     pub created: Timestamp,
     /// Is current baseline
@@ -198,6 +201,7 @@ impl Default for DetectorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DetectorStats {
     /// Metrics monitored
     pub metrics_monitored: u64,
@@ -253,6 +257,7 @@ impl RegressionDetector {
     }
 
     /// Record metric value
+    #[inline]
     pub fn record(&mut self, metric_id: u64, value: f64, context: Option<&str>) {
         if let Some(metric) = self.metrics.get_mut(&metric_id) {
             metric.history.push(MetricValue {
@@ -431,7 +436,7 @@ impl RegressionDetector {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
 
         // Collect current values
-        let values: BTreeMap<u64, f64> = self
+        let values: LinearMap<f64, 64> = self
             .metrics
             .iter()
             .filter_map(|(&metric_id, metric)| metric.history.last().map(|v| (metric_id, v.value)))
@@ -459,6 +464,7 @@ impl RegressionDetector {
     }
 
     /// Update regression status
+    #[inline]
     pub fn update_status(&mut self, regression_id: u64, status: RegressionStatus) {
         if let Some(regression) = self.regressions.get_mut(&regression_id) {
             regression.status = status;
@@ -470,11 +476,13 @@ impl RegressionDetector {
     }
 
     /// Get metric
+    #[inline(always)]
     pub fn get_metric(&self, id: u64) -> Option<&Metric> {
         self.metrics.get(&id)
     }
 
     /// Get regression
+    #[inline(always)]
     pub fn get_regression(&self, id: u64) -> Option<&Regression> {
         self.regressions.get(&id)
     }
@@ -495,6 +503,7 @@ impl RegressionDetector {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &DetectorStats {
         &self.stats
     }

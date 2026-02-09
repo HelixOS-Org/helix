@@ -14,6 +14,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -82,6 +83,7 @@ pub enum DreamPhase {
 
 /// A recorded event available for dream replay
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReplayEvent {
     pub event_hash: u64,
     pub category: String,
@@ -153,6 +155,7 @@ pub struct ConsolidatedPattern {
 
 /// Dream engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DreamStats {
     pub total_sessions: u64,
     pub total_insights: u64,
@@ -170,10 +173,11 @@ pub struct DreamStats {
 
 /// Offline consolidation engine for bridge pattern discovery
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeDreamEngine {
-    replay_buffer: Vec<ReplayEvent>,
+    replay_buffer: VecDeque<ReplayEvent>,
     insights: Vec<DreamInsight>,
-    sessions: Vec<DreamSession>,
+    sessions: VecDeque<DreamSession>,
     consolidated: BTreeMap<u64, ConsolidatedPattern>,
     current_session: Option<DreamSession>,
     current_phase: DreamPhase,
@@ -193,9 +197,9 @@ impl BridgeDreamEngine {
     /// Create a new dream engine
     pub fn new(seed: u64) -> Self {
         Self {
-            replay_buffer: Vec::new(),
+            replay_buffer: VecDeque::new(),
             insights: Vec::new(),
-            sessions: Vec::new(),
+            sessions: VecDeque::new(),
             consolidated: BTreeMap::new(),
             current_session: None,
             current_phase: DreamPhase::Waiting,
@@ -217,7 +221,7 @@ impl BridgeDreamEngine {
         self.sequence_counter += 1;
 
         if self.replay_buffer.len() >= MAX_REPLAY_EVENTS {
-            self.replay_buffer.remove(0);
+            self.replay_buffer.pop_front();
         }
 
         let event = ReplayEvent {
@@ -229,10 +233,11 @@ impl BridgeDreamEngine {
             was_optimized,
             replay_count: 0,
         };
-        self.replay_buffer.push(event);
+        self.replay_buffer.push_back(event);
     }
 
     /// Detect idle state and potentially start dreaming
+    #[inline]
     pub fn idle_detected(&mut self, cpu_utilization: f32) -> bool {
         self.current_tick += 1;
         if cpu_utilization < IDLE_THRESHOLD && self.current_phase == DreamPhase::Waiting {
@@ -468,9 +473,9 @@ impl BridgeDreamEngine {
         // Archive the session
         if let Some(session) = self.current_session.take() {
             if self.sessions.len() >= MAX_DREAM_SESSIONS {
-                self.sessions.remove(0);
+                self.sessions.pop_front();
             }
-            self.sessions.push(session);
+            self.sessions.push_back(session);
         }
 
         self.current_phase = DreamPhase::Waiting;
@@ -478,17 +483,20 @@ impl BridgeDreamEngine {
     }
 
     /// Dream quality — EMA of session quality scores
+    #[inline(always)]
     pub fn dream_quality(&self) -> f32 {
         self.avg_quality_ema
     }
 
     /// Is a consolidated pattern known?
+    #[inline(always)]
     pub fn has_consolidated_pattern(&self, category: &str) -> bool {
         let hash = fnv1a_hash(category.as_bytes());
         self.consolidated.contains_key(&hash)
     }
 
     /// Get the strength of a consolidated pattern
+    #[inline]
     pub fn pattern_strength(&self, category: &str) -> f32 {
         let hash = fnv1a_hash(category.as_bytes());
         self.consolidated
@@ -498,6 +506,7 @@ impl BridgeDreamEngine {
     }
 
     /// Get all consolidated patterns sorted by strength
+    #[inline]
     pub fn strongest_patterns(&self) -> Vec<(String, f32)> {
         let mut patterns: Vec<(String, f32)> = self
             .consolidated
@@ -545,6 +554,7 @@ impl BridgeDreamEngine {
     }
 
     /// Reset the dream engine
+    #[inline]
     pub fn reset(&mut self) {
         self.replay_buffer.clear();
         self.insights.clear();

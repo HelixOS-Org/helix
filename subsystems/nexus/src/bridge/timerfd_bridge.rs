@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Clock type for timerfd
@@ -17,6 +18,7 @@ pub enum TimerClockType {
 
 /// Timerfd flags
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct TimerfdFlags(pub u32);
 
 impl TimerfdFlags {
@@ -25,6 +27,7 @@ impl TimerfdFlags {
     pub const ABSTIME: Self = Self(0x04);
     pub const CANCEL_ON_SET: Self = Self(0x08);
 
+    #[inline(always)]
     pub fn contains(&self, flag: Self) -> bool {
         self.0 & flag.0 != 0
     }
@@ -32,24 +35,29 @@ impl TimerfdFlags {
 
 /// Timer spec with value + interval
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct TimerSpec {
     pub value_ns: u64,
     pub interval_ns: u64,
 }
 
 impl TimerSpec {
+    #[inline(always)]
     pub fn oneshot(ns: u64) -> Self {
         Self { value_ns: ns, interval_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn periodic(interval_ns: u64) -> Self {
         Self { value_ns: interval_ns, interval_ns }
     }
 
+    #[inline(always)]
     pub fn is_disarmed(&self) -> bool {
         self.value_ns == 0 && self.interval_ns == 0
     }
 
+    #[inline(always)]
     pub fn is_periodic(&self) -> bool {
         self.interval_ns > 0
     }
@@ -66,6 +74,7 @@ pub enum TimerState {
 
 /// A timerfd instance
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct TimerfdInstance {
     pub fd: i32,
     pub owner_pid: u32,
@@ -97,6 +106,7 @@ impl TimerfdInstance {
         }
     }
 
+    #[inline]
     pub fn arm(&mut self, spec: TimerSpec, now: u64) {
         self.spec = spec;
         if spec.is_disarmed() {
@@ -109,6 +119,7 @@ impl TimerfdInstance {
         }
     }
 
+    #[inline]
     pub fn disarm(&mut self) {
         self.spec = TimerSpec { value_ns: 0, interval_ns: 0 };
         self.state = TimerState::Disarmed;
@@ -139,6 +150,7 @@ impl TimerfdInstance {
         true
     }
 
+    #[inline]
     pub fn read(&mut self, now: u64) -> u64 {
         let count = self.unread_expirations;
         self.unread_expirations = 0;
@@ -147,16 +159,19 @@ impl TimerfdInstance {
         count
     }
 
+    #[inline(always)]
     pub fn is_readable(&self) -> bool {
         self.unread_expirations > 0
     }
 
+    #[inline]
     pub fn time_until_expiry(&self, now: u64) -> Option<u64> {
         if self.state != TimerState::Armed { return None; }
         if now >= self.next_expiry_ns { return Some(0); }
         Some(self.next_expiry_ns - now)
     }
 
+    #[inline(always)]
     pub fn overrun_rate(&self) -> f64 {
         if self.total_fires == 0 { return 0.0; }
         self.overruns as f64 / self.total_fires as f64
@@ -176,6 +191,7 @@ pub enum TimerfdOp {
 
 /// Timerfd event
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdEvent {
     pub fd: i32,
     pub op: TimerfdOp,
@@ -185,6 +201,7 @@ pub struct TimerfdEvent {
 
 /// Timerfd bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdBridgeStats {
     pub active_timerfds: u32,
     pub total_created: u64,
@@ -195,9 +212,10 @@ pub struct TimerfdBridgeStats {
 }
 
 /// Main timerfd bridge
+#[repr(align(64))]
 pub struct BridgeTimerfd {
     instances: BTreeMap<i32, TimerfdInstance>,
-    events: Vec<TimerfdEvent>,
+    events: VecDeque<TimerfdEvent>,
     max_events: usize,
     stats: TimerfdBridgeStats,
 }
@@ -206,7 +224,7 @@ impl BridgeTimerfd {
     pub fn new() -> Self {
         Self {
             instances: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 2048,
             stats: TimerfdBridgeStats {
                 active_timerfds: 0, total_created: 0,
@@ -216,6 +234,7 @@ impl BridgeTimerfd {
         }
     }
 
+    #[inline]
     pub fn create(&mut self, fd: i32, owner: u32, clock: TimerClockType, flags: TimerfdFlags, now: u64) {
         let inst = TimerfdInstance::new(fd, owner, clock, flags, now);
         self.stats.total_created += 1;
@@ -223,6 +242,7 @@ impl BridgeTimerfd {
         self.instances.insert(fd, inst);
     }
 
+    #[inline]
     pub fn arm(&mut self, fd: i32, spec: TimerSpec, now: u64) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             let was_armed = inst.state == TimerState::Armed;
@@ -234,6 +254,7 @@ impl BridgeTimerfd {
         } else { false }
     }
 
+    #[inline]
     pub fn disarm(&mut self, fd: i32) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             if inst.state == TimerState::Armed {
@@ -244,6 +265,7 @@ impl BridgeTimerfd {
         } else { false }
     }
 
+    #[inline]
     pub fn tick(&mut self, now: u64) -> Vec<i32> {
         let mut fired = Vec::new();
         for (&fd, inst) in self.instances.iter_mut() {
@@ -255,6 +277,7 @@ impl BridgeTimerfd {
         fired
     }
 
+    #[inline]
     pub fn read(&mut self, fd: i32, now: u64) -> Option<u64> {
         let inst = self.instances.get_mut(&fd)?;
         let count = inst.read(now);
@@ -262,6 +285,7 @@ impl BridgeTimerfd {
         Some(count)
     }
 
+    #[inline]
     pub fn close(&mut self, fd: i32) -> bool {
         if let Some(inst) = self.instances.remove(&fd) {
             if inst.state == TimerState::Armed {
@@ -272,11 +296,13 @@ impl BridgeTimerfd {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn record_event(&mut self, event: TimerfdEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
-        self.events.push(event);
+        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        self.events.push_back(event);
     }
 
+    #[inline]
     pub fn next_expiring(&self, now: u64) -> Option<(i32, u64)> {
         self.instances.iter()
             .filter(|(_, inst)| inst.state == TimerState::Armed)
@@ -284,6 +310,7 @@ impl BridgeTimerfd {
             .min_by_key(|&(_, t)| t)
     }
 
+    #[inline]
     pub fn overrun_summary(&self) -> Vec<(i32, u64, f64)> {
         let mut v: Vec<_> = self.instances.iter()
             .filter(|(_, inst)| inst.overruns > 0)
@@ -293,6 +320,7 @@ impl BridgeTimerfd {
         v
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &TimerfdBridgeStats {
         &self.stats
     }
@@ -313,6 +341,7 @@ pub enum TimerfdV2Clock {
 
 /// Timer v2 flags
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct TimerfdV2Flags(pub u32);
 
 impl TimerfdV2Flags {
@@ -321,12 +350,15 @@ impl TimerfdV2Flags {
     pub const ABSTIME: u32 = 4;
     pub const CANCEL_ON_SET: u32 = 8;
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn set(&mut self, f: u32) { self.0 |= f; }
+    #[inline(always)]
     pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
 }
 
 /// Timer v2 spec
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct TimerfdV2Spec {
     pub interval_ns: u64,
     pub value_ns: u64,
@@ -334,6 +366,7 @@ pub struct TimerfdV2Spec {
 
 /// Timer fd v2 instance
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct TimerfdV2Instance {
     pub id: u64,
     pub clock: TimerfdV2Clock,
@@ -352,20 +385,25 @@ impl TimerfdV2Instance {
         Self { id, clock, flags: TimerfdV2Flags::new(), spec: TimerfdV2Spec { interval_ns: 0, value_ns: 0 }, armed: false, expirations: 0, overruns: 0, created_at: now, last_fire: 0, owner_pid: pid }
     }
 
+    #[inline(always)]
     pub fn arm(&mut self, spec: TimerfdV2Spec) { self.spec = spec; self.armed = true; }
+    #[inline(always)]
     pub fn disarm(&mut self) { self.armed = false; }
 
+    #[inline]
     pub fn fire(&mut self, now: u64) {
         self.expirations += 1;
         self.last_fire = now;
         if self.spec.interval_ns == 0 { self.armed = false; }
     }
 
+    #[inline(always)]
     pub fn is_periodic(&self) -> bool { self.spec.interval_ns > 0 }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdV2BridgeStats {
     pub total_timers: u32,
     pub armed_timers: u32,
@@ -375,6 +413,7 @@ pub struct TimerfdV2BridgeStats {
 }
 
 /// Main timerfd v2 bridge
+#[repr(align(64))]
 pub struct BridgeTimerfdV2 {
     timers: BTreeMap<u64, TimerfdV2Instance>,
     next_id: u64,
@@ -383,18 +422,22 @@ pub struct BridgeTimerfdV2 {
 impl BridgeTimerfdV2 {
     pub fn new() -> Self { Self { timers: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, clock: TimerfdV2Clock, pid: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.timers.insert(id, TimerfdV2Instance::new(id, clock, pid, now));
         id
     }
 
+    #[inline(always)]
     pub fn close(&mut self, id: u64) { self.timers.remove(&id); }
 
+    #[inline(always)]
     pub fn arm(&mut self, id: u64, spec: TimerfdV2Spec) {
         if let Some(t) = self.timers.get_mut(&id) { t.arm(spec); }
     }
 
+    #[inline]
     pub fn tick(&mut self, now: u64) {
         for timer in self.timers.values_mut() {
             if timer.armed && timer.spec.value_ns > 0 && now >= timer.created_at + timer.spec.value_ns {
@@ -403,6 +446,7 @@ impl BridgeTimerfdV2 {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> TimerfdV2BridgeStats {
         let armed = self.timers.values().filter(|t| t.armed).count() as u32;
         let periodic = self.timers.values().filter(|t| t.is_periodic()).count() as u32;
@@ -435,6 +479,7 @@ pub enum TimerV3State {
 
 /// Timer v3 entry
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct TimerV3Entry {
     pub fd: u64,
     pub clock: TimerV3Clock,
@@ -453,6 +498,7 @@ impl TimerV3Entry {
         Self { fd, clock, state: TimerV3State::Disarmed, interval_ns: 0, value_ns: 0, absolute: false, expiration_count: 0, overrun_count: 0, created_at: now, armed_at: 0 }
     }
 
+    #[inline]
     pub fn arm(&mut self, value: u64, interval: u64, absolute: bool, now: u64) {
         self.value_ns = value;
         self.interval_ns = interval;
@@ -461,13 +507,16 @@ impl TimerV3Entry {
         self.armed_at = now;
     }
 
+    #[inline(always)]
     pub fn disarm(&mut self) { self.state = TimerV3State::Disarmed; }
 
+    #[inline(always)]
     pub fn expire(&mut self) {
         self.expiration_count += 1;
         if self.interval_ns == 0 { self.state = TimerV3State::Expired; }
     }
 
+    #[inline]
     pub fn read(&mut self) -> u64 {
         let c = self.expiration_count;
         self.expiration_count = 0;
@@ -477,6 +526,7 @@ impl TimerV3Entry {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdV3BridgeStats {
     pub total_timers: u32,
     pub armed: u32,
@@ -485,6 +535,7 @@ pub struct TimerfdV3BridgeStats {
 }
 
 /// Main bridge timerfd v3
+#[repr(align(64))]
 pub struct BridgeTimerfdV3 {
     timers: BTreeMap<u64, TimerV3Entry>,
     next_fd: u64,
@@ -493,26 +544,32 @@ pub struct BridgeTimerfdV3 {
 impl BridgeTimerfdV3 {
     pub fn new() -> Self { Self { timers: BTreeMap::new(), next_fd: 1 } }
 
+    #[inline]
     pub fn create(&mut self, clock: TimerV3Clock, now: u64) -> u64 {
         let fd = self.next_fd; self.next_fd += 1;
         self.timers.insert(fd, TimerV3Entry::new(fd, clock, now));
         fd
     }
 
+    #[inline(always)]
     pub fn settime(&mut self, fd: u64, value: u64, interval: u64, abs: bool, now: u64) {
         if let Some(t) = self.timers.get_mut(&fd) { t.arm(value, interval, abs, now); }
     }
 
+    #[inline(always)]
     pub fn expire(&mut self, fd: u64) {
         if let Some(t) = self.timers.get_mut(&fd) { t.expire(); }
     }
 
+    #[inline(always)]
     pub fn read(&mut self, fd: u64) -> u64 {
         if let Some(t) = self.timers.get_mut(&fd) { t.read() } else { 0 }
     }
 
+    #[inline(always)]
     pub fn close(&mut self, fd: u64) { self.timers.remove(&fd); }
 
+    #[inline]
     pub fn stats(&self) -> TimerfdV3BridgeStats {
         let armed = self.timers.values().filter(|t| t.state == TimerV3State::Armed).count() as u32;
         let exps: u64 = self.timers.values().map(|t| t.expiration_count).sum();
@@ -556,6 +613,7 @@ pub enum TimerfdV4State {
 
 /// A timerfd instance.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdV4Instance {
     pub timer_id: u64,
     pub fd: i32,
@@ -589,6 +647,7 @@ impl TimerfdV4Instance {
         }
     }
 
+    #[inline]
     pub fn arm(&mut self, expiry_ns: u64, interval_ns: u64) {
         self.initial_expiry_ns = expiry_ns;
         self.interval_ns = interval_ns;
@@ -596,12 +655,14 @@ impl TimerfdV4Instance {
         self.settime_count += 1;
     }
 
+    #[inline]
     pub fn disarm(&mut self) {
         self.state = TimerfdV4State::Disarmed;
         self.initial_expiry_ns = 0;
         self.interval_ns = 0;
     }
 
+    #[inline]
     pub fn expire(&mut self) {
         self.expirations += 1;
         if self.interval_ns == 0 {
@@ -610,6 +671,7 @@ impl TimerfdV4Instance {
         // periodic timers stay armed
     }
 
+    #[inline]
     pub fn read_expirations(&mut self) -> u64 {
         let count = self.expirations;
         self.expirations = 0;
@@ -617,10 +679,12 @@ impl TimerfdV4Instance {
         count
     }
 
+    #[inline(always)]
     pub fn is_periodic(&self) -> bool {
         self.interval_ns > 0
     }
 
+    #[inline]
     pub fn is_alarm(&self) -> bool {
         matches!(
             self.clock,
@@ -631,6 +695,7 @@ impl TimerfdV4Instance {
 
 /// Statistics for timerfd V4 bridge.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdV4BridgeStats {
     pub total_timers: u64,
     pub armed_timers: u64,
@@ -643,6 +708,7 @@ pub struct TimerfdV4BridgeStats {
 }
 
 /// Main bridge timerfd V4 manager.
+#[repr(align(64))]
 pub struct BridgeTimerfdV4 {
     pub timers: BTreeMap<u64, TimerfdV4Instance>,
     pub fd_to_timer: BTreeMap<i32, u64>,
@@ -696,6 +762,7 @@ impl BridgeTimerfdV4 {
         }
     }
 
+    #[inline]
     pub fn expire_timer(&mut self, timer_id: u64) -> bool {
         if let Some(timer) = self.timers.get_mut(&timer_id) {
             timer.expire();
@@ -706,6 +773,7 @@ impl BridgeTimerfdV4 {
         }
     }
 
+    #[inline(always)]
     pub fn timer_count(&self) -> usize {
         self.timers.len()
     }

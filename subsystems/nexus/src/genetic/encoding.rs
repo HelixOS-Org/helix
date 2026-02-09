@@ -704,6 +704,7 @@ impl TreeEncoding {
     }
 
     /// Count nodes in tree
+    #[inline]
     pub fn node_count(&self, tree: &TreeNode) -> usize {
         1 + tree
             .children

@@ -26,6 +26,7 @@ impl CnfFormula {
     }
 
     /// Add a new variable
+    #[inline]
     pub fn new_var(&mut self) -> VarId {
         let id = self.num_vars;
         self.num_vars += 1;
@@ -33,11 +34,13 @@ impl CnfFormula {
     }
 
     /// Add a clause
+    #[inline(always)]
     pub fn add_clause(&mut self, clause: Clause) {
         self.clauses.push(clause);
     }
 
     /// Add unit clause (assert literal)
+    #[inline(always)]
     pub fn add_unit(&mut self, lit: Literal) {
         self.add_clause(Clause::unit(lit));
     }

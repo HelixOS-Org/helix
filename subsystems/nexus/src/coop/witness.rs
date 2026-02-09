@@ -95,12 +95,14 @@ impl Witness {
     }
 
     /// Can accept new agreement
+    #[inline(always)]
     pub fn can_accept(&self) -> bool {
         self.status == WitnessStatus::Available
             && self.active_agreements.len() < self.max_concurrent
     }
 
     /// Assign agreement
+    #[inline]
     pub fn assign(&mut self, agreement_id: u64) {
         self.active_agreements.push(agreement_id);
         self.agreements_witnessed += 1;
@@ -112,6 +114,7 @@ impl Witness {
     }
 
     /// Complete agreement
+    #[inline]
     pub fn complete(&mut self, agreement_id: u64) {
         self.active_agreements.retain(|&a| a != agreement_id);
         if self.active_agreements.is_empty() {
@@ -233,11 +236,13 @@ impl AgreementRecord {
     }
 
     /// Witness count
+    #[inline(always)]
     pub fn witness_count(&self) -> usize {
         self.witnesses.len()
     }
 
     /// Attestation count
+    #[inline(always)]
     pub fn attestation_count(&self) -> usize {
         self.attestations.len()
     }
@@ -249,6 +254,7 @@ impl AgreementRecord {
 
 /// Witness manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopWitnessStats {
     /// Registered witnesses
     pub witness_count: usize,
@@ -290,6 +296,7 @@ impl CoopWitnessManager {
     }
 
     /// Register witness
+    #[inline(always)]
     pub fn register_witness(&mut self, pid: u64, role: WitnessRole) {
         self.witnesses.insert(pid, Witness::new(pid, role));
         self.update_counts();
@@ -362,6 +369,7 @@ impl CoopWitnessManager {
     }
 
     /// Complete agreement
+    #[inline]
     pub fn complete_agreement(&mut self, agreement_id: u64, now: u64) {
         if let Some(agreement) = self.agreements.get_mut(&agreement_id) {
             agreement.completed_at = Some(now);
@@ -375,6 +383,7 @@ impl CoopWitnessManager {
     }
 
     /// File dispute
+    #[inline]
     pub fn file_dispute(&mut self, agreement_id: u64) {
         if let Some(agreement) = self.agreements.get_mut(&agreement_id) {
             agreement.dispute_pending = true;
@@ -397,16 +406,19 @@ impl CoopWitnessManager {
     }
 
     /// Get witness
+    #[inline(always)]
     pub fn witness(&self, pid: u64) -> Option<&Witness> {
         self.witnesses.get(&pid)
     }
 
     /// Get agreement
+    #[inline(always)]
     pub fn agreement(&self, id: u64) -> Option<&AgreementRecord> {
         self.agreements.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopWitnessStats {
         &self.stats
     }

@@ -22,6 +22,7 @@ use crate::types::Timestamp;
 
 /// Cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheEntry<T: Clone> {
     /// Entry ID
     pub id: u64,
@@ -71,6 +72,7 @@ pub enum CacheEvictionPolicy {
 
 /// Cache statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CacheStats {
     /// Hits
     pub hits: u64,
@@ -83,6 +85,7 @@ pub struct CacheStats {
 }
 
 impl CacheStats {
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
         if total == 0 {
@@ -95,6 +98,7 @@ impl CacheStats {
 
 /// Cache configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheConfig {
     /// Level
     pub level: CacheLevel,
@@ -128,6 +132,7 @@ impl Default for CacheConfig {
 // ============================================================================
 
 /// Cache layer
+#[repr(align(64))]
 pub struct CacheLayer<T: Clone> {
     /// Entries
     entries: BTreeMap<String, CacheEntry<T>>,
@@ -193,6 +198,7 @@ impl<T: Clone> CacheLayer<T> {
     }
 
     /// Put entry
+    #[inline(always)]
     pub fn put(&mut self, key: &str, value: T, size: usize) {
         self.put_with_ttl(key, value, size, self.config.default_ttl_ms)
     }
@@ -243,6 +249,7 @@ impl<T: Clone> CacheLayer<T> {
     }
 
     /// Remove entry
+    #[inline]
     pub fn remove(&mut self, key: &str) -> Option<T> {
         if let Some(entry) = self.entries.remove(key) {
             self.current_size -= entry.size;
@@ -357,6 +364,7 @@ impl<T: Clone> CacheLayer<T> {
     }
 
     /// Mark dirty
+    #[inline]
     pub fn mark_dirty(&mut self, key: &str) {
         if let Some(entry) = self.entries.get_mut(key) {
             entry.dirty = true;
@@ -379,21 +387,25 @@ impl<T: Clone> CacheLayer<T> {
     }
 
     /// Contains key
+    #[inline(always)]
     pub fn contains(&self, key: &str) -> bool {
         self.entries.contains_key(key)
     }
 
     /// Current entry count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
     /// Clear cache
+    #[inline]
     pub fn clear(&mut self) {
         self.entries.clear();
         self.reference_bits.clear();
@@ -401,6 +413,7 @@ impl<T: Clone> CacheLayer<T> {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CacheStats {
         &self.stats
     }
@@ -411,6 +424,7 @@ impl<T: Clone> CacheLayer<T> {
 // ============================================================================
 
 /// Multi-level cache
+#[repr(align(64))]
 pub struct MultiLevelCache<T: Clone> {
     /// L1 cache
     l1: CacheLayer<T>,
@@ -464,6 +478,7 @@ impl<T: Clone> MultiLevelCache<T> {
     }
 
     /// Put to all levels
+    #[inline]
     pub fn put(&mut self, key: &str, value: T, size: usize) {
         self.l1.put(key, value.clone(), size);
         self.l2.put(key, value.clone(), size);
@@ -473,6 +488,7 @@ impl<T: Clone> MultiLevelCache<T> {
     }
 
     /// Invalidate key across all levels
+    #[inline]
     pub fn invalidate(&mut self, key: &str) {
         self.l1.remove(key);
         self.l2.remove(key);
@@ -482,6 +498,7 @@ impl<T: Clone> MultiLevelCache<T> {
     }
 
     /// Clear all levels
+    #[inline]
     pub fn clear(&mut self) {
         self.l1.clear();
         self.l2.clear();

@@ -45,6 +45,7 @@ impl Semaphore {
         Self { value: 0, last_pid: 0, wait_count: 0, total_ops: 0, peak_value: 0, zero_wait_count: 0 }
     }
 
+    #[inline]
     pub fn set_value(&mut self, val: i32, pid: u64) {
         self.value = val;
         self.last_pid = pid;
@@ -68,15 +69,21 @@ impl SemOp {
         Self { sem_num: num, sem_op: op, sem_flg: flg }
     }
 
+    #[inline(always)]
     pub fn is_nowait(&self) -> bool { self.sem_flg & Self::IPC_NOWAIT != 0 }
+    #[inline(always)]
     pub fn has_undo(&self) -> bool { self.sem_flg & Self::SEM_UNDO != 0 }
+    #[inline(always)]
     pub fn is_wait(&self) -> bool { self.sem_op < 0 }
+    #[inline(always)]
     pub fn is_signal(&self) -> bool { self.sem_op > 0 }
+    #[inline(always)]
     pub fn is_zero_wait(&self) -> bool { self.sem_op == 0 }
 }
 
 /// Undo entry for a process
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemUndo {
     pub pid: u64,
     pub adjustments: BTreeMap<u16, i16>,
@@ -87,6 +94,7 @@ impl SemUndo {
         Self { pid, adjustments: BTreeMap::new() }
     }
 
+    #[inline(always)]
     pub fn record(&mut self, sem_num: u16, delta: i16) {
         let entry = self.adjustments.entry(sem_num).or_insert(0);
         *entry = entry.wrapping_add(-delta);
@@ -104,6 +112,7 @@ pub struct SemWaiter {
 
 /// Semaphore set
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemaphoreSet {
     pub sem_id: u32,
     pub key: i32,
@@ -205,7 +214,9 @@ impl SemaphoreSet {
         self.waiters.retain(|w| w.pid != pid);
     }
 
+    #[inline(always)]
     pub fn total_waiters(&self) -> usize { self.waiters.len() }
+    #[inline]
     pub fn contention_score(&self) -> f64 {
         let total_waits: u32 = self.sems.iter().map(|s| s.wait_count).sum();
         if self.total_ops == 0 { return 0.0; }
@@ -215,6 +226,7 @@ impl SemaphoreSet {
 
 /// SEM bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SemBridgeStats {
     pub total_sets: usize,
     pub total_semaphores: usize,
@@ -226,6 +238,7 @@ pub struct SemBridgeStats {
 }
 
 /// Bridge semaphore manager
+#[repr(align(64))]
 pub struct BridgeSemBridge {
     sets: BTreeMap<u32, SemaphoreSet>,
     key_to_id: BTreeMap<i32, u32>,
@@ -255,12 +268,14 @@ impl BridgeSemBridge {
         id
     }
 
+    #[inline]
     pub fn semop(&mut self, sem_id: u32, ops: &[SemOp], pid: u64, ts: u64) -> Result<(), bool> {
         if let Some(set) = self.sets.get_mut(&sem_id) {
             set.try_ops(ops, pid, ts)
         } else { Err(true) }
     }
 
+    #[inline]
     pub fn semctl_rmid(&mut self, sem_id: u32) -> bool {
         if let Some(set) = self.sets.get(&sem_id) {
             let key = set.key;
@@ -270,6 +285,7 @@ impl BridgeSemBridge {
         } else { false }
     }
 
+    #[inline]
     pub fn semctl_setval(&mut self, sem_id: u32, sem_num: u16, val: i32, pid: u64) {
         if let Some(set) = self.sets.get_mut(&sem_id) {
             let idx = sem_num as usize;
@@ -279,6 +295,7 @@ impl BridgeSemBridge {
         }
     }
 
+    #[inline]
     pub fn process_exit(&mut self, pid: u64, ts: u64) {
         let ids: Vec<u32> = self.sets.keys().copied().collect();
         for id in ids {
@@ -288,6 +305,7 @@ impl BridgeSemBridge {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_sets = self.sets.len();
         self.stats.total_semaphores = self.sets.values().map(|s| s.nsems as usize).sum();
@@ -298,6 +316,8 @@ impl BridgeSemBridge {
         self.stats.high_contention_sets = self.sets.values().filter(|s| s.contention_score() > 0.5).count();
     }
 
+    #[inline(always)]
     pub fn set(&self, id: u32) -> Option<&SemaphoreSet> { self.sets.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &SemBridgeStats { &self.stats }
 }

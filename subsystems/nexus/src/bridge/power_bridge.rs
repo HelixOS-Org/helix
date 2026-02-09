@@ -46,6 +46,7 @@ pub enum DomainState {
 
 /// Power domain
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PowerDomain {
     pub id: u64,
     pub name: String,
@@ -70,12 +71,16 @@ impl PowerDomain {
         }
     }
 
+    #[inline(always)]
     pub fn power_on(&mut self) { self.state = DomainState::On; self.on_count += 1; }
+    #[inline(always)]
     pub fn power_off(&mut self) -> bool {
         if self.usage_count > 0 { return false; }
         self.state = DomainState::Off; self.off_count += 1; true
     }
+    #[inline(always)]
     pub fn acquire(&mut self) { self.usage_count += 1; if self.state != DomainState::On { self.power_on(); } }
+    #[inline(always)]
     pub fn release(&mut self) { self.usage_count = self.usage_count.saturating_sub(1); }
 }
 
@@ -113,16 +118,22 @@ impl DevicePower {
         }
     }
 
+    #[inline(always)]
     pub fn mark_busy(&mut self, ts: u64) { self.last_busy_ts = ts; self.rpm_state = RuntimePmState::Active; }
 
+    #[inline(always)]
     pub fn suspend(&mut self) -> bool {
         if self.usage_count > 0 || self.disable_depth > 0 { return false; }
         self.rpm_state = RuntimePmState::Suspended; self.suspend_count += 1; true
     }
 
+    #[inline(always)]
     pub fn resume(&mut self) { self.rpm_state = RuntimePmState::Active; self.resume_count += 1; }
+    #[inline(always)]
     pub fn get_ref(&mut self) { self.usage_count += 1; if self.rpm_state == RuntimePmState::Suspended { self.resume(); } }
+    #[inline(always)]
     pub fn put_ref(&mut self) { self.usage_count = self.usage_count.saturating_sub(1); }
+    #[inline(always)]
     pub fn is_idle(&self, now: u64) -> bool { self.usage_count == 0 && now - self.last_busy_ts > self.idle_timeout_ms * 1000 }
 }
 
@@ -151,8 +162,10 @@ impl WakeupSource {
         }
     }
 
+    #[inline(always)]
     pub fn activate(&mut self, ts: u64) { self.active = true; self.active_since = ts; self.event_count += 1; }
 
+    #[inline]
     pub fn deactivate(&mut self, ts: u64) {
         if self.active {
             let dur = ts.saturating_sub(self.active_since);
@@ -166,6 +179,7 @@ impl WakeupSource {
 
 /// Power bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PowerBridgeStats {
     pub total_domains: usize,
     pub domains_off: usize,
@@ -178,6 +192,7 @@ pub struct PowerBridgeStats {
 }
 
 /// Bridge power manager
+#[repr(align(64))]
 pub struct BridgePowerBridge {
     domains: BTreeMap<u64, PowerDomain>,
     devices: BTreeMap<u64, DevicePower>,
@@ -192,12 +207,14 @@ impl BridgePowerBridge {
         Self { domains: BTreeMap::new(), devices: BTreeMap::new(), wakeup_sources: BTreeMap::new(), system_state: SleepState::S0, stats: PowerBridgeStats::default(), next_id: 1 }
     }
 
+    #[inline]
     pub fn create_domain(&mut self, name: String) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.domains.insert(id, PowerDomain::new(id, name));
         id
     }
 
+    #[inline]
     pub fn register_device(&mut self, name: String, domain: Option<u64>) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut dev = DevicePower::new(id, name);
@@ -207,31 +224,43 @@ impl BridgePowerBridge {
         id
     }
 
+    #[inline]
     pub fn register_wakeup_source(&mut self, name: String) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.wakeup_sources.insert(id, WakeupSource::new(id, name));
         id
     }
 
+    #[inline(always)]
     pub fn device_get(&mut self, id: u64) { if let Some(d) = self.devices.get_mut(&id) { d.get_ref(); } }
+    #[inline(always)]
     pub fn device_put(&mut self, id: u64) { if let Some(d) = self.devices.get_mut(&id) { d.put_ref(); } }
+    #[inline(always)]
     pub fn device_busy(&mut self, id: u64, ts: u64) { if let Some(d) = self.devices.get_mut(&id) { d.mark_busy(ts); } }
 
+    #[inline(always)]
     pub fn suspend_device(&mut self, id: u64) -> bool { self.devices.get_mut(&id).map(|d| d.suspend()).unwrap_or(false) }
+    #[inline(always)]
     pub fn resume_device(&mut self, id: u64) { if let Some(d) = self.devices.get_mut(&id) { d.resume(); } }
 
+    #[inline(always)]
     pub fn activate_wakeup(&mut self, id: u64, ts: u64) { if let Some(w) = self.wakeup_sources.get_mut(&id) { w.activate(ts); } }
+    #[inline(always)]
     pub fn deactivate_wakeup(&mut self, id: u64, ts: u64) { if let Some(w) = self.wakeup_sources.get_mut(&id) { w.deactivate(ts); } }
 
+    #[inline(always)]
     pub fn system_sleep(&self) -> SleepState { self.system_state }
+    #[inline(always)]
     pub fn set_sleep_state(&mut self, s: SleepState) { self.system_state = s; }
 
+    #[inline]
     pub fn auto_suspend_idle(&mut self, now: u64) -> Vec<u64> {
         let idle: Vec<u64> = self.devices.values().filter(|d| d.runtime_auto && d.is_idle(now) && d.rpm_state == RuntimePmState::Active).map(|d| d.device_id).collect();
         for &id in &idle { self.suspend_device(id); }
         idle
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_domains = self.domains.len();
         self.stats.domains_off = self.domains.values().filter(|d| d.state == DomainState::Off).count();
@@ -243,7 +272,10 @@ impl BridgePowerBridge {
         self.stats.total_resumes = self.devices.values().map(|d| d.resume_count).sum();
     }
 
+    #[inline(always)]
     pub fn domain(&self, id: u64) -> Option<&PowerDomain> { self.domains.get(&id) }
+    #[inline(always)]
     pub fn device(&self, id: u64) -> Option<&DevicePower> { self.devices.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &PowerBridgeStats { &self.stats }
 }

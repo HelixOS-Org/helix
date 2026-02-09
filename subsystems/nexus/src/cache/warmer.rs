@@ -11,6 +11,7 @@ use super::types::CacheKey;
 // ============================================================================
 
 /// Pre-warms cache with predicted entries
+#[repr(align(64))]
 pub struct CacheWarmer {
     /// Warm candidates
     candidates: Vec<WarmCandidate>,
@@ -60,11 +61,13 @@ impl CacheWarmer {
     }
 
     /// Learn pattern
+    #[inline(always)]
     pub fn learn_pattern(&mut self, name: &str, keys: Vec<CacheKey>) {
         self.patterns.insert(String::from(name), keys);
     }
 
     /// Apply pattern
+    #[inline]
     pub fn apply_pattern(&mut self, name: &str) {
         if let Some(keys) = self.patterns.get(name).cloned() {
             for (i, key) in keys.iter().enumerate() {
@@ -75,6 +78,7 @@ impl CacheWarmer {
     }
 
     /// Get next candidates to warm
+    #[inline]
     pub fn next_candidates(&mut self, count: usize) -> Vec<CacheKey> {
         let mut result = Vec::new();
         for _ in 0..count {
@@ -88,16 +92,19 @@ impl CacheWarmer {
     }
 
     /// Has candidates
+    #[inline(always)]
     pub fn has_candidates(&self) -> bool {
         !self.candidates.is_empty()
     }
 
     /// Candidate count
+    #[inline(always)]
     pub fn candidate_count(&self) -> usize {
         self.candidates.len()
     }
 
     /// Clear candidates
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.candidates.clear();
     }

@@ -181,11 +181,13 @@ impl Example {
     }
 
     /// Get feature
+    #[inline(always)]
     pub fn get(&self, name: &str) -> Option<&FeatureValue> {
         self.features.get(name)
     }
 
     /// Has feature
+    #[inline(always)]
     pub fn has(&self, name: &str) -> bool {
         self.features.contains_key(name)
     }
@@ -280,6 +282,7 @@ impl Default for GeneralizationConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct GeneralizationStats {
     /// Patterns created
     pub patterns_created: u64,
@@ -305,6 +308,7 @@ impl GeneralizationEngine {
     }
 
     /// Add example
+    #[inline]
     pub fn add_example(&mut self, mut example: Example) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         example.id = id;
@@ -720,11 +724,13 @@ impl GeneralizationEngine {
     }
 
     /// Get pattern
+    #[inline(always)]
     pub fn get_pattern(&self, id: u64) -> Option<&Pattern> {
         self.patterns.get(&id)
     }
 
     /// Find matching patterns
+    #[inline]
     pub fn find_matching(&self, example: &Example) -> Vec<&Pattern> {
         self.patterns
             .values()
@@ -733,6 +739,7 @@ impl GeneralizationEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &GeneralizationStats {
         &self.stats
     }

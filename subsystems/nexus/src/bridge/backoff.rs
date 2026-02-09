@@ -82,6 +82,7 @@ pub struct BackoffConfig {
 
 impl BackoffConfig {
     /// Default config for transient errors
+    #[inline]
     pub fn transient() -> Self {
         Self {
             strategy: BackoffStrategy::ExponentialJitter,
@@ -94,6 +95,7 @@ impl BackoffConfig {
     }
 
     /// Default config for throttled errors
+    #[inline]
     pub fn throttled() -> Self {
         Self {
             strategy: BackoffStrategy::Exponential,
@@ -106,6 +108,7 @@ impl BackoffConfig {
     }
 
     /// Default config for timeout
+    #[inline]
     pub fn timeout() -> Self {
         Self {
             strategy: BackoffStrategy::Linear,
@@ -205,6 +208,7 @@ impl BackoffTracker {
     }
 
     /// Record success — reset
+    #[inline]
     pub fn record_success(&mut self) {
         self.attempt = 0;
         self.current_delay_ns = self.config.initial_delay_ns;
@@ -213,6 +217,7 @@ impl BackoffTracker {
     }
 
     /// Check if should retry now
+    #[inline]
     pub fn should_retry_now(&self, now: u64) -> bool {
         match self.state {
             BackoffState::Active | BackoffState::Ceiling => {
@@ -240,6 +245,7 @@ impl BackoffTracker {
 
 /// Per-process backoff state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessBackoff {
     /// Process ID
     pub pid: u64,
@@ -262,6 +268,7 @@ impl ProcessBackoff {
     }
 
     /// Get or create tracker for operation
+    #[inline]
     pub fn tracker_mut(
         &mut self,
         operation_key: u64,
@@ -273,6 +280,7 @@ impl ProcessBackoff {
     }
 
     /// Record failure
+    #[inline]
     pub fn record_failure(
         &mut self,
         operation_key: u64,
@@ -285,6 +293,7 @@ impl ProcessBackoff {
     }
 
     /// Record success
+    #[inline]
     pub fn record_success(&mut self, operation_key: u64) {
         if let Some(tracker) = self.trackers.get_mut(&operation_key) {
             if tracker.attempt > 0 {
@@ -295,11 +304,13 @@ impl ProcessBackoff {
     }
 
     /// Cleanup completed trackers
+    #[inline(always)]
     pub fn cleanup(&mut self) {
         self.trackers.retain(|_, t| t.state != BackoffState::Idle);
     }
 
     /// Active backoff count
+    #[inline]
     pub fn active_count(&self) -> usize {
         self.trackers
             .values()
@@ -314,6 +325,7 @@ impl ProcessBackoff {
 
 /// Backoff manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeBackoffStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -328,6 +340,7 @@ pub struct BridgeBackoffStats {
 }
 
 /// Bridge backoff manager
+#[repr(align(64))]
 pub struct BridgeBackoffManager {
     /// Per-process state
     processes: BTreeMap<u64, ProcessBackoff>,
@@ -392,6 +405,7 @@ impl BridgeBackoffManager {
     }
 
     /// Record success
+    #[inline]
     pub fn record_success(&mut self, pid: u64, syscall_nr: u32, arg_hash: u64) {
         let key = Self::operation_key(syscall_nr, arg_hash);
         if let Some(proc) = self.processes.get_mut(&pid) {
@@ -402,6 +416,7 @@ impl BridgeBackoffManager {
     }
 
     /// Should retry now
+    #[inline]
     pub fn should_retry(&self, pid: u64, syscall_nr: u32, arg_hash: u64, now: u64) -> bool {
         let key = Self::operation_key(syscall_nr, arg_hash);
         self.processes
@@ -412,6 +427,7 @@ impl BridgeBackoffManager {
     }
 
     /// Cleanup idle trackers
+    #[inline]
     pub fn cleanup(&mut self) {
         for proc in self.processes.values_mut() {
             proc.cleanup();
@@ -427,6 +443,7 @@ impl BridgeBackoffManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeBackoffStats {
         &self.stats
     }

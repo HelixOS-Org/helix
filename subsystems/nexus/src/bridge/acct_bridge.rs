@@ -37,11 +37,13 @@ impl AcctEntry {
         Self { pid, uid, gid: 0, record_type: rt, command_hash: 0, utime_ticks: 0, stime_ticks: 0, elapsed_ticks: 0, mem_peak_kb: 0, io_read_bytes: 0, io_write_bytes: 0, exit_code: 0, timestamp: now }
     }
 
+    #[inline(always)]
     pub fn total_cpu(&self) -> u64 { self.utime_ticks + self.stime_ticks }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AcctBridgeStats {
     pub total_records: u32,
     pub fork_records: u32,
@@ -52,6 +54,7 @@ pub struct AcctBridgeStats {
 }
 
 /// Main acct bridge
+#[repr(align(64))]
 pub struct BridgeAcct {
     records: BTreeMap<u64, AcctEntry>,
     next_id: u64,
@@ -61,6 +64,7 @@ pub struct BridgeAcct {
 impl BridgeAcct {
     pub fn new() -> Self { Self { records: BTreeMap::new(), next_id: 1, enabled: true } }
 
+    #[inline]
     pub fn record(&mut self, pid: u64, uid: u32, rt: AcctRecordType, now: u64) -> u64 {
         if !self.enabled { return 0; }
         let id = self.next_id; self.next_id += 1;
@@ -68,6 +72,7 @@ impl BridgeAcct {
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> AcctBridgeStats {
         let forks = self.records.values().filter(|r| r.record_type == AcctRecordType::Fork).count() as u32;
         let execs = self.records.values().filter(|r| r.record_type == AcctRecordType::Exec).count() as u32;

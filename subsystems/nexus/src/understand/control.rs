@@ -57,6 +57,7 @@ pub enum BlockType {
 
 /// Statement
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Statement {
     /// Statement ID
     pub id: u64,
@@ -184,6 +185,7 @@ impl Default for CFGConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CFGStats {
     /// Graphs created
     pub graphs_created: u64,
@@ -275,6 +277,7 @@ impl CFGBuilder {
     }
 
     /// Add statement
+    #[inline]
     pub fn add_statement(&mut self, graph_id: u64, block_id: u64, stmt: Statement) {
         if let Some(graph) = self.graphs.get_mut(&graph_id) {
             if let Some(block) = graph.blocks.get_mut(&block_id) {
@@ -312,6 +315,7 @@ impl CFGBuilder {
     }
 
     /// Get graph
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&ControlFlowGraph> {
         self.graphs.get(&id)
     }
@@ -517,6 +521,7 @@ impl CFGBuilder {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CFGStats {
         &self.stats
     }

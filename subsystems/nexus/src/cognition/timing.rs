@@ -20,6 +20,7 @@ use crate::types::{DomainId, Timestamp};
 
 /// A timer
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Timer {
     /// Timer ID
     pub id: u64,
@@ -43,6 +44,7 @@ pub struct Timer {
 
 /// Timer event
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerEvent {
     /// Timer ID
     pub timer_id: u64,
@@ -155,6 +157,7 @@ impl Default for TimingConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TimingStats {
     /// Total timers created
     pub total_timers: u64,
@@ -223,6 +226,7 @@ impl TimingManager {
     }
 
     /// Cancel a timer
+    #[inline]
     pub fn cancel_timer(&mut self, timer_id: u64) -> bool {
         let removed = self.timers.remove(&timer_id).is_some();
         if removed {
@@ -232,6 +236,7 @@ impl TimingManager {
     }
 
     /// Pause a timer
+    #[inline]
     pub fn pause_timer(&mut self, timer_id: u64) {
         if let Some(timer) = self.timers.get_mut(&timer_id) {
             timer.enabled = false;
@@ -239,6 +244,7 @@ impl TimingManager {
     }
 
     /// Resume a timer
+    #[inline]
     pub fn resume_timer(&mut self, timer_id: u64) {
         if let Some(timer) = self.timers.get_mut(&timer_id) {
             timer.enabled = true;
@@ -247,6 +253,7 @@ impl TimingManager {
     }
 
     /// Reset a timer
+    #[inline]
     pub fn reset_timer(&mut self, timer_id: u64) {
         if let Some(timer) = self.timers.get_mut(&timer_id) {
             timer.start_time = Timestamp::now();
@@ -255,11 +262,13 @@ impl TimingManager {
     }
 
     /// Get timer
+    #[inline(always)]
     pub fn get_timer(&self, timer_id: u64) -> Option<&Timer> {
         self.timers.get(&timer_id)
     }
 
     /// Get timers by owner
+    #[inline(always)]
     pub fn get_timers_by_owner(&self, owner: DomainId) -> Vec<&Timer> {
         self.timers.values().filter(|t| t.owner == owner).collect()
     }
@@ -295,6 +304,7 @@ impl TimingManager {
     }
 
     /// Create a deadline relative to now
+    #[inline(always)]
     pub fn create_deadline_relative(
         &mut self,
         description: &str,
@@ -336,6 +346,7 @@ impl TimingManager {
     }
 
     /// Cancel a deadline
+    #[inline]
     pub fn cancel_deadline(&mut self, deadline_id: u64) -> bool {
         let removed = self.deadlines.remove(&deadline_id).is_some();
         if removed {
@@ -345,6 +356,7 @@ impl TimingManager {
     }
 
     /// Get deadline
+    #[inline(always)]
     pub fn get_deadline(&self, deadline_id: u64) -> Option<&Deadline> {
         self.deadlines.get(&deadline_id)
     }
@@ -378,6 +390,7 @@ impl TimingManager {
     }
 
     /// Use budget
+    #[inline]
     pub fn use_budget(&mut self, budget_id: u64, amount_ns: u64) -> bool {
         if let Some(budget) = self.budgets.get_mut(&budget_id) {
             if budget.used_ns + amount_ns <= budget.total_ns {
@@ -389,6 +402,7 @@ impl TimingManager {
     }
 
     /// Check remaining budget
+    #[inline]
     pub fn remaining_budget(&self, budget_id: u64) -> u64 {
         self.budgets
             .get(&budget_id)
@@ -397,6 +411,7 @@ impl TimingManager {
     }
 
     /// Replenish budget
+    #[inline]
     pub fn replenish_budget(&mut self, budget_id: u64) {
         if let Some(budget) = self.budgets.get_mut(&budget_id) {
             budget.used_ns = 0;
@@ -405,6 +420,7 @@ impl TimingManager {
     }
 
     /// Delete budget
+    #[inline(always)]
     pub fn delete_budget(&mut self, budget_id: u64) -> bool {
         self.budgets.remove(&budget_id).is_some()
     }
@@ -476,11 +492,13 @@ impl TimingManager {
     }
 
     /// Get pending events
+    #[inline(always)]
     pub fn get_pending_events(&mut self) -> Vec<TimerEvent> {
         core::mem::take(&mut self.pending_events)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &TimingStats {
         &self.stats
     }
@@ -514,6 +532,7 @@ impl Stopwatch {
     }
 
     /// Create a stopped stopwatch
+    #[inline]
     pub fn new_stopped() -> Self {
         Self {
             start: Timestamp::now(),
@@ -524,6 +543,7 @@ impl Stopwatch {
     }
 
     /// Start the stopwatch
+    #[inline]
     pub fn start(&mut self) {
         if !self.running {
             self.start = Timestamp::now();
@@ -532,6 +552,7 @@ impl Stopwatch {
     }
 
     /// Stop the stopwatch
+    #[inline]
     pub fn stop(&mut self) {
         if self.running {
             self.accumulated += Timestamp::now().elapsed_since(self.start);
@@ -540,6 +561,7 @@ impl Stopwatch {
     }
 
     /// Reset the stopwatch
+    #[inline]
     pub fn reset(&mut self) {
         self.start = Timestamp::now();
         self.accumulated = 0;
@@ -547,12 +569,14 @@ impl Stopwatch {
     }
 
     /// Restart the stopwatch
+    #[inline(always)]
     pub fn restart(&mut self) {
         self.reset();
         self.running = true;
     }
 
     /// Record a lap
+    #[inline]
     pub fn lap(&mut self) -> u64 {
         let elapsed = self.elapsed_ns();
         self.laps.push(elapsed);
@@ -560,6 +584,7 @@ impl Stopwatch {
     }
 
     /// Get elapsed time in nanoseconds
+    #[inline]
     pub fn elapsed_ns(&self) -> u64 {
         if self.running {
             self.accumulated + Timestamp::now().elapsed_since(self.start)
@@ -569,26 +594,31 @@ impl Stopwatch {
     }
 
     /// Get elapsed time in microseconds
+    #[inline(always)]
     pub fn elapsed_us(&self) -> u64 {
         self.elapsed_ns() / 1_000
     }
 
     /// Get elapsed time in milliseconds
+    #[inline(always)]
     pub fn elapsed_ms(&self) -> u64 {
         self.elapsed_ns() / 1_000_000
     }
 
     /// Check if running
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running
     }
 
     /// Get lap times
+    #[inline(always)]
     pub fn laps(&self) -> &[u64] {
         &self.laps
     }
 
     /// Get last lap time
+    #[inline(always)]
     pub fn last_lap(&self) -> Option<u64> {
         self.laps.last().copied()
     }

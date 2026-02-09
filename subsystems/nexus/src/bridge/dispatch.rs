@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -67,6 +68,7 @@ pub enum HandlerState {
 
 /// Dispatch table handler entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HandlerEntry {
     /// Syscall number
     pub syscall_nr: u32,
@@ -122,6 +124,7 @@ impl HandlerEntry {
     }
 
     /// Average latency
+    #[inline]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.invocations == 0 {
             return 0;
@@ -130,6 +133,7 @@ impl HandlerEntry {
     }
 
     /// Error rate
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         if self.invocations == 0 {
             return 0.0;
@@ -138,6 +142,7 @@ impl HandlerEntry {
     }
 
     /// Throughput (invocations per second given total time)
+    #[inline]
     pub fn throughput(&self) -> f64 {
         if self.total_latency_ns == 0 {
             return 0.0;
@@ -155,6 +160,7 @@ const HOT_PATH_THRESHOLD: u64 = 1000;
 
 /// Dispatch table
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct DispatchTable {
     /// Handlers keyed by syscall number
     handlers: BTreeMap<u32, HandlerEntry>,
@@ -174,12 +180,14 @@ impl DispatchTable {
     }
 
     /// Register handler
+    #[inline(always)]
     pub fn register(&mut self, syscall_nr: u32, handler_type: HandlerType) {
         self.handlers
             .insert(syscall_nr, HandlerEntry::new(syscall_nr, handler_type));
     }
 
     /// Lookup handler
+    #[inline(always)]
     pub fn lookup(&self, syscall_nr: u32) -> Option<&HandlerEntry> {
         self.handlers.get(&syscall_nr)
     }
@@ -205,6 +213,7 @@ impl DispatchTable {
     }
 
     /// Record invocation
+    #[inline]
     pub fn record_invocation(&mut self, syscall_nr: u32, latency_ns: u64, success: bool) {
         if let Some(handler) = self.handlers.get_mut(&syscall_nr) {
             handler.record(latency_ns, success);
@@ -217,6 +226,7 @@ impl DispatchTable {
     }
 
     /// Rebuild hot cache
+    #[inline]
     pub fn rebuild_hot_cache(&mut self) {
         let mut entries: Vec<(u32, u64)> = self
             .handlers
@@ -230,16 +240,19 @@ impl DispatchTable {
     }
 
     /// Is hot path
+    #[inline(always)]
     pub fn is_hot(&self, syscall_nr: u32) -> bool {
         self.hot_cache.contains(&syscall_nr)
     }
 
     /// Handler count
+    #[inline(always)]
     pub fn handler_count(&self) -> usize {
         self.handlers.len()
     }
 
     /// Hot count
+    #[inline(always)]
     pub fn hot_count(&self) -> usize {
         self.hot_cache.len()
     }
@@ -262,18 +275,19 @@ pub struct DispatchPrediction {
 
 /// Markov predictor for syscall sequences
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct SyscallPredictor {
     /// Transition counts: (from, to) -> count
-    transitions: BTreeMap<u64, u64>,
+    transitions: LinearMap<u64, 64>,
     /// Last syscall per process
-    last_syscall: BTreeMap<u64, u32>,
+    last_syscall: LinearMap<u32, 64>,
 }
 
 impl SyscallPredictor {
     pub fn new() -> Self {
         Self {
-            transitions: BTreeMap::new(),
-            last_syscall: BTreeMap::new(),
+            transitions: LinearMap::new(),
+            last_syscall: LinearMap::new(),
         }
     }
 
@@ -288,17 +302,18 @@ impl SyscallPredictor {
     }
 
     /// Record transition
+    #[inline]
     pub fn record(&mut self, pid: u64, syscall_nr: u32) {
-        if let Some(&last) = self.last_syscall.get(&pid) {
+        if let Some(&last) = self.last_syscall.get(pid) {
             let key = Self::transition_key(last, syscall_nr);
-            *self.transitions.entry(key).or_insert(0) += 1;
+            self.transitions.add(key, 1);
         }
         self.last_syscall.insert(pid, syscall_nr);
     }
 
     /// Predict next syscall for process
     pub fn predict(&self, pid: u64, table: &DispatchTable) -> Option<DispatchPrediction> {
-        let &last = self.last_syscall.get(&pid)?;
+        let &last = self.last_syscall.get(pid)?;
         let mut best_nr = 0u32;
         let mut best_count = 0u64;
         let mut total = 0u64;
@@ -306,7 +321,7 @@ impl SyscallPredictor {
         // Check all registered handlers as candidates
         for (&nr, _) in &table.handlers {
             let key = Self::transition_key(last, nr);
-            let count = self.transitions.get(&key).copied().unwrap_or(0);
+            let count = self.transitions.get(key).copied().unwrap_or(0);
             total += count;
             if count > best_count {
                 best_count = count;
@@ -338,6 +353,7 @@ impl SyscallPredictor {
 
 /// Dispatch stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeDispatchStats {
     /// Total dispatches
     pub total_dispatches: u64,
@@ -373,6 +389,7 @@ impl BridgeDispatchOptimizer {
     }
 
     /// Register handler
+    #[inline(always)]
     pub fn register_handler(&mut self, syscall_nr: u32, handler_type: HandlerType) {
         self.table.register(syscall_nr, handler_type);
     }
@@ -404,22 +421,26 @@ impl BridgeDispatchOptimizer {
     }
 
     /// Record completion
+    #[inline(always)]
     pub fn record_completion(&mut self, syscall_nr: u32, latency_ns: u64, success: bool) {
         self.table
             .record_invocation(syscall_nr, latency_ns, success);
     }
 
     /// Predict next syscall
+    #[inline(always)]
     pub fn predict(&self, pid: u64) -> Option<DispatchPrediction> {
         self.predictor.predict(pid, &self.table)
     }
 
     /// Optimize (rebuild caches)
+    #[inline(always)]
     pub fn optimize(&mut self) {
         self.table.rebuild_hot_cache();
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeDispatchStats {
         &self.stats
     }

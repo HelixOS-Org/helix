@@ -21,6 +21,7 @@ pub struct BridgeShmemRegion {
 
 /// Shmem stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeShmemStats {
     pub total_created: u64,
     pub total_attached: u64,
@@ -30,6 +31,7 @@ pub struct BridgeShmemStats {
 }
 
 /// Manager for shmem bridge
+#[repr(align(64))]
 pub struct BridgeShmemManager {
     segments: BTreeMap<u64, BridgeShmemRegion>,
     next_id: u64,
@@ -45,6 +47,7 @@ impl BridgeShmemManager {
         }
     }
 
+    #[inline]
     pub fn create(&mut self, size: u64, shm_type: BridgeShmemType, creator: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let region = BridgeShmemRegion { id, shm_type, size, attach_count: 0, creator_pid: creator, permissions: 0o666 };
@@ -53,17 +56,21 @@ impl BridgeShmemManager {
         id
     }
 
+    #[inline(always)]
     pub fn attach(&mut self, id: u64) -> bool {
         if let Some(r) = self.segments.get_mut(&id) { r.attach_count += 1; self.stats.total_attached += 1; true } else { false }
     }
 
+    #[inline(always)]
     pub fn detach(&mut self, id: u64) -> bool {
         if let Some(r) = self.segments.get_mut(&id) { r.attach_count = r.attach_count.saturating_sub(1); self.stats.total_detached += 1; true } else { false }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, id: u64) -> bool {
         if self.segments.remove(&id).is_some() { self.stats.active_segments -= 1; true } else { false }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeShmemStats { &self.stats }
 }

@@ -42,21 +42,25 @@ pub struct DomainLoad {
 
 impl DomainLoad {
     /// Check if overloaded
+    #[inline(always)]
     pub fn is_overloaded(&self, threshold: f64) -> bool {
         self.current_load > threshold
     }
 
     /// Check if underloaded
+    #[inline(always)]
     pub fn is_underloaded(&self, threshold: f64) -> bool {
         self.current_load < threshold
     }
 
     /// Get available capacity
+    #[inline(always)]
     pub fn available_capacity(&self) -> u64 {
         self.capacity.saturating_sub(self.active_tasks)
     }
 
     /// Calculate effective weight (weight * available capacity)
+    #[inline]
     pub fn effective_weight(&self) -> f64 {
         if !self.healthy {
             return 0.0;
@@ -156,6 +160,7 @@ impl Default for LoadBalancerConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LoadBalancerStats {
     /// Total selections
     pub total_selections: u64,
@@ -202,6 +207,7 @@ impl LoadBalancer {
     }
 
     /// Unregister a domain
+    #[inline(always)]
     pub fn unregister_domain(&mut self, domain: DomainId) -> bool {
         self.weighted_state.remove(&domain);
         self.loads.remove(&domain).is_some()
@@ -229,6 +235,7 @@ impl LoadBalancer {
     }
 
     /// Set domain health
+    #[inline]
     pub fn set_healthy(&mut self, domain: DomainId, healthy: bool) {
         if let Some(load) = self.loads.get_mut(&domain) {
             load.healthy = healthy;
@@ -436,6 +443,7 @@ impl LoadBalancer {
     }
 
     /// Get overloaded domains
+    #[inline]
     pub fn overloaded_domains(&self) -> Vec<DomainId> {
         self.loads.values()
             .filter(|l| l.is_overloaded(self.overload_threshold))
@@ -444,6 +452,7 @@ impl LoadBalancer {
     }
 
     /// Get underloaded domains
+    #[inline]
     pub fn underloaded_domains(&self) -> Vec<DomainId> {
         self.loads.values()
             .filter(|l| l.healthy && l.is_underloaded(self.underload_threshold))
@@ -452,16 +461,19 @@ impl LoadBalancer {
     }
 
     /// Get load for domain
+    #[inline(always)]
     pub fn get_load(&self, domain: DomainId) -> Option<&DomainLoad> {
         self.loads.get(&domain)
     }
 
     /// Get all loads
+    #[inline(always)]
     pub fn all_loads(&self) -> Vec<&DomainLoad> {
         self.loads.values().collect()
     }
 
     /// Get average load
+    #[inline]
     pub fn average_load(&self) -> f64 {
         let healthy: Vec<_> = self.loads.values()
             .filter(|l| l.healthy)
@@ -475,21 +487,25 @@ impl LoadBalancer {
     }
 
     /// Set strategy
+    #[inline(always)]
     pub fn set_strategy(&mut self, strategy: LoadBalanceStrategy) {
         self.strategy = strategy;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &LoadBalancerStats {
         &self.stats
     }
 
     /// Get domain count
+    #[inline(always)]
     pub fn domain_count(&self) -> usize {
         self.loads.len()
     }
 
     /// Get healthy domain count
+    #[inline(always)]
     pub fn healthy_count(&self) -> usize {
         self.loads.values().filter(|l| l.healthy).count()
     }

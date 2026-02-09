@@ -3,6 +3,7 @@
 //! Power state management and optimization.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -43,7 +44,7 @@ pub struct DevicePowerManager {
     /// Device policies
     device_policies: BTreeMap<DeviceId, PowerPolicy>,
     /// Transition history
-    transitions: Vec<PowerTransition>,
+    transitions: VecDeque<PowerTransition>,
     /// Maximum transitions to track
     max_transitions: usize,
     /// Default policy
@@ -75,12 +76,14 @@ impl DevicePowerManager {
     }
 
     /// Register device
+    #[inline(always)]
     pub fn register_device(&mut self, id: DeviceId) {
         self.device_states.insert(id, PowerState::D0);
         self.idle_times.insert(id, 0);
     }
 
     /// Unregister device
+    #[inline]
     pub fn unregister_device(&mut self, id: DeviceId) {
         self.device_states.remove(&id);
         self.device_policies.remove(&id);
@@ -89,16 +92,19 @@ impl DevicePowerManager {
     }
 
     /// Set device policy
+    #[inline(always)]
     pub fn set_policy(&mut self, id: DeviceId, policy: PowerPolicy) {
         self.device_policies.insert(id, policy);
     }
 
     /// Get device power state
+    #[inline(always)]
     pub fn get_state(&self, id: DeviceId) -> Option<PowerState> {
         self.device_states.get(&id).copied()
     }
 
     /// Record device activity
+    #[inline(always)]
     pub fn record_activity(&mut self, id: DeviceId, timestamp: u64) {
         self.idle_times.insert(id, timestamp);
     }
@@ -126,9 +132,9 @@ impl DevicePowerManager {
         };
 
         if self.transitions.len() >= self.max_transitions {
-            self.transitions.remove(0);
+            self.transitions.pop_front();
         }
-        self.transitions.push(transition);
+        self.transitions.push_back(transition);
 
         // Update state
         self.device_states.insert(id, to);
@@ -184,26 +190,31 @@ impl DevicePowerManager {
     }
 
     /// Get predicted wake latency
+    #[inline(always)]
     pub fn predicted_wake_latency(&self, id: DeviceId) -> Option<u64> {
         self.wake_predictions.get(&id).copied()
     }
 
     /// Get total power saved
+    #[inline(always)]
     pub fn power_saved(&self) -> u64 {
         self.power_saved.load(Ordering::Relaxed)
     }
 
     /// Set default policy
+    #[inline(always)]
     pub fn set_default_policy(&mut self, policy: PowerPolicy) {
         self.default_policy = policy;
     }
 
     /// Set idle timeout
+    #[inline(always)]
     pub fn set_idle_timeout(&mut self, timeout_us: u64) {
         self.idle_timeout_us = timeout_us;
     }
 
     /// Get transition history
+    #[inline(always)]
     pub fn transitions(&self) -> &[PowerTransition] {
         &self.transitions
     }

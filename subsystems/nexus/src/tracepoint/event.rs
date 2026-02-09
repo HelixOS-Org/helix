@@ -47,17 +47,20 @@ impl EventData {
     }
 
     /// Create with data
+    #[inline(always)]
     pub fn with_data(mut self, data: Vec<u8>) -> Self {
         self.data = data;
         self
     }
 
     /// Read u8 at offset
+    #[inline(always)]
     pub fn read_u8(&self, offset: usize) -> Option<u8> {
         self.data.get(offset).copied()
     }
 
     /// Read u16 at offset
+    #[inline]
     pub fn read_u16(&self, offset: usize) -> Option<u16> {
         if offset + 2 <= self.data.len() {
             Some(u16::from_le_bytes([
@@ -104,26 +107,31 @@ impl EventData {
     }
 
     /// Read i8 at offset
+    #[inline(always)]
     pub fn read_i8(&self, offset: usize) -> Option<i8> {
         self.read_u8(offset).map(|v| v as i8)
     }
 
     /// Read i16 at offset
+    #[inline(always)]
     pub fn read_i16(&self, offset: usize) -> Option<i16> {
         self.read_u16(offset).map(|v| v as i16)
     }
 
     /// Read i32 at offset
+    #[inline(always)]
     pub fn read_i32(&self, offset: usize) -> Option<i32> {
         self.read_u32(offset).map(|v| v as i32)
     }
 
     /// Read i64 at offset
+    #[inline(always)]
     pub fn read_i64(&self, offset: usize) -> Option<i64> {
         self.read_u64(offset).map(|v| v as i64)
     }
 
     /// Get data size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.data.len()
     }

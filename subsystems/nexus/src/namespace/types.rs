@@ -8,11 +8,13 @@ pub struct NamespaceId(pub u64);
 
 impl NamespaceId {
     /// Create a new namespace ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -27,11 +29,13 @@ pub struct ProcessId(pub u64);
 
 impl ProcessId {
     /// Create a new process ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -43,11 +47,13 @@ pub struct UserId(pub u32);
 
 impl UserId {
     /// Create a new user ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -62,11 +68,13 @@ pub struct GroupId(pub u32);
 
 impl GroupId {
     /// Create a new group ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -140,11 +148,13 @@ impl NamespaceType {
     }
 
     /// Check if namespace requires user namespace
+    #[inline(always)]
     pub fn requires_user_ns(&self) -> bool {
         matches!(self, Self::User)
     }
 
     /// Check if namespace is hierarchical
+    #[inline(always)]
     pub fn is_hierarchical(&self) -> bool {
         matches!(self, Self::Pid | Self::User | Self::Cgroup | Self::Time)
     }

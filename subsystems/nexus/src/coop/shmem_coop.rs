@@ -9,6 +9,7 @@
 //! - Segment migration between NUMA nodes
 
 extern crate alloc;
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -52,6 +53,7 @@ pub struct ShmSegment {
 }
 
 impl ShmSegment {
+    #[inline]
     pub fn active_writers(&self) -> usize {
         self.participants
             .iter()
@@ -69,7 +71,7 @@ impl ShmSegment {
             .count();
         if on_preferred * 2 < self.participants.len() {
             // Find majority node
-            let mut node_counts: BTreeMap<u32, usize> = BTreeMap::new();
+            let mut node_counts: ArrayMap<usize, 32> = BTreeMap::new();
             for p in &self.participants {
                 *node_counts.entry(p.numa_node).or_insert(0) += 1;
             }
@@ -84,6 +86,7 @@ impl ShmSegment {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ShmCoopStats {
     pub active_segments: u64,
     pub total_attached: u64,
@@ -189,6 +192,7 @@ impl ShmCoopManager {
     }
 
     /// Perform a fence synchronization
+    #[inline]
     pub fn fence(&mut self, segment_id: u64, _fence_type: FenceType) {
         if let Some(seg) = self.segments.get_mut(&segment_id) {
             seg.fence_epoch += 1;
@@ -201,6 +205,7 @@ impl ShmCoopManager {
     }
 
     /// Check and suggest NUMA migrations
+    #[inline]
     pub fn check_numa_migrations(&self) -> Vec<(u64, u32)> {
         let mut suggestions = Vec::new();
         for (id, seg) in &self.segments {
@@ -211,9 +216,11 @@ impl ShmCoopManager {
         suggestions
     }
 
+    #[inline(always)]
     pub fn segment(&self, id: u64) -> Option<&ShmSegment> {
         self.segments.get(&id)
     }
+    #[inline(always)]
     pub fn stats(&self) -> &ShmCoopStats {
         &self.stats
     }

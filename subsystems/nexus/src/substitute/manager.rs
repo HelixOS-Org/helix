@@ -1,6 +1,7 @@
 //! Substitution manager for hot module replacement.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -35,7 +36,7 @@ pub struct SubstitutionManager {
     /// Slots by name
     slots: BTreeMap<String, ModuleSlot>,
     /// Substitution history
-    history: Vec<SubstitutionResult>,
+    history: VecDeque<SubstitutionResult>,
     /// Maximum history
     max_history: usize,
     /// State transfer handlers
@@ -53,7 +54,7 @@ impl SubstitutionManager {
     pub fn new() -> Self {
         Self {
             slots: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
             total_substitutions: AtomicU64::new(0),
             successful_substitutions: AtomicU64::new(0),
@@ -62,21 +63,25 @@ impl SubstitutionManager {
     }
 
     /// Register a slot
+    #[inline(always)]
     pub fn register_slot(&mut self, slot: ModuleSlot) {
         self.slots.insert(slot.name.clone(), slot);
     }
 
     /// Get slot by name
+    #[inline(always)]
     pub fn get_slot(&self, name: &str) -> Option<&ModuleSlot> {
         self.slots.get(name)
     }
 
     /// Get mutable slot
+    #[inline(always)]
     pub fn get_slot_mut(&mut self, name: &str) -> Option<&mut ModuleSlot> {
         self.slots.get_mut(name)
     }
 
     /// List all slots
+    #[inline(always)]
     pub fn slots(&self) -> impl Iterator<Item = &ModuleSlot> {
         self.slots.values()
     }
@@ -142,9 +147,9 @@ impl SubstitutionManager {
 
         // Add to history
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(result.clone());
+        self.history.push_back(result.clone());
 
         Ok(result)
     }
@@ -165,6 +170,7 @@ impl SubstitutionManager {
     }
 
     /// Check if substitution is possible
+    #[inline]
     pub fn can_substitute(&self, slot_name: &str) -> bool {
         self.slots
             .get(slot_name)
@@ -173,6 +179,7 @@ impl SubstitutionManager {
     }
 
     /// Get substitution history
+    #[inline(always)]
     pub fn history(&self) -> &[SubstitutionResult] {
         &self.history
     }
@@ -193,16 +200,19 @@ impl SubstitutionManager {
     }
 
     /// Enable manager
+    #[inline(always)]
     pub fn enable(&self) {
         self.enabled.store(true, Ordering::SeqCst);
     }
 
     /// Disable manager
+    #[inline(always)]
     pub fn disable(&self) {
         self.enabled.store(false, Ordering::SeqCst);
     }
 
     /// Is enabled?
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::SeqCst)
     }
@@ -216,6 +226,7 @@ impl Default for SubstitutionManager {
 
 /// Substitution statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SubstitutionStats {
     /// Total slots
     pub total_slots: usize,

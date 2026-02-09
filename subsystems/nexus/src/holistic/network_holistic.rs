@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -78,18 +79,21 @@ impl InterfaceProfile {
     }
 
     /// Record TX
+    #[inline(always)]
     pub fn record_tx(&mut self, bytes: u64, packets: u64) {
         self.tx_bytes += bytes;
         self.tx_packets += packets;
     }
 
     /// Record RX
+    #[inline(always)]
     pub fn record_rx(&mut self, bytes: u64, packets: u64) {
         self.rx_bytes += bytes;
         self.rx_packets += packets;
     }
 
     /// Update utilization for time period
+    #[inline]
     pub fn update_utilization(&mut self, bytes_in_period: u64, period_secs: f64) {
         if self.bandwidth_bps > 0 && period_secs > 0.0 {
             let throughput = bytes_in_period as f64 / period_secs;
@@ -101,11 +105,13 @@ impl InterfaceProfile {
     }
 
     /// Total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.tx_bytes + self.rx_bytes
     }
 
     /// Error rate
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         let total = self.tx_packets + self.rx_packets;
         if total == 0 {
@@ -115,6 +121,7 @@ impl InterfaceProfile {
     }
 
     /// Drop rate
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.tx_packets + self.rx_packets;
         if total == 0 {
@@ -204,6 +211,7 @@ impl NetworkFlow {
     }
 
     /// Record activity
+    #[inline]
     pub fn record(&mut self, bytes: u64, packets: u64, now: u64) {
         self.bytes += bytes;
         self.packets += packets;
@@ -211,6 +219,7 @@ impl NetworkFlow {
     }
 
     /// Average packet size
+    #[inline]
     pub fn avg_packet_size(&self) -> u64 {
         if self.packets == 0 {
             return 0;
@@ -219,6 +228,7 @@ impl NetworkFlow {
     }
 
     /// Retransmit rate
+    #[inline]
     pub fn retransmit_rate(&self) -> f64 {
         if self.packets == 0 {
             return 0.0;
@@ -227,6 +237,7 @@ impl NetworkFlow {
     }
 
     /// Is idle
+    #[inline(always)]
     pub fn is_idle(&self, now: u64, timeout_ns: u64) -> bool {
         now.saturating_sub(self.last_activity) > timeout_ns
     }
@@ -255,11 +266,11 @@ pub enum CongestionState {
 #[derive(Debug, Clone)]
 pub struct CongestionDetector {
     /// Queue depth samples
-    queue_samples: Vec<u64>,
+    queue_samples: VecDeque<u64>,
     /// Drop rate samples
-    drop_samples: Vec<f64>,
+    drop_samples: VecDeque<f64>,
     /// RTT samples (us)
-    rtt_samples: Vec<u64>,
+    rtt_samples: VecDeque<u64>,
     /// Baseline RTT (us)
     baseline_rtt_us: u64,
     /// Max samples
@@ -271,9 +282,9 @@ pub struct CongestionDetector {
 impl CongestionDetector {
     pub fn new(baseline_rtt_us: u64) -> Self {
         Self {
-            queue_samples: Vec::new(),
-            drop_samples: Vec::new(),
-            rtt_samples: Vec::new(),
+            queue_samples: VecDeque::new(),
+            drop_samples: VecDeque::new(),
+            rtt_samples: VecDeque::new(),
             baseline_rtt_us,
             max_samples: 100,
             state: CongestionState::Clear,
@@ -282,17 +293,17 @@ impl CongestionDetector {
 
     /// Record sample
     pub fn record(&mut self, queue_depth: u64, drop_rate: f64, rtt_us: u64) {
-        self.queue_samples.push(queue_depth);
+        self.queue_samples.push_back(queue_depth);
         if self.queue_samples.len() > self.max_samples {
-            self.queue_samples.remove(0);
+            self.queue_samples.pop_front();
         }
-        self.drop_samples.push(drop_rate);
+        self.drop_samples.push_back(drop_rate);
         if self.drop_samples.len() > self.max_samples {
-            self.drop_samples.remove(0);
+            self.drop_samples.pop_front();
         }
-        self.rtt_samples.push(rtt_us);
+        self.rtt_samples.push_back(rtt_us);
         if self.rtt_samples.len() > self.max_samples {
-            self.rtt_samples.remove(0);
+            self.rtt_samples.pop_front();
         }
         self.evaluate();
     }
@@ -378,16 +389,19 @@ impl BandwidthAllocation {
     }
 
     /// Spare bandwidth
+    #[inline(always)]
     pub fn spare(&self) -> u64 {
         self.guaranteed_bps.saturating_sub(self.current_bps)
     }
 
     /// Is over guarantee
+    #[inline(always)]
     pub fn is_over_guarantee(&self) -> bool {
         self.current_bps > self.guaranteed_bps
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.max_bps == 0 {
             return 0.0;
@@ -402,6 +416,7 @@ impl BandwidthAllocation {
 
 /// Network analysis stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticNetworkStats {
     /// Total flows
     pub total_flows: u64,
@@ -447,6 +462,7 @@ impl HolisticNetworkAnalyzer {
     }
 
     /// Register interface
+    #[inline]
     pub fn register_interface(&mut self, profile: InterfaceProfile) {
         let idx = profile.index;
         let baseline = if profile.bandwidth_bps > 0 {
@@ -460,6 +476,7 @@ impl HolisticNetworkAnalyzer {
     }
 
     /// Create flow
+    #[inline]
     pub fn create_flow(
         &mut self,
         src_pid: u64,
@@ -495,11 +512,13 @@ impl HolisticNetworkAnalyzer {
     }
 
     /// Set bandwidth allocation
+    #[inline(always)]
     pub fn set_allocation(&mut self, alloc: BandwidthAllocation) {
         self.allocations.insert(alloc.pid, alloc);
     }
 
     /// Cleanup idle flows
+    #[inline(always)]
     pub fn cleanup_idle(&mut self, now: u64, timeout_ns: u64) {
         self.flows.retain(|_, f| !f.is_idle(now, timeout_ns));
         self.stats.active_flows = self.flows.len();
@@ -522,16 +541,19 @@ impl HolisticNetworkAnalyzer {
     }
 
     /// Get interface
+    #[inline(always)]
     pub fn interface(&self, index: u32) -> Option<&InterfaceProfile> {
         self.interfaces.get(&index)
     }
 
     /// Get flow
+    #[inline(always)]
     pub fn flow(&self, id: u64) -> Option<&NetworkFlow> {
         self.flows.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticNetworkStats {
         &self.stats
     }
@@ -563,6 +585,7 @@ impl NetworkV2HolisticRecord {
 
 /// Network v2 holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetworkV2HolisticStats { pub total_samples: u64, pub warnings: u64, pub criticals: u64, pub peak_pps: u64 }
 
 /// Main holistic network v2
@@ -571,6 +594,7 @@ pub struct HolisticNetworkV2 { pub stats: NetworkV2HolisticStats }
 
 impl HolisticNetworkV2 {
     pub fn new() -> Self { Self { stats: NetworkV2HolisticStats { total_samples: 0, warnings: 0, criticals: 0, peak_pps: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &NetworkV2HolisticRecord) {
         self.stats.total_samples += 1;
         match rec.health {

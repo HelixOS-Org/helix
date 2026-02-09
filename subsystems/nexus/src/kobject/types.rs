@@ -11,11 +11,13 @@ pub struct KobjectId(pub u64);
 
 impl KobjectId {
     /// Create a new kobject ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -27,11 +29,13 @@ pub struct KsetId(pub u64);
 
 impl KsetId {
     /// Create a new kset ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -43,11 +47,13 @@ pub struct KtypeId(pub u64);
 
 impl KtypeId {
     /// Create a new ktype ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -151,6 +157,7 @@ impl KobjectInfo {
     }
 
     /// Check if object is alive
+    #[inline]
     pub fn is_alive(&self) -> bool {
         !matches!(
             self.state,
@@ -159,6 +166,7 @@ impl KobjectInfo {
     }
 
     /// Check if registered in sysfs
+    #[inline(always)]
     pub fn is_registered(&self) -> bool {
         matches!(self.state, KobjectState::Registered)
     }
@@ -195,6 +203,7 @@ impl KsetInfo {
     }
 
     /// Child count
+    #[inline(always)]
     pub fn child_count(&self) -> usize {
         self.children.len()
     }

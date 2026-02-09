@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::pattern::IoPatternAnalyzer;
@@ -66,6 +67,7 @@ impl Default for PrefetchConfig {
 
 /// Prefetch statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PrefetchStats {
     /// Total prefetches issued
     pub prefetches_issued: u64,
@@ -86,7 +88,7 @@ pub struct PrefetchEngine {
     /// Pattern analyzers by process
     analyzers: BTreeMap<u64, IoPatternAnalyzer>,
     /// Active prefetches
-    active_prefetches: Vec<PrefetchRequest>,
+    active_prefetches: VecDeque<PrefetchRequest>,
     /// Prefetch configuration
     config: PrefetchConfig,
     /// Statistics
@@ -98,7 +100,7 @@ impl PrefetchEngine {
     pub fn new() -> Self {
         Self {
             analyzers: BTreeMap::new(),
-            active_prefetches: Vec::new(),
+            active_prefetches: VecDeque::new(),
             config: PrefetchConfig::default(),
             stats: PrefetchStats::default(),
         }
@@ -132,7 +134,7 @@ impl PrefetchEngine {
             let mut prefetches = Vec::new();
             for rec_offset in recommendations {
                 if !self.is_prefetch_active(device_id, rec_offset) {
-                    self.active_prefetches.push(PrefetchRequest {
+                    self.active_prefetches.push_back(PrefetchRequest {
                         device_id,
                         offset: rec_offset,
                         size: self.config.prefetch_size,
@@ -149,7 +151,7 @@ impl PrefetchEngine {
 
             // Limit active prefetches
             while self.active_prefetches.len() > self.config.max_concurrent * 4 {
-                let removed = self.active_prefetches.remove(0);
+                let removed = self.active_prefetches.pop_front().unwrap();
                 if removed.hits == 0 {
                     self.stats.misses += 1;
                 }
@@ -181,6 +183,7 @@ impl PrefetchEngine {
     }
 
     /// Get hit ratio
+    #[inline]
     pub fn hit_ratio(&self) -> f64 {
         let total = self.stats.hits + self.stats.misses;
         if total == 0 {
@@ -191,11 +194,13 @@ impl PrefetchEngine {
     }
 
     /// Set configuration
+    #[inline(always)]
     pub fn set_config(&mut self, config: PrefetchConfig) {
         self.config = config;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PrefetchStats {
         &self.stats
     }

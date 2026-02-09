@@ -22,6 +22,7 @@ impl ReaddirBridgeRecord {
 
 /// Readdir bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReaddirBridgeStats { pub total_ops: u64, pub entries_read: u64, pub seeks: u64, pub large_dirs: u64 }
 
 /// Main bridge readdir
@@ -30,6 +31,7 @@ pub struct BridgeReaddir { pub stats: ReaddirBridgeStats }
 
 impl BridgeReaddir {
     pub fn new() -> Self { Self { stats: ReaddirBridgeStats { total_ops: 0, entries_read: 0, seeks: 0, large_dirs: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &ReaddirBridgeRecord) {
         self.stats.total_ops += 1;
         self.stats.entries_read += rec.entries as u64;

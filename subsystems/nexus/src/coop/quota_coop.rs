@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -90,6 +91,7 @@ impl QuotaEntry {
     }
 
     /// Effective limit (base + burst + borrowed - lent)
+    #[inline]
     pub fn effective_limit(&self) -> u64 {
         self.base
             .saturating_add(self.burst_limit)
@@ -98,11 +100,13 @@ impl QuotaEntry {
     }
 
     /// Available capacity
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.effective_limit().saturating_sub(self.usage)
     }
 
     /// Utilization (against effective limit)
+    #[inline]
     pub fn utilization(&self) -> f64 {
         let limit = self.effective_limit();
         if limit == 0 {
@@ -128,6 +132,7 @@ impl QuotaEntry {
     }
 
     /// Consume
+    #[inline]
     pub fn consume(&mut self, amount: u64) -> bool {
         if self.usage + amount > self.effective_limit() {
             return false;
@@ -140,11 +145,13 @@ impl QuotaEntry {
     }
 
     /// Release
+    #[inline(always)]
     pub fn release(&mut self, amount: u64) {
         self.usage = self.usage.saturating_sub(amount);
     }
 
     /// Lendable (spare capacity beyond usage + safety margin)
+    #[inline]
     pub fn lendable(&self) -> u64 {
         let safety = self.base / 10; // 10% safety margin
         if self.usage + safety < self.base {
@@ -161,6 +168,7 @@ impl QuotaEntry {
 
 /// A pool of shared quotas
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopQuotaPool {
     /// Pool ID
     pub id: u64,
@@ -171,9 +179,9 @@ pub struct CoopQuotaPool {
     /// Total pool capacity
     pub total_capacity: u64,
     /// Per-member allocation
-    pub allocations: BTreeMap<u64, u64>,
+    pub allocations: LinearMap<u64, 64>,
     /// Per-member usage
-    pub usage: BTreeMap<u64, u64>,
+    pub usage: LinearMap<u64, 64>,
 }
 
 impl CoopQuotaPool {
@@ -183,12 +191,13 @@ impl CoopQuotaPool {
             members: Vec::new(),
             resource,
             total_capacity: capacity,
-            allocations: BTreeMap::new(),
-            usage: BTreeMap::new(),
+            allocations: LinearMap::new(),
+            usage: LinearMap::new(),
         }
     }
 
     /// Add member with allocation
+    #[inline]
     pub fn add_member(&mut self, pid: u64, allocation: u64) {
         if !self.members.contains(&pid) {
             self.members.push(pid);
@@ -198,23 +207,27 @@ impl CoopQuotaPool {
     }
 
     /// Remove member
+    #[inline]
     pub fn remove_member(&mut self, pid: u64) {
         self.members.retain(|&m| m != pid);
-        self.allocations.remove(&pid);
-        self.usage.remove(&pid);
+        self.allocations.remove(pid);
+        self.usage.remove(pid);
     }
 
     /// Total allocated
+    #[inline(always)]
     pub fn total_allocated(&self) -> u64 {
         self.allocations.values().sum()
     }
 
     /// Total used
+    #[inline(always)]
     pub fn total_used(&self) -> u64 {
         self.usage.values().sum()
     }
 
     /// Pool utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total_capacity == 0 {
             return 0.0;
@@ -223,17 +236,19 @@ impl CoopQuotaPool {
     }
 
     /// Free capacity in pool
+    #[inline(always)]
     pub fn free_capacity(&self) -> u64 {
         self.total_capacity.saturating_sub(self.total_used())
     }
 
     /// Record usage
+    #[inline]
     pub fn record_usage(&mut self, pid: u64, amount: u64) -> bool {
         let total_after = self.total_used() + amount;
         if total_after > self.total_capacity {
             return false;
         }
-        *self.usage.entry(pid).or_insert(0) += amount;
+        self.usage.add(pid, amount);
         true
     }
 }
@@ -289,6 +304,7 @@ impl QuotaLoan {
     }
 
     /// Is expired
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now >= self.expires_at
     }
@@ -300,6 +316,7 @@ impl QuotaLoan {
 
 /// Cooperative quota stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopQuotaStats {
     /// Tracked processes
     pub process_count: usize,
@@ -343,12 +360,14 @@ impl CoopQuotaManager {
     }
 
     /// Set quota for process
+    #[inline(always)]
     pub fn set_quota(&mut self, pid: u64, resource: CoopQuotaResource, base: u64) {
         let key = (pid, resource as u8);
         self.quotas.insert(key, QuotaEntry::new(resource, base));
     }
 
     /// Consume quota
+    #[inline]
     pub fn consume(&mut self, pid: u64, resource: CoopQuotaResource, amount: u64) -> bool {
         let key = (pid, resource as u8);
         if let Some(entry) = self.quotas.get_mut(&key) {
@@ -361,6 +380,7 @@ impl CoopQuotaManager {
     }
 
     /// Release quota
+    #[inline]
     pub fn release(&mut self, pid: u64, resource: CoopQuotaResource, amount: u64) {
         let key = (pid, resource as u8);
         if let Some(entry) = self.quotas.get_mut(&key) {
@@ -369,6 +389,7 @@ impl CoopQuotaManager {
     }
 
     /// Create pool
+    #[inline]
     pub fn create_pool(&mut self, resource: CoopQuotaResource, capacity: u64) -> u64 {
         let id = self.next_pool_id;
         self.next_pool_id += 1;
@@ -435,6 +456,7 @@ impl CoopQuotaManager {
     }
 
     /// Check expired loans
+    #[inline]
     pub fn check_expired_loans(&mut self, now: u64) {
         let expired: Vec<u64> = self
             .loans
@@ -448,11 +470,13 @@ impl CoopQuotaManager {
     }
 
     /// Get quota entry
+    #[inline(always)]
     pub fn quota(&self, pid: u64, resource: CoopQuotaResource) -> Option<&QuotaEntry> {
         self.quotas.get(&(pid, resource as u8))
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopQuotaStats {
         &self.stats
     }
@@ -496,6 +520,7 @@ pub struct CoopQuotaV2Entry {
 
 /// Stats for quota cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopQuotaV2Stats {
     pub total_quotas: u64,
     pub over_soft_limit: u64,
@@ -507,7 +532,7 @@ pub struct CoopQuotaV2Stats {
 /// Manager for quota cooperative operations
 pub struct CoopQuotaV2Manager {
     quotas: BTreeMap<u64, CoopQuotaV2Entry>,
-    owner_index: BTreeMap<u64, u64>,
+    owner_index: LinearMap<u64, 64>,
     next_id: u64,
     stats: CoopQuotaV2Stats,
 }
@@ -516,7 +541,7 @@ impl CoopQuotaV2Manager {
     pub fn new() -> Self {
         Self {
             quotas: BTreeMap::new(),
-            owner_index: BTreeMap::new(),
+            owner_index: LinearMap::new(),
             next_id: 1,
             stats: CoopQuotaV2Stats {
                 total_quotas: 0,
@@ -562,7 +587,7 @@ impl CoopQuotaV2Manager {
 
     pub fn charge_blocks(&mut self, quota_type: CoopQuotaV2Type, owner_id: u32, blocks: u64) -> bool {
         let key = Self::owner_key(quota_type, owner_id);
-        if let Some(&qid) = self.owner_index.get(&key) {
+        if let Some(&qid) = self.owner_index.get(key) {
             if let Some(q) = self.quotas.get_mut(&qid) {
                 if q.blocks_used + blocks > q.block_hard_limit && q.block_hard_limit > 0 {
                     self.stats.allocations_denied += 1;
@@ -580,15 +605,17 @@ impl CoopQuotaV2Manager {
         true
     }
 
+    #[inline]
     pub fn release_blocks(&mut self, quota_type: CoopQuotaV2Type, owner_id: u32, blocks: u64) {
         let key = Self::owner_key(quota_type, owner_id);
-        if let Some(&qid) = self.owner_index.get(&key) {
+        if let Some(&qid) = self.owner_index.get(key) {
             if let Some(q) = self.quotas.get_mut(&qid) {
                 q.blocks_used = q.blocks_used.saturating_sub(blocks);
             }
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopQuotaV2Stats {
         &self.stats
     }

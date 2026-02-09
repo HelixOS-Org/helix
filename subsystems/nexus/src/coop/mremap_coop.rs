@@ -33,9 +33,11 @@ pub struct RemapRequest {
 }
 
 impl RemapRequest {
+    #[inline(always)]
     pub fn size_delta(&self) -> i64 {
         self.new_size as i64 - self.old_size as i64
     }
+    #[inline(always)]
     pub fn is_expansion(&self) -> bool {
         self.new_size > self.old_size
     }
@@ -59,6 +61,7 @@ pub struct BatchRemap {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MremapCoopStats {
     pub remaps_coordinated: u64,
     pub conflicts_resolved: u64,
@@ -156,6 +159,7 @@ impl MremapCoopManager {
     }
 
     /// Create a batch remap for a process group
+    #[inline]
     pub fn create_batch(&mut self, group_id: u64, requests: Vec<RemapRequest>) -> u64 {
         let total: i64 = requests.iter().map(|r| r.size_delta()).sum();
         self.batches.insert(group_id, BatchRemap {
@@ -203,9 +207,11 @@ impl MremapCoopManager {
         new_bases
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }
+    #[inline(always)]
     pub fn stats(&self) -> &MremapCoopStats {
         &self.stats
     }

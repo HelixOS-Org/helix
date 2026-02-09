@@ -57,12 +57,14 @@ impl SafetyConstraint {
     }
 
     /// With condition
+    #[inline(always)]
     pub fn with_condition(mut self, condition: String) -> Self {
         self.condition = condition;
         self
     }
 
     /// As hard constraint
+    #[inline]
     pub fn as_hard(mut self) -> Self {
         self.is_hard = true;
         self.severity = 10;
@@ -129,16 +131,19 @@ impl SafeLearner {
     }
 
     /// Add constraint
+    #[inline(always)]
     pub fn add_constraint(&mut self, constraint: SafetyConstraint) {
         self.constraints.push(constraint);
     }
 
     /// Set policy
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: ExplorationPolicy) {
         self.policy = policy;
     }
 
     /// Set epsilon
+    #[inline(always)]
     pub fn set_epsilon(&mut self, epsilon: f32) {
         self.epsilon = epsilon.clamp(0.0, 1.0);
     }
@@ -230,16 +235,19 @@ impl SafeLearner {
     }
 
     /// Record exploration
+    #[inline(always)]
     pub fn record_exploration(&self) {
         self.explorations.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Constraint count
+    #[inline(always)]
     pub fn constraint_count(&self) -> usize {
         self.constraints.len()
     }
 
     /// Violation count
+    #[inline(always)]
     pub fn violation_count(&self) -> usize {
         self.violations.len()
     }

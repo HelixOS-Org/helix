@@ -50,6 +50,7 @@ pub enum ThrottleState {
 
 impl ThrottleState {
     /// Rate multiplier (1.0 = full speed)
+    #[inline]
     pub fn rate_multiplier(&self) -> f64 {
         match self {
             Self::Normal => 1.0,
@@ -130,6 +131,7 @@ impl CoopTokenBucket {
     }
 
     /// Try to consume tokens
+    #[inline]
     pub fn try_consume(&mut self, count: u64, now: u64) -> bool {
         self.refill(now);
         if self.tokens >= count {
@@ -155,11 +157,13 @@ impl CoopTokenBucket {
     }
 
     /// Available tokens
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.tokens
     }
 
     /// Utilization (0-1, 1 = no tokens left)
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.max_tokens == 0 {
             return 1.0;
@@ -174,6 +178,7 @@ impl CoopTokenBucket {
 
 /// Per-process throttle state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessThrottleState {
     /// Process id
     pub pid: u64,
@@ -205,6 +210,7 @@ impl ProcessThrottleState {
     }
 
     /// Set throttle for resource
+    #[inline]
     pub fn set_throttle(&mut self, config: &ThrottleConfig) {
         let key = config.resource as u8;
         self.buckets.insert(
@@ -215,6 +221,7 @@ impl ProcessThrottleState {
     }
 
     /// Try to use resource
+    #[inline]
     pub fn try_use(&mut self, resource: ThrottleResource, amount: u64, now: u64) -> bool {
         let key = resource as u8;
         if let Some(bucket) = self.buckets.get_mut(&key) {
@@ -225,6 +232,7 @@ impl ProcessThrottleState {
     }
 
     /// Update throttle state
+    #[inline]
     pub fn update_state(&mut self, resource: ThrottleResource, state: ThrottleState, now: u64) {
         let key = resource as u8;
         let prev = self.states.get(&key).copied().unwrap_or(ThrottleState::Normal);
@@ -237,6 +245,7 @@ impl ProcessThrottleState {
     }
 
     /// Overall throttle state (worst across resources)
+    #[inline]
     pub fn worst_state(&self) -> ThrottleState {
         self.states
             .values()
@@ -248,11 +257,13 @@ impl ProcessThrottleState {
     }
 
     /// Volunteer to throttle
+    #[inline(always)]
     pub fn volunteer_throttle(&mut self) {
         self.voluntary = true;
     }
 
     /// End voluntary throttle
+    #[inline(always)]
     pub fn end_voluntary(&mut self) {
         self.voluntary = false;
     }
@@ -264,6 +275,7 @@ impl ProcessThrottleState {
 
 /// Throttle stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopThrottleStats {
     /// Processes throttled
     pub throttled_count: usize,
@@ -293,6 +305,7 @@ impl CoopThrottleManager {
     }
 
     /// Configure throttle for process
+    #[inline]
     pub fn configure(&mut self, pid: u64, config: ThrottleConfig) {
         let state = self
             .states
@@ -302,6 +315,7 @@ impl CoopThrottleManager {
     }
 
     /// Try resource use
+    #[inline]
     pub fn try_use(&mut self, pid: u64, resource: ThrottleResource, amount: u64, now: u64) -> bool {
         if let Some(state) = self.states.get_mut(&pid) {
             state.try_use(resource, amount, now)
@@ -311,6 +325,7 @@ impl CoopThrottleManager {
     }
 
     /// Set global backpressure
+    #[inline]
     pub fn set_global_pressure(&mut self, signal: BackpressureSignal) {
         self.global_pressure = signal;
         // Propagate to all processes
@@ -320,6 +335,7 @@ impl CoopThrottleManager {
     }
 
     /// Process volunteers to throttle
+    #[inline]
     pub fn volunteer(&mut self, pid: u64) {
         if let Some(state) = self.states.get_mut(&pid) {
             state.volunteer_throttle();
@@ -328,6 +344,7 @@ impl CoopThrottleManager {
     }
 
     /// Get throttle state
+    #[inline]
     pub fn throttle_state(&self, pid: u64) -> ThrottleState {
         self.states
             .get(&pid)
@@ -346,6 +363,7 @@ impl CoopThrottleManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopThrottleStats {
         &self.stats
     }

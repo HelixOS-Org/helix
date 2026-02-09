@@ -48,6 +48,7 @@ impl Domain {
     }
 
     /// All domains (excluding Broadcast and Core)
+    #[inline]
     pub const fn cognitive_domains() -> [Domain; 7] {
         [
             Self::Sense,
@@ -95,6 +96,7 @@ impl Domain {
     }
 
     /// Is cognitive domain (not infrastructure)
+    #[inline(always)]
     pub const fn is_cognitive(&self) -> bool {
         !matches!(self, Self::Core | Self::Broadcast)
     }

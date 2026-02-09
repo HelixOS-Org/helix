@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -125,6 +126,7 @@ pub struct QueryEntry {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct OmniscientStats {
     pub total_domains: u64,
     pub total_observations: u64,
@@ -156,6 +158,7 @@ impl OmniscientStats {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct SystemStateSnapshot {
     pub tick: u64,
     pub domain_count: u64,
@@ -186,7 +189,7 @@ pub struct QueryResult {
 
 pub struct HolisticOmniscient {
     domains: BTreeMap<u64, DomainObservation>,
-    query_log: Vec<QueryEntry>,
+    query_log: VecDeque<QueryEntry>,
     stats: OmniscientStats,
     rng: Xorshift64,
     tick: u64,
@@ -197,7 +200,7 @@ impl HolisticOmniscient {
     pub fn new(seed: u64) -> Self {
         Self {
             domains: BTreeMap::new(),
-            query_log: Vec::new(),
+            query_log: VecDeque::new(),
             stats: OmniscientStats::new(),
             rng: Xorshift64::new(seed),
             tick: 0,
@@ -213,9 +216,9 @@ impl HolisticOmniscient {
 
     fn record_query(&mut self, hash: u64, size: u64, lat: u64, ok: bool) {
         if self.query_log.len() >= MAX_QUERY_LOG {
-            self.query_log.remove(0);
+            self.query_log.pop_front();
         }
-        self.query_log.push(QueryEntry {
+        self.query_log.push_back(QueryEntry {
             query_hash: hash,
             tick: self.tick,
             result_size: size,
@@ -259,6 +262,7 @@ impl HolisticOmniscient {
 
     // -- public: register & observe -----------------------------------------
 
+    #[inline]
     pub fn register_domain(&mut self, name: String) -> u64 {
         let obs = DomainObservation::new(name, self.tick);
         let hash = obs.domain_hash;
@@ -340,17 +344,20 @@ impl HolisticOmniscient {
     }
 
     /// Returns the global completeness in basis-points (0..10_000).
+    #[inline(always)]
     pub fn knowledge_completeness(&self) -> u64 {
         self.stats.avg_completeness_bps
     }
 
     /// Returns 0 only when every domain has zero blind spots.
+    #[inline(always)]
     pub fn blind_spot_zero(&self) -> bool {
         self.stats.total_blind_spots == 0
     }
 
     /// Construct a proof of omniscience — valid only when completeness is
     /// 100% and blind spots are zero across ALL domains.
+    #[inline]
     pub fn omniscience_proof(&mut self) -> (bool, u64) {
         self.recompute_stats();
         let valid = self.stats.proof_valid;
@@ -363,24 +370,29 @@ impl HolisticOmniscient {
     }
 
     /// Aggregate hash of the entire system state.
+    #[inline(always)]
     pub fn state_hash(&self) -> u64 {
         self.global_state_hash
     }
 
     // -- accessors ----------------------------------------------------------
 
+    #[inline(always)]
     pub fn stats(&self) -> &OmniscientStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn domain_count(&self) -> usize {
         self.domains.len()
     }
 
+    #[inline(always)]
     pub fn query_count(&self) -> u64 {
         self.stats.total_queries
     }
 
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

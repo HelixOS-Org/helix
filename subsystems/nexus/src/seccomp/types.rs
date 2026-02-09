@@ -8,11 +8,13 @@ pub struct FilterId(pub u64);
 
 impl FilterId {
     /// Create new filter ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +26,13 @@ pub struct ProfileId(pub u64);
 
 impl ProfileId {
     /// Create new profile ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -40,11 +44,13 @@ pub struct Pid(pub u32);
 
 impl Pid {
     /// Create new PID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -63,6 +69,7 @@ pub enum SeccompMode {
 
 impl SeccompMode {
     /// Get mode name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Disabled => "disabled",
@@ -123,6 +130,7 @@ impl FilterAction {
     }
 
     /// Is blocking action
+    #[inline(always)]
     pub fn is_blocking(&self) -> bool {
         !matches!(self, Self::Allow | Self::Log)
     }
@@ -149,6 +157,7 @@ pub enum Architecture {
 
 impl Architecture {
     /// Get audit arch constant
+    #[inline]
     pub fn audit_arch(&self) -> u32 {
         match self {
             Self::X86 => 0x40000003,

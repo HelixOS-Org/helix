@@ -46,6 +46,7 @@ impl CryptoManager {
     }
 
     /// Register algorithm
+    #[inline]
     pub fn register_algorithm(&mut self, name: String, alg_type: AlgorithmType) -> AlgorithmId {
         let id = AlgorithmId::new(self.next_alg_id.fetch_add(1, Ordering::Relaxed));
         let mut alg = AlgorithmInfo::new(id, name.clone(), alg_type);
@@ -59,16 +60,19 @@ impl CryptoManager {
     }
 
     /// Get algorithm
+    #[inline(always)]
     pub fn get_algorithm(&self, name: &str) -> Option<&AlgorithmInfo> {
         self.algorithms.get(name)
     }
 
     /// Get algorithm mutably
+    #[inline(always)]
     pub fn get_algorithm_mut(&mut self, name: &str) -> Option<&mut AlgorithmInfo> {
         self.algorithms.get_mut(name)
     }
 
     /// Record operation
+    #[inline]
     pub fn record_operation(&self, alg_name: &str, bytes: u64) {
         self.total_operations.fetch_add(1, Ordering::Relaxed);
         self.total_bytes.fetch_add(bytes, Ordering::Relaxed);
@@ -79,26 +83,31 @@ impl CryptoManager {
     }
 
     /// Get key manager
+    #[inline(always)]
     pub fn key_manager(&self) -> &KeyManager {
         &self.key_manager
     }
 
     /// Get key manager mutably
+    #[inline(always)]
     pub fn key_manager_mut(&mut self) -> &mut KeyManager {
         &mut self.key_manager
     }
 
     /// Get hardware detector
+    #[inline(always)]
     pub fn hw_detector(&self) -> &HwCryptoDetector {
         &self.hw_detector
     }
 
     /// Get hardware detector mutably
+    #[inline(always)]
     pub fn hw_detector_mut(&mut self) -> &mut HwCryptoDetector {
         &mut self.hw_detector
     }
 
     /// Get deprecated algorithms in use
+    #[inline]
     pub fn deprecated_in_use(&self) -> Vec<&AlgorithmInfo> {
         self.algorithms
             .values()
@@ -107,16 +116,19 @@ impl CryptoManager {
     }
 
     /// Get algorithms
+    #[inline(always)]
     pub fn algorithms(&self) -> &BTreeMap<String, AlgorithmInfo> {
         &self.algorithms
     }
 
     /// Get total operations
+    #[inline(always)]
     pub fn total_operations(&self) -> u64 {
         self.total_operations.load(Ordering::Relaxed)
     }
 
     /// Get total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.total_bytes.load(Ordering::Relaxed)
     }

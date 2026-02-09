@@ -66,6 +66,7 @@ impl ProgramVerification {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EbpfVerifierStats {
     pub total_verified: u64,
     pub safe_count: u64,
@@ -89,6 +90,7 @@ impl HolisticEbpfVerifier {
         Self { verifications: BTreeMap::new(), total_verified: 0, total_safe: 0, total_rejected: 0, complexity_sum: 0, insn_sum: 0 }
     }
 
+    #[inline]
     pub fn verify(&mut self, prog_id: u64, insn_count: u32) -> u64 {
         let mut v = ProgramVerification::new(prog_id, insn_count);
         v.complexity = insn_count as u64 * 2;
@@ -101,10 +103,12 @@ impl HolisticEbpfVerifier {
         prog_id
     }
 
+    #[inline(always)]
     pub fn reject(&mut self, prog_id: u64, reason: VerifyResult) {
         if let Some(v) = self.verifications.get_mut(&prog_id) { v.result = reason; }
     }
 
+    #[inline]
     pub fn stats(&self) -> EbpfVerifierStats {
         let avg_c = if self.total_verified == 0 { 0.0 } else { self.complexity_sum as f64 / self.total_verified as f64 };
         let avg_i = if self.total_verified == 0 { 0.0 } else { self.insn_sum as f64 / self.total_verified as f64 };

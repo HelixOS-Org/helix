@@ -10,9 +10,11 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // PROFILE TYPES
@@ -120,6 +122,7 @@ impl ProfileSample {
         }
     }
 
+    #[inline(always)]
     pub fn with_stack(mut self, stack: Vec<u64>) -> Self {
         self.stack = stack;
         self
@@ -146,7 +149,7 @@ pub struct Hotspot {
     /// Percentage of total
     pub percentage: f64,
     /// Contributing processes
-    pub processes: BTreeMap<u64, u64>,
+    pub processes: LinearMap<u64, 64>,
 }
 
 impl Hotspot {
@@ -158,23 +161,26 @@ impl Hotspot {
             samples: 0,
             total_value: 0,
             percentage: 0.0,
-            processes: BTreeMap::new(),
+            processes: LinearMap::new(),
         }
     }
 
+    #[inline(always)]
     pub fn with_symbol(mut self, symbol: String) -> Self {
         self.symbol = symbol;
         self
     }
 
     /// Record sample
+    #[inline]
     pub fn record(&mut self, pid: u64, value: u64) {
         self.samples += 1;
         self.total_value += value;
-        *self.processes.entry(pid).or_insert(0) += 1;
+        self.processes.add(pid, 1);
     }
 
     /// Average value per sample
+    #[inline]
     pub fn avg_value(&self) -> u64 {
         if self.samples == 0 {
             return 0;
@@ -183,11 +189,13 @@ impl Hotspot {
     }
 
     /// Number of unique processes
+    #[inline(always)]
     pub fn unique_processes(&self) -> usize {
         self.processes.len()
     }
 
     /// Is shared hotspot (multiple processes)
+    #[inline(always)]
     pub fn is_shared(&self) -> bool {
         self.processes.len() > 1
     }
@@ -211,7 +219,7 @@ pub struct LockContention {
     /// Max wait time (ns)
     pub max_wait_ns: u64,
     /// Waiters by process
-    pub waiters: BTreeMap<u64, u64>,
+    pub waiters: LinearMap<u64, 64>,
     /// Holder (current)
     pub current_holder: u64,
 }
@@ -224,22 +232,24 @@ impl LockContention {
             total_wait_ns: 0,
             contentions: 0,
             max_wait_ns: 0,
-            waiters: BTreeMap::new(),
+            waiters: LinearMap::new(),
             current_holder: 0,
         }
     }
 
     /// Record contention
+    #[inline]
     pub fn record_contention(&mut self, pid: u64, wait_ns: u64) {
         self.contentions += 1;
         self.total_wait_ns += wait_ns;
         if wait_ns > self.max_wait_ns {
             self.max_wait_ns = wait_ns;
         }
-        *self.waiters.entry(pid).or_insert(0) += 1;
+        self.waiters.add(pid, 1);
     }
 
     /// Average wait
+    #[inline]
     pub fn avg_wait_ns(&self) -> u64 {
         if self.contentions == 0 {
             return 0;
@@ -248,6 +258,7 @@ impl LockContention {
     }
 
     /// Number of unique waiters
+    #[inline(always)]
     pub fn unique_waiters(&self) -> usize {
         self.waiters.len()
     }
@@ -308,23 +319,27 @@ impl ProfileSession {
         }
     }
 
+    #[inline]
     pub fn pause(&mut self) {
         if self.state == ProfileSessionState::Active {
             self.state = ProfileSessionState::Paused;
         }
     }
 
+    #[inline]
     pub fn resume(&mut self) {
         if self.state == ProfileSessionState::Paused {
             self.state = ProfileSessionState::Active;
         }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, end_time: u64) {
         self.state = ProfileSessionState::Complete;
         self.end_time = end_time;
     }
 
+    #[inline]
     pub fn duration_ns(&self) -> u64 {
         if self.end_time > 0 {
             self.end_time.saturating_sub(self.start_time)
@@ -400,6 +415,7 @@ impl OptimizationHint {
 
 /// Profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticProfilerStats {
     /// Active sessions
     pub active_sessions: usize,
@@ -426,7 +442,7 @@ pub struct HolisticProfiler {
     /// Optimization hints
     hints: Vec<OptimizationHint>,
     /// Sample buffer
-    sample_buffer: Vec<ProfileSample>,
+    sample_buffer: VecDeque<ProfileSample>,
     /// Max buffer size
     max_buffer: usize,
     /// Next session ID
@@ -442,7 +458,7 @@ impl HolisticProfiler {
             hotspots: BTreeMap::new(),
             lock_contentions: BTreeMap::new(),
             hints: Vec::new(),
-            sample_buffer: Vec::new(),
+            sample_buffer: VecDeque::new(),
             max_buffer: 8192,
             next_session_id: 1,
             stats: HolisticProfilerStats::default(),
@@ -469,6 +485,7 @@ impl HolisticProfiler {
     }
 
     /// Stop session
+    #[inline]
     pub fn stop_session(&mut self, session_id: u64, now: u64) {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             session.complete(now);
@@ -493,15 +510,16 @@ impl HolisticProfiler {
         hotspot.record(sample.pid, sample.value);
 
         // Buffer sample
-        self.sample_buffer.push(sample);
+        self.sample_buffer.push_back(sample);
         if self.sample_buffer.len() > self.max_buffer {
-            self.sample_buffer.remove(0);
+            self.sample_buffer.pop_front();
         }
 
         self.stats.total_samples += 1;
     }
 
     /// Record lock contention
+    #[inline]
     pub fn record_lock_contention(
         &mut self,
         lock_address: u64,
@@ -518,12 +536,14 @@ impl HolisticProfiler {
     }
 
     /// Add optimization hint
+    #[inline(always)]
     pub fn add_hint(&mut self, hint: OptimizationHint) {
         self.hints.push(hint);
         self.stats.optimization_hints = self.hints.len();
     }
 
     /// Get top hotspots for a domain
+    #[inline]
     pub fn top_hotspots(&self, domain: ProfileDomain, count: usize) -> Vec<&Hotspot> {
         let domain_key = domain as u8;
         let Some(hotspots) = self.hotspots.get(&domain_key) else {
@@ -537,6 +557,7 @@ impl HolisticProfiler {
     }
 
     /// Get worst lock contentions
+    #[inline]
     pub fn worst_contentions(&self, count: usize) -> Vec<&LockContention> {
         let mut sorted: Vec<&LockContention> = self.lock_contentions.values().collect();
         sorted.sort_by(|a, b| b.total_wait_ns.cmp(&a.total_wait_ns));
@@ -545,11 +566,13 @@ impl HolisticProfiler {
     }
 
     /// Get hints
+    #[inline(always)]
     pub fn hints(&self) -> &[OptimizationHint] {
         &self.hints
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticProfilerStats {
         &self.stats
     }

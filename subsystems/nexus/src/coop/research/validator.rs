@@ -159,6 +159,7 @@ pub struct ValidationRecord {
 
 /// Aggregate validation statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     pub total_validations: u64,
     pub total_passed: u64,
@@ -314,6 +315,7 @@ impl CoopDiscoveryValidator {
     }
 
     /// Test for starvation — ensures every agent receives minimum allocation
+    #[inline]
     pub fn starvation_test(
         &mut self,
         validation_id: u64,
@@ -358,6 +360,7 @@ impl CoopDiscoveryValidator {
     }
 
     /// Test gaming resistance — simulate adversarial strategies
+    #[inline]
     pub fn gaming_resistance(&mut self, validation_id: u64) -> Option<GamingResult> {
         let rec = self.records.get_mut(&validation_id)?;
         let mut exploits_found: u32 = 0;
@@ -530,6 +533,7 @@ impl CoopDiscoveryValidator {
     }
 
     /// Get current validator statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ValidatorStats {
         &self.stats
     }

@@ -40,18 +40,23 @@ impl CoopBwAlloc {
         }
     }
 
+    #[inline(always)]
     pub fn can_read(&self, bytes: u64) -> bool {
         self.read_bps == 0 || self.used_read_bps + bytes <= self.read_bps
     }
+    #[inline(always)]
     pub fn can_write(&self, bytes: u64) -> bool {
         self.write_bps == 0 || self.used_write_bps + bytes <= self.write_bps
     }
+    #[inline(always)]
     pub fn consume_read(&mut self, bytes: u64) {
         self.used_read_bps += bytes;
     }
+    #[inline(always)]
     pub fn consume_write(&mut self, bytes: u64) {
         self.used_write_bps += bytes;
     }
+    #[inline]
     pub fn reset(&mut self) {
         self.used_read_bps = 0;
         self.used_write_bps = 0;
@@ -80,6 +85,7 @@ impl CoopBlkdevInstance {
         }
     }
 
+    #[inline]
     pub fn share_with(&mut self, owner_id: u64, read_bps: u64, write_bps: u64) {
         self.allocs
             .push(CoopBwAlloc::new(owner_id, read_bps, write_bps));
@@ -89,6 +95,7 @@ impl CoopBlkdevInstance {
 
 /// Coop blkdev stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopBlkdevStats {
     pub total_devices: u64,
     pub shared_devices: u64,
@@ -116,12 +123,14 @@ impl CoopBlkdev {
         }
     }
 
+    #[inline]
     pub fn register(&mut self, dev_id: u64, capacity: u64) {
         self.stats.total_devices += 1;
         self.devices
             .insert(dev_id, CoopBlkdevInstance::new(dev_id, capacity));
     }
 
+    #[inline]
     pub fn share_device(&mut self, dev_id: u64, owner: u64, rbps: u64, wbps: u64) {
         if let Some(dev) = self.devices.get_mut(&dev_id) {
             dev.share_with(owner, rbps, wbps);

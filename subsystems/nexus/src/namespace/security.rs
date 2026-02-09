@@ -4,6 +4,7 @@
 
 use alloc::format;
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -46,7 +47,7 @@ pub enum ViolationType {
 /// Security boundary enforcer
 pub struct SecurityEnforcer {
     /// Violations history
-    violations: Vec<BoundaryViolation>,
+    violations: VecDeque<BoundaryViolation>,
     /// Maximum violations to track
     max_violations: usize,
     /// Total violations
@@ -173,33 +174,38 @@ impl SecurityEnforcer {
         };
 
         if self.violations.len() >= self.max_violations {
-            self.violations.remove(0);
+            self.violations.pop_front();
         }
-        self.violations.push(violation);
+        self.violations.push_back(violation);
     }
 
     /// Get recent violations
+    #[inline(always)]
     pub fn recent_violations(&self, limit: usize) -> &[BoundaryViolation] {
         let start = self.violations.len().saturating_sub(limit);
         &self.violations[start..]
     }
 
     /// Get total violations
+    #[inline(always)]
     pub fn total_violations(&self) -> u64 {
         self.total_violations.load(Ordering::Relaxed)
     }
 
     /// Get blocked violations
+    #[inline(always)]
     pub fn blocked_violations(&self) -> u64 {
         self.blocked_violations.load(Ordering::Relaxed)
     }
 
     /// Set strict mode
+    #[inline(always)]
     pub fn set_strict_mode(&mut self, strict: bool) {
         self.strict_mode = strict;
     }
 
     /// Check if strict mode
+    #[inline(always)]
     pub fn is_strict_mode(&self) -> bool {
         self.strict_mode
     }

@@ -80,6 +80,7 @@ impl HwCryptoDetector {
     }
 
     /// Add detected feature
+    #[inline]
     pub fn add_feature(&mut self, feature: HwCryptoFeature) {
         if !self.features.contains(&feature) {
             self.features.push(feature);
@@ -87,31 +88,37 @@ impl HwCryptoDetector {
     }
 
     /// Check if feature is available
+    #[inline(always)]
     pub fn has_feature(&self, feature: HwCryptoFeature) -> bool {
         self.features.contains(&feature)
     }
 
     /// Has AES acceleration
+    #[inline(always)]
     pub fn has_aes_acceleration(&self) -> bool {
         self.has_feature(HwCryptoFeature::AesNi) || self.has_feature(HwCryptoFeature::ArmCe)
     }
 
     /// Has SHA acceleration
+    #[inline(always)]
     pub fn has_sha_acceleration(&self) -> bool {
         self.has_feature(HwCryptoFeature::ShaNi) || self.has_feature(HwCryptoFeature::ArmSha)
     }
 
     /// Get all features
+    #[inline(always)]
     pub fn features(&self) -> &[HwCryptoFeature] {
         &self.features
     }
 
     /// Mark as checked
+    #[inline(always)]
     pub fn mark_checked(&self) {
         self.checked.store(true, Ordering::Relaxed);
     }
 
     /// Is checked
+    #[inline(always)]
     pub fn is_checked(&self) -> bool {
         self.checked.load(Ordering::Relaxed)
     }

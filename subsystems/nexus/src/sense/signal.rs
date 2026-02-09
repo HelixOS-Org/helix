@@ -38,16 +38,19 @@ pub struct Signal {
 
 impl Signal {
     /// Is metric signal?
+    #[inline(always)]
     pub const fn is_metric(&self) -> bool {
         matches!(self.signal_type, SignalType::Metric)
     }
 
     /// Is error signal?
+    #[inline(always)]
     pub const fn is_error(&self) -> bool {
         matches!(self.signal_type, SignalType::Error)
     }
 
     /// Is warning signal?
+    #[inline(always)]
     pub const fn is_warning(&self) -> bool {
         matches!(self.signal_type, SignalType::Warning)
     }
@@ -89,6 +92,7 @@ pub enum SignalValue {
 
 impl SignalValue {
     /// Try to get as f64
+    #[inline]
     pub fn as_f64(&self) -> Option<f64> {
         match self {
             Self::Numeric(v) => Some(*v),
@@ -98,6 +102,7 @@ impl SignalValue {
     }
 
     /// Try to get as i64
+    #[inline]
     pub fn as_i64(&self) -> Option<i64> {
         match self {
             Self::Integer(v) => Some(*v),
@@ -108,6 +113,7 @@ impl SignalValue {
     }
 
     /// Try to get as bool
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Self::Boolean(v) => Some(*v),
@@ -150,12 +156,14 @@ impl SignalMetadata {
     }
 
     /// With CPU
+    #[inline(always)]
     pub fn with_cpu(mut self, cpu: u32) -> Self {
         self.cpu = Some(cpu);
         self
     }
 
     /// With process info
+    #[inline]
     pub fn with_process(mut self, pid: u32, tid: Option<u32>) -> Self {
         self.pid = Some(pid);
         self.tid = tid;
@@ -163,6 +171,7 @@ impl SignalMetadata {
     }
 
     /// With unit
+    #[inline(always)]
     pub fn with_unit(mut self, unit: MetricUnit) -> Self {
         self.unit = Some(unit);
         self
@@ -221,6 +230,7 @@ impl SignalNormalizer {
     }
 
     /// Normalize batch of events
+    #[inline(always)]
     pub fn normalize_batch(&self, events: alloc::vec::Vec<RawEvent>) -> alloc::vec::Vec<Signal> {
         events.into_iter().map(|e| self.normalize(e)).collect()
     }
@@ -292,6 +302,7 @@ impl SignalNormalizer {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> NormalizerStats {
         NormalizerStats {
             events_processed: self.events_processed.load(Ordering::Relaxed),
@@ -301,6 +312,7 @@ impl SignalNormalizer {
     }
 
     /// Reset statistics
+    #[inline(always)]
     pub fn reset_stats(&self) {
         self.events_processed.store(0, Ordering::Relaxed);
         self.signals_produced.store(0, Ordering::Relaxed);
@@ -315,6 +327,7 @@ impl Default for SignalNormalizer {
 
 /// Normalizer statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NormalizerStats {
     /// Events processed
     pub events_processed: u64,

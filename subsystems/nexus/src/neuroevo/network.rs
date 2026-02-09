@@ -134,6 +134,7 @@ impl NeatNetwork {
     }
 
     /// Reset network state
+    #[inline]
     pub fn reset(&mut self) {
         for v in &mut self.node_values {
             *v = 0.0;

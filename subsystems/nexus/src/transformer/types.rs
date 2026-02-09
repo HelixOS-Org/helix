@@ -35,6 +35,7 @@ impl Tensor2 {
     }
 
     /// Create from data
+    #[inline(always)]
     pub fn from_data(data: Vec<f64>, rows: usize, cols: usize) -> Self {
         assert_eq!(data.len(), rows * cols);
         Self { data, rows, cols }
@@ -88,6 +89,7 @@ impl Tensor2 {
     }
 
     /// Transpose
+    #[inline]
     pub fn transpose(&self) -> Tensor2 {
         let mut result = Tensor2::new(self.cols, self.rows);
 
@@ -101,6 +103,7 @@ impl Tensor2 {
     }
 
     /// Add tensors
+    #[inline]
     pub fn add(&self, other: &Tensor2) -> Option<Tensor2> {
         if self.rows != other.rows || self.cols != other.cols {
             return None;
@@ -114,6 +117,7 @@ impl Tensor2 {
     }
 
     /// Scale by scalar
+    #[inline]
     pub fn scale(&self, factor: f64) -> Tensor2 {
         let mut result = self.clone();
         for v in &mut result.data {
@@ -123,6 +127,7 @@ impl Tensor2 {
     }
 
     /// Apply function element-wise
+    #[inline]
     pub fn apply<F: Fn(f64) -> f64>(&self, f: F) -> Tensor2 {
         let mut result = self.clone();
         for v in &mut result.data {
@@ -196,6 +201,7 @@ impl Tensor3 {
     }
 
     /// Get batch as Tensor2
+    #[inline]
     pub fn get_batch(&self, b: usize) -> Tensor2 {
         let mut result = Tensor2::new(self.seq_len, self.dim);
         for s in 0..self.seq_len {
@@ -207,6 +213,7 @@ impl Tensor3 {
     }
 
     /// Set batch from Tensor2
+    #[inline]
     pub fn set_batch(&mut self, b: usize, tensor: &Tensor2) {
         for s in 0..self.seq_len.min(tensor.rows) {
             for d in 0..self.dim.min(tensor.cols) {
@@ -312,6 +319,7 @@ impl TransformerConfig {
     }
 
     /// Head dimension
+    #[inline(always)]
     pub fn head_dim(&self) -> usize {
         self.d_model / self.n_heads
     }
@@ -617,6 +625,7 @@ impl PositionalEmbedding {
     }
 
     /// Create learnable positional embedding
+    #[inline]
     pub fn learnable(max_seq_len: usize, d_model: usize, seed: u64) -> Self {
         let encoding = Tensor2::random(max_seq_len, d_model, seed);
         Self {

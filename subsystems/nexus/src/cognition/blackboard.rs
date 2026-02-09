@@ -240,6 +240,7 @@ pub enum EvictionPolicy {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BlackboardStats {
     /// Total entries written
     pub total_writes: u64,
@@ -394,6 +395,7 @@ impl CognitiveBlackboard {
     }
 
     /// Get entries by domain
+    #[inline]
     pub fn entries_by_domain(&self, domain: DomainId) -> Vec<&BlackboardEntry> {
         self.domain_index
             .get(&domain)
@@ -402,6 +404,7 @@ impl CognitiveBlackboard {
     }
 
     /// Get entries by category
+    #[inline]
     pub fn entries_by_category(&self, category: &str) -> Vec<&BlackboardEntry> {
         self.category_index
             .get(category)
@@ -491,21 +494,25 @@ impl CognitiveBlackboard {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &BlackboardStats {
         &self.stats
     }
 
     /// Get entry count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
     /// Clear all entries
+    #[inline]
     pub fn clear(&mut self) {
         self.entries.clear();
         self.key_index.clear();

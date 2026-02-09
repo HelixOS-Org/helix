@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -20,6 +21,7 @@ use crate::types::{ComponentId, DomainId, Timestamp};
 
 /// Current cognitive context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CognitiveContext {
     /// Context ID
     pub id: u64,
@@ -100,6 +102,7 @@ impl CognitivePhase {
 
 /// Current focus of cognitive attention
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ContextFocus {
     /// Focus type
     pub focus_type: FocusType,
@@ -149,6 +152,7 @@ pub enum FocusTarget {
 
 /// Cognitive goal
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ContextGoal {
     /// Goal ID
     pub id: u64,
@@ -185,6 +189,7 @@ pub enum GoalType {
 
 /// Constraint on cognitive processing
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ContextConstraint {
     /// Constraint ID
     pub id: u64,
@@ -230,6 +235,7 @@ pub enum ConstraintValue {
 
 /// Environment state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EnvironmentState {
     /// System load
     pub load: f32,
@@ -277,6 +283,7 @@ impl Default for EnvironmentState {
 
 /// Domain-specific context state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DomainContextState {
     /// Domain ID
     pub domain_id: DomainId,
@@ -297,11 +304,12 @@ pub struct DomainContextState {
 // ============================================================================
 
 /// Manages cognitive context
+#[repr(align(64))]
 pub struct ContextManager {
     /// Current context
     current: CognitiveContext,
     /// Context history
-    history: Vec<CognitiveContext>,
+    history: VecDeque<CognitiveContext>,
     /// Next context ID
     next_id: AtomicU64,
     /// Next goal ID
@@ -316,6 +324,7 @@ pub struct ContextManager {
 
 /// Configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ContextConfig {
     /// Maximum history size
     pub max_history: usize,
@@ -337,6 +346,7 @@ impl Default for ContextConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ContextStats {
     /// Total contexts created
     pub total_contexts: u64,
@@ -368,7 +378,7 @@ impl ContextManager {
 
         Self {
             current: initial,
-            history: Vec::new(),
+            history: VecDeque::new(),
             next_id: AtomicU64::new(2),
             next_goal_id: AtomicU64::new(1),
             next_constraint_id: AtomicU64::new(1),
@@ -378,16 +388,19 @@ impl ContextManager {
     }
 
     /// Get current context
+    #[inline(always)]
     pub fn current(&self) -> &CognitiveContext {
         &self.current
     }
 
     /// Get mutable current context
+    #[inline(always)]
     pub fn current_mut(&mut self) -> &mut CognitiveContext {
         &mut self.current
     }
 
     /// Start new cycle
+    #[inline]
     pub fn start_cycle(&mut self) {
         self.current.cycle += 1;
         self.current.phase = CognitivePhase::Sensing;
@@ -396,6 +409,7 @@ impl ContextManager {
     }
 
     /// Advance to next phase
+    #[inline]
     pub fn advance_phase(&mut self) {
         let prev = self.current.phase;
         self.current.phase = prev.next();
@@ -403,11 +417,13 @@ impl ContextManager {
     }
 
     /// Set focus
+    #[inline(always)]
     pub fn set_focus(&mut self, focus: ContextFocus) {
         self.current.focus = Some(focus);
     }
 
     /// Clear focus
+    #[inline(always)]
     pub fn clear_focus(&mut self) {
         self.current.focus = None;
     }
@@ -431,6 +447,7 @@ impl ContextManager {
     }
 
     /// Update goal progress
+    #[inline]
     pub fn update_goal(&mut self, goal_id: u64, progress: f32) {
         if let Some(goal) = self.current.goals.iter_mut().find(|g| g.id == goal_id) {
             goal.progress = progress;
@@ -441,6 +458,7 @@ impl ContextManager {
     }
 
     /// Remove goal
+    #[inline(always)]
     pub fn remove_goal(&mut self, goal_id: u64) {
         self.current.goals.retain(|g| g.id != goal_id);
     }
@@ -468,29 +486,33 @@ impl ContextManager {
     }
 
     /// Remove constraint
+    #[inline(always)]
     pub fn remove_constraint(&mut self, constraint_id: u64) {
         self.current.constraints.retain(|c| c.id != constraint_id);
     }
 
     /// Update environment
+    #[inline(always)]
     pub fn update_environment(&mut self, env: EnvironmentState) {
         self.current.environment = env;
     }
 
     /// Update domain state
+    #[inline(always)]
     pub fn update_domain_state(&mut self, domain_id: DomainId, state: DomainContextState) {
         self.current.domain_states.insert(domain_id, state);
     }
 
     /// Create checkpoint
+    #[inline]
     pub fn checkpoint(&mut self) {
         let snapshot = self.current.clone();
 
         if self.history.len() >= self.config.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
-        self.history.push(snapshot);
+        self.history.push_back(snapshot);
     }
 
     /// Create nested context
@@ -514,6 +536,7 @@ impl ContextManager {
     }
 
     /// Pop to parent context
+    #[inline]
     pub fn pop_context(&mut self) -> bool {
         if let Some(parent_id) = self.current.parent {
             // Find parent in history
@@ -527,11 +550,13 @@ impl ContextManager {
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[CognitiveContext] {
         &self.history
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ContextStats {
         &self.stats
     }
@@ -543,6 +568,7 @@ impl ContextManager {
 
 /// Lightweight snapshot of context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ContextSnapshot {
     /// Context ID
     pub id: u64,

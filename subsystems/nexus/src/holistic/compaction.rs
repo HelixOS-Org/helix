@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -74,6 +75,7 @@ pub enum CompactAction {
 
 /// Per-zone compaction state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ZoneCompactState {
     /// Zone type
     pub zone: CompactZone,
@@ -86,7 +88,7 @@ pub struct ZoneCompactState {
     /// Unmovable pages
     pub unmovable_pages: u64,
     /// Free page blocks by order
-    pub free_blocks: BTreeMap<u32, u64>,
+    pub free_blocks: ArrayMap<u64, 32>,
     /// Compaction scanning offset
     pub scan_offset: u64,
     /// Migrations completed
@@ -103,7 +105,7 @@ impl ZoneCompactState {
             free_pages: total_pages,
             movable_pages: 0,
             unmovable_pages: 0,
-            free_blocks: BTreeMap::new(),
+            free_blocks: ArrayMap::new(0),
             scan_offset: 0,
             migrations: 0,
             failed_migrations: 0,
@@ -126,11 +128,13 @@ impl ZoneCompactState {
     }
 
     /// Compaction worthwhile? (enough movable pages near free pages)
+    #[inline(always)]
     pub fn compaction_suitable(&self) -> bool {
         self.movable_pages > 0 && self.free_pages > self.total_pages / 10
     }
 
     /// Record migration result
+    #[inline]
     pub fn record_migration(&mut self, success: bool) {
         if success {
             self.migrations += 1;
@@ -140,6 +144,7 @@ impl ZoneCompactState {
     }
 
     /// Migration success rate
+    #[inline]
     pub fn migration_success_rate(&self) -> f64 {
         let total = self.migrations + self.failed_migrations;
         if total == 0 {
@@ -155,6 +160,7 @@ impl ZoneCompactState {
 
 /// Huge page pool stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HugePagePool {
     /// Total huge pages
     pub total: u64,
@@ -174,6 +180,7 @@ pub struct HugePagePool {
 
 impl HugePagePool {
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total == 0 {
             return 0.0;
@@ -182,11 +189,13 @@ impl HugePagePool {
     }
 
     /// Should promote? (enough free space and low frag)
+    #[inline(always)]
     pub fn should_promote(&self) -> bool {
         self.free > 0 || self.surplus > 0
     }
 
     /// Record promotion
+    #[inline]
     pub fn record_promotion(&mut self, success: bool) {
         if success {
             self.promotions += 1;
@@ -199,6 +208,7 @@ impl HugePagePool {
     }
 
     /// Record demotion
+    #[inline(always)]
     pub fn record_demotion(&mut self) {
         self.demotions += 1;
         self.free += 1;
@@ -211,6 +221,7 @@ impl HugePagePool {
 
 /// Compaction engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticCompactionStats {
     /// Tracked zones
     pub tracked_zones: usize,
@@ -250,11 +261,13 @@ impl HolisticCompactionEngine {
     }
 
     /// Register zone
+    #[inline(always)]
     pub fn register_zone(&mut self, zone: CompactZone, total_pages: u64) {
         self.zones.insert(zone as u8, ZoneCompactState::new(zone, total_pages));
     }
 
     /// Update zone free pages
+    #[inline]
     pub fn update_zone(&mut self, zone: CompactZone, free: u64, movable: u64, unmovable: u64) {
         if let Some(z) = self.zones.get_mut(&(zone as u8)) {
             z.free_pages = free;
@@ -293,6 +306,7 @@ impl HolisticCompactionEngine {
     }
 
     /// Record migration
+    #[inline]
     pub fn record_migration(&mut self, zone: CompactZone, success: bool) {
         if let Some(z) = self.zones.get_mut(&(zone as u8)) {
             z.record_migration(success);
@@ -313,6 +327,7 @@ impl HolisticCompactionEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCompactionStats {
         &self.stats
     }
@@ -358,12 +373,14 @@ impl CompactionV2Zone {
         Self { zone_id: id, migrate_pfn: 0, free_pfn: u64::MAX, pages_migrated: 0, pages_freed: 0, compact_count: 0, compact_fail: 0, fragmentation_score: 0 }
     }
 
+    #[inline]
     pub fn compact(&mut self, migrated: u64, freed: u64) {
         self.pages_migrated += migrated;
         self.pages_freed += freed;
         self.compact_count += 1;
     }
 
+    #[inline(always)]
     pub fn update_fragmentation(&mut self, score: u32) {
         self.fragmentation_score = score;
     }
@@ -371,6 +388,7 @@ impl CompactionV2Zone {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CompactionV2Stats {
     pub total_zones: u32,
     pub total_compactions: u64,
@@ -387,16 +405,20 @@ pub struct HolisticCompactionV2 {
 impl HolisticCompactionV2 {
     pub fn new() -> Self { Self { zones: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn add_zone(&mut self, id: u32) { self.zones.insert(id, CompactionV2Zone::new(id)); }
 
+    #[inline(always)]
     pub fn compact(&mut self, zone: u32, migrated: u64, freed: u64) {
         if let Some(z) = self.zones.get_mut(&zone) { z.compact(migrated, freed); }
     }
 
+    #[inline(always)]
     pub fn update_fragmentation(&mut self, zone: u32, score: u32) {
         if let Some(z) = self.zones.get_mut(&zone) { z.update_fragmentation(score); }
     }
 
+    #[inline]
     pub fn stats(&self) -> CompactionV2Stats {
         let compactions: u64 = self.zones.values().map(|z| z.compact_count).sum();
         let migrated: u64 = self.zones.values().map(|z| z.pages_migrated).sum();

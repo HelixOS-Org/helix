@@ -207,6 +207,7 @@ impl Default for GeneratorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct GeneratorStats {
     /// Hypotheses generated
     pub generated: u64,
@@ -403,6 +404,7 @@ impl HypothesisGenerator {
     }
 
     /// Find best hypothesis
+    #[inline]
     pub fn best_hypothesis(&self, hypothesis_type: Option<HypothesisType>) -> Option<&Hypothesis> {
         self.hypotheses.values()
             .filter(|h| {
@@ -455,11 +457,13 @@ impl HypothesisGenerator {
     }
 
     /// Get hypothesis
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Hypothesis> {
         self.hypotheses.get(&id)
     }
 
     /// Get all hypotheses by status
+    #[inline]
     pub fn by_status(&self, status: HypothesisStatus) -> Vec<&Hypothesis> {
         self.hypotheses.values()
             .filter(|h| h.status == status)
@@ -467,6 +471,7 @@ impl HypothesisGenerator {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &GeneratorStats {
         &self.stats
     }
@@ -504,12 +509,14 @@ impl<'a> HypothesisBuilder<'a> {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn description(mut self, desc: &str) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Add antecedent
+    #[inline]
     pub fn given(mut self, subject: &str, predicate: &str, object: Option<&str>) -> Self {
         let prop = self.generator.create_proposition(subject, predicate, object);
         self.antecedents.push(prop);
@@ -517,6 +524,7 @@ impl<'a> HypothesisBuilder<'a> {
     }
 
     /// Set consequent
+    #[inline]
     pub fn then(mut self, subject: &str, predicate: &str, object: Option<&str>) -> Self {
         let prop = self.generator.create_proposition(subject, predicate, object);
         self.consequent = Some(prop);
@@ -524,6 +532,7 @@ impl<'a> HypothesisBuilder<'a> {
     }
 
     /// Build hypothesis
+    #[inline]
     pub fn build(self) -> Option<u64> {
         let consequent = self.consequent?;
 

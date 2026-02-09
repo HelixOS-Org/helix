@@ -35,13 +35,21 @@ pub enum Capability {
 pub struct CapBitmask(pub u64);
 
 impl CapBitmask {
+    #[inline(always)]
     pub fn empty() -> Self { Self(0) }
+    #[inline(always)]
     pub fn full() -> Self { Self(u64::MAX) }
+    #[inline(always)]
     pub fn set(&mut self, cap: u32) { self.0 |= 1u64 << cap; }
+    #[inline(always)]
     pub fn clear(&mut self, cap: u32) { self.0 &= !(1u64 << cap); }
+    #[inline(always)]
     pub fn has(&self, cap: u32) -> bool { self.0 & (1u64 << cap) != 0 }
+    #[inline(always)]
     pub fn count(&self) -> u32 { self.0.count_ones() }
+    #[inline(always)]
     pub fn intersect(&self, other: &Self) -> Self { Self(self.0 & other.0) }
+    #[inline(always)]
     pub fn union(&self, other: &Self) -> Self { Self(self.0 | other.0) }
 }
 
@@ -67,17 +75,21 @@ impl ProcessCaps {
         }
     }
 
+    #[inline(always)]
     pub fn capable(&self, cap: u32) -> bool { self.effective.has(cap) }
 
+    #[inline(always)]
     pub fn raise_effective(&mut self, cap: u32) -> bool {
         if self.permitted.has(cap) { self.effective.set(cap); true } else { false }
     }
 
+    #[inline(always)]
     pub fn drop_capability(&mut self, cap: u32) {
         self.effective.clear(cap);
         self.permitted.clear(cap);
     }
 
+    #[inline]
     pub fn exec_transform(&mut self, file_caps: &CapBitmask) {
         let new_permitted = self.inheritable.intersect(&self.bounding).union(file_caps);
         self.permitted = new_permitted;
@@ -87,6 +99,7 @@ impl ProcessCaps {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CapBridgeStats {
     pub total_processes: u32,
     pub privileged_processes: u32,
@@ -96,6 +109,7 @@ pub struct CapBridgeStats {
 }
 
 /// Main cap bridge
+#[repr(align(64))]
 pub struct BridgeCap {
     processes: BTreeMap<u64, ProcessCaps>,
     total_checks: u64,
@@ -105,8 +119,10 @@ pub struct BridgeCap {
 impl BridgeCap {
     pub fn new() -> Self { Self { processes: BTreeMap::new(), total_checks: 0, total_denials: 0 } }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessCaps::new(pid)); }
 
+    #[inline]
     pub fn check(&mut self, pid: u64, cap: u32) -> bool {
         self.total_checks += 1;
         if let Some(p) = self.processes.get(&pid) {
@@ -114,6 +130,7 @@ impl BridgeCap {
         } else { self.total_denials += 1; false }
     }
 
+    #[inline]
     pub fn stats(&self) -> CapBridgeStats {
         let privileged = self.processes.values().filter(|p| p.effective.count() > 0).count() as u32;
         let caps: Vec<f64> = self.processes.values().map(|p| p.effective.count() as f64).collect();
@@ -182,11 +199,16 @@ pub struct CapSetV2 {
 }
 
 impl CapSetV2 {
+    #[inline(always)]
     pub fn empty() -> Self { Self { effective: 0, permitted: 0, inheritable: 0, bounding: 0, ambient: 0 } }
+    #[inline(always)]
     pub fn full() -> Self { Self { effective: u64::MAX, permitted: u64::MAX, inheritable: 0, bounding: u64::MAX, ambient: 0 } }
 
+    #[inline(always)]
     pub fn has_effective(&self, bit: u32) -> bool { self.effective & (1u64 << bit) != 0 }
+    #[inline(always)]
     pub fn grant(&mut self, bit: u32) { self.effective |= 1u64 << bit; self.permitted |= 1u64 << bit; }
+    #[inline(always)]
     pub fn revoke(&mut self, bit: u32) { self.effective &= !(1u64 << bit); }
 }
 
@@ -201,6 +223,7 @@ pub struct ProcessCapsV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CapV2BridgeStats {
     pub tracked_processes: u32,
     pub privileged_count: u32,
@@ -208,6 +231,7 @@ pub struct CapV2BridgeStats {
 }
 
 /// Main bridge capability v2
+#[repr(align(64))]
 pub struct BridgeCapV2 {
     processes: BTreeMap<u64, ProcessCapsV2>,
 }
@@ -215,14 +239,17 @@ pub struct BridgeCapV2 {
 impl BridgeCapV2 {
     pub fn new() -> Self { Self { processes: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, caps: CapSetV2) {
         self.processes.insert(pid, ProcessCapsV2 { pid, caps, no_new_privs: false, securebits: 0 });
     }
 
+    #[inline(always)]
     pub fn check(&self, pid: u64, bit: u32) -> bool {
         self.processes.get(&pid).map_or(false, |p| p.caps.has_effective(bit))
     }
 
+    #[inline]
     pub fn stats(&self) -> CapV2BridgeStats {
         let priv_count = self.processes.values().filter(|p| p.caps.effective != 0).count() as u32;
         let nnp = self.processes.values().filter(|p| p.no_new_privs).count() as u32;

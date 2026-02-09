@@ -43,6 +43,7 @@ pub enum TimerState {
 
 /// Timer entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerEntry {
     pub timer_id: u64,
     pub owner_pid: u64,
@@ -74,16 +75,19 @@ impl TimerEntry {
         }
     }
 
+    #[inline]
     pub fn arm(&mut self, expiry_ns: u64, interval_ns: u64) {
         self.expiry_ns = expiry_ns;
         self.interval_ns = interval_ns;
         self.state = TimerState::Armed;
     }
 
+    #[inline(always)]
     pub fn disarm(&mut self) {
         self.state = TimerState::Disarmed;
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         self.state == TimerState::Armed && now >= self.expiry_ns
     }
@@ -138,6 +142,7 @@ impl WheelLevel {
         }
     }
 
+    #[inline]
     pub fn insert(&mut self, timer_id: u64, ticks_from_now: u64) {
         let slot = ((self.current_slot as u64 + ticks_from_now) % self.slot_count as u64) as usize;
         if slot < self.slots.len() {
@@ -145,6 +150,7 @@ impl WheelLevel {
         }
     }
 
+    #[inline]
     pub fn advance(&mut self) -> Vec<u64> {
         self.current_slot = (self.current_slot + 1) % self.slot_count;
         let slot = self.current_slot as usize;
@@ -168,6 +174,7 @@ pub struct CoalesceGroup {
 
 /// Timer bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeTimerBridgeStats {
     pub total_timers: usize,
     pub armed_timers: usize,
@@ -179,6 +186,7 @@ pub struct BridgeTimerBridgeStats {
 }
 
 /// Bridge Timer Bridge
+#[repr(align(64))]
 pub struct BridgeTimerBridge {
     timers: BTreeMap<u64, TimerEntry>,
     wheel: WheelLevel,
@@ -200,6 +208,7 @@ impl BridgeTimerBridge {
         }
     }
 
+    #[inline]
     pub fn create_timer(&mut self, pid: u64, timer_type: TimerType, clock: ClockSource, now: u64) -> u64 {
         let id = self.next_timer_id;
         self.next_timer_id += 1;
@@ -224,6 +233,7 @@ impl BridgeTimerBridge {
         } else { false }
     }
 
+    #[inline]
     pub fn disarm_timer(&mut self, timer_id: u64) -> bool {
         if let Some(timer) = self.timers.get_mut(&timer_id) {
             timer.disarm();
@@ -232,6 +242,7 @@ impl BridgeTimerBridge {
         } else { false }
     }
 
+    #[inline]
     pub fn delete_timer(&mut self, timer_id: u64) -> bool {
         let removed = self.timers.remove(&timer_id).is_some();
         if removed { self.recompute(); }
@@ -310,10 +321,12 @@ impl BridgeTimerBridge {
         self.stats.total_overruns = self.timers.values().map(|t| t.overrun_count as u64).sum();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeTimerBridgeStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn timer(&self, id: u64) -> Option<&TimerEntry> {
         self.timers.get(&id)
     }

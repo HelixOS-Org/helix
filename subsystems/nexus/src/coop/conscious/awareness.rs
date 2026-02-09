@@ -118,6 +118,7 @@ pub struct Relationship {
 
 /// Aggregate awareness statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct AwarenessStats {
     pub total_participants: usize,
     pub unknown_count: usize,
@@ -166,6 +167,7 @@ impl CoopAwareness {
     }
 
     /// Update or create awareness of a participant
+    #[inline]
     pub fn participant_awareness(
         &mut self,
         name: &str,
@@ -251,6 +253,7 @@ impl CoopAwareness {
     }
 
     /// Update relationship strength between two participants
+    #[inline]
     pub fn relationship_strength(
         &mut self,
         name_a: &str,
@@ -338,6 +341,7 @@ impl CoopAwareness {
     }
 
     /// Collective consciousness: aggregate awareness weighted by interaction frequency
+    #[inline]
     pub fn collective_consciousness(&mut self) -> f32 {
         if self.participants.is_empty() {
             return 0.0;

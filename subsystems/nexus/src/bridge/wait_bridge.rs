@@ -37,6 +37,7 @@ pub struct BridgeExitStatus {
 
 /// Stats for wait operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeWaitStats {
     pub total_waits: u64,
     pub successful_reaps: u64,
@@ -46,6 +47,7 @@ pub struct BridgeWaitStats {
 }
 
 /// Manager for wait bridge operations
+#[repr(align(64))]
 pub struct BridgeWaitManager {
     zombies: BTreeMap<u64, BridgeExitStatus>,
     waiting: BTreeMap<u64, BridgeWaitTarget>,
@@ -67,6 +69,7 @@ impl BridgeWaitManager {
         }
     }
 
+    #[inline(always)]
     pub fn add_zombie(&mut self, status: BridgeExitStatus) {
         self.zombies.insert(status.pid, status);
     }
@@ -98,10 +101,12 @@ impl BridgeWaitManager {
         }
     }
 
+    #[inline(always)]
     pub fn zombie_count(&self) -> usize {
         self.zombies.len()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeWaitStats {
         &self.stats
     }

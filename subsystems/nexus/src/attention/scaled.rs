@@ -35,6 +35,7 @@ impl ScaledDotProductAttention {
     }
 
     /// Enable weight storage
+    #[inline(always)]
     pub fn with_weight_storage(mut self) -> Self {
         self.store_weights = true;
         self
@@ -80,6 +81,7 @@ impl ScaledDotProductAttention {
     }
 
     /// Compute only attention scores (for analysis)
+    #[inline]
     pub fn attention_scores(&self, query: &Matrix, key: &Matrix, mask: &AttentionMask) -> Matrix {
         let k_t = key.transpose();
         let mut scores = query

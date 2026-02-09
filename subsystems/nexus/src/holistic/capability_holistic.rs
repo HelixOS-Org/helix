@@ -30,6 +30,7 @@ impl CapHolisticFinding {
         Self { metric, score: 0, pid: 0, caps_held: 0, caps_used: 0, risk_level: 0 }
     }
 
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
         if self.caps_held == 0 { 0.0 } else { self.caps_used as f64 / self.caps_held as f64 }
     }
@@ -37,6 +38,7 @@ impl CapHolisticFinding {
 
 /// Capability holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CapHolisticStats {
     pub total_analyses: u64,
     pub excessive_privileges: u64,
@@ -55,6 +57,7 @@ impl HolisticCapability {
         Self { stats: CapHolisticStats { total_analyses: 0, excessive_privileges: 0, avg_usage_ratio: 0.0, high_risk: 0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &CapHolisticFinding) {
         self.stats.total_analyses += 1;
         if finding.usage_ratio() < 0.3 { self.stats.excessive_privileges += 1; }

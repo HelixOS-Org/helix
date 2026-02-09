@@ -220,6 +220,7 @@ impl Default for MatcherConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MatcherStats {
     /// Patterns registered
     pub patterns_registered: u64,
@@ -258,6 +259,7 @@ impl PatternMatcher {
     }
 
     /// Create pattern
+    #[inline(always)]
     pub fn create_pattern(&mut self, name: &str, pattern_type: PatternType) -> PatternBuilder {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         PatternBuilder::new(id, name, pattern_type)
@@ -427,11 +429,13 @@ impl PatternMatcher {
     }
 
     /// Get pattern
+    #[inline(always)]
     pub fn get_pattern(&self, id: u64) -> Option<&CodePattern> {
         self.patterns.get(&id)
     }
 
     /// Get patterns by type
+    #[inline]
     pub fn get_patterns_by_type(&self, pattern_type: PatternType) -> Vec<&CodePattern> {
         self.type_index
             .get(&pattern_type)
@@ -440,11 +444,13 @@ impl PatternMatcher {
     }
 
     /// Get match
+    #[inline(always)]
     pub fn get_match(&self, id: u64) -> Option<&PatternMatch> {
         self.matches.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MatcherStats {
         &self.stats
     }
@@ -516,6 +522,7 @@ impl PatternBuilder {
     }
 
     /// Add element
+    #[inline]
     pub fn element(mut self, name: &str, elem_type: ElementType, is_variable: bool) -> Self {
         self.elements.push(PatternElement {
             id: self.next_elem_id,
@@ -529,6 +536,7 @@ impl PatternBuilder {
     }
 
     /// Add relation
+    #[inline]
     pub fn relation(mut self, source: u64, target: u64, rel_type: RelationType) -> Self {
         self.relations.push(PatternRelation {
             source,
@@ -539,6 +547,7 @@ impl PatternBuilder {
     }
 
     /// Add constraint
+    #[inline]
     pub fn constraint(mut self, element_id: u64, const_type: ConstraintType, value: &str) -> Self {
         self.constraints.push(PatternConstraint {
             element_id,

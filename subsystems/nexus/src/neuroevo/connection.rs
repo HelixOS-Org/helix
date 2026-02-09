@@ -33,11 +33,13 @@ impl ConnectionGene {
     }
 
     /// Disable this connection
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.enabled = false;
     }
 
     /// Check if connection is active
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.enabled
     }

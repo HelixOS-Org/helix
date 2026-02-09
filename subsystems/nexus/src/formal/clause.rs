@@ -15,6 +15,7 @@ pub struct Clause {
 
 impl Clause {
     /// Create empty clause (contradiction)
+    #[inline]
     pub fn empty() -> Self {
         Self {
             literals: Vec::new(),
@@ -22,6 +23,7 @@ impl Clause {
     }
 
     /// Create unit clause
+    #[inline]
     pub fn unit(lit: Literal) -> Self {
         Self {
             literals: alloc::vec![lit],
@@ -29,6 +31,7 @@ impl Clause {
     }
 
     /// Create binary clause
+    #[inline]
     pub fn binary(a: Literal, b: Literal) -> Self {
         Self {
             literals: alloc::vec![a, b],
@@ -36,6 +39,7 @@ impl Clause {
     }
 
     /// Create from multiple literals
+    #[inline]
     pub fn from_lits(lits: &[Literal]) -> Self {
         Self {
             literals: lits.to_vec(),
@@ -43,16 +47,19 @@ impl Clause {
     }
 
     /// Is empty (conflict)?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.literals.is_empty()
     }
 
     /// Is unit?
+    #[inline(always)]
     pub fn is_unit(&self) -> bool {
         self.literals.len() == 1
     }
 
     /// Get size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.literals.len()
     }

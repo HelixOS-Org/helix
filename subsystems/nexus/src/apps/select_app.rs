@@ -48,6 +48,7 @@ impl SelectCall {
         }
     }
 
+    #[inline]
     pub fn add_fd(&mut self, fd: u64, sets: u32) {
         self.fds.push(SelectFdEntry {
             fd,
@@ -72,6 +73,7 @@ impl SelectCall {
         false
     }
 
+    #[inline(always)]
     pub fn complete(&mut self) {
         self.completed = true;
     }
@@ -79,6 +81,7 @@ impl SelectCall {
 
 /// Statistics for select app
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SelectAppStats {
     pub total_calls: u64,
     pub total_fds_monitored: u64,
@@ -112,6 +115,7 @@ impl AppSelect {
         }
     }
 
+    #[inline]
     pub fn begin_select(&mut self, nfds: u32, timeout_us: u64, tick: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -123,6 +127,7 @@ impl AppSelect {
         id
     }
 
+    #[inline]
     pub fn add_fd(&mut self, call_id: u64, fd: u64, sets: u32) -> bool {
         if let Some(call) = self.calls.get_mut(&call_id) {
             call.add_fd(fd, sets);
@@ -147,6 +152,7 @@ impl AppSelect {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SelectAppStats {
         &self.stats
     }

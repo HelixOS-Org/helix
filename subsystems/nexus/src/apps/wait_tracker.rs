@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Wait variant
@@ -37,7 +38,9 @@ impl WaitOptions {
     pub const WNOWAIT: u32 = 0x01000000;
 
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn is_nohang(&self) -> bool { self.bits & Self::WNOHANG != 0 }
+    #[inline(always)]
     pub fn is_untraced(&self) -> bool { self.bits & Self::WUNTRACED != 0 }
 }
 
@@ -52,9 +55,11 @@ pub enum ChildStatus {
 }
 
 impl ChildStatus {
+    #[inline(always)]
     pub fn is_abnormal(&self) -> bool {
         matches!(self, Self::Signaled(_))
     }
+    #[inline]
     pub fn exit_code(&self) -> Option<u8> {
         match self {
             Self::Exited(c) => Some(*c),
@@ -92,10 +97,12 @@ impl ZombieEntry {
         Self { pid, parent_pid: parent, exit_status: status, exit_ts: ts, zombie_duration_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn update_duration(&mut self, now: u64) {
         self.zombie_duration_ns = now.saturating_sub(self.exit_ts);
     }
 
+    #[inline(always)]
     pub fn is_long_zombie(&self, threshold_ns: u64) -> bool {
         self.zombie_duration_ns > threshold_ns
     }
@@ -139,11 +146,13 @@ impl WaitPattern {
         }
     }
 
+    #[inline(always)]
     pub fn nohang_ratio(&self) -> f64 {
         if self.total_waits == 0 { return 0.0; }
         self.nohang_waits as f64 / self.total_waits as f64
     }
 
+    #[inline(always)]
     pub fn abnormal_ratio(&self) -> f64 {
         if self.children_reaped == 0 { return 0.0; }
         self.abnormal_exits as f64 / self.children_reaped as f64
@@ -152,6 +161,7 @@ impl WaitPattern {
 
 /// Wait tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct WaitTrackerStats {
     pub tracked_processes: usize,
     pub total_wait_events: u64,
@@ -168,7 +178,7 @@ pub struct AppsWaitTracker {
     patterns: BTreeMap<u64, WaitPattern>,
     zombies: BTreeMap<u64, ZombieEntry>,
     orphans: Vec<u64>,
-    events: Vec<WaitEvent>,
+    events: VecDeque<WaitEvent>,
     max_events: usize,
     zombie_threshold_ns: u64,
     stats: WaitTrackerStats,
@@ -178,12 +188,13 @@ impl AppsWaitTracker {
     pub fn new() -> Self {
         Self {
             patterns: BTreeMap::new(), zombies: BTreeMap::new(),
-            orphans: Vec::new(), events: Vec::new(),
+            orphans: Vec::new(), events: VecDeque::new(),
             max_events: 512, zombie_threshold_ns: 10_000_000_000,
             stats: WaitTrackerStats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn record_child_exit(&mut self, pid: u64, parent: u64, status: ChildStatus, ts: u64) {
         self.zombies.insert(pid, ZombieEntry::new(pid, parent, status, ts));
     }
@@ -194,23 +205,26 @@ impl AppsWaitTracker {
 
         if got_result { self.zombies.remove(&waited); }
 
-        self.events.push(WaitEvent {
+        self.events.push_back(WaitEvent {
             waiter_pid: waiter, waited_pid: waited, variant, options, status,
             timestamp: ts, wait_latency_ns: latency_ns, was_nohang: options.is_nohang(),
             got_result,
         });
-        if self.events.len() > self.max_events { self.events.remove(0); }
+        if self.events.len() > self.max_events { self.events.pop_front(); }
     }
 
+    #[inline(always)]
     pub fn record_orphan(&mut self, pid: u64) {
         if !self.orphans.contains(&pid) { self.orphans.push(pid); }
     }
 
+    #[inline(always)]
     pub fn record_reparent(&mut self, pid: u64, new_parent: u64) {
         if let Some(z) = self.zombies.get_mut(&pid) { z.parent_pid = new_parent; }
         self.orphans.retain(|&o| o != pid);
     }
 
+    #[inline(always)]
     pub fn process_exit(&mut self, pid: u64) {
         self.patterns.remove(&pid);
         self.orphans.retain(|&o| o != pid);
@@ -231,8 +245,11 @@ impl AppsWaitTracker {
         }
     }
 
+    #[inline(always)]
     pub fn pattern(&self, pid: u64) -> Option<&WaitPattern> { self.patterns.get(&pid) }
+    #[inline(always)]
     pub fn zombie(&self, pid: u64) -> Option<&ZombieEntry> { self.zombies.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &WaitTrackerStats { &self.stats }
 }
 
@@ -285,6 +302,7 @@ pub struct WaitV2Record {
 
 /// Per-process wait state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessWaitV2State {
     pub pid: u64,
     pub children: Vec<u64>,
@@ -302,15 +320,18 @@ impl ProcessWaitV2State {
         }
     }
 
+    #[inline(always)]
     pub fn add_child(&mut self, child: u64) {
         self.children.push(child);
     }
 
+    #[inline(always)]
     pub fn child_exited(&mut self, child: u64) {
         self.children.retain(|c| *c != child);
         self.zombies.push(child);
     }
 
+    #[inline]
     pub fn reap(&mut self) -> Option<u64> {
         if let Some(z) = self.zombies.pop() {
             self.reaped += 1;
@@ -321,6 +342,7 @@ impl ProcessWaitV2State {
 
 /// Statistics for wait V2 tracker
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WaitV2TrackerStats {
     pub total_wait_calls: u64,
     pub waitpid_calls: u64,
@@ -336,7 +358,7 @@ pub struct WaitV2TrackerStats {
 #[derive(Debug)]
 pub struct AppWaitV2Tracker {
     processes: BTreeMap<u64, ProcessWaitV2State>,
-    history: Vec<WaitV2Record>,
+    history: VecDeque<WaitV2Record>,
     max_history: usize,
     stats: WaitV2TrackerStats,
 }
@@ -345,7 +367,7 @@ impl AppWaitV2Tracker {
     pub fn new(max_history: usize) -> Self {
         Self {
             processes: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history,
             stats: WaitV2TrackerStats {
                 total_wait_calls: 0, waitpid_calls: 0,
@@ -356,16 +378,19 @@ impl AppWaitV2Tracker {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.insert(pid, ProcessWaitV2State::new(pid));
     }
 
+    #[inline]
     pub fn add_child(&mut self, parent: u64, child: u64) {
         if let Some(proc) = self.processes.get_mut(&parent) {
             proc.add_child(child);
         }
     }
 
+    #[inline]
     pub fn child_exit(&mut self, parent: u64, child: u64) {
         if let Some(proc) = self.processes.get_mut(&parent) {
             proc.child_exited(child);
@@ -387,9 +412,9 @@ impl AppWaitV2Tracker {
                     rusage_maxrss: 0, waited_ticks: 0, tick,
                 };
                 if self.history.len() >= self.max_history {
-                    self.history.remove(0);
+                    self.history.pop_front();
                 }
-                self.history.push(record);
+                self.history.push_back(record);
                 return Some(child);
             }
             proc.no_hang_empty += 1;
@@ -398,6 +423,7 @@ impl AppWaitV2Tracker {
         None
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &WaitV2TrackerStats {
         &self.stats
     }

@@ -34,6 +34,7 @@ impl CredCoopRecord {
 
 /// Credential coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CredCoopStats {
     pub total_events: u64,
     pub shares: u64,
@@ -52,6 +53,7 @@ impl CoopCredential {
         Self { stats: CredCoopStats { total_events: 0, shares: 0, inherits: 0, translations: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &CredCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

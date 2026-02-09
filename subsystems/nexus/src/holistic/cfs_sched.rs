@@ -42,12 +42,14 @@ impl CfsEntity {
         if nice > 0 { base / (1 + nice as u32) } else { base * (1 + (-nice) as u32) }
     }
 
+    #[inline]
     pub fn update_vruntime(&mut self, delta_exec: u64, min_granularity: u64) {
         let ideal_runtime = if self.weight == 0 { delta_exec } else { delta_exec * 1024 / self.weight as u64 };
         self.vruntime += ideal_runtime.max(min_granularity);
         self.sum_exec_runtime += delta_exec;
     }
 
+    #[inline(always)]
     pub fn slice_ns(&self, total_weight: u32, period_ns: u64) -> u64 {
         if total_weight == 0 { return period_ns; }
         (period_ns * self.weight as u64) / total_weight as u64
@@ -56,6 +58,7 @@ impl CfsEntity {
 
 /// CFS run queue
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CfsRunQueue {
     pub cpu: u32,
     pub entities: BTreeMap<u64, CfsEntity>,
@@ -73,12 +76,14 @@ impl CfsRunQueue {
         Self { cpu, entities: BTreeMap::new(), min_vruntime: 0, nr_running: 0, total_weight: 0, clock: 0, period_ns: 6_000_000, min_granularity_ns: 750_000, nr_switches: 0 }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, entity: CfsEntity) {
         self.total_weight += entity.weight;
         self.nr_running += 1;
         self.entities.insert(entity.pid, entity);
     }
 
+    #[inline]
     pub fn dequeue(&mut self, pid: u64) {
         if let Some(e) = self.entities.remove(&pid) {
             self.total_weight -= e.weight;
@@ -86,10 +91,12 @@ impl CfsRunQueue {
         }
     }
 
+    #[inline(always)]
     pub fn pick_next(&self) -> Option<u64> {
         self.entities.values().filter(|e| e.state == CfsState::Runnable).min_by_key(|e| e.vruntime).map(|e| e.pid)
     }
 
+    #[inline(always)]
     pub fn tick(&mut self, now: u64) {
         self.clock = now;
         self.min_vruntime = self.entities.values().map(|e| e.vruntime).min().unwrap_or(0);
@@ -98,6 +105,7 @@ impl CfsRunQueue {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CfsSchedStats {
     pub total_cpus: u32,
     pub total_tasks: u32,
@@ -112,12 +120,15 @@ pub struct HolisticCfsSched {
 
 impl HolisticCfsSched {
     pub fn new() -> Self { Self { run_queues: BTreeMap::new() } }
+    #[inline(always)]
     pub fn add_cpu(&mut self, cpu: u32) { self.run_queues.insert(cpu, CfsRunQueue::new(cpu)); }
 
+    #[inline(always)]
     pub fn enqueue(&mut self, cpu: u32, pid: u64, nice: i8) {
         if let Some(rq) = self.run_queues.get_mut(&cpu) { rq.enqueue(CfsEntity::new(pid, nice)); }
     }
 
+    #[inline]
     pub fn stats(&self) -> CfsSchedStats {
         let tasks: u32 = self.run_queues.values().map(|rq| rq.nr_running).sum();
         let switches: u64 = self.run_queues.values().map(|rq| rq.nr_switches).sum();

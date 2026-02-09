@@ -8,11 +8,13 @@ pub struct CausalEventId(pub u64);
 
 impl CausalEventId {
     /// Create new event ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +26,13 @@ pub struct CausalNodeId(pub u64);
 
 impl CausalNodeId {
     /// Create new node ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -40,11 +44,13 @@ pub struct CausalEdgeId(pub u64);
 
 impl CausalEdgeId {
     /// Create new edge ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -56,11 +62,13 @@ pub struct ChainId(pub u64);
 
 impl ChainId {
     /// Create new chain ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -72,11 +80,13 @@ pub struct QueryId(pub u64);
 
 impl QueryId {
     /// Create new query ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }

@@ -24,6 +24,7 @@ impl IpcHolisticRecord {
 
 /// IPC holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IpcHolisticStats {
     pub total_samples: u64,
     pub mechanism_counts: BTreeMap<u8, u64>,
@@ -39,6 +40,7 @@ impl HolisticIpc {
     pub fn new() -> Self {
         Self { stats: IpcHolisticStats { total_samples: 0, mechanism_counts: BTreeMap::new(), best_throughput: 0, worst_latency: 0 } }
     }
+    #[inline]
     pub fn record(&mut self, rec: &IpcHolisticRecord) {
         self.stats.total_samples += 1;
         let key = rec.mechanism as u8;

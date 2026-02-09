@@ -91,21 +91,25 @@ impl AffinityManager {
     }
 
     /// Set affinity
+    #[inline(always)]
     pub fn set_affinity(&mut self, affinity: AffinityInfo) {
         self.affinities.insert(affinity.task_id, affinity);
     }
 
     /// Get affinity
+    #[inline(always)]
     pub fn get_affinity(&self, task_id: u64) -> Option<&AffinityInfo> {
         self.affinities.get(&task_id)
     }
 
     /// Record violation
+    #[inline(always)]
     pub fn record_violation(&mut self, violation: AffinityViolation) {
         self.violations.push(violation);
     }
 
     /// Get violations for task
+    #[inline]
     pub fn get_violations(&self, task_id: u64) -> Vec<&AffinityViolation> {
         self.violations
             .iter()
@@ -114,16 +118,19 @@ impl AffinityManager {
     }
 
     /// Enable auto-tuning
+    #[inline(always)]
     pub fn enable_auto_tune(&mut self) {
         self.auto_tune = true;
     }
 
     /// Disable auto-tuning
+    #[inline(always)]
     pub fn disable_auto_tune(&mut self) {
         self.auto_tune = false;
     }
 
     /// Is auto-tuning enabled?
+    #[inline(always)]
     pub fn is_auto_tune(&self) -> bool {
         self.auto_tune
     }

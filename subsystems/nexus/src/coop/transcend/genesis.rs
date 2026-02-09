@@ -133,6 +133,7 @@ pub struct GenesisEvent {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct GenesisStats {
     pub total_algorithms: usize,
     pub total_mechanisms: usize,
@@ -186,6 +187,7 @@ impl CoopGenesis {
 
     // -- create fairness algo -----------------------------------------------
 
+    #[inline]
     pub fn create_fairness_algo(&mut self, agent_count: u64) -> Option<FairnessAlgorithm> {
         if self.algorithms.len() >= MAX_ALGORITHMS {
             return None;
@@ -284,6 +286,7 @@ impl CoopGenesis {
 
     // -- birth trust mechanism ----------------------------------------------
 
+    #[inline]
     pub fn birth_trust_mechanism(&mut self, interaction_types: u64) -> Option<TrustMechanism> {
         if self.mechanisms.len() >= MAX_MECHANISMS {
             return None;
@@ -385,6 +388,7 @@ impl CoopGenesis {
 
     // -- novel negotiation --------------------------------------------------
 
+    #[inline]
     pub fn novel_negotiation(&mut self, participant_count: u64) -> Option<NegotiationStrategy> {
         if self.strategies.len() >= MAX_STRATEGIES {
             return None;
@@ -482,6 +486,7 @@ impl CoopGenesis {
 
     // -- genesis event (public) ---------------------------------------------
 
+    #[inline(always)]
     pub fn genesis_event(&self, event_id: u64) -> Option<GenesisEvent> {
         self.events.get(&event_id).cloned()
     }
@@ -563,6 +568,7 @@ impl CoopGenesis {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> GenesisStats {
         self.stats.clone()
     }

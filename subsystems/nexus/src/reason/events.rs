@@ -105,6 +105,7 @@ impl CausalEventType {
     }
 
     /// Is error type
+    #[inline]
     pub fn is_error(&self) -> bool {
         matches!(
             self,
@@ -113,6 +114,7 @@ impl CausalEventType {
     }
 
     /// Is state change
+    #[inline]
     pub fn is_state_change(&self) -> bool {
         matches!(
             self,
@@ -126,6 +128,7 @@ impl CausalEventType {
     }
 
     /// Is warning or error
+    #[inline]
     pub fn is_warning_or_error(&self) -> bool {
         matches!(
             self,
@@ -158,6 +161,7 @@ pub enum EventSeverity {
 
 impl EventSeverity {
     /// Get severity name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Debug => "debug",
@@ -170,6 +174,7 @@ impl EventSeverity {
     }
 
     /// Is severe (error or above)
+    #[inline(always)]
     pub fn is_severe(&self) -> bool {
         *self >= Self::Error
     }
@@ -218,18 +223,21 @@ impl CausalEvent {
     }
 
     /// With severity
+    #[inline(always)]
     pub fn with_severity(mut self, severity: EventSeverity) -> Self {
         self.severity = severity;
         self
     }
 
     /// With description
+    #[inline(always)]
     pub fn with_description(mut self, description: String) -> Self {
         self.description = description;
         self
     }
 
     /// With property
+    #[inline]
     pub fn with_property(mut self, key: &str, value: &str) -> Self {
         self.properties
             .insert(String::from(key), String::from(value));
@@ -237,6 +245,7 @@ impl CausalEvent {
     }
 
     /// With process
+    #[inline]
     pub fn with_process(mut self, pid: u32, tid: u32) -> Self {
         self.pid = Some(pid);
         self.tid = Some(tid);
@@ -244,12 +253,14 @@ impl CausalEvent {
     }
 
     /// With CPU
+    #[inline(always)]
     pub fn with_cpu(mut self, cpu: u32) -> Self {
         self.cpu = Some(cpu);
         self
     }
 
     /// With stack trace
+    #[inline(always)]
     pub fn with_stack_trace(mut self, trace: Vec<u64>) -> Self {
         self.stack_trace = Some(trace);
         self

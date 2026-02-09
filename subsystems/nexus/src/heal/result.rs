@@ -33,6 +33,7 @@ pub struct HealingResult {
 
 impl HealingResult {
     /// Create a successful result
+    #[inline]
     pub fn success(component: ComponentId, strategy: HealingStrategy, duration: u64) -> Self {
         Self {
             component,
@@ -46,6 +47,7 @@ impl HealingResult {
     }
 
     /// Create a failed result
+    #[inline]
     pub fn failure(
         component: ComponentId,
         strategy: HealingStrategy,
@@ -64,12 +66,14 @@ impl HealingResult {
     }
 
     /// Create a result with custom message
+    #[inline(always)]
     pub fn with_message(mut self, message: impl Into<String>) -> Self {
         self.message = message.into();
         self
     }
 
     /// Check if escalation is possible
+    #[inline(always)]
     pub fn can_escalate(&self) -> bool {
         self.escalation.is_some()
     }

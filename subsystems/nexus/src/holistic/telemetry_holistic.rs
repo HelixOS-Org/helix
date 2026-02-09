@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -76,6 +77,7 @@ pub enum AggregationMethod {
 
 /// Single metric data point
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricPoint {
     /// Timestamp (ns)
     pub timestamp: u64,
@@ -85,6 +87,7 @@ pub struct MetricPoint {
 
 /// Metric series
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricSeries {
     /// Series name
     pub name: String,
@@ -170,6 +173,7 @@ impl MetricSeries {
     }
 
     /// Percentile calculation
+    #[inline]
     pub fn percentile(&self, pct: u32) -> f64 {
         if self.points.is_empty() {
             return 0.0;
@@ -218,6 +222,7 @@ impl MetricSeries {
     }
 
     /// Recent values
+    #[inline]
     pub fn recent(&self, count: usize) -> &[MetricPoint] {
         if self.points.len() > count {
             &self.points[self.points.len() - count..]
@@ -244,6 +249,7 @@ pub struct RetentionPolicy {
 
 impl RetentionPolicy {
     /// Default: 1 hour raw, 24 hours rolled up
+    #[inline]
     pub fn default_policy() -> Self {
         Self {
             raw_retention_ns: 3_600_000_000_000,
@@ -259,6 +265,7 @@ impl RetentionPolicy {
 
 /// Telemetry stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticTelemetryStats {
     /// Series count
     pub series_count: usize,
@@ -286,7 +293,7 @@ pub struct HolisticTelemetryEngine {
     /// Key counter
     next_key: u64,
     /// Name to key mapping
-    name_map: BTreeMap<u64, u64>,
+    name_map: LinearMap<u64, 64>,
     /// Retention policy
     retention: RetentionPolicy,
     /// Stats
@@ -300,7 +307,7 @@ impl HolisticTelemetryEngine {
         Self {
             series: BTreeMap::new(),
             next_key: 1,
-            name_map: BTreeMap::new(),
+            name_map: LinearMap::new(),
             retention: RetentionPolicy::default_policy(),
             stats: HolisticTelemetryStats::default(),
             start_time: 0,
@@ -308,6 +315,7 @@ impl HolisticTelemetryEngine {
     }
 
     /// Set retention policy
+    #[inline(always)]
     pub fn set_retention(&mut self, policy: RetentionPolicy) {
         self.retention = policy;
     }
@@ -331,7 +339,7 @@ impl HolisticTelemetryEngine {
         metric_type: TelemetryMetricType,
     ) -> u64 {
         let name_hash = Self::hash_name(&name, source);
-        if let Some(&key) = self.name_map.get(&name_hash) {
+        if let Some(&key) = self.name_map.get(name_hash) {
             return key;
         }
 
@@ -364,16 +372,19 @@ impl HolisticTelemetryEngine {
     }
 
     /// Query metric
+    #[inline(always)]
     pub fn query(&self, key: u64, method: AggregationMethod) -> Option<f64> {
         self.series.get(&key).map(|s| s.aggregate(method))
     }
 
     /// Query rate
+    #[inline(always)]
     pub fn query_rate(&self, key: u64) -> Option<f64> {
         self.series.get(&key).map(|s| s.rate())
     }
 
     /// Get series
+    #[inline(always)]
     pub fn get_series(&self, key: u64) -> Option<&MetricSeries> {
         self.series.get(&key)
     }
@@ -419,6 +430,7 @@ impl HolisticTelemetryEngine {
     }
 
     /// Apply retention (garbage collect old data)
+    #[inline]
     pub fn apply_retention(&mut self, now: u64) {
         let cutoff = now.saturating_sub(self.retention.raw_retention_ns);
         for series in self.series.values_mut() {
@@ -431,6 +443,7 @@ impl HolisticTelemetryEngine {
     }
 
     /// Active sources
+    #[inline]
     pub fn active_sources(&self) -> Vec<TelemetrySource> {
         let mut sources: Vec<TelemetrySource> = Vec::new();
         for series in self.series.values() {
@@ -443,6 +456,7 @@ impl HolisticTelemetryEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticTelemetryStats {
         &self.stats
     }

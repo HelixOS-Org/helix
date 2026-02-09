@@ -22,6 +22,7 @@ impl TruncateBridgeRecord {
 
 /// Truncate bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TruncateBridgeStats { pub total_ops: u64, pub shrinks: u64, pub extends: u64, pub punches: u64 }
 
 /// Main bridge truncate
@@ -30,6 +31,7 @@ pub struct BridgeTruncate { pub stats: TruncateBridgeStats }
 
 impl BridgeTruncate {
     pub fn new() -> Self { Self { stats: TruncateBridgeStats { total_ops: 0, shrinks: 0, extends: 0, punches: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &TruncateBridgeRecord) {
         self.stats.total_ops += 1;
         match rec.event {

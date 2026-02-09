@@ -54,6 +54,7 @@ pub struct SendmsgRecord {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketSendState {
     pub fd: u64,
     pub total_bytes: u64,
@@ -75,6 +76,7 @@ impl SocketSendState {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, bytes: u64, iov: u32, zerocopy: bool) {
         self.total_bytes += bytes;
         self.total_calls += 1;
@@ -86,20 +88,24 @@ impl SocketSendState {
         if bytes > self.max_msg_size { self.max_msg_size = bytes; }
     }
 
+    #[inline(always)]
     pub fn avg_msg_size(&self) -> u64 {
         if self.total_calls == 0 { 0 } else { self.total_bytes / self.total_calls }
     }
 
+    #[inline(always)]
     pub fn avg_iov_per_call(&self) -> u64 {
         if self.total_calls == 0 { 0 } else { self.total_iov_entries / self.total_calls }
     }
 
+    #[inline(always)]
     pub fn zerocopy_pct(&self) -> u64 {
         if self.total_calls == 0 { 0 } else { (self.zerocopy_calls * 100) / self.total_calls }
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SendmsgAppStats {
     pub total_sends: u64,
     pub total_bytes: u64,
@@ -123,10 +129,12 @@ impl AppSendmsg {
         }
     }
 
+    #[inline(always)]
     pub fn register_socket(&mut self, fd: u64) {
         self.sockets.insert(fd, SocketSendState::new(fd));
     }
 
+    #[inline]
     pub fn record_send(&mut self, fd: u64, bytes: u64, iov: u32, zerocopy: bool) {
         if let Some(s) = self.sockets.get_mut(&fd) {
             s.record(bytes, iov, zerocopy);
@@ -136,5 +144,6 @@ impl AppSendmsg {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SendmsgAppStats { &self.stats }
 }

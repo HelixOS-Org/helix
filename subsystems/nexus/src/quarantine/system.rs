@@ -5,6 +5,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -40,6 +41,7 @@ pub struct QuarantineHistoryEntry {
 
 /// Quarantine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QuarantineStats {
     /// Total currently quarantined
     pub total_quarantined: usize,
@@ -68,7 +70,7 @@ pub struct QuarantineSystem {
     /// Quarantined components
     entries: BTreeMap<u64, QuarantineEntry>,
     /// Quarantine history
-    history: Vec<QuarantineHistoryEntry>,
+    history: VecDeque<QuarantineHistoryEntry>,
     /// Maximum history entries
     max_history: usize,
     /// Default release timeout (cycles)
@@ -86,7 +88,7 @@ impl QuarantineSystem {
     pub fn new() -> Self {
         Self {
             entries: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
             default_timeout: 60 * 1_000_000_000, // 60 seconds
             dependencies: BTreeMap::new(),
@@ -96,11 +98,13 @@ impl QuarantineSystem {
     }
 
     /// Set component dependencies
+    #[inline(always)]
     pub fn set_dependencies(&mut self, component: ComponentId, deps: Vec<ComponentId>) {
         self.dependencies.insert(component.raw(), deps);
     }
 
     /// Quarantine a component
+    #[inline]
     pub fn quarantine(&mut self, entry: QuarantineEntry) {
         let component_id = entry.component.raw();
         self.entries.insert(component_id, entry);
@@ -135,21 +139,25 @@ impl QuarantineSystem {
     }
 
     /// Check if a component is quarantined
+    #[inline(always)]
     pub fn is_quarantined(&self, component: ComponentId) -> bool {
         self.entries.contains_key(&component.raw())
     }
 
     /// Get quarantine entry for a component
+    #[inline(always)]
     pub fn get_entry(&self, component: ComponentId) -> Option<&QuarantineEntry> {
         self.entries.get(&component.raw())
     }
 
     /// Get mutable quarantine entry
+    #[inline(always)]
     pub fn get_entry_mut(&mut self, component: ComponentId) -> Option<&mut QuarantineEntry> {
         self.entries.get_mut(&component.raw())
     }
 
     /// Get quarantine level for a component
+    #[inline(always)]
     pub fn get_level(&self, component: ComponentId) -> Option<QuarantineLevel> {
         self.entries.get(&component.raw()).map(|e| e.level)
     }
@@ -168,9 +176,9 @@ impl QuarantineSystem {
             };
 
             if self.history.len() >= self.max_history {
-                self.history.remove(0);
+                self.history.pop_front();
             }
-            self.history.push(history_entry);
+            self.history.push_back(history_entry);
 
             self.total_releases.fetch_add(1, Ordering::Relaxed);
 
@@ -186,6 +194,7 @@ impl QuarantineSystem {
     }
 
     /// Escalate quarantine for a component
+    #[inline]
     pub fn escalate(&mut self, component: ComponentId) {
         if let Some(entry) = self.entries.get_mut(&component.raw()) {
             entry.escalate();
@@ -246,16 +255,19 @@ impl QuarantineSystem {
     }
 
     /// Get all quarantined components
+    #[inline(always)]
     pub fn quarantined(&self) -> Vec<&QuarantineEntry> {
         self.entries.values().collect()
     }
 
     /// Get components at specific level
+    #[inline(always)]
     pub fn at_level(&self, level: QuarantineLevel) -> Vec<&QuarantineEntry> {
         self.entries.values().filter(|e| e.level == level).collect()
     }
 
     /// Get quarantine history
+    #[inline(always)]
     pub fn history(&self) -> &[QuarantineHistoryEntry] {
         &self.history
     }
@@ -292,7 +304,7 @@ impl QuarantineSystem {
                 reason: entry.reason.description(),
                 success: false, // Forced release
             };
-            self.history.push(history_entry);
+            self.history.push_back(history_entry);
         }
     }
 }

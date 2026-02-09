@@ -13,6 +13,7 @@ use crate::math;
 // ============================================================================
 
 /// Sigmoid function
+#[inline(always)]
 pub fn sigmoid(x: f64) -> f64 {
     1.0 / (1.0 + math::exp(-x))
 }
@@ -30,12 +31,14 @@ impl Lcg {
 
     /// Get next random u64
     #[allow(clippy::should_implement_trait)]
+    #[inline(always)]
     pub fn next(&mut self) -> u64 {
         self.state = self.state.wrapping_mul(6364136223846793005).wrapping_add(1);
         self.state
     }
 
     /// Get next random f64 in [0, 1)
+    #[inline(always)]
     pub fn next_f64(&mut self) -> f64 {
         self.next() as f64 / u64::MAX as f64
     }
@@ -72,6 +75,7 @@ impl ModelRegistry {
     }
 
     /// Register a model
+    #[inline]
     pub fn register(&mut self, name: impl Into<String>, model_type: impl Into<String>) {
         let entry = ModelEntry {
             model_type: model_type.into(),
@@ -83,6 +87,7 @@ impl ModelRegistry {
     }
 
     /// Record usage
+    #[inline]
     pub fn record_usage(&mut self, name: &str) {
         if let Some(entry) = self.models.get_mut(name) {
             entry.usage_count += 1;
@@ -91,21 +96,25 @@ impl ModelRegistry {
     }
 
     /// List models
+    #[inline(always)]
     pub fn list(&self) -> Vec<&str> {
         self.models.keys().map(|s| s.as_str()).collect()
     }
 
     /// Get model type
+    #[inline(always)]
     pub fn model_type(&self, name: &str) -> Option<&str> {
         self.models.get(name).map(|e| e.model_type.as_str())
     }
 
     /// Remove model
+    #[inline(always)]
     pub fn remove(&mut self, name: &str) -> bool {
         self.models.remove(name).is_some()
     }
 
     /// Model count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.models.len()
     }

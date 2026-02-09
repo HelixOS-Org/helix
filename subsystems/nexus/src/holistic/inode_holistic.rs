@@ -2,6 +2,7 @@
 //! Holistic inode — inode lifecycle management with allocation and eviction
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -58,14 +59,21 @@ impl HolisticInode {
         }
     }
 
+    #[inline(always)]
     pub fn mark_dirty(&mut self) { self.state = InodeState::Dirty; }
+    #[inline(always)]
     pub fn activate(&mut self) { self.state = InodeState::Active; }
+    #[inline(always)]
     pub fn grab(&mut self) { self.ref_count += 1; }
+    #[inline(always)]
     pub fn put(&mut self) { self.ref_count = self.ref_count.saturating_sub(1); }
 
+    #[inline(always)]
     pub fn is_orphan(&self) -> bool { self.nlink == 0 }
+    #[inline(always)]
     pub fn is_reclaimable(&self) -> bool { self.ref_count == 0 && self.state != InodeState::Dirty }
 
+    #[inline(always)]
     pub fn block_usage_bytes(&self) -> u64 { self.blocks * 512 }
 }
 
@@ -83,22 +91,26 @@ impl InodeAllocator {
         Self { next_ino: start_ino, free_list: Vec::new(), total_allocated: 0, total_freed: 0 }
     }
 
+    #[inline]
     pub fn alloc(&mut self) -> u64 {
         self.total_allocated += 1;
         if let Some(ino) = self.free_list.pop() { ino }
         else { let ino = self.next_ino; self.next_ino += 1; ino }
     }
 
+    #[inline(always)]
     pub fn free(&mut self, ino: u64) {
         self.free_list.push(ino);
         self.total_freed += 1;
     }
 
+    #[inline(always)]
     pub fn in_use(&self) -> u64 { self.total_allocated - self.total_freed }
 }
 
 /// Holistic inode stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticInodeStats {
     pub total_inodes: u64,
     pub dirty_inodes: u64,
@@ -124,6 +136,7 @@ impl HolisticInodeMgr {
         }
     }
 
+    #[inline]
     pub fn create(&mut self, inode_type: InodeType, mode: u16) -> u64 {
         let ino = self.allocator.alloc();
         self.inodes.insert(ino, HolisticInode::new(ino, inode_type, mode));
@@ -182,6 +195,7 @@ pub struct HolisticInodeV2Health {
 
 /// Stats for inode holistic analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticInodeV2Stats {
     pub samples_collected: u64,
     pub analyses_run: u64,
@@ -193,7 +207,7 @@ pub struct HolisticInodeV2Stats {
 pub struct HolisticInodeV2Manager {
     samples: Vec<HolisticInodeV2Sample>,
     health: HolisticInodeV2Health,
-    thresholds: BTreeMap<u64, u64>,
+    thresholds: LinearMap<u64, 64>,
     stats: HolisticInodeV2Stats,
 }
 
@@ -207,7 +221,7 @@ impl HolisticInodeV2Manager {
                 fragmentation_health: 100,
                 overall: 100,
             },
-            thresholds: BTreeMap::new(),
+            thresholds: LinearMap::new(),
             stats: HolisticInodeV2Stats {
                 samples_collected: 0,
                 analyses_run: 0,
@@ -217,6 +231,7 @@ impl HolisticInodeV2Manager {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, metric: HolisticInodeV2Metric, value: u64, range_start: u64, range_end: u64) {
         let sample = HolisticInodeV2Sample {
             metric,
@@ -229,6 +244,7 @@ impl HolisticInodeV2Manager {
         self.stats.samples_collected += 1;
     }
 
+    #[inline(always)]
     pub fn set_threshold(&mut self, metric: HolisticInodeV2Metric, threshold: u64) {
         self.thresholds.insert(metric as u64, threshold);
     }
@@ -250,6 +266,7 @@ impl HolisticInodeV2Manager {
         &self.health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticInodeV2Stats {
         &self.stats
     }

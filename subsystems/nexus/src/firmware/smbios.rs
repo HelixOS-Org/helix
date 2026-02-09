@@ -70,6 +70,7 @@ impl SmbiosStructure {
     }
 
     /// Get string by index (1-based)
+    #[inline]
     pub fn get_string(&self, index: u8) -> Option<&str> {
         if index == 0 {
             return None;
@@ -78,11 +79,13 @@ impl SmbiosStructure {
     }
 
     /// Get byte at offset
+    #[inline(always)]
     pub fn get_byte(&self, offset: usize) -> Option<u8> {
         self.data.get(offset).copied()
     }
 
     /// Get word at offset
+    #[inline]
     pub fn get_word(&self, offset: usize) -> Option<u16> {
         if offset + 1 >= self.data.len() {
             return None;
@@ -91,6 +94,7 @@ impl SmbiosStructure {
     }
 
     /// Get dword at offset
+    #[inline]
     pub fn get_dword(&self, offset: usize) -> Option<u32> {
         if offset + 3 >= self.data.len() {
             return None;
@@ -176,11 +180,13 @@ impl SmbiosParser {
     }
 
     /// Set entry point
+    #[inline(always)]
     pub fn set_entry_point(&mut self, address: u64) {
         self.entry_point = Some(address);
     }
 
     /// Add structure
+    #[inline(always)]
     pub fn add_structure(&mut self, structure: SmbiosStructure) {
         self.structures.push(structure);
     }
@@ -247,16 +253,19 @@ impl SmbiosParser {
     }
 
     /// Get structure by type
+    #[inline(always)]
     pub fn get_structure(&self, stype: u8) -> Option<&SmbiosStructure> {
         self.structures.iter().find(|s| s.stype == stype)
     }
 
     /// Get all structures of type
+    #[inline(always)]
     pub fn get_structures(&self, stype: u8) -> Vec<&SmbiosStructure> {
         self.structures.iter().filter(|s| s.stype == stype).collect()
     }
 
     /// Get parsed info
+    #[inline(always)]
     pub fn info(&self) -> &SmbiosInfo {
         &self.info
     }

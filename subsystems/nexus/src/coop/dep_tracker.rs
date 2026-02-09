@@ -102,6 +102,7 @@ impl CoopDepEdge {
     }
 
     /// Record invocation
+    #[inline]
     pub fn record_invocation(&mut self, latency_ns: u64, success: bool, now: u64) {
         self.invocations += 1;
         self.latency_ema_ns = 0.9 * self.latency_ema_ns + 0.1 * latency_ns as f64;
@@ -112,6 +113,7 @@ impl CoopDepEdge {
     }
 
     /// Failure rate
+    #[inline]
     pub fn failure_rate(&self) -> f64 {
         if self.invocations == 0 {
             return 0.0;
@@ -120,12 +122,14 @@ impl CoopDepEdge {
     }
 
     /// Health score (0..1)
+    #[inline(always)]
     pub fn health(&self) -> f64 {
         let fail_penalty = self.failure_rate();
         (1.0 - fail_penalty).max(0.0)
     }
 
     /// Is stale
+    #[inline(always)]
     pub fn is_stale(&self, now: u64, timeout_ns: u64) -> bool {
         now.saturating_sub(self.last_seen_ns) > timeout_ns
     }
@@ -173,6 +177,7 @@ impl CoopDepGraph {
     }
 
     /// Remove edge
+    #[inline]
     pub fn remove_edge(&mut self, from: u64, to: u64) {
         self.edges.remove(&(from, to));
         if let Some(out) = self.outgoing.get_mut(&from) {
@@ -184,21 +189,25 @@ impl CoopDepGraph {
     }
 
     /// Get edge
+    #[inline(always)]
     pub fn get_edge(&self, from: u64, to: u64) -> Option<&CoopDepEdge> {
         self.edges.get(&(from, to))
     }
 
     /// Get edge mut
+    #[inline(always)]
     pub fn get_edge_mut(&mut self, from: u64, to: u64) -> Option<&mut CoopDepEdge> {
         self.edges.get_mut(&(from, to))
     }
 
     /// Dependencies of a process
+    #[inline(always)]
     pub fn dependencies_of(&self, pid: u64) -> Vec<u64> {
         self.outgoing.get(&pid).cloned().unwrap_or_default()
     }
 
     /// Dependents on a process
+    #[inline(always)]
     pub fn dependents_on(&self, pid: u64) -> Vec<u64> {
         self.incoming.get(&pid).cloned().unwrap_or_default()
     }
@@ -352,6 +361,7 @@ impl CoopDepGraph {
 
 /// Dependency tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopDepTrackerStats {
     /// Total nodes
     pub total_nodes: usize,
@@ -380,6 +390,7 @@ impl CoopDepTracker {
     }
 
     /// Add dependency
+    #[inline]
     pub fn add_dependency(&mut self, from: u64, to: u64, dep_type: CoopDepType, strength: CoopDepStrength, now: u64) {
         let edge = CoopDepEdge::new(from, to, dep_type, strength, now);
         self.graph.add_edge(edge);
@@ -387,6 +398,7 @@ impl CoopDepTracker {
     }
 
     /// Record invocation
+    #[inline]
     pub fn record_invocation(&mut self, from: u64, to: u64, latency_ns: u64, success: bool, now: u64) {
         if let Some(edge) = self.graph.get_edge_mut(from, to) {
             edge.record_invocation(latency_ns, success, now);
@@ -394,6 +406,7 @@ impl CoopDepTracker {
     }
 
     /// Detect cycles
+    #[inline]
     pub fn check_cycles(&mut self) -> Vec<Vec<u64>> {
         let cycles = self.graph.detect_cycles();
         self.stats.detected_cycles = cycles.len();
@@ -401,11 +414,13 @@ impl CoopDepTracker {
     }
 
     /// Impact analysis
+    #[inline(always)]
     pub fn impact_of_failure(&self, pid: u64) -> Vec<u64> {
         self.graph.cascade_impact(pid)
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.graph.remove_process(pid);
         self.update_stats();
@@ -420,6 +435,7 @@ impl CoopDepTracker {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopDepTrackerStats {
         &self.stats
     }

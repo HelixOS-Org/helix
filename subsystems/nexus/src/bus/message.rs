@@ -32,6 +32,7 @@ pub enum MessagePriority {
 
 impl MessagePriority {
     /// Get priority name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Low => "low",
@@ -155,6 +156,7 @@ impl MessagePayload {
     }
 
     /// Is control message?
+    #[inline]
     pub const fn is_control(&self) -> bool {
         matches!(
             self,
@@ -163,6 +165,7 @@ impl MessagePayload {
     }
 
     /// Is health-related?
+    #[inline]
     pub const fn is_health(&self) -> bool {
         matches!(
             self,
@@ -200,6 +203,7 @@ impl KernelEventData {
     }
 
     /// Add data
+    #[inline(always)]
     pub fn with_data(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.data.insert(key.into(), value.into());
         self
@@ -231,6 +235,7 @@ impl PatternInfo {
     }
 
     /// With confidence
+    #[inline(always)]
     pub fn with_confidence(mut self, confidence: Confidence) -> Self {
         self.confidence = confidence;
         self
@@ -239,6 +244,7 @@ impl PatternInfo {
 
 /// State model update
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateModelUpdate {
     /// Model ID
     pub model_id: ModelId,
@@ -262,6 +268,7 @@ impl StateModelUpdate {
     }
 
     /// With state
+    #[inline(always)]
     pub fn with_state(mut self, state: impl Into<String>) -> Self {
         self.state = state.into();
         self
@@ -296,6 +303,7 @@ impl PredictionInfo {
     }
 
     /// With confidence
+    #[inline(always)]
     pub fn with_confidence(mut self, confidence: Confidence) -> Self {
         self.confidence = confidence;
         self
@@ -330,6 +338,7 @@ impl AnomalyInfo {
     }
 
     /// With description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
@@ -353,6 +362,7 @@ pub struct HealthCheckData {
 
 impl HealthCheckData {
     /// Create healthy response
+    #[inline]
     pub fn healthy(domain: Domain, score: u8) -> Self {
         Self {
             domain,
@@ -364,6 +374,7 @@ impl HealthCheckData {
     }
 
     /// Create unhealthy response
+    #[inline]
     pub fn unhealthy(domain: Domain, issues: Vec<String>) -> Self {
         Self {
             domain,
@@ -406,12 +417,14 @@ impl InsightData {
     }
 
     /// With description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Add affected domain
+    #[inline(always)]
     pub fn affects(mut self, domain: Domain) -> Self {
         self.affected.push(domain);
         self
@@ -459,24 +472,28 @@ impl Message {
     }
 
     /// With priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: MessagePriority) -> Self {
         self.priority = priority;
         self
     }
 
     /// With correlation ID
+    #[inline(always)]
     pub fn with_correlation(mut self, correlation_id: CorrelationId) -> Self {
         self.correlation_id = Some(correlation_id);
         self
     }
 
     /// With TTL
+    #[inline(always)]
     pub fn with_ttl(mut self, ttl: Duration) -> Self {
         self.ttl = Some(ttl);
         self
     }
 
     /// Check if expired
+    #[inline]
     pub fn is_expired(&self, now: Timestamp) -> bool {
         if let Some(ttl) = self.ttl {
             now.elapsed_since(self.timestamp).0 > ttl.0
@@ -486,6 +503,7 @@ impl Message {
     }
 
     /// Is control message?
+    #[inline(always)]
     pub const fn is_control(&self) -> bool {
         self.payload.is_control()
     }

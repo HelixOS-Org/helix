@@ -55,6 +55,7 @@ pub enum MsgQueueState {
 
 /// Message queue descriptor
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsgQueue {
     pub msq_id: u32,
     pub key: i32,
@@ -89,6 +90,7 @@ impl MsgQueue {
         }
     }
 
+    #[inline]
     pub fn can_send(&self, size: usize) -> bool {
         self.state == MsgQueueState::Active
             && self.current_bytes + size <= self.max_bytes
@@ -142,18 +144,22 @@ impl MsgQueue {
         } else { None }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.max_bytes == 0 { return 0.0; }
         self.current_bytes as f64 / self.max_bytes as f64
     }
 
+    #[inline(always)]
     pub fn message_count(&self) -> usize { self.messages.len() }
 
+    #[inline(always)]
     pub fn avg_msg_size(&self) -> f64 {
         if self.messages.is_empty() { return 0.0; }
         self.current_bytes as f64 / self.messages.len() as f64
     }
 
+    #[inline]
     pub fn type_histogram(&self) -> BTreeMap<i64, u32> {
         let mut hist = BTreeMap::new();
         for m in &self.messages {
@@ -165,6 +171,7 @@ impl MsgQueue {
 
 /// MSG bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MsgBridgeStats {
     pub total_queues: usize,
     pub active_queues: usize,
@@ -177,6 +184,7 @@ pub struct MsgBridgeStats {
 }
 
 /// Bridge message queue manager
+#[repr(align(64))]
 pub struct BridgeMsgBridge {
     queues: BTreeMap<u32, MsgQueue>,
     key_to_id: BTreeMap<i32, u32>,
@@ -206,18 +214,21 @@ impl BridgeMsgBridge {
         id
     }
 
+    #[inline]
     pub fn msgsnd(&mut self, msq_id: u32, msg_type: i64, size: usize, pid: u64, ts: u64) -> bool {
         if let Some(q) = self.queues.get_mut(&msq_id) {
             q.send(msg_type, size, pid, ts)
         } else { false }
     }
 
+    #[inline]
     pub fn msgrcv(&mut self, msq_id: u32, msg_type: i64, pid: u64, ts: u64) -> Option<MsgEntry> {
         if let Some(q) = self.queues.get_mut(&msq_id) {
             q.receive(msg_type, pid, ts)
         } else { None }
     }
 
+    #[inline]
     pub fn msgctl_rmid(&mut self, msq_id: u32) -> bool {
         if let Some(q) = self.queues.get(&msq_id) {
             let key = q.key;
@@ -227,10 +238,12 @@ impl BridgeMsgBridge {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn set_max_bytes(&mut self, msq_id: u32, max: usize) {
         if let Some(q) = self.queues.get_mut(&msq_id) { q.max_bytes = max; }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_queues = self.queues.len();
         self.stats.active_queues = self.queues.values().filter(|q| q.state == MsgQueueState::Active).count();
@@ -242,6 +255,8 @@ impl BridgeMsgBridge {
         if self.stats.total_queues > self.stats.peak_queues { self.stats.peak_queues = self.stats.total_queues; }
     }
 
+    #[inline(always)]
     pub fn queue(&self, id: u32) -> Option<&MsgQueue> { self.queues.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &MsgBridgeStats { &self.stats }
 }

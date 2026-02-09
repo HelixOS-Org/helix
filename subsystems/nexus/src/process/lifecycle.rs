@@ -3,6 +3,7 @@
 //! Manages process lifecycle decisions.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -68,7 +69,7 @@ pub struct LifecycleManager {
     /// Process states
     states: BTreeMap<ProcessId, ProcessLifecycleState>,
     /// Lifecycle events
-    events: Vec<LifecycleEvent>,
+    events: VecDeque<LifecycleEvent>,
     /// Max events
     max_events: usize,
     /// Kill recommendations
@@ -80,13 +81,14 @@ impl LifecycleManager {
     pub fn new() -> Self {
         Self {
             states: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 10000,
             kill_recommendations: Vec::new(),
         }
     }
 
     /// Record process creation
+    #[inline]
     pub fn process_created(&mut self, pid: ProcessId) {
         let now = NexusTimestamp::now();
         self.states.insert(pid, ProcessLifecycleState {
@@ -119,6 +121,7 @@ impl LifecycleManager {
     }
 
     /// Set process importance
+    #[inline]
     pub fn set_importance(&mut self, pid: ProcessId, importance: f64) {
         if let Some(lifecycle) = self.states.get_mut(&pid) {
             lifecycle.importance = importance.clamp(0.0, 1.0);
@@ -127,14 +130,14 @@ impl LifecycleManager {
 
     /// Record lifecycle event
     fn record_event(&mut self, event_type: LifecycleEventType, pid: ProcessId) {
-        self.events.push(LifecycleEvent {
+        self.events.push_back(LifecycleEvent {
             event_type,
             pid,
             timestamp: NexusTimestamp::now(),
         });
 
         if self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
     }
 
@@ -191,17 +194,20 @@ impl LifecycleManager {
     }
 
     /// Get process state
+    #[inline(always)]
     pub fn get_state(&self, pid: ProcessId) -> Option<ProcessState> {
         self.states.get(&pid).map(|s| s.state)
     }
 
     /// Get recent events
+    #[inline(always)]
     pub fn recent_events(&self, n: usize) -> &[LifecycleEvent] {
         let start = self.events.len().saturating_sub(n);
         &self.events[start..]
     }
 
     /// Cleanup terminated processes
+    #[inline(always)]
     pub fn cleanup(&mut self) {
         self.states.retain(|_, state| state.state != ProcessState::Zombie);
     }

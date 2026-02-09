@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -88,6 +88,7 @@ pub enum PressureAction {
 
 /// Flow control state for a process
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FlowControlState {
     /// PID
     pub pid: u64,
@@ -137,6 +138,7 @@ impl FlowControlState {
     }
 
     /// Relieve pressure
+    #[inline]
     pub fn relieve(&mut self, now: u64) {
         // AIMD recovery
         self.target_rate = (self.target_rate * 1.1).min(self.max_rate);
@@ -145,6 +147,7 @@ impl FlowControlState {
     }
 
     /// Queue utilization
+    #[inline]
     pub fn queue_utilization(&self) -> f64 {
         if self.queue_capacity == 0 {
             return 0.0;
@@ -153,11 +156,13 @@ impl FlowControlState {
     }
 
     /// Is throttled
+    #[inline(always)]
     pub fn is_throttled(&self) -> bool {
         self.drain_rate < self.max_rate * 0.95
     }
 
     /// Enqueue
+    #[inline]
     pub fn try_enqueue(&mut self) -> bool {
         if self.queue_depth >= self.queue_capacity {
             return false;
@@ -167,6 +172,7 @@ impl FlowControlState {
     }
 
     /// Dequeue
+    #[inline]
     pub fn dequeue(&mut self) {
         if self.queue_depth > 0 {
             self.queue_depth -= 1;
@@ -199,12 +205,17 @@ impl PressureChain {
             chain_id,
             source_pid,
             targets: Vec::new(),
-            attenuation: if attenuation > 0.0 && attenuation < 1.0 { attenuation } else { 0.8 },
+            attenuation: if attenuation > 0.0 && attenuation < 1.0 {
+                attenuation
+            } else {
+                0.8
+            },
             active_level: BackpressureLevel::None,
         }
     }
 
     /// Add target to chain
+    #[inline]
     pub fn add_target(&mut self, pid: u64) {
         if !self.targets.contains(&pid) {
             self.targets.push(pid);
@@ -241,6 +252,7 @@ impl PressureChain {
 
 /// Backpressure protocol stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopBackpressureStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -259,7 +271,7 @@ pub struct CoopBackpressureProtocol {
     /// Pressure chains
     chains: BTreeMap<u64, PressureChain>,
     /// Signal history (bounded)
-    signals: Vec<BackpressureSignalMsg>,
+    signals: VecDeque<BackpressureSignalMsg>,
     /// Stats
     stats: CoopBackpressureStats,
     /// Next chain ID
@@ -271,19 +283,26 @@ impl CoopBackpressureProtocol {
         Self {
             flows: BTreeMap::new(),
             chains: BTreeMap::new(),
-            signals: Vec::new(),
+            signals: VecDeque::new(),
             stats: CoopBackpressureStats::default(),
             next_chain_id: 1,
         }
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, max_rate: f64) {
         self.flows.insert(pid, FlowControlState::new(pid, max_rate));
     }
 
     /// Send pressure signal
-    pub fn send_signal(&mut self, source: PressureSource, level: BackpressureLevel, target_pid: u64, now: u64) {
+    pub fn send_signal(
+        &mut self,
+        source: PressureSource,
+        level: BackpressureLevel,
+        target_pid: u64,
+        now: u64,
+    ) {
         if let Some(flow) = self.flows.get_mut(&target_pid) {
             flow.apply_pressure(level, now);
         }
@@ -304,22 +323,25 @@ impl CoopBackpressureProtocol {
         };
 
         if self.signals.len() >= 1024 {
-            self.signals.remove(0);
+            self.signals.pop_front();
         }
-        self.signals.push(signal);
+        self.signals.push_back(signal);
         self.stats.total_signals += 1;
         self.update_stats();
     }
 
     /// Create pressure chain
+    #[inline]
     pub fn create_chain(&mut self, source_pid: u64, attenuation: f64) -> u64 {
         let id = self.next_chain_id;
         self.next_chain_id += 1;
-        self.chains.insert(id, PressureChain::new(id, source_pid, attenuation));
+        self.chains
+            .insert(id, PressureChain::new(id, source_pid, attenuation));
         id
     }
 
     /// Add target to chain
+    #[inline]
     pub fn add_chain_target(&mut self, chain_id: u64, target_pid: u64) {
         if let Some(chain) = self.chains.get_mut(&chain_id) {
             chain.add_target(target_pid);
@@ -342,6 +364,7 @@ impl CoopBackpressureProtocol {
     }
 
     /// Relieve process
+    #[inline]
     pub fn relieve(&mut self, pid: u64, now: u64) {
         if let Some(flow) = self.flows.get_mut(&pid) {
             flow.relieve(now);
@@ -349,6 +372,7 @@ impl CoopBackpressureProtocol {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.flows.remove(&pid);
         self.update_stats();
@@ -357,12 +381,11 @@ impl CoopBackpressureProtocol {
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.flows.len();
         self.stats.active_chains = self.chains.len();
-        self.stats.throttled_processes = self.flows.values()
-            .filter(|f| f.is_throttled())
-            .count();
+        self.stats.throttled_processes = self.flows.values().filter(|f| f.is_throttled()).count();
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopBackpressureStats {
         &self.stats
     }
@@ -423,25 +446,44 @@ pub struct BpSource {
 impl BpSource {
     pub fn new(id: u64, capacity: u64, strategy: BpStrategy) -> Self {
         Self {
-            id, name_hash: id, strategy, state: FlowState::Normal,
-            level: BpLevel::None, queue_depth: 0, queue_capacity: capacity,
-            items_accepted: 0, items_dropped: 0, items_paused: 0,
-            rate_limit: f64::MAX, current_rate: 0.0, last_signal_at: 0,
+            id,
+            name_hash: id,
+            strategy,
+            state: FlowState::Normal,
+            level: BpLevel::None,
+            queue_depth: 0,
+            queue_capacity: capacity,
+            items_accepted: 0,
+            items_dropped: 0,
+            items_paused: 0,
+            rate_limit: f64::MAX,
+            current_rate: 0.0,
+            last_signal_at: 0,
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.queue_capacity == 0 { return 0.0; }
+        if self.queue_capacity == 0 {
+            return 0.0;
+        }
         self.queue_depth as f64 / self.queue_capacity as f64
     }
 
+    #[inline]
     pub fn update_level(&mut self) {
         let util = self.utilization();
-        self.level = if util > 0.95 { BpLevel::Critical }
-            else if util > 0.80 { BpLevel::High }
-            else if util > 0.60 { BpLevel::Medium }
-            else if util > 0.40 { BpLevel::Low }
-            else { BpLevel::None };
+        self.level = if util > 0.95 {
+            BpLevel::Critical
+        } else if util > 0.80 {
+            BpLevel::High
+        } else if util > 0.60 {
+            BpLevel::Medium
+        } else if util > 0.40 {
+            BpLevel::Low
+        } else {
+            BpLevel::None
+        };
     }
 
     pub fn try_accept(&mut self, now: u64) -> bool {
@@ -451,7 +493,7 @@ impl BpSource {
                 self.items_dropped += 1;
                 self.state = FlowState::Dropping;
                 false
-            }
+            },
             BpLevel::High => {
                 if self.strategy == BpStrategy::Pause {
                     self.items_paused += 1;
@@ -464,25 +506,31 @@ impl BpSource {
                     self.state = FlowState::SlowDown;
                     true
                 }
-            }
+            },
             _ => {
                 self.queue_depth += 1;
                 self.items_accepted += 1;
                 self.state = FlowState::Normal;
                 true
-            }
+            },
         }
     }
 
+    #[inline]
     pub fn dequeue(&mut self, n: u64) {
         self.queue_depth = self.queue_depth.saturating_sub(n);
         self.update_level();
-        if self.level == BpLevel::None { self.state = FlowState::Normal; }
+        if self.level == BpLevel::None {
+            self.state = FlowState::Normal;
+        }
     }
 
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.items_accepted + self.items_dropped;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.items_dropped as f64 / total as f64
     }
 }
@@ -498,6 +546,7 @@ pub struct BpEvent {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BackpressureV2Stats {
     pub total_sources: u32,
     pub active_backpressure: u32,
@@ -517,35 +566,60 @@ pub struct CoopBackpressureV2 {
 
 impl CoopBackpressureV2 {
     pub fn new() -> Self {
-        Self { sources: BTreeMap::new(), events: Vec::new(), next_id: 1, max_events: 4096 }
+        Self {
+            sources: BTreeMap::new(),
+            events: Vec::new(),
+            next_id: 1,
+            max_events: 4096,
+        }
     }
 
+    #[inline]
     pub fn register(&mut self, capacity: u64, strategy: BpStrategy) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.sources.insert(id, BpSource::new(id, capacity, strategy));
+        self.sources
+            .insert(id, BpSource::new(id, capacity, strategy));
         id
     }
 
+    #[inline(always)]
     pub fn try_accept(&mut self, id: u64, now: u64) -> bool {
-        self.sources.get_mut(&id).map(|s| s.try_accept(now)).unwrap_or(false)
+        self.sources
+            .get_mut(&id)
+            .map(|s| s.try_accept(now))
+            .unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn dequeue(&mut self, id: u64, n: u64) {
-        if let Some(s) = self.sources.get_mut(&id) { s.dequeue(n); }
+        if let Some(s) = self.sources.get_mut(&id) {
+            s.dequeue(n);
+        }
     }
 
     pub fn stats(&self) -> BackpressureV2Stats {
-        let active = self.sources.values().filter(|s| s.level != BpLevel::None).count() as u32;
+        let active = self
+            .sources
+            .values()
+            .filter(|s| s.level != BpLevel::None)
+            .count() as u32;
         let accepted: u64 = self.sources.values().map(|s| s.items_accepted).sum();
         let dropped: u64 = self.sources.values().map(|s| s.items_dropped).sum();
         let paused: u64 = self.sources.values().map(|s| s.items_paused).sum();
         let utils: Vec<f64> = self.sources.values().map(|s| s.utilization()).collect();
-        let avg = if utils.is_empty() { 0.0 } else { utils.iter().sum::<f64>() / utils.len() as f64 };
+        let avg = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
         BackpressureV2Stats {
-            total_sources: self.sources.len() as u32, active_backpressure: active,
-            total_accepted: accepted, total_dropped: dropped,
-            total_paused: paused, avg_utilization: avg,
+            total_sources: self.sources.len() as u32,
+            active_backpressure: active,
+            total_accepted: accepted,
+            total_dropped: dropped,
+            total_paused: paused,
+            avg_utilization: avg,
         }
     }
 }

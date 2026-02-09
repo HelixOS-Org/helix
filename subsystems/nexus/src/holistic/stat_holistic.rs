@@ -54,6 +54,7 @@ impl StatCallPattern {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, latency_ns: u64, ft: HolisticStatFileType) {
         self.call_count += 1;
         self.total_latency_ns += latency_ns;
@@ -64,6 +65,7 @@ impl StatCallPattern {
 
 /// Holistic stat stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticStatStats {
     pub total_calls: u64,
     pub by_call: BTreeMap<u8, u64>,
@@ -115,6 +117,7 @@ impl HolisticStat {
         }
     }
 
+    #[inline]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.stats.total_calls == 0 {
             0

@@ -83,22 +83,26 @@ impl BpfProgInfo {
     }
 
     /// Record run
+    #[inline(always)]
     pub fn record_run(&self, duration_ns: u64, _timestamp: u64) {
         self.run_count.fetch_add(1, Ordering::Relaxed);
         self.run_time_ns.fetch_add(duration_ns, Ordering::Relaxed);
     }
 
     /// Get run count
+    #[inline(always)]
     pub fn get_run_count(&self) -> u64 {
         self.run_count.load(Ordering::Relaxed)
     }
 
     /// Get total run time
+    #[inline(always)]
     pub fn get_run_time(&self) -> u64 {
         self.run_time_ns.load(Ordering::Relaxed)
     }
 
     /// Get average run time
+    #[inline]
     pub fn avg_run_time(&self) -> f32 {
         let count = self.get_run_count();
         if count == 0 {

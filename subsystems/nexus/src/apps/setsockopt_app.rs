@@ -53,6 +53,7 @@ impl SocketOptionHistory {
         Self { fd, changes: Vec::new(), total_sets: 0, total_failures: 0 }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: SetoptRecord) {
         match rec.result {
             SetoptResult::Success => self.total_sets += 1,
@@ -61,11 +62,13 @@ impl SocketOptionHistory {
         if self.changes.len() < 256 { self.changes.push(rec); }
     }
 
+    #[inline(always)]
     pub fn success_rate(&self) -> u64 {
         let total = self.total_sets + self.total_failures;
         if total == 0 { 100 } else { (self.total_sets * 100) / total }
     }
 
+    #[inline]
     pub fn last_value_for(&self, optname: u32) -> Option<i64> {
         self.changes.iter().rev()
             .find(|r| r.optname == optname && r.result == SetoptResult::Success)
@@ -87,6 +90,7 @@ pub struct TcpTuningProfile {
 }
 
 impl TcpTuningProfile {
+    #[inline]
     pub fn default_profile() -> Self {
         Self {
             nodelay: false, cork: false,
@@ -97,11 +101,14 @@ impl TcpTuningProfile {
         }
     }
 
+    #[inline(always)]
     pub fn is_low_latency(&self) -> bool { self.nodelay && !self.cork }
+    #[inline(always)]
     pub fn is_throughput_optimized(&self) -> bool { !self.nodelay && self.cork }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SetsockoptAppStats {
     pub total_sets: u64,
     pub total_failures: u64,
@@ -126,6 +133,7 @@ impl AppSetsockopt {
         }
     }
 
+    #[inline(always)]
     pub fn register_socket(&mut self, fd: u64) {
         self.histories.insert(fd, SocketOptionHistory::new(fd));
     }
@@ -143,6 +151,7 @@ impl AppSetsockopt {
             .record(rec);
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SetsockoptAppStats { &self.stats }
 }
 
@@ -168,6 +177,7 @@ impl SetsockoptV2Request {
 
 /// Setsockopt v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SetsockoptV2AppStats { pub total_sets: u64, pub successes: u64, pub failures: u64, pub buf_changes: u64 }
 
 /// Main app setsockopt v2
@@ -176,6 +186,7 @@ pub struct AppSetsockoptV2 { pub stats: SetsockoptV2AppStats }
 
 impl AppSetsockoptV2 {
     pub fn new() -> Self { Self { stats: SetsockoptV2AppStats { total_sets: 0, successes: 0, failures: 0, buf_changes: 0 } } }
+    #[inline]
     pub fn set_opt(&mut self, req: &SetsockoptV2Request) -> SetOptV2Result {
         self.stats.total_sets += 1;
         self.stats.successes += 1;

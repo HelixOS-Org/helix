@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -72,6 +73,7 @@ impl HealthLevel {
     }
 
     /// Is degraded or worse?
+    #[inline(always)]
     pub fn is_unhealthy(&self) -> bool {
         matches!(self, Self::Degraded | Self::Critical)
     }
@@ -89,7 +91,7 @@ pub struct VitalSign {
     /// Current score (0.0-1.0)
     pub score: f64,
     /// Historical scores
-    history: Vec<f64>,
+    history: VecDeque<f64>,
     /// Max history
     max_history: usize,
     /// EMA smoothed score
@@ -105,7 +107,7 @@ impl VitalSign {
         Self {
             dimension,
             score: 1.0,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 256,
             ema_score: 1.0,
             alpha: 0.2,
@@ -114,6 +116,7 @@ impl VitalSign {
     }
 
     /// Update score
+    #[inline]
     pub fn update(&mut self, raw_score: f64) {
         let clamped = if raw_score < 0.0 {
             0.0
@@ -128,18 +131,20 @@ impl VitalSign {
         self.trend = self.ema_score - prev_ema;
         self.score = self.ema_score;
 
-        self.history.push(clamped);
+        self.history.push_back(clamped);
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
     /// Health level
+    #[inline(always)]
     pub fn level(&self) -> HealthLevel {
         HealthLevel::from_score(self.score)
     }
 
     /// Is degrading?
+    #[inline(always)]
     pub fn is_degrading(&self) -> bool {
         self.trend < -0.01
     }
@@ -260,6 +265,7 @@ pub struct HealthReport {
 
 /// Health engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticHealthStats {
     /// Dimensions monitored
     pub dimensions: usize,
@@ -327,6 +333,7 @@ impl HolisticHealthEngine {
     }
 
     /// Update a dimension's health
+    #[inline]
     pub fn update(&mut self, dimension: HealthDimension, score: f64) {
         if let Some(vital) = self.vitals.get_mut(&(dimension as u8)) {
             vital.update(score);
@@ -335,6 +342,7 @@ impl HolisticHealthEngine {
     }
 
     /// Get vital for dimension
+    #[inline(always)]
     pub fn vital(&self, dimension: HealthDimension) -> Option<&VitalSign> {
         self.vitals.get(&(dimension as u8))
     }
@@ -446,6 +454,7 @@ impl HolisticHealthEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticHealthStats {
         &self.stats
     }

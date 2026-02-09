@@ -5,6 +5,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -20,6 +21,7 @@ use crate::core::NexusTimestamp;
 
 /// An optimization metric sample
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct OptimizationMetric {
     /// Timestamp
     pub timestamp: NexusTimestamp,
@@ -52,6 +54,7 @@ pub struct OptimizationChange {
 
 /// Optimizer statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct OptimizerStats {
     /// Current architecture
     pub arch: Architecture,
@@ -88,7 +91,7 @@ pub struct Optimizer {
     /// Total optimizations applied
     total_optimizations: AtomicU64,
     /// Metrics history for adaptive optimization
-    metrics: Vec<OptimizationMetric>,
+    metrics: VecDeque<OptimizationMetric>,
     /// Maximum metrics to keep
     max_metrics: usize,
 }
@@ -107,7 +110,7 @@ impl Optimizer {
             parameters: BTreeMap::new(),
             enabled: AtomicBool::new(true),
             total_optimizations: AtomicU64::new(0),
-            metrics: Vec::new(),
+            metrics: VecDeque::new(),
             max_metrics: 10000,
         };
 
@@ -176,16 +179,19 @@ impl Optimizer {
     }
 
     /// Add a parameter
+    #[inline(always)]
     pub fn add_parameter(&mut self, param: OptimizationParameter) {
         self.parameters.insert(param.name.clone(), param);
     }
 
     /// Get a parameter
+    #[inline(always)]
     pub fn get_parameter(&self, name: &str) -> Option<&OptimizationParameter> {
         self.parameters.get(name)
     }
 
     /// Set a parameter value
+    #[inline]
     pub fn set_parameter(&mut self, name: &str, value: f64) -> bool {
         if let Some(param) = self.parameters.get_mut(name) {
             param.set(value);
@@ -196,22 +202,26 @@ impl Optimizer {
     }
 
     /// Get architecture
+    #[inline(always)]
     pub fn arch(&self) -> Architecture {
         self.arch
     }
 
     /// Get CPU features
+    #[inline(always)]
     pub fn features(&self) -> &CpuFeatures {
         &self.features
     }
 
     /// Set optimization level
+    #[inline(always)]
     pub fn set_level(&mut self, level: OptimizationLevel) {
         self.level = level;
         self.apply_level_defaults();
     }
 
     /// Set optimization target
+    #[inline(always)]
     pub fn set_target(&mut self, target: OptimizationTarget) {
         self.target = target;
         self.apply_target_defaults();
@@ -287,9 +297,9 @@ impl Optimizer {
         };
 
         if self.metrics.len() >= self.max_metrics {
-            self.metrics.remove(0);
+            self.metrics.pop_front();
         }
-        self.metrics.push(metric);
+        self.metrics.push_back(metric);
     }
 
     /// Run adaptive optimization
@@ -351,16 +361,19 @@ impl Optimizer {
     }
 
     /// Enable optimizer
+    #[inline(always)]
     pub fn enable(&self) {
         self.enabled.store(true, Ordering::SeqCst);
     }
 
     /// Disable optimizer
+    #[inline(always)]
     pub fn disable(&self) {
         self.enabled.store(false, Ordering::SeqCst);
     }
 
     /// Get all parameter values
+    #[inline]
     pub fn all_parameters(&self) -> Vec<(&str, f64)> {
         self.parameters
             .iter()
@@ -369,6 +382,7 @@ impl Optimizer {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> OptimizerStats {
         OptimizerStats {
             arch: self.arch,

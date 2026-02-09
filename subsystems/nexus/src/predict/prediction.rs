@@ -55,34 +55,40 @@ impl CrashPrediction {
     }
 
     /// Set affected component
+    #[inline(always)]
     pub fn with_component(mut self, component: ComponentId) -> Self {
         self.component = Some(component);
         self
     }
 
     /// Add a contributing factor
+    #[inline(always)]
     pub fn with_factor(mut self, factor: PredictionFactor) -> Self {
         self.factors.push(factor);
         self
     }
 
     /// Set recommended action
+    #[inline(always)]
     pub fn with_action(mut self, action: RecommendedAction) -> Self {
         self.recommended_action = action;
         self
     }
 
     /// Mark prediction as validated
+    #[inline(always)]
     pub fn validate(&mut self, correct: bool) {
         self.validated = Some(correct);
     }
 
     /// Check if prediction is urgent (< 5s)
+    #[inline(always)]
     pub fn is_urgent(&self) -> bool {
         self.time_to_failure_ms < 5000
     }
 
     /// Check if prediction is critical
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.kind.is_critical() || (self.confidence.is_high() && self.is_urgent())
     }

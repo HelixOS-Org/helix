@@ -300,6 +300,7 @@ impl Supernet {
     }
 
     /// Get weights for an architecture
+    #[inline]
     pub fn get_weights(&self, encoding: &ArchitectureEncoding) -> Vec<f64> {
         let mut weights = Vec::new();
         for &edge in &encoding.edges {
@@ -592,6 +593,7 @@ impl NasEngine {
     }
 
     /// Get search statistics
+    #[inline]
     pub fn get_stats(&self) -> NasStats {
         NasStats {
             generation: self.generation,
@@ -603,6 +605,7 @@ impl NasEngine {
     }
 
     /// Get best architecture found
+    #[inline(always)]
     pub fn best_architecture(&self) -> Option<&Architecture> {
         self.best_architecture.as_ref()
     }
@@ -610,6 +613,7 @@ impl NasEngine {
 
 /// NAS statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NasStats {
     pub generation: usize,
     pub best_fitness: f64,
@@ -725,16 +729,19 @@ impl KernelNas {
     }
 
     /// Search for optimal architecture
+    #[inline(always)]
     pub fn search(&mut self) -> NexusResult<Architecture> {
         self.engine.search()
     }
 
     /// Get the best architecture found
+    #[inline(always)]
     pub fn best_architecture(&self) -> Option<&Architecture> {
         self.engine.best_architecture()
     }
 
     /// Get the task type
+    #[inline(always)]
     pub fn task_type(&self) -> KernelNasTask {
         self.task_type
     }

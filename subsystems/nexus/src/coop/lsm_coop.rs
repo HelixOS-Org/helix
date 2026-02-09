@@ -47,6 +47,7 @@ impl LsmCoopRecord {
 
 /// LSM coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LsmCoopStats {
     pub total_events: u64,
     pub hook_chains: u64,

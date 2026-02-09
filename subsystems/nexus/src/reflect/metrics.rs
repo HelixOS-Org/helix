@@ -13,6 +13,7 @@ use crate::types::*;
 
 /// Metrics for a cognitive domain
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DomainMetrics {
     /// Domain
     pub domain: Domain,
@@ -51,26 +52,31 @@ impl DomainMetrics {
     }
 
     /// Is healthy?
+    #[inline(always)]
     pub fn is_healthy(&self) -> bool {
         self.health_score >= 70
     }
 
     /// Is critical?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.health_score < 30
     }
 
     /// Has high latency?
+    #[inline(always)]
     pub fn has_high_latency(&self) -> bool {
         self.avg_latency_us > 10000 // 10ms
     }
 
     /// Has high error rate?
+    #[inline(always)]
     pub fn has_high_error_rate(&self) -> bool {
         self.error_rate > 0.1 // 10%
     }
 
     /// Has queue backlog?
+    #[inline(always)]
     pub fn has_queue_backlog(&self) -> bool {
         self.queue_depth > 1000
     }
@@ -82,6 +88,7 @@ impl DomainMetrics {
 
 /// Overall cognitive system metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CognitiveMetrics {
     /// Domain-level metrics
     pub domains: Vec<DomainMetrics>,
@@ -120,6 +127,7 @@ impl CognitiveMetrics {
     }
 
     /// Add domain metrics
+    #[inline(always)]
     pub fn add_domain(&mut self, metrics: DomainMetrics) {
         self.domains.push(metrics);
         self.recalculate_overall();
@@ -137,11 +145,13 @@ impl CognitiveMetrics {
     }
 
     /// Is system healthy?
+    #[inline(always)]
     pub fn is_healthy(&self) -> bool {
         self.overall_health >= 70
     }
 
     /// Get unhealthy domains
+    #[inline(always)]
     pub fn unhealthy_domains(&self) -> Vec<&DomainMetrics> {
         self.domains.iter().filter(|d| !d.is_healthy()).collect()
     }

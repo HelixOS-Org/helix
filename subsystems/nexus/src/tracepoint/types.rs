@@ -8,11 +8,13 @@ pub struct TracepointId(pub u64);
 
 impl TracepointId {
     /// Create a new tracepoint ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +26,13 @@ pub struct ProbeId(pub u64);
 
 impl ProbeId {
     /// Create a new probe ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -40,11 +44,13 @@ pub struct EventId(pub u64);
 
 impl EventId {
     /// Create a new event ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }

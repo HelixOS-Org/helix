@@ -97,6 +97,7 @@ impl NeatGenome {
     }
 
     /// Get the complexity of this genome
+    #[inline(always)]
     pub fn complexity(&self) -> usize {
         self.nodes.len() + self.connections.iter().filter(|c| c.enabled).count()
     }

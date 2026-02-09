@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Detection method
@@ -35,7 +37,7 @@ pub enum HealthAssessment {
 /// Heartbeat window for phi-accrual
 #[derive(Debug, Clone)]
 pub struct HeartbeatWindow {
-    pub intervals: Vec<u64>,
+    pub intervals: VecDeque<u64>,
     pub max_size: usize,
     pub last_heartbeat_ts: u64,
     pub heartbeat_count: u64,
@@ -43,24 +45,27 @@ pub struct HeartbeatWindow {
 
 impl HeartbeatWindow {
     pub fn new(max_size: usize) -> Self {
-        Self { intervals: Vec::new(), max_size, last_heartbeat_ts: 0, heartbeat_count: 0 }
+        Self { intervals: VecDeque::new(), max_size, last_heartbeat_ts: 0, heartbeat_count: 0 }
     }
 
+    #[inline]
     pub fn record(&mut self, ts: u64) {
         if self.last_heartbeat_ts > 0 {
             let interval = ts.saturating_sub(self.last_heartbeat_ts);
-            self.intervals.push(interval);
-            if self.intervals.len() > self.max_size { self.intervals.remove(0); }
+            self.intervals.push_back(interval);
+            if self.intervals.len() > self.max_size { self.intervals.pop_front(); }
         }
         self.last_heartbeat_ts = ts;
         self.heartbeat_count += 1;
     }
 
+    #[inline(always)]
     pub fn mean_ns(&self) -> f64 {
         if self.intervals.is_empty() { return 0.0; }
         self.intervals.iter().sum::<u64>() as f64 / self.intervals.len() as f64
     }
 
+    #[inline]
     pub fn variance(&self) -> f64 {
         if self.intervals.len() < 2 { return 0.0; }
         let mean = self.mean_ns();
@@ -68,6 +73,7 @@ impl HeartbeatWindow {
         sum_sq / (self.intervals.len() - 1) as f64
     }
 
+    #[inline(always)]
     pub fn std_dev(&self) -> f64 { libm::sqrt(self.variance()) }
 
     /// Compute phi value: -log10(P(now - last >= t_now - last))
@@ -100,6 +106,7 @@ impl HeartbeatWindow {
 
 /// Per-node failure detector state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NodeDetectorState {
     pub node_id: u64,
     pub assessment: HealthAssessment,
@@ -128,6 +135,7 @@ impl NodeDetectorState {
         }
     }
 
+    #[inline]
     pub fn heartbeat(&mut self, ts: u64) {
         self.heartbeat_window.record(ts);
         self.pong_received += 1;
@@ -135,6 +143,7 @@ impl NodeDetectorState {
         self.assessment = HealthAssessment::Healthy;
     }
 
+    #[inline(always)]
     pub fn miss(&mut self) { self.consecutive_misses += 1; }
 
     pub fn evaluate(&mut self, now: u64) -> HealthAssessment {
@@ -169,6 +178,7 @@ impl NodeDetectorState {
         self.assessment
     }
 
+    #[inline(always)]
     pub fn response_rate(&self) -> f64 {
         if self.ping_attempts == 0 { return 1.0; }
         self.pong_received as f64 / self.ping_attempts as f64
@@ -191,7 +201,7 @@ impl PartitionDetector {
 
     pub fn detect(&mut self, reachability: &BTreeMap<u64, Vec<u64>>, now: u64) {
         // Simple connected components
-        let mut visited: BTreeMap<u64, bool> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
         self.groups.clear();
         for &node in reachability.keys() { visited.insert(node, false); }
 
@@ -218,6 +228,7 @@ impl PartitionDetector {
 
 /// Failure detector stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FailureDetectorStats {
     pub total_nodes: usize,
     pub healthy_nodes: usize,
@@ -242,26 +253,32 @@ impl CoopFailureDetector {
         Self { nodes: BTreeMap::new(), partition: PartitionDetector::new(), stats: FailureDetectorStats::default(), default_method: method }
     }
 
+    #[inline(always)]
     pub fn add_node(&mut self, node_id: u64) {
         self.nodes.entry(node_id).or_insert_with(|| NodeDetectorState::new(node_id, self.default_method));
     }
 
+    #[inline(always)]
     pub fn heartbeat(&mut self, node_id: u64, ts: u64) {
         if let Some(n) = self.nodes.get_mut(&node_id) { n.heartbeat(ts); }
     }
 
+    #[inline(always)]
     pub fn evaluate_all(&mut self, now: u64) {
         for n in self.nodes.values_mut() { n.evaluate(now); }
     }
 
+    #[inline(always)]
     pub fn get_assessment(&self, node_id: u64) -> Option<HealthAssessment> {
         self.nodes.get(&node_id).map(|n| n.assessment)
     }
 
+    #[inline(always)]
     pub fn detect_partition(&mut self, reachability: &BTreeMap<u64, Vec<u64>>, now: u64) {
         self.partition.detect(reachability, now);
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_nodes = self.nodes.len();
         self.stats.healthy_nodes = self.nodes.values().filter(|n| n.assessment == HealthAssessment::Healthy).count();
@@ -274,6 +291,8 @@ impl CoopFailureDetector {
         self.stats.partition_groups = self.partition.groups.len();
     }
 
+    #[inline(always)]
     pub fn node(&self, id: u64) -> Option<&NodeDetectorState> { self.nodes.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &FailureDetectorStats { &self.stats }
 }

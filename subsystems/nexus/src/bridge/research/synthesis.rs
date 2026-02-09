@@ -11,7 +11,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -132,6 +134,7 @@ struct HistoryEntry {
 
 /// Aggregate synthesis statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SynthesisStats {
     pub total_synthesized: u64,
     pub total_applied: u64,
@@ -151,22 +154,22 @@ pub struct SynthesisStats {
 /// Tracks strategy versions and rollback history
 #[derive(Debug)]
 struct VersionTracker {
-    history: Vec<HistoryEntry>,
-    version_map: BTreeMap<u64, u32>,
+    history: VecDeque<HistoryEntry>,
+    version_map: LinearMap<u32, 64>,
 }
 
 impl VersionTracker {
     fn new() -> Self {
         Self {
-            history: Vec::new(),
-            version_map: BTreeMap::new(),
+            history: VecDeque::new(),
+            version_map: LinearMap::new(),
         }
     }
 
     fn record(&mut self, strategy_id: u64, params: &[SynthesizedParam], metric: f32, tick: u64) {
         let version = self.version_map.entry(strategy_id).or_insert(0);
         *version += 1;
-        self.history.push(HistoryEntry {
+        self.history.push_back(HistoryEntry {
             strategy_id,
             version: *version,
             params: params.to_vec(),
@@ -175,7 +178,7 @@ impl VersionTracker {
         });
         // Limit history size
         while self.history.len() > MAX_HISTORY {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
@@ -188,7 +191,7 @@ impl VersionTracker {
     }
 
     fn current_version(&self, strategy_id: u64) -> u32 {
-        self.version_map.get(&strategy_id).copied().unwrap_or(0)
+        self.version_map.get(strategy_id).copied().unwrap_or(0)
     }
 
     fn rollback_available(&self, strategy_id: u64) -> bool {
@@ -207,6 +210,7 @@ impl VersionTracker {
 
 /// Strategy synthesis engine from validated research discoveries
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeSynthesis {
     strategies: BTreeMap<u64, SynthesizedStrategy>,
     version_tracker: VersionTracker,
@@ -274,6 +278,7 @@ impl BridgeSynthesis {
     }
 
     /// Apply a discovery's parameters to an existing strategy
+    #[inline]
     pub fn apply_discovery(
         &mut self,
         strategy_id: u64,
@@ -490,11 +495,13 @@ impl BridgeSynthesis {
     }
 
     /// Get a strategy by ID
+    #[inline(always)]
     pub fn get_strategy(&self, strategy_id: u64) -> Option<&SynthesizedStrategy> {
         self.strategies.get(&strategy_id)
     }
 
     /// List all active strategies
+    #[inline]
     pub fn active_strategies(&self) -> Vec<&SynthesizedStrategy> {
         self.strategies
             .values()
@@ -503,6 +510,7 @@ impl BridgeSynthesis {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> SynthesisStats {
         self.stats
     }

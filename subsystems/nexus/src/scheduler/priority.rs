@@ -11,6 +11,7 @@ use crate::math;
 // ============================================================================
 
 /// Learning-based priority adjustment
+#[repr(align(64))]
 pub struct PriorityLearner {
     /// Priority adjustments by task type
     type_adjustments: BTreeMap<u64, PriorityAdjustment>,
@@ -104,16 +105,19 @@ impl PriorityLearner {
     }
 
     /// Set learning rate
+    #[inline(always)]
     pub fn set_learning_rate(&mut self, rate: f64) {
         self.learning_rate = rate.clamp(0.01, 0.5);
     }
 
     /// Get total adjustments
+    #[inline(always)]
     pub fn total_adjustments(&self) -> u64 {
         self.total_adjustments.load(Ordering::Relaxed)
     }
 
     /// Reset learner
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.type_adjustments.clear();
         self.total_adjustments.store(0, Ordering::Relaxed);

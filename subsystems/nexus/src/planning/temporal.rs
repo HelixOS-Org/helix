@@ -67,16 +67,19 @@ impl TemporalConstraint {
     }
 
     /// Create "before" constraint
+    #[inline(always)]
     pub fn before(from: TimePoint, to: TimePoint) -> Self {
         Self::new(ConstraintType::Before, from, to)
     }
 
     /// Create "after" constraint
+    #[inline(always)]
     pub fn after(from: TimePoint, to: TimePoint) -> Self {
         Self::new(ConstraintType::After, from, to)
     }
 
     /// Create duration constraint
+    #[inline]
     pub fn duration(point: TimePoint, min: TimeValue, max: TimeValue) -> Self {
         let mut c = Self::new(ConstraintType::Duration, point, point);
         c.min_distance = min;
@@ -85,6 +88,7 @@ impl TemporalConstraint {
     }
 
     /// Set distance bounds
+    #[inline]
     pub fn with_distance(mut self, min: TimeValue, max: TimeValue) -> Self {
         self.min_distance = min;
         self.max_distance = max;
@@ -121,11 +125,13 @@ impl ScheduledAction {
     }
 
     /// Check if overlaps with another
+    #[inline(always)]
     pub fn overlaps(&self, other: &ScheduledAction) -> bool {
         self.start < other.end && other.start < self.end
     }
 
     /// Check if strictly before another
+    #[inline(always)]
     pub fn before(&self, other: &ScheduledAction) -> bool {
         self.end <= other.start
     }
@@ -171,6 +177,7 @@ impl Timeline {
     }
 
     /// Schedule action at earliest possible time
+    #[inline]
     pub fn schedule_earliest(&mut self, action: ActionId, duration: TimeValue) -> TimeValue {
         let start = self.find_earliest_slot(duration);
         self.schedule(action, start, duration);
@@ -206,6 +213,7 @@ impl Timeline {
     }
 
     /// Get actions in time order
+    #[inline]
     pub fn get_schedule(&self) -> Vec<&ScheduledAction> {
         let mut sorted: Vec<_> = self.actions.iter().collect();
         sorted.sort_by_key(|a| a.start);
@@ -213,21 +221,25 @@ impl Timeline {
     }
 
     /// Get makespan
+    #[inline(always)]
     pub fn makespan(&self) -> TimeValue {
         self.makespan
     }
 
     /// Advance current time
+    #[inline(always)]
     pub fn advance(&mut self, delta: TimeValue) {
         self.current_time += delta;
     }
 
     /// Get current time
+    #[inline(always)]
     pub fn current_time(&self) -> TimeValue {
         self.current_time
     }
 
     /// Get actions at current time
+    #[inline]
     pub fn current_actions(&self) -> Vec<&ScheduledAction> {
         self.actions
             .iter()
@@ -294,6 +306,7 @@ impl TemporalPlanner {
     }
 
     /// Create time point
+    #[inline]
     pub fn create_time_point(&mut self) -> TimePoint {
         let tp = TimePoint(self.next_tp);
         self.next_tp += 1;
@@ -302,6 +315,7 @@ impl TemporalPlanner {
     }
 
     /// Register action with duration
+    #[inline]
     pub fn register_action(&mut self, action: ActionId, duration: TimeValue) -> TimePoint {
         let start = self.create_time_point();
         self.action_starts.insert(action, start);
@@ -310,11 +324,13 @@ impl TemporalPlanner {
     }
 
     /// Add constraint
+    #[inline(always)]
     pub fn add_constraint(&mut self, constraint: TemporalConstraint) {
         self.constraints.push(constraint);
     }
 
     /// Add ordering: action1 before action2
+    #[inline]
     pub fn add_ordering(&mut self, before: ActionId, after: ActionId) {
         if let (Some(&tp1), Some(&tp2)) = (
             self.action_starts.get(&before),
@@ -408,6 +424,7 @@ impl TemporalPlanner {
     }
 
     /// Get action start time
+    #[inline]
     pub fn get_start_time(&self, action: ActionId) -> Option<TimeValue> {
         self.action_starts
             .get(&action)

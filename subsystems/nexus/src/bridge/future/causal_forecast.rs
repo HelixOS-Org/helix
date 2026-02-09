@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -56,6 +57,7 @@ fn rand_f32(state: &mut u64) -> f32 {
 
 /// A causal link between two events in the syscall DAG.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CausalLink {
     /// The event that acts as the cause
     pub cause_event: u64,
@@ -92,6 +94,7 @@ impl CausalLink {
         }
     }
 
+    #[inline]
     fn update(&mut self, observed_delay: u64) {
         self.observations += 1;
         self.delay_ema = self.delay_ema * (1.0 - EMA_ALPHA)
@@ -165,6 +168,7 @@ pub struct CausalPrediction {
 
 /// Result of a counterfactual query: what would change if an event didn't happen?
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualResult {
     /// The hypothetically removed event
     pub removed_event: u64,
@@ -180,6 +184,7 @@ pub struct CounterfactualResult {
 
 /// Statistics for the causal forecast engine.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CausalForecastStats {
     pub total_links: u64,
     pub total_events_tracked: u64,
@@ -215,6 +220,7 @@ impl CausalForecastStats {
 /// Builds a DAG of causal relationships between syscall events and uses it
 /// to predict effects from observed causes, trace causal chains, evaluate
 /// interventions, and answer counterfactual queries.
+#[repr(align(64))]
 pub struct BridgeCausalForecast {
     /// Causal links: (cause_hash, effect_hash) -> CausalLink
     links: BTreeMap<(u64, u64), CausalLink>,
@@ -223,7 +229,7 @@ pub struct BridgeCausalForecast {
     /// Reverse adjacency: effect_hash -> [cause_hash, ...]
     reverse_adj: BTreeMap<u64, Vec<u64>>,
     /// Recent event window for temporal ordering
-    recent_events: Vec<(u64, u64)>, // (event_hash, tick)
+    recent_events: VecDeque<(u64, u64)>, // (event_hash, tick)
     /// Event occurrence counts
     event_counts: BTreeMap<u64, u64>,
     /// Total ticks observed
@@ -243,7 +249,7 @@ impl BridgeCausalForecast {
             links: BTreeMap::new(),
             forward_adj: BTreeMap::new(),
             reverse_adj: BTreeMap::new(),
-            recent_events: Vec::new(),
+            recent_events: VecDeque::new(),
             event_counts: BTreeMap::new(),
             tick_counter: 0,
             stats: CausalForecastStats::new(),
@@ -282,9 +288,9 @@ impl BridgeCausalForecast {
         }
 
         // Add to recent window
-        self.recent_events.push((event_hash, tick));
+        self.recent_events.push_back((event_hash, tick));
         if self.recent_events.len() > MAX_OBSERVATIONS {
-            self.recent_events.remove(0);
+            self.recent_events.pop_front();
         }
 
         // Decay stale links
@@ -497,12 +503,14 @@ impl BridgeCausalForecast {
     }
 
     /// Compute the causal strength between two specific events.
+    #[inline(always)]
     pub fn causal_strength(&self, cause: u64, effect: u64) -> f32 {
         let key = (cause, effect);
         self.links.get(&key).map(|l| l.causal_score()).unwrap_or(0.0)
     }
 
     /// Get all links sorted by causal score descending.
+    #[inline]
     pub fn top_links(&self, limit: usize) -> Vec<(u64, u64, f32)> {
         let mut result: Vec<(u64, u64, f32)> = self
             .links
@@ -515,6 +523,7 @@ impl BridgeCausalForecast {
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &CausalForecastStats {
         &self.stats
     }

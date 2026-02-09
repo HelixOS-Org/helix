@@ -54,12 +54,15 @@ impl DevicePowerEntry {
         Self { device_id: id, state: DevicePowerState::D0Full, resume_latency_us: 0, power_consumption_mw: 0, runtime_active_ms: 0, runtime_suspended_ms: 0, transitions: 0 }
     }
 
+    #[inline(always)]
     pub fn suspend(&mut self, state: DevicePowerState) { self.state = state; self.transitions += 1; }
+    #[inline(always)]
     pub fn resume(&mut self) { self.state = DevicePowerState::D0Full; self.transitions += 1; }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PowerMgrStats {
     pub system_state: SystemPowerState,
     pub total_devices: u32,
@@ -79,16 +82,20 @@ pub struct HolisticPowerMgr {
 impl HolisticPowerMgr {
     pub fn new() -> Self { Self { system_state: SystemPowerState::S0Working, devices: BTreeMap::new(), domains: Vec::new() } }
 
+    #[inline(always)]
     pub fn register_device(&mut self, id: u64) { self.devices.insert(id, DevicePowerEntry::new(id)); }
 
+    #[inline(always)]
     pub fn suspend_device(&mut self, id: u64, state: DevicePowerState) {
         if let Some(d) = self.devices.get_mut(&id) { d.suspend(state); }
     }
 
+    #[inline(always)]
     pub fn resume_device(&mut self, id: u64) {
         if let Some(d) = self.devices.get_mut(&id) { d.resume(); }
     }
 
+    #[inline]
     pub fn stats(&self) -> PowerMgrStats {
         let active = self.devices.values().filter(|d| d.state == DevicePowerState::D0Full).count() as u32;
         let suspended = self.devices.len() as u32 - active;

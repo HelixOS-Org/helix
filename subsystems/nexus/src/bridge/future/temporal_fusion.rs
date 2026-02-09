@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -94,8 +95,8 @@ struct HorizonTracker {
     horizon_ms: u64,
     index: usize,
     /// Recent predictions and actuals
-    predictions: Vec<f32>,
-    actuals: Vec<f32>,
+    predictions: VecDeque<f32>,
+    actuals: VecDeque<f32>,
     /// Mean absolute error (EMA)
     mae_ema: f32,
     /// Accuracy as 1 - MAE (EMA)
@@ -113,8 +114,8 @@ impl HorizonTracker {
         Self {
             horizon_ms,
             index,
-            predictions: Vec::new(),
-            actuals: Vec::new(),
+            predictions: VecDeque::new(),
+            actuals: VecDeque::new(),
             mae_ema: 0.1,
             accuracy_ema: 0.5,
             weight: 1.0 / NUM_HORIZONS as f32,
@@ -123,14 +124,15 @@ impl HorizonTracker {
         }
     }
 
+    #[inline]
     fn record(&mut self, predicted: f32, actual: f32) {
-        self.predictions.push(predicted);
-        self.actuals.push(actual);
+        self.predictions.push_back(predicted);
+        self.actuals.push_back(actual);
         self.total += 1;
 
         if self.predictions.len() > MAX_HISTORY_PER_HORIZON {
-            self.predictions.remove(0);
-            self.actuals.remove(0);
+            self.predictions.pop_front();
+            self.actuals.pop_front();
         }
 
         let error = (actual - predicted).abs();
@@ -170,6 +172,7 @@ impl ConsistencyRecord {
         }
     }
 
+    #[inline]
     fn update(&mut self, pred_i: f32, pred_j: f32) {
         let diff = (pred_i - pred_j).abs();
         let signed_diff = pred_i - pred_j;
@@ -186,6 +189,7 @@ impl ConsistencyRecord {
 
 /// Statistics for the temporal fusion engine.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TemporalFusionStats {
     pub total_fusions: u64,
     pub avg_consistency: f32,
@@ -219,6 +223,7 @@ impl TemporalFusionStats {
 /// Fuses predictions at 5 time horizons (1ms, 10ms, 100ms, 1s, 10s) into
 /// a coherent future view. Learns per-horizon weights from empirical accuracy
 /// and enforces cross-horizon consistency.
+#[repr(align(64))]
 pub struct BridgeTemporalFusion {
     /// Per-horizon trackers
     horizons: [HorizonTracker; NUM_HORIZONS],
@@ -263,6 +268,7 @@ impl BridgeTemporalFusion {
     }
 
     /// Submit predictions at all 5 horizons from a single source.
+    #[inline]
     pub fn submit_predictions(&mut self, source_id: u64, predictions: &[f32; NUM_HORIZONS]) {
         self.sources.insert(source_id, *predictions);
         if self.sources.len() > MAX_FUSION_SOURCES {
@@ -421,26 +427,31 @@ impl BridgeTemporalFusion {
     }
 
     /// Get the temporal resolution: how many horizons have enough data to be useful.
+    #[inline(always)]
     pub fn temporal_resolution(&self) -> usize {
         self.horizons.iter().filter(|h| h.total >= 10).count()
     }
 
     /// Get the fusion quality: how good is the fused prediction vs individual horizons.
+    #[inline(always)]
     pub fn fusion_quality(&self) -> f32 {
         self.stats.avg_fusion_quality
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &TemporalFusionStats {
         &self.stats
     }
 
     /// Get the current tick.
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }
 
     /// Advance the tick counter.
+    #[inline(always)]
     pub fn advance_tick(&mut self, tick: u64) {
         self.tick = tick;
     }

@@ -43,16 +43,19 @@ impl PciBus {
     }
 
     /// Add device
+    #[inline(always)]
     pub fn add_device(&mut self, device: PciDevice) {
         self.devices.insert(device.id, device);
     }
 
     /// Get device
+    #[inline(always)]
     pub fn get_device(&self, id: PciDeviceId) -> Option<&PciDevice> {
         self.devices.get(&id)
     }
 
     /// Device count
+    #[inline(always)]
     pub fn device_count(&self) -> usize {
         self.devices.len()
     }

@@ -70,6 +70,7 @@ impl UtimeRecord {
 
 /// Per-file timestamp change tracking.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FileTimestampState {
     pub inode: u64,
     pub last_atime_sec: u64,
@@ -118,6 +119,7 @@ impl FileTimestampState {
 
 /// Statistics for utime app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UtimeAppStats {
     pub total_calls: u64,
     pub utimensat_calls: u64,
@@ -186,6 +188,7 @@ impl AppUtime {
         id
     }
 
+    #[inline(always)]
     pub fn file_count(&self) -> usize {
         self.files.len()
     }

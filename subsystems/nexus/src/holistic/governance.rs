@@ -109,16 +109,19 @@ impl ResourceLimit {
     }
 
     /// Check if value violates soft
+    #[inline(always)]
     pub fn soft_violated(&self, value: f64) -> bool {
         value > self.soft_limit
     }
 
     /// Check if value violates hard
+    #[inline(always)]
     pub fn hard_violated(&self, value: f64) -> bool {
         value > self.hard_limit
     }
 
     /// Utilization fraction of soft
+    #[inline]
     pub fn soft_utilization(&self, value: f64) -> f64 {
         if self.soft_limit > 0.0 {
             value / self.soft_limit
@@ -167,11 +170,13 @@ impl GovernancePolicy {
     }
 
     /// Add limit
+    #[inline(always)]
     pub fn add_limit(&mut self, limit: ResourceLimit) {
         self.limits.push(limit);
     }
 
     /// Add target
+    #[inline]
     pub fn add_target(&mut self, target: u64) {
         if !self.targets.contains(&target) {
             self.targets.push(target);
@@ -179,6 +184,7 @@ impl GovernancePolicy {
     }
 
     /// Activate
+    #[inline]
     pub fn activate(&mut self) {
         if matches!(self.state, GovernancePolicyState::Draft | GovernancePolicyState::Suspended) {
             self.state = GovernancePolicyState::Active;
@@ -186,6 +192,7 @@ impl GovernancePolicy {
     }
 
     /// Suspend
+    #[inline]
     pub fn suspend(&mut self) {
         if matches!(self.state, GovernancePolicyState::Active) {
             self.state = GovernancePolicyState::Suspended;
@@ -193,16 +200,19 @@ impl GovernancePolicy {
     }
 
     /// Retire
+    #[inline(always)]
     pub fn retire(&mut self) {
         self.state = GovernancePolicyState::Retired;
     }
 
     /// Find limit for resource
+    #[inline(always)]
     pub fn limit_for(&self, resource: GovernedResource) -> Option<&ResourceLimit> {
         self.limits.iter().find(|l| l.resource == resource)
     }
 
     /// Check if policy applies to target
+    #[inline(always)]
     pub fn applies_to(&self, target: u64) -> bool {
         self.targets.is_empty() || self.targets.contains(&target)
     }
@@ -250,6 +260,7 @@ pub struct GovernanceViolation {
 
 impl GovernanceViolation {
     /// Over-limit fraction
+    #[inline]
     pub fn overage(&self) -> f64 {
         if self.limit_value > 0.0 {
             (self.current_value - self.limit_value) / self.limit_value
@@ -290,6 +301,7 @@ impl ComplianceRecord {
     }
 
     /// Record a check
+    #[inline]
     pub fn record_check(&mut self, violated: bool, now: u64) {
         self.total_checks += 1;
         if violated {
@@ -303,6 +315,7 @@ impl ComplianceRecord {
     }
 
     /// Compliance rate
+    #[inline(always)]
     pub fn compliance_rate(&self) -> f64 {
         self.score
     }
@@ -314,6 +327,7 @@ impl ComplianceRecord {
 
 /// Governance stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticGovernanceStats {
     /// Active policies
     pub active_policies: usize,
@@ -356,12 +370,14 @@ impl HolisticGovernanceEngine {
     }
 
     /// Register policy
+    #[inline(always)]
     pub fn register_policy(&mut self, policy: GovernancePolicy) {
         self.policies.insert(policy.id, policy);
         self.update_stats();
     }
 
     /// Activate policy
+    #[inline]
     pub fn activate_policy(&mut self, policy_id: u64) -> bool {
         if let Some(p) = self.policies.get_mut(&policy_id) {
             p.activate();
@@ -373,6 +389,7 @@ impl HolisticGovernanceEngine {
     }
 
     /// Suspend policy
+    #[inline]
     pub fn suspend_policy(&mut self, policy_id: u64) -> bool {
         if let Some(p) = self.policies.get_mut(&policy_id) {
             p.suspend();
@@ -474,16 +491,19 @@ impl HolisticGovernanceEngine {
     }
 
     /// Get violations for target
+    #[inline(always)]
     pub fn violations_for(&self, target: u64) -> Vec<&GovernanceViolation> {
         self.violations.iter().filter(|v| v.target == target).collect()
     }
 
     /// Compliance of target
+    #[inline(always)]
     pub fn compliance_of(&self, target: u64) -> Option<&ComplianceRecord> {
         self.compliance.get(&target)
     }
 
     /// Worst compliance targets
+    #[inline]
     pub fn worst_compliance(&self, count: usize) -> Vec<(u64, f64)> {
         let mut records: Vec<(u64, f64)> = self
             .compliance
@@ -513,6 +533,7 @@ impl HolisticGovernanceEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticGovernanceStats {
         &self.stats
     }

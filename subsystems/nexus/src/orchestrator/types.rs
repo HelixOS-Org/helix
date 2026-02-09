@@ -15,6 +15,7 @@ pub struct SubsystemId(pub u32);
 
 impl SubsystemId {
     /// Create new subsystem ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
@@ -56,6 +57,7 @@ pub struct DecisionId(pub u64);
 
 impl DecisionId {
     /// Create new decision ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
@@ -67,6 +69,7 @@ pub struct EventId(pub u64);
 
 impl EventId {
     /// Create new event ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
@@ -93,6 +96,7 @@ pub enum HealthLevel {
 
 impl HealthLevel {
     /// Get level name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Critical => "critical",
@@ -104,6 +108,7 @@ impl HealthLevel {
     }
 
     /// Score (0-100)
+    #[inline]
     pub fn score(&self) -> u8 {
         match self {
             Self::Critical => 0,
@@ -115,6 +120,7 @@ impl HealthLevel {
     }
 
     /// From score
+    #[inline]
     pub fn from_score(score: u8) -> Self {
         match score {
             0..=10 => Self::Critical,
@@ -143,6 +149,7 @@ pub enum SubsystemPriority {
 
 impl SubsystemPriority {
     /// Get priority name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Background => "background",
@@ -160,6 +167,7 @@ impl SubsystemPriority {
 
 /// Subsystem state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct SubsystemState {
     /// Subsystem ID
     pub id: SubsystemId,
@@ -201,46 +209,55 @@ impl SubsystemState {
     }
 
     /// Get health score
+    #[inline(always)]
     pub fn health_score(&self) -> u32 {
         self.health_score.load(Ordering::Relaxed)
     }
 
     /// Update health score
+    #[inline(always)]
     pub fn set_health_score(&self, score: u32) {
         self.health_score.store(score.min(100), Ordering::Relaxed);
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }
 
     /// Enable/disable
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }
 
     /// Last update
+    #[inline(always)]
     pub fn last_update(&self) -> u64 {
         self.last_update.load(Ordering::Relaxed)
     }
 
     /// Update timestamp
+    #[inline(always)]
     pub fn touch(&self, timestamp: u64) {
         self.last_update.store(timestamp, Ordering::Relaxed);
     }
 
     /// Pending issues
+    #[inline(always)]
     pub fn pending_issues(&self) -> u32 {
         self.pending_issues.load(Ordering::Relaxed)
     }
 
     /// Add pending issue
+    #[inline(always)]
     pub fn add_issue(&self) {
         self.pending_issues.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Resolve issue
+    #[inline]
     pub fn resolve_issue(&self) {
         let _ = self
             .pending_issues
@@ -252,6 +269,7 @@ impl SubsystemState {
 
 /// Subsystem metrics
 #[derive(Debug, Default)]
+#[repr(align(64))]
 pub struct SubsystemMetrics {
     /// Total events processed
     pub events_processed: AtomicU64,
@@ -272,26 +290,31 @@ impl SubsystemMetrics {
     }
 
     /// Record event
+    #[inline(always)]
     pub fn record_event(&self) {
         self.events_processed.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record decision
+    #[inline(always)]
     pub fn record_decision(&self) {
         self.decisions_made.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record success
+    #[inline(always)]
     pub fn record_success(&self) {
         self.successful_ops.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record failure
+    #[inline(always)]
     pub fn record_failure(&self) {
         self.failed_ops.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Success rate
+    #[inline]
     pub fn success_rate(&self) -> f32 {
         let success = self.successful_ops.load(Ordering::Relaxed);
         let failed = self.failed_ops.load(Ordering::Relaxed);

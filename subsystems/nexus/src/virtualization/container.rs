@@ -61,6 +61,7 @@ pub enum NetworkMode {
 
 /// Cgroup statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CgroupStats {
     /// CPU usage (nanoseconds)
     pub cpu_usage_ns: u64,
@@ -86,11 +87,13 @@ pub struct CgroupStats {
 
 impl CgroupStats {
     /// Is throttled?
+    #[inline(always)]
     pub fn is_throttled(&self) -> bool {
         self.cpu_throttled_ns > 0
     }
 
     /// Memory pressure
+    #[inline]
     pub fn memory_pressure(&self) -> f64 {
         if self.memory_limit == 0 {
             0.0
@@ -100,6 +103,7 @@ impl CgroupStats {
     }
 
     /// Is OOM risk?
+    #[inline(always)]
     pub fn is_oom_risk(&self) -> bool {
         self.memory_pressure() > 0.95
     }
@@ -135,6 +139,7 @@ impl ContainerIntelligence {
     }
 
     /// Register container
+    #[inline]
     pub fn register(&mut self, info: ContainerInfo) {
         self.cgroup_stats
             .insert(info.base.id, CgroupStats::default());
@@ -142,31 +147,37 @@ impl ContainerIntelligence {
     }
 
     /// Update cgroup stats
+    #[inline(always)]
     pub fn update_cgroup(&mut self, id: VirtId, stats: CgroupStats) {
         self.cgroup_stats.insert(id, stats);
     }
 
     /// Update namespace info
+    #[inline(always)]
     pub fn update_namespaces(&mut self, id: VirtId, info: NamespaceInfo) {
         self.namespaces.insert(id, info);
     }
 
     /// Get container
+    #[inline(always)]
     pub fn get(&self, id: VirtId) -> Option<&ContainerInfo> {
         self.containers.get(&id)
     }
 
     /// Get cgroup stats
+    #[inline(always)]
     pub fn get_cgroup(&self, id: VirtId) -> Option<&CgroupStats> {
         self.cgroup_stats.get(&id)
     }
 
     /// Get namespace info
+    #[inline(always)]
     pub fn get_namespaces(&self, id: VirtId) -> Option<&NamespaceInfo> {
         self.namespaces.get(&id)
     }
 
     /// Get throttled containers
+    #[inline]
     pub fn throttled_containers(&self) -> Vec<VirtId> {
         self.cgroup_stats
             .iter()
@@ -176,6 +187,7 @@ impl ContainerIntelligence {
     }
 
     /// Get OOM risk containers
+    #[inline]
     pub fn oom_risk_containers(&self) -> Vec<VirtId> {
         self.cgroup_stats
             .iter()
@@ -185,6 +197,7 @@ impl ContainerIntelligence {
     }
 
     /// Container count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.containers.len()
     }

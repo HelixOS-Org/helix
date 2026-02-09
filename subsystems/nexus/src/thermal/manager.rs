@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
@@ -26,7 +27,7 @@ pub struct ThermalManager {
     /// Fans
     pub(crate) fans: BTreeMap<CoolingDeviceId, FanInfo>,
     /// Event history
-    events: Vec<ThermalEvent>,
+    events: VecDeque<ThermalEvent>,
     /// Max events
     max_events: usize,
     /// Zone count
@@ -42,7 +43,7 @@ impl ThermalManager {
             zones: BTreeMap::new(),
             cooling_devices: BTreeMap::new(),
             fans: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 1000,
             zone_count: AtomicU32::new(0),
             enabled: AtomicBool::new(true),
@@ -50,55 +51,65 @@ impl ThermalManager {
     }
 
     /// Register zone
+    #[inline(always)]
     pub fn register_zone(&mut self, zone: ThermalZone) {
         self.zone_count.fetch_add(1, Ordering::Relaxed);
         self.zones.insert(zone.id, zone);
     }
 
     /// Get zone
+    #[inline(always)]
     pub fn get_zone(&self, id: ThermalZoneId) -> Option<&ThermalZone> {
         self.zones.get(&id)
     }
 
     /// Get zone mutably
+    #[inline(always)]
     pub fn get_zone_mut(&mut self, id: ThermalZoneId) -> Option<&mut ThermalZone> {
         self.zones.get_mut(&id)
     }
 
     /// Register cooling device
+    #[inline(always)]
     pub fn register_cooling_device(&mut self, device: CoolingDevice) {
         self.cooling_devices.insert(device.id, device);
     }
 
     /// Get cooling device
+    #[inline(always)]
     pub fn get_cooling_device(&self, id: CoolingDeviceId) -> Option<&CoolingDevice> {
         self.cooling_devices.get(&id)
     }
 
     /// Register fan
+    #[inline(always)]
     pub fn register_fan(&mut self, fan: FanInfo) {
         self.fans.insert(fan.cooling_device, fan);
     }
 
     /// Get fan
+    #[inline(always)]
     pub fn get_fan(&self, id: CoolingDeviceId) -> Option<&FanInfo> {
         self.fans.get(&id)
     }
 
     /// Record event
+    #[inline]
     pub fn record_event(&mut self, event: ThermalEvent) {
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event);
+        self.events.push_back(event);
     }
 
     /// Get hottest zone
+    #[inline(always)]
     pub fn hottest_zone(&self) -> Option<&ThermalZone> {
         self.zones.values().max_by_key(|z| z.temperature().0)
     }
 
     /// Get all zones above temperature
+    #[inline]
     pub fn zones_above(&self, temp: Temperature) -> Vec<&ThermalZone> {
         self.zones
             .values()
@@ -107,6 +118,7 @@ impl ThermalManager {
     }
 
     /// Get CPU zones
+    #[inline]
     pub fn cpu_zones(&self) -> Vec<&ThermalZone> {
         self.zones
             .values()
@@ -115,21 +127,25 @@ impl ThermalManager {
     }
 
     /// Zone count
+    #[inline(always)]
     pub fn zone_count(&self) -> u32 {
         self.zone_count.load(Ordering::Relaxed)
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }
 
     /// Get all zones
+    #[inline(always)]
     pub fn zones(&self) -> impl Iterator<Item = &ThermalZone> {
         self.zones.values()
     }
 
     /// Get events
+    #[inline(always)]
     pub fn events(&self) -> &[ThermalEvent] {
         &self.events
     }
@@ -155,13 +171,13 @@ impl ThermalManager {
                     event.zone = Some(zone_id);
                     event.temperature = Some(temp);
                     event.trip_index = Some(trip.index);
-                    self.events.push(event);
+                    self.events.push_back(event);
                 } else if was_triggered && trip.is_cleared(temp) {
                     let mut event = ThermalEvent::new(ThermalEventType::TripCleared, timestamp);
                     event.zone = Some(zone_id);
                     event.temperature = Some(temp);
                     event.trip_index = Some(trip.index);
-                    self.events.push(event);
+                    self.events.push_back(event);
                 }
             }
         }

@@ -83,14 +83,17 @@ impl BioRequest {
         }
     }
 
+    #[inline(always)]
     pub fn byte_size(&self) -> u64 {
         self.nr_sectors as u64 * 512
     }
 
+    #[inline(always)]
     pub fn latency(&self) -> u64 {
         self.complete_time.saturating_sub(self.submit_time)
     }
 
+    #[inline]
     pub fn can_merge_with(&self, other: &BioRequest) -> bool {
         if self.device_id != other.device_id {
             return false;
@@ -105,6 +108,7 @@ impl BioRequest {
 
 /// Per-device queue state.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BioDeviceQueue {
     pub device_id: u32,
     pub queue_depth: u32,
@@ -135,6 +139,7 @@ impl BioDeviceQueue {
 
 /// Statistics for bio layer.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BioLayerStats {
     pub total_bios: u64,
     pub total_reads: u64,
@@ -186,11 +191,13 @@ impl HolisticBioLayer {
         id
     }
 
+    #[inline(always)]
     pub fn register_device(&mut self, device_id: u32, max_depth: u32) {
         let queue = BioDeviceQueue::new(device_id, max_depth);
         self.device_queues.insert(device_id, queue);
     }
 
+    #[inline(always)]
     pub fn bio_count(&self) -> usize {
         self.bios.len()
     }

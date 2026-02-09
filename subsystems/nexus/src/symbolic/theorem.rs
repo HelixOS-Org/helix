@@ -23,6 +23,7 @@ extern crate alloc;
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::{String, ToString};
 use alloc::vec;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -60,31 +61,37 @@ pub enum Term {
 
 impl Term {
     /// Create a constant term
+    #[inline(always)]
     pub fn constant(name: &str) -> Self {
         Term::Constant(String::from(name))
     }
 
     /// Create a variable term
+    #[inline(always)]
     pub fn variable(name: &str) -> Self {
         Term::Variable(String::from(name))
     }
 
     /// Create an integer term
+    #[inline(always)]
     pub fn integer(value: i64) -> Self {
         Term::Integer(value)
     }
 
     /// Create a function term
+    #[inline(always)]
     pub fn function(name: &str, args: Vec<Term>) -> Self {
         Term::Function(String::from(name), args)
     }
 
     /// Check if this term is a variable
+    #[inline(always)]
     pub fn is_variable(&self) -> bool {
         matches!(self, Term::Variable(_))
     }
 
     /// Check if this term is ground (no variables)
+    #[inline]
     pub fn is_ground(&self) -> bool {
         match self {
             Term::Constant(_) | Term::Integer(_) => true,
@@ -94,6 +101,7 @@ impl Term {
     }
 
     /// Get all variables in this term
+    #[inline]
     pub fn variables(&self) -> BTreeSet<String> {
         let mut vars = BTreeSet::new();
         self.collect_variables(&mut vars);
@@ -134,6 +142,7 @@ impl Term {
     }
 
     /// Check if variable occurs in term (for occurs check)
+    #[inline]
     pub fn occurs(&self, var: &str) -> bool {
         match self {
             Term::Variable(v) => v == var,
@@ -161,6 +170,7 @@ impl Substitution {
     }
 
     /// Create from a list of bindings
+    #[inline]
     pub fn from_bindings(bindings: Vec<(String, Term)>) -> Self {
         let mut subst = Self::new();
         for (var, term) in bindings {
@@ -170,16 +180,19 @@ impl Substitution {
     }
 
     /// Bind a variable to a term
+    #[inline(always)]
     pub fn bind(&mut self, var: String, term: Term) {
         self.bindings.insert(var, term);
     }
 
     /// Get the binding for a variable
+    #[inline(always)]
     pub fn get(&self, var: &str) -> Option<&Term> {
         self.bindings.get(var)
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.bindings.is_empty()
     }
@@ -204,6 +217,7 @@ impl Substitution {
     }
 
     /// Get all bindings
+    #[inline(always)]
     pub fn bindings(&self) -> &BTreeMap<String, Term> {
         &self.bindings
     }
@@ -245,6 +259,7 @@ impl Unifier {
     }
 
     /// Create without occurs check (faster but unsound)
+    #[inline]
     pub fn without_occurs_check() -> Self {
         Self {
             occurs_check: false,
@@ -254,6 +269,7 @@ impl Unifier {
     }
 
     /// Unify two terms
+    #[inline(always)]
     pub fn unify(&mut self, t1: &Term, t2: &Term) -> UnificationResult {
         self.steps = 0;
         self.unify_with_subst(t1, t2, Substitution::new())
@@ -343,11 +359,13 @@ impl Atom {
     }
 
     /// Check if ground
+    #[inline(always)]
     pub fn is_ground(&self) -> bool {
         self.args.iter().all(|a| a.is_ground())
     }
 
     /// Get variables
+    #[inline]
     pub fn variables(&self) -> BTreeSet<String> {
         let mut vars = BTreeSet::new();
         for arg in &self.args {
@@ -359,6 +377,7 @@ impl Atom {
     }
 
     /// Apply substitution
+    #[inline]
     pub fn apply_substitution(&self, subst: &Substitution) -> Atom {
         Atom {
             predicate: self.predicate.clone(),
@@ -382,6 +401,7 @@ pub struct Literal {
 
 impl Literal {
     /// Create a positive literal
+    #[inline]
     pub fn positive(atom: Atom) -> Self {
         Self {
             atom,
@@ -390,6 +410,7 @@ impl Literal {
     }
 
     /// Create a negative literal
+    #[inline]
     pub fn negative(atom: Atom) -> Self {
         Self {
             atom,
@@ -398,6 +419,7 @@ impl Literal {
     }
 
     /// Negate this literal
+    #[inline]
     pub fn negate(&self) -> Literal {
         Literal {
             atom: self.atom.clone(),
@@ -406,11 +428,13 @@ impl Literal {
     }
 
     /// Check if this literal is complementary to another
+    #[inline(always)]
     pub fn is_complementary(&self, other: &Literal) -> bool {
         self.positive != other.positive && self.atom.predicate == other.atom.predicate
     }
 
     /// Apply substitution
+    #[inline]
     pub fn apply_substitution(&self, subst: &Substitution) -> Literal {
         Literal {
             atom: self.atom.apply_substitution(subst),
@@ -419,6 +443,7 @@ impl Literal {
     }
 
     /// Get variables
+    #[inline(always)]
     pub fn variables(&self) -> BTreeSet<String> {
         self.atom.variables()
     }
@@ -449,6 +474,7 @@ impl Clause {
     }
 
     /// Create from parents
+    #[inline]
     pub fn from_resolution(
         id: usize,
         literals: Vec<Literal>,
@@ -465,21 +491,25 @@ impl Clause {
     }
 
     /// Check if this is the empty clause (contradiction)
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.literals.is_empty()
     }
 
     /// Check if this is a unit clause
+    #[inline(always)]
     pub fn is_unit(&self) -> bool {
         self.literals.len() == 1
     }
 
     /// Check if this is a Horn clause (at most one positive literal)
+    #[inline(always)]
     pub fn is_horn(&self) -> bool {
         self.literals.iter().filter(|l| l.positive).count() <= 1
     }
 
     /// Get all variables in the clause
+    #[inline]
     pub fn variables(&self) -> BTreeSet<String> {
         let mut vars = BTreeSet::new();
         for lit in &self.literals {
@@ -505,6 +535,7 @@ impl Clause {
     }
 
     /// Rename variables to avoid conflicts
+    #[inline]
     pub fn rename_variables(&self, suffix: &str) -> Clause {
         let mut subst = Substitution::new();
         for var in self.variables() {
@@ -562,6 +593,7 @@ pub struct ProofTrace {
 
 impl ProofTrace {
     /// Get the proof explanation
+    #[inline]
     pub fn explain(&self) -> Vec<String> {
         let mut explanation = Vec::new();
 
@@ -643,18 +675,21 @@ impl TheoremProver {
     }
 
     /// Set search strategy
+    #[inline(always)]
     pub fn with_strategy(mut self, strategy: SearchStrategy) -> Self {
         self.strategy = strategy;
         self
     }
 
     /// Set maximum depth
+    #[inline(always)]
     pub fn with_max_depth(mut self, depth: usize) -> Self {
         self.max_depth = depth;
         self
     }
 
     /// Add a clause to the knowledge base
+    #[inline]
     pub fn add_clause(&mut self, literals: Vec<Literal>) -> usize {
         let id = self.next_id;
         self.next_id += 1;
@@ -663,6 +698,7 @@ impl TheoremProver {
     }
 
     /// Add a fact (positive unit clause)
+    #[inline]
     pub fn add_fact(&mut self, predicate: &str, args: Vec<Term>) -> usize {
         let atom = Atom::new(predicate, args);
         let literal = Literal::positive(atom);
@@ -671,6 +707,7 @@ impl TheoremProver {
 
     /// Add a rule (implication A₁ ∧ A₂ ∧ ... → B)
     /// Represented as ¬A₁ ∨ ¬A₂ ∨ ... ∨ B
+    #[inline]
     pub fn add_rule(&mut self, conditions: Vec<Atom>, conclusion: Atom) -> usize {
         let mut literals: Vec<Literal> = conditions.into_iter().map(Literal::negative).collect();
         literals.push(Literal::positive(conclusion));
@@ -698,13 +735,13 @@ impl TheoremProver {
 
     /// Set of support resolution strategy
     fn set_of_support_resolution(&mut self, support_start: usize) -> ProofResult {
-        let mut support_set: Vec<usize> = vec![support_start];
+        let mut support_set: VecDeque<usize> = vec![support_start];
         let mut used_set: BTreeSet<usize> = BTreeSet::new();
         let mut all_clauses = self.clauses.clone();
         let mut max_depth = 0;
 
         while !support_set.is_empty() && self.steps < self.timeout {
-            let current_id = support_set.remove(0);
+            let current_id = support_set.pop_front().unwrap();
             used_set.insert(current_id);
 
             let current = match all_clauses.iter().find(|c| c.id == current_id).cloned() {
@@ -1067,6 +1104,7 @@ impl InvariantVerifier {
     }
 
     /// Register an invariant
+    #[inline(always)]
     pub fn register_invariant(&mut self, invariant: KernelInvariant) {
         self.invariants.push(invariant);
     }
@@ -1087,6 +1125,7 @@ impl InvariantVerifier {
     }
 
     /// Register the memory safety invariant
+    #[inline]
     pub fn register_memory_safety_invariant(&mut self) {
         let invariant = KernelInvariant {
             name: String::from("memory_safety"),
@@ -1132,6 +1171,7 @@ impl InvariantVerifier {
     }
 
     /// Add a fact about current system state
+    #[inline(always)]
     pub fn add_state_fact(&mut self, predicate: &str, args: Vec<Term>) {
         self.prover.add_fact(predicate, args);
     }

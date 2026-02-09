@@ -33,11 +33,13 @@ impl TestSuite {
     }
 
     /// Add a test
+    #[inline(always)]
     pub fn add_test(&mut self, test: TestCase) {
         self.tests.push(test);
     }
 
     /// Add a simple test
+    #[inline(always)]
     pub fn test(
         &mut self,
         name: impl Into<String>,
@@ -47,12 +49,14 @@ impl TestSuite {
     }
 
     /// Set setup function
+    #[inline(always)]
     pub fn with_setup(mut self, setup: impl Fn() + Send + Sync + 'static) -> Self {
         self.setup = Some(Box::new(setup));
         self
     }
 
     /// Set teardown function
+    #[inline(always)]
     pub fn with_teardown(mut self, teardown: impl Fn() + Send + Sync + 'static) -> Self {
         self.teardown = Some(Box::new(teardown));
         self
@@ -116,6 +120,7 @@ impl TestSuite {
     }
 
     /// Get test count
+    #[inline(always)]
     pub fn test_count(&self) -> usize {
         self.tests.len()
     }
@@ -134,6 +139,7 @@ pub struct SuiteExecution {
 
 impl SuiteExecution {
     /// Count passed tests
+    #[inline]
     pub fn passed(&self) -> usize {
         self.tests
             .iter()
@@ -142,11 +148,13 @@ impl SuiteExecution {
     }
 
     /// Count failed tests
+    #[inline(always)]
     pub fn failed(&self) -> usize {
         self.tests.iter().filter(|t| t.result.is_failure()).count()
     }
 
     /// Count skipped tests
+    #[inline]
     pub fn skipped(&self) -> usize {
         self.tests
             .iter()
@@ -155,6 +163,7 @@ impl SuiteExecution {
     }
 
     /// All tests passed?
+    #[inline]
     pub fn all_passed(&self) -> bool {
         self.tests
             .iter()
@@ -162,6 +171,7 @@ impl SuiteExecution {
     }
 
     /// Get summary
+    #[inline]
     pub fn summary(&self) -> String {
         format!(
             "{}: {} passed, {} failed, {} skipped ({} cycles)",

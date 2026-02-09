@@ -106,6 +106,7 @@ impl ThreadDescriptor {
     }
 
     /// Active fraction
+    #[inline]
     pub fn active_fraction(&self) -> f64 {
         let total = self.active_ns + self.blocked_ns;
         if total == 0 {
@@ -115,6 +116,7 @@ impl ThreadDescriptor {
     }
 
     /// Context switch rate
+    #[inline]
     pub fn csw_rate(&self, elapsed_ns: u64) -> f64 {
         if elapsed_ns == 0 {
             return 0.0;
@@ -130,6 +132,7 @@ impl ThreadDescriptor {
 
 /// Thread pool descriptor
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ThreadPool {
     /// Pool id
     pub id: u64,
@@ -161,11 +164,13 @@ impl ThreadPool {
     }
 
     /// Pool size
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.workers.len()
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.workers.is_empty() {
             return 0.0;
@@ -174,11 +179,13 @@ impl ThreadPool {
     }
 
     /// Is oversized?
+    #[inline(always)]
     pub fn is_oversized(&self) -> bool {
         self.utilization() < 0.3 && self.workers.len() > 2
     }
 
     /// Is undersized?
+    #[inline(always)]
     pub fn is_undersized(&self) -> bool {
         self.utilization() > 0.9 && self.workers.len() < 128
     }
@@ -220,6 +227,7 @@ pub struct CommEdge {
 
 impl CommEdge {
     /// Average latency
+    #[inline]
     pub fn avg_latency_ns(&self) -> f64 {
         if self.count == 0 {
             return 0.0;
@@ -234,6 +242,7 @@ impl CommEdge {
 
 /// Thread analysis stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppThreadStats {
     /// Threads tracked
     pub threads_tracked: usize,
@@ -271,6 +280,7 @@ impl AppThreadAnalyzer {
     }
 
     /// Register thread
+    #[inline]
     pub fn register(&mut self, desc: ThreadDescriptor) {
         let pid = desc.pid;
         self.threads.entry(pid).or_insert_with(Vec::new).push(desc);
@@ -278,6 +288,7 @@ impl AppThreadAnalyzer {
     }
 
     /// Update thread state
+    #[inline]
     pub fn update_state(&mut self, tid: u64, state: AppThreadState) {
         for threads in self.threads.values_mut() {
             for t in threads.iter_mut() {
@@ -341,11 +352,13 @@ impl AppThreadAnalyzer {
     }
 
     /// Process thread count
+    #[inline(always)]
     pub fn thread_count(&self, pid: u64) -> usize {
         self.threads.get(&pid).map(|t| t.len()).unwrap_or(0)
     }
 
     /// Hottest threads (highest CPU)
+    #[inline]
     pub fn hottest_threads(&self, pid: u64, count: usize) -> Vec<(u64, f64)> {
         let mut threads: Vec<(u64, f64)> = self
             .threads
@@ -372,6 +385,7 @@ impl AppThreadAnalyzer {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppThreadStats {
         &self.stats
     }

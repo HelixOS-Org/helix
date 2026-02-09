@@ -192,6 +192,7 @@ impl BootstrapManager {
     }
 
     /// Mark current as unhealthy
+    #[inline]
     pub fn mark_unhealthy(&mut self) {
         if self.current < self.config.nodes.len() {
             self.config.nodes[self.current].healthy = false;
@@ -199,6 +200,7 @@ impl BootstrapManager {
     }
 
     /// Mark current as healthy
+    #[inline]
     pub fn mark_healthy(&mut self) {
         if self.current < self.config.nodes.len() {
             self.config.nodes[self.current].healthy = true;
@@ -206,11 +208,13 @@ impl BootstrapManager {
     }
 
     /// Should retry
+    #[inline(always)]
     pub fn should_retry(&self) -> bool {
         self.attempts < self.config.retry_count
     }
 
     /// Reset attempts
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.attempts = 0;
     }
@@ -275,11 +279,13 @@ impl KBucket {
     }
 
     /// Get entries
+    #[inline(always)]
     pub fn entries(&self) -> &[DHTEntry] {
         &self.entries
     }
 
     /// Is full
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.entries.len() >= self.k
     }
@@ -320,12 +326,14 @@ impl DHTRoutingTable {
     }
 
     /// Add node
+    #[inline(always)]
     pub fn add(&mut self, entry: DHTEntry) -> bool {
         let idx = self.bucket_index(entry.node_id);
         self.buckets[idx].add(entry)
     }
 
     /// Find closest nodes
+    #[inline]
     pub fn find_closest(&self, target: NodeId, count: usize) -> Vec<&DHTEntry> {
         let mut all_entries: Vec<_> = self.buckets.iter().flat_map(|b| b.entries()).collect();
 
@@ -336,6 +344,7 @@ impl DHTRoutingTable {
     }
 
     /// Get all entries
+    #[inline(always)]
     pub fn all_entries(&self) -> Vec<&DHTEntry> {
         self.buckets.iter().flat_map(|b| b.entries()).collect()
     }
@@ -404,6 +413,7 @@ impl Default for DiscoveryConfig {
 
 /// Discovery statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DiscoveryStats {
     /// Nodes discovered
     pub nodes_discovered: u64,
@@ -437,16 +447,19 @@ impl DiscoveryEngine {
     }
 
     /// Start discovery
+    #[inline(always)]
     pub fn start(&self) {
         self.running.store(true, Ordering::Release);
     }
 
     /// Stop discovery
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::Release);
     }
 
     /// Create announcement
+    #[inline]
     pub fn create_announcement(&self) -> DiscoveryAnnouncement {
         DiscoveryAnnouncement {
             node_info: self.local_info.clone(),
@@ -558,6 +571,7 @@ impl DiscoveryEngine {
     }
 
     /// Find closest nodes (DHT)
+    #[inline]
     pub fn find_closest(&self, target: NodeId, count: usize) -> Vec<NodeId> {
         self.dht
             .find_closest(target, count)
@@ -583,6 +597,7 @@ impl DiscoveryEngine {
     }
 
     /// Mark node as verified
+    #[inline]
     pub fn verify(&mut self, node_id: NodeId) {
         if let Some(node) = self.discovered.get_mut(&node_id) {
             node.verified = true;
@@ -591,26 +606,31 @@ impl DiscoveryEngine {
     }
 
     /// Get discovered nodes
+    #[inline(always)]
     pub fn discovered(&self) -> impl Iterator<Item = &DiscoveredNode> {
         self.discovered.values()
     }
 
     /// Get verified nodes
+    #[inline(always)]
     pub fn verified_nodes(&self) -> impl Iterator<Item = &DiscoveredNode> {
         self.discovered.values().filter(|n| n.verified)
     }
 
     /// Get node count
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.discovered.len()
     }
 
     /// Set bootstrap config
+    #[inline(always)]
     pub fn set_bootstrap(&mut self, config: BootstrapConfig) {
         self.bootstrap = BootstrapManager::new(config);
     }
 
     /// Enable method
+    #[inline]
     pub fn enable_method(&mut self, method: DiscoveryMethod) {
         if !self.enabled_methods.contains(&method) {
             self.enabled_methods.push(method);
@@ -618,6 +638,7 @@ impl DiscoveryEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &DiscoveryStats {
         &self.stats
     }

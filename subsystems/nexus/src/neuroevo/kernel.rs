@@ -70,6 +70,7 @@ pub struct KernelNeuroevoManager {
 
 /// Neuroevolution statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NeuroevoStats {
     /// Total genomes evaluated
     pub genomes_evaluated: u64,
@@ -150,12 +151,14 @@ impl KernelNeuroevoManager {
     }
 
     /// Get the best network for a target
+    #[inline(always)]
     pub fn get_best_network(&self, target: KernelEvolutionTarget) -> Option<NeatNetwork> {
         let population = self.populations.get(&target)?;
         population.get_best_network()
     }
 
     /// Register an evolved component
+    #[inline]
     pub fn register_component(&mut self, component: EvolvedComponent) {
         // Add to novelty search
         self.novelty_search
@@ -165,6 +168,7 @@ impl KernelNeuroevoManager {
     }
 
     /// Get summary of evolution progress
+    #[inline]
     pub fn get_summary(&self) -> NeuroevoSummary {
         NeuroevoSummary {
             total_generations: self.total_generations,

@@ -129,6 +129,7 @@ impl Default for SessionConfig {
 
 /// Session statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SessionStats {
     /// Total operations
     pub total_operations: u64,
@@ -188,6 +189,7 @@ impl Default for SessionManagerConfig {
 
 /// Manager statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SessionManagerStats {
     /// Total sessions created
     pub total_created: u64,
@@ -262,16 +264,19 @@ impl SessionManager {
     }
 
     /// Get a session
+    #[inline(always)]
     pub fn get_session(&self, session_id: u64) -> Option<&CognitiveSession> {
         self.sessions.get(&session_id)
     }
 
     /// Get mutable session
+    #[inline(always)]
     pub fn get_session_mut(&mut self, session_id: u64) -> Option<&mut CognitiveSession> {
         self.sessions.get_mut(&session_id)
     }
 
     /// Activate a session
+    #[inline]
     pub fn activate(&mut self, session_id: u64) -> bool {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             if matches!(session.state, SessionState::Initializing | SessionState::Paused | SessionState::Waiting) {
@@ -284,6 +289,7 @@ impl SessionManager {
     }
 
     /// Pause a session
+    #[inline]
     pub fn pause(&mut self, session_id: u64) -> bool {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             if session.state == SessionState::Active {
@@ -352,18 +358,21 @@ impl SessionManager {
     }
 
     /// Get session data
+    #[inline(always)]
     pub fn get_data(&self, session_id: u64, key: &str) -> Option<&SessionValue> {
         self.sessions.get(&session_id)
             .and_then(|s| s.data.get(key))
     }
 
     /// Remove session data
+    #[inline(always)]
     pub fn remove_data(&mut self, session_id: u64, key: &str) -> Option<SessionValue> {
         self.sessions.get_mut(&session_id)
             .and_then(|s| s.data.remove(key))
     }
 
     /// Record operation
+    #[inline]
     pub fn record_operation(&mut self, session_id: u64, success: bool) {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             session.stats.total_operations += 1;
@@ -377,6 +386,7 @@ impl SessionManager {
     }
 
     /// Get sessions by owner
+    #[inline]
     pub fn get_sessions_by_owner(&self, owner: DomainId) -> Vec<&CognitiveSession> {
         self.sessions_by_owner.get(&owner)
             .map(|ids| {
@@ -388,6 +398,7 @@ impl SessionManager {
     }
 
     /// Get sessions by state
+    #[inline]
     pub fn get_sessions_by_state(&self, state: SessionState) -> Vec<&CognitiveSession> {
         self.sessions.values()
             .filter(|s| s.state == state)
@@ -452,16 +463,19 @@ impl SessionManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SessionManagerStats {
         &self.stats
     }
 
     /// Get all sessions
+    #[inline(always)]
     pub fn all_sessions(&self) -> Vec<&CognitiveSession> {
         self.sessions.values().collect()
     }
 
     /// Get session count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.sessions.len()
     }
@@ -499,36 +513,42 @@ impl SessionBuilder {
     }
 
     /// Set session type
+    #[inline(always)]
     pub fn session_type(mut self, t: SessionType) -> Self {
         self.session_type = t;
         self
     }
 
     /// Set timeout
+    #[inline(always)]
     pub fn timeout_ns(mut self, ns: u64) -> Self {
         self.config.timeout_ns = ns;
         self
     }
 
     /// Set idle timeout
+    #[inline(always)]
     pub fn idle_timeout_ns(mut self, ns: u64) -> Self {
         self.config.idle_timeout_ns = ns;
         self
     }
 
     /// Set persistent
+    #[inline(always)]
     pub fn persistent(mut self, p: bool) -> Self {
         self.config.persistent = p;
         self
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn priority(mut self, p: u32) -> Self {
         self.config.priority = p;
         self
     }
 
     /// Add initial data
+    #[inline(always)]
     pub fn with_data(mut self, key: &str, value: SessionValue) -> Self {
         self.initial_data.insert(key.into(), value);
         self

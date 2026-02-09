@@ -68,6 +68,7 @@ pub enum FreqAction {
 
 /// Per-CPU frequency state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuFreqState {
     /// CPU ID
     pub cpu_id: u32,
@@ -118,6 +119,7 @@ impl CpuFreqState {
     }
 
     /// Update utilization
+    #[inline]
     pub fn update_utilization(&mut self, util: f64) {
         self.utilization = util.max(0.0).min(1.0);
         self.util_ema = 0.8 * self.util_ema + 0.2 * self.utilization;
@@ -185,6 +187,7 @@ impl CpuFreqState {
     }
 
     /// Estimated power (simplified cubic model: P ~ V^2 * f ~ f^3)
+    #[inline]
     pub fn estimated_power_mw(&self) -> u64 {
         let freq_ratio = self.current_mhz as f64 / self.max_mhz as f64;
         let base_power = 15000.0; // 15W TDP per core at max
@@ -232,27 +235,32 @@ impl PowerDomain {
     }
 
     /// Set power cap
+    #[inline(always)]
     pub fn set_power_cap(&mut self, cap_mw: u64) {
         self.power_cap_mw = cap_mw;
     }
 
     /// Update power
+    #[inline(always)]
     pub fn update_power(&mut self, current_mw: u64) {
         self.power_ema_mw = 0.7 * self.power_ema_mw + 0.3 * current_mw as f64;
     }
 
     /// Check thermal
+    #[inline(always)]
     pub fn check_thermal(&mut self, temp_mc: u32) {
         self.temperature_mc = temp_mc;
         self.thermal_throttle = temp_mc > self.thermal_limit_mc;
     }
 
     /// Is over budget?
+    #[inline(always)]
     pub fn is_over_budget(&self) -> bool {
         self.power_cap_mw > 0 && self.power_ema_mw > self.power_cap_mw as f64
     }
 
     /// Budget headroom (mW, negative = over)
+    #[inline]
     pub fn headroom_mw(&self) -> f64 {
         if self.power_cap_mw == 0 {
             return f64::INFINITY;
@@ -267,6 +275,7 @@ impl PowerDomain {
 
 /// Power governor stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticPowerGovernorStats {
     /// Active CPUs
     pub active_cpus: usize,
@@ -307,6 +316,7 @@ impl HolisticPowerGovernor {
     }
 
     /// Register CPU
+    #[inline]
     pub fn register_cpu(&mut self, cpu_id: u32, min_mhz: u32, max_mhz: u32, domain_id: u32) {
         self.cpus.insert(cpu_id, CpuFreqState::new(cpu_id, min_mhz, max_mhz));
         let domain = self.domains.entry(domain_id).or_insert_with(|| PowerDomain::new(domain_id));
@@ -315,12 +325,14 @@ impl HolisticPowerGovernor {
     }
 
     /// Set policy
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: PowerPolicy) {
         self.policy = policy;
         self.update_stats();
     }
 
     /// Update CPU utilization
+    #[inline]
     pub fn update_cpu_util(&mut self, cpu_id: u32, util: f64) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.update_utilization(util);
@@ -387,6 +399,7 @@ impl HolisticPowerGovernor {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticPowerGovernorStats {
         &self.stats
     }

@@ -2,6 +2,7 @@
 //!
 //! I/O request handling and queue management.
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -9,6 +10,7 @@ use super::{BlockDeviceId, IoRequestType, IoScheduler};
 
 /// Queue depth
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct QueueDepth {
     /// Current queue depth
     pub current: u32,
@@ -23,6 +25,7 @@ impl QueueDepth {
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f32 {
         if self.max > 0 {
             self.current as f32 / self.max as f32
@@ -79,21 +82,25 @@ impl IoRequest {
     }
 
     /// Complete request
+    #[inline(always)]
     pub fn complete(&mut self, end_time: u64) {
         self.end_time = Some(end_time);
     }
 
     /// Is completed
+    #[inline(always)]
     pub fn is_completed(&self) -> bool {
         self.end_time.is_some()
     }
 
     /// Latency (ns)
+    #[inline(always)]
     pub fn latency(&self) -> Option<u64> {
         self.end_time.map(|e| e.saturating_sub(self.start_time))
     }
 
     /// Size in bytes
+    #[inline(always)]
     pub fn size_bytes(&self) -> u64 {
         self.nr_sectors as u64 * 512
     }
@@ -101,6 +108,7 @@ impl IoRequest {
 
 /// Request queue
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct RequestQueue {
     /// Device
     pub device: BlockDeviceId,
@@ -111,7 +119,7 @@ pub struct RequestQueue {
     /// Pending requests
     pending: Vec<IoRequest>,
     /// Completed requests (for stats)
-    completed: Vec<IoRequest>,
+    completed: VecDeque<IoRequest>,
     /// Max completed to keep
     max_completed: usize,
     /// Total read bytes
@@ -138,7 +146,7 @@ impl RequestQueue {
             depth: QueueDepth::new(0, max_depth),
             scheduler: IoScheduler::None,
             pending: Vec::new(),
-            completed: Vec::new(),
+            completed: VecDeque::new(),
             max_completed: 1000,
             read_bytes: AtomicU64::new(0),
             write_bytes: AtomicU64::new(0),
@@ -151,6 +159,7 @@ impl RequestQueue {
     }
 
     /// Submit request
+    #[inline(always)]
     pub fn submit(&mut self, request: IoRequest) {
         self.depth.current += 1;
         self.pending.push(request);
@@ -186,9 +195,9 @@ impl RequestQueue {
             }
 
             if self.completed.len() >= self.max_completed {
-                self.completed.remove(0);
+                self.completed.pop_front();
             }
-            self.completed.push(request.clone());
+            self.completed.push_back(request.clone());
 
             Some(request)
         } else {
@@ -197,11 +206,13 @@ impl RequestQueue {
     }
 
     /// Get pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }
 
     /// Get read stats
+    #[inline]
     pub fn read_stats(&self) -> (u64, u64, u64) {
         (
             self.read_requests.load(Ordering::Relaxed),
@@ -211,6 +222,7 @@ impl RequestQueue {
     }
 
     /// Get write stats
+    #[inline]
     pub fn write_stats(&self) -> (u64, u64, u64) {
         (
             self.write_requests.load(Ordering::Relaxed),
@@ -220,6 +232,7 @@ impl RequestQueue {
     }
 
     /// Average read latency (ns)
+    #[inline]
     pub fn avg_read_latency(&self) -> u64 {
         let reqs = self.read_requests.load(Ordering::Relaxed);
         if reqs > 0 {
@@ -230,6 +243,7 @@ impl RequestQueue {
     }
 
     /// Average write latency (ns)
+    #[inline]
     pub fn avg_write_latency(&self) -> u64 {
         let reqs = self.write_requests.load(Ordering::Relaxed);
         if reqs > 0 {
@@ -240,6 +254,7 @@ impl RequestQueue {
     }
 
     /// Merge rate
+    #[inline]
     pub fn merge_rate(&self) -> f32 {
         let total = self.read_requests.load(Ordering::Relaxed)
             + self.write_requests.load(Ordering::Relaxed);

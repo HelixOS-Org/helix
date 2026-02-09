@@ -28,16 +28,19 @@ impl ResourceForecaster {
     }
 
     /// Set threshold for a resource
+    #[inline(always)]
     pub fn set_threshold(&mut self, resource: &str, threshold: f64) {
         self.thresholds.insert(resource.into(), threshold);
     }
 
     /// Set capacity for a resource
+    #[inline(always)]
     pub fn set_capacity(&mut self, resource: &str, capacity: f64) {
         self.capacities.insert(resource.into(), capacity);
     }
 
     /// Record resource usage
+    #[inline(always)]
     pub fn record(&mut self, resource: &str, usage: f64) {
         self.forecaster.record(resource, usage);
     }
@@ -89,6 +92,7 @@ impl ResourceForecaster {
     }
 
     /// Get all resource forecasts
+    #[inline]
     pub fn forecast_all(&self, steps: usize) -> Vec<ResourceForecast> {
         self.forecaster
             .metrics()
@@ -98,6 +102,7 @@ impl ResourceForecaster {
     }
 
     /// Get critical forecasts
+    #[inline]
     pub fn critical_forecasts(&self, steps: usize) -> Vec<ResourceForecast> {
         self.forecast_all(steps)
             .into_iter()

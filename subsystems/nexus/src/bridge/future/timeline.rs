@@ -12,7 +12,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -73,20 +75,20 @@ impl StateContext {
 /// Transition counts from a state context
 #[derive(Debug, Clone)]
 struct TransitionRow {
-    counts: BTreeMap<u32, u64>,
+    counts: ArrayMap<u64, 32>,
     total: u64,
 }
 
 impl TransitionRow {
     fn new() -> Self {
         Self {
-            counts: BTreeMap::new(),
+            counts: ArrayMap::new(0),
             total: 0,
         }
     }
 
     fn record(&mut self, next_syscall: u32) {
-        *self.counts.entry(next_syscall).or_insert(0) += 1;
+        self.counts.add(next_syscall as usize, 1);
         self.total += 1;
     }
 
@@ -94,7 +96,7 @@ impl TransitionRow {
         if self.total == 0 {
             return 0.0;
         }
-        self.counts.get(&syscall).copied().unwrap_or(0) as f32 / self.total as f32
+        self.counts.try_get(syscall as usize).copied().unwrap_or(0) as f32 / self.total as f32
     }
 
     fn most_likely(&self) -> Option<(u32, f32)> {
@@ -152,7 +154,7 @@ fn log2_approx(x: f32) -> f32 {
 #[derive(Debug, Clone)]
 struct ProcessTimeline {
     process_id: u64,
-    recent_syscalls: Vec<u32>,
+    recent_syscalls: VecDeque<u32>,
     transitions: BTreeMap<u64, TransitionRow>,
     total_observations: u64,
     entropy_ema: f32,
@@ -162,13 +164,14 @@ impl ProcessTimeline {
     fn new(process_id: u64) -> Self {
         Self {
             process_id,
-            recent_syscalls: Vec::new(),
+            recent_syscalls: VecDeque::new(),
             transitions: BTreeMap::new(),
             total_observations: 0,
             entropy_ema: 1.0,
         }
     }
 
+    #[inline]
     fn observe(&mut self, syscall_nr: u32) {
         self.total_observations += 1;
 
@@ -187,9 +190,9 @@ impl ProcessTimeline {
             self.entropy_ema = EMA_ALPHA * ent + (1.0 - EMA_ALPHA) * self.entropy_ema;
         }
 
-        self.recent_syscalls.push(syscall_nr);
+        self.recent_syscalls.push_back(syscall_nr);
         if self.recent_syscalls.len() > MARKOV_MEMORY {
-            self.recent_syscalls.remove(0);
+            self.recent_syscalls.pop_front();
         }
 
         // Limit transition table size
@@ -253,7 +256,7 @@ impl ProcessTimeline {
                     result.push(chosen);
                     current_ctx.push(chosen.0);
                     if current_ctx.len() > MARKOV_MEMORY {
-                        current_ctx.remove(0);
+                        current_ctx.pop_front();
                     }
                 },
                 None => break,
@@ -282,6 +285,7 @@ impl ProcessTimeline {
 
 /// Aggregate timeline projection statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct TimelineStats {
     pub tracked_processes: u32,
     pub total_observations: u64,
@@ -300,6 +304,7 @@ pub struct TimelineStats {
 /// Projects per-process syscall sequences into the future, identifies
 /// branch points, and measures timeline entropy.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeTimeline {
     timelines: BTreeMap<u64, ProcessTimeline>,
     tick: u64,
@@ -345,6 +350,7 @@ impl BridgeTimeline {
     }
 
     /// Project the next N syscalls for a process
+    #[inline]
     pub fn project_sequence(&mut self, process_id: u64, n: usize) -> Vec<(u32, f32)> {
         self.total_projections += 1;
         let rng = &mut self.rng_state;
@@ -383,6 +389,7 @@ impl BridgeTimeline {
     }
 
     /// Get branching points for a process timeline
+    #[inline]
     pub fn timeline_branch(&self, process_id: u64) -> Vec<(u64, f32)> {
         self.timelines
             .get(&process_id)
@@ -423,7 +430,7 @@ impl BridgeTimeline {
                         alt_seq.push(s);
                         current.push(s);
                         if current.len() > MARKOV_MEMORY {
-                            current.remove(0);
+                            current.pop_front();
                         }
                     } else {
                         break;
@@ -443,6 +450,7 @@ impl BridgeTimeline {
     }
 
     /// Compute timeline entropy for a process
+    #[inline]
     pub fn timeline_entropy(&self, process_id: u64) -> f32 {
         self.timelines
             .get(&process_id)

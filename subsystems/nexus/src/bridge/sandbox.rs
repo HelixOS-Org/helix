@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -121,11 +122,13 @@ impl SandboxRule {
         }
     }
 
+    #[inline(always)]
     pub fn with_arg_filter(mut self, filter: ArgFilter) -> Self {
         self.arg_filters.push(filter);
         self
     }
 
+    #[inline(always)]
     pub fn with_priority(mut self, priority: u32) -> Self {
         self.priority = priority;
         self
@@ -200,12 +203,14 @@ impl SandboxProfile {
     }
 
     /// Add rule (maintains priority ordering)
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: SandboxRule) {
         let pos = self.rules.partition_point(|r| r.priority > rule.priority);
         self.rules.insert(pos, rule);
     }
 
     /// Evaluate syscall
+    #[inline]
     pub fn evaluate(&mut self, syscall_nr: u32, args: &[u64]) -> FilterAction {
         for rule in &mut self.rules {
             if rule.matches(syscall_nr, args) {
@@ -217,6 +222,7 @@ impl SandboxProfile {
     }
 
     /// Rule count
+    #[inline(always)]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }
@@ -295,6 +301,7 @@ impl SandboxInstance {
     }
 
     /// Deny rate
+    #[inline]
     pub fn deny_rate(&self) -> f64 {
         let total = self.allows + self.denies;
         if total == 0 {
@@ -310,6 +317,7 @@ impl SandboxInstance {
 
 /// Sandbox manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SandboxManagerStats {
     /// Active sandboxes
     pub active_sandboxes: usize,
@@ -322,13 +330,14 @@ pub struct SandboxManagerStats {
 }
 
 /// Bridge sandbox manager
+#[repr(align(64))]
 pub struct BridgeSandboxManager {
     /// Active instances (pid → instance)
     instances: BTreeMap<u64, SandboxInstance>,
     /// Profile templates
     profiles: BTreeMap<u64, SandboxProfile>,
     /// Violation log
-    violation_log: Vec<SandboxViolation>,
+    violation_log: VecDeque<SandboxViolation>,
     /// Max log size
     max_log: usize,
     /// Stats
@@ -340,18 +349,20 @@ impl BridgeSandboxManager {
         Self {
             instances: BTreeMap::new(),
             profiles: BTreeMap::new(),
-            violation_log: Vec::new(),
+            violation_log: VecDeque::new(),
             max_log: 1000,
             stats: SandboxManagerStats::default(),
         }
     }
 
     /// Register profile template
+    #[inline(always)]
     pub fn register_profile(&mut self, profile: SandboxProfile) {
         self.profiles.insert(profile.id, profile);
     }
 
     /// Attach sandbox to process
+    #[inline]
     pub fn attach(&mut self, pid: u64, profile: SandboxProfile, now: u64) {
         self.instances
             .insert(pid, SandboxInstance::new(pid, profile, now));
@@ -359,6 +370,7 @@ impl BridgeSandboxManager {
     }
 
     /// Detach sandbox
+    #[inline(always)]
     pub fn detach(&mut self, pid: u64) {
         self.instances.remove(&pid);
         self.stats.active_sandboxes = self.instances.len();
@@ -389,9 +401,9 @@ impl BridgeSandboxManager {
                     rule_id: 0,
                     timestamp: now,
                 };
-                self.violation_log.push(violation);
+                self.violation_log.push_back(violation);
                 if self.violation_log.len() > self.max_log {
-                    self.violation_log.remove(0);
+                    self.violation_log.pop_front();
                 }
             },
             _ => {},
@@ -406,11 +418,13 @@ impl BridgeSandboxManager {
     }
 
     /// Get violations
+    #[inline(always)]
     pub fn violations(&self) -> &[SandboxViolation] {
         &self.violation_log
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &SandboxManagerStats {
         &self.stats
     }

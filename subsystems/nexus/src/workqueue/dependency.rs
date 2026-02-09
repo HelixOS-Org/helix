@@ -33,6 +33,7 @@ pub struct WorkDependency {
 }
 
 /// Work dependency tracker with cycle detection
+#[repr(align(64))]
 pub struct WorkDependencyTracker {
     /// All dependencies
     dependencies: Vec<WorkDependency>,
@@ -154,6 +155,7 @@ impl WorkDependencyTracker {
     }
 
     /// Check if work is ready to run
+    #[inline(always)]
     pub fn is_ready(&self, work_id: WorkId) -> bool {
         self.blocked_works.get(&work_id).copied().unwrap_or(0) == 0
     }
@@ -191,11 +193,13 @@ impl WorkDependencyTracker {
     }
 
     /// Get count of cycles detected
+    #[inline(always)]
     pub fn cycles_detected(&self) -> u64 {
         self.cycles_detected
     }
 
     /// Get count of blocked works
+    #[inline(always)]
     pub fn blocked_count(&self) -> usize {
         self.blocked_works.values().filter(|&&c| c > 0).count()
     }

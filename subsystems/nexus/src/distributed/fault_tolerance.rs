@@ -28,6 +28,7 @@ pub struct FaultId(pub u64);
 static FAULT_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl FaultId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(FAULT_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -170,16 +171,19 @@ impl CircuitBreaker {
     }
 
     /// Tick
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.current_tick.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get state
+    #[inline(always)]
     pub fn state(&self) -> CircuitState {
         self.state
     }
 
     /// Reset
+    #[inline]
     pub fn reset(&mut self) {
         self.state = CircuitState::Closed;
         self.failure_count.store(0, Ordering::Relaxed);
@@ -216,6 +220,7 @@ pub enum BackoffStrategy {
 }
 
 impl RetryPolicy {
+    #[inline]
     pub fn constant(max_retries: u32, delay: u64) -> Self {
         Self {
             max_retries,
@@ -226,6 +231,7 @@ impl RetryPolicy {
         }
     }
 
+    #[inline]
     pub fn exponential(max_retries: u32, base_delay: u64, max_delay: u64) -> Self {
         Self {
             max_retries,
@@ -263,6 +269,7 @@ impl RetryPolicy {
     }
 
     /// Should retry?
+    #[inline(always)]
     pub fn should_retry(&self, attempt: u32) -> bool {
         attempt < self.max_retries
     }
@@ -501,16 +508,19 @@ impl FailoverManager {
     }
 
     /// Tick
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.tick.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get primary
+    #[inline(always)]
     pub fn primary(&self) -> Option<NodeId> {
         self.primary
     }
 
     /// Get backups
+    #[inline(always)]
     pub fn backups(&self) -> &[NodeId] {
         &self.backups
     }
@@ -539,6 +549,7 @@ pub struct CheckpointId(pub u64);
 static CHECKPOINT_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl CheckpointId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(CHECKPOINT_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -590,6 +601,7 @@ impl CheckpointManager {
     }
 
     /// Should checkpoint?
+    #[inline]
     pub fn should_checkpoint(&self) -> bool {
         let tick = self.tick.load(Ordering::Relaxed);
         let last = self.last_checkpoint_tick.load(Ordering::Relaxed);
@@ -628,16 +640,19 @@ impl CheckpointManager {
     }
 
     /// Restore from checkpoint
+    #[inline(always)]
     pub fn restore(&self, id: CheckpointId) -> Option<&Checkpoint> {
         self.checkpoints.get(&id).filter(|c| c.valid)
     }
 
     /// Restore latest
+    #[inline(always)]
     pub fn restore_latest(&self) -> Option<&Checkpoint> {
         self.latest.and_then(|id| self.restore(id))
     }
 
     /// Invalidate checkpoint
+    #[inline]
     pub fn invalidate(&mut self, id: CheckpointId) {
         if let Some(checkpoint) = self.checkpoints.get_mut(&id) {
             checkpoint.valid = false;
@@ -645,16 +660,19 @@ impl CheckpointManager {
     }
 
     /// Tick
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.tick.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get checkpoint
+    #[inline(always)]
     pub fn get(&self, id: CheckpointId) -> Option<&Checkpoint> {
         self.checkpoints.get(&id)
     }
 
     /// List checkpoints
+    #[inline(always)]
     pub fn list(&self) -> Vec<CheckpointId> {
         self.checkpoints.keys().copied().collect()
     }
@@ -699,6 +717,7 @@ impl Watchdog {
     }
 
     /// Kick the watchdog
+    #[inline]
     pub fn kick(&self) {
         let tick = self.tick.load(Ordering::Relaxed);
         self.last_kick.store(tick, Ordering::Relaxed);
@@ -706,6 +725,7 @@ impl Watchdog {
     }
 
     /// Check watchdog
+    #[inline]
     pub fn check(&self) -> Option<WatchdogAction> {
         let tick = self.tick.load(Ordering::Relaxed);
         let last = self.last_kick.load(Ordering::Relaxed);
@@ -719,11 +739,13 @@ impl Watchdog {
     }
 
     /// Tick
+    #[inline(always)]
     pub fn tick(&self) {
         self.tick.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Is triggered?
+    #[inline(always)]
     pub fn is_triggered(&self) -> bool {
         self.triggered.load(Ordering::Relaxed)
     }

@@ -10,11 +10,13 @@ pub struct HookId(pub u64);
 
 impl HookId {
     /// Create new hook ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -26,11 +28,13 @@ pub struct PolicyId(pub u64);
 
 impl PolicyId {
     /// Create new policy ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -42,11 +46,13 @@ pub struct Pid(pub u32);
 
 impl Pid {
     /// Create new PID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -98,6 +104,7 @@ impl LsmType {
     }
 
     /// Is major LSM
+    #[inline]
     pub fn is_major(&self) -> bool {
         matches!(
             self,
@@ -106,6 +113,7 @@ impl LsmType {
     }
 
     /// Is stacking supported
+    #[inline(always)]
     pub fn supports_stacking(&self) -> bool {
         !self.is_major() || matches!(self, Self::Bpf | Self::Landlock)
     }
@@ -124,6 +132,7 @@ pub enum LsmState {
 
 impl LsmState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Disabled => "disabled",
@@ -135,6 +144,7 @@ impl LsmState {
 
 /// Security context
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[repr(align(64))]
 pub struct SecurityContext {
     /// User
     pub user: String,
@@ -177,6 +187,7 @@ impl SecurityContext {
     }
 
     /// Format to string
+    #[inline]
     pub fn to_string(&self) -> String {
         if let Some(ref level) = self.level {
             alloc::format!("{}:{}:{}:{}", self.user, self.role, self.type_, level)
@@ -186,6 +197,7 @@ impl SecurityContext {
     }
 
     /// Is unconfined
+    #[inline(always)]
     pub fn is_unconfined(&self) -> bool {
         self.type_.contains("unconfined") || self.role.contains("unconfined")
     }
@@ -206,6 +218,7 @@ pub enum AppArmorMode {
 
 impl AppArmorMode {
     /// Get mode name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Enforce => "enforce",
@@ -241,6 +254,7 @@ impl AppArmorProfile {
     }
 
     /// Is unconfined
+    #[inline(always)]
     pub fn is_unconfined(&self) -> bool {
         self.name == "unconfined" || matches!(self.mode, AppArmorMode::Unconfined)
     }

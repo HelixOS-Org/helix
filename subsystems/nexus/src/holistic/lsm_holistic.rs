@@ -32,6 +32,7 @@ impl LsmFinding {
 
 /// LSM holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LsmHolisticStats {
     pub total_analyses: u64,
     pub conflicts_detected: u64,
@@ -50,6 +51,7 @@ impl HolisticLsm {
         Self { stats: LsmHolisticStats { total_analyses: 0, conflicts_detected: 0, avg_agreement: 1.0, max_stack_depth: 0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &LsmFinding) {
         self.stats.total_analyses += 1;
         self.stats.conflicts_detected += finding.conflict_count as u64;

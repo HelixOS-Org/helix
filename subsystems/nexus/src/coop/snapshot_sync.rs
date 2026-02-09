@@ -118,14 +118,17 @@ impl ConsistentSnapshot {
         }
     }
 
+    #[inline(always)]
     pub fn add_component(&mut self, snap: ComponentSnapshot) {
         self.component_snapshots.insert(snap.component_id, snap);
     }
 
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.state == SnapshotStateCoop::Complete
     }
 
+    #[inline]
     pub fn finalize(&mut self, now_ns: u64) {
         self.completed_ns = now_ns;
         self.state = SnapshotStateCoop::Complete;
@@ -138,10 +141,12 @@ impl ConsistentSnapshot {
         self.global_hash = hash;
     }
 
+    #[inline(always)]
     pub fn total_size(&self) -> usize {
         self.component_snapshots.values().map(|cs| cs.state_size).sum()
     }
 
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.completed_ns.saturating_sub(self.initiated_ns)
     }
@@ -200,12 +205,14 @@ impl CoopSnapshotSync {
         }
     }
 
+    #[inline]
     pub fn register_component(&mut self, component_id: u64) {
         if !self.components.contains(&component_id) {
             self.components.push(component_id);
         }
     }
 
+    #[inline(always)]
     pub fn register_channel(&mut self, from: u64, to: u64) {
         self.channels.push(ChannelTracker::new(from, to));
     }
@@ -232,6 +239,7 @@ impl CoopSnapshotSync {
     }
 
     /// Record a component's local snapshot
+    #[inline]
     pub fn record_component(&mut self, snapshot_id: u64, comp_snap: ComponentSnapshot) {
         if let Some(snap) = self.snapshots.get_mut(&snapshot_id) {
             snap.add_component(comp_snap);
@@ -242,6 +250,7 @@ impl CoopSnapshotSync {
     }
 
     /// Record a channel message during snapshot
+    #[inline]
     pub fn record_channel_message(&mut self, from: u64, to: u64, msg: RecordedMessage) {
         for ch in &mut self.channels {
             if ch.from == from && ch.to == to && ch.recording == ChannelRecording::Recording {
@@ -318,11 +327,14 @@ impl CoopSnapshotSync {
         }
     }
 
+    #[inline(always)]
     pub fn snapshot(&self, id: u64) -> Option<&ConsistentSnapshot> {
         self.snapshots.get(&id)
     }
 
+    #[inline(always)]
     pub fn latest_id(&self) -> Option<u64> { self.latest_complete }
 
+    #[inline(always)]
     pub fn stored_count(&self) -> usize { self.snapshots.len() }
 }

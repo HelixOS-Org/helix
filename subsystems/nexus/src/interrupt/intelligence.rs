@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -35,7 +36,7 @@ pub struct InterruptIntelligence {
     /// Total interrupts
     total_interrupts: AtomicU64,
     /// Recent records
-    recent: Vec<InterruptRecord>,
+    recent: VecDeque<InterruptRecord>,
     /// Max recent
     max_recent: usize,
 }
@@ -50,7 +51,7 @@ impl InterruptIntelligence {
             affinity: AffinityOptimizer::default(),
             coalescing: CoalescingOptimizer::default(),
             total_interrupts: AtomicU64::new(0),
-            recent: Vec::new(),
+            recent: VecDeque::new(),
             max_recent: 1000,
         }
     }
@@ -70,40 +71,46 @@ impl InterruptIntelligence {
         let storm_event = self.storm.record(record.irq, record.cpu);
 
         // Store recent
-        self.recent.push(record);
+        self.recent.push_back(record);
         if self.recent.len() > self.max_recent {
-            self.recent.remove(0);
+            self.recent.pop_front();
         }
 
         storm_event
     }
 
     /// Get IRQ stats
+    #[inline(always)]
     pub fn get_stats(&self, irq: Irq) -> Option<&IrqStats> {
         self.stats.get(&irq)
     }
 
     /// Get all stats
+    #[inline(always)]
     pub fn all_stats(&self) -> impl Iterator<Item = (&Irq, &IrqStats)> {
         self.stats.iter()
     }
 
     /// Get pattern for IRQ
+    #[inline(always)]
     pub fn get_pattern(&self, irq: Irq) -> Option<InterruptPattern> {
         self.pattern.get_pattern(irq)
     }
 
     /// Predict next interrupt
+    #[inline(always)]
     pub fn predict_next(&self, irq: Irq) -> Option<u64> {
         self.pattern.predict_next(irq)
     }
 
     /// Is storm active?
+    #[inline(always)]
     pub fn is_storm(&self, irq: Irq) -> bool {
         self.storm.is_storm_active(irq)
     }
 
     /// Optimize affinity
+    #[inline]
     pub fn optimize_affinity(&mut self, irq: Irq) -> Option<Vec<CpuId>> {
         if let Some(stats) = self.stats.get(&irq).cloned() {
             self.affinity.update_irq_stats(irq, stats);
@@ -112,41 +119,49 @@ impl InterruptIntelligence {
     }
 
     /// Get affinity optimizer
+    #[inline(always)]
     pub fn affinity(&self) -> &AffinityOptimizer {
         &self.affinity
     }
 
     /// Get mutable affinity optimizer
+    #[inline(always)]
     pub fn affinity_mut(&mut self) -> &mut AffinityOptimizer {
         &mut self.affinity
     }
 
     /// Get coalescing optimizer
+    #[inline(always)]
     pub fn coalescing(&self) -> &CoalescingOptimizer {
         &self.coalescing
     }
 
     /// Get mutable coalescing optimizer
+    #[inline(always)]
     pub fn coalescing_mut(&mut self) -> &mut CoalescingOptimizer {
         &mut self.coalescing
     }
 
     /// Get storm detector
+    #[inline(always)]
     pub fn storm(&self) -> &StormDetector {
         &self.storm
     }
 
     /// Get total interrupts
+    #[inline(always)]
     pub fn total_interrupts(&self) -> u64 {
         self.total_interrupts.load(Ordering::Relaxed)
     }
 
     /// Get recent records
+    #[inline(always)]
     pub fn recent(&self) -> &[InterruptRecord] {
         &self.recent
     }
 
     /// Get pattern detector
+    #[inline(always)]
     pub fn pattern_detector(&self) -> &InterruptPatternDetector {
         &self.pattern
     }

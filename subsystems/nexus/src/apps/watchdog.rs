@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -114,6 +115,7 @@ pub struct HealthCheckConfig {
 }
 
 impl HealthCheckConfig {
+    #[inline]
     pub fn heartbeat(interval_ns: u64, timeout_ns: u64) -> Self {
         Self {
             check_type: HealthCheckType::Heartbeat,
@@ -126,6 +128,7 @@ impl HealthCheckConfig {
         }
     }
 
+    #[inline]
     pub fn cpu_usage(interval_ns: u64, warn_pct: f64, crit_pct: f64) -> Self {
         Self {
             check_type: HealthCheckType::CpuUsage,
@@ -138,6 +141,7 @@ impl HealthCheckConfig {
         }
     }
 
+    #[inline]
     pub fn memory_usage(interval_ns: u64, warn_bytes: u64, crit_bytes: u64) -> Self {
         Self {
             check_type: HealthCheckType::MemoryUsage,
@@ -175,7 +179,7 @@ pub struct ProcessWatchdog {
     /// Health score (0.0-1.0)
     pub health_score: f64,
     /// Recent results
-    pub recent_results: Vec<HealthCheckResult>,
+    pub recent_results: VecDeque<HealthCheckResult>,
     /// Max results
     max_results: usize,
     /// Created at
@@ -193,24 +197,27 @@ impl ProcessWatchdog {
             failed_checks: 0,
             recovery_attempts: 0,
             health_score: 1.0,
-            recent_results: Vec::new(),
+            recent_results: VecDeque::new(),
             max_results: 32,
             created_at: now,
         }
     }
 
     /// Add health check
+    #[inline(always)]
     pub fn add_check(&mut self, config: HealthCheckConfig) {
         self.checks.insert(config.check_type as u8, config);
     }
 
     /// Record heartbeat
+    #[inline(always)]
     pub fn heartbeat(&mut self, now: u64) {
         self.last_heartbeat = now;
         self.heartbeat_count += 1;
     }
 
     /// Check heartbeat timeout
+    #[inline]
     pub fn check_heartbeat(&self, now: u64) -> Option<u64> {
         let elapsed = now.saturating_sub(self.last_heartbeat);
         if let Some(config) = self.checks.get(&(HealthCheckType::Heartbeat as u8)) {
@@ -222,13 +229,14 @@ impl ProcessWatchdog {
     }
 
     /// Record check result
+    #[inline]
     pub fn record_result(&mut self, result: HealthCheckResult) {
         if !result.passed {
             self.failed_checks += 1;
         }
-        self.recent_results.push(result);
+        self.recent_results.push_back(result);
         if self.recent_results.len() > self.max_results {
-            self.recent_results.remove(0);
+            self.recent_results.pop_front();
         }
         self.recalculate_health();
     }
@@ -295,6 +303,7 @@ impl ProcessWatchdog {
     }
 
     /// Uptime (ns)
+    #[inline(always)]
     pub fn uptime(&self, now: u64) -> u64 {
         now.saturating_sub(self.created_at)
     }
@@ -306,6 +315,7 @@ impl ProcessWatchdog {
 
 /// Watchdog manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppWatchdogStats {
     /// Tracked processes
     pub process_count: usize,
@@ -340,12 +350,14 @@ impl AppWatchdogManager {
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, now: u64) {
         self.watchdogs.insert(pid, ProcessWatchdog::new(pid, now));
         self.stats.process_count = self.watchdogs.len();
     }
 
     /// Add health check
+    #[inline]
     pub fn add_check(&mut self, pid: u64, config: HealthCheckConfig) {
         if let Some(wd) = self.watchdogs.get_mut(&pid) {
             wd.add_check(config);
@@ -353,6 +365,7 @@ impl AppWatchdogManager {
     }
 
     /// Record heartbeat
+    #[inline]
     pub fn heartbeat(&mut self, pid: u64, now: u64) {
         if let Some(wd) = self.watchdogs.get_mut(&pid) {
             wd.heartbeat(now);
@@ -361,6 +374,7 @@ impl AppWatchdogManager {
     }
 
     /// Record check result
+    #[inline]
     pub fn record_result(&mut self, pid: u64, result: HealthCheckResult) {
         if let Some(wd) = self.watchdogs.get_mut(&pid) {
             if !result.passed {
@@ -411,17 +425,20 @@ impl AppWatchdogManager {
     }
 
     /// Unregister
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) {
         self.watchdogs.remove(&pid);
         self.stats.process_count = self.watchdogs.len();
     }
 
     /// Get watchdog
+    #[inline(always)]
     pub fn watchdog(&self, pid: u64) -> Option<&ProcessWatchdog> {
         self.watchdogs.get(&pid)
     }
 
     /// List unhealthy
+    #[inline]
     pub fn unhealthy(&self) -> Vec<u64> {
         self.watchdogs
             .iter()
@@ -431,6 +448,7 @@ impl AppWatchdogManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppWatchdogStats {
         &self.stats
     }

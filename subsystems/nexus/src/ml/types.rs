@@ -21,6 +21,7 @@ pub struct Feature {
 
 impl Feature {
     /// Create a new feature
+    #[inline(always)]
     pub const fn new(index: usize, value: f64) -> Self {
         Self { index, value }
     }
@@ -57,6 +58,7 @@ impl FeatureVector {
     }
 
     /// Create from sparse features
+    #[inline]
     pub fn from_sparse(features: Vec<Feature>) -> Self {
         Self {
             features,
@@ -65,12 +67,14 @@ impl FeatureVector {
     }
 
     /// Add a feature
+    #[inline(always)]
     pub fn add(&mut self, index: usize, value: f64) {
         self.features.push(Feature::new(index, value));
         self.dense = None; // Invalidate dense cache
     }
 
     /// Get feature value
+    #[inline]
     pub fn get(&self, index: usize) -> f64 {
         if let Some(ref dense) = self.dense {
             dense.get(index).copied().unwrap_or(0.0)
@@ -84,6 +88,7 @@ impl FeatureVector {
     }
 
     /// Dot product with weights
+    #[inline]
     pub fn dot(&self, weights: &[f64]) -> f64 {
         self.features
             .iter()
@@ -92,11 +97,13 @@ impl FeatureVector {
     }
 
     /// L2 norm
+    #[inline(always)]
     pub fn norm(&self) -> f64 {
         math::sqrt(self.features.iter().map(|f| f.value * f.value).sum::<f64>())
     }
 
     /// Normalize the vector
+    #[inline]
     pub fn normalize(&mut self) {
         let norm = self.norm();
         if norm > 0.0 {
@@ -107,16 +114,19 @@ impl FeatureVector {
     }
 
     /// Number of features
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.features.len()
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.features.is_empty()
     }
 
     /// Iterate over features
+    #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = &Feature> {
         self.features.iter()
     }
@@ -148,6 +158,7 @@ impl LabeledSample {
     }
 
     /// Set weight
+    #[inline(always)]
     pub fn with_weight(mut self, weight: f64) -> Self {
         self.weight = weight;
         self

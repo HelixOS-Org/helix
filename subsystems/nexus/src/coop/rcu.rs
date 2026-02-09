@@ -60,11 +60,13 @@ impl GracePeriod {
         }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, now_ns: u64) {
         self.state = GracePeriodState::Completed;
         self.end_ns = now_ns;
     }
 
+    #[inline]
     pub fn duration_ns(&self) -> u64 {
         if self.end_ns > 0 {
             self.end_ns.saturating_sub(self.start_ns)
@@ -73,6 +75,7 @@ impl GracePeriod {
         }
     }
 
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         matches!(self.state, GracePeriodState::Started | GracePeriodState::WaitingForReaders)
     }
@@ -80,6 +83,7 @@ impl GracePeriod {
 
 /// Per-CPU RCU state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CpuRcuState {
     pub cpu_id: u32,
     pub in_read_side: bool,
@@ -105,11 +109,13 @@ impl CpuRcuState {
         }
     }
 
+    #[inline(always)]
     pub fn read_lock(&mut self) {
         self.nesting_depth += 1;
         self.in_read_side = true;
     }
 
+    #[inline]
     pub fn read_unlock(&mut self) {
         self.nesting_depth = self.nesting_depth.saturating_sub(1);
         if self.nesting_depth == 0 {
@@ -117,21 +123,25 @@ impl CpuRcuState {
         }
     }
 
+    #[inline(always)]
     pub fn report_quiescent(&mut self, now_ns: u64) {
         self.quiescent_count += 1;
         self.last_quiescent_ns = now_ns;
     }
 
+    #[inline(always)]
     pub fn enqueue_callback(&mut self) {
         self.callbacks_pending += 1;
     }
 
+    #[inline]
     pub fn execute_callbacks(&mut self, count: u32) {
         let executed = count.min(self.callbacks_pending);
         self.callbacks_pending = self.callbacks_pending.saturating_sub(executed);
         self.callbacks_executed += executed as u64;
     }
 
+    #[inline(always)]
     pub fn time_since_quiescent(&self, now_ns: u64) -> u64 {
         now_ns.saturating_sub(self.last_quiescent_ns)
     }
@@ -161,11 +171,13 @@ impl SrcuDomain {
         Self { id, active_readers: 0, completed_gp: 0, pending_gp: 0 }
     }
 
+    #[inline(always)]
     pub fn read_lock(&mut self) -> u32 {
         self.active_readers += 1;
         self.active_readers
     }
 
+    #[inline(always)]
     pub fn read_unlock(&mut self) {
         self.active_readers = self.active_readers.saturating_sub(1);
     }
@@ -173,6 +185,7 @@ impl SrcuDomain {
 
 /// RCU v2 stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RcuV2Stats {
     pub total_grace_periods: u64,
     pub completed_grace_periods: u64,
@@ -221,22 +234,26 @@ impl CoopRcuV2 {
         }
     }
 
+    #[inline(always)]
     pub fn init_cpu(&mut self, cpu_id: u32) {
         self.cpus.insert(cpu_id, CpuRcuState::new(cpu_id));
     }
 
+    #[inline]
     pub fn read_lock(&mut self, cpu_id: u32) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.read_lock();
         }
     }
 
+    #[inline]
     pub fn read_unlock(&mut self, cpu_id: u32) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.read_unlock();
         }
     }
 
+    #[inline]
     pub fn start_grace_period(&mut self, flavor: RcuFlavor, now_ns: u64) -> u64 {
         let id = self.next_gp_id;
         self.next_gp_id += 1;
@@ -246,6 +263,7 @@ impl CoopRcuV2 {
         id
     }
 
+    #[inline]
     pub fn report_quiescent(&mut self, cpu_id: u32, now_ns: u64) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.report_quiescent(now_ns);
@@ -275,6 +293,7 @@ impl CoopRcuV2 {
         }
     }
 
+    #[inline]
     pub fn enqueue_callback(&mut self, cpu_id: u32, size: usize) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.enqueue_callback();
@@ -282,6 +301,7 @@ impl CoopRcuV2 {
         }
     }
 
+    #[inline]
     pub fn execute_callbacks(&mut self, cpu_id: u32, max_count: u32) -> u32 {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             let count = max_count.min(cpu.callbacks_pending);
@@ -293,6 +313,7 @@ impl CoopRcuV2 {
         }
     }
 
+    #[inline]
     pub fn detect_stalls(&mut self, now_ns: u64, threshold_ns: u64) -> Vec<u32> {
         let mut stalled = Vec::new();
         for cpu in self.cpus.values_mut() {
@@ -305,6 +326,7 @@ impl CoopRcuV2 {
         stalled
     }
 
+    #[inline]
     pub fn create_srcu_domain(&mut self) -> u64 {
         let id = self.next_srcu_id;
         self.next_srcu_id += 1;
@@ -313,22 +335,26 @@ impl CoopRcuV2 {
         id
     }
 
+    #[inline]
     pub fn srcu_read_lock(&mut self, domain_id: u64) {
         if let Some(d) = self.srcu_domains.get_mut(&domain_id) {
             d.read_lock();
         }
     }
 
+    #[inline]
     pub fn srcu_read_unlock(&mut self, domain_id: u64) {
         if let Some(d) = self.srcu_domains.get_mut(&domain_id) {
             d.read_unlock();
         }
     }
 
+    #[inline(always)]
     pub fn pending_callbacks_total(&self) -> u32 {
         self.cpus.values().map(|c| c.callbacks_pending).sum()
     }
 
+    #[inline]
     pub fn heaviest_callback_cpus(&self, top: usize) -> Vec<(u32, u32)> {
         let mut v: Vec<(u32, u32)> = self.cpus.iter()
             .map(|(&cpu_id, c)| (cpu_id, c.callbacks_pending))
@@ -338,6 +364,7 @@ impl CoopRcuV2 {
         v
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &RcuV2Stats {
         &self.stats
     }

@@ -64,10 +64,12 @@ impl CoopFwRule {
         }
     }
 
+    #[inline(always)]
     pub fn matches(&self, packet_value: u64) -> bool {
         self.match_value == packet_value
     }
 
+    #[inline]
     pub fn apply(&mut self, pkt_bytes: u64) -> CoopFwAction {
         self.hit_count += 1;
         self.byte_count += pkt_bytes;
@@ -89,6 +91,7 @@ impl SharedRuleSet {
         Self { set_id, rules: Vec::new(), subscribers: Vec::new(), version: 0 }
     }
 
+    #[inline]
     pub fn add_rule(&mut self, mut rule: CoopFwRule) {
         rule.shared = true;
         let pos = self.rules.iter().position(|r| r.priority > rule.priority).unwrap_or(self.rules.len());
@@ -96,6 +99,7 @@ impl SharedRuleSet {
         self.version += 1;
     }
 
+    #[inline]
     pub fn evaluate(&mut self, pkt_value: u64, pkt_bytes: u64) -> CoopFwAction {
         for rule in &mut self.rules {
             if rule.matches(pkt_value) {
@@ -105,6 +109,7 @@ impl SharedRuleSet {
         CoopFwAction::Accept
     }
 
+    #[inline(always)]
     pub fn subscribe(&mut self, ns_id: u64) {
         if !self.subscribers.contains(&ns_id) { self.subscribers.push(ns_id); }
     }
@@ -112,6 +117,7 @@ impl SharedRuleSet {
 
 /// Coop firewall stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopFwStats {
     pub total_rules: u64,
     pub shared_sets: u64,
@@ -135,11 +141,13 @@ impl CoopFirewall {
         }
     }
 
+    #[inline(always)]
     pub fn create_set(&mut self, set_id: u64) {
         self.rule_sets.insert(set_id, SharedRuleSet::new(set_id));
         self.stats.shared_sets += 1;
     }
 
+    #[inline]
     pub fn add_rule(&mut self, set_id: u64, rule: CoopFwRule) -> bool {
         if let Some(set) = self.rule_sets.get_mut(&set_id) {
             set.add_rule(rule);
@@ -148,6 +156,7 @@ impl CoopFirewall {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         if self.stats.total_packets == 0 { 0.0 }
         else { self.stats.total_drops as f64 / self.stats.total_packets as f64 }

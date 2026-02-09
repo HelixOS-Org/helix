@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Credential set for a process
@@ -28,6 +29,7 @@ pub struct CredentialSet {
 }
 
 impl CredentialSet {
+    #[inline]
     pub fn root() -> Self {
         Self {
             real_uid: 0, effective_uid: 0, saved_uid: 0, fs_uid: 0,
@@ -36,6 +38,7 @@ impl CredentialSet {
         }
     }
 
+    #[inline]
     pub fn user(uid: u32, gid: u32) -> Self {
         Self {
             real_uid: uid, effective_uid: uid, saved_uid: uid, fs_uid: uid,
@@ -44,8 +47,10 @@ impl CredentialSet {
         }
     }
 
+    #[inline(always)]
     pub fn is_root(&self) -> bool { self.effective_uid == 0 }
 
+    #[inline(always)]
     pub fn in_group(&self, gid: u32) -> bool {
         self.effective_gid == gid || self.supplementary_groups.contains(&gid)
     }
@@ -78,6 +83,7 @@ impl CredentialSet {
         } else { false }
     }
 
+    #[inline]
     pub fn seteuid(&mut self, euid: u32) -> bool {
         if self.effective_uid == 0 || euid == self.real_uid || euid == self.saved_uid {
             self.effective_uid = euid;
@@ -86,6 +92,7 @@ impl CredentialSet {
         } else { false }
     }
 
+    #[inline]
     pub fn setreuid(&mut self, ruid: u32, euid: u32) -> bool {
         if self.effective_uid == 0 || ruid == self.real_uid || euid == self.real_uid || euid == self.saved_uid {
             if ruid != u32::MAX { self.real_uid = ruid; }
@@ -114,12 +121,14 @@ impl CredentialSet {
         }
     }
 
+    #[inline]
     pub fn set_groups(&mut self, groups: Vec<u32>) -> bool {
         if self.effective_uid != 0 { return false; }
         self.supplementary_groups = groups;
         true
     }
 
+    #[inline(always)]
     pub fn fork_creds(&self) -> Self { self.clone() }
 }
 
@@ -175,6 +184,7 @@ impl ProcessCreds {
 
 /// Bridge credential manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeCredMgrStats {
     pub total_processes: usize,
     pub root_processes: usize,
@@ -184,9 +194,10 @@ pub struct BridgeCredMgrStats {
 }
 
 /// Bridge Credential Manager
+#[repr(align(64))]
 pub struct BridgeCredMgr {
     processes: BTreeMap<u64, ProcessCreds>,
-    events: Vec<CredChangeEvent>,
+    events: VecDeque<CredChangeEvent>,
     max_events: usize,
     stats: BridgeCredMgrStats,
 }
@@ -195,16 +206,18 @@ impl BridgeCredMgr {
     pub fn new(max_events: usize) -> Self {
         Self {
             processes: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events,
             stats: BridgeCredMgrStats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64, creds: CredentialSet) {
         self.processes.insert(pid, ProcessCreds::new(pid, creds));
     }
 
+    #[inline]
     pub fn fork_process(&mut self, parent_pid: u64, child_pid: u64) {
         if let Some(parent) = self.processes.get(&parent_pid) {
             let child_creds = parent.creds.fork_creds();
@@ -215,6 +228,7 @@ impl BridgeCredMgr {
         }
     }
 
+    #[inline]
     pub fn setuid(&mut self, pid: u64, uid: u32, ts: u64) -> bool {
         if let Some(proc_creds) = self.processes.get_mut(&pid) {
             let old_uid = proc_creds.creds.effective_uid;
@@ -226,6 +240,7 @@ impl BridgeCredMgr {
         } else { false }
     }
 
+    #[inline]
     pub fn setgid(&mut self, pid: u64, gid: u32, ts: u64) -> bool {
         if let Some(proc_creds) = self.processes.get_mut(&pid) {
             let old_uid = proc_creds.creds.effective_uid;
@@ -251,16 +266,18 @@ impl BridgeCredMgr {
     }
 
     fn emit_event(&mut self, pid: u64, ctype: CredChangeType, old_uid: u32, new_uid: u32, old_gid: u32, new_gid: u32, ts: u64, success: bool) {
-        self.events.push(CredChangeEvent {
+        self.events.push_back(CredChangeEvent {
             process_id: pid, change_type: ctype,
             old_uid, new_uid, old_gid, new_gid,
             timestamp_ns: ts, success,
         });
-        while self.events.len() > self.max_events { self.events.remove(0); }
+        while self.events.len() > self.max_events { self.events.pop_front(); }
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) { self.processes.remove(&pid); }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.processes.len();
         self.stats.root_processes = self.processes.values().filter(|p| p.creds.is_root()).count();
@@ -269,6 +286,8 @@ impl BridgeCredMgr {
         self.stats.total_events = self.events.len();
     }
 
+    #[inline(always)]
     pub fn process_creds(&self, pid: u64) -> Option<&ProcessCreds> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCredMgrStats { &self.stats }
 }

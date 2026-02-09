@@ -128,6 +128,7 @@ pub struct SupportedWorkload {
 
 /// Aggregate identity statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct IdentityStats {
     pub capability_count: usize,
     pub nascent_count: usize,
@@ -185,6 +186,7 @@ impl AppsIdentity {
     }
 
     /// Declare the engine's operational domain
+    #[inline]
     pub fn declare_domain(&mut self, domain: &str) {
         self.tick += 1;
         let old_fp = self.fingerprint;
@@ -198,6 +200,7 @@ impl AppsIdentity {
     }
 
     /// Get the list of supported workload types
+    #[inline]
     pub fn supported_workloads(&self) -> Vec<(String, f32, u64)> {
         self.workloads
             .values()
@@ -232,6 +235,7 @@ impl AppsIdentity {
     }
 
     /// Compute the capability vector: a summary of all capabilities
+    #[inline]
     pub fn capability_vector(&self) -> Vec<(String, CapabilityMaturity, f32, f32)> {
         self.capabilities
             .values()
@@ -287,11 +291,13 @@ impl AppsIdentity {
     }
 
     /// Get the evolution log
+    #[inline(always)]
     pub fn evolution_log(&self) -> &[EvolutionEvent] {
         &self.evolution_log
     }
 
     /// Compute a stable identity signature (FNV hash of fingerprint + version)
+    #[inline]
     pub fn identity_signature(&self) -> u64 {
         let mut sig = self.fingerprint;
         sig ^= (self.version.0 as u64) << 32;

@@ -9,7 +9,10 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -94,7 +97,7 @@ pub struct TemporalWindow {
     /// Window duration (ns)
     pub window_ns: u64,
     /// Events in window
-    events: Vec<SyscallEvent>,
+    events: VecDeque<SyscallEvent>,
     /// Max events to keep
     max_events: usize,
 }
@@ -103,22 +106,24 @@ impl TemporalWindow {
     pub fn new(window_ns: u64, max_events: usize) -> Self {
         Self {
             window_ns,
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events,
         }
     }
 
     /// Add event
+    #[inline]
     pub fn add(&mut self, event: SyscallEvent) {
         let cutoff = event.timestamp.saturating_sub(self.window_ns);
         self.events.retain(|e| e.timestamp >= cutoff);
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event);
+        self.events.push_back(event);
     }
 
     /// Find events within time range of a timestamp
+    #[inline]
     pub fn find_near(&self, timestamp: u64, range_ns: u64) -> Vec<&SyscallEvent> {
         let lo = timestamp.saturating_sub(range_ns);
         let hi = timestamp.saturating_add(range_ns);
@@ -126,11 +131,13 @@ impl TemporalWindow {
     }
 
     /// Find events by pid
+    #[inline(always)]
     pub fn find_by_pid(&self, pid: u64) -> Vec<&SyscallEvent> {
         self.events.iter().filter(|e| e.pid == pid).collect()
     }
 
     /// Current event count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.events.len()
     }
@@ -202,18 +209,19 @@ impl CorrelationRule {
 
 /// Syscall co-occurrence tracker
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CoOccurrenceMatrix {
     /// Counts: (syscall_a, syscall_b) -> count
-    counts: BTreeMap<u64, u64>,
+    counts: LinearMap<u64, 64>,
     /// Per-syscall total
-    totals: BTreeMap<u32, u64>,
+    totals: ArrayMap<u64, 32>,
 }
 
 impl CoOccurrenceMatrix {
     pub fn new() -> Self {
         Self {
-            counts: BTreeMap::new(),
-            totals: BTreeMap::new(),
+            counts: LinearMap::new(),
+            totals: ArrayMap::new(0),
         }
     }
 
@@ -223,26 +231,29 @@ impl CoOccurrenceMatrix {
     }
 
     /// Record co-occurrence
+    #[inline]
     pub fn record(&mut self, a: u32, b: u32) {
         let key = Self::pair_key(a, b);
-        *self.counts.entry(key).or_insert(0) += 1;
-        *self.totals.entry(a).or_insert(0) += 1;
+        self.counts.add(key, 1);
+        self.totals.add(a as usize, 1);
         if a != b {
-            *self.totals.entry(b).or_insert(0) += 1;
+            self.totals.add(b as usize, 1);
         }
     }
 
     /// Get co-occurrence count
+    #[inline(always)]
     pub fn count(&self, a: u32, b: u32) -> u64 {
         let key = Self::pair_key(a, b);
-        self.counts.get(&key).copied().unwrap_or(0)
+        self.counts.get(key).copied().unwrap_or(0)
     }
 
     /// Correlation coefficient (Jaccard index)
+    #[inline]
     pub fn correlation(&self, a: u32, b: u32) -> f64 {
         let co = self.count(a, b) as f64;
-        let ta = self.totals.get(&a).copied().unwrap_or(0) as f64;
-        let tb = self.totals.get(&b).copied().unwrap_or(0) as f64;
+        let ta = self.totals.try_get(a as usize).copied().unwrap_or(0) as f64;
+        let tb = self.totals.try_get(b as usize).copied().unwrap_or(0) as f64;
         let union = ta + tb - co;
         if union <= 0.0 {
             return 0.0;
@@ -257,6 +268,7 @@ impl CoOccurrenceMatrix {
 
 /// Correlation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeCorrelationStats {
     /// Events processed
     pub events_processed: u64,
@@ -267,6 +279,7 @@ pub struct BridgeCorrelationStats {
 }
 
 /// Bridge correlation engine
+#[repr(align(64))]
 pub struct BridgeCorrelationEngine {
     /// Temporal window
     window: TemporalWindow,
@@ -275,7 +288,7 @@ pub struct BridgeCorrelationEngine {
     /// Co-occurrence matrix
     cooccurrence: CoOccurrenceMatrix,
     /// Found correlations (recent)
-    correlations: Vec<CorrelationLink>,
+    correlations: VecDeque<CorrelationLink>,
     /// Max stored correlations
     max_correlations: usize,
     /// Stats
@@ -288,13 +301,14 @@ impl BridgeCorrelationEngine {
             window: TemporalWindow::new(window_ns, 10000),
             rules: Vec::new(),
             cooccurrence: CoOccurrenceMatrix::new(),
-            correlations: Vec::new(),
+            correlations: VecDeque::new(),
             max_correlations: 10000,
             stats: BridgeCorrelationStats::default(),
         }
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: CorrelationRule) {
         self.rules.push(rule);
         self.stats.active_rules = self.rules.len();
@@ -317,9 +331,9 @@ impl BridgeCorrelationEngine {
                         confidence: 0.8,
                     };
                     if self.correlations.len() >= self.max_correlations {
-                        self.correlations.remove(0);
+                        self.correlations.pop_front();
                     }
-                    self.correlations.push(link);
+                    self.correlations.push_back(link);
                     self.stats.correlations_found += 1;
                 }
             }
@@ -331,6 +345,7 @@ impl BridgeCorrelationEngine {
     }
 
     /// Recent correlations
+    #[inline]
     pub fn recent_correlations(&self, max: usize) -> &[CorrelationLink] {
         let start = if self.correlations.len() > max {
             self.correlations.len() - max
@@ -341,11 +356,13 @@ impl BridgeCorrelationEngine {
     }
 
     /// Co-occurrence correlation
+    #[inline(always)]
     pub fn syscall_correlation(&self, a: u32, b: u32) -> f64 {
         self.cooccurrence.correlation(a, b)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCorrelationStats {
         &self.stats
     }

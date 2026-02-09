@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::BTreeSet;
 use alloc::string::String;
@@ -147,6 +148,7 @@ impl Default for GraphConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct GraphStats {
     /// Nodes added
     pub nodes_added: u64,
@@ -225,17 +227,20 @@ impl DependencyGraph {
     }
 
     /// Get node
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&DependencyNode> {
         self.nodes.get(&id)
     }
 
     /// Get by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&DependencyNode> {
         self.name_to_id.get(name)
             .and_then(|id| self.nodes.get(id))
     }
 
     /// Get dependencies
+    #[inline]
     pub fn dependencies(&self, id: u64) -> Vec<&DependencyNode> {
         self.nodes.get(&id)
             .map(|node| {
@@ -247,6 +252,7 @@ impl DependencyGraph {
     }
 
     /// Get dependents
+    #[inline]
     pub fn dependents(&self, id: u64) -> Vec<&DependencyNode> {
         self.nodes.get(&id)
             .map(|node| {
@@ -258,6 +264,7 @@ impl DependencyGraph {
     }
 
     /// Get transitive dependencies
+    #[inline]
     pub fn transitive_dependencies(&self, id: u64) -> Vec<u64> {
         let mut visited = BTreeSet::new();
         let mut result = Vec::new();
@@ -284,6 +291,7 @@ impl DependencyGraph {
     }
 
     /// Detect cycles
+    #[inline]
     pub fn detect_cycles(&self) -> Vec<DependencyCycle> {
         let mut cycles = Vec::new();
 
@@ -389,7 +397,7 @@ impl DependencyGraph {
 
     /// Topological sort
     pub fn topological_sort(&self) -> Option<Vec<u64>> {
-        let mut in_degree: BTreeMap<u64, usize> = BTreeMap::new();
+        let mut in_degree: LinearMap<usize, 64> = BTreeMap::new();
         let mut result = Vec::new();
         let mut queue = Vec::new();
 
@@ -435,6 +443,7 @@ impl DependencyGraph {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &GraphStats {
         &self.stats
     }

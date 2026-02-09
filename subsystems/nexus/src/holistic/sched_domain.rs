@@ -90,6 +90,7 @@ impl SchedCpuGroup {
     }
 
     /// Average load per CPU
+    #[inline]
     pub fn avg_load(&self) -> f64 {
         if self.cpus.is_empty() {
             return 0.0;
@@ -98,6 +99,7 @@ impl SchedCpuGroup {
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 {
             return 0.0;
@@ -106,6 +108,7 @@ impl SchedCpuGroup {
     }
 
     /// Has spare capacity?
+    #[inline(always)]
     pub fn has_spare(&self) -> bool {
         self.idle_cpus > 0 || self.utilization() < 0.8
     }
@@ -164,11 +167,13 @@ impl SchedDomain {
     }
 
     /// Add group
+    #[inline(always)]
     pub fn add_group(&mut self, group: SchedCpuGroup) {
         self.groups.push(group);
     }
 
     /// Check if balance is needed
+    #[inline(always)]
     pub fn needs_balance(&self) -> bool {
         self.ticks_since_balance >= self.balance_interval
     }
@@ -221,6 +226,7 @@ impl SchedDomain {
     }
 
     /// Tick
+    #[inline]
     pub fn tick(&mut self) {
         self.ticks_since_balance += 1;
         let imbalance = self.calculate_imbalance();
@@ -278,6 +284,7 @@ pub struct SchedMigrationSuggestion {
 
 /// Scheduling domain stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticSchedDomainStats {
     /// Active domains
     pub active_domains: usize,
@@ -310,12 +317,14 @@ impl HolisticSchedDomain {
     }
 
     /// Create domain
+    #[inline(always)]
     pub fn create_domain(&mut self, domain_id: u32, level: SchedDomainLevel) {
         self.domains.insert(domain_id, SchedDomain::new(domain_id, level));
         self.update_stats();
     }
 
     /// Add group to domain
+    #[inline]
     pub fn add_group(&mut self, domain_id: u32, group: SchedCpuGroup) {
         if let Some(domain) = self.domains.get_mut(&domain_id) {
             domain.add_group(group);
@@ -373,6 +382,7 @@ impl HolisticSchedDomain {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticSchedDomainStats {
         &self.stats
     }

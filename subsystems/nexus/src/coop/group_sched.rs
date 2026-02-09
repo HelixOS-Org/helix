@@ -67,6 +67,7 @@ impl GroupMember {
         }
     }
 
+    #[inline(always)]
     pub fn is_schedulable(&self) -> bool {
         matches!(self.state, GroupMemberState::Ready | GroupMemberState::Yielded)
     }
@@ -103,45 +104,54 @@ impl SchedGroupV2 {
         }
     }
 
+    #[inline]
     pub fn add_member(&mut self, member: GroupMember) -> bool {
         if self.members.len() as u32 >= self.max_members { return false; }
         self.members.push(member);
         true
     }
 
+    #[inline(always)]
     pub fn remove_member(&mut self, thread_id: u64) {
         self.members.retain(|m| m.thread_id != thread_id);
     }
 
+    #[inline(always)]
     pub fn ready_count(&self) -> usize {
         self.members.iter().filter(|m| m.is_schedulable()).count()
     }
 
+    #[inline(always)]
     pub fn all_ready(&self) -> bool {
         self.members.iter().all(|m| m.is_schedulable() || m.state == GroupMemberState::Running)
     }
 
     /// For gang scheduling: check if all members can be co-scheduled
+    #[inline]
     pub fn can_gang_schedule(&self, available_cpus: u32) -> bool {
         if self.policy != GroupSchedPolicyV2::Gang { return true; }
         let ready = self.ready_count();
         ready as u32 <= available_cpus
     }
 
+    #[inline(always)]
     pub fn budget_remaining(&self) -> u64 {
         if self.cpu_budget_ns == 0 { return u64::MAX; }
         self.cpu_budget_ns.saturating_sub(self.budget_consumed_ns)
     }
 
+    #[inline(always)]
     pub fn consume_budget(&mut self, ns: u64) {
         self.budget_consumed_ns += ns;
         self.total_runtime_ns += ns;
     }
 
+    #[inline(always)]
     pub fn refill_budget(&mut self) {
         self.budget_consumed_ns = 0;
     }
 
+    #[inline(always)]
     pub fn is_throttled(&self) -> bool {
         self.cpu_budget_ns > 0 && self.budget_consumed_ns >= self.cpu_budget_ns
     }
@@ -179,6 +189,7 @@ impl SchedGroupV2 {
 
 /// Coop group sched stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopGroupSchedStats {
     pub total_groups: usize,
     pub total_members: usize,
@@ -203,6 +214,7 @@ impl CoopGroupSched {
         }
     }
 
+    #[inline]
     pub fn create_group(&mut self, policy: GroupSchedPolicyV2) -> u64 {
         let id = self.next_group_id;
         self.next_group_id += 1;
@@ -211,11 +223,13 @@ impl CoopGroupSched {
         id
     }
 
+    #[inline(always)]
     pub fn destroy_group(&mut self, group_id: u64) {
         self.groups.remove(&group_id);
         self.recompute();
     }
 
+    #[inline]
     pub fn add_member(&mut self, group_id: u64, member: GroupMember) -> bool {
         let ok = if let Some(group) = self.groups.get_mut(&group_id) {
             group.add_member(member)
@@ -224,6 +238,7 @@ impl CoopGroupSched {
         ok
     }
 
+    #[inline]
     pub fn remove_member(&mut self, group_id: u64, thread_id: u64) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.remove_member(thread_id);
@@ -231,6 +246,7 @@ impl CoopGroupSched {
         self.recompute();
     }
 
+    #[inline]
     pub fn set_budget(&mut self, group_id: u64, budget_ns: u64, period_ns: u64) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.cpu_budget_ns = budget_ns;
@@ -238,12 +254,14 @@ impl CoopGroupSched {
         }
     }
 
+    #[inline]
     pub fn consume_runtime(&mut self, group_id: u64, ns: u64) {
         if let Some(group) = self.groups.get_mut(&group_id) {
             group.consume_budget(ns);
         }
     }
 
+    #[inline]
     pub fn period_tick(&mut self) {
         for group in self.groups.values_mut() {
             group.refill_budget();
@@ -251,6 +269,7 @@ impl CoopGroupSched {
         self.recompute();
     }
 
+    #[inline]
     pub fn throttled_groups(&self) -> Vec<u64> {
         self.groups.values()
             .filter(|g| g.is_throttled())
@@ -267,10 +286,12 @@ impl CoopGroupSched {
             .filter(|g| g.policy == GroupSchedPolicyV2::Gang).count();
     }
 
+    #[inline(always)]
     pub fn group(&self, id: u64) -> Option<&SchedGroupV2> {
         self.groups.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopGroupSchedStats {
         &self.stats
     }

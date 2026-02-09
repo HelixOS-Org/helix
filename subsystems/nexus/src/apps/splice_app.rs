@@ -25,6 +25,7 @@ pub enum SpliceFlag {
 
 /// Pipe buffer state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PipeBufferState {
     pub pipe_fd: u64,
     pub capacity: u64,
@@ -56,6 +57,7 @@ pub struct SpliceTransfer {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SpliceAppStats {
     pub splice_count: u64,
     pub tee_count: u64,
@@ -81,10 +83,12 @@ impl AppSplice {
         Self { transfers: Vec::new(), pipe_buffers: BTreeMap::new(), splice_count: 0, tee_count: 0, vmsplice_count: 0, total_bytes: 0, zero_copy_bytes: 0 }
     }
 
+    #[inline(always)]
     pub fn track_pipe(&mut self, fd: u64, capacity: u64, max_pg: u32) {
         self.pipe_buffers.insert(fd, PipeBufferState::new(fd, capacity, max_pg));
     }
 
+    #[inline]
     pub fn record(&mut self, xfer: SpliceTransfer) {
         match xfer.op_type {
             SpliceOpType::Splice => self.splice_count += 1,
@@ -96,8 +100,10 @@ impl AppSplice {
         self.transfers.push(xfer);
     }
 
+    #[inline(always)]
     pub fn untrack_pipe(&mut self, fd: u64) { self.pipe_buffers.remove(&fd); }
 
+    #[inline]
     pub fn stats(&self) -> SpliceAppStats {
         SpliceAppStats {
             splice_count: self.splice_count, tee_count: self.tee_count, vmsplice_count: self.vmsplice_count,

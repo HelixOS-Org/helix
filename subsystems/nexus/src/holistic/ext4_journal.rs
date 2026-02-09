@@ -58,15 +58,18 @@ impl JournalTransaction {
         }
     }
 
+    #[inline(always)]
     pub fn add_block(&mut self) {
         self.blocks_logged += 1;
     }
 
+    #[inline(always)]
     pub fn commit(&mut self, time: u64) {
         self.state = JournalTxState::Commit;
         self.commit_time = time;
     }
 
+    #[inline(always)]
     pub fn commit_latency(&self) -> u64 {
         self.commit_time.saturating_sub(self.start_time)
     }
@@ -91,6 +94,7 @@ impl JournalSpace {
         }
     }
 
+    #[inline]
     pub fn free_blocks(&self) -> u64 {
         self.total_blocks
             .saturating_sub(self.used_blocks)
@@ -98,6 +102,7 @@ impl JournalSpace {
             .saturating_sub(self.reserved_blocks)
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total_blocks == 0 {
             return 0.0;
@@ -108,6 +113,7 @@ impl JournalSpace {
 
 /// Statistics for ext4 journal.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Ext4JournalStats {
     pub total_transactions: u64,
     pub total_commits: u64,
@@ -148,6 +154,7 @@ impl HolisticExt4Journal {
         }
     }
 
+    #[inline]
     pub fn begin_transaction(&mut self, time: u64) -> u64 {
         let id = self.next_tx_id;
         self.next_tx_id += 1;
@@ -160,6 +167,7 @@ impl HolisticExt4Journal {
         id
     }
 
+    #[inline]
     pub fn commit_transaction(&mut self, tx_id: u64, time: u64) {
         if let Some(tx) = self.transactions.get_mut(&tx_id) {
             tx.commit(time);
@@ -168,6 +176,7 @@ impl HolisticExt4Journal {
         }
     }
 
+    #[inline(always)]
     pub fn tx_count(&self) -> usize {
         self.transactions.len()
     }

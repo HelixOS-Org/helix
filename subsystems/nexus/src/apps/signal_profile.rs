@@ -39,6 +39,7 @@ pub enum SignalDeliveryState {
 
 /// Per-signal-number stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SignalNumStats {
     pub signum: u32,
     pub category: SignalCategoryApps,
@@ -74,30 +75,36 @@ impl SignalNumStats {
         }
     }
 
+    #[inline(always)]
     pub fn delivery_ratio(&self) -> f64 {
         if self.generated == 0 { return 0.0; }
         self.delivered as f64 / self.generated as f64
     }
 
+    #[inline(always)]
     pub fn avg_delivery_ns(&self) -> u64 {
         if self.delivered == 0 { return 0; }
         self.total_delivery_ns / self.delivered
     }
 
+    #[inline(always)]
     pub fn avg_handler_ns(&self) -> u64 {
         if self.delivered == 0 { return 0; }
         self.total_handler_ns / self.delivered
     }
 
+    #[inline(always)]
     pub fn coalesce_ratio(&self) -> f64 {
         if self.generated == 0 { return 0.0; }
         self.coalesced as f64 / self.generated as f64
     }
 
+    #[inline(always)]
     pub fn record_generate(&mut self) {
         self.generated += 1;
     }
 
+    #[inline]
     pub fn record_delivery(&mut self, delivery_ns: u64, handler_ns: u64) {
         self.delivered += 1;
         self.total_delivery_ns += delivery_ns;
@@ -158,42 +165,50 @@ impl ProcessSignalProfile {
         }
     }
 
+    #[inline(always)]
     pub fn record_generate(&mut self, signum: u32) {
         self.get_or_create(signum).record_generate();
         self.total_generated += 1;
     }
 
+    #[inline(always)]
     pub fn record_delivery(&mut self, signum: u32, delivery_ns: u64, handler_ns: u64) {
         self.get_or_create(signum).record_delivery(delivery_ns, handler_ns);
         self.total_delivered += 1;
     }
 
+    #[inline(always)]
     pub fn record_coalesce(&mut self, signum: u32) {
         self.get_or_create(signum).coalesced += 1;
         self.total_coalesced += 1;
     }
 
+    #[inline(always)]
     pub fn record_overflow(&mut self, signum: u32) {
         self.get_or_create(signum).overflows += 1;
         self.total_overflows += 1;
     }
 
+    #[inline(always)]
     pub fn record_blocked(&mut self, signum: u32) {
         self.get_or_create(signum).blocked += 1;
         self.total_blocked += 1;
     }
 
+    #[inline(always)]
     pub fn record_ignored(&mut self, signum: u32) {
         self.get_or_create(signum).ignored += 1;
         self.total_ignored += 1;
     }
 
+    #[inline]
     pub fn most_frequent_signal(&self) -> Option<u32> {
         self.signal_stats.values()
             .max_by_key(|s| s.generated)
             .map(|s| s.signum)
     }
 
+    #[inline]
     pub fn signals_by_category(&self, cat: SignalCategoryApps) -> Vec<&SignalNumStats> {
         self.signal_stats.values()
             .filter(|s| s.category == cat)
@@ -203,6 +218,7 @@ impl ProcessSignalProfile {
 
 /// App signal profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppSignalProfilerStats {
     pub total_processes: usize,
     pub total_generated: u64,
@@ -226,28 +242,33 @@ impl AppSignalProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessSignalProfile::new(pid));
     }
 
+    #[inline]
     pub fn record_generate(&mut self, pid: u64, signum: u32) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_generate(signum);
         }
     }
 
+    #[inline]
     pub fn record_delivery(&mut self, pid: u64, signum: u32, delivery_ns: u64, handler_ns: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_delivery(signum, delivery_ns, handler_ns);
         }
     }
 
+    #[inline]
     pub fn record_coalesce(&mut self, pid: u64, signum: u32) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_coalesce(signum);
         }
     }
 
+    #[inline]
     pub fn record_overflow(&mut self, pid: u64, signum: u32) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_overflow(signum);
@@ -270,14 +291,17 @@ impl AppSignalProfiler {
         self.stats.unique_signals = sigs.len();
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessSignalProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppSignalProfilerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.recompute();

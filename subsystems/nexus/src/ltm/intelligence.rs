@@ -33,6 +33,7 @@ pub struct LtmAnalysis {
 
 impl LtmAnalysis {
     /// Pattern reliability ratio
+    #[inline]
     pub fn pattern_reliability(&self) -> f32 {
         if self.total_patterns == 0 {
             return 0.0;
@@ -75,21 +76,25 @@ impl LongTermMemoryIntelligence {
     }
 
     /// Check if enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }
 
     /// Enable LTM
+    #[inline(always)]
     pub fn enable(&self) {
         self.enabled.store(true, Ordering::Relaxed);
     }
 
     /// Disable LTM
+    #[inline(always)]
     pub fn disable(&self) {
         self.enabled.store(false, Ordering::Relaxed);
     }
 
     /// Record event to working memory
+    #[inline]
     pub fn record_event(
         &mut self,
         event_type: &str,
@@ -104,6 +109,7 @@ impl LongTermMemoryIntelligence {
     }
 
     /// Record decision
+    #[inline]
     pub fn record_decision(&mut self, decision: &str, outcome: &str) -> MemoryId {
         let content = WorkingMemoryContent::RecentDecision {
             decision: String::from(decision),
@@ -113,6 +119,7 @@ impl LongTermMemoryIntelligence {
     }
 
     /// Record pattern match
+    #[inline]
     pub fn record_pattern_match(&mut self, pattern_id: PatternId, match_score: f32) -> MemoryId {
         let content = WorkingMemoryContent::ActivePattern {
             pattern_id,
@@ -122,6 +129,7 @@ impl LongTermMemoryIntelligence {
     }
 
     /// Store context
+    #[inline]
     pub fn store_context(&mut self, key: &str, value: &str) -> MemoryId {
         let content = WorkingMemoryContent::Context {
             key: String::from(key),
@@ -131,28 +139,33 @@ impl LongTermMemoryIntelligence {
     }
 
     /// Get context
+    #[inline(always)]
     pub fn get_context(&self, key: &str) -> Option<&str> {
         self.working.get_context(key)
     }
 
     /// Create episode directly
+    #[inline(always)]
     pub fn create_episode(&mut self, episode_type: EpisodeType, start: u64, end: u64) -> EpisodeId {
         let range = TimeRange::new(Timestamp::new(start), Timestamp::new(end));
         self.episodic.create_episode(episode_type, range)
     }
 
     /// Create pattern
+    #[inline(always)]
     pub fn create_pattern(&mut self, name: &str, category: PatternCategory) -> PatternId {
         self.semantic.create_pattern(String::from(name), category)
     }
 
     /// Create procedure
+    #[inline(always)]
     pub fn create_procedure(&mut self, name: &str, procedure_type: ProcedureType) -> ProcedureId {
         self.procedural
             .create_procedure(String::from(name), procedure_type)
     }
 
     /// Tick - update time and maybe consolidate
+    #[inline]
     pub fn tick(&mut self, current_time: u64) {
         if !self.is_enabled() {
             return;
@@ -166,6 +179,7 @@ impl LongTermMemoryIntelligence {
     }
 
     /// Force consolidation
+    #[inline]
     pub fn consolidate(&mut self, current_time: u64) -> ConsolidationResult {
         self.consolidator.consolidate(
             &mut self.working,
@@ -199,51 +213,61 @@ impl LongTermMemoryIntelligence {
     }
 
     /// Get episodic memory
+    #[inline(always)]
     pub fn episodic(&self) -> &EpisodicMemory {
         &self.episodic
     }
 
     /// Get episodic memory mutably
+    #[inline(always)]
     pub fn episodic_mut(&mut self) -> &mut EpisodicMemory {
         &mut self.episodic
     }
 
     /// Get semantic memory
+    #[inline(always)]
     pub fn semantic(&self) -> &SemanticMemory {
         &self.semantic
     }
 
     /// Get semantic memory mutably
+    #[inline(always)]
     pub fn semantic_mut(&mut self) -> &mut SemanticMemory {
         &mut self.semantic
     }
 
     /// Get procedural memory
+    #[inline(always)]
     pub fn procedural(&self) -> &ProceduralMemory {
         &self.procedural
     }
 
     /// Get procedural memory mutably
+    #[inline(always)]
     pub fn procedural_mut(&mut self) -> &mut ProceduralMemory {
         &mut self.procedural
     }
 
     /// Get working memory
+    #[inline(always)]
     pub fn working(&self) -> &WorkingMemory {
         &self.working
     }
 
     /// Get working memory mutably
+    #[inline(always)]
     pub fn working_mut(&mut self) -> &mut WorkingMemory {
         &mut self.working
     }
 
     /// Get consolidator
+    #[inline(always)]
     pub fn consolidator(&self) -> &MemoryConsolidator {
         &self.consolidator
     }
 
     /// Get current boot ID
+    #[inline(always)]
     pub fn current_boot(&self) -> BootId {
         self.current_boot
     }

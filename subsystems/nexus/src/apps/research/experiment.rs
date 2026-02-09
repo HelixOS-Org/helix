@@ -158,6 +158,7 @@ pub struct ArchivedExperiment {
 
 /// Aggregate experiment statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ExperimentStats {
     pub total_designed: u64,
     pub total_concluded: u64,
@@ -340,6 +341,7 @@ impl AppsExperiment {
     }
 
     /// Declare a winner for the experiment and conclude it
+    #[inline]
     pub fn winner_declare(&mut self, experiment_id: u64, tick: u64) -> Option<ExperimentReport> {
         self.current_tick = tick;
         let exp = match self.experiments.get_mut(&experiment_id) {
@@ -444,6 +446,7 @@ impl AppsExperiment {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> ExperimentStats {
         self.stats
     }

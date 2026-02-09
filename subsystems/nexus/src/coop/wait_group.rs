@@ -31,23 +31,28 @@ impl WaitGroup {
         Self { id, counter: 0, state: WaitGroupState::Active, waiters: 0, add_count: 0, done_count: 0, created_at: now, completed_at: 0 }
     }
 
+    #[inline(always)]
     pub fn add(&mut self, delta: i64) {
         self.counter += delta;
         if delta > 0 { self.add_count += delta as u64; }
     }
 
+    #[inline]
     pub fn done(&mut self, now: u64) {
         self.counter -= 1;
         self.done_count += 1;
         if self.counter <= 0 { self.state = WaitGroupState::Done; self.completed_at = now; }
     }
 
+    #[inline(always)]
     pub fn is_done(&self) -> bool { self.counter <= 0 }
+    #[inline(always)]
     pub fn duration(&self) -> u64 { if self.completed_at > 0 { self.completed_at - self.created_at } else { 0 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WaitGroupStats {
     pub total_groups: u32,
     pub active_groups: u32,
@@ -66,20 +71,24 @@ pub struct CoopWaitGroup {
 impl CoopWaitGroup {
     pub fn new() -> Self { Self { groups: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.groups.insert(id, WaitGroup::new(id, now));
         id
     }
 
+    #[inline(always)]
     pub fn add(&mut self, id: u64, delta: i64) {
         if let Some(g) = self.groups.get_mut(&id) { g.add(delta); }
     }
 
+    #[inline(always)]
     pub fn done(&mut self, id: u64, now: u64) {
         if let Some(g) = self.groups.get_mut(&id) { g.done(now); }
     }
 
+    #[inline]
     pub fn stats(&self) -> WaitGroupStats {
         let active = self.groups.values().filter(|g| g.state == WaitGroupState::Active).count() as u32;
         let done = self.groups.values().filter(|g| g.is_done()).count() as u32;

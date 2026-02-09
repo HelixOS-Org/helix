@@ -66,6 +66,7 @@ impl ActionTarget {
     }
 
     /// Is system-wide target?
+    #[inline(always)]
     pub fn is_system_wide(&self) -> bool {
         matches!(self, Self::System)
     }
@@ -95,50 +96,59 @@ impl ActionParameters {
     }
 
     /// Set integer parameter
+    #[inline(always)]
     pub fn set_int(&mut self, key: impl Into<String>, value: i64) -> &mut Self {
         self.integers.insert(key.into(), value);
         self
     }
 
     /// Set string parameter
+    #[inline(always)]
     pub fn set_str(&mut self, key: impl Into<String>, value: impl Into<String>) -> &mut Self {
         self.strings.insert(key.into(), value.into());
         self
     }
 
     /// Set boolean parameter
+    #[inline(always)]
     pub fn set_bool(&mut self, key: impl Into<String>, value: bool) -> &mut Self {
         self.booleans.insert(key.into(), value);
         self
     }
 
     /// Set float parameter
+    #[inline(always)]
     pub fn set_float(&mut self, key: impl Into<String>, value: f64) -> &mut Self {
         self.floats.insert(key.into(), value);
         self
     }
 
     /// Get integer parameter
+    #[inline(always)]
     pub fn get_int(&self, key: &str) -> Option<i64> {
         self.integers.get(key).copied()
     }
 
     /// Get string parameter
+    #[inline(always)]
     pub fn get_str(&self, key: &str) -> Option<&str> {
         self.strings.get(key).map(|s| s.as_str())
     }
 
     /// Get boolean parameter
+    #[inline(always)]
     pub fn get_bool(&self, key: &str) -> Option<bool> {
         self.booleans.get(key).copied()
     }
 
     /// Get float parameter
+    #[inline(always)]
     pub fn get_float(&self, key: &str) -> Option<f64> {
         self.floats.get(key).copied()
     }
 
     /// Is empty?
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.integers.is_empty()
             && self.strings.is_empty()
@@ -147,6 +157,7 @@ impl ActionParameters {
     }
 
     /// Total parameter count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.integers.len() + self.strings.len() + self.booleans.len() + self.floats.len()
     }
@@ -187,12 +198,14 @@ impl Signal {
     }
 
     /// With quality
+    #[inline(always)]
     pub fn with_quality(mut self, quality: f32) -> Self {
         self.quality = quality.clamp(0.0, 1.0);
         self
     }
 
     /// Is high quality signal?
+    #[inline(always)]
     pub fn is_high_quality(&self) -> bool {
         self.quality >= 0.9
     }
@@ -250,12 +263,14 @@ impl Knowledge {
     }
 
     /// With source pattern
+    #[inline(always)]
     pub fn with_source(mut self, pattern: PatternId) -> Self {
         self.source = Some(pattern);
         self
     }
 
     /// With tags
+    #[inline(always)]
     pub fn with_tags(mut self, tags: Tags) -> Self {
         self.tags = tags;
         self
@@ -316,18 +331,21 @@ impl Conclusion {
     }
 
     /// With evidence
+    #[inline(always)]
     pub fn with_evidence(mut self, evidence: Vec<KnowledgeId>) -> Self {
         self.evidence = evidence;
         self
     }
 
     /// With description
+    #[inline(always)]
     pub fn with_description(mut self, description: impl Into<String>) -> Self {
         self.description = description.into();
         self
     }
 
     /// Is actionable (high enough confidence)?
+    #[inline(always)]
     pub fn is_actionable(&self) -> bool {
         self.confidence.is_actionable()
     }
@@ -405,6 +423,7 @@ pub enum ActionType {
 
 impl ActionType {
     /// Is this action type safe (reversible)
+    #[inline]
     pub const fn is_safe(&self) -> bool {
         matches!(
             self,
@@ -413,11 +432,13 @@ impl ActionType {
     }
 
     /// Is this action type critical
+    #[inline(always)]
     pub const fn is_critical(&self) -> bool {
         matches!(self, Self::EmergencyStop | Self::Heal | Self::Restart)
     }
 
     /// Requires approval?
+    #[inline]
     pub const fn requires_approval(&self) -> bool {
         matches!(
             self,
@@ -443,6 +464,7 @@ impl Intent {
     }
 
     /// Create new intent from string target
+    #[inline(always)]
     pub fn from_string_target(
         action_type: ActionType,
         target: impl Into<String>,
@@ -452,30 +474,35 @@ impl Intent {
     }
 
     /// With priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: Priority) -> Self {
         self.priority = priority;
         self
     }
 
     /// With deadline
+    #[inline(always)]
     pub fn with_deadline(mut self, deadline: Timestamp) -> Self {
         self.deadline = Some(deadline);
         self
     }
 
     /// With confidence
+    #[inline(always)]
     pub fn with_confidence(mut self, confidence: Confidence) -> Self {
         self.confidence = confidence;
         self
     }
 
     /// With selected option
+    #[inline(always)]
     pub fn with_selected_option(mut self, option: usize) -> Self {
         self.selected_option = Some(option);
         self
     }
 
     /// With parameters
+    #[inline(always)]
     pub fn with_parameters(mut self, parameters: ActionParameters) -> Self {
         self.parameters = parameters;
         self
@@ -535,6 +562,7 @@ pub enum ChangeType {
 
 impl Effect {
     /// Create successful effect
+    #[inline]
     pub fn success(action: ActionId, transaction: TransactionId, duration: Duration) -> Self {
         Self {
             action,
@@ -548,6 +576,7 @@ impl Effect {
     }
 
     /// Create failed effect
+    #[inline]
     pub fn failure(
         action: ActionId,
         transaction: TransactionId,
@@ -566,12 +595,14 @@ impl Effect {
     }
 
     /// With changes
+    #[inline(always)]
     pub fn with_changes(mut self, changes: Vec<Change>) -> Self {
         self.changes = changes;
         self
     }
 
     /// Add a change
+    #[inline(always)]
     pub fn add_change(&mut self, change: Change) {
         self.changes.push(change);
     }
@@ -594,6 +625,7 @@ impl Change {
     }
 
     /// Create update change
+    #[inline(always)]
     pub fn update(
         target: impl Into<String>,
         before: impl Into<String>,

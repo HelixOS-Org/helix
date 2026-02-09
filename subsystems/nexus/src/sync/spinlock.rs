@@ -3,6 +3,7 @@
 //! Analyzes spinlock behavior and spin times.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::{LockId, ThreadId};
@@ -10,6 +11,7 @@ use crate::core::NexusTimestamp;
 
 /// Spinlock statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SpinStats {
     /// Lock ID
     pub lock_id: LockId,
@@ -48,6 +50,7 @@ impl SpinStats {
     }
 
     /// Success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.total_spins == 0 {
             1.0
@@ -92,7 +95,7 @@ pub struct SpinlockAnalyzer {
     /// Per-spinlock stats
     stats: BTreeMap<LockId, SpinStats>,
     /// Spin events
-    events: Vec<SpinEvent>,
+    events: VecDeque<SpinEvent>,
     /// Long spins
     long_spins: Vec<LongSpin>,
 }
@@ -102,7 +105,7 @@ impl SpinlockAnalyzer {
     pub fn new() -> Self {
         Self {
             stats: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             long_spins: Vec::new(),
         }
     }
@@ -130,9 +133,9 @@ impl SpinlockAnalyzer {
             timestamp: NexusTimestamp::now(),
         };
 
-        self.events.push(event);
+        self.events.push_back(event);
         if self.events.len() > 10000 {
-            self.events.remove(0);
+            self.events.pop_front();
         }
 
         // Track long spins
@@ -148,16 +151,19 @@ impl SpinlockAnalyzer {
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn get_stats(&self, lock_id: LockId) -> Option<&SpinStats> {
         self.stats.get(&lock_id)
     }
 
     /// Get long spins
+    #[inline(always)]
     pub fn long_spins(&self) -> &[LongSpin] {
         &self.long_spins
     }
 
     /// Get high-spin locks
+    #[inline]
     pub fn high_spin_locks(&self, threshold: u64) -> Vec<LockId> {
         self.stats
             .iter()
@@ -167,9 +173,11 @@ impl SpinlockAnalyzer {
     }
 
     /// Get recent events
-    pub fn recent_events(&self, n: usize) -> &[SpinEvent] {
+    #[inline]
+    pub fn recent_events(&mut self, n: usize) -> &[SpinEvent] {
         let start = self.events.len().saturating_sub(n);
-        &self.events[start..]
+        let slice = self.events.make_contiguous();
+        &slice[start..]
     }
 }
 

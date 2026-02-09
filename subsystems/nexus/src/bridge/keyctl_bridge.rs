@@ -41,6 +41,7 @@ pub enum KeyState {
 
 /// Kernel key
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct KernelKey {
     pub serial: u64,
     pub key_type: KeyType,
@@ -60,11 +61,13 @@ impl KernelKey {
         Self { serial, key_type: kt, state: KeyState::Valid, uid, gid, perm: 0x3f3f0000, description_hash: desc_hash, payload_len: 0, expiry: 0, created_at: now, ref_count: 1 }
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool { self.expiry > 0 && now >= self.expiry }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KeyctlBridgeStats {
     pub total_keys: u32,
     pub valid_keys: u32,
@@ -73,6 +76,7 @@ pub struct KeyctlBridgeStats {
 }
 
 /// Main bridge keyctl
+#[repr(align(64))]
 pub struct BridgeKeyctl {
     keys: BTreeMap<u64, KernelKey>,
     next_serial: u64,
@@ -81,16 +85,19 @@ pub struct BridgeKeyctl {
 impl BridgeKeyctl {
     pub fn new() -> Self { Self { keys: BTreeMap::new(), next_serial: 1 } }
 
+    #[inline]
     pub fn add_key(&mut self, kt: KeyType, uid: u32, gid: u32, desc_hash: u64, now: u64) -> u64 {
         let serial = self.next_serial; self.next_serial += 1;
         self.keys.insert(serial, KernelKey::new(serial, kt, uid, gid, desc_hash, now));
         serial
     }
 
+    #[inline(always)]
     pub fn revoke(&mut self, serial: u64) {
         if let Some(k) = self.keys.get_mut(&serial) { k.state = KeyState::Revoked; }
     }
 
+    #[inline]
     pub fn stats(&self) -> KeyctlBridgeStats {
         let valid = self.keys.values().filter(|k| k.state == KeyState::Valid).count() as u32;
         let expired = self.keys.values().filter(|k| k.state == KeyState::Expired).count() as u32;

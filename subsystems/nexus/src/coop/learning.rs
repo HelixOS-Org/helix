@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -57,16 +57,19 @@ impl FeatureVector {
     }
 
     /// Set feature value
+    #[inline(always)]
     pub fn set(&mut self, feature: Feature, bucket: u8) {
         self.values.insert(feature as u8, bucket.min(10));
     }
 
     /// Get feature value
+    #[inline(always)]
     pub fn get(&self, feature: Feature) -> u8 {
         self.values.get(&(feature as u8)).copied().unwrap_or(5)
     }
 
     /// State key for Q-table (compact representation)
+    #[inline]
     pub fn state_key(&self) -> u64 {
         let mut key: u64 = 0;
         for (&feat, &val) in &self.values {
@@ -120,6 +123,7 @@ impl SchedulingAction {
         Self::BoostIo,
     ];
 
+    #[inline(always)]
     pub fn count() -> usize {
         Self::ALL.len()
     }
@@ -167,6 +171,7 @@ impl QTable {
     }
 
     /// Get Q-value
+    #[inline]
     pub fn get(&self, state: u64, action: SchedulingAction) -> i64 {
         self.entries
             .get(&state)
@@ -176,13 +181,8 @@ impl QTable {
     }
 
     /// Update Q-value
-    pub fn update(
-        &mut self,
-        state: u64,
-        action: SchedulingAction,
-        new_value: i64,
-        now: u64,
-    ) {
+    #[inline]
+    pub fn update(&mut self, state: u64, action: SchedulingAction, new_value: i64, now: u64) {
         let actions = self.entries.entry(state).or_insert_with(BTreeMap::new);
         let entry = actions.entry(action as u8).or_insert_with(QEntry::new);
         entry.q_value = new_value;
@@ -211,6 +211,7 @@ impl QTable {
     }
 
     /// Visit count for state
+    #[inline]
     pub fn visits(&self, state: u64) -> u64 {
         self.entries
             .get(&state)
@@ -219,6 +220,7 @@ impl QTable {
     }
 
     /// Prune old entries
+    #[inline]
     pub fn prune(&mut self, max_age: u64, now: u64) {
         for actions in self.entries.values_mut() {
             actions.retain(|_, e| now.saturating_sub(e.last_update) < max_age);
@@ -304,11 +306,11 @@ pub struct LearningConfig {
 impl Default for LearningConfig {
     fn default() -> Self {
         Self {
-            alpha: 100,     // 0.1
-            gamma: 950,     // 0.95
-            epsilon: 200,   // 0.2
+            alpha: 100,         // 0.1
+            gamma: 950,         // 0.95
+            epsilon: 200,       // 0.2
             epsilon_decay: 999, // 0.999
-            min_epsilon: 10, // 0.01
+            min_epsilon: 10,    // 0.01
             max_entries: 10000,
             prune_age_ms: 600_000,
         }
@@ -317,6 +319,7 @@ impl Default for LearningConfig {
 
 /// Learning stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LearningStats {
     /// Total episodes
     pub episodes: u64,
@@ -343,7 +346,7 @@ pub struct CoopLearningEngine {
     /// Stats
     stats: LearningStats,
     /// Reward history
-    rewards: Vec<i64>,
+    rewards: VecDeque<i64>,
     /// Max reward history
     max_rewards: usize,
     /// Simple RNG state
@@ -356,7 +359,7 @@ impl CoopLearningEngine {
             q_table: QTable::new(),
             config,
             stats: LearningStats::default(),
-            rewards: Vec::new(),
+            rewards: VecDeque::new(),
             max_rewards: 1000,
             rng_state: 42,
         }
@@ -364,7 +367,10 @@ impl CoopLearningEngine {
 
     /// Simple pseudo-RNG
     fn next_random(&mut self) -> u64 {
-        self.rng_state = self.rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.rng_state = self
+            .rng_state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         self.rng_state >> 33
     }
 
@@ -409,19 +415,18 @@ impl CoopLearningEngine {
         // Update stats
         self.stats.episodes += 1;
         self.stats.total_reward += signal.reward;
-        self.rewards.push(signal.reward);
+        self.rewards.push_back(signal.reward);
         if self.rewards.len() > self.max_rewards {
-            self.rewards.remove(0);
+            self.rewards.pop_front();
         }
 
         if !self.rewards.is_empty() {
-            self.stats.avg_reward =
-                self.rewards.iter().sum::<i64>() / self.rewards.len() as i64;
+            self.stats.avg_reward = self.rewards.iter().sum::<i64>() / self.rewards.len() as i64;
         }
 
         // Decay epsilon
-        self.config.epsilon = ((self.config.epsilon as u64 * self.config.epsilon_decay as u64)
-            / 1000) as u32;
+        self.config.epsilon =
+            ((self.config.epsilon as u64 * self.config.epsilon_decay as u64) / 1000) as u32;
         if self.config.epsilon < self.config.min_epsilon {
             self.config.epsilon = self.config.min_epsilon;
         }
@@ -430,12 +435,14 @@ impl CoopLearningEngine {
     }
 
     /// Prune old entries
+    #[inline(always)]
     pub fn prune(&mut self, now: u64) {
         self.q_table.prune(self.config.prune_age_ms, now);
         self.stats.q_table_size = self.q_table.total_entries;
     }
 
     /// Extract features from process metrics
+    #[inline]
     pub fn extract_features(
         cpu_pct: u32,
         memory_pct: u32,
@@ -455,11 +462,13 @@ impl CoopLearningEngine {
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &LearningStats {
         &self.stats
     }
 
     /// Q-table size
+    #[inline(always)]
     pub fn q_table_size(&self) -> usize {
         self.q_table.total_entries
     }

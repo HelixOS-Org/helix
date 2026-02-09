@@ -26,6 +26,7 @@ pub enum UsbBusType {
 
 impl UsbBusType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Uhci => "uhci",
@@ -38,6 +39,7 @@ impl UsbBusType {
     }
 
     /// Max speed
+    #[inline]
     pub fn max_speed(&self) -> UsbSpeed {
         match self {
             Self::Uhci | Self::Ohci => UsbSpeed::Full,
@@ -94,16 +96,19 @@ impl UsbBus {
     }
 
     /// Get device
+    #[inline(always)]
     pub fn get_device(&self, address: DeviceAddress) -> Option<&UsbDevice> {
         self.devices.get(&address)
     }
 
     /// Device count
+    #[inline(always)]
     pub fn device_count(&self) -> usize {
         self.devices.len()
     }
 
     /// Max speed
+    #[inline(always)]
     pub fn max_speed(&self) -> UsbSpeed {
         self.bus_type.max_speed()
     }

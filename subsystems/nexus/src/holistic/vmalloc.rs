@@ -46,6 +46,7 @@ pub struct VmallocHole {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct VmallocStats {
     pub total_areas: u32,
     pub total_pages: u64,
@@ -87,6 +88,7 @@ impl HolisticVmalloc {
         None
     }
 
+    #[inline]
     pub fn free(&mut self, addr: u64) {
         if let Some(area) = self.areas.remove(&addr) {
             self.free_holes.push(VmallocHole { addr: area.addr, size: area.size });
@@ -106,6 +108,7 @@ impl HolisticVmalloc {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> VmallocStats {
         let pages: u64 = self.areas.values().map(|a| a.pages as u64).sum();
         let bytes: u64 = self.areas.values().map(|a| a.size).sum();

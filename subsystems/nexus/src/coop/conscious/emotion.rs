@@ -90,6 +90,7 @@ pub enum CoopEmotionKind {
 
 impl CoopEmotionKind {
     /// Return all variants for iteration
+    #[inline]
     pub fn all() -> &'static [CoopEmotionKind] {
         &[
             CoopEmotionKind::TrustAnxiety,
@@ -102,6 +103,7 @@ impl CoopEmotionKind {
     }
 
     /// Threshold above which this emotion is considered active
+    #[inline]
     pub fn activation_threshold(&self) -> f32 {
         match self {
             CoopEmotionKind::TrustAnxiety => TRUST_ANXIETY_THRESHOLD,
@@ -114,6 +116,7 @@ impl CoopEmotionKind {
     }
 
     /// Weight this emotion has on policy influence
+    #[inline]
     pub fn policy_weight(&self) -> f32 {
         match self {
             CoopEmotionKind::TrustAnxiety => 0.9,
@@ -171,6 +174,7 @@ impl CoopEmotionSignal {
     }
 
     /// Record a new raw intensity observation and update EMA
+    #[inline]
     pub fn observe(&mut self, raw: f32, tick: u64) {
         let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
         self.raw_intensity = clamped;
@@ -187,6 +191,7 @@ impl CoopEmotionSignal {
     }
 
     /// Apply time-based decay with optional jitter
+    #[inline]
     pub fn decay(&mut self, rng: &mut u64) {
         let jitter_raw = xorshift64(rng);
         let jitter = (jitter_raw % 100) as f32 / 100_000.0;
@@ -197,6 +202,7 @@ impl CoopEmotionSignal {
     }
 
     /// Whether this emotion is currently above its activation threshold
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.intensity >= self.kind.activation_threshold()
     }
@@ -264,6 +270,7 @@ impl ProcessEmotionProfile {
     }
 
     /// Update a specific emotion for this process
+    #[inline]
     pub fn update_emotion(&mut self, kind: CoopEmotionKind, raw: f32, tick: u64) {
         if let Some(signal) = self.signals.get_mut(&(kind as u8)) {
             signal.observe(raw, tick);
@@ -291,6 +298,7 @@ impl ProcessEmotionProfile {
 
 /// Aggregate statistics for the cooperation emotion landscape
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopEmotionStats {
     /// Total evaluations performed
     pub total_evaluations: u64,
@@ -442,6 +450,7 @@ impl CoopEmotionEngine {
     }
 
     /// Update global emotion aggregates from all process profiles
+    #[inline]
     fn update_global_aggregates(&mut self) {
         let count = self.profiles.len();
         if count == 0 {
@@ -514,6 +523,7 @@ impl CoopEmotionEngine {
     // ========================================================================
 
     /// Get the trust anxiety level for a specific process
+    #[inline]
     pub fn trust_anxiety_level(&self, process_id: u64) -> f32 {
         if let Some(profile) = self.profiles.get(&process_id) {
             if let Some(signal) = profile.signals.get(&(CoopEmotionKind::TrustAnxiety as u8)) {
@@ -524,11 +534,13 @@ impl CoopEmotionEngine {
     }
 
     /// Global average trust anxiety
+    #[inline(always)]
     pub fn global_trust_anxiety(&self) -> f32 {
         self.stats.avg_trust_anxiety
     }
 
     /// Processes with trust anxiety above threshold
+    #[inline]
     pub fn anxious_processes(&self) -> Vec<u64> {
         let mut result = Vec::new();
         for (pid, profile) in self.profiles.iter() {
@@ -546,6 +558,7 @@ impl CoopEmotionEngine {
     // ========================================================================
 
     /// Get cooperation joy for a process — how well sharing is going
+    #[inline]
     pub fn cooperation_joy(&self, process_id: u64) -> f32 {
         if let Some(profile) = self.profiles.get(&process_id) {
             if let Some(signal) = profile.signals.get(&(CoopEmotionKind::CooperationJoy as u8)) {
@@ -556,11 +569,13 @@ impl CoopEmotionEngine {
     }
 
     /// Average joy across all cooperating processes
+    #[inline(always)]
     pub fn global_cooperation_joy(&self) -> f32 {
         self.stats.avg_cooperation_joy
     }
 
     /// Processes experiencing high cooperation joy
+    #[inline]
     pub fn joyful_processes(&self) -> Vec<u64> {
         let mut result = Vec::new();
         for (pid, profile) in self.profiles.iter() {
@@ -581,6 +596,7 @@ impl CoopEmotionEngine {
     ///
     /// Positive score = cooperative, harmonious
     /// Negative score = contentious, anxious
+    #[inline]
     pub fn emotional_climate(&mut self) -> f32 {
         let joy = self.stats.avg_cooperation_joy;
         let solidarity = self.stats.avg_solidarity_pride;
@@ -606,6 +622,7 @@ impl CoopEmotionEngine {
     }
 
     /// Climate trend: average of recent climate samples
+    #[inline]
     pub fn climate_trend(&self) -> f32 {
         let mut sum = 0.0f32;
         let mut count = 0usize;
@@ -626,6 +643,7 @@ impl CoopEmotionEngine {
     ///
     /// High anxiety + high anger = strong policy override
     /// High joy + high solidarity = relax policy constraints
+    #[inline]
     pub fn emotion_influence_on_policy(&mut self) -> f32 {
         let urgency_emotions = self.stats.avg_trust_anxiety * 0.4
             + self.stats.avg_fairness_anger * 0.4
@@ -668,6 +686,7 @@ impl CoopEmotionEngine {
     // ========================================================================
 
     /// Apply decay to all emotion signals across all processes
+    #[inline]
     pub fn decay_all(&mut self) {
         let rng = &mut self.rng_state;
         for (_, profile) in self.profiles.iter_mut() {
@@ -698,21 +717,25 @@ impl CoopEmotionEngine {
     // ========================================================================
 
     /// Get the complete emotion profile for a process
+    #[inline(always)]
     pub fn process_profile(&self, process_id: u64) -> Option<&ProcessEmotionProfile> {
         self.profiles.get(&process_id)
     }
 
     /// Number of tracked processes
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.profiles.len()
     }
 
     /// Snapshot of current statistics
+    #[inline(always)]
     pub fn snapshot_stats(&self) -> CoopEmotionStats {
         self.stats.clone()
     }
 
     /// Per-emotion global intensities
+    #[inline]
     pub fn global_intensities(&self) -> Vec<(CoopEmotionKind, f32)> {
         let mut result = Vec::new();
         for kind in CoopEmotionKind::all() {

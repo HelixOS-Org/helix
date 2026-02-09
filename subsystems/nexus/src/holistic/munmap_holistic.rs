@@ -10,6 +10,7 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,6 +42,7 @@ pub struct RecycleEfficiency {
 }
 
 impl RecycleEfficiency {
+    #[inline(always)]
     pub fn ratio(&self) -> f64 {
         if self.total_freed == 0 { return 0.0; }
         self.total_reused as f64 / self.total_freed as f64
@@ -48,6 +50,7 @@ impl RecycleEfficiency {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MunmapHolisticStats {
     pub total_unmaps: u64,
     pub total_bytes_freed: u64,
@@ -64,7 +67,7 @@ pub struct MunmapHolisticManager {
     storms: Vec<UnmapStorm>,
     recycle: RecycleEfficiency,
     /// Sliding window of unmap events for storm detection
-    recent_unmaps: Vec<(u64, u64, u64)>, // (timestamp, pid, bytes)
+    recent_unmaps: VecDeque<(u64, u64, u64)>, // (timestamp, pid, bytes)
     window_size: usize,
     storm_threshold: u64, // unmaps per window to trigger storm
     phase: ReclaimPhase,
@@ -80,7 +83,7 @@ impl MunmapHolisticManager {
             recycle: RecycleEfficiency {
                 total_freed: 0, total_reused: 0, avg_recycle_latency: 0,
             },
-            recent_unmaps: Vec::new(),
+            recent_unmaps: VecDeque::new(),
             window_size: 1024,
             storm_threshold,
             phase: ReclaimPhase::Idle,
@@ -97,9 +100,9 @@ impl MunmapHolisticManager {
         rate.0 += 1;
         rate.1 += bytes;
 
-        self.recent_unmaps.push((now, pid, bytes));
+        self.recent_unmaps.push_back((now, pid, bytes));
         if self.recent_unmaps.len() > self.window_size {
-            self.recent_unmaps.remove(0);
+            self.recent_unmaps.pop_front();
         }
 
         self.detect_storm(now);
@@ -130,12 +133,14 @@ impl MunmapHolisticManager {
     }
 
     /// Report a suspected memory leak
+    #[inline(always)]
     pub fn report_leak(&mut self, report: SystemLeakReport) {
         self.stats.active_leaks += 1;
         self.leak_reports.push(report);
     }
 
     /// Get top leak suspects sorted by confidence
+    #[inline]
     pub fn top_leak_suspects(&self, n: usize) -> Vec<&SystemLeakReport> {
         let mut sorted: Vec<_> = self.leak_reports.iter().collect();
         sorted.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence)
@@ -144,6 +149,7 @@ impl MunmapHolisticManager {
     }
 
     /// Record address recycling
+    #[inline]
     pub fn record_recycle(&mut self, bytes: u64, latency_ns: u64) {
         self.recycle.total_reused += bytes;
         self.recycle.avg_recycle_latency = (self.recycle.avg_recycle_latency * 7 + latency_ns) / 8;
@@ -151,6 +157,7 @@ impl MunmapHolisticManager {
     }
 
     /// Compute global reclaim rate (bytes per second)
+    #[inline]
     pub fn compute_reclaim_rate(&mut self, window_ns: u64) -> u64 {
         if window_ns == 0 { return 0; }
         let rate = (self.stats.total_bytes_freed * 1_000_000_000) / window_ns;
@@ -159,6 +166,7 @@ impl MunmapHolisticManager {
     }
 
     /// Process exit cleanup: bulk reclaim
+    #[inline]
     pub fn process_exit(&mut self, pid: u64) {
         if let Some((_, bytes)) = self.unmap_rates.remove(&pid) {
             self.phase = ReclaimPhase::PostExit;
@@ -167,6 +175,8 @@ impl MunmapHolisticManager {
         self.leak_reports.retain(|r| r.pid != pid);
     }
 
+    #[inline(always)]
     pub fn phase(&self) -> ReclaimPhase { self.phase }
+    #[inline(always)]
     pub fn stats(&self) -> &MunmapHolisticStats { &self.stats }
 }

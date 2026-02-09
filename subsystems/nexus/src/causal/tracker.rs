@@ -4,6 +4,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -21,7 +22,7 @@ pub struct CausalTracker {
     /// The causal graph being built
     graph: CausalGraph,
     /// Current node per component
-    current_node: BTreeMap<u64, u64>,
+    current_node: LinearMap<u64, 64>,
     /// Maximum nodes to keep
     max_nodes: usize,
 }
@@ -31,7 +32,7 @@ impl CausalTracker {
     pub fn new(max_nodes: usize) -> Self {
         Self {
             graph: CausalGraph::new(),
-            current_node: BTreeMap::new(),
+            current_node: LinearMap::new(),
             max_nodes,
         }
     }
@@ -99,6 +100,7 @@ impl CausalTracker {
     }
 
     /// Record an error
+    #[inline(always)]
     pub fn record_error(
         &mut self,
         component: ComponentId,
@@ -108,26 +110,31 @@ impl CausalTracker {
     }
 
     /// Link two existing nodes
+    #[inline(always)]
     pub fn link_nodes(&mut self, from: u64, to: u64, edge_type: CausalEdgeType) {
         self.graph.link(from, to, edge_type);
     }
 
     /// Get the causal graph
+    #[inline(always)]
     pub fn graph(&self) -> &CausalGraph {
         &self.graph
     }
 
     /// Get mutable graph
+    #[inline(always)]
     pub fn graph_mut(&mut self) -> &mut CausalGraph {
         &mut self.graph
     }
 
     /// Find root cause of an error
+    #[inline(always)]
     pub fn find_root_cause(&self, error_node: u64) -> Option<u64> {
         self.graph.find_root_cause(error_node)
     }
 
     /// Get critical path
+    #[inline(always)]
     pub fn critical_path(&self) -> Vec<u64> {
         self.graph.critical_path()
     }

@@ -36,15 +36,18 @@ impl SeqlockInstance {
         }
     }
 
+    #[inline(always)]
     pub fn write_begin(&self) -> u64 {
         let seq = self.sequence.fetch_add(1, Ordering::Release);
         seq + 1
     }
 
+    #[inline(always)]
     pub fn write_end(&self) {
         self.sequence.fetch_add(1, Ordering::Release);
     }
 
+    #[inline]
     pub fn read_begin(&self) -> u64 {
         loop {
             let seq = self.sequence.load(Ordering::Acquire);
@@ -55,11 +58,13 @@ impl SeqlockInstance {
         }
     }
 
+    #[inline(always)]
     pub fn read_retry(&self, start_seq: u64) -> bool {
         let current = self.sequence.load(Ordering::Acquire);
         current != start_seq
     }
 
+    #[inline(always)]
     pub fn current_sequence(&self) -> u64 {
         self.sequence.load(Ordering::Acquire)
     }
@@ -67,6 +72,7 @@ impl SeqlockInstance {
 
 /// Statistics for seqlock coop
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeqlockStats {
     pub locks_created: u64,
     pub total_writes: u64,
@@ -98,6 +104,7 @@ impl CoopSeqlock {
         }
     }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -106,6 +113,7 @@ impl CoopSeqlock {
         id
     }
 
+    #[inline]
     pub fn write_begin(&mut self, lock_id: u64) -> Option<u64> {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             let seq = lock.write_begin();
@@ -117,12 +125,14 @@ impl CoopSeqlock {
         }
     }
 
+    #[inline]
     pub fn write_end(&mut self, lock_id: u64) {
         if let Some(lock) = self.locks.get(&lock_id) {
             lock.write_end();
         }
     }
 
+    #[inline]
     pub fn read_begin(&mut self, lock_id: u64) -> Option<u64> {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             let seq = lock.read_begin();
@@ -134,6 +144,7 @@ impl CoopSeqlock {
         }
     }
 
+    #[inline]
     pub fn read_retry(&mut self, lock_id: u64, start: u64) -> bool {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             if lock.read_retry(start) {
@@ -145,6 +156,7 @@ impl CoopSeqlock {
         false
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SeqlockStats {
         &self.stats
     }

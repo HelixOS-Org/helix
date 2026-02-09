@@ -92,30 +92,35 @@ impl BugPattern {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Set severity
+    #[inline(always)]
     pub fn with_severity(mut self, severity: BugSeverity) -> Self {
         self.severity = severity;
         self
     }
 
     /// Add symptom
+    #[inline(always)]
     pub fn with_symptom(mut self, symptom: impl Into<String>) -> Self {
         self.symptoms.push(symptom.into());
         self
     }
 
     /// Add fix suggestion
+    #[inline(always)]
     pub fn with_fix(mut self, fix: impl Into<String>) -> Self {
         self.fixes.push(fix.into());
         self
     }
 
     /// Match against an error message
+    #[inline]
     pub fn matches(&self, error: &str) -> bool {
         let error_lower = error.to_lowercase();
         self.symptoms

@@ -69,6 +69,7 @@ impl MemcgLruScan {
         }
     }
 
+    #[inline]
     pub fn reclaim_efficiency(&self) -> f64 {
         if self.nr_scanned == 0 {
             return 0.0;
@@ -76,6 +77,7 @@ impl MemcgLruScan {
         (self.nr_reclaimed as f64 / self.nr_scanned as f64) * 100.0
     }
 
+    #[inline]
     pub fn advance_generation(&mut self) {
         self.generation += 1;
         self.nr_scanned = 0;
@@ -157,6 +159,7 @@ impl MemcgReclaimCtx {
         };
     }
 
+    #[inline]
     pub fn proactive_reclaim_target(&self) -> u64 {
         if !self.proactive_reclaim_enabled || self.memory_limit == u64::MAX {
             return 0;
@@ -169,6 +172,7 @@ impl MemcgReclaimCtx {
         }
     }
 
+    #[inline]
     pub fn record_scan(&mut self, lru_type: MemcgLruType, scanned: u64, reclaimed: u64) {
         for scan in &mut self.lru_scans {
             if scan.lru_type == lru_type {
@@ -180,6 +184,7 @@ impl MemcgReclaimCtx {
         self.memory_usage = self.memory_usage.saturating_sub(reclaimed * 4096);
     }
 
+    #[inline(always)]
     pub fn above_soft_limit(&self) -> bool {
         self.soft_limit != u64::MAX && self.memory_usage > self.soft_limit
     }
@@ -187,6 +192,7 @@ impl MemcgReclaimCtx {
 
 /// Statistics for the memcg reclaim controller.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MemcgReclaimStats {
     pub total_cgroups: u64,
     pub total_pages_scanned: u64,
@@ -240,6 +246,7 @@ impl HolisticMemcgReclaim {
         id
     }
 
+    #[inline]
     pub fn set_limits(&mut self, cgroup_id: u64, memory_limit: u64, soft_limit: u64) -> bool {
         if let Some(cg) = self.cgroups.get_mut(&cgroup_id) {
             cg.memory_limit = memory_limit;
@@ -250,6 +257,7 @@ impl HolisticMemcgReclaim {
         }
     }
 
+    #[inline]
     pub fn charge_memory(&mut self, cgroup_id: u64, pages: u64) -> bool {
         if let Some(cg) = self.cgroups.get_mut(&cgroup_id) {
             cg.memory_usage += pages * 4096;
@@ -274,6 +282,7 @@ impl HolisticMemcgReclaim {
         reclaimed
     }
 
+    #[inline(always)]
     pub fn cgroup_count(&self) -> usize {
         self.cgroups.len()
     }

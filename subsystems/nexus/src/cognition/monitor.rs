@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::format;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -240,7 +241,7 @@ pub struct CognitiveMonitor {
     /// Health checks
     health_checks: BTreeMap<u64, HealthCheck>,
     /// Active alerts
-    alerts: Vec<Alert>,
+    alerts: VecDeque<Alert>,
     /// Alert history
     alert_history: Vec<Alert>,
     /// Next entity ID
@@ -284,6 +285,7 @@ impl Default for MonitorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MonitorStats {
     /// Total entities
     pub total_entities: u64,
@@ -309,7 +311,7 @@ impl CognitiveMonitor {
         Self {
             entities: BTreeMap::new(),
             health_checks: BTreeMap::new(),
-            alerts: Vec::new(),
+            alerts: VecDeque::new(),
             alert_history: Vec::new(),
             next_entity_id: AtomicU64::new(1),
             next_check_id: AtomicU64::new(1),
@@ -346,6 +348,7 @@ impl CognitiveMonitor {
     }
 
     /// Unregister an entity
+    #[inline]
     pub fn unregister_entity(&mut self, id: u64) -> bool {
         // Remove health checks for this entity
         self.health_checks.retain(|_, check| check.entity_id != id);
@@ -358,6 +361,7 @@ impl CognitiveMonitor {
     }
 
     /// Update entity metrics
+    #[inline]
     pub fn update_metrics(&mut self, entity_id: u64, metrics: BTreeMap<String, MetricValue>) {
         if let Some(entity) = self.entities.get_mut(&entity_id) {
             entity.metrics = metrics;
@@ -369,6 +373,7 @@ impl CognitiveMonitor {
     }
 
     /// Update single metric
+    #[inline]
     pub fn update_metric(&mut self, entity_id: u64, name: &str, value: MetricValue) {
         if let Some(entity) = self.entities.get_mut(&entity_id) {
             entity.metrics.insert(name.into(), value);
@@ -379,6 +384,7 @@ impl CognitiveMonitor {
     }
 
     /// Set entity status
+    #[inline]
     pub fn set_status(&mut self, entity_id: u64, status: EntityStatus) {
         if let Some(entity) = self.entities.get_mut(&entity_id) {
             entity.status = status;
@@ -387,6 +393,7 @@ impl CognitiveMonitor {
     }
 
     /// Set threshold
+    #[inline]
     pub fn set_threshold(&mut self, entity_id: u64, metric: &str, threshold: AlertThreshold) {
         if let Some(entity) = self.entities.get_mut(&entity_id) {
             entity.thresholds.insert(metric.into(), threshold);
@@ -479,12 +486,12 @@ impl CognitiveMonitor {
                 }
             }
 
-            self.alerts.push(alert.clone());
+            self.alerts.push_back(alert.clone());
             self.stats.total_alerts += 1;
 
             // Limit active alerts
             if self.alerts.len() > self.config.max_alerts {
-                let oldest = self.alerts.remove(0);
+                let oldest = self.alerts.pop_front().unwrap();
                 self.alert_history.push(oldest);
             }
         }
@@ -529,6 +536,7 @@ impl CognitiveMonitor {
     }
 
     /// Remove health check
+    #[inline(always)]
     pub fn remove_health_check(&mut self, check_id: u64) -> bool {
         self.health_checks.remove(&check_id).is_some()
     }
@@ -639,11 +647,13 @@ impl CognitiveMonitor {
     // ========================================================================
 
     /// Get active alerts
+    #[inline(always)]
     pub fn active_alerts(&self) -> &[Alert] {
         &self.alerts
     }
 
     /// Get alerts by severity
+    #[inline]
     pub fn alerts_by_severity(&self, min_severity: AlertSeverity) -> Vec<&Alert> {
         self.alerts
             .iter()
@@ -652,6 +662,7 @@ impl CognitiveMonitor {
     }
 
     /// Acknowledge alert
+    #[inline]
     pub fn acknowledge_alert(&mut self, alert_id: u64) {
         if let Some(alert) = self.alerts.iter_mut().find(|a| a.id == alert_id) {
             alert.acknowledged = true;
@@ -659,6 +670,7 @@ impl CognitiveMonitor {
     }
 
     /// Clear alert
+    #[inline]
     pub fn clear_alert(&mut self, alert_id: u64) {
         if let Some(pos) = self.alerts.iter().position(|a| a.id == alert_id) {
             let alert = self.alerts.remove(pos);
@@ -672,11 +684,13 @@ impl CognitiveMonitor {
     // ========================================================================
 
     /// Get entity
+    #[inline(always)]
     pub fn get_entity(&self, id: u64) -> Option<&MonitoredEntity> {
         self.entities.get(&id)
     }
 
     /// Get entities by type
+    #[inline]
     pub fn entities_by_type(&self, entity_type: EntityType) -> Vec<&MonitoredEntity> {
         self.entities
             .values()
@@ -685,6 +699,7 @@ impl CognitiveMonitor {
     }
 
     /// Get entities by status
+    #[inline]
     pub fn entities_by_status(&self, status: EntityStatus) -> Vec<&MonitoredEntity> {
         self.entities
             .values()
@@ -693,6 +708,7 @@ impl CognitiveMonitor {
     }
 
     /// Get entities by owner
+    #[inline]
     pub fn entities_by_owner(&self, owner: DomainId) -> Vec<&MonitoredEntity> {
         self.entities
             .values()
@@ -751,6 +767,7 @@ impl CognitiveMonitor {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MonitorStats {
         &self.stats
     }

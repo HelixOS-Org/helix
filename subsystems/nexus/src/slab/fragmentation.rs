@@ -2,6 +2,7 @@
 //!
 //! This module provides fragmentation analysis for slab caches.
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::SlabCacheId;
@@ -23,6 +24,7 @@ pub enum FragmentationLevel {
 
 impl FragmentationLevel {
     /// Get level name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::None => "none",
@@ -56,7 +58,7 @@ pub struct FragmentationAnalyzer {
     /// Cache ID
     cache_id: SlabCacheId,
     /// Historical samples
-    samples: Vec<FragmentationSample>,
+    samples: VecDeque<FragmentationSample>,
     /// Maximum samples
     max_samples: usize,
     /// Current fragmentation level
@@ -101,12 +103,13 @@ impl FragmentationAnalyzer {
 
         // Store sample
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
     /// Calculate internal fragmentation
+    #[inline]
     pub fn calculate_internal_fragmentation(&self, object_size: usize, aligned_size: usize) -> f32 {
         if aligned_size == 0 {
             return 0.0;
@@ -142,37 +145,44 @@ impl FragmentationAnalyzer {
     }
 
     /// Get current fragmentation level
+    #[inline(always)]
     pub fn current_level(&self) -> FragmentationLevel {
         self.current_level
     }
 
     /// Check if defragmentation is recommended
+    #[inline(always)]
     pub fn recommend_defrag(&self) -> bool {
         self.current_level >= FragmentationLevel::High
     }
 
     /// Record defragmentation
+    #[inline(always)]
     pub fn record_defrag(&mut self) {
         self.defrag_count += 1;
     }
 
     /// Get defrag count
+    #[inline(always)]
     pub fn defrag_count(&self) -> u64 {
         self.defrag_count
     }
 
     /// Get cache ID
+    #[inline(always)]
     pub fn cache_id(&self) -> SlabCacheId {
         self.cache_id
     }
 
     /// Set thresholds
+    #[inline(always)]
     pub fn set_thresholds(&mut self, internal: f32, external: f32) {
         self.internal_threshold = internal;
         self.external_threshold = external;
     }
 
     /// Get sample count
+    #[inline(always)]
     pub fn sample_count(&self) -> usize {
         self.samples.len()
     }

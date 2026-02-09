@@ -28,6 +28,7 @@ impl GemConstraint {
     }
 
     /// Add reference gradient for a task
+    #[inline(always)]
     pub fn add_reference(&mut self, task_id: u64, gradient: Vec<f64>) {
         self.task_ids.push(task_id);
         self.reference_grads.push(gradient);

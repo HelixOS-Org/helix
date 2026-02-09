@@ -158,6 +158,7 @@ pub struct SynthesisImpact {
 
 /// Synthesis engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SynthesisStats {
     pub total_pending: u64,
     pub total_applied: u64,
@@ -210,6 +211,7 @@ impl HolisticSynthesis {
     }
 
     /// Submit a validated improvement for synthesis
+    #[inline]
     pub fn submit_improvement(&mut self, imp: PendingImprovement) {
         if self.pending.len() < MAX_PENDING {
             self.pending.insert(imp.id, imp);
@@ -218,6 +220,7 @@ impl HolisticSynthesis {
     }
 
     /// Run full global synthesis: detect conflicts, plan, stage, apply
+    #[inline]
     pub fn global_synthesis(&mut self, tick: u64) -> SynthesisImpact {
         self.conflict_resolution();
         let plan = self.coordination_plan(tick);
@@ -405,6 +408,7 @@ impl HolisticSynthesis {
     }
 
     /// Compute overall synthesis impact from recent history
+    #[inline]
     pub fn synthesis_impact(&self) -> f32 {
         let mut weighted = 0.0f32;
         let mut weight = 1.0f32;
@@ -434,6 +438,7 @@ impl HolisticSynthesis {
     }
 
     /// Current statistics snapshot
+    #[inline(always)]
     pub fn stats(&self) -> &SynthesisStats {
         &self.stats
     }

@@ -39,6 +39,7 @@ impl FlatCombineRequest {
         Self { thread_id, op_type: op, key, value, state: FlatCombineState::Pending, result: None, timestamp: ts }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, result: u64) {
         self.state = FlatCombineState::Completed;
         self.result = Some(result);
@@ -58,11 +59,13 @@ impl FlatCombineSlot {
         Self { thread_id, request: None, age: 0, combine_count: 0 }
     }
 
+    #[inline(always)]
     pub fn publish(&mut self, req: FlatCombineRequest) {
         self.request = Some(req);
         self.age += 1;
     }
 
+    #[inline(always)]
     pub fn take_result(&mut self) -> Option<u64> {
         self.request.take().and_then(|r| r.result)
     }
@@ -76,6 +79,7 @@ pub struct FlatCombineRound {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FlatCombineStats {
     pub total_threads: u32,
     pub total_operations: u64,
@@ -106,11 +110,13 @@ impl CoopFlatCombine {
         }
     }
 
+    #[inline(always)]
     pub fn register_thread(&mut self, id: u32) {
         self.slots.insert(id, FlatCombineSlot::new(id));
         self.stats.total_threads += 1;
     }
 
+    #[inline]
     pub fn publish_request(&mut self, thread_id: u32, req: FlatCombineRequest) {
         if let Some(slot) = self.slots.get_mut(&thread_id) {
             slot.publish(req);
@@ -141,5 +147,6 @@ impl CoopFlatCombine {
         combined
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &FlatCombineStats { &self.stats }
 }

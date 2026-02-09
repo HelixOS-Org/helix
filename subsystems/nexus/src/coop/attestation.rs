@@ -103,6 +103,7 @@ impl AttestationQuote {
         hash
     }
 
+    #[inline(always)]
     pub fn verify_signature(&self) -> bool {
         self.signature == self.compute_signature()
     }
@@ -146,6 +147,7 @@ impl ProcessAttestation {
         }
     }
 
+    #[inline]
     pub fn extend_pcr(&mut self, index: u8, measurement: &[u8], now_ns: u64) {
         if let Some(pcr) = self.pcrs.get_mut(index as usize) {
             pcr.extend(measurement, now_ns);
@@ -187,10 +189,12 @@ impl ProcessAttestation {
         matches
     }
 
+    #[inline(always)]
     pub fn is_valid(&self, now_ns: u64) -> bool {
         self.state == AttestationState::Verified && now_ns < self.expiry_ns
     }
 
+    #[inline]
     pub fn check_expiry(&mut self, now_ns: u64) {
         if self.state == AttestationState::Verified && now_ns >= self.expiry_ns {
             self.state = AttestationState::Expired;
@@ -200,6 +204,7 @@ impl ProcessAttestation {
 
 /// Attestation protocol stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopAttestationStats {
     pub tracked_processes: usize,
     pub verified_count: usize,
@@ -225,21 +230,25 @@ impl CoopAttestationProtocol {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) {
         self.processes.entry(pid)
             .or_insert_with(|| ProcessAttestation::new(pid, self.default_pcr_count));
     }
 
+    #[inline]
     pub fn extend_pcr(&mut self, pid: u64, index: u8, measurement: &[u8], now_ns: u64) {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.extend_pcr(index, measurement, now_ns);
         }
     }
 
+    #[inline(always)]
     pub fn generate_quote(&mut self, pid: u64, nonce: u64, pcr_mask: u32, now_ns: u64) -> Option<AttestationQuote> {
         self.processes.get_mut(&pid).map(|p| p.generate_quote(nonce, pcr_mask, now_ns))
     }
 
+    #[inline]
     pub fn verify(&mut self, pid: u64, expected: &[[u8; 32]], now_ns: u64) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             let result = proc.verify(expected, now_ns);
@@ -250,6 +259,7 @@ impl CoopAttestationProtocol {
         }
     }
 
+    #[inline]
     pub fn tick(&mut self, now_ns: u64) {
         for proc in self.processes.values_mut() {
             proc.check_expiry(now_ns);
@@ -271,6 +281,7 @@ impl CoopAttestationProtocol {
             .map(|p| p.failure_count).sum();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopAttestationStats {
         &self.stats
     }

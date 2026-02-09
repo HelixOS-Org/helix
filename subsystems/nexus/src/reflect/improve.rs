@@ -218,6 +218,7 @@ impl Default for ImprovementConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ImprovementStats {
     /// Improvements proposed
     pub proposed: u64,
@@ -241,6 +242,7 @@ impl ImprovementEngine {
     }
 
     /// Add pattern
+    #[inline(always)]
     pub fn add_pattern(&mut self, pattern: ImprovementPattern) {
         self.patterns.push(pattern);
     }
@@ -276,6 +278,7 @@ impl ImprovementEngine {
     }
 
     /// Set impact and effort
+    #[inline]
     pub fn assess(&mut self, id: u64, impact: ImpactLevel, effort: EffortLevel) {
         if let Some(imp) = self.improvements.get_mut(&id) {
             imp.impact = impact;
@@ -306,6 +309,7 @@ impl ImprovementEngine {
     }
 
     /// Add evidence
+    #[inline]
     pub fn add_evidence(&mut self, id: u64, evidence: Evidence) {
         if let Some(imp) = self.improvements.get_mut(&id) {
             imp.evidence.push(evidence);
@@ -313,6 +317,7 @@ impl ImprovementEngine {
     }
 
     /// Update status
+    #[inline]
     pub fn set_status(&mut self, id: u64, status: ImprovementStatus) {
         if let Some(imp) = self.improvements.get_mut(&id) {
             imp.status = status;
@@ -401,6 +406,7 @@ impl ImprovementEngine {
     }
 
     /// Get top improvements
+    #[inline]
     pub fn get_top(&self, n: usize) -> Vec<&Improvement> {
         let mut improvements: Vec<_> = self.improvements.values()
             .filter(|i| i.status == ImprovementStatus::Proposed || i.status == ImprovementStatus::Accepted)
@@ -414,6 +420,7 @@ impl ImprovementEngine {
     }
 
     /// Get by category
+    #[inline]
     pub fn by_category(&self, category: ImprovementCategory) -> Vec<&Improvement> {
         self.improvements.values()
             .filter(|i| i.category == category)
@@ -421,11 +428,13 @@ impl ImprovementEngine {
     }
 
     /// Get improvement
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Improvement> {
         self.improvements.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ImprovementStats {
         &self.stats
     }
@@ -461,6 +470,7 @@ impl PatternBuilder {
     }
 
     /// When metric is below threshold
+    #[inline]
     pub fn when_below(mut self, metric: &str, threshold: f64) -> Self {
         self.condition = Some(PatternCondition::MetricBelow {
             metric: metric.into(),
@@ -470,6 +480,7 @@ impl PatternBuilder {
     }
 
     /// When metric is above threshold
+    #[inline]
     pub fn when_above(mut self, metric: &str, threshold: f64) -> Self {
         self.condition = Some(PatternCondition::MetricAbove {
             metric: metric.into(),
@@ -479,6 +490,7 @@ impl PatternBuilder {
     }
 
     /// Suggest improvement
+    #[inline]
     pub fn suggest(mut self, title: &str, description: &str, category: ImprovementCategory) -> Self {
         self.suggestion = Some(SuggestionTemplate {
             title: title.into(),
@@ -491,6 +503,7 @@ impl PatternBuilder {
     }
 
     /// Set impact and effort
+    #[inline]
     pub fn with_assessment(mut self, impact: ImpactLevel, effort: EffortLevel) -> Self {
         if let Some(ref mut s) = self.suggestion {
             s.default_impact = impact;
@@ -500,6 +513,7 @@ impl PatternBuilder {
     }
 
     /// Build
+    #[inline]
     pub fn build(self) -> Option<ImprovementPattern> {
         Some(ImprovementPattern {
             id: self.id,

@@ -43,6 +43,7 @@ impl Default for SenseConfig {
 
 impl SenseConfig {
     /// Minimal config for testing
+    #[inline]
     pub fn minimal() -> Self {
         Self {
             collector: EventCollectorConfig::small(),
@@ -52,6 +53,7 @@ impl SenseConfig {
     }
 
     /// Production config
+    #[inline]
     pub fn production() -> Self {
         Self {
             collector: EventCollectorConfig::large(),
@@ -113,26 +115,31 @@ impl SenseDomain {
     }
 
     /// Get domain ID
+    #[inline(always)]
     pub fn id(&self) -> DomainId {
         self.id
     }
 
     /// Register a probe
+    #[inline(always)]
     pub fn register_probe(&mut self, probe: Box<dyn Probe>) -> ProbeId {
         self.probes.register(probe)
     }
 
     /// Unregister a probe
+    #[inline(always)]
     pub fn unregister_probe(&mut self, id: ProbeId) -> Option<Box<dyn Probe>> {
         self.probes.unregister(id)
     }
 
     /// Get probe
+    #[inline(always)]
     pub fn get_probe(&self, id: ProbeId) -> Option<&dyn Probe> {
         self.probes.get(id)
     }
 
     /// Start the domain
+    #[inline]
     pub fn start(&mut self) -> Result<(), SenseError> {
         if self.running.load(Ordering::Acquire) {
             return Err(SenseError::AlreadyRunning);
@@ -160,16 +167,19 @@ impl SenseDomain {
     }
 
     /// Pause the domain
+    #[inline(always)]
     pub fn pause(&mut self) -> Result<(), SenseError> {
         self.probes.pause_all().map_err(SenseError::ProbeErrors)
     }
 
     /// Resume the domain
+    #[inline(always)]
     pub fn resume(&mut self) -> Result<(), SenseError> {
         self.probes.resume_all().map_err(SenseError::ProbeErrors)
     }
 
     /// Is running?
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Acquire)
     }
@@ -202,6 +212,7 @@ impl SenseDomain {
     }
 
     /// Get domain statistics
+    #[inline]
     pub fn stats(&self) -> SenseStats {
         SenseStats {
             domain_id: self.id,
@@ -215,6 +226,7 @@ impl SenseDomain {
     }
 
     /// Reset statistics
+    #[inline(always)]
     pub fn reset_stats(&self) {
         self.collector.reset_stats();
         self.normalizer.reset_stats();
@@ -233,6 +245,7 @@ impl Default for SenseDomain {
 
 /// Sense domain statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SenseStats {
     /// Domain ID
     pub domain_id: DomainId,

@@ -1,6 +1,8 @@
 //! Syscall monitoring and pattern detection.
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -19,7 +21,7 @@ pub struct SyscallMonitor {
     /// Suspicious syscall patterns
     suspicious_patterns: Vec<SyscallPattern>,
     /// Recent syscalls for sequence detection
-    recent_sequence: Vec<(u64, u32, u64)>, // (process, syscall, timestamp)
+    recent_sequence: VecDeque<(u64, u32, u64)>, // (process, syscall, timestamp)
     /// Max sequence size
     max_sequence: usize,
     /// Total syscalls monitored
@@ -30,7 +32,7 @@ pub struct SyscallMonitor {
 #[derive(Debug, Clone, Default)]
 struct SyscallStats {
     /// Counts per syscall number
-    counts: BTreeMap<u32, u64>,
+    counts: ArrayMap<u64, 32>,
     /// Total syscalls
     total: u64,
     /// Last syscall timestamp
@@ -60,7 +62,7 @@ impl SyscallMonitor {
         let mut monitor = Self {
             process_syscalls: BTreeMap::new(),
             suspicious_patterns: Vec::new(),
-            recent_sequence: Vec::new(),
+            recent_sequence: VecDeque::new(),
             max_sequence: 1000,
             total_syscalls: AtomicU64::new(0),
         };
@@ -112,7 +114,7 @@ impl SyscallMonitor {
         self.recent_sequence
             .push((process_id, syscall_num, timestamp));
         if self.recent_sequence.len() > self.max_sequence {
-            self.recent_sequence.remove(0);
+            self.recent_sequence.pop_front();
         }
 
         self.total_syscalls.fetch_add(1, Ordering::Relaxed);
@@ -162,6 +164,7 @@ impl SyscallMonitor {
     }
 
     /// Get syscall rate for process
+    #[inline]
     pub fn get_rate(&self, process_id: u64) -> f64 {
         self.process_syscalls
             .get(&process_id)
@@ -170,11 +173,13 @@ impl SyscallMonitor {
     }
 
     /// Check for rate anomaly (DoS indicator)
+    #[inline(always)]
     pub fn check_rate_anomaly(&self, process_id: u64, threshold: f64) -> bool {
         self.get_rate(process_id) > threshold
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> SyscallMonitorStats {
         SyscallMonitorStats {
             total_syscalls: self.total_syscalls.load(Ordering::Relaxed),
@@ -184,6 +189,7 @@ impl SyscallMonitor {
     }
 
     /// Add custom pattern
+    #[inline(always)]
     pub fn add_pattern(&mut self, pattern: SyscallPattern) {
         self.suspicious_patterns.push(pattern);
     }
@@ -197,6 +203,7 @@ impl Default for SyscallMonitor {
 
 /// Syscall monitor statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallMonitorStats {
     /// Total syscalls monitored
     pub total_syscalls: u64,

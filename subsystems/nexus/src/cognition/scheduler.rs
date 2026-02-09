@@ -10,6 +10,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -158,6 +159,7 @@ impl Default for TimeSlice {
 
 impl TimeSlice {
     /// Get quantum for priority
+    #[inline]
     pub fn quantum_for(&self, priority: TaskPriority) -> u64 {
         let mult = self.priority_mult[priority as usize];
         let quantum = (self.base_ns as f64 * mult) as u64;
@@ -171,13 +173,14 @@ impl TimeSlice {
 
 /// Run queue for ready tasks
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct RunQueue {
     /// Queue name
     pub name: String,
     /// Priority level
     pub level: usize,
     /// Tasks in queue
-    tasks: Vec<u64>,
+    tasks: VecDeque<u64>,
     /// Time slice for this queue
     pub time_slice: u64,
     /// Total run time
@@ -192,7 +195,7 @@ impl RunQueue {
         Self {
             name: name.into(),
             level,
-            tasks: Vec::new(),
+            tasks: VecDeque::new(),
             time_slice,
             total_run_time: 0,
             tasks_processed: 0,
@@ -200,35 +203,41 @@ impl RunQueue {
     }
 
     /// Enqueue a task
+    #[inline(always)]
     pub fn enqueue(&mut self, task_id: u64) {
-        self.tasks.push(task_id);
+        self.tasks.push_back(task_id);
     }
 
     /// Dequeue next task
+    #[inline]
     pub fn dequeue(&mut self) -> Option<u64> {
         if self.tasks.is_empty() {
             None
         } else {
-            Some(self.tasks.remove(0))
+            self.tasks.pop_front()
         }
     }
 
     /// Peek next task
+    #[inline(always)]
     pub fn peek(&self) -> Option<u64> {
         self.tasks.first().copied()
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.tasks.is_empty()
     }
 
     /// Get length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.tasks.len()
     }
 
     /// Remove task
+    #[inline]
     pub fn remove(&mut self, task_id: u64) -> bool {
         if let Some(pos) = self.tasks.iter().position(|&t| t == task_id) {
             self.tasks.remove(pos);
@@ -299,6 +308,7 @@ impl Default for SchedulerConfig {
 
 /// Scheduler statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SchedulerStats {
     /// Total tasks created
     pub total_created: u64,
@@ -429,6 +439,7 @@ impl CognitiveScheduler {
     }
 
     /// Select next task to run
+    #[inline]
     pub fn schedule(&mut self) -> Option<u64> {
         match self.policy {
             SchedulingPolicy::Fifo => self.schedule_fifo(),
@@ -630,6 +641,7 @@ impl CognitiveScheduler {
     }
 
     /// Fail a task
+    #[inline]
     pub fn fail(&mut self, task_id: u64) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.state = TaskState::Failed;
@@ -643,6 +655,7 @@ impl CognitiveScheduler {
     }
 
     /// Block a task
+    #[inline]
     pub fn block(&mut self, task_id: u64) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.state = TaskState::Blocked;
@@ -655,6 +668,7 @@ impl CognitiveScheduler {
     }
 
     /// Unblock a task
+    #[inline]
     pub fn unblock(&mut self, task_id: u64) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             if task.state == TaskState::Blocked {
@@ -712,6 +726,7 @@ impl CognitiveScheduler {
     }
 
     /// Boost priority
+    #[inline]
     pub fn boost(&mut self, task_id: u64, amount: i8) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.boost = task.boost.saturating_add(amount);
@@ -719,21 +734,25 @@ impl CognitiveScheduler {
     }
 
     /// Get task
+    #[inline(always)]
     pub fn get_task(&self, id: u64) -> Option<&CognitiveTask> {
         self.tasks.get(&id)
     }
 
     /// Get current task
+    #[inline(always)]
     pub fn current_task(&self) -> Option<&CognitiveTask> {
         self.current.and_then(|id| self.tasks.get(&id))
     }
 
     /// Get tasks by owner
+    #[inline(always)]
     pub fn tasks_by_owner(&self, owner: DomainId) -> Vec<&CognitiveTask> {
         self.tasks.values().filter(|t| t.owner == owner).collect()
     }
 
     /// Get quantum for current task
+    #[inline]
     pub fn current_quantum(&self) -> u64 {
         self.current
             .and_then(|id| self.tasks.get(&id))
@@ -742,6 +761,7 @@ impl CognitiveScheduler {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SchedulerStats {
         &self.stats
     }

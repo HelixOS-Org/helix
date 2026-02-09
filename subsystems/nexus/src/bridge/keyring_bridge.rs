@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -55,6 +56,7 @@ impl KeyPerm {
     pub const GROUP_VIEW: Self = Self(0x0100);
     pub const OTHER_VIEW: Self = Self(0x01);
 
+    #[inline(always)]
     pub fn contains(&self, perm: Self) -> bool {
         self.0 & perm.0 != 0
     }
@@ -62,6 +64,7 @@ impl KeyPerm {
 
 /// A kernel key
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KernelKey {
     pub serial: u32,
     pub key_type: KeyType,
@@ -89,18 +92,22 @@ impl KernelKey {
         }
     }
 
+    #[inline(always)]
     pub fn is_valid(&self) -> bool {
         matches!(self.state, KeyState::Valid)
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         self.expiry.map(|e| now >= e).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn idle_time(&self, now: u64) -> u64 {
         now.saturating_sub(self.last_used)
     }
 
+    #[inline(always)]
     pub fn is_keyring(&self) -> bool {
         self.key_type == KeyType::Keyring
     }
@@ -126,14 +133,17 @@ impl Keyring {
         }
     }
 
+    #[inline(always)]
     pub fn key_count(&self) -> usize {
         self.keys.len()
     }
 
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.keys.len() >= self.max_keys as usize
     }
 
+    #[inline]
     pub fn link_key(&mut self, serial: u32) -> bool {
         if self.is_full() { return false; }
         if !self.keys.contains(&serial) {
@@ -142,6 +152,7 @@ impl Keyring {
         true
     }
 
+    #[inline]
     pub fn unlink_key(&mut self, serial: u32) -> bool {
         let before = self.keys.len();
         self.keys.retain(|&k| k != serial);
@@ -175,6 +186,7 @@ pub struct KeyEvent {
 
 /// Keyring bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KeyringBridgeStats {
     pub total_keys: u32,
     pub total_keyrings: u32,
@@ -185,10 +197,11 @@ pub struct KeyringBridgeStats {
 }
 
 /// Main keyring bridge
+#[repr(align(64))]
 pub struct BridgeKeyring {
     keys: BTreeMap<u32, KernelKey>,
     keyrings: BTreeMap<u32, Keyring>,
-    events: Vec<KeyEvent>,
+    events: VecDeque<KeyEvent>,
     max_events: usize,
     next_serial: u32,
     stats: KeyringBridgeStats,
@@ -199,7 +212,7 @@ impl BridgeKeyring {
         Self {
             keys: BTreeMap::new(),
             keyrings: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 2048,
             next_serial: 1,
             stats: KeyringBridgeStats {
@@ -223,6 +236,7 @@ impl BridgeKeyring {
         serial
     }
 
+    #[inline]
     pub fn create_keyring(&mut self, name: String) -> u32 {
         let serial = self.next_serial;
         self.next_serial += 1;
@@ -235,6 +249,7 @@ impl BridgeKeyring {
         serial
     }
 
+    #[inline]
     pub fn revoke_key(&mut self, serial: u32) -> bool {
         if let Some(key) = self.keys.get_mut(&serial) {
             key.state = KeyState::Revoked;
@@ -243,6 +258,7 @@ impl BridgeKeyring {
         } else { false }
     }
 
+    #[inline]
     pub fn expire_keys(&mut self, now: u64) -> u32 {
         let mut count = 0;
         for key in self.keys.values_mut() {
@@ -255,12 +271,14 @@ impl BridgeKeyring {
         count
     }
 
+    #[inline]
     pub fn link_to_keyring(&mut self, keyring_serial: u32, key_serial: u32) -> bool {
         if let Some(kr) = self.keyrings.get_mut(&keyring_serial) {
             kr.link_key(key_serial)
         } else { false }
     }
 
+    #[inline]
     pub fn search_keyring(&self, keyring_serial: u32, key_type: KeyType, desc: &str) -> Option<u32> {
         let kr = self.keyrings.get(&keyring_serial)?;
         for &serial in &kr.keys {
@@ -273,12 +291,14 @@ impl BridgeKeyring {
         None
     }
 
+    #[inline]
     pub fn record_event(&mut self, event: KeyEvent) {
         self.stats.total_ops += 1;
-        if self.events.len() >= self.max_events { self.events.remove(0); }
-        self.events.push(event);
+        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        self.events.push_back(event);
     }
 
+    #[inline]
     pub fn stale_keys(&self, now: u64, threshold: u64) -> Vec<u32> {
         self.keys.iter()
             .filter(|(_, k)| k.is_valid() && k.idle_time(now) > threshold)
@@ -286,6 +306,7 @@ impl BridgeKeyring {
             .collect()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &KeyringBridgeStats {
         &self.stats
     }
@@ -330,12 +351,15 @@ impl KeyPermV2 {
     pub const LINK: u32 = 1 << 4;
     pub const SETATTR: u32 = 1 << 5;
 
+    #[inline(always)]
     pub fn full() -> Self { Self(0x3F) }
+    #[inline(always)]
     pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
 }
 
 /// Key entry
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct KeyEntryV2 {
     pub serial: u64,
     pub key_type: KeyTypeV2,
@@ -361,10 +385,14 @@ impl KeyEntryV2 {
         }
     }
 
+    #[inline(always)]
     pub fn access(&mut self) { self.usage_count += 1; }
+    #[inline(always)]
     pub fn revoke(&mut self) { self.state = KeyStateV2::Revoked; }
+    #[inline(always)]
     pub fn expire(&mut self) { self.state = KeyStateV2::Expired; }
 
+    #[inline]
     pub fn check_expiry(&mut self, now: u64) -> bool {
         if self.expires_at > 0 && now >= self.expires_at && self.state == KeyStateV2::Valid {
             self.expire();
@@ -372,6 +400,7 @@ impl KeyEntryV2 {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn is_usable(&self) -> bool { self.state == KeyStateV2::Valid }
 }
 
@@ -391,6 +420,7 @@ impl KeyringV2 {
         Self { serial, uid, keys: Vec::new(), max_keys: 200, max_bytes: 20000, current_bytes: 0 }
     }
 
+    #[inline]
     pub fn add_key(&mut self, key_serial: u64, size: u32) -> bool {
         if self.keys.len() as u32 >= self.max_keys { return false; }
         if self.current_bytes + size as u64 > self.max_bytes { return false; }
@@ -399,6 +429,7 @@ impl KeyringV2 {
         true
     }
 
+    #[inline(always)]
     pub fn remove_key(&mut self, serial: u64) {
         self.keys.retain(|&k| k != serial);
     }
@@ -406,6 +437,7 @@ impl KeyringV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KeyringV2BridgeStats {
     pub total_keys: u32,
     pub total_keyrings: u32,
@@ -417,6 +449,7 @@ pub struct KeyringV2BridgeStats {
 }
 
 /// Main keyring v2 bridge
+#[repr(align(64))]
 pub struct BridgeKeyringV2 {
     keys: BTreeMap<u64, KeyEntryV2>,
     keyrings: BTreeMap<u64, KeyringV2>,
@@ -426,18 +459,21 @@ pub struct BridgeKeyringV2 {
 impl BridgeKeyringV2 {
     pub fn new() -> Self { Self { keys: BTreeMap::new(), keyrings: BTreeMap::new(), next_serial: 1 } }
 
+    #[inline]
     pub fn add_key(&mut self, ktype: KeyTypeV2, uid: u32, payload_size: u32, now: u64) -> u64 {
         let serial = self.next_serial; self.next_serial += 1;
         self.keys.insert(serial, KeyEntryV2::new(serial, ktype, uid, payload_size, now));
         serial
     }
 
+    #[inline]
     pub fn create_keyring(&mut self, uid: u32) -> u64 {
         let serial = self.next_serial; self.next_serial += 1;
         self.keyrings.insert(serial, KeyringV2::new(serial, uid));
         serial
     }
 
+    #[inline(always)]
     pub fn revoke(&mut self, serial: u64) {
         if let Some(k) = self.keys.get_mut(&serial) { k.revoke(); }
     }
@@ -501,6 +537,7 @@ pub enum KeyV3Result {
 
 /// Key v3 record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KeyV3Record {
     pub op: KeyV3Op,
     pub key_type: KeyV3Type,
@@ -520,6 +557,7 @@ impl KeyV3Record {
 
 /// Key v3 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KeyV3BridgeStats {
     pub total_ops: u64,
     pub adds: u64,
@@ -539,6 +577,7 @@ impl BridgeKeyringV3 {
         Self { stats: KeyV3BridgeStats { total_ops: 0, adds: 0, searches: 0, revocations: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &KeyV3Record) {
         self.stats.total_ops += 1;
         match rec.op {

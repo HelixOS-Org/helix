@@ -22,6 +22,7 @@ impl EventfdHolisticRecord {
 
 /// Eventfd holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventfdHolisticStats { pub total_samples: u64, pub bursts: u64, pub saturated: u64, pub peak_wakeups: u32 }
 
 /// Main holistic eventfd
@@ -30,6 +31,7 @@ pub struct HolisticEventfd { pub stats: EventfdHolisticStats }
 
 impl HolisticEventfd {
     pub fn new() -> Self { Self { stats: EventfdHolisticStats { total_samples: 0, bursts: 0, saturated: 0, peak_wakeups: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &EventfdHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.pattern {

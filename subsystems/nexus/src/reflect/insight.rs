@@ -32,6 +32,7 @@ pub enum InsightType {
 
 impl InsightType {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::HealthStatus => "Health Status",
@@ -93,24 +94,28 @@ impl Insight {
     }
 
     /// Set target domain
+    #[inline(always)]
     pub fn for_domain(mut self, domain: Domain) -> Self {
         self.target_domain = Some(domain);
         self
     }
 
     /// Add recommendation
+    #[inline(always)]
     pub fn with_recommendation(mut self, recommendation: impl Into<String>) -> Self {
         self.recommendations.push(recommendation.into());
         self
     }
 
     /// Set expiration
+    #[inline(always)]
     pub fn expires_at(mut self, timestamp: Timestamp) -> Self {
         self.expires_at = Some(timestamp);
         self
     }
 
     /// Set expiration duration from now
+    #[inline]
     pub fn expires_in(mut self, duration: Duration) -> Self {
         self.expires_at = Some(Timestamp::new(
             Timestamp::now().as_nanos() + duration.as_nanos(),
@@ -119,6 +124,7 @@ impl Insight {
     }
 
     /// Is expired?
+    #[inline]
     pub fn is_expired(&self, now: Timestamp) -> bool {
         self.expires_at
             .map(|exp| now.as_nanos() > exp.as_nanos())
@@ -126,11 +132,13 @@ impl Insight {
     }
 
     /// Is critical?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.severity == Severity::Critical
     }
 
     /// Is warning or worse?
+    #[inline]
     pub fn is_warning_or_worse(&self) -> bool {
         matches!(
             self.severity,
@@ -139,6 +147,7 @@ impl Insight {
     }
 
     /// Has recommendations?
+    #[inline(always)]
     pub fn has_recommendations(&self) -> bool {
         !self.recommendations.is_empty()
     }
@@ -175,26 +184,31 @@ impl InsightBatch {
     }
 
     /// Add insight
+    #[inline(always)]
     pub fn add(&mut self, insight: Insight) {
         self.insights.push(insight);
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.insights.is_empty()
     }
 
     /// Get count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.insights.len()
     }
 
     /// Get critical insights
+    #[inline(always)]
     pub fn critical(&self) -> Vec<&Insight> {
         self.insights.iter().filter(|i| i.is_critical()).collect()
     }
 
     /// Get by type
+    #[inline]
     pub fn by_type(&self, insight_type: InsightType) -> Vec<&Insight> {
         self.insights
             .iter()
@@ -203,6 +217,7 @@ impl InsightBatch {
     }
 
     /// Get by domain
+    #[inline]
     pub fn by_domain(&self, domain: Domain) -> Vec<&Insight> {
         self.insights
             .iter()

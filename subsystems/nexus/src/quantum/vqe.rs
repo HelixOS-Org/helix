@@ -46,6 +46,7 @@ pub struct VqeParameters {
 
 impl VqeParameters {
     /// Create new parameters for hardware-efficient ansatz
+    #[inline]
     pub fn hardware_efficient(n_qubits: usize, n_layers: usize) -> Self {
         // 3 rotation parameters per qubit per layer
         let n_params = 3 * n_qubits * n_layers;
@@ -78,11 +79,13 @@ impl VqeParameters {
     }
 
     /// Number of parameters
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.values.len()
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.values.is_empty()
     }
@@ -124,6 +127,7 @@ impl AnsatzBuilder {
     }
 
     /// Set ansatz type
+    #[inline(always)]
     pub fn with_type(mut self, t: AnsatzType) -> Self {
         self.ansatz_type = t;
         self
@@ -177,6 +181,7 @@ impl AnsatzBuilder {
     }
 
     /// Build ansatz based on type
+    #[inline]
     pub fn build(&self, params: &VqeParameters) -> QuantumCircuit {
         match self.ansatz_type {
             AnsatzType::HardwareEfficient => self.build_hardware_efficient(params),
@@ -214,12 +219,14 @@ impl VqeEngine {
     }
 
     /// Set ansatz type
+    #[inline(always)]
     pub fn with_ansatz(mut self, ansatz_type: AnsatzType) -> Self {
         self.ansatz = self.ansatz.with_type(ansatz_type);
         self
     }
 
     /// Initialize parameters randomly
+    #[inline(always)]
     pub fn randomize_params(&mut self, seed: u64) {
         self.parameters = VqeParameters::random_init(self.n_qubits, self.parameters.n_layers, seed);
     }
@@ -274,6 +281,7 @@ impl VqeEngine {
     }
 
     /// Compute energy with current parameters
+    #[inline(always)]
     pub fn energy(&self) -> f64 {
         self.compute_energy(&self.parameters)
     }
@@ -330,18 +338,21 @@ impl VqeOptimizer {
     }
 
     /// Set learning rate
+    #[inline(always)]
     pub fn with_learning_rate(mut self, lr: f64) -> Self {
         self.learning_rate = lr;
         self
     }
 
     /// Set max iterations
+    #[inline(always)]
     pub fn with_max_iterations(mut self, iters: usize) -> Self {
         self.max_iterations = iters;
         self
     }
 
     /// Set convergence threshold
+    #[inline(always)]
     pub fn with_threshold(mut self, thresh: f64) -> Self {
         self.convergence_threshold = thresh;
         self
@@ -396,6 +407,7 @@ impl VqeOptimizer {
     }
 
     /// Get inner engine
+    #[inline(always)]
     pub fn into_engine(self) -> VqeEngine {
         self.engine
     }

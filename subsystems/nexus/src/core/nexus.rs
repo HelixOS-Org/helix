@@ -89,6 +89,7 @@ impl NexusIdentity {
     }
 
     /// Uptime
+    #[inline(always)]
     pub fn uptime(&self, now: Timestamp) -> Duration {
         now.elapsed_since(self.start_time)
     }
@@ -125,21 +126,25 @@ impl NexusClock {
     pub const DEFAULT_TICK_DURATION: Duration = Duration::from_millis(10);
 
     /// Start the clock
+    #[inline(always)]
     pub fn start(&self) {
         self.running.store(true, Ordering::Release);
     }
 
     /// Stop the clock
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::Release);
     }
 
     /// Is running
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Acquire)
     }
 
     /// Advance clock by one tick
+    #[inline]
     pub fn tick(&self) -> u64 {
         let tick = self.tick.fetch_add(1, Ordering::SeqCst) + 1;
         self.time_ns
@@ -148,21 +153,25 @@ impl NexusClock {
     }
 
     /// Set time (for synchronization)
+    #[inline(always)]
     pub fn set_time(&self, time_ns: u64) {
         self.time_ns.store(time_ns, Ordering::SeqCst);
     }
 
     /// Get current tick
+    #[inline(always)]
     pub fn current_tick(&self) -> u64 {
         self.tick.load(Ordering::Acquire)
     }
 
     /// Get current time
+    #[inline(always)]
     pub fn now(&self) -> Timestamp {
         Timestamp::new(self.time_ns.load(Ordering::Acquire))
     }
 
     /// Get tick duration
+    #[inline(always)]
     pub fn tick_duration(&self) -> Duration {
         Duration::from_nanos(self.tick_duration_ns)
     }
@@ -215,6 +224,7 @@ impl NexusState {
     }
 
     /// Is operational
+    #[inline(always)]
     pub const fn is_operational(&self) -> bool {
         matches!(self, Self::Ready | Self::Running | Self::Paused)
     }
@@ -393,21 +403,25 @@ impl DomainManager {
     }
 
     /// Get domain status
+    #[inline(always)]
     pub fn status(&self, domain: Domain) -> Option<&DomainStatus> {
         self.statuses.iter().find(|s| s.domain == domain)
     }
 
     /// Get mutable domain status
+    #[inline(always)]
     pub fn status_mut(&mut self, domain: Domain) -> Option<&mut DomainStatus> {
         self.statuses.iter_mut().find(|s| s.domain == domain)
     }
 
     /// Get all statuses
+    #[inline(always)]
     pub fn all_statuses(&self) -> &[DomainStatus] {
         &self.statuses
     }
 
     /// Get enabled domains
+    #[inline]
     pub fn enabled_domains(&self) -> Vec<Domain> {
         self.statuses
             .iter()
@@ -417,6 +431,7 @@ impl DomainManager {
     }
 
     /// Get healthy domains
+    #[inline]
     pub fn healthy_domains(&self) -> Vec<Domain> {
         self.statuses
             .iter()
@@ -426,6 +441,7 @@ impl DomainManager {
     }
 
     /// Overall health score
+    #[inline]
     pub fn overall_health(&self) -> u8 {
         let enabled: Vec<_> = self.statuses.iter().filter(|s| s.enabled).collect();
         if enabled.is_empty() {
@@ -436,6 +452,7 @@ impl DomainManager {
     }
 
     /// Update domain tick
+    #[inline]
     pub fn record_tick(&mut self, domain: Domain, tick: u64) {
         if let Some(status) = self.status_mut(domain) {
             status.last_tick = tick;
@@ -443,6 +460,7 @@ impl DomainManager {
     }
 
     /// Update domain health
+    #[inline]
     pub fn update_health(&mut self, domain: Domain, healthy: bool, score: u8) {
         if let Some(status) = self.status_mut(domain) {
             status.healthy = healthy;
@@ -495,41 +513,49 @@ impl Nexus {
     }
 
     /// Get identity
+    #[inline(always)]
     pub fn identity(&self) -> &NexusIdentity {
         &self.identity
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &NexusConfig {
         &self.config
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn state(&self) -> NexusState {
         self.state
     }
 
     /// Get clock
+    #[inline(always)]
     pub fn clock(&self) -> &NexusClock {
         &self.clock
     }
 
     /// Get message bus
+    #[inline(always)]
     pub fn bus(&self) -> &MessageBus {
         &self.bus
     }
 
     /// Get mutable message bus
+    #[inline(always)]
     pub fn bus_mut(&mut self) -> &mut MessageBus {
         &mut self.bus
     }
 
     /// Get domain manager
+    #[inline(always)]
     pub fn domains(&self) -> &DomainManager {
         &self.domains
     }
 
     /// Get mutable domain manager
+    #[inline(always)]
     pub fn domains_mut(&mut self) -> &mut DomainManager {
         &mut self.domains
     }
@@ -558,6 +584,7 @@ impl Nexus {
     }
 
     /// Start NEXUS
+    #[inline]
     pub fn start(&mut self) -> NexusResult<()> {
         if !self.state.can_transition_to(&NexusState::Running) {
             return Err(NexusError::new(
@@ -571,6 +598,7 @@ impl Nexus {
     }
 
     /// Pause NEXUS
+    #[inline]
     pub fn pause(&mut self) -> NexusResult<()> {
         if !self.state.can_transition_to(&NexusState::Paused) {
             return Err(NexusError::new(
@@ -584,6 +612,7 @@ impl Nexus {
     }
 
     /// Resume NEXUS
+    #[inline]
     pub fn resume(&mut self) -> NexusResult<()> {
         if self.state != NexusState::Paused {
             return Err(NexusError::new(
@@ -694,6 +723,7 @@ impl TickResult {
     }
 
     /// Create skipped result
+    #[inline]
     pub fn skipped() -> Self {
         Self {
             tick: 0,
@@ -758,6 +788,7 @@ pub unsafe fn init_global(boot_id: u64, config: NexusConfig) -> NexusResult<()> 
 ///
 /// # Safety
 /// Must only be called after init_global
+#[inline(always)]
 pub fn get_global() -> Option<spin::RwLockReadGuard<'static, Nexus>> {
     NEXUS.get().map(|n| n.read())
 }
@@ -766,6 +797,7 @@ pub fn get_global() -> Option<spin::RwLockReadGuard<'static, Nexus>> {
 ///
 /// # Safety
 /// Must ensure single-threaded access or proper synchronization
+#[inline(always)]
 pub fn get_global_mut() -> Option<spin::RwLockWriteGuard<'static, Nexus>> {
     NEXUS.get().map(|n| n.write())
 }

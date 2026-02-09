@@ -37,6 +37,7 @@ impl ModalityInput {
     }
 
     /// Create a missing modality
+    #[inline]
     pub fn missing(modality_type: ModalityType, dim: usize) -> Self {
         Self {
             modality_type,
@@ -48,6 +49,7 @@ impl ModalityInput {
     }
 
     /// Dimension of features
+    #[inline(always)]
     pub fn dim(&self) -> usize {
         self.features.len()
     }
@@ -72,21 +74,25 @@ impl MultimodalInput {
     }
 
     /// Add a modality
+    #[inline(always)]
     pub fn add(&mut self, input: ModalityInput) {
         self.modalities.insert(input.modality_type, input);
     }
 
     /// Get a modality
+    #[inline(always)]
     pub fn get(&self, modality_type: ModalityType) -> Option<&ModalityInput> {
         self.modalities.get(&modality_type)
     }
 
     /// Number of modalities present
+    #[inline(always)]
     pub fn num_present(&self) -> usize {
         self.modalities.values().filter(|m| m.present).count()
     }
 
     /// Check if a modality is present
+    #[inline]
     pub fn has(&self, modality_type: ModalityType) -> bool {
         self.modalities
             .get(&modality_type)

@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -146,6 +147,7 @@ pub enum RecAction {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct InterfaceStats {
     pub total_explanations: usize,
     pub total_reports: usize,
@@ -166,7 +168,7 @@ pub struct CoopInterface {
     reports: BTreeMap<u64, FairnessReport>,
     insights: BTreeMap<u64, NegotiationInsight>,
     recommendations: BTreeMap<u64, Recommendation>,
-    narrative_log: Vec<u64>,
+    narrative_log: VecDeque<u64>,
     rng_state: u64,
     tick: u64,
     stats: InterfaceStats,
@@ -181,7 +183,7 @@ impl CoopInterface {
             reports: BTreeMap::new(),
             insights: BTreeMap::new(),
             recommendations: BTreeMap::new(),
-            narrative_log: Vec::new(),
+            narrative_log: VecDeque::new(),
             rng_state: seed | 1,
             tick: 0,
             stats: InterfaceStats {
@@ -201,6 +203,7 @@ impl CoopInterface {
 
     // -- explain allocation -------------------------------------------------
 
+    #[inline]
     pub fn explain_allocation(
         &mut self,
         agent_id: u64,
@@ -266,6 +269,7 @@ impl CoopInterface {
 
     // -- fairness report ----------------------------------------------------
 
+    #[inline]
     pub fn fairness_report(&mut self, agent_satisfactions: &[(u64, u64)]) -> FairnessReport {
         let n = agent_satisfactions.len();
         if n == 0 {
@@ -389,14 +393,15 @@ impl CoopInterface {
 
     // -- cooperation narrative ----------------------------------------------
 
+    #[inline(always)]
     pub fn cooperation_narrative(&self) -> Vec<u64> {
         self.narrative_log.clone()
     }
 
     fn push_narrative_event(&mut self, event_id: u64) {
-        self.narrative_log.push(event_id);
+        self.narrative_log.push_back(event_id);
         if self.narrative_log.len() > NARRATIVE_WINDOW {
-            self.narrative_log.remove(0);
+            self.narrative_log.pop_front();
         }
     }
 
@@ -479,6 +484,7 @@ impl CoopInterface {
 
     // -- tick ---------------------------------------------------------------
 
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.tick += 1;
         self.refresh_stats();
@@ -509,6 +515,7 @@ impl CoopInterface {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> InterfaceStats {
         self.stats.clone()
     }

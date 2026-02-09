@@ -18,6 +18,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -59,6 +60,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f32, sample: f32) -> f32 {
     EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * current
 }
@@ -205,6 +207,7 @@ pub struct CrossSubsystemCausality {
 
 /// Runtime statistics for the causal forecast engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CausalForecastStats {
     pub predictions_made: u64,
     pub root_cause_analyses: u64,
@@ -320,6 +323,7 @@ impl HolisticCausalForecast {
     }
 
     /// Predict causal effects from an event across the entire system
+    #[inline]
     pub fn system_causal_predict(&mut self, trigger_id: u64) -> CausalCascade {
         self.stats.predictions_made += 1;
         self.generation += 1;
@@ -333,7 +337,7 @@ impl HolisticCausalForecast {
         let mut current = symptom_id;
         let mut total_strength = 1.0_f32;
         let mut total_latency = 0_u64;
-        let mut visited: BTreeMap<u64, bool> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
         let mut cross_count = 0_usize;
 
         chain.push(current);
@@ -389,7 +393,7 @@ impl HolisticCausalForecast {
         let depth = if max_depth > MAX_CASCADE_DEPTH { MAX_CASCADE_DEPTH } else { max_depth };
         let mut affected: Vec<u64> = Vec::new();
         let mut frontier: Vec<u64> = Vec::new();
-        let mut visited: BTreeMap<u64, bool> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
         let mut total_impact = 0.0_f32;
         let mut subsystems: BTreeMap<u8, SubsystemDomain> = BTreeMap::new();
         let mut total_latency = 0_u64;
@@ -564,6 +568,7 @@ impl HolisticCausalForecast {
     }
 
     /// Get current statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CausalForecastStats {
         &self.stats
     }

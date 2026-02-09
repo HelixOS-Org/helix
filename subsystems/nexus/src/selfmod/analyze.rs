@@ -281,6 +281,7 @@ pub struct PerformancePrediction {
 
 /// Cache impact
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CacheImpact {
     /// L1 cache hit rate change
     pub l1_hit_change: f64,
@@ -412,6 +413,7 @@ impl Analyzer {
     }
 
     /// Add analysis pass
+    #[inline(always)]
     pub fn add_pass(&mut self, pass: Box<dyn AnalysisPass>) {
         self.passes.push(pass);
     }

@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -83,6 +83,7 @@ pub struct ProbeConfig {
 }
 
 impl ProbeConfig {
+    #[inline]
     pub fn liveness() -> Self {
         Self {
             probe_type: ProbeType::Liveness,
@@ -94,6 +95,7 @@ impl ProbeConfig {
         }
     }
 
+    #[inline]
     pub fn readiness() -> Self {
         Self {
             probe_type: ProbeType::Readiness,
@@ -105,6 +107,7 @@ impl ProbeConfig {
         }
     }
 
+    #[inline]
     pub fn startup() -> Self {
         Self {
             probe_type: ProbeType::Startup,
@@ -123,6 +126,7 @@ impl ProbeConfig {
 
 /// Per-process health state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessHealthState {
     /// Process id
     pub pid: u64,
@@ -148,6 +152,7 @@ pub struct ProcessHealthState {
 
 /// State of a single probe
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProbeState {
     /// Configured?
     pub configured: bool,
@@ -259,6 +264,7 @@ impl ProcessHealthState {
     }
 
     /// Failure rate
+    #[inline]
     pub fn failure_rate(&self) -> f64 {
         if self.total_probes == 0 {
             return 0.0;
@@ -290,7 +296,7 @@ pub struct CascadeDetector {
     /// Dependency graph: pid -> depends_on
     dependencies: BTreeMap<u64, Vec<u64>>,
     /// Recent cascades
-    cascades: Vec<CascadeEvent>,
+    cascades: VecDeque<CascadeEvent>,
     /// Max cascades
     max_cascades: usize,
 }
@@ -299,12 +305,13 @@ impl CascadeDetector {
     pub fn new() -> Self {
         Self {
             dependencies: BTreeMap::new(),
-            cascades: Vec::new(),
+            cascades: VecDeque::new(),
             max_cascades: 64,
         }
     }
 
     /// Add dependency
+    #[inline]
     pub fn add_dependency(&mut self, pid: u64, depends_on: u64) {
         self.dependencies
             .entry(pid)
@@ -313,6 +320,7 @@ impl CascadeDetector {
     }
 
     /// Remove process
+    #[inline]
     pub fn remove(&mut self, pid: u64) {
         self.dependencies.remove(&pid);
         for deps in self.dependencies.values_mut() {
@@ -342,9 +350,9 @@ impl CascadeDetector {
         };
 
         if self.cascades.len() >= self.max_cascades {
-            self.cascades.remove(0);
+            self.cascades.pop_front();
         }
-        self.cascades.push(event.clone());
+        self.cascades.push_back(event.clone());
         Some(event)
     }
 }
@@ -355,6 +363,7 @@ impl CascadeDetector {
 
 /// Health check stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopHealthCheckStats {
     /// Monitored processes
     pub monitored_count: usize,
@@ -396,6 +405,7 @@ impl CoopHealthCheckManager {
     }
 
     /// Register process
+    #[inline]
     pub fn register(&mut self, pid: u64, now: u64) {
         let mut state = ProcessHealthState::new(pid, now);
         state.liveness.configured = true;
@@ -421,6 +431,7 @@ impl CoopHealthCheckManager {
     }
 
     /// Remove process
+    #[inline]
     pub fn remove(&mut self, pid: u64) {
         self.states.remove(&pid);
         self.cascade.remove(pid);
@@ -428,11 +439,13 @@ impl CoopHealthCheckManager {
     }
 
     /// Get process health
+    #[inline(always)]
     pub fn health(&self, pid: u64) -> Option<&ProcessHealthState> {
         self.states.get(&pid)
     }
 
     /// Get unhealthy processes
+    #[inline]
     pub fn unhealthy(&self) -> Vec<u64> {
         self.states
             .values()
@@ -462,6 +475,7 @@ impl CoopHealthCheckManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopHealthCheckStats {
         &self.stats
     }

@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -99,6 +100,7 @@ pub struct OptimalAlternative {
 
 /// Counterfactual trust analysis result.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct CounterfactualTrust {
     pub partner_id: u64,
     pub actual_trust: u64,
@@ -122,6 +124,7 @@ pub struct HindsightFairness {
 
 /// Rolling statistics for the counterfactual engine.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct CounterfactualStats {
     pub what_if_analyses: u64,
     pub regret_computations: u64,
@@ -165,10 +168,11 @@ struct ProcessSharingHistory {
     total_shared: u64,
     total_received: u64,
     ema_utility: i64,
-    fairness_history: Vec<u64>,
+    fairness_history: VecDeque<u64>,
 }
 
 /// Counterfactual analysis engine for cooperation decisions.
+#[repr(align(64))]
 pub struct CoopCounterfactual {
     decisions: BTreeMap<u64, DecisionRecord>,
     process_history: BTreeMap<u64, ProcessSharingHistory>,
@@ -532,11 +536,13 @@ impl CoopCounterfactual {
     }
 
     /// Advance the internal tick.
+    #[inline(always)]
     pub fn tick(&mut self) {
         self.current_tick = self.current_tick.wrapping_add(1);
     }
 
     /// Retrieve current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &CounterfactualStats {
         &self.stats
     }
@@ -642,7 +648,7 @@ impl CoopCounterfactual {
                 total_shared: 0,
                 total_received: 0,
                 ema_utility: 0,
-                fairness_history: Vec::new(),
+                fairness_history: VecDeque::new(),
             });
         record.total_shared = record.total_shared.saturating_add(shared);
         record.total_received = record.total_received.saturating_add(received);
@@ -650,7 +656,7 @@ impl CoopCounterfactual {
             + utility.saturating_mul(200)) / 1000;
         record.fairness_history.push(fairness);
         if record.fairness_history.len() > 128 {
-            record.fairness_history.remove(0);
+            record.fairness_history.pop_front().unwrap();
         }
     }
 

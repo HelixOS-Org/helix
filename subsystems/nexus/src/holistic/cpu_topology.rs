@@ -63,6 +63,7 @@ impl LogicalCpu {
 
 /// Cache domain — group of CPUs sharing a cache
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheDomain {
     pub level: CacheLevel,
     pub size_kb: u32,
@@ -82,12 +83,14 @@ impl CacheDomain {
         }
     }
 
+    #[inline]
     pub fn add_cpu(&mut self, cpu_id: u32) {
         if !self.cpus.contains(&cpu_id) {
             self.cpus.push(cpu_id);
         }
     }
 
+    #[inline(always)]
     pub fn contains(&self, cpu_id: u32) -> bool {
         self.cpus.contains(&cpu_id)
     }
@@ -120,14 +123,17 @@ impl Package {
         }
     }
 
+    #[inline(always)]
     pub fn core_count(&self) -> usize {
         self.cores.len()
     }
 
+    #[inline(always)]
     pub fn cpu_count(&self) -> usize {
         self.cpus.len()
     }
 
+    #[inline]
     pub fn smt_ratio(&self) -> f64 {
         if self.cores.is_empty() {
             return 1.0;
@@ -161,6 +167,7 @@ pub struct TopologyPlacement {
 
 /// Holistic topology stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticCpuTopologyStats {
     pub total_cpus: usize,
     pub online_cpus: usize,
@@ -222,6 +229,7 @@ impl HolisticCpuTopology {
         self.recompute_stats();
     }
 
+    #[inline(always)]
     pub fn add_cache_domain(&mut self, domain: CacheDomain) {
         self.cache_domains.push(domain);
         self.stats.cache_domains = self.cache_domains.len();
@@ -246,6 +254,7 @@ impl HolisticCpuTopology {
         self.stats.max_numa_distance = max_d;
     }
 
+    #[inline]
     pub fn get_numa_distance(&self, from: u32, to: u32) -> u32 {
         if from == to {
             return 10;
@@ -273,6 +282,7 @@ impl HolisticCpuTopology {
     }
 
     /// Get SMT sibling
+    #[inline(always)]
     pub fn smt_sibling(&self, cpu_id: u32) -> Option<u32> {
         self.cpus.get(&cpu_id).and_then(|c| c.smt_sibling)
     }
@@ -357,6 +367,7 @@ impl HolisticCpuTopology {
     }
 
     /// Get all online CPUs in a NUMA node
+    #[inline]
     pub fn numa_cpus(&self, node: u32) -> Vec<u32> {
         self.numa_nodes
             .get(&node)
@@ -370,6 +381,7 @@ impl HolisticCpuTopology {
     }
 
     /// Check if architecture is hybrid (P+E cores)
+    #[inline]
     pub fn is_hybrid(&self) -> bool {
         let has_perf = self
             .cpus
@@ -391,6 +403,7 @@ impl HolisticCpuTopology {
         self.stats.hybrid_arch = self.is_hybrid();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCpuTopologyStats {
         &self.stats
     }

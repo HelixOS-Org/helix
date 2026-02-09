@@ -3,6 +3,7 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Dentry state
@@ -28,6 +29,7 @@ pub enum DentryFlag {
 
 /// Dentry cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DentryCacheEntry {
     pub name_hash: u64,
     pub parent_hash: u64,
@@ -51,14 +53,21 @@ impl DentryCacheEntry {
         }
     }
 
+    #[inline(always)]
     pub fn is_positive(&self) -> bool { self.state == DentryState::Positive }
+    #[inline(always)]
     pub fn is_negative(&self) -> bool { self.state == DentryState::Negative }
 
+    #[inline(always)]
     pub fn lookup(&mut self) { self.lookup_count += 1; }
+    #[inline(always)]
     pub fn grab(&mut self) { self.ref_count += 1; }
+    #[inline(always)]
     pub fn put(&mut self) { self.ref_count = self.ref_count.saturating_sub(1); }
 
+    #[inline(always)]
     pub fn invalidate(&mut self) { self.state = DentryState::Unhashed; }
+    #[inline(always)]
     pub fn kill(&mut self) { self.state = DentryState::Killed; }
 }
 
@@ -76,11 +85,13 @@ impl DentryLru {
         Self { max_entries, entries: Vec::new(), negative_count: 0, shrink_count: 0 }
     }
 
+    #[inline(always)]
     pub fn add(&mut self, name_hash: u64, is_negative: bool) {
         self.entries.push(name_hash);
         if is_negative { self.negative_count += 1; }
     }
 
+    #[inline]
     pub fn shrink(&mut self, count: u32) -> u32 {
         let removed = count.min(self.entries.len() as u32);
         self.entries.drain(..removed as usize);
@@ -88,6 +99,7 @@ impl DentryLru {
         removed
     }
 
+    #[inline(always)]
     pub fn negative_ratio(&self) -> f64 {
         if self.entries.is_empty() { 0.0 } else { self.negative_count as f64 / self.entries.len() as f64 }
     }
@@ -95,6 +107,7 @@ impl DentryLru {
 
 /// Dentry holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticDentryStats {
     pub total_entries: u64,
     pub positive: u64,
@@ -121,6 +134,7 @@ impl HolisticDentry {
         }
     }
 
+    #[inline]
     pub fn insert(&mut self, entry: DentryCacheEntry) {
         self.stats.total_entries += 1;
         if entry.is_positive() { self.stats.positive += 1; } else { self.stats.negative += 1; }
@@ -128,6 +142,7 @@ impl HolisticDentry {
         self.cache.insert(entry.name_hash, entry);
     }
 
+    #[inline]
     pub fn lookup(&mut self, name_hash: u64) -> Option<&DentryCacheEntry> {
         self.stats.lookups += 1;
         if let Some(entry) = self.cache.get_mut(&name_hash) {
@@ -137,6 +152,7 @@ impl HolisticDentry {
         self.cache.get(&name_hash)
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         if self.stats.lookups == 0 { 0.0 } else { self.stats.cache_hits as f64 / self.stats.lookups as f64 }
     }
@@ -175,6 +191,7 @@ pub struct HolisticDentryV2Health {
 
 /// Stats for dentry holistic analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticDentryV2Stats {
     pub samples: u64,
     pub analyses: u64,
@@ -184,7 +201,7 @@ pub struct HolisticDentryV2Stats {
 
 /// Manager for dentry holistic analysis
 pub struct HolisticDentryV2Manager {
-    samples: Vec<HolisticDentryV2Sample>,
+    samples: VecDeque<HolisticDentryV2Sample>,
     health: HolisticDentryV2Health,
     stats: HolisticDentryV2Stats,
     window_size: usize,
@@ -193,7 +210,7 @@ pub struct HolisticDentryV2Manager {
 impl HolisticDentryV2Manager {
     pub fn new() -> Self {
         Self {
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             health: HolisticDentryV2Health {
                 cache_efficiency: 100,
                 memory_pressure: 0,
@@ -216,16 +233,16 @@ impl HolisticDentryV2Manager {
             value,
             timestamp: self.samples.len() as u64,
         };
-        self.samples.push(sample);
+        self.samples.push_back(sample);
         self.stats.samples += 1;
         if self.samples.len() > self.window_size {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
     }
 
     pub fn analyze(&mut self) -> &HolisticDentryV2Health {
         self.stats.analyses += 1;
-        let hit_samples: Vec<&HolisticDentryV2Sample> = self.samples.iter()
+        let hit_samples: VecDeque<&HolisticDentryV2Sample> = self.samples.iter()
             .filter(|s| matches!(s.metric, HolisticDentryV2Metric::HitRate))
             .collect();
         if !hit_samples.is_empty() {
@@ -236,10 +253,12 @@ impl HolisticDentryV2Manager {
         &self.health
     }
 
+    #[inline(always)]
     pub fn set_window(&mut self, size: usize) {
         self.window_size = size;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticDentryV2Stats {
         &self.stats
     }

@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -52,6 +53,7 @@ fn xorshift64(state: &mut u64) -> u64 {
 
 /// A single tracked cooperation metric with EMA smoothing
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopMetric {
     pub name: String,
     pub id: u64,
@@ -90,6 +92,7 @@ impl CoopMetric {
     }
 
     /// Push a new observation, update EMA and variance
+    #[inline]
     pub fn observe(&mut self, raw: f32, tick: u64) {
         let clamped = raw.max(0.0).min(1.0);
         self.last_raw = clamped;
@@ -113,6 +116,7 @@ impl CoopMetric {
     }
 
     /// 95% confidence interval half-width
+    #[inline]
     pub fn confidence_half_width(&self) -> f32 {
         if self.observations < 2 {
             return 0.5;
@@ -123,6 +127,7 @@ impl CoopMetric {
     }
 
     /// Improvement rate: slope of recent trend
+    #[inline]
     pub fn improvement_rate(&self) -> f32 {
         let len = self.history.len();
         if len < 4 {
@@ -141,6 +146,7 @@ impl CoopMetric {
 
 /// Aggregate cooperation self-model statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SelfModelStats {
     pub total_metrics: usize,
     pub negotiation_success_rate: f32,
@@ -164,7 +170,7 @@ pub struct CoopSelfModel {
     /// All tracked metrics keyed by FNV-1a hash of name
     metrics: BTreeMap<u64, CoopMetric>,
     /// Fairness calibration offset applied per-metric
-    fairness_offsets: BTreeMap<u64, f32>,
+    fairness_offsets: LinearMap<f32, 64>,
     /// Monotonic tick counter
     tick: u64,
     /// Cached aggregate stats
@@ -179,7 +185,7 @@ impl CoopSelfModel {
     pub fn new() -> Self {
         Self {
             metrics: BTreeMap::new(),
-            fairness_offsets: BTreeMap::new(),
+            fairness_offsets: LinearMap::new(),
             tick: 0,
             cached_stats: SelfModelStats::default(),
             stats_tick: 0,
@@ -188,6 +194,7 @@ impl CoopSelfModel {
     }
 
     /// Register or update a cooperation metric with a new observation
+    #[inline]
     pub fn update_metric(&mut self, name: &str, raw_score: f32) {
         self.tick += 1;
         let id = fnv1a_hash(name.as_bytes());
@@ -317,12 +324,14 @@ impl CoopSelfModel {
     }
 
     /// Get a specific metric by name
+    #[inline(always)]
     pub fn get_metric(&self, name: &str) -> Option<&CoopMetric> {
         let id = fnv1a_hash(name.as_bytes());
         self.metrics.get(&id)
     }
 
     /// Number of tracked metrics
+    #[inline(always)]
     pub fn metric_count(&self) -> usize {
         self.metrics.len()
     }

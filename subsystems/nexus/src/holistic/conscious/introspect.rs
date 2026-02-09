@@ -129,6 +129,7 @@ pub struct ReasoningNode {
 
 /// Aggregate introspection statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct IntrospectionStats {
     pub total_decisions_audited: u64,
     pub avg_coherence: f32,
@@ -182,6 +183,7 @@ impl HolisticIntrospector {
     }
 
     /// Record a decision from any subsystem for global auditing
+    #[inline]
     pub fn record_decision(
         &mut self,
         origin: DecisionOrigin,
@@ -234,6 +236,7 @@ impl HolisticIntrospector {
     }
 
     /// Resolve a decision outcome
+    #[inline]
     pub fn resolve_decision(&mut self, decision_id: u64, outcome: f32) {
         let clamped = outcome.clamp(0.0, 1.0);
         for d in self.decisions.iter_mut() {
@@ -262,6 +265,7 @@ impl HolisticIntrospector {
     }
 
     /// Audit all decisions globally — returns quality score
+    #[inline]
     pub fn global_decision_audit(&mut self) -> f32 {
         if self.decisions.is_empty() {
             return 0.5;
@@ -288,6 +292,7 @@ impl HolisticIntrospector {
     }
 
     /// Measure cross-module coherence between all subsystem pairs
+    #[inline]
     pub fn cross_module_coherence(&mut self) -> f32 {
         let mut origin_outcomes: BTreeMap<u8, Vec<f32>> = BTreeMap::new();
         for d in self.decisions.iter().filter(|d| d.resolved) {
@@ -361,11 +366,13 @@ impl HolisticIntrospector {
     }
 
     /// Build the reasoning graph snapshot
+    #[inline(always)]
     pub fn reasoning_graph(&self) -> Vec<ReasoningNode> {
         self.reasoning_graph.values().cloned().collect()
     }
 
     /// Current introspection depth: how deep the system looks into itself
+    #[inline(always)]
     pub fn introspection_depth(&self) -> f32 {
         self.depth_ema
     }

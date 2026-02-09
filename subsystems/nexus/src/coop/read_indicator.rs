@@ -33,14 +33,17 @@ impl ReadIndicatorSlot {
         }
     }
 
+    #[inline(always)]
     pub fn enter(&self) {
         self.counter.fetch_add(1, Ordering::Release);
     }
 
+    #[inline(always)]
     pub fn exit(&self) {
         self.counter.fetch_sub(1, Ordering::Release);
     }
 
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.counter.load(Ordering::Acquire) > 0
     }
@@ -69,6 +72,7 @@ impl ReadIndicatorInstance {
         }
     }
 
+    #[inline]
     pub fn reader_enter(&mut self, cpu: u32) {
         if (cpu as usize) < self.slots.len() {
             self.slots[cpu as usize].enter();
@@ -76,6 +80,7 @@ impl ReadIndicatorInstance {
         }
     }
 
+    #[inline]
     pub fn reader_exit(&mut self, cpu: u32) {
         if (cpu as usize) < self.slots.len() {
             self.slots[cpu as usize].exit();
@@ -83,10 +88,12 @@ impl ReadIndicatorInstance {
         }
     }
 
+    #[inline(always)]
     pub fn is_quiescent(&self) -> bool {
         self.slots.iter().all(|s| !s.is_active())
     }
 
+    #[inline(always)]
     pub fn wait_for_quiescence(&mut self) -> bool {
         self.quiesce_count += 1;
         self.is_quiescent()
@@ -95,6 +102,7 @@ impl ReadIndicatorInstance {
 
 /// Statistics for read indicator
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReadIndicatorStats {
     pub indicators_created: u64,
     pub total_enters: u64,
@@ -124,6 +132,7 @@ impl CoopReadIndicator {
         }
     }
 
+    #[inline]
     pub fn create(&mut self, num_cpus: u32) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -132,6 +141,7 @@ impl CoopReadIndicator {
         id
     }
 
+    #[inline]
     pub fn reader_enter(&mut self, ind_id: u64, cpu: u32) {
         if let Some(ind) = self.indicators.get_mut(&ind_id) {
             ind.reader_enter(cpu);
@@ -139,6 +149,7 @@ impl CoopReadIndicator {
         }
     }
 
+    #[inline]
     pub fn reader_exit(&mut self, ind_id: u64, cpu: u32) {
         if let Some(ind) = self.indicators.get_mut(&ind_id) {
             ind.reader_exit(cpu);
@@ -146,6 +157,7 @@ impl CoopReadIndicator {
         }
     }
 
+    #[inline]
     pub fn wait_quiescence(&mut self, ind_id: u64) -> bool {
         self.stats.quiesce_operations += 1;
         if let Some(ind) = self.indicators.get_mut(&ind_id) {
@@ -157,6 +169,7 @@ impl CoopReadIndicator {
         false
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ReadIndicatorStats {
         &self.stats
     }

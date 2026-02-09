@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -87,6 +88,7 @@ pub struct CausalExplanation {
 
 /// A counterfactual scenario — "what if" analysis.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct Counterfactual {
     pub app_id: u64,
     pub scenario_hash: u64,
@@ -100,7 +102,7 @@ pub struct Counterfactual {
 #[derive(Clone, Debug)]
 pub struct OracleModel {
     pub app_id: u64,
-    pub history: Vec<Observation>,
+    pub history: VecDeque<Observation>,
     pub cpu_ema: u64,
     pub mem_ema: u64,
     pub io_ema: u64,
@@ -115,6 +117,7 @@ pub struct OracleModel {
 
 /// Statistics for the oracle engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct OracleStats {
     pub total_models: u64,
     pub total_predictions: u64,
@@ -166,7 +169,7 @@ impl AppsOracle {
         model.ipc_ema = ema_update(model.ipc_ema, ipc);
 
         if model.history.len() >= HISTORY_CAP {
-            model.history.remove(0);
+            model.history.pop_front().unwrap();
         }
         model.history.push(Observation { tick: self.tick, cpu, mem, io, ipc });
     }
@@ -237,6 +240,7 @@ impl AppsOracle {
     }
 
     /// Produce a perfect forecast over the full horizon.
+    #[inline]
     pub fn perfect_forecast(&mut self, app_id: u64) -> Vec<Prediction> {
         let mut forecasts = Vec::new();
         for h in 1..=FORECAST_HORIZON {
@@ -370,6 +374,7 @@ impl AppsOracle {
     }
 
     /// Return oracle precision (0–100) — fraction of accurate predictions.
+    #[inline]
     pub fn oracle_precision(&self) -> u64 {
         if self.stats.total_predictions == 0 {
             return 0;
@@ -379,6 +384,7 @@ impl AppsOracle {
     }
 
     /// Return current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &OracleStats {
         &self.stats
     }
@@ -389,7 +395,7 @@ impl AppsOracle {
         if !self.models.contains_key(&app_id) {
             let model = OracleModel {
                 app_id,
-                history: Vec::new(),
+                history: VecDeque::new(),
                 cpu_ema: 0,
                 mem_ema: 0,
                 io_ema: 0,

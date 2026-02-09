@@ -73,6 +73,7 @@ impl SchedLatencyHistogram {
         }
     }
 
+    #[inline(always)]
     pub fn avg_ns(&self) -> u64 {
         if self.total_count == 0 { return 0; }
         self.total_ns / self.total_count
@@ -92,13 +93,17 @@ impl SchedLatencyHistogram {
         self.max_ns
     }
 
+    #[inline(always)]
     pub fn p50(&self) -> u64 { self.percentile(0.50) }
+    #[inline(always)]
     pub fn p95(&self) -> u64 { self.percentile(0.95) }
+    #[inline(always)]
     pub fn p99(&self) -> u64 { self.percentile(0.99) }
 }
 
 /// Per-thread scheduling state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ThreadSchedState {
     pub thread_id: u64,
     pub enqueue_ts: u64,
@@ -126,10 +131,12 @@ impl ThreadSchedState {
         }
     }
 
+    #[inline(always)]
     pub fn on_enqueue(&mut self, ts: u64) {
         self.enqueue_ts = ts;
     }
 
+    #[inline]
     pub fn on_dequeue(&mut self, ts: u64) {
         if self.enqueue_ts > 0 {
             let wait = ts.saturating_sub(self.enqueue_ts);
@@ -139,6 +146,7 @@ impl ThreadSchedState {
         self.last_run_ts = ts;
     }
 
+    #[inline]
     pub fn on_preempt(&mut self, ts: u64) {
         self.preempt_count += 1;
         if self.last_run_ts > 0 {
@@ -146,11 +154,13 @@ impl ThreadSchedState {
         }
     }
 
+    #[inline(always)]
     pub fn on_wakeup(&mut self, ts: u64) {
         self.wakeup_count += 1;
         self.enqueue_ts = ts;
     }
 
+    #[inline]
     pub fn cpu_utilization(&self) -> f64 {
         let total = self.total_wait_ns + self.total_run_ns;
         if total == 0 { return 0.0; }
@@ -179,6 +189,7 @@ impl ProcessSchedProfile {
         }
     }
 
+    #[inline(always)]
     pub fn register_thread(&mut self, thread_id: u64) {
         self.threads.entry(thread_id)
             .or_insert_with(|| ThreadSchedState::new(thread_id));
@@ -207,6 +218,7 @@ impl ProcessSchedProfile {
         }
     }
 
+    #[inline]
     pub fn worst_p99_thread(&self) -> Option<u64> {
         self.threads.values()
             .filter(|t| t.latency_hist.total_count > 10)
@@ -217,6 +229,7 @@ impl ProcessSchedProfile {
 
 /// App scheduler latency profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppSchedLatencyStats {
     pub total_processes: usize,
     pub total_threads: usize,
@@ -243,22 +256,26 @@ impl AppSchedLatencyProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessSchedProfile::new(pid));
     }
 
+    #[inline]
     pub fn set_latency_budget(&mut self, pid: u64, budget_ns: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.latency_budget_ns = budget_ns;
         }
     }
 
+    #[inline]
     pub fn record_event(&mut self, pid: u64, thread_id: u64, event: SchedEventKind, ts: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_event(thread_id, event, ts);
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.profiles.len();
         self.stats.total_threads = self.profiles.values().map(|p| p.threads.len()).sum();
@@ -271,14 +288,17 @@ impl AppSchedLatencyProfiler {
         self.stats.global_p99_ns = self.global_hist.p99();
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessSchedProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppSchedLatencyStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.recompute();

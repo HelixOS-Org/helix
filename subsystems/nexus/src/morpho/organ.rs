@@ -61,6 +61,7 @@ impl Organ {
     }
 
     /// Add tissue to organ
+    #[inline(always)]
     pub fn add_tissue(&mut self, tissue: Tissue) {
         self.tissues.push(tissue);
     }
@@ -85,6 +86,7 @@ impl Organ {
     }
 
     /// Get total cell count
+    #[inline(always)]
     pub fn cell_count(&self) -> usize {
         self.tissues.iter().map(|t| t.size()).sum()
     }

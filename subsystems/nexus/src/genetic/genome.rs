@@ -199,12 +199,14 @@ impl CodeGenome {
     }
 
     /// Add gene
+    #[inline(always)]
     pub fn add_gene(&mut self, gene: Gene) {
         self.genes.push(gene);
         self.update_complexity();
     }
 
     /// Remove gene
+    #[inline]
     pub fn remove_gene(&mut self, id: GeneId) -> Option<Gene> {
         if let Some(idx) = self.genes.iter().position(|g| g.id == id) {
             let gene = self.genes.remove(idx);
@@ -216,16 +218,19 @@ impl CodeGenome {
     }
 
     /// Get gene by ID
+    #[inline(always)]
     pub fn get_gene(&self, id: GeneId) -> Option<&Gene> {
         self.genes.iter().find(|g| g.id == id)
     }
 
     /// Get gene by ID (mutable)
+    #[inline(always)]
     pub fn get_gene_mut(&mut self, id: GeneId) -> Option<&mut Gene> {
         self.genes.iter_mut().find(|g| g.id == id)
     }
 
     /// Enable gene
+    #[inline]
     pub fn enable_gene(&mut self, id: GeneId) {
         if let Some(gene) = self.get_gene_mut(id) {
             gene.enabled = true;
@@ -233,6 +238,7 @@ impl CodeGenome {
     }
 
     /// Disable gene
+    #[inline]
     pub fn disable_gene(&mut self, id: GeneId) {
         if let Some(gene) = self.get_gene_mut(id) {
             gene.enabled = false;
@@ -240,11 +246,13 @@ impl CodeGenome {
     }
 
     /// Get active genes
+    #[inline(always)]
     pub fn active_genes(&self) -> impl Iterator<Item = &Gene> {
         self.genes.iter().filter(|g| g.enabled)
     }
 
     /// Add connection
+    #[inline(always)]
     pub fn add_connection(&mut self, connection: Connection) {
         self.connections.push(connection);
     }
@@ -320,16 +328,19 @@ impl CodeGenome {
     }
 
     /// Get size (number of genes)
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.genes.len()
     }
 
     /// Get active size
+    #[inline(always)]
     pub fn active_size(&self) -> usize {
         self.genes.iter().filter(|g| g.enabled).count()
     }
 
     /// Clone with new ID
+    #[inline]
     pub fn clone_with_id(&self, id: u64) -> Self {
         let mut cloned = self.clone();
         cloned.id = id;
@@ -592,6 +603,7 @@ impl Gene {
     }
 
     /// Age the gene
+    #[inline(always)]
     pub fn age(&mut self) {
         self.metadata.age += 1;
     }

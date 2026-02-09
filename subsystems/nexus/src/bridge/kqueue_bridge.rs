@@ -77,12 +77,14 @@ impl Kevent {
         }
     }
 
+    #[inline]
     pub fn trigger(&mut self, data: i64) {
         self.triggered = true;
         self.data = data;
         self.trigger_count += 1;
     }
 
+    #[inline]
     pub fn consume(&mut self) {
         self.triggered = false;
         if self.flags & 0x10 != 0 {
@@ -93,6 +95,7 @@ impl Kevent {
 
 /// Kqueue instance
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KqueueInstance {
     pub kq_fd: u32,
     pub events: BTreeMap<u64, Kevent>,
@@ -114,10 +117,12 @@ impl KqueueInstance {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, kevent: Kevent) {
         self.events.insert(kevent.ident, kevent);
     }
 
+    #[inline(always)]
     pub fn unregister(&mut self, ident: u64) -> bool {
         self.events.remove(&ident).is_some()
     }
@@ -145,6 +150,7 @@ impl KqueueInstance {
         count
     }
 
+    #[inline(always)]
     pub fn avg_events(&self) -> f64 {
         if self.total_kevents == 0 { 0.0 } else { self.total_returns as f64 / self.total_kevents as f64 }
     }
@@ -152,6 +158,7 @@ impl KqueueInstance {
 
 /// Kqueue bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KqueueBridgeStats {
     pub total_instances: u64,
     pub total_events_registered: u64,
@@ -160,6 +167,7 @@ pub struct KqueueBridgeStats {
 
 /// Main bridge kqueue
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeKqueue {
     pub instances: BTreeMap<u32, KqueueInstance>,
     pub stats: KqueueBridgeStats,
@@ -179,6 +187,7 @@ impl BridgeKqueue {
         }
     }
 
+    #[inline]
     pub fn create(&mut self) -> u32 {
         let id = self.next_kq_fd;
         self.next_kq_fd += 1;
@@ -187,6 +196,7 @@ impl BridgeKqueue {
         id
     }
 
+    #[inline]
     pub fn register_event(&mut self, kq_fd: u32, kevent: Kevent) -> bool {
         if let Some(inst) = self.instances.get_mut(&kq_fd) {
             inst.register(kevent);

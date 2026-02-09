@@ -76,6 +76,7 @@ impl EpisodeType {
     }
 
     /// Should persist
+    #[inline(always)]
     pub fn should_persist(&self) -> bool {
         self.importance() >= 3
     }
@@ -98,6 +99,7 @@ pub enum EpisodeOutcome {
 
 impl EpisodeOutcome {
     /// Get outcome name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Success => "success",
@@ -109,6 +111,7 @@ impl EpisodeOutcome {
     }
 
     /// Is positive outcome
+    #[inline(always)]
     pub fn is_positive(&self) -> bool {
         matches!(self, Self::Success)
     }
@@ -136,6 +139,7 @@ impl EpisodeEvent {
     }
 
     /// Add data
+    #[inline(always)]
     pub fn with_data(mut self, key: &str, value: &str) -> Self {
         self.data.insert(String::from(key), String::from(value));
         self
@@ -196,22 +200,26 @@ impl Episode {
     }
 
     /// With summary
+    #[inline(always)]
     pub fn with_summary(mut self, summary: String) -> Self {
         self.summary = summary;
         self
     }
 
     /// Add event
+    #[inline(always)]
     pub fn add_event(&mut self, event: EpisodeEvent) {
         self.events.push(event);
     }
 
     /// Add lesson
+    #[inline(always)]
     pub fn add_lesson(&mut self, lesson: String) {
         self.lessons.push(lesson);
     }
 
     /// Add tag
+    #[inline]
     pub fn add_tag(&mut self, tag: String) {
         if !self.tags.contains(&tag) {
             self.tags.push(tag);
@@ -219,21 +227,25 @@ impl Episode {
     }
 
     /// Set outcome
+    #[inline(always)]
     pub fn set_outcome(&mut self, outcome: EpisodeOutcome) {
         self.outcome = outcome;
     }
 
     /// Duration
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.time_range.duration_ns()
     }
 
     /// Record access
+    #[inline(always)]
     pub fn record_access(&self) {
         self.access_count.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Access count
+    #[inline(always)]
     pub fn access_count(&self) -> u64 {
         self.access_count.load(Ordering::Relaxed)
     }
@@ -312,6 +324,7 @@ impl EpisodicMemory {
     }
 
     /// Get episode
+    #[inline]
     pub fn get(&self, id: EpisodeId) -> Option<&Episode> {
         if let Some(ep) = self.episodes.get(&id) {
             ep.record_access();
@@ -321,11 +334,13 @@ impl EpisodicMemory {
     }
 
     /// Get episode mutably
+    #[inline(always)]
     pub fn get_mut(&mut self, id: EpisodeId) -> Option<&mut Episode> {
         self.episodes.get_mut(&id)
     }
 
     /// Find by type
+    #[inline]
     pub fn find_by_type(&self, episode_type: EpisodeType) -> Vec<&Episode> {
         self.by_type
             .get(&episode_type)
@@ -334,6 +349,7 @@ impl EpisodicMemory {
     }
 
     /// Find by boot
+    #[inline]
     pub fn find_by_boot(&self, boot_id: BootId) -> Vec<&Episode> {
         self.by_boot
             .get(&boot_id)
@@ -342,6 +358,7 @@ impl EpisodicMemory {
     }
 
     /// Find in time range
+    #[inline]
     pub fn find_in_range(&self, range: TimeRange) -> Vec<&Episode> {
         self.episodes
             .values()
@@ -350,6 +367,7 @@ impl EpisodicMemory {
     }
 
     /// Find similar episodes
+    #[inline]
     pub fn find_similar(&self, episode_type: EpisodeType, tags: &[String]) -> Vec<&Episode> {
         self.episodes
             .values()
@@ -360,6 +378,7 @@ impl EpisodicMemory {
     }
 
     /// Recent episodes
+    #[inline]
     pub fn recent(&self, limit: usize) -> Vec<&Episode> {
         let mut episodes: Vec<_> = self.episodes.values().collect();
         episodes.sort_by(|a, b| b.time_range.start.cmp(&a.time_range.start));
@@ -367,6 +386,7 @@ impl EpisodicMemory {
     }
 
     /// Episode count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.episodes.len()
     }

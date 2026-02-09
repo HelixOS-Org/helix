@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -71,6 +71,7 @@ impl ReputationLevel {
     }
 
     /// Privileges enabled at this level
+    #[inline]
     pub fn privileges(&self) -> u32 {
         match self {
             Self::Untrusted => 0,
@@ -101,7 +102,7 @@ pub struct DimensionScore {
     /// Negative events
     pub negative: u64,
     /// History (recent scores)
-    history: Vec<f64>,
+    history: VecDeque<f64>,
     /// Max history
     max_history: usize,
     /// Decay rate per epoch
@@ -116,7 +117,7 @@ impl DimensionScore {
             observations: 0,
             positive: 0,
             negative: 0,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 64,
             decay_rate: 0.01,
         }
@@ -136,13 +137,14 @@ impl DimensionScore {
         self.score = self.score * (1.0 - alpha) + value * alpha;
         self.score = self.score.max(0.0).min(1.0);
 
-        self.history.push(self.score);
+        self.history.push_back(self.score);
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
     /// Apply time decay
+    #[inline]
     pub fn decay(&mut self) {
         self.score *= 1.0 - self.decay_rate;
         // Don't decay below baseline
@@ -158,11 +160,23 @@ impl DimensionScore {
         }
         let recent = self.history.len().min(8);
         let start_idx = self.history.len() - recent;
-        let first_half = &self.history[start_idx..start_idx + recent / 2];
-        let second_half = &self.history[start_idx + recent / 2..];
+        let first_half_len = recent / 2;
+        let second_half_len = recent - first_half_len;
 
-        let avg1: f64 = first_half.iter().sum::<f64>() / first_half.len() as f64;
-        let avg2: f64 = second_half.iter().sum::<f64>() / second_half.len() as f64;
+        let avg1: f64 = self
+            .history
+            .iter()
+            .skip(start_idx)
+            .take(first_half_len)
+            .sum::<f64>()
+            / first_half_len as f64;
+        let avg2: f64 = self
+            .history
+            .iter()
+            .skip(start_idx + first_half_len)
+            .take(second_half_len)
+            .sum::<f64>()
+            / second_half_len as f64;
         avg2 - avg1
     }
 }
@@ -234,6 +248,7 @@ impl ProcessReputation {
     }
 
     /// Record event
+    #[inline]
     pub fn record_event(&mut self, dimension: ReputationDimension, value: f64, now: u64) {
         if let Some(dim) = self.dimensions.get_mut(&(dimension as u8)) {
             dim.observe(value);
@@ -267,6 +282,7 @@ impl ProcessReputation {
     }
 
     /// Apply decay
+    #[inline]
     pub fn apply_decay(&mut self) {
         for dim in self.dimensions.values_mut() {
             dim.decay();
@@ -275,6 +291,7 @@ impl ProcessReputation {
     }
 
     /// Get dimension score
+    #[inline]
     pub fn dimension_score(&self, dimension: ReputationDimension) -> f64 {
         self.dimensions
             .get(&(dimension as u8))
@@ -289,6 +306,7 @@ impl ProcessReputation {
 
 /// Reputation manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopReputationStats {
     /// Tracked processes
     pub process_count: usize,
@@ -319,19 +337,16 @@ impl CoopReputationManager {
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, now: u64) {
-        self.reputations.insert(pid, ProcessReputation::new(pid, now));
+        self.reputations
+            .insert(pid, ProcessReputation::new(pid, now));
         self.update_stats();
     }
 
     /// Record event
-    pub fn record_event(
-        &mut self,
-        pid: u64,
-        dimension: ReputationDimension,
-        value: f64,
-        now: u64,
-    ) {
+    #[inline]
+    pub fn record_event(&mut self, pid: u64, dimension: ReputationDimension, value: f64, now: u64) {
         if let Some(rep) = self.reputations.get_mut(&pid) {
             rep.record_event(dimension, value, now);
             self.stats.total_events += 1;
@@ -340,6 +355,7 @@ impl CoopReputationManager {
     }
 
     /// Apply decay to all
+    #[inline]
     pub fn apply_decay(&mut self) {
         for rep in self.reputations.values_mut() {
             rep.apply_decay();
@@ -348,11 +364,13 @@ impl CoopReputationManager {
     }
 
     /// Get reputation
+    #[inline(always)]
     pub fn reputation(&self, pid: u64) -> Option<&ProcessReputation> {
         self.reputations.get(&pid)
     }
 
     /// Get level
+    #[inline]
     pub fn level(&self, pid: u64) -> ReputationLevel {
         self.reputations
             .get(&pid)
@@ -361,11 +379,13 @@ impl CoopReputationManager {
     }
 
     /// Check if process meets minimum level
+    #[inline(always)]
     pub fn meets_level(&self, pid: u64, min_level: ReputationLevel) -> bool {
         self.level(pid) >= min_level
     }
 
     /// Ranking by overall score
+    #[inline]
     pub fn ranking(&self) -> Vec<(u64, f64)> {
         let mut ranked: Vec<_> = self
             .reputations
@@ -401,12 +421,14 @@ impl CoopReputationManager {
     }
 
     /// Unregister
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) {
         self.reputations.remove(&pid);
         self.update_stats();
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopReputationStats {
         &self.stats
     }

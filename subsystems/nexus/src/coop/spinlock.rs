@@ -75,12 +75,14 @@ impl SpinlockInstance {
         }
     }
 
+    #[inline]
     pub fn unlock(&mut self) {
         self.state = SpinlockState::Free;
         self.holder_pid = None;
         self.holder_cpu = None;
     }
 
+    #[inline]
     pub fn record_spin(&mut self, iterations: u64) {
         self.spin_total += iterations;
         if iterations > self.max_spin_iters {
@@ -88,6 +90,7 @@ impl SpinlockInstance {
         }
     }
 
+    #[inline]
     pub fn record_hold(&mut self, ticks: u64) {
         self.hold_time_total += ticks;
         if ticks > self.max_hold_time {
@@ -95,6 +98,7 @@ impl SpinlockInstance {
         }
     }
 
+    #[inline]
     pub fn avg_spin(&self) -> f64 {
         if self.acquire_count == 0 {
             return 0.0;
@@ -102,6 +106,7 @@ impl SpinlockInstance {
         self.spin_total as f64 / self.acquire_count as f64
     }
 
+    #[inline]
     pub fn avg_hold(&self) -> f64 {
         if self.acquire_count == 0 {
             return 0.0;
@@ -112,6 +117,7 @@ impl SpinlockInstance {
 
 /// Statistics for spinlock.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SpinlockStats {
     pub total_locks: u64,
     pub total_acquires: u64,
@@ -142,6 +148,7 @@ impl CoopSpinlock {
         }
     }
 
+    #[inline]
     pub fn create_lock(&mut self, backoff: SpinBackoff) -> u64 {
         let id = self.next_lock_id;
         self.next_lock_id += 1;
@@ -151,6 +158,7 @@ impl CoopSpinlock {
         id
     }
 
+    #[inline(always)]
     pub fn lock_count(&self) -> usize {
         self.locks.len()
     }

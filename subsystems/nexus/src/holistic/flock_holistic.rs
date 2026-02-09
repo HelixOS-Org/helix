@@ -35,6 +35,7 @@ pub struct HolisticFlockHealth {
 
 /// Stats for flock analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticFlockStats {
     pub samples: u64,
     pub analyses: u64,
@@ -68,6 +69,7 @@ impl HolisticFlockManager {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, metric: HolisticFlockMetric, value: u64, inode: u64) {
         let sample = HolisticFlockSample {
             metric,
@@ -105,6 +107,7 @@ impl HolisticFlockManager {
         &self.health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticFlockStats {
         &self.stats
     }

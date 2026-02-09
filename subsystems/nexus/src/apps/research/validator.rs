@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -144,6 +145,7 @@ pub struct ValidationReport {
 
 /// Aggregate validation statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     pub total_validations: u64,
     pub total_passed: u64,
@@ -163,19 +165,19 @@ pub struct ValidatorStats {
 /// Internal per-gate validation logic
 #[derive(Debug)]
 struct GateChecker {
-    regression_results: BTreeMap<u64, bool>,
-    significance_results: BTreeMap<u64, bool>,
-    cross_val_results: BTreeMap<u64, f32>,
-    holdout_results: BTreeMap<u64, f32>,
+    regression_results: LinearMap<bool, 64>,
+    significance_results: LinearMap<bool, 64>,
+    cross_val_results: LinearMap<f32, 64>,
+    holdout_results: LinearMap<f32, 64>,
 }
 
 impl GateChecker {
     fn new() -> Self {
         Self {
-            regression_results: BTreeMap::new(),
-            significance_results: BTreeMap::new(),
-            cross_val_results: BTreeMap::new(),
-            holdout_results: BTreeMap::new(),
+            regression_results: LinearMap::new(),
+            significance_results: LinearMap::new(),
+            cross_val_results: LinearMap::new(),
+            holdout_results: LinearMap::new(),
         }
     }
 
@@ -305,6 +307,7 @@ impl AppsDiscoveryValidator {
     }
 
     /// Perform k-fold cross-validation on the discovery
+    #[inline]
     pub fn cross_validation(
         &mut self,
         discovery_id: u64,
@@ -333,6 +336,7 @@ impl AppsDiscoveryValidator {
     }
 
     /// Holdout set test — final accuracy on held-out data
+    #[inline]
     pub fn holdout_test(
         &mut self,
         discovery_id: u64,
@@ -457,11 +461,13 @@ impl AppsDiscoveryValidator {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> ValidatorStats {
         self.stats
     }
 
     /// Get discovery by id
+    #[inline(always)]
     pub fn discovery(&self, discovery_id: u64) -> Option<&ClassificationDiscovery> {
         self.discoveries.get(&discovery_id)
     }

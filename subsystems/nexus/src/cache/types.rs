@@ -29,6 +29,7 @@ pub enum CacheLevel {
 
 impl CacheLevel {
     /// Get typical access latency in nanoseconds
+    #[inline]
     pub fn typical_latency_ns(&self) -> u64 {
         match self {
             Self::L1 => 1,
@@ -41,6 +42,7 @@ impl CacheLevel {
     }
 
     /// Get typical size in bytes
+    #[inline]
     pub fn typical_size(&self) -> u64 {
         match self {
             Self::L1 => 32 * 1024,                 // 32KB

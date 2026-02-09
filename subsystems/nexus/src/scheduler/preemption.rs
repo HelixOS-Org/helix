@@ -1,7 +1,7 @@
 //! Preemption intelligence.
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
+use alloc::collections::VecDeque;
 
 use super::types::WorkloadType;
 use crate::core::NexusTimestamp;
@@ -13,7 +13,7 @@ use crate::core::NexusTimestamp;
 /// Smart preemption decision maker
 pub struct PreemptionIntelligence {
     /// Preemption history
-    history: Vec<PreemptionRecord>,
+    history: VecDeque<PreemptionRecord>,
     /// Max history size
     max_history: usize,
     /// Learned cost model
@@ -75,7 +75,7 @@ impl PreemptionIntelligence {
     /// Create new preemption intelligence
     pub fn new() -> Self {
         Self {
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
             cost_model: PreemptionCostModel::default(),
         }
@@ -163,7 +163,7 @@ impl PreemptionIntelligence {
             timestamp: NexusTimestamp::now(),
         };
 
-        self.history.push(record);
+        self.history.push_back(record);
 
         let key = preempted as u8;
         let current_cost = self
@@ -176,7 +176,7 @@ impl PreemptionIntelligence {
         self.cost_model.base_costs.insert(key, new_cost);
 
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 }

@@ -64,9 +64,12 @@ impl HotplugNotifier {
         Self { id, resource, priority, registered_at: now, invocations: 0, failures: 0 }
     }
 
+    #[inline(always)]
     pub fn invoke(&mut self) { self.invocations += 1; }
+    #[inline(always)]
     pub fn fail(&mut self) { self.failures += 1; }
 
+    #[inline(always)]
     pub fn failure_rate(&self) -> f64 {
         if self.invocations == 0 { return 0.0; }
         self.failures as f64 / self.invocations as f64
@@ -99,6 +102,7 @@ impl HotplugOperation {
         }
     }
 
+    #[inline]
     pub fn advance(&mut self) {
         self.state = match self.state {
             HotplugState::Preparing => HotplugState::Notifying,
@@ -109,21 +113,25 @@ impl HotplugOperation {
         };
     }
 
+    #[inline(always)]
     pub fn rollback(&mut self, reason: u32) {
         self.state = HotplugState::RollingBack;
         self.rollback_reason = Some(reason);
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, now: u64) {
         self.state = HotplugState::Done;
         self.completed_at = now;
     }
 
+    #[inline(always)]
     pub fn fail(&mut self, now: u64) {
         self.state = HotplugState::Failed;
         self.completed_at = now;
     }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
         if self.completed_at > 0 { self.completed_at.saturating_sub(self.started_at) } else { 0 }
     }
@@ -131,6 +139,7 @@ impl HotplugOperation {
 
 /// CPU online/offline tracking
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuHotplugState {
     pub cpu_id: u32,
     pub online: bool,
@@ -145,6 +154,7 @@ impl CpuHotplugState {
         Self { cpu_id, online, transitions: 0, last_transition: 0, tasks_migrated: 0, irqs_migrated: 0 }
     }
 
+    #[inline]
     pub fn transition(&mut self, online: bool, now: u64) {
         self.online = online;
         self.transitions += 1;
@@ -154,6 +164,7 @@ impl CpuHotplugState {
 
 /// Hotplug manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HotplugMgrStats {
     pub total_operations: u64,
     pub successful_ops: u64,
@@ -183,6 +194,7 @@ impl HolisticHotplugMgr {
         }
     }
 
+    #[inline]
     pub fn register_notifier(&mut self, resource: HotplugResource, priority: NotifierPriority, now: u64) -> u64 {
         let id = self.next_notifier_id;
         self.next_notifier_id += 1;
@@ -190,8 +202,10 @@ impl HolisticHotplugMgr {
         id
     }
 
+    #[inline(always)]
     pub fn unregister_notifier(&mut self, id: u64) -> bool { self.notifiers.remove(&id).is_some() }
 
+    #[inline]
     pub fn begin_operation(&mut self, resource: HotplugResource, action: HotplugAction, res_id: u64, now: u64) -> u64 {
         let id = self.next_op_id;
         self.next_op_id += 1;
@@ -200,14 +214,17 @@ impl HolisticHotplugMgr {
         id
     }
 
+    #[inline(always)]
     pub fn track_cpu(&mut self, cpu_id: u32, online: bool) {
         self.cpu_states.entry(cpu_id).or_insert_with(|| CpuHotplugState::new(cpu_id, online));
     }
 
+    #[inline(always)]
     pub fn cpu_online(&mut self, cpu_id: u32, now: u64) {
         if let Some(state) = self.cpu_states.get_mut(&cpu_id) { state.transition(true, now); }
     }
 
+    #[inline(always)]
     pub fn cpu_offline(&mut self, cpu_id: u32, now: u64) {
         if let Some(state) = self.cpu_states.get_mut(&cpu_id) { state.transition(false, now); }
     }

@@ -78,9 +78,11 @@ impl StatxRecord {
         }
     }
 
+    #[inline(always)]
     pub fn has_btime(&self) -> bool {
         self.mask & 0x800 != 0
     }
+    #[inline(always)]
     pub fn has_mnt_id(&self) -> bool {
         self.mask & 0x1000 != 0
     }
@@ -88,6 +90,7 @@ impl StatxRecord {
 
 /// Statx app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StatxAppStats {
     pub total_calls: u64,
     pub btime_requests: u64,

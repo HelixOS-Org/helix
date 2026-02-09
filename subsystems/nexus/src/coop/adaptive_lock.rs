@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Lock strategy
@@ -44,14 +45,17 @@ pub struct SpinParams {
 }
 
 impl SpinParams {
+    #[inline(always)]
     pub fn default_params() -> Self {
         Self { max_spins: 1000, backoff_base: 1, backoff_max: 128, yield_after: 500 }
     }
 
+    #[inline(always)]
     pub fn aggressive() -> Self {
         Self { max_spins: 5000, backoff_base: 1, backoff_max: 64, yield_after: 2000 }
     }
 
+    #[inline(always)]
     pub fn conservative() -> Self {
         Self { max_spins: 100, backoff_base: 4, backoff_max: 256, yield_after: 50 }
     }
@@ -65,7 +69,7 @@ pub struct AdaptiveLockInstance {
     pub strategy: LockStrategy,
     pub spin_params: SpinParams,
     pub owner: Option<u32>,
-    pub waiters: Vec<u32>,
+    pub waiters: VecDeque<u32>,
     pub acquire_count: u64,
     pub spin_count: u64,
     pub sleep_count: u64,
@@ -83,7 +87,7 @@ impl AdaptiveLockInstance {
         Self {
             id, state: AdaptiveLockState::Unlocked, strategy,
             spin_params: SpinParams::default_params(),
-            owner: None, waiters: Vec::new(),
+            owner: None, waiters: VecDeque::new(),
             acquire_count: 0, spin_count: 0, sleep_count: 0,
             contention_events: 0, total_hold_ns: 0, total_wait_ns: 0,
             max_hold_ns: 0, max_wait_ns: 0, last_acquire: 0,
@@ -91,6 +95,7 @@ impl AdaptiveLockInstance {
         }
     }
 
+    #[inline]
     pub fn try_acquire(&mut self, tid: u32, now: u64) -> bool {
         if self.state == AdaptiveLockState::Unlocked {
             self.state = AdaptiveLockState::SpinLocked;
@@ -112,16 +117,18 @@ impl AdaptiveLockInstance {
 
         // Wake first waiter
         if !self.waiters.is_empty() {
-            Some(self.waiters.remove(0))
+            Some(self.waiters.pop_front().unwrap())
         } else { None }
     }
 
+    #[inline]
     pub fn add_waiter(&mut self, tid: u32) {
         if !self.waiters.contains(&tid) {
-            self.waiters.push(tid);
+            self.waiters.push_back(tid);
         }
     }
 
+    #[inline]
     pub fn should_spin(&self) -> bool {
         match self.strategy {
             LockStrategy::SpinOnly => true,
@@ -132,6 +139,7 @@ impl AdaptiveLockInstance {
         }
     }
 
+    #[inline]
     pub fn contention_level(&self) -> ContentionLevel {
         if self.contention_events == 0 { return ContentionLevel::None; }
         let rate = if self.acquire_count > 0 {
@@ -143,10 +151,12 @@ impl AdaptiveLockInstance {
         else { ContentionLevel::Extreme }
     }
 
+    #[inline(always)]
     pub fn avg_hold_ns(&self) -> u64 {
         if self.acquire_count == 0 { 0 } else { self.total_hold_ns / self.acquire_count }
     }
 
+    #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
         let total_waits = self.spin_count + self.sleep_count;
         if total_waits == 0 { 0 } else { self.total_wait_ns / total_waits }
@@ -171,6 +181,7 @@ impl AdaptiveLockInstance {
 
 /// Adaptive lock stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AdaptiveLockStats {
     pub total_locks: u32,
     pub total_acquires: u64,
@@ -193,6 +204,7 @@ impl CoopAdaptiveLock {
         Self { locks: BTreeMap::new(), next_id: 1, total_acquires: 0, total_contentions: 0 }
     }
 
+    #[inline]
     pub fn create_lock(&mut self, strategy: LockStrategy) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -200,6 +212,7 @@ impl CoopAdaptiveLock {
         id
     }
 
+    #[inline]
     pub fn try_acquire(&mut self, lock_id: u64, tid: u32, now: u64) -> bool {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             let acquired = lock.try_acquire(tid, now);
@@ -209,14 +222,17 @@ impl CoopAdaptiveLock {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn release(&mut self, lock_id: u64, now: u64) -> Option<u32> {
         self.locks.get_mut(&lock_id)?.release(now)
     }
 
+    #[inline(always)]
     pub fn destroy_lock(&mut self, lock_id: u64) -> bool {
         self.locks.remove(&lock_id).is_some()
     }
 
+    #[inline]
     pub fn hottest_locks(&self, n: usize) -> Vec<(u64, u64)> {
         let mut v: Vec<_> = self.locks.iter()
             .map(|(&id, l)| (id, l.contention_events))
@@ -283,6 +299,7 @@ impl AdaptiveLockEntryV2 {
         Self { id, strategy: LockStrategyV2::Adaptive, contention: ContentionLevelV2::None, spin_count: 0, yield_count: 0, acquire_count: 0, total_wait_ns: 0, max_wait_ns: 0, spin_threshold: 100, adapt_interval: 64 }
     }
 
+    #[inline]
     pub fn record_acquire(&mut self, wait_ns: u64, spins: u64, yields: u64) {
         self.acquire_count += 1;
         self.spin_count += spins;
@@ -301,6 +318,7 @@ impl AdaptiveLockEntryV2 {
         else { self.contention = ContentionLevelV2::Extreme; self.strategy = LockStrategyV2::BackoffSpin; }
     }
 
+    #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
         if self.acquire_count == 0 { 0 } else { self.total_wait_ns / self.acquire_count }
     }
@@ -308,6 +326,7 @@ impl AdaptiveLockEntryV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AdaptiveLockV2Stats {
     pub total_locks: u32,
     pub total_acquires: u64,
@@ -323,14 +342,18 @@ pub struct CoopAdaptiveLockV2 {
 impl CoopAdaptiveLockV2 {
     pub fn new() -> Self { Self { locks: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn register(&mut self, id: u64) { self.locks.insert(id, AdaptiveLockEntryV2::new(id)); }
 
+    #[inline(always)]
     pub fn record_acquire(&mut self, id: u64, wait_ns: u64, spins: u64, yields: u64) {
         if let Some(l) = self.locks.get_mut(&id) { l.record_acquire(wait_ns, spins, yields); }
     }
 
+    #[inline(always)]
     pub fn unregister(&mut self, id: u64) { self.locks.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> AdaptiveLockV2Stats {
         let acqs: u64 = self.locks.values().map(|l| l.acquire_count).sum();
         let wait: u64 = self.locks.values().map(|l| l.total_wait_ns).sum();

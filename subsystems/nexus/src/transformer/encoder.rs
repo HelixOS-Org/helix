@@ -33,6 +33,7 @@ impl EncoderLayer {
     }
 
     /// Forward pass
+    #[inline(always)]
     pub fn forward(&mut self, x: &Tensor2, mask: Option<&Tensor2>, training: bool) -> Tensor2 {
         self.block.forward(x, mask, training)
     }
@@ -187,6 +188,7 @@ impl BertEncoder {
     }
 
     /// Create from config with defaults
+    #[inline(always)]
     pub fn from_config(config: TransformerConfig, seed: u64) -> Self {
         Self::new(config, true, true, seed)
     }

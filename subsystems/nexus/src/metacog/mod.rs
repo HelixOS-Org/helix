@@ -93,6 +93,7 @@ pub enum SubsystemId {
 
 /// Cognitive state snapshot
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CognitiveState {
     /// Current cognitive load (0-1)
     pub load: f64,
@@ -112,6 +113,7 @@ pub struct CognitiveState {
 
 /// Goal state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GoalState {
     /// Goal identifier
     pub id: u64,
@@ -129,6 +131,7 @@ pub struct GoalState {
 
 /// Strategy state
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct StrategyState {
     /// Current strategy ID
     pub strategy_id: u32,
@@ -190,6 +193,7 @@ pub struct IntrospectionEngine {
 
 /// Subsystem performance metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SubsystemMetrics {
     /// Total decisions made
     pub decisions: u64,
@@ -263,27 +267,32 @@ impl IntrospectionEngine {
     }
 
     /// Get current cognitive load
+    #[inline(always)]
     pub fn cognitive_load(&self) -> f64 {
         self.state.load
     }
 
     /// Update cognitive load based on activity
+    #[inline(always)]
     pub fn update_load(&mut self, activity_level: f64) {
         let alpha = 0.2;
         self.state.load = (1.0 - alpha) * self.state.load + alpha * activity_level;
     }
 
     /// Get attention allocation
+    #[inline(always)]
     pub fn attention(&self) -> &BTreeMap<SubsystemId, f64> {
         &self.state.attention
     }
 
     /// Get subsystem metrics
+    #[inline(always)]
     pub fn get_metrics(&self, subsystem: SubsystemId) -> Option<&SubsystemMetrics> {
         self.metrics.get(&subsystem)
     }
 
     /// Get overall accuracy
+    #[inline]
     pub fn overall_accuracy(&self) -> f64 {
         let total_decisions: u64 = self.metrics.values().map(|m| m.decisions).sum();
         let total_correct: u64 = self.metrics.values().map(|m| m.correct).sum();
@@ -296,6 +305,7 @@ impl IntrospectionEngine {
     }
 
     /// Get decision trace for debugging/analysis
+    #[inline(always)]
     pub fn recent_decisions(&self, count: usize) -> Vec<&DecisionRecord> {
         self.history.iter().rev().take(count).collect()
     }
@@ -364,6 +374,7 @@ impl LocalConfidenceCalibrator {
     }
 
     /// Calibrate using Platt scaling
+    #[inline]
     pub fn calibrate_platt(&self, subsystem: SubsystemId, raw_score: f64) -> f64 {
         if let Some(&(a, b)) = self.platt_params.get(&subsystem) {
             1.0 / (1.0 + libm::exp(a * raw_score + b))
@@ -619,6 +630,7 @@ impl LocalStrategySelector {
     }
 
     /// Update with reward
+    #[inline]
     pub fn update(&mut self, strategy: u32, reward: f64) {
         if let Some(arm) = self.strategies.iter_mut().find(|a| a.id == strategy) {
             arm.total_reward += reward;
@@ -627,11 +639,13 @@ impl LocalStrategySelector {
     }
 
     /// Get current strategy
+    #[inline(always)]
     pub fn current(&self) -> Option<u32> {
         self.current
     }
 
     /// Get strategy statistics
+    #[inline]
     pub fn stats(&self, strategy: u32) -> Option<(f64, u64)> {
         self.strategies
             .iter()
@@ -681,11 +695,13 @@ impl CognitiveRegulator {
     }
 
     /// Set policy
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: RegulationPolicy) {
         self.policy = policy;
     }
 
     /// Register a subsystem
+    #[inline]
     pub fn register(&mut self, subsystem: SubsystemId, initial_lr: f64, initial_exploration: f64) {
         self.learning_rates.insert(subsystem, initial_lr);
         self.exploration_rates
@@ -693,6 +709,7 @@ impl CognitiveRegulator {
     }
 
     /// Regulate based on performance metrics
+    #[inline]
     pub fn regulate(&mut self, metrics: &BTreeMap<SubsystemId, SubsystemMetrics>) {
         match self.policy {
             RegulationPolicy::Balanced => self.regulate_balanced(),
@@ -800,11 +817,13 @@ impl CognitiveRegulator {
     }
 
     /// Get learning rate for a subsystem
+    #[inline(always)]
     pub fn learning_rate(&self, subsystem: SubsystemId) -> f64 {
         self.learning_rates.get(&subsystem).copied().unwrap_or(0.01)
     }
 
     /// Get exploration rate for a subsystem
+    #[inline]
     pub fn exploration_rate(&self, subsystem: SubsystemId) -> f64 {
         self.exploration_rates
             .get(&subsystem)
@@ -813,6 +832,7 @@ impl CognitiveRegulator {
     }
 
     /// Get resource allocation for a subsystem
+    #[inline]
     pub fn resource_for(&self, subsystem: SubsystemId) -> f64 {
         self.resource_allocation
             .get(&subsystem)
@@ -884,6 +904,7 @@ pub struct ReasoningPattern {
 
 /// Pattern statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PatternStats {
     pub uses: u64,
     pub successes: u64,
@@ -1062,11 +1083,13 @@ impl MetacognitiveController {
     }
 
     /// Register a subsystem
+    #[inline(always)]
     pub fn register_subsystem(&mut self, subsystem: SubsystemId) {
         self.regulator.register(subsystem, 0.01, 0.1);
     }
 
     /// Record a decision
+    #[inline]
     pub fn record_decision(&mut self, record: DecisionRecord) {
         let _subsystem = record.subsystem;
         let _confidence = record.confidence;
@@ -1077,6 +1100,7 @@ impl MetacognitiveController {
     }
 
     /// Record outcome of a decision
+    #[inline]
     pub fn record_outcome(
         &mut self,
         timestamp: u64,
@@ -1094,33 +1118,39 @@ impl MetacognitiveController {
     }
 
     /// Get calibrated confidence
+    #[inline(always)]
     pub fn calibrate_confidence(&self, subsystem: SubsystemId, raw_confidence: f64) -> f64 {
         self.calibrator
             .calibrate_isotonic(subsystem, raw_confidence)
     }
 
     /// Select strategy
+    #[inline(always)]
     pub fn select_strategy(&mut self) -> u32 {
         self.strategy.select()
     }
 
     /// Update strategy with reward
+    #[inline(always)]
     pub fn update_strategy(&mut self, strategy: u32, reward: f64) {
         self.strategy.update(strategy, reward);
     }
 
     /// Regulate all subsystems
+    #[inline(always)]
     pub fn regulate(&mut self) {
         let metrics = self.introspection.metrics.clone();
         self.regulator.regulate(&metrics);
     }
 
     /// Get learning rate for subsystem
+    #[inline(always)]
     pub fn learning_rate(&self, subsystem: SubsystemId) -> f64 {
         self.regulator.learning_rate(subsystem)
     }
 
     /// Get exploration rate for subsystem
+    #[inline(always)]
     pub fn exploration_rate(&self, subsystem: SubsystemId) -> f64 {
         self.regulator.exploration_rate(subsystem)
     }
@@ -1176,6 +1206,7 @@ impl MetacognitiveController {
     }
 
     /// Recommend reasoning pattern
+    #[inline(always)]
     pub fn recommend_reasoning(&self, problem_type: u32) -> Option<u32> {
         self.reasoner.recommend_pattern(problem_type)
     }

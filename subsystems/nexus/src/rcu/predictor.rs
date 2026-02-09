@@ -2,6 +2,7 @@
 //!
 //! This module provides prediction capabilities for RCU grace period durations.
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use super::{RcuDomainId, GracePeriodInfo};
 
@@ -25,7 +26,7 @@ pub struct GracePeriodPredictor {
     /// Domain ID
     domain_id: RcuDomainId,
     /// Historical samples
-    samples: Vec<GpSample>,
+    samples: VecDeque<GpSample>,
     /// Maximum samples
     max_samples: usize,
     /// Exponential smoothing alpha
@@ -90,13 +91,14 @@ impl GracePeriodPredictor {
 
             // Add sample
             if self.samples.len() >= self.max_samples {
-                self.samples.remove(0);
+                self.samples.pop_front();
             }
-            self.samples.push(sample);
+            self.samples.push_back(sample);
         }
     }
 
     /// Predict grace period duration
+    #[inline]
     pub fn predict_duration(&self, expedited: bool, cpu_count: u32) -> u64 {
         if expedited {
             self.smoothed_expedited_ns as u64
@@ -144,16 +146,19 @@ impl GracePeriodPredictor {
     }
 
     /// Get accuracy
+    #[inline(always)]
     pub fn accuracy(&self) -> f32 {
         self.accuracy
     }
 
     /// Get domain ID
+    #[inline(always)]
     pub fn domain_id(&self) -> RcuDomainId {
         self.domain_id
     }
 
     /// Get sample count
+    #[inline(always)]
     pub fn sample_count(&self) -> usize {
         self.samples.len()
     }

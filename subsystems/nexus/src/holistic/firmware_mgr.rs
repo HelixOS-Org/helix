@@ -55,11 +55,13 @@ impl FirmwareVersion {
         Self { major, minor, patch, build: 0 }
     }
 
+    #[inline(always)]
     pub fn to_u64(&self) -> u64 {
         ((self.major as u64) << 48) | ((self.minor as u64) << 32)
             | ((self.patch as u64) << 16) | (self.build as u64)
     }
 
+    #[inline(always)]
     pub fn is_newer_than(&self, other: &FirmwareVersion) -> bool {
         self.to_u64() > other.to_u64()
     }
@@ -93,24 +95,29 @@ impl FirmwareImage {
         }
     }
 
+    #[inline]
     pub fn load(&mut self, address: u64, now: u64) {
         self.load_address = address;
         self.state = FirmwareState::Loading;
         self.loaded_at = now;
     }
 
+    #[inline(always)]
     pub fn mark_loaded(&mut self, duration_ns: u64) {
         self.state = FirmwareState::Loaded;
         self.load_time_ns = duration_ns;
     }
 
+    #[inline(always)]
     pub fn apply(&mut self) {
         self.state = FirmwareState::Applied;
         self.apply_count += 1;
     }
 
+    #[inline(always)]
     pub fn fail(&mut self) { self.state = FirmwareState::Failed; }
 
+    #[inline]
     pub fn fnv_hash(&self) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
         for b in self.name.as_bytes() {
@@ -133,6 +140,7 @@ pub struct FirmwareUpdateReq {
 
 /// Firmware manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FirmwareMgrStats {
     pub total_images: u32,
     pub loaded_images: u32,
@@ -155,6 +163,7 @@ impl HolisticFirmwareMgr {
         Self { images: BTreeMap::new(), pending_updates: Vec::new(), next_id: 1 }
     }
 
+    #[inline]
     pub fn register(&mut self, name: String, fw_type: FirmwareType, ver: FirmwareVersion, size: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -162,16 +171,19 @@ impl HolisticFirmwareMgr {
         id
     }
 
+    #[inline(always)]
     pub fn load(&mut self, id: u64, address: u64, now: u64) -> bool {
         if let Some(img) = self.images.get_mut(&id) { img.load(address, now); true }
         else { false }
     }
 
+    #[inline(always)]
     pub fn complete_load(&mut self, id: u64, duration_ns: u64) -> bool {
         if let Some(img) = self.images.get_mut(&id) { img.mark_loaded(duration_ns); true }
         else { false }
     }
 
+    #[inline]
     pub fn apply(&mut self, id: u64) -> bool {
         if let Some(img) = self.images.get_mut(&id) {
             if img.state == FirmwareState::Loaded { img.apply(); true }
@@ -179,8 +191,10 @@ impl HolisticFirmwareMgr {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn submit_update(&mut self, req: FirmwareUpdateReq) { self.pending_updates.push(req); }
 
+    #[inline(always)]
     pub fn images_for_device(&self, device_id: u64) -> Vec<&FirmwareImage> {
         self.images.values().filter(|i| i.device_id == device_id).collect()
     }

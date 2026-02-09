@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Seccomp action
@@ -46,6 +48,7 @@ pub struct ArgCondition {
 }
 
 impl ArgCondition {
+    #[inline]
     pub fn matches(&self, arg_val: u64) -> bool {
         match self.comparator {
             ArgCmp::Equal => arg_val == self.value,
@@ -70,6 +73,7 @@ pub struct SeccompRule {
 }
 
 impl SeccompRule {
+    #[inline]
     pub fn simple(syscall_nr: u32, action: SeccompAction) -> Self {
         Self {
             syscall_nr,
@@ -80,11 +84,13 @@ impl SeccompRule {
         }
     }
 
+    #[inline(always)]
     pub fn with_condition(mut self, cond: ArgCondition) -> Self {
         self.conditions.push(cond);
         self
     }
 
+    #[inline]
     pub fn matches(&self, syscall_nr: u32, args: &[u64; 6]) -> bool {
         if self.syscall_nr != syscall_nr { return false; }
         self.conditions.iter().all(|c| {
@@ -169,6 +175,7 @@ impl SeccompFilter {
         self.default_action
     }
 
+    #[inline(always)]
     pub fn denial_rate(&self) -> f64 {
         if self.total_checks == 0 { return 0.0; }
         self.total_denied as f64 / self.total_checks as f64
@@ -187,6 +194,7 @@ pub struct SeccompAuditEntry {
 
 /// Seccomp engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeSeccompStats {
     pub filtered_processes: usize,
     pub total_rules: usize,
@@ -197,9 +205,10 @@ pub struct BridgeSeccompStats {
 }
 
 /// Bridge Seccomp Engine
+#[repr(align(64))]
 pub struct BridgeSeccompEngine {
     filters: BTreeMap<u64, SeccompFilter>,
-    audit_log: Vec<SeccompAuditEntry>,
+    audit_log: VecDeque<SeccompAuditEntry>,
     max_audit: usize,
     stats: BridgeSeccompStats,
 }
@@ -208,17 +217,19 @@ impl BridgeSeccompEngine {
     pub fn new() -> Self {
         Self {
             filters: BTreeMap::new(),
-            audit_log: Vec::new(),
+            audit_log: VecDeque::new(),
             max_audit: 1024,
             stats: BridgeSeccompStats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn install_filter(&mut self, filter: SeccompFilter) {
         self.filters.insert(filter.pid, filter);
         self.recompute();
     }
 
+    #[inline(always)]
     pub fn remove_filter(&mut self, pid: u64) {
         self.filters.remove(&pid);
         self.recompute();
@@ -256,9 +267,9 @@ impl BridgeSeccompEngine {
                 args: *args,
             };
             if self.audit_log.len() >= self.max_audit {
-                self.audit_log.remove(0);
+                self.audit_log.pop_front();
             }
-            self.audit_log.push(entry);
+            self.audit_log.push_back(entry);
         }
 
         self.recompute();
@@ -266,8 +277,9 @@ impl BridgeSeccompEngine {
     }
 
     /// Get hot denied syscalls (most frequently denied)
+    #[inline]
     pub fn hot_denials(&self) -> Vec<(u32, u64)> {
-        let mut counts: BTreeMap<u32, u64> = BTreeMap::new();
+        let mut counts: ArrayMap<u64, 32> = BTreeMap::new();
         for entry in &self.audit_log {
             *counts.entry(entry.syscall_nr).or_insert(0) += 1;
         }
@@ -286,10 +298,12 @@ impl BridgeSeccompEngine {
         self.stats.strict_mode_count = self.filters.values().filter(|f| f.strict_mode).count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeSeccompStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn audit_log(&self) -> &[SeccompAuditEntry] {
         &self.audit_log
     }

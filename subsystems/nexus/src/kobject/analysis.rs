@@ -50,6 +50,7 @@ pub enum KobjectIssueType {
 
 impl KobjectIssueType {
     /// Get issue type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::RefLeak => "ref_leak",
@@ -88,6 +89,7 @@ pub enum KobjectAction {
 
 impl KobjectAction {
     /// Get action name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::FixRefcount => "fix_refcount",

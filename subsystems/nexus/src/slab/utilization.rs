@@ -3,6 +3,7 @@
 //! This module provides utilization analysis for slab caches.
 
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::SlabCacheId;
@@ -43,11 +44,12 @@ pub enum ResizeRecommendation {
 }
 
 /// Cache utilization analyzer
+#[repr(align(64))]
 pub struct CacheUtilizationAnalyzer {
     /// Cache ID
     cache_id: SlabCacheId,
     /// Historical samples
-    samples: Vec<UtilizationSample>,
+    samples: VecDeque<UtilizationSample>,
     /// Maximum samples
     max_samples: usize,
     /// Exponential smoothing alpha
@@ -87,7 +89,7 @@ impl CacheUtilizationAnalyzer {
             self.alpha * sample.utilization + (1.0 - self.alpha) * self.smoothed_utilization;
 
         // Track time in states
-        if let Some(prev) = self.samples.last() {
+        if let Some(prev) = self.samples.back() {
             let duration = sample.timestamp.saturating_sub(prev.timestamp);
             if sample.utilization < self.low_threshold {
                 self.time_underutilized += duration;
@@ -99,12 +101,13 @@ impl CacheUtilizationAnalyzer {
 
         // Store sample
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
     /// Get smoothed utilization
+    #[inline(always)]
     pub fn smoothed_utilization(&self) -> f32 {
         self.smoothed_utilization
     }
@@ -165,17 +168,20 @@ impl CacheUtilizationAnalyzer {
     }
 
     /// Get cache ID
+    #[inline(always)]
     pub fn cache_id(&self) -> SlabCacheId {
         self.cache_id
     }
 
     /// Set thresholds
+    #[inline(always)]
     pub fn set_thresholds(&mut self, low: f32, high: f32) {
         self.low_threshold = low;
         self.high_threshold = high;
     }
 
     /// Get sample count
+    #[inline(always)]
     pub fn sample_count(&self) -> usize {
         self.samples.len()
     }

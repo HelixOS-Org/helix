@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -35,6 +36,7 @@ pub enum PowerState {
 
 impl PowerState {
     /// Performance multiplier
+    #[inline]
     pub fn performance_factor(&self) -> f64 {
         match self {
             PowerState::Performance => 1.0,
@@ -47,6 +49,7 @@ impl PowerState {
     }
 
     /// Power consumption factor (relative to max)
+    #[inline]
     pub fn power_factor(&self) -> f64 {
         match self {
             PowerState::Performance => 1.0,
@@ -134,6 +137,7 @@ impl PowerDomain {
     }
 
     /// Power utilization
+    #[inline]
     pub fn power_utilization(&self) -> f64 {
         if self.max_power_mw == 0 {
             return 0.0;
@@ -142,6 +146,7 @@ impl PowerDomain {
     }
 
     /// Frequency utilization
+    #[inline]
     pub fn freq_utilization(&self) -> f64 {
         if self.max_freq_mhz == 0 {
             return 0.0;
@@ -150,21 +155,25 @@ impl PowerDomain {
     }
 
     /// Thermal headroom (degrees C)
+    #[inline(always)]
     pub fn thermal_headroom_c(&self) -> f64 {
         (self.thermal_limit_mc - self.temperature_mc) as f64 / 1000.0
     }
 
     /// Is thermally throttled?
+    #[inline(always)]
     pub fn is_thermal_throttled(&self) -> bool {
         self.temperature_mc >= (self.thermal_limit_mc - 5000) // within 5°C
     }
 
     /// Set DVFS state
+    #[inline(always)]
     pub fn set_frequency(&mut self, freq_mhz: u32) {
         self.frequency_mhz = freq_mhz.clamp(self.min_freq_mhz, self.max_freq_mhz);
     }
 
     /// Energy per operation estimate (arbitrary units)
+    #[inline]
     pub fn energy_per_op(&self) -> f64 {
         // P = C * V^2 * f, energy per op ~ V^2 / f ∝ V^2
         let v = self.voltage_mv as f64 / 1000.0;
@@ -178,6 +187,7 @@ impl PowerDomain {
 
 /// Battery state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BatteryState {
     /// Charge percentage (0-100)
     pub charge_pct: f64,
@@ -206,11 +216,13 @@ impl BatteryState {
     }
 
     /// Is battery low?
+    #[inline(always)]
     pub fn is_low(&self) -> bool {
         self.charge_pct < 20.0
     }
 
     /// Is critical?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.charge_pct < 5.0
     }
@@ -228,7 +240,7 @@ pub struct EnergyBudget {
     /// Allocated power (mW)
     pub allocated_mw: u64,
     /// Per-domain allocations
-    allocations: BTreeMap<u64, u64>,
+    allocations: LinearMap<u64, 64>,
 }
 
 impl EnergyBudget {
@@ -236,13 +248,14 @@ impl EnergyBudget {
         Self {
             total_mw,
             allocated_mw: 0,
-            allocations: BTreeMap::new(),
+            allocations: LinearMap::new(),
         }
     }
 
     /// Allocate power to domain
+    #[inline]
     pub fn allocate(&mut self, domain: u64, power_mw: u64) -> bool {
-        let current = self.allocations.get(&domain).copied().unwrap_or(0);
+        let current = self.allocations.get(domain).copied().unwrap_or(0);
         let delta = power_mw.saturating_sub(current);
         if self.allocated_mw + delta > self.total_mw {
             return false;
@@ -253,18 +266,21 @@ impl EnergyBudget {
     }
 
     /// Release allocation
+    #[inline]
     pub fn release(&mut self, domain: u64) {
-        if let Some(amount) = self.allocations.remove(&domain) {
+        if let Some(amount) = self.allocations.remove(domain) {
             self.allocated_mw = self.allocated_mw.saturating_sub(amount);
         }
     }
 
     /// Remaining budget
+    #[inline(always)]
     pub fn remaining_mw(&self) -> u64 {
         self.total_mw.saturating_sub(self.allocated_mw)
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total_mw == 0 {
             return 0.0;
@@ -279,6 +295,7 @@ impl EnergyBudget {
 
 /// Energy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticEnergyStats {
     /// Power domains
     pub domain_count: usize,
@@ -319,12 +336,14 @@ impl HolisticEnergyEngine {
     }
 
     /// Add domain
+    #[inline(always)]
     pub fn add_domain(&mut self, id: u64, max_power_mw: u64) {
         self.domains.insert(id, PowerDomain::new(id, max_power_mw));
         self.update_stats();
     }
 
     /// Update domain power
+    #[inline]
     pub fn update_power(&mut self, domain_id: u64, current_mw: u64) {
         if let Some(domain) = self.domains.get_mut(&domain_id) {
             domain.current_power_mw = current_mw;
@@ -333,6 +352,7 @@ impl HolisticEnergyEngine {
     }
 
     /// Update domain temperature
+    #[inline]
     pub fn update_temperature(&mut self, domain_id: u64, temp_mc: i32) {
         if let Some(domain) = self.domains.get_mut(&domain_id) {
             domain.temperature_mc = temp_mc;
@@ -345,6 +365,7 @@ impl HolisticEnergyEngine {
     }
 
     /// Set frequency
+    #[inline]
     pub fn set_frequency(&mut self, domain_id: u64, freq_mhz: u32) {
         if let Some(domain) = self.domains.get_mut(&domain_id) {
             domain.set_frequency(freq_mhz);
@@ -352,6 +373,7 @@ impl HolisticEnergyEngine {
     }
 
     /// Get thermally throttled domains
+    #[inline]
     pub fn throttled_domains(&self) -> Vec<u64> {
         self.domains
             .values()
@@ -361,6 +383,7 @@ impl HolisticEnergyEngine {
     }
 
     /// Total current power draw
+    #[inline(always)]
     pub fn total_power_mw(&self) -> u64 {
         self.domains.values().map(|d| d.current_power_mw).sum()
     }
@@ -387,6 +410,7 @@ impl HolisticEnergyEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticEnergyStats {
         &self.stats
     }

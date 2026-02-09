@@ -4,15 +4,18 @@
 
 /// Unique slab cache identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct SlabCacheId(pub u64);
 
 impl SlabCacheId {
     /// Create a new cache ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +27,13 @@ pub struct SlabId(pub u64);
 
 impl SlabId {
     /// Create a new slab ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -40,11 +45,13 @@ pub struct NodeId(pub u32);
 
 impl NodeId {
     /// Create a new node ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -56,11 +63,13 @@ pub struct CpuId(pub u32);
 
 impl CpuId {
     /// Create a new CPU ID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -93,16 +102,19 @@ impl SlabFlags {
     pub const TRACE: Self = Self(1 << 8);
 
     /// Check if flag is set
+    #[inline(always)]
     pub fn contains(&self, flag: SlabFlags) -> bool {
         (self.0 & flag.0) != 0
     }
 
     /// Add flag
+    #[inline(always)]
     pub fn add(&mut self, flag: SlabFlags) {
         self.0 |= flag.0;
     }
 
     /// Remove flag
+    #[inline(always)]
     pub fn remove(&mut self, flag: SlabFlags) {
         self.0 &= !flag.0;
     }
@@ -121,6 +133,7 @@ pub enum SlabAllocatorType {
 
 impl SlabAllocatorType {
     /// Get allocator name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Slab => "slab",

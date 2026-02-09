@@ -37,6 +37,7 @@ impl<T> Versioned<T> {
     }
 
     /// Create with specific version
+    #[inline]
     pub fn with_version(data: T, version: Version) -> Self {
         let now = Timestamp::now();
         Self {
@@ -48,6 +49,7 @@ impl<T> Versioned<T> {
     }
 
     /// Update data (bumps patch version)
+    #[inline]
     pub fn update(&mut self, data: T) {
         self.data = data;
         self.modified = Timestamp::now();
@@ -55,17 +57,20 @@ impl<T> Versioned<T> {
     }
 
     /// Get reference to data
+    #[inline(always)]
     pub fn get(&self) -> &T {
         &self.data
     }
 
     /// Get mutable reference to data (updates modified time)
+    #[inline(always)]
     pub fn get_mut(&mut self) -> &mut T {
         self.modified = Timestamp::now();
         &mut self.data
     }
 
     /// Into inner data
+    #[inline(always)]
     pub fn into_inner(self) -> T {
         self.data
     }
@@ -94,21 +99,25 @@ impl<T> Timestamped<T> {
     }
 
     /// Create with specific timestamp
+    #[inline(always)]
     pub fn at(data: T, timestamp: Timestamp) -> Self {
         Self { data, timestamp }
     }
 
     /// Get reference to data
+    #[inline(always)]
     pub fn get(&self) -> &T {
         &self.data
     }
 
     /// Into inner data
+    #[inline(always)]
     pub fn into_inner(self) -> T {
         self.data
     }
 
     /// Age since creation
+    #[inline(always)]
     pub fn age(&self, now: Timestamp) -> Duration {
         now.elapsed_since(self.timestamp)
     }
@@ -140,21 +149,25 @@ impl<T> Expiring<T> {
     }
 
     /// Create with specific creation time
+    #[inline(always)]
     pub fn new_at(data: T, created: Timestamp, ttl: Duration) -> Self {
         Self { data, created, ttl }
     }
 
     /// Check if expired
+    #[inline(always)]
     pub fn is_expired(&self, now: Timestamp) -> bool {
         now.elapsed_since(self.created).0 > self.ttl.0
     }
 
     /// Check if still valid
+    #[inline(always)]
     pub fn is_valid(&self, now: Timestamp) -> bool {
         !self.is_expired(now)
     }
 
     /// Remaining time
+    #[inline]
     pub fn remaining(&self, now: Timestamp) -> Duration {
         let elapsed = now.elapsed_since(self.created);
         if elapsed.0 >= self.ttl.0 {
@@ -165,16 +178,19 @@ impl<T> Expiring<T> {
     }
 
     /// Extend TTL
+    #[inline(always)]
     pub fn extend(&mut self, additional: Duration) {
         self.ttl = self.ttl.saturating_add(additional);
     }
 
     /// Reset TTL (restart countdown)
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.created = Timestamp::now();
     }
 
     /// Get reference to data (only if not expired)
+    #[inline]
     pub fn get(&self, now: Timestamp) -> Option<&T> {
         if self.is_valid(now) {
             Some(&self.data)
@@ -184,6 +200,7 @@ impl<T> Expiring<T> {
     }
 
     /// Into inner data (regardless of expiration)
+    #[inline(always)]
     pub fn into_inner(self) -> T {
         self.data
     }
@@ -215,6 +232,7 @@ impl<T> Counted<T> {
     }
 
     /// Get reference to data (increments count)
+    #[inline]
     pub fn get(&mut self) -> &T {
         self.count += 1;
         self.last_access = Timestamp::now();
@@ -222,21 +240,25 @@ impl<T> Counted<T> {
     }
 
     /// Get without counting
+    #[inline(always)]
     pub fn peek(&self) -> &T {
         &self.data
     }
 
     /// Get access count
+    #[inline(always)]
     pub fn access_count(&self) -> u64 {
         self.count
     }
 
     /// Reset count
+    #[inline(always)]
     pub fn reset_count(&mut self) {
         self.count = 0;
     }
 
     /// Into inner data
+    #[inline(always)]
     pub fn into_inner(self) -> T {
         self.data
     }
@@ -257,6 +279,7 @@ pub struct OptionalWith<T, M> {
 
 impl<T, M> OptionalWith<T, M> {
     /// Create with data
+    #[inline]
     pub fn some(data: T, meta: M) -> Self {
         Self {
             data: Some(data),
@@ -265,26 +288,31 @@ impl<T, M> OptionalWith<T, M> {
     }
 
     /// Create without data
+    #[inline(always)]
     pub fn none(meta: M) -> Self {
         Self { data: None, meta }
     }
 
     /// Is some
+    #[inline(always)]
     pub fn is_some(&self) -> bool {
         self.data.is_some()
     }
 
     /// Is none
+    #[inline(always)]
     pub fn is_none(&self) -> bool {
         self.data.is_none()
     }
 
     /// Get data reference
+    #[inline(always)]
     pub fn get(&self) -> Option<&T> {
         self.data.as_ref()
     }
 
     /// Get metadata reference
+    #[inline(always)]
     pub fn metadata(&self) -> &M {
         &self.meta
     }

@@ -16,6 +16,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -127,6 +128,7 @@ impl MemoryEntry {
 
 /// A room in the memory palace — a category of knowledge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MemoryRoom {
     pub topic: String,
     pub topic_hash: u64,
@@ -247,6 +249,7 @@ pub struct VaultEntry {
 
 /// Memory palace statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PalaceStats {
     pub total_rooms: usize,
     pub total_entries: usize,
@@ -264,11 +267,12 @@ pub struct PalaceStats {
 
 /// Structured memory organization for all bridge knowledge
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeMemoryPalace {
     rooms: BTreeMap<u64, MemoryRoom>,
     corridors: Vec<Corridor>,
     vault: BTreeMap<u64, VaultEntry>,
-    recall_history: Vec<(u64, u64, bool)>,
+    recall_history: VecDeque<(u64, u64, bool)>,
     current_tick: u64,
     total_recalls: u64,
     total_stores: u64,
@@ -283,7 +287,7 @@ impl BridgeMemoryPalace {
             rooms: BTreeMap::new(),
             corridors: Vec::new(),
             vault: BTreeMap::new(),
-            recall_history: Vec::new(),
+            recall_history: VecDeque::new(),
             current_tick: 0,
             total_recalls: 0,
             total_stores: 0,
@@ -358,9 +362,9 @@ impl BridgeMemoryPalace {
 
         let found = result.is_some();
         if self.recall_history.len() >= MAX_RECALL_HISTORY {
-            self.recall_history.remove(0);
+            self.recall_history.pop_front();
         }
-        self.recall_history.push((room_hash, self.current_tick, found));
+        self.recall_history.push_back((room_hash, self.current_tick, found));
 
         result
     }
@@ -458,12 +462,14 @@ impl BridgeMemoryPalace {
     }
 
     /// Total size of the memory palace
+    #[inline(always)]
     pub fn palace_size(&self) -> usize {
         let room_entries: usize = self.rooms.values().map(|r| r.entries.len()).sum();
         room_entries + self.vault.len()
     }
 
     /// Get rooms that need review (contain entries due for spaced repetition)
+    #[inline]
     pub fn rooms_needing_review(&self) -> Vec<(String, usize)> {
         let mut result = Vec::new();
         for room in self.rooms.values() {
@@ -477,6 +483,7 @@ impl BridgeMemoryPalace {
     }
 
     /// Average memory strength across the entire palace
+    #[inline]
     pub fn avg_strength(&self) -> f32 {
         if self.rooms.is_empty() {
             return 0.0;
@@ -511,6 +518,7 @@ impl BridgeMemoryPalace {
     }
 
     /// Reset the entire palace
+    #[inline]
     pub fn reset(&mut self) {
         self.rooms.clear();
         self.corridors.clear();

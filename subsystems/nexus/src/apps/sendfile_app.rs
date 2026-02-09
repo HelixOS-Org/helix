@@ -33,12 +33,14 @@ impl SendfileTransfer {
         Self { id, in_fd, out_fd, offset, count, transferred: 0, state: SendfileState::Pending, timestamp: now, duration_ns: 0 }
     }
 
+    #[inline]
     pub fn complete(&mut self, transferred: u64, dur: u64) {
         self.transferred = transferred;
         self.state = SendfileState::Completed;
         self.duration_ns = dur;
     }
 
+    #[inline(always)]
     pub fn throughput_bps(&self) -> u64 {
         if self.duration_ns == 0 { 0 } else { self.transferred * 1_000_000_000 / self.duration_ns }
     }
@@ -46,6 +48,7 @@ impl SendfileTransfer {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SendfileAppStats {
     pub total_transfers: u32,
     pub completed: u32,
@@ -63,12 +66,14 @@ pub struct AppSendfile {
 impl AppSendfile {
     pub fn new() -> Self { Self { transfers: Vec::new(), next_id: 1 } }
 
+    #[inline]
     pub fn sendfile(&mut self, in_fd: u64, out_fd: u64, offset: u64, count: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.transfers.push(SendfileTransfer::new(id, in_fd, out_fd, offset, count, now));
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> SendfileAppStats {
         let completed = self.transfers.iter().filter(|t| t.state == SendfileState::Completed).count() as u32;
         let failed = self.transfers.iter().filter(|t| t.state == SendfileState::Failed).count() as u32;
@@ -119,6 +124,7 @@ impl FdSendfileTracker {
         Self { fd, total_sends: 0, total_bytes: 0, zero_copy_bytes: 0, avg_transfer_size: 0 }
     }
 
+    #[inline]
     pub fn record(&mut self, bytes: u64, zc: bool) {
         self.total_sends += 1;
         self.total_bytes += bytes;
@@ -129,6 +135,7 @@ impl FdSendfileTracker {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SendfileV2AppStats {
     pub tracked_fds: u32,
     pub total_sends: u64,
@@ -144,14 +151,18 @@ pub struct AppSendfileV2 {
 impl AppSendfileV2 {
     pub fn new() -> Self { Self { trackers: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn track(&mut self, fd: u64) { self.trackers.insert(fd, FdSendfileTracker::new(fd)); }
 
+    #[inline(always)]
     pub fn sendfile(&mut self, out_fd: u64, bytes: u64, zero_copy: bool) {
         if let Some(t) = self.trackers.get_mut(&out_fd) { t.record(bytes, zero_copy); }
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, fd: u64) { self.trackers.remove(&fd); }
 
+    #[inline]
     pub fn stats(&self) -> SendfileV2AppStats {
         let sends: u64 = self.trackers.values().map(|t| t.total_sends).sum();
         let bytes: u64 = self.trackers.values().map(|t| t.total_bytes).sum();

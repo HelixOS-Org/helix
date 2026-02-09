@@ -15,6 +15,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -193,6 +194,7 @@ pub struct ComparisonRecord {
 
 /// Intuition engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IntuitionStats {
     pub total_rules: usize,
     pub total_candidates: usize,
@@ -211,10 +213,11 @@ pub struct IntuitionStats {
 
 /// Fast-path decision engine using cached pattern→action rules
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeIntuitionEngine {
     rules: BTreeMap<u64, IntuitionRule>,
     candidates: BTreeMap<u64, CandidatePattern>,
-    comparisons: Vec<ComparisonRecord>,
+    comparisons: VecDeque<ComparisonRecord>,
     current_tick: u64,
     total_decisions: u64,
     total_hits: u64,
@@ -234,7 +237,7 @@ impl BridgeIntuitionEngine {
         Self {
             rules: BTreeMap::new(),
             candidates: BTreeMap::new(),
-            comparisons: Vec::new(),
+            comparisons: VecDeque::new(),
             current_tick: 0,
             total_decisions: 0,
             total_hits: 0,
@@ -270,6 +273,7 @@ impl BridgeIntuitionEngine {
     }
 
     /// Record that intuition was used and whether it was correct
+    #[inline]
     pub fn record_outcome(
         &mut self,
         pattern: &str,
@@ -365,9 +369,9 @@ impl BridgeIntuitionEngine {
         }
 
         if self.comparisons.len() >= MAX_COMPARISON_HISTORY {
-            self.comparisons.remove(0);
+            self.comparisons.pop_front();
         }
-        self.comparisons.push(ComparisonRecord {
+        self.comparisons.push_back(ComparisonRecord {
             pattern_hash,
             intuition_action: intuition_action.unwrap_or(0),
             analysis_action: analysis_hash,
@@ -394,16 +398,19 @@ impl BridgeIntuitionEngine {
     }
 
     /// Current intuition cache size
+    #[inline(always)]
     pub fn intuition_cache_size(&self) -> usize {
         self.rules.len()
     }
 
     /// Overall intuition accuracy
+    #[inline(always)]
     pub fn intuition_accuracy(&self) -> f32 {
         self.avg_accuracy_ema
     }
 
     /// Intuition agreement rate with full analysis
+    #[inline]
     pub fn agreement_rate(&self) -> f32 {
         let total = self.agreement_count + self.disagreement_count;
         if total == 0 {
@@ -431,6 +438,7 @@ impl BridgeIntuitionEngine {
     }
 
     /// Get the top intuition rules by hit count
+    #[inline]
     pub fn top_rules(&self, limit: usize) -> Vec<(u64, String, u64, f32)> {
         let mut rules: Vec<(u64, String, u64, f32)> = self
             .rules
@@ -443,11 +451,13 @@ impl BridgeIntuitionEngine {
     }
 
     /// Total time saved by intuition across all rules
+    #[inline(always)]
     pub fn total_time_saved(&self) -> u64 {
         self.rules.values().map(|r| r.total_time_saved_ns).sum()
     }
 
     /// Is the cache warm enough for reliable intuition?
+    #[inline(always)]
     pub fn is_cache_warm(&self) -> bool {
         self.rules.len() >= CACHE_WARM_THRESHOLD
     }
@@ -484,6 +494,7 @@ impl BridgeIntuitionEngine {
     }
 
     /// Reset the intuition engine
+    #[inline]
     pub fn reset(&mut self) {
         self.rules.clear();
         self.candidates.clear();

@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -150,6 +151,7 @@ pub struct KnowledgeEvolution {
 
 /// Aggregate literature engine statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct LiteratureStats {
     pub total_entries: u64,
     pub total_novelty_checks: u64,
@@ -280,13 +282,14 @@ impl AppsLiterature {
             let history = self.domain_history.entry(dom_key).or_insert_with(Vec::new);
             history.push(tick);
             if history.len() > EVOLUTION_WINDOW {
-                history.remove(0);
+                history.pop_front();
             }
         }
         id
     }
 
     /// Look up knowledge entries by domain
+    #[inline]
     pub fn knowledge_lookup(&self, domain: ClassificationDomain) -> Vec<&KnowledgeEntry> {
         self.entries
             .values()
@@ -295,6 +298,7 @@ impl AppsLiterature {
     }
 
     /// Compute novelty score for a proposed research topic
+    #[inline]
     pub fn novelty_score(&mut self, summary: &str) -> NoveltyResult {
         self.stats.total_novelty_checks += 1;
         let query_fps = self.fingerprint_engine.compute_fingerprints(summary);
@@ -498,11 +502,13 @@ impl AppsLiterature {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> LiteratureStats {
         self.stats
     }
 
     /// Mark an entry as validated
+    #[inline]
     pub fn validate_entry(&mut self, entry_id: u64) {
         if let Some(e) = self.entries.get_mut(&entry_id) {
             e.validated = true;

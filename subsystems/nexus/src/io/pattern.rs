@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -51,7 +52,7 @@ pub enum IoPattern {
 /// Analyzes I/O access patterns
 pub struct IoPatternAnalyzer {
     /// Recent access history
-    history: Vec<IoAccessRecord>,
+    history: VecDeque<IoAccessRecord>,
     /// Max history size
     max_history: usize,
     /// Detected stride
@@ -66,7 +67,7 @@ impl IoPatternAnalyzer {
     /// Create new analyzer
     pub fn new(max_history: usize) -> Self {
         Self {
-            history: Vec::with_capacity(max_history),
+            history: VecDeque::with_capacity(max_history),
             max_history,
             detected_stride: None,
             confidence: 0.0,
@@ -83,12 +84,12 @@ impl IoPatternAnalyzer {
             timestamp: NexusTimestamp::now().raw(),
         };
 
-        self.history.push(record);
+        self.history.push_back(record);
         self.total_ops.fetch_add(1, Ordering::Relaxed);
 
         // Evict old entries
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         // Update pattern detection
@@ -164,6 +165,7 @@ impl IoPatternAnalyzer {
     }
 
     /// Get confidence
+    #[inline(always)]
     pub fn confidence(&self) -> f64 {
         self.confidence
     }
@@ -174,7 +176,7 @@ impl IoPatternAnalyzer {
             return None;
         }
 
-        let last = self.history.last()?;
+        let last = self.history.back()?;
 
         match self.detected_stride {
             Some(0) => Some(last.offset + last.size as u64),
@@ -193,7 +195,7 @@ impl IoPatternAnalyzer {
 
         if let Some(next) = self.predict_next() {
             let stride = match self.detected_stride {
-                Some(0) => self.history.last().map(|r| r.size as i64).unwrap_or(4096),
+                Some(0) => self.history.back().map(|r| r.size as i64).unwrap_or(4096),
                 Some(s) => s,
                 None => return recommendations,
             };
@@ -207,6 +209,7 @@ impl IoPatternAnalyzer {
     }
 
     /// Clear history
+    #[inline]
     pub fn clear(&mut self) {
         self.history.clear();
         self.detected_stride = None;
@@ -214,6 +217,7 @@ impl IoPatternAnalyzer {
     }
 
     /// Get total operations
+    #[inline(always)]
     pub fn total_operations(&self) -> u64 {
         self.total_ops.load(Ordering::Relaxed)
     }

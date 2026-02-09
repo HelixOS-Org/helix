@@ -22,6 +22,7 @@ impl RoutingCoopRecord {
 
 /// Routing coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RoutingCoopStats { pub total_events: u64, pub syncs: u64, pub shared_routes: u64, pub groups: u64 }
 
 /// Main coop routing
@@ -30,6 +31,7 @@ pub struct CoopRouting { pub stats: RoutingCoopStats }
 
 impl CoopRouting {
     pub fn new() -> Self { Self { stats: RoutingCoopStats { total_events: 0, syncs: 0, shared_routes: 0, groups: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &RoutingCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

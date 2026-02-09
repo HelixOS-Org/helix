@@ -9,8 +9,10 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // FAIRNESS TYPES
@@ -71,7 +73,7 @@ pub struct ResourceFairness {
     /// Resource
     pub resource: FairnessResource,
     /// Per-process allocation
-    allocations: BTreeMap<u64, f64>,
+    allocations: LinearMap<f64, 64>,
     /// Jain's fairness index
     pub jains_index: f64,
     /// Gini coefficient
@@ -83,31 +85,33 @@ pub struct ResourceFairness {
     /// Verdict
     pub verdict: FairnessVerdict,
     /// History of Jain's index
-    jains_history: Vec<f64>,
+    jains_history: VecDeque<f64>,
 }
 
 impl ResourceFairness {
     pub fn new(resource: FairnessResource) -> Self {
         Self {
             resource,
-            allocations: BTreeMap::new(),
+            allocations: LinearMap::new(),
             jains_index: 1.0,
             gini: 0.0,
             max_min_ratio: 1.0,
             cv: 0.0,
             verdict: FairnessVerdict::Fair,
-            jains_history: Vec::new(),
+            jains_history: VecDeque::new(),
         }
     }
 
     /// Update allocation for process
+    #[inline(always)]
     pub fn set_allocation(&mut self, pid: u64, amount: f64) {
         self.allocations.insert(pid, amount);
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
-        self.allocations.remove(&pid);
+        self.allocations.remove(pid);
     }
 
     /// Recompute fairness metrics
@@ -149,7 +153,11 @@ impl ResourceFairness {
         // Max/min ratio
         let max_val = values.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
         let min_val = values.iter().cloned().fold(f64::INFINITY, f64::min);
-        self.max_min_ratio = if min_val > 0.0 { max_val / min_val } else { f64::INFINITY };
+        self.max_min_ratio = if min_val > 0.0 {
+            max_val / min_val
+        } else {
+            f64::INFINITY
+        };
 
         // Coefficient of variation
         let variance = sum_sq / n as f64 - mean * mean;
@@ -169,19 +177,20 @@ impl ResourceFairness {
 
         // Track history
         if self.jains_history.len() >= 128 {
-            self.jains_history.remove(0);
+            self.jains_history.pop_front();
         }
-        self.jains_history.push(self.jains_index);
+        self.jains_history.push_back(self.jains_index);
     }
 
     /// Fairness trend (positive = improving)
+    #[inline]
     pub fn trend(&self) -> f64 {
         if self.jains_history.len() < 4 {
             return 0.0;
         }
         let n = self.jains_history.len();
-        let recent: f64 = self.jains_history[n - 2..].iter().sum::<f64>() / 2.0;
-        let earlier: f64 = self.jains_history[..2].iter().sum::<f64>() / 2.0;
+        let recent: f64 = self.jains_history.iter().skip(n - 2).sum::<f64>() / 2.0;
+        let earlier: f64 = self.jains_history.iter().take(2).sum::<f64>() / 2.0;
         recent - earlier
     }
 
@@ -194,7 +203,8 @@ impl ResourceFairness {
         let total: f64 = self.allocations.values().sum();
         let fair_share = total / n as f64;
 
-        self.allocations.iter()
+        self.allocations
+            .iter()
             .filter(|(_, &v)| v < fair_share * threshold)
             .map(|(&pid, _)| pid)
             .collect()
@@ -207,6 +217,7 @@ impl ResourceFairness {
 
 /// Fairness monitor stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopFairnessStats {
     /// Tracked resources
     pub tracked_resources: usize,
@@ -223,7 +234,7 @@ pub struct CoopFairnessMonitor {
     /// Per-resource fairness
     resources: BTreeMap<u8, ResourceFairness>,
     /// Starvation alerts
-    alerts: Vec<StarvationAlert>,
+    alerts: VecDeque<StarvationAlert>,
     /// Stats
     stats: CoopFairnessStats,
 }
@@ -232,25 +243,31 @@ impl CoopFairnessMonitor {
     pub fn new() -> Self {
         Self {
             resources: BTreeMap::new(),
-            alerts: Vec::new(),
+            alerts: VecDeque::new(),
             stats: CoopFairnessStats::default(),
         }
     }
 
     /// Get/create resource tracker
+    #[inline(always)]
     pub fn resource(&mut self, resource: FairnessResource) -> &mut ResourceFairness {
-        self.resources.entry(resource as u8)
+        self.resources
+            .entry(resource as u8)
             .or_insert_with(|| ResourceFairness::new(resource))
     }
 
     /// Update allocation
+    #[inline]
     pub fn update_allocation(&mut self, resource: FairnessResource, pid: u64, amount: f64) {
-        let rf = self.resources.entry(resource as u8)
+        let rf = self
+            .resources
+            .entry(resource as u8)
             .or_insert_with(|| ResourceFairness::new(resource));
         rf.set_allocation(pid, amount);
     }
 
     /// Recompute all
+    #[inline]
     pub fn recompute_all(&mut self) {
         for rf in self.resources.values_mut() {
             rf.recompute();
@@ -265,12 +282,12 @@ impl CoopFairnessMonitor {
             let starved = rf.detect_starvation(threshold);
             for pid in starved {
                 if self.alerts.len() >= 256 {
-                    self.alerts.remove(0);
+                    self.alerts.pop_front();
                 }
                 let alloc = rf.allocations.get(&pid).cloned().unwrap_or(0.0);
                 let total: f64 = rf.allocations.values().sum();
                 let fair = total / rf.allocations.len().max(1) as f64;
-                self.alerts.push(StarvationAlert {
+                self.alerts.push_back(StarvationAlert {
                     pid,
                     resource: rf.resource,
                     duration_ns: 0,
@@ -282,6 +299,7 @@ impl CoopFairnessMonitor {
     }
 
     /// Remove process
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
         for rf in self.resources.values_mut() {
             rf.remove_process(pid);
@@ -292,17 +310,19 @@ impl CoopFairnessMonitor {
     fn update_stats(&mut self) {
         self.stats.tracked_resources = self.resources.len();
         if !self.resources.is_empty() {
-            self.stats.overall_jains = self.resources.values()
-                .map(|r| r.jains_index)
-                .sum::<f64>() / self.resources.len() as f64;
+            self.stats.overall_jains = self.resources.values().map(|r| r.jains_index).sum::<f64>()
+                / self.resources.len() as f64;
         }
         self.stats.starvation_alerts = self.alerts.len();
-        self.stats.unfair_resources = self.resources.values()
+        self.stats.unfair_resources = self
+            .resources
+            .values()
             .filter(|r| matches!(r.verdict, FairnessVerdict::Unfair | FairnessVerdict::Severe))
             .count();
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopFairnessStats {
         &self.stats
     }

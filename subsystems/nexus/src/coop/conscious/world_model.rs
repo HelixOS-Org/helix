@@ -105,6 +105,7 @@ pub struct CoopPrediction {
 
 /// Aggregate world model statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct WorldModelStats {
     pub nodes_tracked: usize,
     pub edges_tracked: usize,
@@ -159,6 +160,7 @@ impl CoopWorldModel {
     }
 
     /// Update cooperation topology with a new interaction between participants
+    #[inline]
     pub fn update_topology(
         &mut self,
         source_name: &str,
@@ -266,6 +268,7 @@ impl CoopWorldModel {
     }
 
     /// Compute total resource flow through the network
+    #[inline(always)]
     pub fn resource_flow(&self) -> f32 {
         self.edges.values().map(|e| e.flow_rate).sum()
     }
@@ -296,6 +299,7 @@ impl CoopWorldModel {
     }
 
     /// Compute network entropy: higher = more chaotic cooperation patterns
+    #[inline]
     pub fn network_entropy(&mut self) -> f32 {
         if self.nodes.is_empty() {
             return 0.0;

@@ -55,6 +55,7 @@ impl Complex {
     }
 
     /// Create from polar coordinates
+    #[inline]
     pub fn from_polar(r: f64, theta: f64) -> Self {
         Self {
             re: r * libm::cos(theta),
@@ -121,6 +122,7 @@ impl Complex {
 
     /// Division
     #[allow(clippy::should_implement_trait)]
+    #[inline]
     pub fn div(self, other: Self) -> Self {
         let denom = other.norm_sq();
         if denom < 1e-15 {
@@ -142,6 +144,7 @@ impl Complex {
     }
 
     /// Complex exponential
+    #[inline]
     pub fn exp(self) -> Self {
         let exp_re = libm::exp(self.re);
         Self {
@@ -163,6 +166,7 @@ impl Default for Complex {
 
 /// Single qubit state |ψ⟩ = α|0⟩ + β|1⟩
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QubitState {
     /// Amplitude for |0⟩
     pub alpha: Complex,
@@ -189,6 +193,7 @@ impl QubitState {
     }
 
     /// Create |+⟩ = (|0⟩ + |1⟩)/√2
+    #[inline]
     pub fn plus() -> Self {
         let inv_sqrt2 = 1.0 / libm::sqrt(2.0);
         Self {
@@ -198,6 +203,7 @@ impl QubitState {
     }
 
     /// Create |-⟩ = (|0⟩ - |1⟩)/√2
+    #[inline]
     pub fn minus() -> Self {
         let inv_sqrt2 = 1.0 / libm::sqrt(2.0);
         Self {
@@ -219,6 +225,7 @@ impl QubitState {
     }
 
     /// Normalize the state
+    #[inline]
     pub fn normalize(&mut self) {
         let norm = libm::sqrt(self.alpha.norm_sq() + self.beta.norm_sq());
         if norm > 1e-15 {
@@ -228,6 +235,7 @@ impl QubitState {
     }
 
     /// Check if normalized
+    #[inline(always)]
     pub fn is_normalized(&self) -> bool {
         let total = self.alpha.norm_sq() + self.beta.norm_sq();
         (total - 1.0).abs() < 1e-10
@@ -246,6 +254,7 @@ impl Default for QubitState {
 
 /// Multi-qubit quantum state as state vector
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateVector {
     /// Number of qubits
     pub n_qubits: usize,
@@ -267,6 +276,7 @@ impl StateVector {
     }
 
     /// Create from amplitudes
+    #[inline]
     pub fn from_amplitudes(n_qubits: usize, amplitudes: Vec<Complex>) -> Self {
         let dim = 1 << n_qubits;
         let mut amps = amplitudes;
@@ -299,6 +309,7 @@ impl StateVector {
     }
 
     /// Normalize the state
+    #[inline]
     pub fn normalize(&mut self) {
         let norm_sq: f64 = self.amplitudes.iter().map(|c| c.norm_sq()).sum();
 
@@ -317,6 +328,7 @@ impl StateVector {
     }
 
     /// Get all probabilities
+    #[inline(always)]
     pub fn probabilities(&self) -> Vec<f64> {
         self.amplitudes.iter().map(|c| c.norm_sq()).collect()
     }
@@ -338,6 +350,7 @@ impl StateVector {
     }
 
     /// Inner product ⟨self|other⟩
+    #[inline]
     pub fn inner_product(&self, other: &StateVector) -> Complex {
         self.amplitudes
             .iter()
@@ -346,6 +359,7 @@ impl StateVector {
     }
 
     /// Expectation value of diagonal observable
+    #[inline]
     pub fn expectation_diagonal(&self, diagonal: &[f64]) -> f64 {
         self.amplitudes
             .iter()
@@ -390,6 +404,7 @@ impl Pauli {
     }
 
     /// Eigenvalue for |0⟩
+    #[inline]
     pub fn eigenvalue_zero(&self) -> f64 {
         match self {
             Pauli::I => 1.0,
@@ -400,6 +415,7 @@ impl Pauli {
     }
 
     /// Eigenvalue for |1⟩
+    #[inline]
     pub fn eigenvalue_one(&self) -> f64 {
         match self {
             Pauli::I => 1.0,
@@ -430,6 +446,7 @@ impl PauliString {
     }
 
     /// Create identity string
+    #[inline]
     pub fn identity(n_qubits: usize) -> Self {
         Self {
             paulis: vec![Pauli::I; n_qubits],
@@ -438,6 +455,7 @@ impl PauliString {
     }
 
     /// Create single-qubit Pauli
+    #[inline]
     pub fn single(n_qubits: usize, qubit: usize, pauli: Pauli, coeff: f64) -> Self {
         let mut paulis = vec![Pauli::I; n_qubits];
         if qubit < n_qubits {
@@ -447,6 +465,7 @@ impl PauliString {
     }
 
     /// Create ZZ coupling term
+    #[inline]
     pub fn zz(n_qubits: usize, q1: usize, q2: usize, coeff: f64) -> Self {
         let mut paulis = vec![Pauli::I; n_qubits];
         if q1 < n_qubits {
@@ -459,16 +478,19 @@ impl PauliString {
     }
 
     /// Number of qubits
+    #[inline(always)]
     pub fn n_qubits(&self) -> usize {
         self.paulis.len()
     }
 
     /// Check if identity
+    #[inline(always)]
     pub fn is_identity(&self) -> bool {
         self.paulis.iter().all(|&p| p == Pauli::I)
     }
 
     /// Return copy with new coefficient
+    #[inline(always)]
     pub fn with_coeff(mut self, coeff: f64) -> Self {
         self.coeff = coeff;
         self
@@ -512,6 +534,7 @@ impl Hamiltonian {
     }
 
     /// Add a term
+    #[inline(always)]
     pub fn add_term(&mut self, term: PauliString) {
         self.terms.push(term);
     }
@@ -540,11 +563,13 @@ impl Hamiltonian {
     }
 
     /// Number of terms
+    #[inline(always)]
     pub fn num_terms(&self) -> usize {
         self.terms.len()
     }
 
     /// Compute energy for basis state
+    #[inline]
     pub fn energy_basis(&self, basis_state: usize) -> f64 {
         self.terms
             .iter()

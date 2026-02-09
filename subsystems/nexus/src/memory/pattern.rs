@@ -1,6 +1,8 @@
 //! Memory access pattern detection.
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -13,7 +15,7 @@ use super::types::{AccessPattern, AccessRecord};
 /// Detects memory access patterns
 pub struct PatternDetector {
     /// Recent accesses for analysis
-    history: Vec<AccessRecord>,
+    history: VecDeque<AccessRecord>,
     /// Maximum history size
     max_history: usize,
     /// Detected strides
@@ -39,17 +41,17 @@ impl PatternDetector {
     /// Record an access
     pub fn record(&mut self, record: AccessRecord) {
         // Calculate stride from previous access
-        if let Some(prev) = self.history.last() {
+        if let Some(prev) = self.history.back() {
             let stride = record.address as i64 - prev.address as i64;
             *self.strides.entry(stride).or_insert(0) += 1;
         }
 
-        self.history.push(record);
+        self.history.push_back(record);
         self.total_accesses.fetch_add(1, Ordering::Relaxed);
 
         // Evict old entries
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
             // Decay stride counts
             self.strides.retain(|_, count| {
                 *count = (*count * 9) / 10;
@@ -171,7 +173,7 @@ impl PatternDetector {
             return 0.0;
         }
 
-        let mut address_counts: BTreeMap<u64, u32> = BTreeMap::new();
+        let mut address_counts: LinearMap<u32, 64> = BTreeMap::new();
         for record in &self.history {
             // Page granularity
             let page = record.address / 4096;
@@ -240,6 +242,7 @@ impl PatternDetector {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> PatternStats {
         let (pattern, confidence) = self.detect_pattern();
         PatternStats {
@@ -252,6 +255,7 @@ impl PatternDetector {
     }
 
     /// Clear history
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.history.clear();
         self.strides.clear();
@@ -266,6 +270,7 @@ impl Default for PatternDetector {
 
 /// Pattern detection statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PatternStats {
     /// Total accesses analyzed
     pub total_accesses: u64,

@@ -46,6 +46,7 @@ impl NsHolisticFinding {
 
 /// Namespace holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NsHolisticStats {
     pub total_analyses: u64,
     pub weak_isolation: u64,
@@ -64,6 +65,7 @@ impl HolisticNamespace {
         Self { stats: NsHolisticStats { total_analyses: 0, weak_isolation: 0, resource_leaks: 0, deep_nesting: 0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &NsHolisticFinding) {
         self.stats.total_analyses += 1;
         if finding.cross_ns_accesses > 3 { self.stats.weak_isolation += 1; }

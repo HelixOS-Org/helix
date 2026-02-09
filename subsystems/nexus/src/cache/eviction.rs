@@ -1,6 +1,7 @@
 //! Cache eviction optimization.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::entry::CacheEntry;
@@ -21,7 +22,7 @@ pub struct EvictionOptimizer {
     /// ARC parameters
     arc_p: f64, // Target size for T1
     /// Eviction history
-    eviction_history: Vec<EvictionRecord>,
+    eviction_history: VecDeque<EvictionRecord>,
     /// Max history
     max_history: usize,
 }
@@ -56,7 +57,7 @@ impl EvictionOptimizer {
             policy,
             policy_stats: BTreeMap::new(),
             arc_p: 0.5,
-            eviction_history: Vec::new(),
+            eviction_history: VecDeque::new(),
             max_history: 10000,
         }
     }
@@ -178,9 +179,9 @@ impl EvictionOptimizer {
             frequency: entry.frequency,
         };
 
-        self.eviction_history.push(record);
+        self.eviction_history.push_back(record);
         if self.eviction_history.len() > self.max_history {
-            self.eviction_history.remove(0);
+            self.eviction_history.pop_front();
         }
 
         let stats = self.policy_stats.entry(self.policy).or_default();
@@ -188,6 +189,7 @@ impl EvictionOptimizer {
     }
 
     /// Record regret (evicted entry was needed)
+    #[inline]
     pub fn record_regret(&mut self, key: CacheKey) {
         // Check if in eviction history
         for record in &self.eviction_history {
@@ -200,16 +202,19 @@ impl EvictionOptimizer {
     }
 
     /// Set policy
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: EvictionPolicy) {
         self.policy = policy;
     }
 
     /// Get policy
+    #[inline(always)]
     pub fn policy(&self) -> EvictionPolicy {
         self.policy
     }
 
     /// Get regret rate
+    #[inline]
     pub fn regret_rate(&self) -> f64 {
         let stats = self.policy_stats.get(&self.policy);
         match stats {
@@ -219,6 +224,7 @@ impl EvictionOptimizer {
     }
 
     /// Adapt ARC parameter
+    #[inline]
     pub fn adapt_arc(&mut self, hit_in_t1: bool) {
         if hit_in_t1 {
             // Increase T1 size

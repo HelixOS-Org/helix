@@ -23,6 +23,7 @@ impl FutexHolisticRecord {
 
 /// Futex holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FutexHolisticStats { pub total_samples: u64, pub thundering_herds: u64, pub starved: u64, pub peak_depth: u32 }
 
 /// Main holistic futex
@@ -31,6 +32,7 @@ pub struct HolisticFutex { pub stats: FutexHolisticStats }
 
 impl HolisticFutex {
     pub fn new() -> Self { Self { stats: FutexHolisticStats { total_samples: 0, thundering_herds: 0, starved: 0, peak_depth: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &FutexHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.health {

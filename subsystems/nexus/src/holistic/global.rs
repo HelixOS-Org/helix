@@ -196,6 +196,7 @@ impl SystemSnapshot {
     }
 
     /// Overall system pressure (0.0 - 1.0)
+    #[inline]
     pub fn overall_pressure(&self) -> f64 {
         let cpu_pressure = self.cpu.utilization;
         let mem_pressure = self.memory.pressure;

@@ -35,6 +35,7 @@ impl AttributeClassifier {
     }
 
     /// Register a class with its attributes
+    #[inline]
     pub fn register_class(
         &mut self,
         class_id: ClassId,
@@ -114,6 +115,7 @@ impl AttributeClassifier {
     }
 
     /// Set calibration parameter
+    #[inline(always)]
     pub fn set_calibration(&mut self, calibration: f64) {
         self.calibration = calibration;
     }

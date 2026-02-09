@@ -35,6 +35,7 @@ pub enum ImprovementCategory {
 
 impl ImprovementCategory {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Performance => "Performance",
@@ -68,6 +69,7 @@ pub enum EffortLevel {
 
 impl EffortLevel {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Trivial => "Trivial",
@@ -102,6 +104,7 @@ pub enum SuggestionStatus {
 
 impl SuggestionStatus {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Proposed => "Proposed",
@@ -165,30 +168,35 @@ impl ImprovementSuggestion {
     }
 
     /// Set target domain
+    #[inline(always)]
     pub fn for_domain(mut self, domain: Domain) -> Self {
         self.target_domain = Some(domain);
         self
     }
 
     /// Set expected benefit
+    #[inline(always)]
     pub fn with_benefit(mut self, benefit: impl Into<String>) -> Self {
         self.expected_benefit = benefit.into();
         self
     }
 
     /// Set effort level
+    #[inline(always)]
     pub fn with_effort(mut self, effort: EffortLevel) -> Self {
         self.effort = effort;
         self
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: Priority) -> Self {
         self.priority = priority;
         self
     }
 
     /// Is pending?
+    #[inline(always)]
     pub fn is_pending(&self) -> bool {
         self.status == SuggestionStatus::Proposed
     }
@@ -226,12 +234,14 @@ impl AppliedImprovement {
     }
 
     /// Set baseline
+    #[inline(always)]
     pub fn with_baseline(mut self, baseline: impl Into<String>) -> Self {
         self.baseline = Some(baseline.into());
         self
     }
 
     /// Set result
+    #[inline(always)]
     pub fn with_result(mut self, result: impl Into<String>) -> Self {
         self.result = Some(result.into());
         self
@@ -392,6 +402,7 @@ impl Evolver {
     }
 
     /// Get pending suggestions
+    #[inline]
     pub fn pending(&self) -> Vec<&ImprovementSuggestion> {
         self.suggestions
             .iter()
@@ -400,16 +411,19 @@ impl Evolver {
     }
 
     /// Get all suggestions
+    #[inline(always)]
     pub fn suggestions(&self) -> &[ImprovementSuggestion] {
         &self.suggestions
     }
 
     /// Get applied improvements
+    #[inline(always)]
     pub fn applied(&self) -> &[AppliedImprovement] {
         &self.applied
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> EvolverStats {
         EvolverStats {
             suggestions_total: self.suggestions.len(),
@@ -428,6 +442,7 @@ impl Default for Evolver {
 
 /// Evolver statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EvolverStats {
     /// Total suggestions
     pub suggestions_total: usize,

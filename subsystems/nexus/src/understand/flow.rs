@@ -8,6 +8,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::vec;
 
 use alloc::collections::{BTreeMap, BTreeSet};
@@ -186,11 +187,13 @@ impl ControlFlowGraph {
     }
 
     /// Set entry block
+    #[inline(always)]
     pub fn set_entry(&mut self, id: u64) {
         self.entry = id;
     }
 
     /// Add exit block
+    #[inline]
     pub fn add_exit(&mut self, id: u64) {
         if !self.exits.contains(&id) {
             self.exits.push(id);
@@ -198,11 +201,13 @@ impl ControlFlowGraph {
     }
 
     /// Get block
+    #[inline(always)]
     pub fn get_block(&self, id: u64) -> Option<&BasicBlock> {
         self.blocks.get(&id)
     }
 
     /// Get mutable block
+    #[inline(always)]
     pub fn get_block_mut(&mut self, id: u64) -> Option<&mut BasicBlock> {
         self.blocks.get_mut(&id)
     }
@@ -284,21 +289,25 @@ impl ControlFlowGraph {
     }
 
     /// Get entry
+    #[inline(always)]
     pub fn entry(&self) -> u64 {
         self.entry
     }
 
     /// Get exits
+    #[inline(always)]
     pub fn exits(&self) -> &[u64] {
         &self.exits
     }
 
     /// Block count
+    #[inline(always)]
     pub fn block_count(&self) -> usize {
         self.blocks.len()
     }
 
     /// Get all blocks
+    #[inline(always)]
     pub fn blocks(&self) -> impl Iterator<Item = &BasicBlock> {
         self.blocks.values()
     }
@@ -311,9 +320,9 @@ impl ControlFlowGraph {
 /// CFG analyzer
 pub struct CfgAnalyzer {
     /// Dominators (block -> immediate dominator)
-    dominators: BTreeMap<u64, u64>,
+    dominators: LinearMap<u64, 64>,
     /// Post-dominators
-    post_dominators: BTreeMap<u64, u64>,
+    post_dominators: LinearMap<u64, 64>,
     /// Dominator tree children
     dom_children: BTreeMap<u64, Vec<u64>>,
     /// Loop headers
@@ -328,8 +337,8 @@ impl CfgAnalyzer {
     /// Create new analyzer
     pub fn new() -> Self {
         Self {
-            dominators: BTreeMap::new(),
-            post_dominators: BTreeMap::new(),
+            dominators: LinearMap::new(),
+            post_dominators: LinearMap::new(),
             dom_children: BTreeMap::new(),
             loop_headers: Vec::new(),
             loop_bodies: BTreeMap::new(),
@@ -338,6 +347,7 @@ impl CfgAnalyzer {
     }
 
     /// Analyze CFG
+    #[inline]
     pub fn analyze(&mut self, cfg: &ControlFlowGraph) {
         self.compute_dominators(cfg);
         self.build_dominator_tree();
@@ -401,7 +411,7 @@ impl CfgAnalyzer {
         let mut current = a;
         loop {
             a_doms.insert(current);
-            match self.dominators.get(&current) {
+            match self.dominators.get(current) {
                 Some(&dom) if dom != current => current = dom,
                 _ => break,
             }
@@ -413,7 +423,7 @@ impl CfgAnalyzer {
             if a_doms.contains(&current) {
                 return current;
             }
-            match self.dominators.get(&current) {
+            match self.dominators.get(current) {
                 Some(&dom) if dom != current => current = dom,
                 _ => return current,
             }
@@ -464,7 +474,7 @@ impl CfgAnalyzer {
             if current == a {
                 return true;
             }
-            match self.dominators.get(&current) {
+            match self.dominators.get(current) {
                 Some(&dom) if dom != current => current = dom,
                 _ => return false,
             }
@@ -493,21 +503,25 @@ impl CfgAnalyzer {
     }
 
     /// Get immediate dominator
+    #[inline(always)]
     pub fn get_dominator(&self, block: u64) -> Option<u64> {
-        self.dominators.get(&block).copied()
+        self.dominators.get(block).copied()
     }
 
     /// Get loop headers
+    #[inline(always)]
     pub fn loop_headers(&self) -> &[u64] {
         &self.loop_headers
     }
 
     /// Get loop body
+    #[inline(always)]
     pub fn get_loop_body(&self, header: u64) -> Option<&Vec<u64>> {
         self.loop_bodies.get(&header)
     }
 
     /// Get back edges
+    #[inline(always)]
     pub fn back_edges(&self) -> &[(u64, u64)] {
         &self.back_edges
     }
@@ -567,16 +581,19 @@ impl CfgBuilder {
     }
 
     /// Create new block
+    #[inline(always)]
     pub fn new_block(&mut self, label: &str) -> u64 {
         self.cfg.add_block(label)
     }
 
     /// Switch to block
+    #[inline(always)]
     pub fn switch_to(&mut self, block: u64) {
         self.current_block = Some(block);
     }
 
     /// Add instruction
+    #[inline]
     pub fn emit(&mut self, opcode: Opcode, operands: Vec<Operand>) -> u64 {
         if let Some(block) = self.current_block {
             self.cfg.add_instruction(block, opcode, operands)
@@ -586,6 +603,7 @@ impl CfgBuilder {
     }
 
     /// Branch
+    #[inline]
     pub fn branch(&mut self, target: u64) {
         if let Some(block) = self.current_block {
             self.cfg.set_terminator(block, Terminator::Branch(target));
@@ -593,6 +611,7 @@ impl CfgBuilder {
     }
 
     /// Conditional branch
+    #[inline]
     pub fn cond_branch(&mut self, cond: &str, if_true: u64, if_false: u64) {
         if let Some(block) = self.current_block {
             self.cfg.set_terminator(block, Terminator::CondBranch {
@@ -604,6 +623,7 @@ impl CfgBuilder {
     }
 
     /// Return
+    #[inline]
     pub fn ret(&mut self, value: Option<&str>) {
         if let Some(block) = self.current_block {
             self.cfg
@@ -612,6 +632,7 @@ impl CfgBuilder {
     }
 
     /// Build
+    #[inline(always)]
     pub fn build(self) -> ControlFlowGraph {
         self.cfg
     }

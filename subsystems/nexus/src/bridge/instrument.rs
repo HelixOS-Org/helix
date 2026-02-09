@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -89,6 +90,7 @@ pub enum FilterField {
 
 impl EventFilter {
     /// Check if event matches
+    #[inline]
     pub fn matches(&self, actual: u64) -> bool {
         match self.op {
             FilterOp::Equal => actual == self.value,
@@ -146,17 +148,20 @@ impl InstrumentationProbe {
     }
 
     /// Add filter
+    #[inline(always)]
     pub fn add_filter(&mut self, filter: EventFilter) {
         self.filters.push(filter);
     }
 
     /// Set target syscall
+    #[inline(always)]
     pub fn for_syscall(mut self, nr: u32) -> Self {
         self.target_syscall = Some(nr);
         self
     }
 
     /// Set target pid
+    #[inline(always)]
     pub fn for_pid(mut self, pid: u64) -> Self {
         self.target_pid = Some(pid);
         self
@@ -191,22 +196,26 @@ impl InstrumentationProbe {
     }
 
     /// Record hit
+    #[inline(always)]
     pub fn record_hit(&mut self, now: u64) {
         self.hits += 1;
         self.last_hit = now;
     }
 
     /// Enable
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.state = ProbeState::Active;
     }
 
     /// Disable
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.state = ProbeState::Disabled;
     }
 
     /// Pause
+    #[inline(always)]
     pub fn pause(&mut self) {
         self.state = ProbeState::Paused;
     }
@@ -239,6 +248,7 @@ pub enum PerfCounterType {
 
 /// Performance counter
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerfCounter {
     /// Type
     pub counter_type: PerfCounterType,
@@ -261,11 +271,13 @@ impl PerfCounter {
     }
 
     /// Increment
+    #[inline(always)]
     pub fn increment(&mut self, amount: u64) {
         self.value += amount;
     }
 
     /// Rate since last snapshot
+    #[inline]
     pub fn rate(&self, now: u64) -> f64 {
         let dt = now.saturating_sub(self.prev_time);
         if dt == 0 {
@@ -276,12 +288,14 @@ impl PerfCounter {
     }
 
     /// Take snapshot
+    #[inline(always)]
     pub fn snapshot(&mut self, now: u64) {
         self.prev_value = self.value;
         self.prev_time = now;
     }
 
     /// Delta since snapshot
+    #[inline(always)]
     pub fn delta(&self) -> u64 {
         self.value.saturating_sub(self.prev_value)
     }
@@ -293,6 +307,7 @@ impl PerfCounter {
 
 /// Instrumentation event
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InstrumentationEvent {
     /// Probe id
     pub probe_id: u64,
@@ -312,6 +327,7 @@ pub struct InstrumentationEvent {
 
 /// Instrumentation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct InstrumentationStats {
     /// Active probes
     pub active_probes: usize,
@@ -326,13 +342,14 @@ pub struct InstrumentationStats {
 }
 
 /// Bridge instrumentation engine
+#[repr(align(64))]
 pub struct BridgeInstrumentationEngine {
     /// Probes
     probes: BTreeMap<u64, InstrumentationProbe>,
     /// Perf counters
     counters: BTreeMap<u8, PerfCounter>,
     /// Event ring buffer
-    events: Vec<InstrumentationEvent>,
+    events: VecDeque<InstrumentationEvent>,
     /// Max events
     max_events: usize,
     /// Next probe id
@@ -346,7 +363,7 @@ impl BridgeInstrumentationEngine {
         Self {
             probes: BTreeMap::new(),
             counters: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 4096,
             next_id: 1,
             stats: InstrumentationStats::default(),
@@ -354,6 +371,7 @@ impl BridgeInstrumentationEngine {
     }
 
     /// Add probe
+    #[inline]
     pub fn add_probe(&mut self, probe_type: ProbeType) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -365,6 +383,7 @@ impl BridgeInstrumentationEngine {
     }
 
     /// Configure probe
+    #[inline]
     pub fn configure_probe<F: FnOnce(&mut InstrumentationProbe)>(&mut self, id: u64, f: F) {
         if let Some(probe) = self.probes.get_mut(&id) {
             f(probe);
@@ -372,6 +391,7 @@ impl BridgeInstrumentationEngine {
     }
 
     /// Enable probe
+    #[inline]
     pub fn enable_probe(&mut self, id: u64) {
         if let Some(p) = self.probes.get_mut(&id) {
             p.enable();
@@ -380,6 +400,7 @@ impl BridgeInstrumentationEngine {
     }
 
     /// Disable probe
+    #[inline]
     pub fn disable_probe(&mut self, id: u64) {
         if let Some(p) = self.probes.get_mut(&id) {
             p.disable();
@@ -388,6 +409,7 @@ impl BridgeInstrumentationEngine {
     }
 
     /// Remove probe
+    #[inline(always)]
     pub fn remove_probe(&mut self, id: u64) {
         self.probes.remove(&id);
         self.update_stats();
@@ -466,14 +488,15 @@ impl BridgeInstrumentationEngine {
     }
 
     fn push_event(&mut self, event: InstrumentationEvent) {
-        self.events.push(event);
+        self.events.push_back(event);
         if self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
         self.stats.total_events += 1;
     }
 
     /// Get counter
+    #[inline]
     pub fn counter(&mut self, ct: PerfCounterType) -> &mut PerfCounter {
         self.counters
             .entry(ct as u8)
@@ -481,6 +504,7 @@ impl BridgeInstrumentationEngine {
     }
 
     /// Increment counter
+    #[inline]
     pub fn increment_counter(&mut self, ct: PerfCounterType, amount: u64) {
         self.counters
             .entry(ct as u8)
@@ -490,6 +514,7 @@ impl BridgeInstrumentationEngine {
     }
 
     /// Recent events
+    #[inline]
     pub fn recent_events(&self, count: usize) -> &[InstrumentationEvent] {
         if self.events.len() > count {
             &self.events[self.events.len() - count..]
@@ -508,6 +533,7 @@ impl BridgeInstrumentationEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &InstrumentationStats {
         &self.stats
     }

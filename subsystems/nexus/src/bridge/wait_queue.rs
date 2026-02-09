@@ -60,10 +60,12 @@ impl WaitEntry {
         }
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         self.timeout_ns > 0 && now > self.enqueue_ts + self.timeout_ns
     }
 
+    #[inline(always)]
     pub fn wait_duration(&self, now: u64) -> u64 {
         now.saturating_sub(self.enqueue_ts)
     }
@@ -71,6 +73,7 @@ impl WaitEntry {
 
 /// Wait queue
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WaitQueue {
     pub queue_id: u64,
     pub queue_type: WaitQueueType,
@@ -96,10 +99,12 @@ impl WaitQueue {
         }
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.waiters.iter().all(|w| w.state != WaitState::Waiting)
     }
 
+    #[inline(always)]
     pub fn waiting_count(&self) -> usize {
         self.waiters.iter().filter(|w| w.state == WaitState::Waiting).count()
     }
@@ -156,6 +161,7 @@ impl WaitQueue {
     }
 
     /// Wake all waiters
+    #[inline(always)]
     pub fn wakeup_all(&mut self, now: u64) -> Vec<u64> {
         self.wakeup(usize::MAX, now)
     }
@@ -177,6 +183,7 @@ impl WaitQueue {
     }
 
     /// Remove a specific waiter (e.g., signal interrupt)
+    #[inline]
     pub fn remove_waiter(&mut self, thread_id: u64) -> bool {
         if let Some(pos) = self.waiters.iter().position(|w| w.thread_id == thread_id) {
             self.waiters[pos].state = WaitState::Interrupted;
@@ -188,6 +195,7 @@ impl WaitQueue {
 
 /// Wait queue manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeWaitQueueStats {
     pub total_queues: usize,
     pub total_waiting: usize,
@@ -199,6 +207,7 @@ pub struct BridgeWaitQueueStats {
 }
 
 /// Bridge Wait Queue Manager
+#[repr(align(64))]
 pub struct BridgeWaitQueueMgr {
     queues: BTreeMap<u64, WaitQueue>,
     next_queue_id: u64,
@@ -214,6 +223,7 @@ impl BridgeWaitQueueMgr {
         }
     }
 
+    #[inline]
     pub fn create_queue(&mut self, queue_type: WaitQueueType) -> u64 {
         let id = self.next_queue_id;
         self.next_queue_id += 1;
@@ -222,6 +232,7 @@ impl BridgeWaitQueueMgr {
         id
     }
 
+    #[inline]
     pub fn destroy_queue(&mut self, queue_id: u64) -> Vec<u64> {
         if let Some(mut queue) = self.queues.remove(&queue_id) {
             let woken = queue.wakeup_all(0);
@@ -230,6 +241,7 @@ impl BridgeWaitQueueMgr {
         } else { Vec::new() }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, queue_id: u64, entry: WaitEntry, now: u64) {
         if let Some(queue) = self.queues.get_mut(&queue_id) {
             queue.enqueue(entry, now);
@@ -237,6 +249,7 @@ impl BridgeWaitQueueMgr {
         self.recompute();
     }
 
+    #[inline]
     pub fn wakeup(&mut self, queue_id: u64, max: usize, now: u64) -> Vec<u64> {
         let result = if let Some(queue) = self.queues.get_mut(&queue_id) {
             queue.wakeup(max, now)
@@ -245,6 +258,7 @@ impl BridgeWaitQueueMgr {
         result
     }
 
+    #[inline(always)]
     pub fn wakeup_all(&mut self, queue_id: u64, now: u64) -> Vec<u64> {
         self.wakeup(queue_id, usize::MAX, now)
     }
@@ -281,10 +295,12 @@ impl BridgeWaitQueueMgr {
         self.stats.busiest_queue = busiest;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeWaitQueueStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn queue(&self, id: u64) -> Option<&WaitQueue> {
         self.queues.get(&id)
     }

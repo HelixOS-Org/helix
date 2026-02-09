@@ -60,27 +60,32 @@ impl WorkItem {
         }
     }
 
+    #[inline]
     pub fn start(&mut self, cpu: u32, ts: u64) {
         self.state = WorkItemState::Running;
         self.start_ts = ts;
         self.cpu_id = cpu;
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, ts: u64) {
         self.state = WorkItemState::Completed;
         self.end_ts = ts;
     }
 
+    #[inline]
     pub fn fail(&mut self, ts: u64) {
         self.state = WorkItemState::Failed;
         self.end_ts = ts;
         self.retries += 1;
     }
 
+    #[inline(always)]
     pub fn queue_latency_ns(&self) -> u64 {
         if self.start_ts > self.enqueue_ts { self.start_ts - self.enqueue_ts } else { 0 }
     }
 
+    #[inline(always)]
     pub fn exec_time_ns(&self) -> u64 {
         if self.end_ts > self.start_ts { self.end_ts - self.start_ts } else { 0 }
     }
@@ -88,6 +93,7 @@ impl WorkItem {
 
 /// Worker pool
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkerPool {
     pub pool_id: u32,
     pub cpu_id: Option<u32>,
@@ -109,11 +115,13 @@ impl WorkerPool {
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.nr_workers == 0 { 0.0 }
         else { self.nr_running as f64 / self.nr_workers as f64 }
     }
 
+    #[inline(always)]
     pub fn needs_more_workers(&self) -> bool {
         self.nr_idle == 0 && self.nr_running < self.max_active
     }
@@ -162,6 +170,7 @@ impl WqDescriptor {
 
 /// Workqueue manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct WorkqueueStats {
     pub total_workqueues: usize,
     pub total_pools: usize,
@@ -193,10 +202,12 @@ impl HolisticWorkqueueMgr {
         }
     }
 
+    #[inline(always)]
     pub fn register_wq(&mut self, desc: WqDescriptor) {
         self.workqueues.insert(desc.name.clone(), desc);
     }
 
+    #[inline(always)]
     pub fn add_pool(&mut self, pool: WorkerPool) {
         self.pools.insert(pool.pool_id, pool);
     }
@@ -215,6 +226,7 @@ impl HolisticWorkqueueMgr {
         id
     }
 
+    #[inline]
     pub fn start_work(&mut self, item_id: u64, cpu: u32, ts: u64) {
         if let Some(item) = self.items.iter_mut().find(|i| i.item_id == item_id) {
             let wq_name = item.wq_name.clone();
@@ -226,6 +238,7 @@ impl HolisticWorkqueueMgr {
         }
     }
 
+    #[inline]
     pub fn complete_work(&mut self, item_id: u64, ts: u64) {
         if let Some(item) = self.items.iter_mut().find(|i| i.item_id == item_id) {
             let wq_name = item.wq_name.clone();
@@ -237,6 +250,7 @@ impl HolisticWorkqueueMgr {
         }
     }
 
+    #[inline]
     pub fn fail_work(&mut self, item_id: u64, ts: u64) {
         if let Some(item) = self.items.iter_mut().find(|i| i.item_id == item_id) {
             let wq_name = item.wq_name.clone();
@@ -248,6 +262,7 @@ impl HolisticWorkqueueMgr {
         }
     }
 
+    #[inline]
     pub fn tune_concurrency(&mut self, wq_name: &str, max_active: u32) {
         if let Some(wq) = self.workqueues.get_mut(&String::from(wq_name)) {
             wq.max_active = max_active;
@@ -267,7 +282,10 @@ impl HolisticWorkqueueMgr {
         self.stats.avg_queue_latency_ns = if lats.is_empty() { 0 } else { lats.iter().sum::<u64>() / lats.len() as u64 };
     }
 
+    #[inline(always)]
     pub fn wq(&self, name: &str) -> Option<&WqDescriptor> { self.workqueues.get(&String::from(name)) }
+    #[inline(always)]
     pub fn pool(&self, id: u32) -> Option<&WorkerPool> { self.pools.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &WorkqueueStats { &self.stats }
 }

@@ -42,23 +42,27 @@ impl DeviceWriteback {
         Self { dev_id, state: HolisticWbState::Idle, dirty_pages: 0, writeback_pages: 0, pages_written: 0, bandwidth_bps: 0 }
     }
 
+    #[inline]
     pub fn start_writeback(&mut self, pages: u64) {
         self.writeback_pages += pages;
         self.dirty_pages = self.dirty_pages.saturating_sub(pages);
         self.state = HolisticWbState::Running;
     }
 
+    #[inline]
     pub fn complete_writeback(&mut self, pages: u64) {
         self.writeback_pages = self.writeback_pages.saturating_sub(pages);
         self.pages_written += pages;
         if self.writeback_pages == 0 { self.state = HolisticWbState::Idle; }
     }
 
+    #[inline(always)]
     pub fn dirty(&mut self, pages: u64) { self.dirty_pages += pages; }
 }
 
 /// Holistic writeback stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticWritebackStats {
     pub total_writebacks: u64,
     pub pages_written: u64,
@@ -79,6 +83,7 @@ impl HolisticWriteback {
         Self { devices: BTreeMap::new(), stats: HolisticWritebackStats { total_writebacks: 0, pages_written: 0, sync_triggered: 0, threshold_triggered: 0, congestion_events: 0 } }
     }
 
+    #[inline]
     pub fn record_writeback(&mut self, dev_id: u64, pages: u64, reason: WritebackReason) {
         self.stats.total_writebacks += 1;
         self.stats.pages_written += pages;
@@ -125,6 +130,7 @@ pub struct HolisticWritebackV2Health {
 
 /// Stats for writeback analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticWritebackV2Stats {
     pub samples: u64,
     pub analyses: u64,
@@ -158,6 +164,7 @@ impl HolisticWritebackV2Manager {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, metric: HolisticWritebackV2Metric, value: u64) {
         let sample = HolisticWritebackV2Sample {
             metric,
@@ -184,6 +191,7 @@ impl HolisticWritebackV2Manager {
         &self.health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticWritebackV2Stats {
         &self.stats
     }

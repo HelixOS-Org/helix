@@ -34,6 +34,7 @@ pub enum KeyType {
 
 impl KeyType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Symmetric => "symmetric",
@@ -66,6 +67,7 @@ pub enum KeyState {
 
 impl KeyState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Created => "created",
@@ -78,6 +80,7 @@ impl KeyState {
     }
 
     /// Is usable
+    #[inline(always)]
     pub fn is_usable(&self) -> bool {
         matches!(self, Self::Active)
     }
@@ -139,17 +142,20 @@ impl KeyInfo {
     }
 
     /// Record use
+    #[inline(always)]
     pub fn record_use(&mut self, timestamp: u64) {
         self.use_count.fetch_add(1, Ordering::Relaxed);
         self.last_used = Some(timestamp);
     }
 
     /// Get use count
+    #[inline(always)]
     pub fn use_count(&self) -> u64 {
         self.use_count.load(Ordering::Relaxed)
     }
 
     /// Is expired
+    #[inline]
     pub fn is_expired(&self, current_time: u64) -> bool {
         self.expires_at
             .map(|exp| current_time >= exp)
@@ -157,6 +163,7 @@ impl KeyInfo {
     }
 
     /// Get age (in seconds)
+    #[inline(always)]
     pub fn age(&self, current_time: u64) -> u64 {
         current_time.saturating_sub(self.created_at)
     }
@@ -216,6 +223,7 @@ impl KeyManager {
     }
 
     /// Register key
+    #[inline]
     pub fn register(
         &mut self,
         key_type: KeyType,
@@ -231,6 +239,7 @@ impl KeyManager {
     }
 
     /// Activate key
+    #[inline]
     pub fn activate(&mut self, id: KeyId) -> bool {
         if let Some(key) = self.keys.get_mut(&id) {
             if key.state == KeyState::Created {
@@ -243,6 +252,7 @@ impl KeyManager {
     }
 
     /// Revoke key
+    #[inline]
     pub fn revoke(&mut self, id: KeyId) -> bool {
         if let Some(key) = self.keys.get_mut(&id) {
             if key.state.is_usable() {
@@ -255,21 +265,25 @@ impl KeyManager {
     }
 
     /// Get key
+    #[inline(always)]
     pub fn get(&self, id: KeyId) -> Option<&KeyInfo> {
         self.keys.get(&id)
     }
 
     /// Get key mutably
+    #[inline(always)]
     pub fn get_mut(&mut self, id: KeyId) -> Option<&mut KeyInfo> {
         self.keys.get_mut(&id)
     }
 
     /// Get active keys
+    #[inline(always)]
     pub fn active_keys(&self) -> Vec<&KeyInfo> {
         self.keys.values().filter(|k| k.state.is_usable()).collect()
     }
 
     /// Get expired keys
+    #[inline]
     pub fn expired_keys(&self, current_time: u64) -> Vec<&KeyInfo> {
         self.keys
             .values()
@@ -278,11 +292,13 @@ impl KeyManager {
     }
 
     /// Total created
+    #[inline(always)]
     pub fn total_created(&self) -> u64 {
         self.total_created.load(Ordering::Relaxed)
     }
 
     /// Active count
+    #[inline(always)]
     pub fn active_count(&self) -> u64 {
         self.active_count.load(Ordering::Relaxed)
     }

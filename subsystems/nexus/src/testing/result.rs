@@ -19,16 +19,19 @@ pub enum TestResult {
 
 impl TestResult {
     /// Is this a success?
+    #[inline(always)]
     pub fn is_success(&self) -> bool {
         *self == Self::Passed
     }
 
     /// Is this a failure?
+    #[inline(always)]
     pub fn is_failure(&self) -> bool {
         matches!(self, Self::Failed | Self::Timeout | Self::Panicked)
     }
 
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Passed => "PASSED",

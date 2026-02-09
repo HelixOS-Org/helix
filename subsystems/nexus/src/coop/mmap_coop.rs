@@ -9,6 +9,7 @@
 //! - Lazy binding coordination for large mappings
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -33,12 +34,15 @@ pub struct SharedMapping {
 }
 
 impl SharedMapping {
+    #[inline(always)]
     pub fn participant_count(&self) -> usize {
         self.participants.len() + 1
     }
+    #[inline(always)]
     pub fn savings_bytes(&self) -> u64 {
         self.shared_pages * 4096 * (self.participant_count() as u64 - 1).max(1)
     }
+    #[inline]
     pub fn cow_ratio(&self) -> f64 {
         let total = self.cow_pages + self.shared_pages;
         if total == 0 {
@@ -59,6 +63,7 @@ pub struct MappingConflict {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MmapCoopStats {
     pub total_shared_mappings: u64,
     pub total_savings_bytes: u64,
@@ -72,7 +77,7 @@ pub struct MmapCoopManager {
     /// Pending conflicts
     conflicts: Vec<MappingConflict>,
     /// file_hash → mapping_id for dedup
-    file_dedup: BTreeMap<u64, u64>,
+    file_dedup: LinearMap<u64, 64>,
     next_id: u64,
     stats: MmapCoopStats,
 }
@@ -82,15 +87,16 @@ impl MmapCoopManager {
         Self {
             mappings: BTreeMap::new(),
             conflicts: Vec::new(),
-            file_dedup: BTreeMap::new(),
+            file_dedup: LinearMap::new(),
             next_id: 1,
             stats: MmapCoopStats::default(),
         }
     }
 
     /// Try to find an existing shared mapping to join
+    #[inline(always)]
     pub fn find_shared(&self, file_hash: u64) -> Option<&SharedMapping> {
-        let id = self.file_dedup.get(&file_hash)?;
+        let id = self.file_dedup.get(file_hash)?;
         self.mappings.get(id)
     }
 
@@ -121,6 +127,7 @@ impl MmapCoopManager {
     }
 
     /// A process joins an existing shared mapping
+    #[inline]
     pub fn join_mapping(&mut self, mapping_id: u64, pid: u64) -> bool {
         if let Some(m) = self.mappings.get_mut(&mapping_id) {
             if !m.participants.contains(&pid) {
@@ -134,6 +141,7 @@ impl MmapCoopManager {
     }
 
     /// Record a CoW fault on a shared mapping
+    #[inline]
     pub fn record_cow_fault(&mut self, mapping_id: u64) {
         if let Some(m) = self.mappings.get_mut(&mapping_id) {
             m.cow_pages += 1;
@@ -143,6 +151,7 @@ impl MmapCoopManager {
     }
 
     /// Detect address overlap conflicts between two processes
+    #[inline]
     pub fn detect_conflict(&mut self, pid_a: u64, pid_b: u64, start: u64, end: u64) {
         self.conflicts.push(MappingConflict {
             pid_a,
@@ -170,9 +179,11 @@ impl MmapCoopManager {
         resolved
     }
 
+    #[inline(always)]
     pub fn mapping(&self, id: u64) -> Option<&SharedMapping> {
         self.mappings.get(&id)
     }
+    #[inline(always)]
     pub fn stats(&self) -> &MmapCoopStats {
         &self.stats
     }

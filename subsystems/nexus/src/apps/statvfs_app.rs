@@ -60,6 +60,7 @@ impl StatvfsRecord {
         }
     }
 
+    #[inline]
     pub fn usage_pct(&self) -> f64 {
         if self.total_blocks == 0 {
             0.0
@@ -68,6 +69,7 @@ impl StatvfsRecord {
         }
     }
 
+    #[inline]
     pub fn inode_usage_pct(&self) -> f64 {
         if self.total_inodes == 0 {
             0.0
@@ -79,6 +81,7 @@ impl StatvfsRecord {
 
 /// Statvfs app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StatvfsAppStats {
     pub total_calls: u64,
     pub errors: u64,
@@ -102,6 +105,7 @@ impl AppStatvfs {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &StatvfsRecord) {
         self.stats.total_calls += 1;
         if rec.result != StatvfsResult::Success {

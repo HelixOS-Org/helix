@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -80,6 +81,7 @@ pub enum PathStatus {
 
 /// A novel optimisation path beyond traditional OS design.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NovelPath {
     pub path_id: u64,
     pub name: String,
@@ -96,6 +98,7 @@ pub struct NovelPath {
 
 /// Pair of syscalls that can be fused transparently.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FusionPair {
     pub pair_id: u64,
     pub syscall_a: u32,
@@ -137,6 +140,7 @@ pub struct TranscendedLimit {
 
 /// Aggregate statistics for the transcendence engine.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct BeyondStats {
     pub novel_paths_discovered: u64,
     pub novel_paths_active: u64,
@@ -169,6 +173,7 @@ impl FusionTracker {
         }
     }
 
+    #[inline]
     fn record_pair(
         &mut self,
         syscall_a: u32,
@@ -225,10 +230,11 @@ impl FusionTracker {
 /// Transcendence engine that discovers and exploits optimisation opportunities
 /// beyond conventional OS design — zero-copy, fusion, preemptive syscalls.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeBeyond {
     novel_paths: BTreeMap<u64, NovelPath>,
     fusion_tracker: FusionTracker,
-    preemptive_queue: Vec<PreemptiveSyscall>,
+    preemptive_queue: VecDeque<PreemptiveSyscall>,
     transcended_limits: Vec<TranscendedLimit>,
     tick: u64,
     rng_state: u64,
@@ -242,7 +248,7 @@ impl BridgeBeyond {
         Self {
             novel_paths: BTreeMap::new(),
             fusion_tracker: FusionTracker::new(),
-            preemptive_queue: Vec::new(),
+            preemptive_queue: VecDeque::new(),
             transcended_limits: Vec::new(),
             tick: 0,
             rng_state: seed | 1,
@@ -324,6 +330,7 @@ impl BridgeBeyond {
     }
 
     /// Fuse two adjacent syscalls into a single optimised path.
+    #[inline]
     pub fn zero_copy_fusion(
         &mut self,
         syscall_a: u32,
@@ -385,15 +392,16 @@ impl BridgeBeyond {
         };
 
         if self.preemptive_queue.len() >= MAX_PREEMPTIVE_QUEUE {
-            self.preemptive_queue.remove(0);
+            self.preemptive_queue.pop_front();
         }
-        self.preemptive_queue.push(preempt);
+        self.preemptive_queue.push_back(preempt);
         self.stats.total_preemptive += 1;
         self.preemptive_total += 1;
         pid
     }
 
     /// Confirm or deny a preemptive syscall prediction.
+    #[inline]
     pub fn confirm_preemptive(&mut self, preempt_id: u64, correct: bool) {
         for p in self.preemptive_queue.iter_mut() {
             if p.preempt_id == preempt_id {
@@ -414,6 +422,7 @@ impl BridgeBeyond {
     }
 
     /// Activate a validated novel path so it starts being used.
+    #[inline]
     pub fn activate_path(&mut self, path_id: u64) -> bool {
         if let Some(path) = self.novel_paths.get_mut(&path_id) {
             if path.status == PathStatus::Discovered || path.status == PathStatus::Validated {
@@ -427,6 +436,7 @@ impl BridgeBeyond {
     }
 
     /// Record usage of a novel path with outcome feedback.
+    #[inline]
     pub fn record_path_usage(&mut self, path_id: u64, success: bool) {
         if let Some(path) = self.novel_paths.get_mut(&path_id) {
             path.activation_count += 1;
@@ -458,6 +468,7 @@ impl BridgeBeyond {
     }
 
     /// Aggregate statistics.
+    #[inline]
     pub fn stats(&self) -> BeyondStats {
         BeyondStats {
             transcendence_level: self.transcendence_level(),

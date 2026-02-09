@@ -95,11 +95,13 @@ impl Namespace {
     }
 
     /// Add member
+    #[inline(always)]
     pub fn add_member(&mut self) {
         self.member_count += 1;
     }
 
     /// Remove member
+    #[inline]
     pub fn remove_member(&mut self) {
         if self.member_count > 0 {
             self.member_count -= 1;
@@ -110,11 +112,13 @@ impl Namespace {
     }
 
     /// Add child namespace
+    #[inline(always)]
     pub fn add_child(&mut self) {
         self.child_count += 1;
     }
 
     /// Remove child namespace
+    #[inline]
     pub fn remove_child(&mut self) {
         if self.child_count > 0 {
             self.child_count -= 1;
@@ -122,11 +126,13 @@ impl Namespace {
     }
 
     /// Take reference
+    #[inline(always)]
     pub fn take_ref(&mut self) {
         self.ref_count += 1;
     }
 
     /// Drop reference
+    #[inline]
     pub fn drop_ref(&mut self) {
         if self.ref_count > 0 {
             self.ref_count -= 1;
@@ -137,6 +143,7 @@ impl Namespace {
     }
 
     /// Is active
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.state == NamespaceState::Active
     }
@@ -148,6 +155,7 @@ impl Namespace {
 
 /// Namespace set for a process
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessNamespaceSet {
     /// Process ID
     pub pid: u64,
@@ -164,16 +172,19 @@ impl ProcessNamespaceSet {
     }
 
     /// Set namespace for type
+    #[inline(always)]
     pub fn set(&mut self, ns_type: NamespaceType, ns_id: u64) {
         self.namespaces.insert(ns_type as u8, ns_id);
     }
 
     /// Get namespace for type
+    #[inline(always)]
     pub fn get(&self, ns_type: NamespaceType) -> Option<u64> {
         self.namespaces.get(&(ns_type as u8)).copied()
     }
 
     /// Are two processes in same namespace?
+    #[inline]
     pub fn shares_namespace(&self, other: &ProcessNamespaceSet, ns_type: NamespaceType) -> bool {
         match (self.get(ns_type), other.get(ns_type)) {
             (Some(a), Some(b)) => a == b,
@@ -220,6 +231,7 @@ pub enum TranslationType {
 
 /// Namespace manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeNamespaceStats {
     /// Total namespaces
     pub total_namespaces: usize,
@@ -238,6 +250,7 @@ pub struct BridgeNamespaceStats {
 }
 
 /// Bridge namespace manager
+#[repr(align(64))]
 pub struct BridgeNamespaceManager {
     /// All namespaces
     namespaces: BTreeMap<u64, Namespace>,
@@ -296,6 +309,7 @@ impl BridgeNamespaceManager {
     }
 
     /// Leave namespace
+    #[inline]
     pub fn leave(&mut self, pid: u64, ns_type: NamespaceType) {
         if let Some(set) = self.process_sets.get_mut(&pid) {
             if let Some(ns_id) = set.get(ns_type) {
@@ -309,6 +323,7 @@ impl BridgeNamespaceManager {
     }
 
     /// Process exit: leave all namespaces
+    #[inline]
     pub fn process_exit(&mut self, pid: u64) {
         if let Some(set) = self.process_sets.remove(&pid) {
             for (_, &ns_id) in &set.namespaces {
@@ -357,11 +372,13 @@ impl BridgeNamespaceManager {
     }
 
     /// Add translation rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: TranslationRule) {
         self.rules.push(rule);
     }
 
     /// Check if two processes share all namespaces
+    #[inline]
     pub fn same_context(&self, pid_a: u64, pid_b: u64) -> bool {
         match (self.process_sets.get(&pid_a), self.process_sets.get(&pid_b)) {
             (Some(a), Some(b)) => a.namespaces == b.namespaces,
@@ -393,6 +410,7 @@ impl BridgeNamespaceManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeNamespaceStats {
         &self.stats
     }

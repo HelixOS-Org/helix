@@ -15,7 +15,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -168,6 +170,7 @@ impl SalienceSignal {
 
 /// Attention engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AttentionStats {
     pub total_focus_events: u64,
     pub total_shifts: u64,
@@ -184,9 +187,10 @@ pub struct AttentionStats {
 
 /// Manages selective attention for bridge monitoring and analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeAttentionEngine {
     focus_targets: BTreeMap<u64, AttentionFocus>,
-    history: Vec<AttentionHistoryEntry>,
+    history: VecDeque<AttentionHistoryEntry>,
     current_mode: AttentionMode,
     spotlight_target: Option<u64>,
     budget_remaining: u32,
@@ -197,7 +201,7 @@ pub struct BridgeAttentionEngine {
     spotlight_ticks: u64,
     distributed_ticks: u64,
     avg_salience_ema: f32,
-    salience_signals: BTreeMap<u64, f32>,
+    salience_signals: LinearMap<f32, 64>,
     rng_state: u64,
 }
 
@@ -206,7 +210,7 @@ impl BridgeAttentionEngine {
     pub fn new(seed: u64) -> Self {
         Self {
             focus_targets: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             current_mode: AttentionMode::Idle,
             spotlight_target: None,
             budget_remaining: ATTENTION_BUDGET,
@@ -217,12 +221,13 @@ impl BridgeAttentionEngine {
             spotlight_ticks: 0,
             distributed_ticks: 0,
             avg_salience_ema: 0.0,
-            salience_signals: BTreeMap::new(),
+            salience_signals: LinearMap::new(),
             rng_state: seed | 1,
         }
     }
 
     /// Direct attention to a specific target
+    #[inline]
     pub fn focus_attention(&mut self, target: &str, signal: &SalienceSignal) {
         self.current_tick += 1;
         self.total_focus_events += 1;
@@ -251,9 +256,9 @@ impl BridgeAttentionEngine {
 
         // Record history
         if self.history.len() >= MAX_ATTENTION_HISTORY {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(AttentionHistoryEntry {
+        self.history.push_back(AttentionHistoryEntry {
             target_hash,
             mode: self.current_mode,
             salience,
@@ -320,23 +325,27 @@ impl BridgeAttentionEngine {
     }
 
     /// Compute salience score for a target
+    #[inline(always)]
     pub fn salience_score(&self, target: &str) -> f32 {
         let hash = fnv1a_hash(target.as_bytes());
-        self.salience_signals.get(&hash).copied().unwrap_or(0.0)
+        self.salience_signals.get(hash).copied().unwrap_or(0.0)
     }
 
     /// How much attention budget remains?
+    #[inline(always)]
     pub fn attention_budget(&self) -> (u32, u32) {
         (self.budget_remaining, ATTENTION_BUDGET)
     }
 
     /// Get the current spotlight target, if any
+    #[inline(always)]
     pub fn spotlight_target(&self) -> Option<&AttentionFocus> {
         self.spotlight_target
             .and_then(|hash| self.focus_targets.get(&hash))
     }
 
     /// Apply attention decay to all targets, prune dead ones
+    #[inline(always)]
     pub fn attention_decay(&mut self) {
         self.current_tick += 1;
         self.decay_and_prune();
@@ -374,11 +383,13 @@ impl BridgeAttentionEngine {
     }
 
     /// Refill the attention budget (called periodically)
+    #[inline(always)]
     pub fn refill_budget(&mut self, amount: u32) {
         self.budget_remaining = (self.budget_remaining + amount).min(ATTENTION_BUDGET);
     }
 
     /// Compute the ratio of spotlight time to total active time
+    #[inline]
     pub fn spotlight_time_ratio(&self) -> f32 {
         let total = self.spotlight_ticks + self.distributed_ticks;
         if total == 0 {
@@ -402,11 +413,13 @@ impl BridgeAttentionEngine {
     }
 
     /// Get the number of currently active focus targets
+    #[inline(always)]
     pub fn active_target_count(&self) -> usize {
         self.focus_targets.len()
     }
 
     /// Get all active focus targets sorted by salience
+    #[inline]
     pub fn ranked_targets(&self) -> Vec<(String, f32)> {
         let mut targets: Vec<(String, f32)> = self
             .focus_targets
@@ -418,6 +431,7 @@ impl BridgeAttentionEngine {
     }
 
     /// Statistics snapshot
+    #[inline]
     pub fn stats(&self) -> AttentionStats {
         AttentionStats {
             total_focus_events: self.total_focus_events,
@@ -431,6 +445,7 @@ impl BridgeAttentionEngine {
     }
 
     /// Reset the attention engine completely
+    #[inline]
     pub fn reset(&mut self) {
         self.focus_targets.clear();
         self.history.clear();

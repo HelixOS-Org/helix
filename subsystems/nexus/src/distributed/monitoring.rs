@@ -18,11 +18,13 @@ use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 /// Metric ID
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct MetricId(pub u64);
 
 static METRIC_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl MetricId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(METRIC_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -39,6 +41,7 @@ pub struct SpanId(pub u64);
 static SPAN_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl SpanId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(SPAN_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -51,6 +54,7 @@ pub struct TraceId(pub u64);
 static TRACE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl TraceId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(TRACE_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -71,6 +75,7 @@ pub enum MetricType {
 
 /// Metric definition
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricDef {
     /// ID
     pub id: MetricId,
@@ -87,6 +92,7 @@ pub struct MetricDef {
 }
 
 /// Counter metric
+#[repr(align(64))]
 pub struct Counter {
     /// Definition
     def: MetricDef,
@@ -110,11 +116,13 @@ impl Counter {
     }
 
     /// Increment
+    #[inline(always)]
     pub fn inc(&self, labels: &str) {
         self.add(labels, 1);
     }
 
     /// Add value
+    #[inline]
     pub fn add(&self, labels: &str, value: u64) {
         if let Some(counter) = self.values.get(labels) {
             counter.fetch_add(value, Ordering::Relaxed);
@@ -122,6 +130,7 @@ impl Counter {
     }
 
     /// Get value
+    #[inline]
     pub fn get(&self, labels: &str) -> u64 {
         self.values
             .get(labels)
@@ -130,6 +139,7 @@ impl Counter {
     }
 
     /// Register labels
+    #[inline]
     pub fn register_labels(&mut self, labels: &str) {
         if !self.values.contains_key(labels) {
             self.values.insert(labels.to_string(), AtomicU64::new(0));
@@ -161,6 +171,7 @@ impl Gauge {
     }
 
     /// Set value
+    #[inline]
     pub fn set(&self, labels: &str, value: f64) {
         if let Some(gauge) = self.values.get(labels) {
             gauge.store(value.to_bits(), Ordering::Relaxed);
@@ -168,11 +179,13 @@ impl Gauge {
     }
 
     /// Increment
+    #[inline(always)]
     pub fn inc(&self, labels: &str) {
         self.add(labels, 1.0);
     }
 
     /// Decrement
+    #[inline(always)]
     pub fn dec(&self, labels: &str) {
         self.add(labels, -1.0);
     }
@@ -195,6 +208,7 @@ impl Gauge {
     }
 
     /// Get value
+    #[inline]
     pub fn get(&self, labels: &str) -> f64 {
         self.values
             .get(labels)
@@ -203,6 +217,7 @@ impl Gauge {
     }
 
     /// Register labels
+    #[inline]
     pub fn register_labels(&mut self, labels: &str) {
         if !self.values.contains_key(labels) {
             self.values.insert(labels.to_string(), AtomicU64::new(0));
@@ -282,6 +297,7 @@ impl Histogram {
     }
 
     /// Register labels
+    #[inline]
     pub fn register_labels(&mut self, labels: &str) {
         if !self.bucket_counts.contains_key(labels) {
             let bucket_atomics: Vec<_> = (0..=self.buckets.len())
@@ -295,6 +311,7 @@ impl Histogram {
     }
 
     /// Get count
+    #[inline]
     pub fn count(&self, labels: &str) -> u64 {
         self.counts
             .get(labels)
@@ -303,6 +320,7 @@ impl Histogram {
     }
 
     /// Get sum
+    #[inline]
     pub fn sum(&self, labels: &str) -> f64 {
         self.sums
             .get(labels)
@@ -407,11 +425,13 @@ impl Span {
     }
 
     /// Set tag
+    #[inline(always)]
     pub fn set_tag(&mut self, key: &str, value: &str) {
         self.tags.insert(key.to_string(), value.to_string());
     }
 
     /// Log message
+    #[inline]
     pub fn log(&mut self, level: LogLevel, message: String, timestamp: u64) {
         self.logs.push(SpanLog {
             timestamp,
@@ -421,16 +441,19 @@ impl Span {
     }
 
     /// Finish span
+    #[inline(always)]
     pub fn finish(&mut self, end_time: u64) {
         self.end_time = Some(end_time);
     }
 
     /// Set error
+    #[inline(always)]
     pub fn set_error(&mut self) {
         self.status = SpanStatus::Error;
     }
 
     /// Duration
+    #[inline(always)]
     pub fn duration(&self) -> Option<u64> {
         self.end_time.map(|end| end - self.start_time)
     }
@@ -497,6 +520,7 @@ impl Tracer {
     }
 
     /// Start child span
+    #[inline]
     pub fn start_span(&mut self, operation: String, parent: SpanId) -> Option<SpanId> {
         let parent_span = self.active_spans.get(&parent)?;
         let trace_id = parent_span.trace_id;
@@ -510,6 +534,7 @@ impl Tracer {
     }
 
     /// Get span
+    #[inline(always)]
     pub fn get_span(&mut self, id: SpanId) -> Option<&mut Span> {
         self.active_spans.get_mut(&id)
     }
@@ -530,16 +555,19 @@ impl Tracer {
     }
 
     /// Set sampling rate
+    #[inline(always)]
     pub fn set_sampling_rate(&mut self, rate: f64) {
         self.sampling_rate = rate.clamp(0.0, 1.0);
     }
 
     /// Tick
+    #[inline(always)]
     pub fn tick(&self) {
         self.tick.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get completed spans for trace
+    #[inline]
     pub fn get_trace(&self, trace_id: TraceId) -> Vec<&Span> {
         self.completed_spans
             .iter()
@@ -559,6 +587,7 @@ pub struct AlertId(pub u64);
 static ALERT_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl AlertId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(ALERT_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -671,11 +700,13 @@ impl AlertManager {
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: AlertRule) {
         self.rules.push(rule);
     }
 
     /// Remove rule
+    #[inline(always)]
     pub fn remove_rule(&mut self, id: AlertId) {
         self.rules.retain(|r| r.id != id);
     }
@@ -765,16 +796,19 @@ impl AlertManager {
     }
 
     /// Tick
+    #[inline(always)]
     pub fn tick(&self) {
         self.tick.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get active alerts
+    #[inline(always)]
     pub fn active_alerts(&self) -> Vec<&AlertInstance> {
         self.active.values().collect()
     }
 
     /// Get alerts by severity
+    #[inline]
     pub fn alerts_by_severity(&self, severity: AlertSeverity) -> Vec<&AlertRule> {
         self.rules
             .iter()
@@ -828,6 +862,7 @@ impl HealthChecker {
     }
 
     /// Register check
+    #[inline]
     pub fn register(&mut self, name: &str) {
         self.checks.insert(name.to_string(), HealthCheck {
             name: name.to_string(),
@@ -838,6 +873,7 @@ impl HealthChecker {
     }
 
     /// Update check
+    #[inline]
     pub fn update(&mut self, name: &str, status: HealthStatus, details: BTreeMap<String, String>) {
         let tick = self.tick.load(Ordering::Relaxed);
 
@@ -876,16 +912,19 @@ impl HealthChecker {
     }
 
     /// Get overall status
+    #[inline(always)]
     pub fn overall(&self) -> HealthStatus {
         self.overall
     }
 
     /// Get all checks
+    #[inline(always)]
     pub fn checks(&self) -> &BTreeMap<String, HealthCheck> {
         &self.checks
     }
 
     /// Tick
+    #[inline(always)]
     pub fn tick(&self) {
         self.tick.fetch_add(1, Ordering::Relaxed);
     }

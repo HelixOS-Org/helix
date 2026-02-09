@@ -54,6 +54,7 @@ pub mod wrappers;
 static GLOBAL_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 /// Generate a globally unique ID
+#[inline(always)]
 pub fn generate_id() -> u64 {
     GLOBAL_ID_COUNTER.fetch_add(1, AtomicOrdering::SeqCst)
 }

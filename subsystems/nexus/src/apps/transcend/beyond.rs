@@ -106,6 +106,7 @@ pub struct NovelOptimization {
 
 /// Statistics for the beyond engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct BeyondStats {
     pub anticipatory_reservations: u64,
     pub reservations_fulfilled: u64,
@@ -365,6 +366,7 @@ impl AppsBeyond {
     }
 
     /// Return current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &BeyondStats {
         &self.stats
     }

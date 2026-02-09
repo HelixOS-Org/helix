@@ -2,6 +2,7 @@
 //! Coop inode — cooperative inode sharing with reference tracking
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -33,14 +34,19 @@ impl CoopInodeEntry {
         Self { inode, state: CoopInodeState::Clean, size: 0, nlink: 1, shared_count: 1, dirty_pages: 0, read_count: 0, write_count: 0 }
     }
 
+    #[inline(always)]
     pub fn share(&mut self) { self.shared_count += 1; self.state = CoopInodeState::Shared; }
+    #[inline(always)]
     pub fn unshare(&mut self) { if self.shared_count > 0 { self.shared_count -= 1; } }
+    #[inline(always)]
     pub fn mark_dirty(&mut self, pages: u64) { self.dirty_pages += pages; self.state = CoopInodeState::Dirty; }
+    #[inline(always)]
     pub fn writeback(&mut self, pages: u64) { self.dirty_pages = self.dirty_pages.saturating_sub(pages); if self.dirty_pages == 0 && self.shared_count > 1 { self.state = CoopInodeState::Shared; } else if self.dirty_pages == 0 { self.state = CoopInodeState::Clean; } }
 }
 
 /// Coop inode stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopInodeStats {
     pub total_inodes: u64,
     pub shared_inodes: u64,
@@ -61,15 +67,18 @@ impl CoopInode {
         Self { inodes: BTreeMap::new(), stats: CoopInodeStats { total_inodes: 0, shared_inodes: 0, dirty_inodes: 0, writebacks: 0, evictions: 0 } }
     }
 
+    #[inline(always)]
     pub fn create(&mut self, inode: u64) {
         self.stats.total_inodes += 1;
         self.inodes.insert(inode, CoopInodeEntry::new(inode));
     }
 
+    #[inline(always)]
     pub fn share(&mut self, inode: u64) {
         if let Some(e) = self.inodes.get_mut(&inode) { e.share(); self.stats.shared_inodes += 1; }
     }
 
+    #[inline(always)]
     pub fn evict(&mut self, inode: u64) {
         if self.inodes.remove(&inode).is_some() { self.stats.evictions += 1; }
     }
@@ -108,6 +117,7 @@ pub struct CoopInodeV2Entry {
 
 /// Stats for inode cooperation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopInodeV2Stats {
     pub total_ops: u64,
     pub allocations: u64,
@@ -120,7 +130,7 @@ pub struct CoopInodeV2Stats {
 /// Manager for inode cooperative operations
 pub struct CoopInodeV2Manager {
     inodes: BTreeMap<u64, CoopInodeV2Entry>,
-    dirty_set: BTreeMap<u64, bool>,
+    dirty_set: LinearMap<bool, 64>,
     next_inode: u64,
     stats: CoopInodeV2Stats,
 }
@@ -129,7 +139,7 @@ impl CoopInodeV2Manager {
     pub fn new() -> Self {
         Self {
             inodes: BTreeMap::new(),
-            dirty_set: BTreeMap::new(),
+            dirty_set: LinearMap::new(),
             next_inode: 2,
             stats: CoopInodeV2Stats {
                 total_ops: 0,
@@ -164,10 +174,11 @@ impl CoopInodeV2Manager {
         ino
     }
 
+    #[inline]
     pub fn free(&mut self, inode: u64) -> bool {
         self.stats.total_ops += 1;
         if self.inodes.remove(&inode).is_some() {
-            self.dirty_set.remove(&inode);
+            self.dirty_set.remove(inode);
             self.stats.frees += 1;
             true
         } else {
@@ -175,6 +186,7 @@ impl CoopInodeV2Manager {
         }
     }
 
+    #[inline]
     pub fn mark_dirty(&mut self, inode: u64) {
         if let Some(entry) = self.inodes.get_mut(&inode) {
             if !entry.dirty {
@@ -192,17 +204,19 @@ impl CoopInodeV2Manager {
             if let Some(entry) = self.inodes.get_mut(&ino) {
                 entry.dirty = false;
             }
-            self.dirty_set.remove(&ino);
+            self.dirty_set.remove(ino);
         }
         self.stats.writeback_count += count as u64;
         self.stats.dirty_inodes = 0;
         count
     }
 
+    #[inline(always)]
     pub fn get(&self, inode: u64) -> Option<&CoopInodeV2Entry> {
         self.inodes.get(&inode)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopInodeV2Stats {
         &self.stats
     }

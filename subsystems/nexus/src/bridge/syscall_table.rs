@@ -83,6 +83,7 @@ impl SyscallEntry {
         }
     }
 
+    #[inline]
     pub fn record_call(&mut self, duration_ns: u64, is_error: bool) {
         self.total_calls += 1;
         self.total_time_ns += duration_ns;
@@ -91,20 +92,24 @@ impl SyscallEntry {
         if duration_ns > self.max_time_ns { self.max_time_ns = duration_ns; }
     }
 
+    #[inline(always)]
     pub fn avg_time_ns(&self) -> f64 {
         if self.total_calls == 0 { return 0.0; }
         self.total_time_ns as f64 / self.total_calls as f64
     }
 
+    #[inline(always)]
     pub fn error_rate(&self) -> f64 {
         if self.total_calls == 0 { return 0.0; }
         self.total_errors as f64 / self.total_calls as f64
     }
 
+    #[inline(always)]
     pub fn is_restartable(&self) -> bool {
         self.flags.contains(&SyscallTableFlag::Restartable)
     }
 
+    #[inline(always)]
     pub fn is_privileged(&self) -> bool {
         self.flags.contains(&SyscallTableFlag::Privileged)
     }
@@ -124,6 +129,7 @@ impl SyscallRange {
         Self { start, end, category, allocated: Vec::new() }
     }
 
+    #[inline]
     pub fn allocate(&mut self) -> Option<u32> {
         for nr in self.start..=self.end {
             if !self.allocated.contains(&nr) {
@@ -134,6 +140,7 @@ impl SyscallRange {
         None
     }
 
+    #[inline(always)]
     pub fn free(&mut self, nr: u32) {
         self.allocated.retain(|&n| n != nr);
     }
@@ -151,6 +158,7 @@ pub struct HotPatch {
 
 /// Syscall table stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeSyscallTableStats {
     pub total_entries: usize,
     pub enabled_entries: usize,
@@ -162,6 +170,7 @@ pub struct BridgeSyscallTableStats {
 }
 
 /// Bridge Syscall Table
+#[repr(align(64))]
 pub struct BridgeSyscallTable {
     entries: BTreeMap<u32, SyscallEntry>,
     ranges: Vec<SyscallRange>,
@@ -179,27 +188,32 @@ impl BridgeSyscallTable {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, entry: SyscallEntry) {
         self.entries.insert(entry.nr, entry);
         self.recompute();
     }
 
+    #[inline(always)]
     pub fn unregister(&mut self, nr: u32) {
         self.entries.remove(&nr);
         self.recompute();
     }
 
+    #[inline(always)]
     pub fn enable(&mut self, nr: u32) {
         if let Some(e) = self.entries.get_mut(&nr) { e.enabled = true; }
         self.recompute();
     }
 
+    #[inline(always)]
     pub fn disable(&mut self, nr: u32) {
         if let Some(e) = self.entries.get_mut(&nr) { e.enabled = false; }
         self.recompute();
     }
 
     /// Record a syscall invocation
+    #[inline]
     pub fn record(&mut self, nr: u32, duration_ns: u64, is_error: bool) {
         if let Some(e) = self.entries.get_mut(&nr) {
             e.record_call(duration_ns, is_error);
@@ -207,21 +221,25 @@ impl BridgeSyscallTable {
     }
 
     /// Lookup syscall entry
+    #[inline(always)]
     pub fn lookup(&self, nr: u32) -> Option<&SyscallEntry> {
         self.entries.get(&nr)
     }
 
     /// Find by name hash
+    #[inline(always)]
     pub fn find_by_hash(&self, hash: u64) -> Option<&SyscallEntry> {
         self.entries.values().find(|e| e.name_hash == hash)
     }
 
     /// Add allocation range
+    #[inline(always)]
     pub fn add_range(&mut self, range: SyscallRange) {
         self.ranges.push(range);
     }
 
     /// Allocate a new syscall number from a category range
+    #[inline]
     pub fn allocate_nr(&mut self, category: SyscallCategory) -> Option<u32> {
         for range in &mut self.ranges {
             if range.category == category {
@@ -249,6 +267,7 @@ impl BridgeSyscallTable {
     }
 
     /// Get top N busiest syscalls
+    #[inline]
     pub fn top_syscalls(&self, n: usize) -> Vec<(u32, u64)> {
         let mut sorted: Vec<(u32, u64)> = self.entries.iter()
             .map(|(&nr, e)| (nr, e.total_calls))
@@ -284,6 +303,7 @@ impl BridgeSyscallTable {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeSyscallTableStats {
         &self.stats
     }

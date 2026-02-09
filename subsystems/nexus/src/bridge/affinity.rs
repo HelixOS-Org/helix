@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -38,13 +39,14 @@ pub enum AffinityChangeReason {
 
 /// Per-syscall-per-CPU tracking
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallCpuAffinity {
     /// Syscall number
     pub syscall_nr: u32,
     /// CPU -> invocation count
-    cpu_counts: BTreeMap<u32, u64>,
+    cpu_counts: ArrayMap<u64, 32>,
     /// CPU -> total latency (ns)
-    cpu_latency_sum: BTreeMap<u32, u64>,
+    cpu_latency_sum: ArrayMap<u64, 32>,
     /// Last CPU used
     pub last_cpu: u32,
     /// Preferred CPU (lowest avg latency)
@@ -57,8 +59,8 @@ impl SyscallCpuAffinity {
     pub fn new(syscall_nr: u32) -> Self {
         Self {
             syscall_nr,
-            cpu_counts: BTreeMap::new(),
-            cpu_latency_sum: BTreeMap::new(),
+            cpu_counts: ArrayMap::new(0),
+            cpu_latency_sum: ArrayMap::new(0),
             last_cpu: 0,
             preferred_cpu: None,
             total_calls: 0,
@@ -66,9 +68,10 @@ impl SyscallCpuAffinity {
     }
 
     /// Record syscall on CPU
+    #[inline]
     pub fn record(&mut self, cpu: u32, latency_ns: u64) {
-        *self.cpu_counts.entry(cpu).or_insert(0) += 1;
-        *self.cpu_latency_sum.entry(cpu).or_insert(0) += latency_ns;
+        self.cpu_counts.add(cpu as usize, 1);
+        self.cpu_latency_sum.add(cpu as usize, latency_ns);
         self.last_cpu = cpu;
         self.total_calls += 1;
         self.update_preferred();
@@ -79,7 +82,7 @@ impl SyscallCpuAffinity {
         let mut best_avg = f64::MAX;
         for (&cpu, &count) in &self.cpu_counts {
             if count > 2 {
-                let total_lat = self.cpu_latency_sum.get(&cpu).copied().unwrap_or(0);
+                let total_lat = self.cpu_latency_sum.try_get(cpu as usize).copied().unwrap_or(0);
                 let avg = total_lat as f64 / count as f64;
                 if avg < best_avg {
                     best_avg = avg;
@@ -91,6 +94,7 @@ impl SyscallCpuAffinity {
     }
 
     /// Concentration ratio (fraction on most-used CPU)
+    #[inline]
     pub fn concentration(&self) -> f64 {
         if self.total_calls == 0 {
             return 0.0;
@@ -100,18 +104,20 @@ impl SyscallCpuAffinity {
     }
 
     /// Average latency on a given CPU
+    #[inline]
     pub fn avg_latency_on(&self, cpu: u32) -> f64 {
-        let count = self.cpu_counts.get(&cpu).copied().unwrap_or(0);
+        let count = self.cpu_counts.try_get(cpu as usize).copied().unwrap_or(0);
         if count == 0 {
             return f64::MAX;
         }
-        let total = self.cpu_latency_sum.get(&cpu).copied().unwrap_or(0);
+        let total = self.cpu_latency_sum.try_get(cpu as usize).copied().unwrap_or(0);
         total as f64 / count as f64
     }
 }
 
 /// Process affinity profile
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessAffinityProfile {
     /// PID
     pub pid: u64,
@@ -120,7 +126,7 @@ pub struct ProcessAffinityProfile {
     /// Allowed CPU mask (bit per CPU, up to 64)
     pub cpu_mask: u64,
     /// CPU residence time (ns) per CPU
-    residence: BTreeMap<u32, u64>,
+    residence: ArrayMap<u64, 32>,
     /// Migration count
     pub migrations: u64,
     /// Last migration timestamp
@@ -133,24 +139,27 @@ impl ProcessAffinityProfile {
             pid,
             class: AffinityClass::Unrestricted,
             cpu_mask: u64::MAX,
-            residence: BTreeMap::new(),
+            residence: ArrayMap::new(0),
             migrations: 0,
             last_migration_ns: 0,
         }
     }
 
     /// Record time on CPU
+    #[inline(always)]
     pub fn record_residence(&mut self, cpu: u32, duration_ns: u64) {
-        *self.residence.entry(cpu).or_insert(0) += duration_ns;
+        self.residence.add(cpu as usize, duration_ns);
     }
 
     /// Record migration
+    #[inline(always)]
     pub fn record_migration(&mut self, _from: u32, _to: u32, now_ns: u64) {
         self.migrations += 1;
         self.last_migration_ns = now_ns;
     }
 
     /// Home CPU (most time spent)
+    #[inline]
     pub fn home_cpu(&self) -> Option<u32> {
         self.residence.iter()
             .max_by_key(|&(_, &v)| v)
@@ -158,6 +167,7 @@ impl ProcessAffinityProfile {
     }
 
     /// CPU spread (number of distinct CPUs used)
+    #[inline(always)]
     pub fn cpu_spread(&self) -> usize {
         self.residence.len()
     }
@@ -165,6 +175,7 @@ impl ProcessAffinityProfile {
 
 /// Affinity tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeAffinityStats {
     pub tracked_syscalls: usize,
     pub tracked_processes: usize,
@@ -173,6 +184,7 @@ pub struct BridgeAffinityStats {
 }
 
 /// Bridge affinity tracker
+#[repr(align(64))]
 pub struct BridgeAffinityTracker {
     /// Per-syscall affinity
     syscall_affinity: BTreeMap<u32, SyscallCpuAffinity>,
@@ -192,6 +204,7 @@ impl BridgeAffinityTracker {
     }
 
     /// Record syscall execution
+    #[inline]
     pub fn record_syscall(&mut self, syscall_nr: u32, cpu: u32, latency_ns: u64) {
         self.syscall_affinity
             .entry(syscall_nr)
@@ -201,12 +214,14 @@ impl BridgeAffinityTracker {
     }
 
     /// Get preferred CPU for syscall
+    #[inline(always)]
     pub fn preferred_cpu(&self, syscall_nr: u32) -> Option<u32> {
         self.syscall_affinity.get(&syscall_nr)
             .and_then(|a| a.preferred_cpu)
     }
 
     /// Top concentrated syscalls
+    #[inline]
     pub fn most_concentrated(&self, n: usize) -> Vec<(u32, f64)> {
         let mut entries: Vec<(u32, f64)> = self.syscall_affinity.iter()
             .map(|(&nr, a)| (nr, a.concentration()))
@@ -229,6 +244,7 @@ impl BridgeAffinityTracker {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeAffinityStats {
         &self.stats
     }

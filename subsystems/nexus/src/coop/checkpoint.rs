@@ -98,6 +98,7 @@ impl ProcessCheckpoint {
     }
 
     /// Total size
+    #[inline(always)]
     pub fn total_size(&self) -> u64 {
         self.size + self.register_size
     }
@@ -146,6 +147,7 @@ impl CoordinatedCheckpoint {
     }
 
     /// Add participant
+    #[inline(always)]
     pub fn add_participant(&mut self, pid: u64) {
         self.participants.insert(pid, ParticipantState::Pending);
     }
@@ -165,6 +167,7 @@ impl CoordinatedCheckpoint {
     }
 
     /// Record participant refused
+    #[inline]
     pub fn participant_refused(&mut self, pid: u64) {
         if let Some(state) = self.participants.get_mut(&pid) {
             *state = ParticipantState::Refused;
@@ -190,6 +193,7 @@ impl CoordinatedCheckpoint {
     }
 
     /// All participants ready?
+    #[inline]
     pub fn all_ready(&self) -> bool {
         !self.participants.is_empty()
             && self
@@ -199,6 +203,7 @@ impl CoordinatedCheckpoint {
     }
 
     /// All participants done?
+    #[inline]
     pub fn all_done(&self) -> bool {
         !self.participants.is_empty()
             && self
@@ -208,6 +213,7 @@ impl CoordinatedCheckpoint {
     }
 
     /// Check timeout
+    #[inline]
     pub fn check_timeout(&mut self, now: u64) -> bool {
         if now > self.initiated_at + self.timeout_ns
             && self.state != CheckpointState::Complete
@@ -220,16 +226,19 @@ impl CoordinatedCheckpoint {
     }
 
     /// Total checkpoint size
+    #[inline(always)]
     pub fn total_size(&self) -> u64 {
         self.data.values().map(|d| d.total_size()).sum()
     }
 
     /// Duration
+    #[inline(always)]
     pub fn duration_ns(&self) -> Option<u64> {
         self.completed_at.map(|c| c.saturating_sub(self.initiated_at))
     }
 
     /// Participant count
+    #[inline(always)]
     pub fn participant_count(&self) -> usize {
         self.participants.len()
     }
@@ -253,6 +262,7 @@ pub struct CheckpointSchedule {
 }
 
 impl CheckpointSchedule {
+    #[inline]
     pub fn default_schedule() -> Self {
         Self {
             interval_ns: 60_000_000_000, // 60 seconds
@@ -269,6 +279,7 @@ impl CheckpointSchedule {
 
 /// Checkpoint stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopCheckpointStats {
     /// Total checkpoints
     pub total: u64,
@@ -317,6 +328,7 @@ impl CoopCheckpointManager {
     }
 
     /// Set schedule
+    #[inline(always)]
     pub fn set_schedule(&mut self, schedule: CheckpointSchedule) {
         self.schedule = schedule;
     }
@@ -355,6 +367,7 @@ impl CoopCheckpointManager {
     }
 
     /// Record participant ready
+    #[inline]
     pub fn ready(&mut self, checkpoint_id: u64, pid: u64) -> bool {
         if let Some(cp) = self.checkpoints.get_mut(&checkpoint_id) {
             cp.participant_ready(pid)
@@ -409,11 +422,13 @@ impl CoopCheckpointManager {
     }
 
     /// Get checkpoint
+    #[inline(always)]
     pub fn checkpoint(&self, id: u64) -> Option<&CoordinatedCheckpoint> {
         self.checkpoints.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopCheckpointStats {
         &self.stats
     }

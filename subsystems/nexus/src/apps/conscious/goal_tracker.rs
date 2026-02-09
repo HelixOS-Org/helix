@@ -111,6 +111,7 @@ pub struct GoalConflict {
 
 /// Aggregate goal tracking statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct GoalTrackerStats {
     pub total_goals: usize,
     pub active_goals: usize,
@@ -196,6 +197,7 @@ impl AppsGoalTracker {
     }
 
     /// Measure progress toward a goal with a new observation
+    #[inline]
     pub fn measure_progress(&mut self, name: &str, current_value: f32) {
         self.tick += 1;
         let id = fnv1a_hash(name.as_bytes());
@@ -238,6 +240,7 @@ impl AppsGoalTracker {
     }
 
     /// Get the priority ordering of all active goals
+    #[inline]
     pub fn goal_priority(&self) -> Vec<(String, GoalPriority, f32)> {
         let mut active: Vec<(String, GoalPriority, f32)> = self
             .goals

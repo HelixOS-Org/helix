@@ -270,10 +270,12 @@ pub struct {{name}} {
 }
 
 impl {{name}} {
+    #[inline(always)]
     pub const fn new() -> Self {
         Self { locked: AtomicBool::new(false) }
     }
 
+    #[inline]
     pub fn lock(&self) {
         while self.locked.compare_exchange_weak(
             false, true,
@@ -284,10 +286,12 @@ impl {{name}} {
         }
     }
 
+    #[inline(always)]
     pub fn unlock(&self) {
         self.locked.store(false, Ordering::Release);
     }
 
+    #[inline]
     pub fn try_lock(&self) -> bool {
         self.locked.compare_exchange(
             false, true,
@@ -328,6 +332,7 @@ pub struct {{name}}<T, const N: usize> {
 }
 
 impl<T, const N: usize> {{name}}<T, N> {
+    #[inline]
     pub const fn new() -> Self {
         Self {
             buffer: unsafe { core::mem::MaybeUninit::uninit().assume_init() },
@@ -337,6 +342,7 @@ impl<T, const N: usize> {{name}}<T, N> {
         }
     }
 
+    #[inline]
     pub fn push(&mut self, item: T) -> Result<(), T> {
         if self.len == N {
             return Err(item);
@@ -347,6 +353,7 @@ impl<T, const N: usize> {{name}}<T, N> {
         Ok(())
     }
 
+    #[inline]
     pub fn pop(&mut self) -> Option<T> {
         if self.len == 0 {
             return None;
@@ -357,8 +364,11 @@ impl<T, const N: usize> {{name}}<T, N> {
         Some(item)
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize { self.len }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.len == 0 }
+    #[inline(always)]
     pub fn is_full(&self) -> bool { self.len == N }
 }
 "#
@@ -390,22 +400,26 @@ pub struct {{name}}<const N: usize> {
 }
 
 impl<const N: usize> {{name}}<N> {
+    #[inline(always)]
     pub const fn new() -> Self {
         Self { bits: [0; (N + 63) / 64] }
     }
 
+    #[inline]
     pub fn set(&mut self, idx: usize) {
         if idx < N {
             self.bits[idx / 64] |= 1 << (idx % 64);
         }
     }
 
+    #[inline]
     pub fn clear(&mut self, idx: usize) {
         if idx < N {
             self.bits[idx / 64] &= !(1 << (idx % 64));
         }
     }
 
+    #[inline]
     pub fn get(&self, idx: usize) -> bool {
         if idx < N {
             (self.bits[idx / 64] >> (idx % 64)) & 1 == 1
@@ -414,16 +428,19 @@ impl<const N: usize> {{name}}<N> {
         }
     }
 
+    #[inline]
     pub fn toggle(&mut self, idx: usize) {
         if idx < N {
             self.bits[idx / 64] ^= 1 << (idx % 64);
         }
     }
 
+    #[inline(always)]
     pub fn count_ones(&self) -> usize {
         self.bits.iter().map(|b| b.count_ones() as usize).sum()
     }
 
+    #[inline]
     pub fn first_set(&self) -> Option<usize> {
         for (i, &word) in self.bits.iter().enumerate() {
             if word != 0 {
@@ -666,6 +683,7 @@ impl<T, const N: usize> {{name}}<T, N> {
         }
     }
 
+    #[inline]
     pub fn alloc(&mut self) -> Option<&mut T> {
         if self.free_head >= N {
             return None;
@@ -676,6 +694,7 @@ impl<T, const N: usize> {{name}}<T, N> {
         Some(unsafe { &mut *self.storage[idx].as_mut_ptr() })
     }
 
+    #[inline]
     pub fn free(&mut self, ptr: &mut T) {
         let addr = ptr as *mut T as usize;
         let base = self.storage.as_ptr() as usize;
@@ -688,7 +707,9 @@ impl<T, const N: usize> {{name}}<T, N> {
         }
     }
 
+    #[inline(always)]
     pub fn allocated(&self) -> usize { self.allocated }
+    #[inline(always)]
     pub fn available(&self) -> usize { N - self.allocated }
 }
 "#
@@ -726,16 +747,19 @@ impl<T, const N: usize> {{name}}<T, N> {
     }
 
     /// Get template by ID
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Template> {
         self.templates.get(&id)
     }
 
     /// Get template by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&Template> {
         self.by_name.get(name).and_then(|id| self.templates.get(id))
     }
 
     /// Get templates by category
+    #[inline]
     pub fn get_by_category(&self, category: TemplateCategory) -> Vec<&Template> {
         self.by_category
             .get(&category)
@@ -853,11 +877,13 @@ impl<T, const N: usize> {{name}}<T, N> {
     }
 
     /// Get all templates
+    #[inline(always)]
     pub fn all(&self) -> impl Iterator<Item = &Template> {
         self.templates.values()
     }
 
     /// Template count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.templates.len()
     }

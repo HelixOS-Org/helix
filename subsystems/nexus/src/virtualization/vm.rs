@@ -121,6 +121,7 @@ pub enum NetIntensity {
 
 /// VM exit statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct VmExitStats {
     /// Total exits
     pub total_exits: u64,
@@ -160,6 +161,7 @@ impl VmExitStats {
     }
 
     /// Get exit rate
+    #[inline]
     pub fn exit_rate(&self, uptime_ns: u64) -> f64 {
         if uptime_ns == 0 {
             0.0
@@ -199,6 +201,7 @@ impl VmIntelligence {
     }
 
     /// Register VM
+    #[inline]
     pub fn register(&mut self, info: VmInfo) {
         self.vmexit_stats
             .insert(info.base.id, VmExitStats::default());
@@ -206,6 +209,7 @@ impl VmIntelligence {
     }
 
     /// Record VM exit
+    #[inline]
     pub fn record_exit(&mut self, vm_id: VirtId, exit_type: VmExitType, latency_ns: u64) {
         if let Some(stats) = self.vmexit_stats.get_mut(&vm_id) {
             stats.record_exit(exit_type, latency_ns);
@@ -213,26 +217,31 @@ impl VmIntelligence {
     }
 
     /// Get VM info
+    #[inline(always)]
     pub fn get(&self, vm_id: VirtId) -> Option<&VmInfo> {
         self.vms.get(&vm_id)
     }
 
     /// Get exit stats
+    #[inline(always)]
     pub fn get_exit_stats(&self, vm_id: VirtId) -> Option<&VmExitStats> {
         self.vmexit_stats.get(&vm_id)
     }
 
     /// Set profile
+    #[inline(always)]
     pub fn set_profile(&mut self, vm_id: VirtId, profile: VmProfile) {
         self.profiles.insert(vm_id, profile);
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn get_profile(&self, vm_id: VirtId) -> Option<&VmProfile> {
         self.profiles.get(&vm_id)
     }
 
     /// Get high exit rate VMs
+    #[inline]
     pub fn high_exit_rate_vms(&self, threshold: f64) -> Vec<VirtId> {
         self.vmexit_stats
             .iter()

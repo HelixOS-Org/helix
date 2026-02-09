@@ -40,18 +40,21 @@ impl RollbackPoint {
     }
 
     /// Set state hash
+    #[inline(always)]
     pub fn with_hash(mut self, hash: u64) -> Self {
         self.state_hash = hash;
         self
     }
 
     /// Add a dependency
+    #[inline(always)]
     pub fn with_dependency(mut self, dep: ComponentId) -> Self {
         self.dependencies.push(dep);
         self
     }
 
     /// Mark as unsafe
+    #[inline(always)]
     pub fn mark_unsafe(&mut self) {
         self.is_safe = false;
     }

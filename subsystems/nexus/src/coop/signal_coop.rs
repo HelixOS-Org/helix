@@ -24,6 +24,7 @@ impl SignalCoopRecord {
 
 /// Signal coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SignalCoopStats { pub total_events: u64, pub group_signals: u64, pub broadcasts: u64, pub coalesced: u64 }
 
 /// Main coop signal
@@ -32,6 +33,7 @@ pub struct CoopSignal { pub stats: SignalCoopStats }
 
 impl CoopSignal {
     pub fn new() -> Self { Self { stats: SignalCoopStats { total_events: 0, group_signals: 0, broadcasts: 0, coalesced: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SignalCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

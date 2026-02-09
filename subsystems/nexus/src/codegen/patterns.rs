@@ -28,6 +28,7 @@ pub struct PatternId(pub u64);
 static PATTERN_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl PatternId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(PATTERN_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -252,6 +253,7 @@ impl ${target_type}Builder {
     }
     }
 
+    #[inline]
     pub fn build(self) -> Result<${target_type}, &'static str> {
         Ok(${target_type} {
             ${fields:${field}: self.${field}.ok_or("${field} is required")?,}
@@ -352,10 +354,12 @@ impl ${subject_name} {
         Self { observers: Vec::new() }
     }
 
+    #[inline(always)]
     pub fn subscribe(&mut self, observer: Box<dyn ${subject_name}Observer>) {
         self.observers.push(observer);
     }
 
+    #[inline]
     pub fn notify(&self, event: &${event_type}) {
         for observer in &self.observers {
             observer.on_event(event);
@@ -417,10 +421,12 @@ impl ${machine_name} {
         Self { state: initial }
     }
 
+    #[inline(always)]
     pub fn state(&self) -> ${machine_name}State {
         self.state
     }
 
+    #[inline(always)]
     pub fn transition(&mut self, event: ${machine_name}Event) -> Result<(), &'static str> {
         self.state = self.next_state(event)?;
         Ok(())
@@ -467,15 +473,18 @@ pub struct ${guard_name} {
 }
 
 impl ${guard_name} {
+    #[inline(always)]
     pub fn acquire(resource: ${resource_type}) -> Self {
         // Acquisition logic here
         Self { resource }
     }
 
+    #[inline(always)]
     pub fn get(&self) -> &${resource_type} {
         &self.resource
     }
 
+    #[inline(always)]
     pub fn get_mut(&mut self) -> &mut ${resource_type} {
         &mut self.resource
     }
@@ -724,6 +733,7 @@ impl ${queue_name} {
     }
 
     /// Register pattern
+    #[inline]
     pub fn register(&mut self, pattern: CodePattern) {
         let id = pattern.id;
         let name = pattern.name.clone();
@@ -735,16 +745,19 @@ impl ${queue_name} {
     }
 
     /// Get pattern by ID
+    #[inline(always)]
     pub fn get(&self, id: PatternId) -> Option<&CodePattern> {
         self.patterns.get(&id)
     }
 
     /// Get pattern by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&CodePattern> {
         self.by_name.get(name).and_then(|id| self.patterns.get(id))
     }
 
     /// Get patterns by category
+    #[inline]
     pub fn get_by_category(&self, category: PatternCategory) -> Vec<&CodePattern> {
         self.by_category
             .get(&category)
@@ -753,6 +766,7 @@ impl ${queue_name} {
     }
 
     /// Increment usage count
+    #[inline]
     pub fn record_usage(&mut self, id: PatternId) {
         if let Some(pattern) = self.patterns.get_mut(&id) {
             pattern.usage_count += 1;
@@ -760,6 +774,7 @@ impl ${queue_name} {
     }
 
     /// Get most used patterns
+    #[inline]
     pub fn most_used(&self, count: usize) -> Vec<&CodePattern> {
         let mut patterns: Vec<_> = self.patterns.values().collect();
         patterns.sort_by(|a, b| b.usage_count.cmp(&a.usage_count));

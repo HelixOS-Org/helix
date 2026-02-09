@@ -65,11 +65,13 @@ impl ShootdownRequest {
         }
     }
 
+    #[inline(always)]
     pub fn range_pages(&self, page_size: u64) -> u64 {
         if page_size == 0 { return 0; }
         (self.end_va - self.start_va) / page_size
     }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
         self.completed_ns.saturating_sub(self.submitted_ns)
     }
@@ -86,6 +88,7 @@ pub struct PcidSlot {
 
 /// Per-CPU TLB state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuTlbState {
     pub cpu_id: u32,
     pub total_flushes: u64,
@@ -117,11 +120,13 @@ impl CpuTlbState {
         }
     }
 
+    #[inline(always)]
     pub fn avg_flush_ns(&self) -> u64 {
         if self.total_flushes == 0 { return 0; }
         self.total_flush_latency_ns / self.total_flushes
     }
 
+    #[inline]
     pub fn pcid_hit_rate(&self) -> f64 {
         let total = self.total_flushes;
         if total == 0 { return 1.0; }
@@ -192,6 +197,7 @@ impl ShootdownBatch {
         Self { requests: Vec::new(), coalesced_ranges: Vec::new() }
     }
 
+    #[inline(always)]
     pub fn add(&mut self, req: ShootdownRequest) {
         self.requests.push(req);
     }
@@ -217,6 +223,7 @@ impl ShootdownBatch {
         self.coalesced_ranges.push(cur);
     }
 
+    #[inline]
     pub fn total_pages_4k(&self) -> u64 {
         self.coalesced_ranges.iter()
             .map(|(s, e)| (e - s) / 4096)
@@ -226,6 +233,7 @@ impl ShootdownBatch {
 
 /// Holistic TLB Management stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticTlbMgrStats {
     pub total_cpus: usize,
     pub total_flushes: u64,
@@ -257,12 +265,14 @@ impl HolisticTlbMgr {
         }
     }
 
+    #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32, pcid_cap: u16) {
         self.cpus.entry(cpu_id)
             .or_insert_with(|| CpuTlbState::new(cpu_id, pcid_cap));
     }
 
     /// Queue a shootdown request
+    #[inline]
     pub fn queue_shootdown(&mut self, cpu: u32, start: u64, end: u64, reason: TlbFlushReason, now: u64) {
         let id = self.next_request_id;
         self.next_request_id += 1;
@@ -287,6 +297,7 @@ impl HolisticTlbMgr {
         pages
     }
 
+    #[inline]
     pub fn record_flush(&mut self, cpu_id: u32, full: bool, latency_ns: u64) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.total_flushes += 1;
@@ -298,6 +309,7 @@ impl HolisticTlbMgr {
         self.total_shootdown_latency_ns += latency_ns;
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_cpus = self.cpus.len();
         self.stats.total_flushes = self.cpus.values().map(|c| c.total_flushes).sum();
@@ -310,7 +322,9 @@ impl HolisticTlbMgr {
         else { sum_pcid / self.cpus.len() as f64 };
     }
 
+    #[inline(always)]
     pub fn cpu_tlb(&self, id: u32) -> Option<&CpuTlbState> { self.cpus.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticTlbMgrStats { &self.stats }
 }
 
@@ -383,12 +397,14 @@ impl TlbV2ShootdownBatch {
         }
     }
 
+    #[inline]
     pub fn add_target(&mut self, cpu_id: u32) {
         if !self.target_cpus.contains(&cpu_id) {
             self.target_cpus.push(cpu_id);
         }
     }
 
+    #[inline(always)]
     pub fn should_full_flush(&self) -> bool {
         self.page_count > 32 || self.scope == TlbV2Scope::FullFlush
     }
@@ -440,6 +456,7 @@ impl TlbV2CpuData {
         asid
     }
 
+    #[inline]
     pub fn enter_lazy_mode(&mut self) {
         if self.state == TlbV2CpuState::Active {
             self.state = TlbV2CpuState::LazyMode;
@@ -447,12 +464,14 @@ impl TlbV2CpuData {
         }
     }
 
+    #[inline]
     pub fn exit_lazy_mode(&mut self) {
         if self.state == TlbV2CpuState::LazyMode {
             self.state = TlbV2CpuState::Active;
         }
     }
 
+    #[inline]
     pub fn receive_shootdown(&mut self) {
         self.shootdown_received += 1;
         if self.state == TlbV2CpuState::LazyMode {
@@ -465,6 +484,7 @@ impl TlbV2CpuData {
 
 /// Statistics for the TLB manager V2.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TlbMgrV2Stats {
     pub total_shootdowns: u64,
     pub batched_shootdowns: u64,
@@ -509,11 +529,13 @@ impl HolisticTlbMgrV2 {
         }
     }
 
+    #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32, max_asids: u16) {
         let data = TlbV2CpuData::new(cpu_id, max_asids);
         self.cpu_data.insert(cpu_id, data);
     }
 
+    #[inline]
     pub fn create_shootdown(
         &mut self,
         scope: TlbV2Scope,
@@ -556,10 +578,12 @@ impl HolisticTlbMgrV2 {
         ipis_sent
     }
 
+    #[inline(always)]
     pub fn cpu_count(&self) -> usize {
         self.cpu_data.len()
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending_batches.len()
     }

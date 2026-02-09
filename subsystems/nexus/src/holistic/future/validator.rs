@@ -12,7 +12,10 @@
 
 extern crate alloc;
 
+use crate::fast::fast_hash::FastHasher;
+
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -175,6 +178,7 @@ pub struct GlobalValidation {
 
 /// Aggregate validation statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     pub total_validations: u64,
     pub global_accuracy_ema: f32,
@@ -230,6 +234,7 @@ impl HolisticPredictionValidator {
     }
 
     /// Record a prediction and its actual outcome for validation
+    #[inline]
     pub fn record_validation(
         &mut self,
         subsystem: SubsystemId,
@@ -245,7 +250,7 @@ impl HolisticPredictionValidator {
         let scale = actual.abs().max(1.0);
         let accuracy = (1.0 - abs_error / scale).clamp(0.0, 1.0);
 
-        let id = fnv1a_hash(format!("{:?}-{}-{}", subsystem, dimension, self.tick).as_bytes())
+        let id = FastHasher::new().feed_u64(subsystem as u64).feed_str("-").feed_u64(dimension as u64).feed_str("-").feed_u64(self.tick as u64).finish()
             ^ xorshift64(&mut self.rng_state);
 
         self.accuracy_ema = EMA_ALPHA * accuracy + (1.0 - EMA_ALPHA) * self.accuracy_ema;
@@ -274,7 +279,7 @@ impl HolisticPredictionValidator {
         let sub_entries = self.subsystem_stats.entry(sub_key).or_insert_with(Vec::new);
         sub_entries.push(entry.clone());
         if sub_entries.len() > MAX_VALIDATION_ENTRIES / MAX_SUBSYSTEM_ENTRIES {
-            sub_entries.remove(0);
+            sub_entries.pop_front();
         }
 
         entry
@@ -406,7 +411,7 @@ impl HolisticPredictionValidator {
             } else {
                 ErrorType::Undershoot
             };
-            let id = fnv1a_hash(format!("syserr-{:?}-bias", subsystem).as_bytes());
+            let id = FastHasher::new().feed_str("syserr-").feed_u64(subsystem as u64).feed_str("-bias").finish();
             errors.push(SystematicError {
                 id,
                 subsystem,
@@ -428,7 +433,7 @@ impl HolisticPredictionValidator {
             .sum::<f32>()
             / n;
         if variance.sqrt() > SYSTEMATIC_ERROR_THRESHOLD * 2.0 {
-            let id = fnv1a_hash(format!("syserr-{:?}-variance", subsystem).as_bytes());
+            let id = FastHasher::new().feed_str("syserr-").feed_u64(subsystem as u64).feed_str("-variance").finish();
             errors.push(SystematicError {
                 id,
                 subsystem,
@@ -451,7 +456,7 @@ impl HolisticPredictionValidator {
             let older_err: f32 = older.iter().map(|e| e.error).sum::<f32>() / 5.0;
 
             if (recent_err - older_err).abs() > SYSTEMATIC_ERROR_THRESHOLD {
-                let id = fnv1a_hash(format!("syserr-{:?}-lag", subsystem).as_bytes());
+                let id = FastHasher::new().feed_str("syserr-").feed_u64(subsystem as u64).feed_str("-lag").finish();
                 errors.push(SystematicError {
                     id,
                     subsystem,
@@ -560,7 +565,7 @@ impl HolisticPredictionValidator {
             .copied()
             .unwrap_or((SubsystemId::Holistic, 0.0));
 
-        let id = fnv1a_hash(format!("model-sel-{}", dimension).as_bytes())
+        let id = FastHasher::new().feed_str("model-sel-").feed_u64(dimension as u64).finish()
             ^ xorshift64(&mut self.rng_state);
 
         let signal = ModelSelectionSignal {
@@ -600,7 +605,7 @@ impl HolisticPredictionValidator {
 
         let confidence = (acc.sample_count as f32 / 50.0).clamp(0.1, 1.0);
 
-        let id = fnv1a_hash(format!("recal-{:?}-{}", subsystem, self.tick).as_bytes())
+        let id = FastHasher::new().feed_str("recal-").feed_u64(subsystem as u64).feed_str("-").feed_u64(self.tick as u64).finish()
             ^ xorshift64(&mut self.rng_state);
 
         let signal = RecalibrationSignal {

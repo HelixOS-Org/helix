@@ -36,6 +36,7 @@ pub enum IpcChannelState {
 
 /// IPC message
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IpcMessage {
     pub msg_id: u64,
     pub channel_id: u64,
@@ -97,11 +98,13 @@ impl IpcChannel {
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.buffer_size == 0 { return 0.0; }
         self.buffered_bytes as f64 / self.buffer_size as f64
     }
 
+    #[inline]
     pub fn send(&mut self, size: u32) -> bool {
         if self.buffered_bytes + size > self.buffer_size {
             self.backpressure = true;
@@ -113,6 +116,7 @@ impl IpcChannel {
         true
     }
 
+    #[inline]
     pub fn receive(&mut self, size: u32) -> bool {
         if self.buffered_bytes < size { return false; }
         self.buffered_bytes -= size;
@@ -154,11 +158,13 @@ impl IpcBatch {
         }
     }
 
+    #[inline(always)]
     pub fn add(&mut self, msg: IpcMessage) {
         self.total_bytes += msg.payload_size as u64;
         self.messages.push(msg);
     }
 
+    #[inline(always)]
     pub fn is_ready(&self, max_batch: usize, now: u64) -> bool {
         self.messages.len() >= max_batch || (self.deadline_ns > 0 && now >= self.deadline_ns)
     }
@@ -166,6 +172,7 @@ impl IpcBatch {
 
 /// IPC proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeIpcProxyStats {
     pub active_channels: usize,
     pub total_messages: u64,
@@ -176,6 +183,7 @@ pub struct BridgeIpcProxyStats {
 }
 
 /// Bridge IPC Proxy
+#[repr(align(64))]
 pub struct BridgeIpcProxy {
     channels: BTreeMap<u64, IpcChannel>,
     routes: Vec<IpcRoute>,
@@ -199,6 +207,7 @@ impl BridgeIpcProxy {
         }
     }
 
+    #[inline]
     pub fn create_channel(&mut self, chan_type: IpcChannelType, pid_a: u64, pid_b: u64, buffer_size: u32) -> u64 {
         let id = self.next_channel_id;
         self.next_channel_id += 1;
@@ -209,6 +218,7 @@ impl BridgeIpcProxy {
         id
     }
 
+    #[inline]
     pub fn close_channel(&mut self, channel_id: u64) {
         if let Some(chan) = self.channels.get_mut(&channel_id) {
             chan.state = IpcChannelState::Closed;
@@ -261,12 +271,14 @@ impl BridgeIpcProxy {
     }
 
     /// Add cross-namespace route
+    #[inline(always)]
     pub fn add_route(&mut self, route: IpcRoute) {
         self.routes.push(route);
         self.recompute();
     }
 
     /// Check if IPC between two pids is routable
+    #[inline]
     pub fn is_routable(&self, src_ns: u32, dst_ns: u32, src_pid: u64, dst_pid: u64) -> bool {
         if src_ns == dst_ns { return true; }
         self.routes.iter().any(|r| {
@@ -293,10 +305,12 @@ impl BridgeIpcProxy {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeIpcProxyStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn channel(&self, id: u64) -> Option<&IpcChannel> {
         self.channels.get(&id)
     }

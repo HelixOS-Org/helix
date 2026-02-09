@@ -24,6 +24,7 @@ pub struct EvolutionId(pub u64);
 static EVOLUTION_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl EvolutionId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(EVOLUTION_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -36,6 +37,7 @@ pub struct VariantId(pub u64);
 static VARIANT_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl VariantId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(VARIANT_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -110,6 +112,7 @@ impl CodeVariant {
         }
     }
 
+    #[inline]
     pub fn with_parent(genome: Genome, parent: VariantId, generation: u32) -> Self {
         Self {
             id: VariantId::generate(),
@@ -254,6 +257,7 @@ pub struct Fitness {
 
 /// Performance metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PerformanceMetrics {
     /// Execution time (ns)
     pub execution_time: u64,
@@ -269,6 +273,7 @@ pub struct PerformanceMetrics {
 
 /// Quality metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct QualityMetrics {
     /// Code size
     pub code_size: usize,
@@ -353,6 +358,7 @@ pub struct EvolutionEngine {
 
 /// Generation statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GenerationStats {
     /// Generation number
     pub generation: u32,
@@ -385,6 +391,7 @@ impl EvolutionEngine {
     }
 
     /// Initialize population
+    #[inline]
     pub fn initialize<F>(&mut self, generator: F)
     where
         F: Fn(usize, &Rng) -> Genome,
@@ -692,26 +699,31 @@ impl EvolutionEngine {
     }
 
     /// Get best variant
+    #[inline(always)]
     pub fn best(&self) -> Option<&CodeVariant> {
         self.best.as_ref()
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[GenerationStats] {
         &self.history
     }
 
     /// Get current generation
+    #[inline(always)]
     pub fn generation(&self) -> u32 {
         self.generation
     }
 
     /// Stop evolution
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::Relaxed);
     }
 
     /// Is running
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Relaxed)
     }

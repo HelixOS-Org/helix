@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 
 /// Governor type
@@ -18,6 +19,7 @@ pub enum GovernorType {
 
 /// CPU frequency state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CpuFreqState {
     pub cpu_id: u32,
     pub current_freq_khz: u64,
@@ -26,19 +28,21 @@ pub struct CpuFreqState {
     pub governor: GovernorType,
     pub load_percent: u32,
     pub transitions: u64,
-    pub time_in_state_ms: BTreeMap<u64, u64>,
+    pub time_in_state_ms: LinearMap<u64, 64>,
 }
 
 impl CpuFreqState {
     pub fn new(cpu_id: u32, min: u64, max: u64) -> Self {
-        Self { cpu_id, current_freq_khz: max, min_freq_khz: min, max_freq_khz: max, governor: GovernorType::Schedutil, load_percent: 0, transitions: 0, time_in_state_ms: BTreeMap::new() }
+        Self { cpu_id, current_freq_khz: max, min_freq_khz: min, max_freq_khz: max, governor: GovernorType::Schedutil, load_percent: 0, transitions: 0, time_in_state_ms: LinearMap::new() }
     }
 
+    #[inline(always)]
     pub fn set_freq(&mut self, freq_khz: u64) {
         let f = freq_khz.clamp(self.min_freq_khz, self.max_freq_khz);
         if f != self.current_freq_khz { self.transitions += 1; self.current_freq_khz = f; }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.max_freq_khz == 0 { 0.0 } else { self.current_freq_khz as f64 / self.max_freq_khz as f64 }
     }
@@ -56,6 +60,7 @@ pub struct FreqTransition {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuFreqGovStats {
     pub total_cpus: u32,
     pub total_transitions: u64,
@@ -72,6 +77,7 @@ pub struct HolisticCpuFreqGov {
 impl HolisticCpuFreqGov {
     pub fn new() -> Self { Self { cpus: BTreeMap::new(), transitions: 0 } }
 
+    #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32, min: u64, max: u64) {
         self.cpus.insert(cpu_id, CpuFreqState::new(cpu_id, min, max));
     }
@@ -97,6 +103,7 @@ impl HolisticCpuFreqGov {
         }
     }
 
+    #[inline]
     pub fn stats(&self) -> CpuFreqGovStats {
         let transitions: u64 = self.cpus.values().map(|c| c.transitions).sum();
         let freqs: Vec<u64> = self.cpus.values().map(|c| c.current_freq_khz).collect();

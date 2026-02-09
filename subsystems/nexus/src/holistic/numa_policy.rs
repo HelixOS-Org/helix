@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -68,11 +69,13 @@ impl NodeMemInfo {
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.total_pages == 0 { return 0.0; }
         1.0 - (self.free_pages as f64 / self.total_pages as f64)
     }
 
+    #[inline]
     pub fn pressure(&self) -> f64 {
         if self.total_pages == 0 { return 1.0; }
         let used = self.total_pages.saturating_sub(self.free_pages);
@@ -104,12 +107,14 @@ impl ProcessNumaBinding {
         }
     }
 
+    #[inline]
     pub fn locality_ratio(&self) -> f64 {
         let total = self.pages_local + self.pages_remote;
         if total == 0 { return 1.0; }
         self.pages_local as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn is_node_allowed(&self, node: u32) -> bool {
         if node >= 64 { return false; }
         (self.node_mask >> node) & 1 != 0
@@ -129,6 +134,7 @@ pub struct NumaBalanceEvent {
 
 /// NUMA policy stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NumaPolicyStats {
     pub total_nodes: u32,
     pub online_nodes: u32,
@@ -136,7 +142,7 @@ pub struct NumaPolicyStats {
     pub total_migrations: u64,
     pub avg_locality: f64,
     pub total_remote_accesses: u64,
-    pub node_pressure: BTreeMap<u32, f64>,
+    pub node_pressure: ArrayMap<f64, 32>,
 }
 
 /// Main NUMA policy manager
@@ -157,14 +163,17 @@ impl HolisticNumaPolicy {
         }
     }
 
+    #[inline(always)]
     pub fn add_node(&mut self, node_id: u32, total_pages: u64) {
         self.nodes.insert(node_id, NodeMemInfo::new(node_id, total_pages));
     }
 
+    #[inline(always)]
     pub fn set_distance(&mut self, from: u32, to: u32, distance: u32) {
         self.distances.push(NumaDistance { from_node: from, to_node: to, distance });
     }
 
+    #[inline]
     pub fn get_distance(&self, from: u32, to: u32) -> u32 {
         if from == to { return 10; } // local distance
         self.distances.iter()
@@ -172,12 +181,14 @@ impl HolisticNumaPolicy {
             .map(|d| d.distance).unwrap_or(255)
     }
 
+    #[inline]
     pub fn bind_process(&mut self, pid: u64, policy: NumaPolicy, preferred: Option<u32>) {
         let mut binding = ProcessNumaBinding::new(pid, policy);
         binding.preferred_node = preferred;
         self.bindings.insert(pid, binding);
     }
 
+    #[inline(always)]
     pub fn unbind_process(&mut self, pid: u64) -> bool { self.bindings.remove(&pid).is_some() }
 
     pub fn select_node(&self, pid: u64) -> Option<u32> {
@@ -204,6 +215,7 @@ impl HolisticNumaPolicy {
         }
     }
 
+    #[inline]
     pub fn record_migration(&mut self, pid: u64, from: u32, to: u32, pages: u64, lat_ns: u64, now: u64) {
         if let Some(b) = self.bindings.get_mut(&pid) { b.pages_migrated += pages; }
         if self.events.len() >= self.max_events { self.events.drain(..self.max_events / 4); }

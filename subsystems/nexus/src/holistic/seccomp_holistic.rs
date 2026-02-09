@@ -31,6 +31,7 @@ impl SeccompFinding {
         Self { metric, score: 0, pid: 0, filter_count: 0, covered_syscalls: 0, total_syscalls: 0 }
     }
 
+    #[inline(always)]
     pub fn coverage_ratio(&self) -> f64 {
         if self.total_syscalls == 0 { 0.0 } else { self.covered_syscalls as f64 / self.total_syscalls as f64 }
     }
@@ -38,6 +39,7 @@ impl SeccompFinding {
 
 /// Seccomp holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompHolisticStats {
     pub total_analyses: u64,
     pub high_complexity: u64,
@@ -56,6 +58,7 @@ impl HolisticSeccomp {
         Self { stats: SeccompHolisticStats { total_analyses: 0, high_complexity: 0, low_coverage: 0, avg_filter_count: 0.0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &SeccompFinding) {
         self.stats.total_analyses += 1;
         if finding.filter_count > 16 { self.stats.high_complexity += 1; }

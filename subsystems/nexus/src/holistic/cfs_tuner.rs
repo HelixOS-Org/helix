@@ -41,6 +41,7 @@ pub enum TuningDirection {
 
 /// Per-CPU CFS stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuCfsStats {
     pub cpu_id: u32,
     pub nr_running: u32,
@@ -69,16 +70,19 @@ impl CpuCfsStats {
     }
 
     /// Vruntime spread (indicator of fairness)
+    #[inline(always)]
     pub fn vruntime_spread(&self) -> u64 {
         self.max_vruntime.saturating_sub(self.min_vruntime)
     }
 
     /// Is this CPU overloaded?
+    #[inline(always)]
     pub fn is_overloaded(&self) -> bool {
         self.nr_running > 4 && self.load_avg > 1.5
     }
 
     /// Is this CPU idle?
+    #[inline(always)]
     pub fn is_idle(&self) -> bool {
         self.nr_running == 0
     }
@@ -95,6 +99,7 @@ pub struct CfsParameters {
 }
 
 impl CfsParameters {
+    #[inline]
     pub fn default_params() -> Self {
         Self {
             latency_ns: 6_000_000,            // 6ms
@@ -156,6 +161,7 @@ impl LatencyHistogram {
         self.buckets[bucket] += 1;
     }
 
+    #[inline]
     pub fn avg_ns(&self) -> f64 {
         if self.total_samples == 0 {
             0.0
@@ -183,6 +189,7 @@ impl LatencyHistogram {
 
 /// CFS tuner stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticCfsTunerStats {
     pub tracked_cpus: usize,
     pub overloaded_cpus: usize,
@@ -213,11 +220,13 @@ impl HolisticCfsTuner {
         }
     }
 
+    #[inline(always)]
     pub fn update_cpu(&mut self, stats: CpuCfsStats) {
         self.cpus.insert(stats.cpu_id, stats);
         self.recompute();
     }
 
+    #[inline(always)]
     pub fn record_latency(&mut self, latency_ns: u64) {
         self.latency_hist.record(latency_ns);
     }
@@ -322,14 +331,17 @@ impl HolisticCfsTuner {
         true
     }
 
+    #[inline(always)]
     pub fn params(&self) -> &CfsParameters {
         &self.params
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCfsTunerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn recommendations(&self) -> &[TuningRecommendation] {
         &self.recommendations
     }

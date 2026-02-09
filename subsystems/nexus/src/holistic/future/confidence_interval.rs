@@ -59,6 +59,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f32, sample: f32) -> f32 {
     EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * current
 }
@@ -228,6 +229,7 @@ pub struct UncertaintyBudget {
 
 /// Runtime statistics for the confidence interval engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConfidenceIntervalStats {
     pub ci_computed: u64,
     pub global_uncertainty_queries: u64,
@@ -294,6 +296,7 @@ impl HolisticConfidenceInterval {
     }
 
     /// Register a model dependency: `from` feeds predictions into `to`
+    #[inline]
     pub fn register_dependency(&mut self, from: ModelSource, to: ModelSource) {
         let fk = fnv1a_hash(&[from as u8]);
         let tk = fnv1a_hash(&[to as u8]);
@@ -301,6 +304,7 @@ impl HolisticConfidenceInterval {
     }
 
     /// Allocate an uncertainty budget for a model source
+    #[inline(always)]
     pub fn allocate_budget(&mut self, source: ModelSource, budget: f32) {
         let key = fnv1a_hash(&[source as u8]);
         self.budget_allocations.insert(key, budget.max(0.0));
@@ -619,6 +623,7 @@ impl HolisticConfidenceInterval {
     }
 
     /// Get current statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ConfidenceIntervalStats {
         &self.stats
     }

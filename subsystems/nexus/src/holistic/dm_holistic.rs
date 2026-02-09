@@ -49,7 +49,9 @@ impl DmTarget {
         Self { target_type, start_sector: start, length_sectors: length, underlying_dev: 0, offset: 0 }
     }
 
+    #[inline(always)]
     pub fn end_sector(&self) -> u64 { self.start_sector + self.length_sectors }
+    #[inline(always)]
     pub fn size_bytes(&self) -> u64 { self.length_sectors * 512 }
 }
 
@@ -76,20 +78,27 @@ impl DmDevice {
         }
     }
 
+    #[inline(always)]
     pub fn add_target(&mut self, target: DmTarget) {
         self.targets.push(target);
     }
 
+    #[inline(always)]
     pub fn activate(&mut self) { self.state = DmDevState::Active; }
+    #[inline(always)]
     pub fn suspend(&mut self) { self.state = DmDevState::Suspended; }
+    #[inline(always)]
     pub fn resume(&mut self) { self.state = DmDevState::Active; }
 
+    #[inline(always)]
     pub fn total_sectors(&self) -> u64 {
         self.targets.iter().map(|t| t.length_sectors).sum()
     }
 
+    #[inline(always)]
     pub fn size_bytes(&self) -> u64 { self.total_sectors() * 512 }
 
+    #[inline(always)]
     pub fn record_io(&mut self, read: bool, bytes: u64) {
         if read { self.read_bytes += bytes; } else { self.write_bytes += bytes; }
     }
@@ -97,6 +106,7 @@ impl DmDevice {
 
 /// Thin pool status
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DmThinPoolStatus {
     pub pool_id: u64,
     pub total_data_blocks: u64,
@@ -116,10 +126,12 @@ impl DmThinPoolStatus {
         }
     }
 
+    #[inline(always)]
     pub fn data_usage_pct(&self) -> f64 {
         if self.total_data_blocks == 0 { 0.0 } else { self.used_data_blocks as f64 / self.total_data_blocks as f64 }
     }
 
+    #[inline(always)]
     pub fn metadata_usage_pct(&self) -> f64 {
         if self.total_metadata_blocks == 0 { 0.0 }
         else { self.used_metadata_blocks as f64 / self.total_metadata_blocks as f64 }
@@ -128,6 +140,7 @@ impl DmThinPoolStatus {
 
 /// DM holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticDmStats {
     pub total_devices: u64,
     pub total_targets: u64,
@@ -152,17 +165,20 @@ impl HolisticDm {
         }
     }
 
+    #[inline]
     pub fn create_device(&mut self, dev: DmDevice) {
         self.stats.total_devices += 1;
         self.stats.total_targets += dev.targets.len() as u64;
         self.devices.insert(dev.dm_id, dev);
     }
 
+    #[inline(always)]
     pub fn register_pool(&mut self, pool: DmThinPoolStatus) {
         self.thin_pools.insert(pool.pool_id, pool);
         self.stats.thin_pools += 1;
     }
 
+    #[inline]
     pub fn activate_device(&mut self, dm_id: u64) -> bool {
         if let Some(dev) = self.devices.get_mut(&dm_id) {
             dev.activate();

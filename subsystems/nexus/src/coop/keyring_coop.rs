@@ -48,6 +48,7 @@ impl KeyringCoopRecord {
 
 /// Keyring coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KeyringCoopStats {
     pub total_events: u64,
     pub shares: u64,
@@ -73,6 +74,7 @@ impl CoopKeyring {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &KeyringCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

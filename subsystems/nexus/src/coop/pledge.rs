@@ -124,6 +124,7 @@ impl CoopPledge {
     }
 
     /// Accept the pledge
+    #[inline]
     pub fn accept(&mut self) {
         if self.state == PledgeState::Proposed {
             self.state = PledgeState::Accepted;
@@ -131,6 +132,7 @@ impl CoopPledge {
     }
 
     /// Activate
+    #[inline]
     pub fn activate(&mut self) {
         if self.state == PledgeState::Accepted {
             self.state = PledgeState::Active;
@@ -138,6 +140,7 @@ impl CoopPledge {
     }
 
     /// Record partial fulfillment
+    #[inline]
     pub fn record_fulfillment(&mut self, amount: u64) {
         self.fulfilled_amount += amount;
         if self.fulfilled_amount >= self.amount {
@@ -146,6 +149,7 @@ impl CoopPledge {
     }
 
     /// Check expiry
+    #[inline]
     pub fn check_expiry(&mut self, now: u64) {
         if now >= self.deadline && self.state == PledgeState::Active {
             if self.fulfilled_amount >= self.amount {
@@ -157,6 +161,7 @@ impl CoopPledge {
     }
 
     /// Fulfillment ratio
+    #[inline]
     pub fn fulfillment_ratio(&self) -> f64 {
         if self.amount == 0 {
             return 1.0;
@@ -165,6 +170,7 @@ impl CoopPledge {
     }
 
     /// Is complete (fulfilled or broken or expired)
+    #[inline]
     pub fn is_complete(&self) -> bool {
         matches!(
             self.state,
@@ -245,6 +251,7 @@ impl PledgeReliability {
 
 /// Pledge manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopPledgeStats {
     /// Active pledges
     pub active_pledges: usize,
@@ -284,6 +291,7 @@ impl CoopPledgeManager {
     }
 
     /// Create pledge
+    #[inline]
     pub fn create_pledge(
         &mut self,
         pledger: u64,
@@ -303,6 +311,7 @@ impl CoopPledgeManager {
     }
 
     /// Accept pledge
+    #[inline]
     pub fn accept_pledge(&mut self, pledge_id: u64) {
         if let Some(pledge) = self.pledges.get_mut(&pledge_id) {
             pledge.accept();
@@ -366,16 +375,19 @@ impl CoopPledgeManager {
     }
 
     /// Get reliability
+    #[inline(always)]
     pub fn reliability(&self, pid: u64) -> Option<&PledgeReliability> {
         self.reliability.get(&pid)
     }
 
     /// Get pledge
+    #[inline(always)]
     pub fn pledge(&self, id: u64) -> Option<&CoopPledge> {
         self.pledges.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopPledgeStats {
         &self.stats
     }

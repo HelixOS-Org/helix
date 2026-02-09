@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -19,6 +20,7 @@ pub enum PageZoneType {
 }
 
 impl PageZoneType {
+    #[inline(always)]
     pub fn can_reclaim(&self) -> bool {
         matches!(self, Self::Normal | Self::HighMem | Self::Movable)
     }
@@ -41,10 +43,12 @@ impl GfpFlags {
     pub const RETRY: Self = Self(0x200);
     pub const NOFAIL: Self = Self(0x400);
 
+    #[inline(always)]
     pub fn contains(&self, flag: GfpFlags) -> bool {
         self.0 & flag.0 != 0
     }
 
+    #[inline(always)]
     pub fn is_atomic(&self) -> bool {
         self.contains(Self::ATOMIC)
     }
@@ -60,6 +64,7 @@ pub struct ZoneWatermarks {
 }
 
 impl ZoneWatermarks {
+    #[inline]
     pub fn current_level(&self, free: u64) -> WatermarkLevel {
         if free <= self.min { WatermarkLevel::Min }
         else if free <= self.low { WatermarkLevel::Low }
@@ -79,6 +84,7 @@ pub enum WatermarkLevel {
 
 /// Buddy order stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BuddyOrderStats {
     pub free_count: [u64; 11],
     pub total_free_pages: u64,
@@ -89,14 +95,17 @@ impl BuddyOrderStats {
         Self { free_count: [0; 11], total_free_pages: 0 }
     }
 
+    #[inline(always)]
     pub fn recalculate(&mut self) {
         self.total_free_pages = (0..11).map(|i| self.free_count[i] << i).sum();
     }
 
+    #[inline(always)]
     pub fn pages_at_order(&self, order: u8) -> u64 {
         if (order as usize) < 11 { self.free_count[order as usize] << order } else { 0 }
     }
 
+    #[inline]
     pub fn highest_available_order(&self) -> u8 {
         for i in (0..11).rev() {
             if self.free_count[i] > 0 { return i as u8; }
@@ -104,6 +113,7 @@ impl BuddyOrderStats {
         0
     }
 
+    #[inline]
     pub fn fragmentation_ratio(&self) -> f64 {
         if self.total_free_pages == 0 { return 1.0; }
         let high_order: u64 = (4..11).map(|i| self.free_count[i] << i).sum();
@@ -113,6 +123,7 @@ impl BuddyOrderStats {
 
 /// Per-zone allocator state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ZoneAllocState {
     pub zone_type: PageZoneType,
     pub zone_id: u32,
@@ -142,25 +153,30 @@ impl ZoneAllocState {
         }
     }
 
+    #[inline(always)]
     pub fn free_pages(&self) -> u64 {
         self.buddy.total_free_pages
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.managed_pages == 0 { return 0.0; }
         1.0 - (self.free_pages() as f64 / self.managed_pages as f64)
     }
 
+    #[inline(always)]
     pub fn watermark_level(&self) -> WatermarkLevel {
         self.watermarks.current_level(self.free_pages())
     }
 
+    #[inline]
     pub fn alloc_fail_rate(&self) -> f64 {
         let total = self.nr_alloc + self.nr_alloc_fail;
         if total == 0 { return 0.0; }
         self.nr_alloc_fail as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn can_satisfy(&self, order: u8) -> bool {
         self.buddy.highest_available_order() >= order
     }
@@ -180,6 +196,7 @@ pub struct AllocRequest {
 
 /// Page allocator stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PageAllocStats {
     pub total_allocs: u64,
     pub total_frees: u64,
@@ -193,7 +210,7 @@ pub struct PageAllocStats {
 /// Main page allocator manager
 pub struct HolisticPageAlloc {
     zones: BTreeMap<u32, ZoneAllocState>,
-    recent_allocs: Vec<AllocRequest>,
+    recent_allocs: VecDeque<AllocRequest>,
     max_recent: usize,
     stats: PageAllocStats,
     zonelist: Vec<u32>,
@@ -203,7 +220,7 @@ impl HolisticPageAlloc {
     pub fn new() -> Self {
         Self {
             zones: BTreeMap::new(),
-            recent_allocs: Vec::new(),
+            recent_allocs: VecDeque::new(),
             max_recent: 4096,
             stats: PageAllocStats {
                 total_allocs: 0, total_frees: 0, total_failures: 0,
@@ -214,6 +231,7 @@ impl HolisticPageAlloc {
         }
     }
 
+    #[inline]
     pub fn add_zone(&mut self, state: ZoneAllocState) {
         self.stats.zone_count += 1;
         let id = state.zone_id;
@@ -237,11 +255,12 @@ impl HolisticPageAlloc {
         }
 
         if self.recent_allocs.len() >= self.max_recent {
-            self.recent_allocs.remove(0);
+            self.recent_allocs.pop_front();
         }
-        self.recent_allocs.push(req);
+        self.recent_allocs.push_back(req);
     }
 
+    #[inline]
     pub fn record_free(&mut self, zone_id: u32, _order: u8) {
         self.stats.total_frees += 1;
         if let Some(zone) = self.zones.get_mut(&zone_id) {
@@ -263,6 +282,7 @@ impl HolisticPageAlloc {
         None
     }
 
+    #[inline]
     pub fn zones_below_watermark(&self, level: WatermarkLevel) -> Vec<u32> {
         self.zones.iter()
             .filter(|(_, z)| z.watermark_level() < level)
@@ -270,20 +290,24 @@ impl HolisticPageAlloc {
             .collect()
     }
 
+    #[inline(always)]
     pub fn total_free_pages(&self) -> u64 {
         self.zones.values().map(|z| z.free_pages()).sum()
     }
 
+    #[inline(always)]
     pub fn total_managed_pages(&self) -> u64 {
         self.zones.values().map(|z| z.managed_pages).sum()
     }
 
+    #[inline]
     pub fn system_utilization(&self) -> f64 {
         let managed = self.total_managed_pages();
         if managed == 0 { return 0.0; }
         1.0 - (self.total_free_pages() as f64 / managed as f64)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PageAllocStats {
         &self.stats
     }

@@ -23,6 +23,7 @@ pub enum CpuPowerState {
 
 impl CpuPowerState {
     /// Get wakeup latency estimate (nanoseconds)
+    #[inline]
     pub fn wakeup_latency_ns(&self) -> u64 {
         match self {
             Self::DeepSleep => 1_000_000, // 1ms
@@ -34,6 +35,7 @@ impl CpuPowerState {
     }
 
     /// Get power consumption estimate (relative units)
+    #[inline]
     pub fn power_units(&self) -> u32 {
         match self {
             Self::DeepSleep => 1,
@@ -80,6 +82,7 @@ pub enum PowerDecisionReason {
 }
 
 /// Power-aware work scheduler
+#[repr(align(64))]
 pub struct PowerAwareWorkScheduler {
     /// Per-CPU power states
     cpu_states: BTreeMap<CpuId, CpuPowerState>,
@@ -115,17 +118,20 @@ impl PowerAwareWorkScheduler {
     }
 
     /// Register CPU
+    #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: CpuId, initial_state: CpuPowerState) {
         self.cpu_states.insert(cpu_id, initial_state);
         self.pending_work.insert(cpu_id, 0);
     }
 
     /// Update CPU power state
+    #[inline(always)]
     pub fn update_cpu_state(&mut self, cpu_id: CpuId, state: CpuPowerState) {
         self.cpu_states.insert(cpu_id, state);
     }
 
     /// Set power saving mode
+    #[inline(always)]
     pub fn set_power_saving(&mut self, enabled: bool) {
         self.power_saving_mode = enabled;
     }
@@ -227,6 +233,7 @@ impl PowerAwareWorkScheduler {
     }
 
     /// Record work completion
+    #[inline]
     pub fn record_completion(&mut self, cpu_id: CpuId) {
         if let Some(pending) = self.pending_work.get_mut(&cpu_id) {
             *pending = pending.saturating_sub(1);
@@ -234,12 +241,14 @@ impl PowerAwareWorkScheduler {
     }
 
     /// Reset energy counter
+    #[inline(always)]
     pub fn reset_energy(&mut self, current_time: u64) {
         self.current_energy.store(0, Ordering::Relaxed);
         self.last_energy_reset = current_time;
     }
 
     /// Get current energy consumption rate
+    #[inline]
     pub fn energy_consumption_rate(&self, current_time: u64) -> f32 {
         let elapsed = current_time - self.last_energy_reset;
         if elapsed == 0 {
@@ -250,16 +259,19 @@ impl PowerAwareWorkScheduler {
     }
 
     /// Check if under energy budget
+    #[inline(always)]
     pub fn under_energy_budget(&self, current_time: u64) -> bool {
         self.energy_consumption_rate(current_time) <= self.energy_budget as f32
     }
 
     /// Get CPU count
+    #[inline(always)]
     pub fn cpu_count(&self) -> usize {
         self.cpu_states.len()
     }
 
     /// Set energy budget
+    #[inline(always)]
     pub fn set_energy_budget(&mut self, budget: u32) {
         self.energy_budget = budget;
     }

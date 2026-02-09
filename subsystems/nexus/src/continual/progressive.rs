@@ -58,6 +58,7 @@ impl ProgressiveColumn {
     }
 
     /// Freeze this column
+    #[inline(always)]
     pub fn freeze(&mut self) {
         self.frozen = true;
     }
@@ -88,6 +89,7 @@ impl ProgressiveColumn {
     }
 
     /// Get output for a layer
+    #[inline(always)]
     pub fn get_layer_output(&self, layer: usize, activations: &[Vec<f64>]) -> Option<&Vec<f64>> {
         activations.get(layer + 1)
     }
@@ -138,6 +140,7 @@ impl LateralAdapter {
     }
 
     /// Apply adapter
+    #[inline]
     pub fn apply(&self, from_activation: &[f64]) -> Vec<f64> {
         self.weights
             .iter()
@@ -251,6 +254,7 @@ impl ProgressiveNetwork {
     }
 
     /// Get number of columns (tasks)
+    #[inline(always)]
     pub fn num_tasks(&self) -> usize {
         self.columns.len()
     }

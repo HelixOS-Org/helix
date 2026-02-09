@@ -51,18 +51,21 @@ impl EventConfig {
     }
 
     /// With sampling period
+    #[inline(always)]
     pub fn with_period(mut self, period: u64) -> Self {
         self.period = period;
         self
     }
 
     /// With sampling frequency
+    #[inline(always)]
     pub fn with_frequency(mut self, frequency: u32) -> Self {
         self.frequency = frequency;
         self
     }
 
     /// Kernel only
+    #[inline]
     pub fn kernel_only(mut self) -> Self {
         self.exclude_user = true;
         self.exclude_hv = true;
@@ -70,6 +73,7 @@ impl EventConfig {
     }
 
     /// User only
+    #[inline]
     pub fn user_only(mut self) -> Self {
         self.exclude_kernel = true;
         self.exclude_hv = true;
@@ -139,31 +143,37 @@ impl PerfEvent {
     }
 
     /// Get count
+    #[inline(always)]
     pub fn count(&self) -> u64 {
         self.count.load(Ordering::Relaxed)
     }
 
     /// Update count
+    #[inline(always)]
     pub fn update_count(&self, value: u64) {
         self.count.store(value, Ordering::Relaxed);
     }
 
     /// Add to count
+    #[inline(always)]
     pub fn add_count(&self, delta: u64) {
         self.count.fetch_add(delta, Ordering::Relaxed);
     }
 
     /// Time enabled
+    #[inline(always)]
     pub fn time_enabled(&self) -> u64 {
         self.time_enabled.load(Ordering::Relaxed)
     }
 
     /// Time running
+    #[inline(always)]
     pub fn time_running(&self) -> u64 {
         self.time_running.load(Ordering::Relaxed)
     }
 
     /// Multiplexing ratio
+    #[inline]
     pub fn mux_ratio(&self) -> f64 {
         let enabled = self.time_enabled();
         let running = self.time_running();
@@ -174,6 +184,7 @@ impl PerfEvent {
     }
 
     /// Scaled count (accounting for multiplexing)
+    #[inline]
     pub fn scaled_count(&self) -> u64 {
         let count = self.count();
         let ratio = self.mux_ratio();
@@ -184,16 +195,19 @@ impl PerfEvent {
     }
 
     /// Is running
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.state == EventState::Active
     }
 
     /// Start event
+    #[inline(always)]
     pub fn start(&mut self) {
         self.state = EventState::Active;
     }
 
     /// Stop event
+    #[inline(always)]
     pub fn stop(&mut self) {
         self.state = EventState::Off;
     }

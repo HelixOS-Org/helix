@@ -85,15 +85,18 @@ impl RecordedSyscall {
         }
     }
 
+    #[inline(always)]
     pub fn add_arg(&mut self, arg: SyscallArg) {
         self.args.push(arg);
     }
 
+    #[inline(always)]
     pub fn set_result(&mut self, result: SyscallResult, duration_ns: u64) {
         self.result = result;
         self.duration_ns = duration_ns;
     }
 
+    #[inline(always)]
     pub fn is_success(&self) -> bool {
         matches!(self.result, SyscallResult::Success(_))
     }
@@ -119,6 +122,7 @@ pub struct RecordingFilter {
 }
 
 impl RecordingFilter {
+    #[inline]
     pub fn all() -> Self {
         Self {
             pids: Vec::new(),
@@ -129,6 +133,7 @@ impl RecordingFilter {
         }
     }
 
+    #[inline]
     pub fn for_pid(pid: u64) -> Self {
         Self {
             pids: alloc::vec![pid],
@@ -209,12 +214,14 @@ impl RecordingSession {
     }
 
     /// Stop recording
+    #[inline(always)]
     pub fn stop(&mut self, end_time: u64) {
         self.active = false;
         self.end_time = end_time;
     }
 
     /// Duration
+    #[inline]
     pub fn duration_ns(&self) -> u64 {
         if self.end_time > 0 {
             self.end_time.saturating_sub(self.start_time)
@@ -224,6 +231,7 @@ impl RecordingSession {
     }
 
     /// Syscall rate (per second)
+    #[inline]
     pub fn rate(&self) -> f64 {
         let dur_s = self.duration_ns() as f64 / 1_000_000_000.0;
         if dur_s > 0.0 {
@@ -268,6 +276,7 @@ pub struct ReplayDivergence {
 
 /// Replay session
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReplaySession {
     /// Session ID
     pub id: u64,
@@ -298,41 +307,49 @@ impl ReplaySession {
         }
     }
 
+    #[inline(always)]
     pub fn start(&mut self) {
         self.state = ReplayState::Running;
     }
 
+    #[inline]
     pub fn pause(&mut self) {
         if self.state == ReplayState::Running {
             self.state = ReplayState::Paused;
         }
     }
 
+    #[inline]
     pub fn resume(&mut self) {
         if self.state == ReplayState::Paused {
             self.state = ReplayState::Running;
         }
     }
 
+    #[inline(always)]
     pub fn record_step(&mut self, original_ns: u64, replay_ns: u64) {
         self.timing.push((original_ns, replay_ns));
         self.position += 1;
     }
 
+    #[inline(always)]
     pub fn record_divergence(&mut self, div: ReplayDivergence) {
         self.divergences.push(div);
         self.state = ReplayState::Diverged;
     }
 
+    #[inline(always)]
     pub fn checkpoint(&mut self, data: u64) {
         self.checkpoints.insert(self.position, data);
     }
 
+    #[inline(always)]
     pub fn complete(&mut self) {
         self.state = ReplayState::Complete;
     }
 
     /// Speedup ratio
+    #[inline]
     pub fn speedup(&self) -> f64 {
         if self.timing.is_empty() {
             return 1.0;
@@ -346,6 +363,7 @@ impl ReplaySession {
     }
 
     /// Divergence rate
+    #[inline]
     pub fn divergence_rate(&self) -> f64 {
         if self.position == 0 {
             return 0.0;
@@ -360,6 +378,7 @@ impl ReplaySession {
 
 /// Replay manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ReplayManagerStats {
     /// Active recordings
     pub active_recordings: usize,
@@ -372,6 +391,7 @@ pub struct ReplayManagerStats {
 }
 
 /// Bridge replay manager
+#[repr(align(64))]
 pub struct BridgeReplayManager {
     /// Recordings
     recordings: BTreeMap<u64, RecordingSession>,
@@ -394,6 +414,7 @@ impl BridgeReplayManager {
     }
 
     /// Start recording
+    #[inline]
     pub fn start_recording(&mut self, filter: RecordingFilter, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -404,6 +425,7 @@ impl BridgeReplayManager {
     }
 
     /// Stop recording
+    #[inline]
     pub fn stop_recording(&mut self, id: u64, now: u64) {
         if let Some(rec) = self.recordings.get_mut(&id) {
             rec.stop(now);
@@ -413,6 +435,7 @@ impl BridgeReplayManager {
     }
 
     /// Record syscall
+    #[inline]
     pub fn record_syscall(&mut self, recording_id: u64, syscall: RecordedSyscall) -> bool {
         if let Some(rec) = self.recordings.get_mut(&recording_id) {
             rec.record(syscall)
@@ -440,16 +463,19 @@ impl BridgeReplayManager {
     }
 
     /// Get recording
+    #[inline(always)]
     pub fn recording(&self, id: u64) -> Option<&RecordingSession> {
         self.recordings.get(&id)
     }
 
     /// Get replay
+    #[inline(always)]
     pub fn replay(&self, id: u64) -> Option<&ReplaySession> {
         self.replays.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &ReplayManagerStats {
         &self.stats
     }

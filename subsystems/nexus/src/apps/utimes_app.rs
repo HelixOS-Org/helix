@@ -65,6 +65,7 @@ impl UtimesRecord {
         }
     }
 
+    #[inline(always)]
     pub fn is_ns_precision(&self) -> bool {
         matches!(self.call, UtimesCall::Utimensat | UtimesCall::Futimens)
     }
@@ -72,6 +73,7 @@ impl UtimesRecord {
 
 /// Utimes app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UtimesAppStats {
     pub total_calls: u64,
     pub ns_precision_calls: u64,

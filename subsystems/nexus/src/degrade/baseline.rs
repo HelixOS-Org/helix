@@ -5,6 +5,7 @@ use crate::math;
 
 /// Baseline for a metric
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricBaseline {
     /// Baseline mean
     pub(crate) mean: f64,
@@ -34,6 +35,7 @@ impl MetricBaseline {
     }
 
     /// Update with new value
+    #[inline]
     pub fn update(&mut self, value: f64, ema_alpha: f64) {
         // Update EMA
         self.ema = ema_alpha * value + (1.0 - ema_alpha) * self.ema;
@@ -56,6 +58,7 @@ impl MetricBaseline {
     }
 
     /// Get degradation from baseline
+    #[inline]
     pub fn degradation(&self) -> f64 {
         if self.mean == 0.0 {
             return 0.0;
@@ -64,6 +67,7 @@ impl MetricBaseline {
     }
 
     /// Get z-score of current value
+    #[inline]
     pub fn z_score(&self) -> f64 {
         if self.std_dev == 0.0 {
             return 0.0;

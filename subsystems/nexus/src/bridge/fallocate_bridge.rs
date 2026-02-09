@@ -57,11 +57,13 @@ impl FallocateOp {
         }
     }
 
+    #[inline(always)]
     pub fn start(&mut self, ts_ns: u64) {
         self.state = FallocateState::InProgress;
         self.start_ns = ts_ns;
     }
 
+    #[inline]
     pub fn complete(&mut self, ts_ns: u64, blocks_alloc: u64, blocks_free: u64) {
         self.state = FallocateState::Completed;
         self.end_ns = ts_ns;
@@ -69,14 +71,17 @@ impl FallocateOp {
         self.blocks_freed = blocks_free;
     }
 
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.end_ns.saturating_sub(self.start_ns)
     }
 
+    #[inline(always)]
     pub fn is_destructive(&self) -> bool {
         matches!(self.mode, FallocateMode::PunchHole | FallocateMode::CollapseRange | FallocateMode::InsertRange)
     }
 
+    #[inline(always)]
     pub fn net_blocks(&self) -> i64 {
         self.blocks_allocated as i64 - self.blocks_freed as i64
     }
@@ -125,6 +130,7 @@ impl FileSpaceTracker {
         }
     }
 
+    #[inline(always)]
     pub fn fragmentation_estimate(&self) -> f64 {
         let total = self.allocated_blocks + self.hole_blocks;
         if total == 0 { 0.0 } else { self.hole_blocks as f64 / total as f64 }
@@ -133,6 +139,7 @@ impl FileSpaceTracker {
 
 /// Fallocate bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FallocateBridgeStats {
     pub total_ops: u64,
     pub total_blocks_allocated: u64,
@@ -144,6 +151,7 @@ pub struct FallocateBridgeStats {
 
 /// Main bridge fallocate
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeFallocate {
     pub file_trackers: BTreeMap<i32, FileSpaceTracker>,
     pub stats: FallocateBridgeStats,
@@ -186,6 +194,7 @@ impl BridgeFallocate {
         id
     }
 
+    #[inline(always)]
     pub fn net_block_change(&self) -> i64 {
         self.stats.total_blocks_allocated as i64 - self.stats.total_blocks_freed as i64
     }
@@ -213,6 +222,7 @@ impl FallocateV2Record {
 
 /// Fallocate v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FallocateV2BridgeStats { pub total_ops: u64, pub allocs: u64, pub punches: u64, pub zeros: u64 }
 
 /// Main bridge fallocate v2
@@ -221,6 +231,7 @@ pub struct BridgeFallocateV2 { pub stats: FallocateV2BridgeStats }
 
 impl BridgeFallocateV2 {
     pub fn new() -> Self { Self { stats: FallocateV2BridgeStats { total_ops: 0, allocs: 0, punches: 0, zeros: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &FallocateV2Record) {
         self.stats.total_ops += 1;
         match rec.mode {

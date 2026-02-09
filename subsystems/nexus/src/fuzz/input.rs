@@ -60,28 +60,33 @@ impl FuzzInput {
     }
 
     /// Get length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
 
     /// Set coverage hash
+    #[inline(always)]
     pub fn with_coverage(mut self, hash: u64) -> Self {
         self.coverage_hash = hash;
         self
     }
 
     /// Set score
+    #[inline(always)]
     pub fn with_score(mut self, score: f64) -> Self {
         self.score = score;
         self
     }
 
     /// Increment use count
+    #[inline(always)]
     pub fn use_once(&mut self) {
         self.use_count += 1;
     }

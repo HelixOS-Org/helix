@@ -29,6 +29,7 @@ pub enum CState {
 
 impl CState {
     /// Get wakeup latency (microseconds)
+    #[inline]
     pub fn wakeup_latency(&self) -> u32 {
         match self {
             Self::C0 => 0,
@@ -42,6 +43,7 @@ impl CState {
     }
 
     /// Get power reduction (relative to C0)
+    #[inline]
     pub fn power_reduction(&self) -> f64 {
         match self {
             Self::C0 => 1.0,
@@ -75,6 +77,7 @@ impl CState {
 
 /// CPU P-State (performance state)
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(align(64))]
 pub struct PState {
     /// Frequency in MHz
     pub frequency_mhz: u32,
@@ -104,6 +107,7 @@ impl PState {
     }
 
     /// Energy efficiency (performance per watt)
+    #[inline]
     pub fn efficiency(&self) -> f64 {
         if self.relative_power > 0.0 {
             self.relative_perf / self.relative_power
@@ -134,6 +138,7 @@ pub enum PowerMode {
 
 impl PowerMode {
     /// Get target performance level (0.0-1.0)
+    #[inline]
     pub fn target_performance(&self) -> f64 {
         match self {
             Self::Performance => 1.0,
@@ -145,6 +150,7 @@ impl PowerMode {
     }
 
     /// Get C-State depth limit
+    #[inline]
     pub fn max_cstate(&self) -> CState {
         match self {
             Self::Performance => CState::C1,

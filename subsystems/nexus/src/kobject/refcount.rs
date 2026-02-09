@@ -3,6 +3,7 @@
 //! Tracking and analyzing reference count operations.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -57,7 +58,7 @@ pub struct RefLeak {
 /// Reference counting analyzer
 pub struct RefCountAnalyzer {
     /// Reference operations
-    operations: Vec<RefOperation>,
+    operations: VecDeque<RefOperation>,
     /// Maximum operations to track
     max_operations: usize,
     /// Per-kobject reference history
@@ -87,6 +88,7 @@ impl RefCountAnalyzer {
     }
 
     /// Record get operation
+    #[inline(always)]
     pub fn record_get(
         &mut self,
         kobject: KobjectId,
@@ -99,6 +101,7 @@ impl RefCountAnalyzer {
     }
 
     /// Record put operation
+    #[inline]
     pub fn record_put(
         &mut self,
         kobject: KobjectId,
@@ -133,9 +136,9 @@ impl RefCountAnalyzer {
         };
 
         if self.operations.len() >= self.max_operations {
-            self.operations.remove(0);
+            self.operations.pop_front();
         }
-        self.operations.push(op.clone());
+        self.operations.push_back(op.clone());
 
         self.ref_history.entry(kobject).or_default().push(op);
     }
@@ -173,31 +176,37 @@ impl RefCountAnalyzer {
     }
 
     /// Get detected leaks
+    #[inline(always)]
     pub fn get_leaks(&self) -> &[RefLeak] {
         &self.leaks
     }
 
     /// Get refcount history for kobject
+    #[inline(always)]
     pub fn get_history(&self, kobject: KobjectId) -> Option<&[RefOperation]> {
         self.ref_history.get(&kobject).map(|v| v.as_slice())
     }
 
     /// Get total gets
+    #[inline(always)]
     pub fn total_gets(&self) -> u64 {
         self.total_gets.load(Ordering::Relaxed)
     }
 
     /// Get total puts
+    #[inline(always)]
     pub fn total_puts(&self) -> u64 {
         self.total_puts.load(Ordering::Relaxed)
     }
 
     /// Get underflow count
+    #[inline(always)]
     pub fn underflow_count(&self) -> u64 {
         self.underflows.load(Ordering::Relaxed)
     }
 
     /// Clear history for kobject
+    #[inline(always)]
     pub fn clear_history(&mut self, kobject: KobjectId) {
         self.ref_history.remove(&kobject);
     }

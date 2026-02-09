@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -83,6 +84,7 @@ pub struct Agent {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct ResourcePool {
     pub pool_id: u64,
     pub capacity: u64,
@@ -95,6 +97,7 @@ pub struct ResourcePool {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct OptimalStats {
     pub agents_count: usize,
     pub pools_count: usize,
@@ -116,7 +119,7 @@ pub struct CoopOptimal {
     rng_state: u64,
     stats: OptimalStats,
     iteration_counter: u64,
-    welfare_history: Vec<u64>,
+    welfare_history: VecDeque<u64>,
 }
 
 impl CoopOptimal {
@@ -136,7 +139,7 @@ impl CoopOptimal {
                 iterations_run: 0,
             },
             iteration_counter: 0,
-            welfare_history: Vec::new(),
+            welfare_history: VecDeque::new(),
         }
     }
 
@@ -155,6 +158,7 @@ impl CoopOptimal {
         });
     }
 
+    #[inline]
     pub fn register_pool(&mut self, id: u64, capacity: u64) {
         if self.pools.len() >= MAX_RESOURCES {
             return;
@@ -361,9 +365,9 @@ impl CoopOptimal {
         let n = self.agents.len() as u64;
         let avg_welfare = if n > 0 { welfare / n } else { 0 };
 
-        self.welfare_history.push(avg_welfare);
+        self.welfare_history.push_back(avg_welfare);
         if self.welfare_history.len() > 256 {
-            self.welfare_history.remove(0);
+            self.welfare_history.pop_front();
         }
 
         let social = (avg_welfare + fairness + waste_score) / 3;
@@ -381,6 +385,7 @@ impl CoopOptimal {
         self.stats.iterations_run = self.iteration_counter;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> OptimalStats {
         self.stats.clone()
     }

@@ -27,6 +27,7 @@ pub struct HolisticPidEntry {
 
 /// PID holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticPidStats {
     pub total_namespaces: u64,
     pub healthy: u64,
@@ -84,6 +85,7 @@ impl HolisticPidManager {
         health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticPidStats {
         &self.stats
     }

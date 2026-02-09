@@ -30,10 +30,12 @@ impl ExtentRecord {
         Self { inode, logical_block: logical, physical_block: physical, length, state: ExtentState::Allocated, depth: 0 }
     }
 
+    #[inline(always)]
     pub fn is_contiguous_with(&self, other: &ExtentRecord) -> bool {
         self.physical_block + self.length == other.physical_block
     }
 
+    #[inline(always)]
     pub fn size_bytes(&self) -> u64 { self.length * 4096 }
 }
 
@@ -52,12 +54,14 @@ impl FragmentationAnalysis {
         Self { inode, extent_count: 0, total_blocks: 0, contiguous_runs: 0, holes: 0 }
     }
 
+    #[inline]
     pub fn add_extent(&mut self, ext: &ExtentRecord) {
         self.extent_count += 1;
         self.total_blocks += ext.length;
         if ext.state == ExtentState::Hole { self.holes += 1; }
     }
 
+    #[inline(always)]
     pub fn fragmentation_ratio(&self) -> f64 {
         if self.extent_count <= 1 { 0.0 }
         else { 1.0 - (1.0 / self.extent_count as f64) }
@@ -66,6 +70,7 @@ impl FragmentationAnalysis {
 
 /// Holistic extent stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticExtentStats {
     pub total_extents: u64,
     pub total_blocks: u64,
@@ -85,6 +90,7 @@ impl HolisticExtent {
         Self { files: BTreeMap::new(), stats: HolisticExtentStats { total_extents: 0, total_blocks: 0, fragmented_files: 0, holes: 0 } }
     }
 
+    #[inline]
     pub fn record_extent(&mut self, ext: &ExtentRecord) {
         self.stats.total_extents += 1;
         self.stats.total_blocks += ext.length;
@@ -130,6 +136,7 @@ pub struct HolisticExtentV2Health {
 
 /// Stats for extent analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticExtentV2Stats {
     pub samples: u64,
     pub analyses: u64,
@@ -165,6 +172,7 @@ impl HolisticExtentV2Manager {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, metric: HolisticExtentV2Metric, value: u64, inode: u64) {
         let sample = HolisticExtentV2Sample {
             metric,
@@ -194,6 +202,7 @@ impl HolisticExtentV2Manager {
         &self.health
     }
 
+    #[inline]
     pub fn analyze_inode(&self, inode: u64) -> Option<u64> {
         self.per_inode.get(&inode).map(|samples| {
             if samples.is_empty() { 0 } else {
@@ -202,6 +211,7 @@ impl HolisticExtentV2Manager {
         })
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticExtentV2Stats {
         &self.stats
     }

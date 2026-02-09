@@ -24,6 +24,7 @@ pub enum SeverityLevel {
 
 impl SeverityLevel {
     /// Get level name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Info => "info",
@@ -101,6 +102,7 @@ impl Severity {
     }
 
     /// Classification
+    #[inline]
     pub const fn classification(&self) -> SeverityClass {
         match self.0 {
             1..=2 => SeverityClass::Negligible,
@@ -158,6 +160,7 @@ pub enum SeverityClass {
 
 impl SeverityClass {
     /// Get class name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Negligible => "negligible",
@@ -284,6 +287,7 @@ pub enum Urgency {
 
 impl Urgency {
     /// Get urgency name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::None => "none",
@@ -295,6 +299,7 @@ impl Urgency {
     }
 
     /// Deadline in milliseconds
+    #[inline]
     pub const fn deadline_ms(&self) -> u64 {
         match self {
             Self::None => u64::MAX,

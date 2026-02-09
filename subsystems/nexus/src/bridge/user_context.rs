@@ -52,6 +52,7 @@ pub struct GpRegs {
 }
 
 impl GpRegs {
+    #[inline]
     pub fn zeroed() -> Self {
         Self {
             rax: 0, rbx: 0, rcx: 0, rdx: 0,
@@ -65,11 +66,13 @@ impl GpRegs {
     }
 
     /// Get syscall arguments from registers
+    #[inline(always)]
     pub fn syscall_args(&self) -> [u64; 6] {
         [self.rdi, self.rsi, self.rdx, self.r10, self.r8, self.r9]
     }
 
     /// Set syscall return value
+    #[inline(always)]
     pub fn set_return(&mut self, value: u64) {
         self.rax = value;
     }
@@ -77,6 +80,7 @@ impl GpRegs {
 
 /// FPU/XSAVE state descriptor
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FpuState {
     pub xsave_size: u32,
     pub features_present: u64,
@@ -129,15 +133,18 @@ impl UserStack {
         }
     }
 
+    #[inline(always)]
     pub fn used(&self) -> u64 {
         self.stack_top.saturating_sub(self.current_sp)
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.stack_size == 0 { return 0.0; }
         self.used() as f64 / self.stack_size as f64
     }
 
+    #[inline(always)]
     pub fn is_near_overflow(&self) -> bool {
         self.utilization() > 0.9
     }
@@ -145,6 +152,7 @@ impl UserStack {
 
 /// Thread user context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ThreadUserContext {
     pub thread_id: u64,
     pub pid: u64,
@@ -180,6 +188,7 @@ impl ThreadUserContext {
         }
     }
 
+    #[inline]
     pub fn enter_kernel(&mut self, syscall_nr: u32, now: u64) {
         self.in_syscall = true;
         self.syscall_nr = syscall_nr;
@@ -187,17 +196,20 @@ impl ThreadUserContext {
         self.last_entry_ts = now;
     }
 
+    #[inline]
     pub fn exit_kernel(&mut self, now: u64) {
         self.in_syscall = false;
         self.kernel_exits += 1;
         self.total_kernel_time_ns += now.saturating_sub(self.last_entry_ts);
     }
 
+    #[inline(always)]
     pub fn avg_kernel_time_ns(&self) -> f64 {
         if self.kernel_exits == 0 { return 0.0; }
         self.total_kernel_time_ns as f64 / self.kernel_exits as f64
     }
 
+    #[inline(always)]
     pub fn set_tls(&mut self, desc: TlsDescriptor) {
         self.gp_regs.fs_base = desc.base_addr;
         self.tls.push(desc);
@@ -206,6 +218,7 @@ impl ThreadUserContext {
 
 /// User context manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeUserContextStats {
     pub tracked_threads: usize,
     pub in_kernel: usize,
@@ -216,6 +229,7 @@ pub struct BridgeUserContextStats {
 }
 
 /// Bridge User Context Manager
+#[repr(align(64))]
 pub struct BridgeUserContext {
     contexts: BTreeMap<u64, ThreadUserContext>,
     stats: BridgeUserContextStats,
@@ -229,22 +243,26 @@ impl BridgeUserContext {
         }
     }
 
+    #[inline(always)]
     pub fn register_thread(&mut self, ctx: ThreadUserContext) {
         self.contexts.insert(ctx.thread_id, ctx);
         self.recompute();
     }
 
+    #[inline(always)]
     pub fn unregister_thread(&mut self, thread_id: u64) {
         self.contexts.remove(&thread_id);
         self.recompute();
     }
 
+    #[inline]
     pub fn enter_kernel(&mut self, thread_id: u64, syscall_nr: u32, now: u64) {
         if let Some(ctx) = self.contexts.get_mut(&thread_id) {
             ctx.enter_kernel(syscall_nr, now);
         }
     }
 
+    #[inline]
     pub fn exit_kernel(&mut self, thread_id: u64, now: u64) {
         if let Some(ctx) = self.contexts.get_mut(&thread_id) {
             ctx.exit_kernel(now);
@@ -252,16 +270,19 @@ impl BridgeUserContext {
         self.recompute();
     }
 
+    #[inline]
     pub fn update_sp(&mut self, thread_id: u64, sp: u64) {
         if let Some(ctx) = self.contexts.get_mut(&thread_id) {
             ctx.user_stack.current_sp = sp;
         }
     }
 
+    #[inline(always)]
     pub fn get_context(&self, thread_id: u64) -> Option<&ThreadUserContext> {
         self.contexts.get(&thread_id)
     }
 
+    #[inline(always)]
     pub fn get_context_mut(&mut self, thread_id: u64) -> Option<&mut ThreadUserContext> {
         self.contexts.get_mut(&thread_id)
     }
@@ -279,6 +300,7 @@ impl BridgeUserContext {
             else { total_time / self.contexts.len() as f64 };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeUserContextStats {
         &self.stats
     }

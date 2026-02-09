@@ -12,11 +12,13 @@ pub struct IommuId(pub u64);
 
 impl IommuId {
     /// Create new IOMMU ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -32,11 +34,13 @@ pub struct DomainId(pub u64);
 
 impl DomainId {
     /// Create new domain ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -61,6 +65,7 @@ pub struct DeviceId {
 
 impl DeviceId {
     /// Create new device ID
+    #[inline]
     pub const fn new(segment: u16, bus: u8, device: u8, function: u8) -> Self {
         Self {
             segment,
@@ -71,11 +76,13 @@ impl DeviceId {
     }
 
     /// Create from BDF
+    #[inline(always)]
     pub const fn from_bdf(bus: u8, device: u8, function: u8) -> Self {
         Self::new(0, bus, device, function)
     }
 
     /// Get BDF as u16
+    #[inline(always)]
     pub fn bdf(&self) -> u16 {
         ((self.bus as u16) << 8) | ((self.device as u16) << 3) | (self.function as u16)
     }
@@ -116,6 +123,7 @@ pub enum IommuType {
 
 impl IommuType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::IntelVtd => "intel-vtd",
@@ -129,6 +137,7 @@ impl IommuType {
     }
 
     /// Supports nested translation
+    #[inline(always)]
     pub fn supports_nested(&self) -> bool {
         matches!(self, Self::IntelVtd | Self::AmdVi | Self::ArmSmmuV3)
     }
@@ -155,6 +164,7 @@ pub enum IommuState {
 
 impl IommuState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Disabled => "disabled",

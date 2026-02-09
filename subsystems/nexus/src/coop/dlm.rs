@@ -68,6 +68,7 @@ impl DlmLockRequest {
         }
     }
 
+    #[inline]
     pub fn is_expired(&self, now: u64) -> bool {
         self.state == DlmLockState::Granted
             && self.lease_ns > 0
@@ -101,6 +102,7 @@ impl DlmResource {
     }
 
     /// Check lock compatibility
+    #[inline]
     pub fn check_compat(held: DlmLockType, requested: DlmLockType) -> LockCompat {
         match (held, requested) {
             (DlmLockType::Shared, DlmLockType::Shared) => LockCompat::Compatible,
@@ -112,6 +114,7 @@ impl DlmResource {
         }
     }
 
+    #[inline]
     pub fn can_grant(&self, req: &DlmLockRequest) -> bool {
         for held in &self.granted {
             if Self::check_compat(held.lock_type, req.lock_type) == LockCompat::Incompatible {
@@ -185,6 +188,7 @@ pub struct WaitForEdge {
 
 /// Coop DLM stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopDlmStats {
     pub total_resources: usize,
     pub total_granted: usize,
@@ -210,6 +214,7 @@ impl CoopDlm {
         }
     }
 
+    #[inline]
     pub fn lock(&mut self, resource_id: u64, owner_id: u64, lock_type: DlmLockType, now: u64) -> (u64, bool) {
         let req_id = self.next_request_id;
         self.next_request_id += 1;
@@ -221,6 +226,7 @@ impl CoopDlm {
         (req_id, granted)
     }
 
+    #[inline]
     pub fn unlock(&mut self, resource_id: u64, owner_id: u64, now: u64) -> Vec<DlmLockRequest> {
         let result = if let Some(resource) = self.resources.get_mut(&resource_id) {
             resource.release(owner_id, now)
@@ -298,10 +304,12 @@ impl CoopDlm {
         self.stats.total_deadlocks = self.resources.values().map(|r| r.total_deadlocks).sum();
     }
 
+    #[inline(always)]
     pub fn resource(&self, id: u64) -> Option<&DlmResource> {
         self.resources.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopDlmStats {
         &self.stats
     }

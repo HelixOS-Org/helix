@@ -108,6 +108,7 @@ impl CCAAlignment {
     }
 
     /// Project both modalities
+    #[inline]
     pub fn project(&self, input_a: &[f64], input_b: &[f64]) -> (Vec<f64>, Vec<f64>) {
         let proj_a = project_vec(&self.proj_a, input_a);
         let proj_b = project_vec(&self.proj_b, input_b);

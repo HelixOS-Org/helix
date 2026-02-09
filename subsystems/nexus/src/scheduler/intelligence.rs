@@ -12,6 +12,7 @@ use super::types::{TaskFeatures, WorkloadType};
 // ============================================================================
 
 /// Central scheduler intelligence coordinator
+#[repr(align(64))]
 pub struct SchedulerIntelligence {
     /// Workload classifier
     classifier: WorkloadClassifier,
@@ -31,6 +32,7 @@ pub struct SchedulerIntelligence {
 
 /// Enabled scheduler intelligence features
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SchedulerFeatures {
     /// Enable workload classification
     pub classification: bool,
@@ -58,6 +60,7 @@ impl Default for SchedulerFeatures {
 
 /// Scheduler statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SchedulerStats {
     /// Tasks classified
     pub tasks_classified: u64,
@@ -86,6 +89,7 @@ impl SchedulerIntelligence {
     }
 
     /// Classify task workload
+    #[inline]
     pub fn classify_task(&mut self, features: &TaskFeatures) -> WorkloadType {
         if !self.enabled.classification {
             return WorkloadType::Unknown;
@@ -96,6 +100,7 @@ impl SchedulerIntelligence {
     }
 
     /// Get priority adjustment
+    #[inline]
     pub fn get_priority_adjustment(&mut self, task_hash: u64, features: &TaskFeatures) -> i32 {
         if !self.enabled.priority_learning {
             return 0;
@@ -106,6 +111,7 @@ impl SchedulerIntelligence {
     }
 
     /// Predict best core
+    #[inline]
     pub fn predict_core(&mut self, task_hash: u64, features: &TaskFeatures) -> usize {
         if !self.enabled.affinity_prediction {
             return 0;
@@ -142,6 +148,7 @@ impl SchedulerIntelligence {
     }
 
     /// Predict future load
+    #[inline]
     pub fn predict_load(&mut self, hour: u8) -> f64 {
         if !self.enabled.load_prediction {
             return 0.5;
@@ -152,51 +159,61 @@ impl SchedulerIntelligence {
     }
 
     /// Set features
+    #[inline(always)]
     pub fn set_features(&mut self, features: SchedulerFeatures) {
         self.enabled = features;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SchedulerStats {
         &self.stats
     }
 
     /// Get classifier
+    #[inline(always)]
     pub fn classifier(&self) -> &WorkloadClassifier {
         &self.classifier
     }
 
     /// Get mutable classifier
+    #[inline(always)]
     pub fn classifier_mut(&mut self) -> &mut WorkloadClassifier {
         &mut self.classifier
     }
 
     /// Get priority learner
+    #[inline(always)]
     pub fn priority_learner(&self) -> &PriorityLearner {
         &self.priority_learner
     }
 
     /// Get mutable priority learner
+    #[inline(always)]
     pub fn priority_learner_mut(&mut self) -> &mut PriorityLearner {
         &mut self.priority_learner
     }
 
     /// Get affinity predictor
+    #[inline(always)]
     pub fn affinity_predictor(&self) -> &AffinityPredictor {
         &self.affinity_predictor
     }
 
     /// Get mutable affinity predictor
+    #[inline(always)]
     pub fn affinity_predictor_mut(&mut self) -> &mut AffinityPredictor {
         &mut self.affinity_predictor
     }
 
     /// Get load predictor
+    #[inline(always)]
     pub fn load_predictor(&self) -> &LoadPredictor {
         &self.load_predictor
     }
 
     /// Get mutable load predictor
+    #[inline(always)]
     pub fn load_predictor_mut(&mut self) -> &mut LoadPredictor {
         &mut self.load_predictor
     }

@@ -32,6 +32,7 @@ impl AddressHeatmap {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, addr: u64) {
         if addr < self.base_addr { return; }
         let offset = addr - self.base_addr;
@@ -42,6 +43,7 @@ impl AddressHeatmap {
         }
     }
 
+    #[inline]
     pub fn hottest_regions(&self, top_n: usize) -> Vec<(u64, u64)> {
         let mut indexed: Vec<(usize, u64)> = self.buckets.iter()
             .enumerate().map(|(i, &v)| (i, v)).collect();
@@ -51,6 +53,7 @@ impl AddressHeatmap {
             .collect()
     }
 
+    #[inline]
     pub fn entropy(&self) -> f64 {
         if self.total_samples == 0 { return 0.0; }
         let mut h = 0.0f64;
@@ -73,6 +76,7 @@ pub struct DedupCandidate {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MmapHolisticStats {
     pub total_mapped_bytes: u64,
     pub total_processes: u64,
@@ -101,6 +105,7 @@ impl MmapHolisticManager {
         }
     }
 
+    #[inline]
     pub fn register_mapping(&mut self, pid: u64, addr: u64, size: u64, file_hash: u64) {
         self.process_mappings.entry(pid).or_insert_with(Vec::new)
             .push((addr, size, file_hash));
@@ -156,10 +161,13 @@ impl MmapHolisticManager {
         idx
     }
 
+    #[inline(always)]
     pub fn hot_regions(&self, n: usize) -> Vec<(u64, u64)> {
         self.heatmap.hottest_regions(n)
     }
 
+    #[inline(always)]
     pub fn address_entropy(&self) -> f64 { self.heatmap.entropy() }
+    #[inline(always)]
     pub fn stats(&self) -> &MmapHolisticStats { &self.stats }
 }

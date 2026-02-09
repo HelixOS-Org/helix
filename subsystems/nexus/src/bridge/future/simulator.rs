@@ -11,6 +11,8 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -51,9 +53,10 @@ fn xorshift64(state: &mut u64) -> u64 {
 
 /// A lightweight model of a single process's syscall behavior
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessBehaviorModel {
     pub process_id: u64,
-    pub syscall_rates: BTreeMap<u32, f32>,
+    pub syscall_rates: ArrayMap<f32, 32>,
     pub avg_latency: f32,
     pub resource_appetite: f32,
     pub contention_sensitivity: f32,
@@ -64,7 +67,7 @@ impl ProcessBehaviorModel {
     fn new(process_id: u64) -> Self {
         Self {
             process_id,
-            syscall_rates: BTreeMap::new(),
+            syscall_rates: ArrayMap::new(0.0),
             avg_latency: 1.0,
             resource_appetite: 0.5,
             contention_sensitivity: 0.5,
@@ -72,6 +75,7 @@ impl ProcessBehaviorModel {
         }
     }
 
+    #[inline]
     fn observe_syscall(&mut self, syscall_nr: u32, latency: f32) {
         self.observation_count += 1;
         let rate = self.syscall_rates.entry(syscall_nr).or_insert(0.0);
@@ -103,7 +107,7 @@ pub struct ResourceProjection {
 /// Contention model between processes
 #[derive(Debug, Clone)]
 struct ContentionModel {
-    process_pairs: BTreeMap<u64, f32>,
+    process_pairs: LinearMap<f32, 64>,
     global_contention: f32,
     total_events: u64,
 }
@@ -111,12 +115,13 @@ struct ContentionModel {
 impl ContentionModel {
     fn new() -> Self {
         Self {
-            process_pairs: BTreeMap::new(),
+            process_pairs: LinearMap::new(),
             global_contention: 0.0,
             total_events: 0,
         }
     }
 
+    #[inline]
     fn record_contention(&mut self, pid_a: u64, pid_b: u64, severity: f32) {
         self.total_events += 1;
         let pair_key = if pid_a < pid_b {
@@ -176,6 +181,7 @@ pub struct ScenarioResult {
 
 /// Aggregate simulation statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct SimulatorStats {
     pub total_simulations: u64,
     pub total_branches: u64,
@@ -193,6 +199,7 @@ pub struct SimulatorStats {
 /// Simulates future syscall scenarios, maintaining process behavior models,
 /// resource projections, and contention data to explore outcome branches.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeSimulator {
     process_models: BTreeMap<u64, ProcessBehaviorModel>,
     contention: ContentionModel,
@@ -246,11 +253,13 @@ impl BridgeSimulator {
     }
 
     /// Record contention between two processes
+    #[inline(always)]
     pub fn record_contention(&mut self, pid_a: u64, pid_b: u64, severity: f32) {
         self.contention.record_contention(pid_a, pid_b, severity.max(0.0).min(1.0));
     }
 
     /// Update current resource availability
+    #[inline]
     pub fn update_resources(&mut self, memory: f32, cpu: f32, io: f32, fds: u32) {
         self.current_resources = ResourceProjection {
             memory_available: memory.max(0.0).min(1.0),
@@ -262,6 +271,7 @@ impl BridgeSimulator {
     }
 
     /// Simulate a complete scenario with branching
+    #[inline]
     pub fn simulate_scenario(&mut self, actions: Vec<SimAction>) -> ScenarioResult {
         self.total_simulations += 1;
         let scenario_id = fnv1a_hash(&self.total_simulations.to_le_bytes());
@@ -398,6 +408,7 @@ impl BridgeSimulator {
     }
 
     /// Compute likelihood of a specific branch outcome
+    #[inline]
     pub fn scenario_likelihood(&self, branch_id: u64) -> f32 {
         self.branches.iter()
             .find(|b| b.branch_id == branch_id)

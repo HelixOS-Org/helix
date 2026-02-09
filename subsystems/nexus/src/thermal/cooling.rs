@@ -7,6 +7,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
@@ -34,6 +35,7 @@ pub enum CoolingDeviceType {
 
 impl CoolingDeviceType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Processor => "processor",
@@ -47,11 +49,13 @@ impl CoolingDeviceType {
     }
 
     /// Is active cooling
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         matches!(self, Self::Fan)
     }
 
     /// Is passive cooling
+    #[inline(always)]
     pub fn is_passive(&self) -> bool {
         matches!(self, Self::Processor | Self::GpuFreq | Self::PowerLimit)
     }
@@ -73,7 +77,7 @@ pub struct CoolingDevice {
     /// Statistics
     state_transitions: AtomicU64,
     /// Time in each state (us)
-    pub state_time: BTreeMap<u32, u64>,
+    pub state_time: ArrayMap<u64, 32>,
 }
 
 impl CoolingDevice {
@@ -91,16 +95,18 @@ impl CoolingDevice {
             cur_state: AtomicU32::new(0),
             max_state,
             state_transitions: AtomicU64::new(0),
-            state_time: BTreeMap::new(),
+            state_time: ArrayMap::new(0),
         }
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn current_state(&self) -> u32 {
         self.cur_state.load(Ordering::Relaxed)
     }
 
     /// Set current state
+    #[inline]
     pub fn set_state(&self, state: u32) {
         let new_state = state.min(self.max_state);
         self.cur_state.store(new_state, Ordering::Relaxed);
@@ -108,6 +114,7 @@ impl CoolingDevice {
     }
 
     /// Get cooling percentage
+    #[inline]
     pub fn cooling_percentage(&self) -> f32 {
         if self.max_state == 0 {
             return 0.0;
@@ -116,11 +123,13 @@ impl CoolingDevice {
     }
 
     /// Is at max cooling
+    #[inline(always)]
     pub fn is_at_max(&self) -> bool {
         self.current_state() >= self.max_state
     }
 
     /// Get state transitions count
+    #[inline(always)]
     pub fn state_transitions(&self) -> u64 {
         self.state_transitions.load(Ordering::Relaxed)
     }

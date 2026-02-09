@@ -106,17 +106,20 @@ impl Mutator {
     }
 
     /// Add dictionary entry
+    #[inline(always)]
     pub fn add_dict(&mut self, entry: Vec<u8>) {
         self.dictionary.push(entry);
     }
 
     /// Set max size
+    #[inline(always)]
     pub fn with_max_size(mut self, size: usize) -> Self {
         self.max_size = size;
         self
     }
 
     /// Get next random value
+    #[inline]
     pub fn rand(&mut self) -> u64 {
         // Simple xorshift64
         self.seed ^= self.seed << 13;
@@ -126,6 +129,7 @@ impl Mutator {
     }
 
     /// Get random in range
+    #[inline]
     pub fn rand_range(&mut self, max: usize) -> usize {
         if max == 0 {
             return 0;
@@ -134,6 +138,7 @@ impl Mutator {
     }
 
     /// Mutate input
+    #[inline(always)]
     pub fn mutate(&mut self, input: &FuzzInput) -> FuzzInput {
         let strategy = MutationStrategy::all()[self.rand_range(MutationStrategy::all().len())];
         self.mutate_with(input, strategy)

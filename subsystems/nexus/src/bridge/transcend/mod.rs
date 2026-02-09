@@ -69,15 +69,47 @@ pub mod synthesis_engine;
 /// Dynamic capability creation — genesis of new bridge abilities
 pub mod genesis;
 
+/// Explainable reasoning chains for every bridge decision
+pub mod reasoning_chain;
+
+/// Dynamic abstraction creation and meta-syscall discovery
+pub mod abstraction;
+
+/// Novel solution generation through creative mutation and combination
+pub mod creativity;
+
+/// Knowledge transfer and curriculum delivery to other subsystems
+pub mod teaching;
+
+/// Self-modification of bridge strategies via genetic programming
+pub mod evolution;
+
+/// Accumulated wisdom engine — knowing when and how to apply knowledge
+pub mod wisdom;
+
+/// Ultimate understanding of bridge purpose and objective balancing
+pub mod enlightenment;
+
+/// Final ascension framework — self-sustaining intelligence
+pub mod ascension;
+
 // ============================================================================
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
 
+pub use self::abstraction::BridgeAbstraction;
+pub use self::ascension::BridgeAscension;
 pub use self::beyond::BridgeBeyond;
+pub use self::creativity::BridgeCreativity;
+pub use self::enlightenment::BridgeEnlightenment;
+pub use self::evolution::BridgeEvolution;
 pub use self::genesis::BridgeGenesis;
 pub use self::interface::BridgeInterface;
 pub use self::omniscient::BridgeOmniscient;
 pub use self::optimal::BridgeOptimal;
 pub use self::oracle::BridgeOracle;
+pub use self::reasoning_chain::BridgeReasoningChain;
 pub use self::singularity::BridgeSingularity;
 pub use self::synthesis_engine::BridgeSynthesisEngine;
+pub use self::teaching::BridgeTeaching;
+pub use self::wisdom::BridgeWisdom;

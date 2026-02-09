@@ -39,27 +39,32 @@ impl NetworkManager {
     }
 
     /// Register interface
+    #[inline(always)]
     pub fn register_interface(&mut self, interface: NetworkInterface) {
         self.interface_count.fetch_add(1, Ordering::Relaxed);
         self.interfaces.insert(interface.index, interface);
     }
 
     /// Get interface
+    #[inline(always)]
     pub fn get_interface(&self, index: IfIndex) -> Option<&NetworkInterface> {
         self.interfaces.get(&index)
     }
 
     /// Get interface mutably
+    #[inline(always)]
     pub fn get_interface_mut(&mut self, index: IfIndex) -> Option<&mut NetworkInterface> {
         self.interfaces.get_mut(&index)
     }
 
     /// Get interface by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&NetworkInterface> {
         self.interfaces.values().find(|i| i.name == name)
     }
 
     /// Get physical interfaces
+    #[inline]
     pub fn physical_interfaces(&self) -> Vec<&NetworkInterface> {
         self.interfaces
             .values()
@@ -68,6 +73,7 @@ impl NetworkManager {
     }
 
     /// Get virtual interfaces
+    #[inline]
     pub fn virtual_interfaces(&self) -> Vec<&NetworkInterface> {
         self.interfaces
             .values()
@@ -76,6 +82,7 @@ impl NetworkManager {
     }
 
     /// Get running interfaces
+    #[inline]
     pub fn running_interfaces(&self) -> Vec<&NetworkInterface> {
         self.interfaces
             .values()
@@ -84,6 +91,7 @@ impl NetworkManager {
     }
 
     /// Update stats
+    #[inline]
     pub fn update_stats(&mut self, index: IfIndex, stats: InterfaceStats) {
         if let Some(iface) = self.interfaces.get_mut(&index) {
             let rx_delta = stats.rx_bytes.saturating_sub(iface.stats.rx_bytes);
@@ -97,21 +105,25 @@ impl NetworkManager {
     }
 
     /// Get interface count
+    #[inline(always)]
     pub fn interface_count(&self) -> u32 {
         self.interface_count.load(Ordering::Relaxed)
     }
 
     /// Get total RX bytes
+    #[inline(always)]
     pub fn total_rx_bytes(&self) -> u64 {
         self.total_rx_bytes.load(Ordering::Relaxed)
     }
 
     /// Get total TX bytes
+    #[inline(always)]
     pub fn total_tx_bytes(&self) -> u64 {
         self.total_tx_bytes.load(Ordering::Relaxed)
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }

@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec;
@@ -83,7 +84,7 @@ pub struct ContinualHistory {
     /// Forward transfer (boost from previous tasks)
     pub forward_transfer: Vec<f64>,
     /// Forgetting measure
-    pub forgetting: BTreeMap<u64, f64>,
+    pub forgetting: LinearMap<f64, 64>,
 }
 
 impl ContinualLearningManager {
@@ -180,6 +181,7 @@ impl ContinualLearningManager {
     }
 
     /// Record a training sample
+    #[inline]
     pub fn record_sample(&mut self, input: Vec<f64>, target: Vec<f64>) {
         if let (Some(ref mut memory), Some(task_id)) = (&mut self.memory, self.current_task) {
             let sample = MemorySample::new(input, target, task_id);
@@ -228,6 +230,7 @@ impl ContinualLearningManager {
     }
 
     /// Update task accuracy
+    #[inline]
     pub fn update_accuracy(&mut self, task_id: u64, accuracy: f64) {
         if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
             task.accuracy = accuracy;
@@ -241,6 +244,7 @@ impl ContinualLearningManager {
     }
 
     /// Calculate forgetting
+    #[inline]
     pub fn calculate_forgetting(&mut self) {
         for (task_id, accuracies) in &self.history.task_accuracy {
             if accuracies.len() >= 2 {
@@ -253,6 +257,7 @@ impl ContinualLearningManager {
     }
 
     /// Get average forgetting
+    #[inline]
     pub fn average_forgetting(&self) -> f64 {
         if self.history.forgetting.is_empty() {
             return 0.0;
@@ -263,6 +268,7 @@ impl ContinualLearningManager {
     }
 
     /// Get learning summary
+    #[inline]
     pub fn get_summary(&self) -> ContinualSummary {
         ContinualSummary {
             num_tasks: self.tasks.len(),

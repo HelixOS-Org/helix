@@ -68,14 +68,46 @@ pub mod literature;
 /// Protocol synthesis from validated cooperation research discoveries
 pub mod synthesis;
 
+/// Statistical analysis of cooperation research findings
+pub mod analysis;
+
+/// Proactive curiosity-driven exploration of cooperation space
+pub mod curiosity;
+
+/// Cross-subsystem peer review of cooperation findings
+pub mod peer_review;
+
+/// Persistent knowledge store for cooperation research
+pub mod knowledge_base;
+
+/// Breakthrough detection in cooperation research
+pub mod breakthrough;
+
+/// Research methodology for cooperation experiments
+pub mod methodology;
+
+/// Replication of cooperation research findings
+pub mod replication;
+
+/// Paradigm shift detection in cooperation
+pub mod paradigm;
+
 // ============================================================================
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
 
+pub use self::analysis::CoopAnalysisEngine;
+pub use self::breakthrough::CoopBreakthroughDetector;
+pub use self::curiosity::CoopCuriosityEngine;
 pub use self::experiment::CoopExperiment;
 pub use self::explorer::CoopExplorer;
 pub use self::hypothesis::CoopHypothesisEngine;
 pub use self::journal::CoopJournal;
+pub use self::knowledge_base::CoopKnowledgeBase;
 pub use self::literature::CoopLiterature;
+pub use self::methodology::CoopMethodology;
+pub use self::paradigm::CoopParadigm;
+pub use self::peer_review::CoopPeerReview;
+pub use self::replication::CoopReplication;
 pub use self::synthesis::CoopSynthesis;
 pub use self::validator::CoopDiscoveryValidator;

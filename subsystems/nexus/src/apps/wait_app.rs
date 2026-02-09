@@ -37,6 +37,7 @@ pub struct AppChildStatus {
 
 /// Stats for wait operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppWaitStats {
     pub total_waits: u64,
     pub successful_reaps: u64,
@@ -67,6 +68,7 @@ impl AppWaitManager {
         }
     }
 
+    #[inline(always)]
     pub fn report_exit(&mut self, status: AppChildStatus) {
         self.zombie_queue.insert(status.pid, status);
     }
@@ -101,10 +103,12 @@ impl AppWaitManager {
         }
     }
 
+    #[inline(always)]
     pub fn zombie_count(&self) -> usize {
         self.zombie_queue.len()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppWaitStats {
         &self.stats
     }

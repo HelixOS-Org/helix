@@ -34,6 +34,7 @@ pub enum QueuePriority {
 
 impl QueuePriority {
     /// Weight for scheduling (higher = more CPU time)
+    #[inline]
     pub fn weight(&self) -> u32 {
         match self {
             Self::Realtime => 100,
@@ -45,6 +46,7 @@ impl QueuePriority {
     }
 
     /// Max queue depth
+    #[inline]
     pub fn max_depth(&self) -> usize {
         match self {
             Self::Realtime => 64,
@@ -62,6 +64,7 @@ impl QueuePriority {
 
 /// Queued syscall entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueueEntry {
     /// Entry ID
     pub id: u64,
@@ -101,6 +104,7 @@ pub enum EntryState {
 // ============================================================================
 
 /// A single priority queue
+#[repr(align(64))]
 pub struct SyscallQueue {
     /// Priority level
     pub priority: QueuePriority,
@@ -184,6 +188,7 @@ impl SyscallQueue {
     }
 
     /// Remove expired entries
+    #[inline]
     pub fn expire(&mut self, current_time: u64) -> usize {
         let before = self.entries.len();
         self.entries
@@ -194,21 +199,25 @@ impl SyscallQueue {
     }
 
     /// Depth
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.entries.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
     /// Peek at next entry
+    #[inline(always)]
     pub fn peek(&self) -> Option<&QueueEntry> {
         self.entries.first()
     }
 
     /// Steal entries (for work stealing)
+    #[inline]
     pub fn steal(&mut self, count: usize) -> Vec<QueueEntry> {
         let steal_count = count.min(self.entries.len() / 2);
         let start = self.entries.len() - steal_count;
@@ -273,6 +282,7 @@ pub enum DrainagePolicy {
 
 /// Drainage state for deficit round robin
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DrainageState {
     /// Policy
     pub policy: DrainagePolicy,
@@ -374,6 +384,7 @@ impl DrainageState {
 
 /// Queue statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct QueueManagerStats {
     /// Total enqueued
     pub total_enqueued: u64,
@@ -390,6 +401,7 @@ pub struct QueueManagerStats {
 }
 
 /// Multi-priority syscall queue manager
+#[repr(align(64))]
 pub struct QueueManager {
     /// Priority queues
     queues: BTreeMap<u8, SyscallQueue>,
@@ -513,6 +525,7 @@ impl QueueManager {
     }
 
     /// Expire old entries
+    #[inline]
     pub fn expire(&mut self, current_time: u64) -> usize {
         let mut total = 0;
         for queue in self.queues.values_mut() {
@@ -546,11 +559,13 @@ impl QueueManager {
     }
 
     /// Total depth across all queues
+    #[inline(always)]
     pub fn total_depth(&self) -> usize {
         self.queues.values().map(|q| q.depth()).sum()
     }
 
     /// Queue depth for specific priority
+    #[inline]
     pub fn queue_depth(&self, priority: QueuePriority) -> usize {
         self.queues
             .get(&(priority as u8))

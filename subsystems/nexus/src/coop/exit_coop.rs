@@ -2,6 +2,7 @@
 //! NEXUS Coop — Exit (cooperative process exit/cleanup)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -30,6 +31,7 @@ pub struct CoopExitRecord {
 
 /// Exit cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopExitStats {
     pub total_exits: u64,
     pub clean_exits: u64,
@@ -42,7 +44,7 @@ pub struct CoopExitStats {
 /// Manager for cooperative exit operations
 pub struct CoopExitManager {
     records: Vec<CoopExitRecord>,
-    orphans: BTreeMap<u64, u64>,
+    orphans: LinearMap<u64, 64>,
     stats: CoopExitStats,
 }
 
@@ -50,7 +52,7 @@ impl CoopExitManager {
     pub fn new() -> Self {
         Self {
             records: Vec::new(),
-            orphans: BTreeMap::new(),
+            orphans: LinearMap::new(),
             stats: CoopExitStats {
                 total_exits: 0,
                 clean_exits: 0,
@@ -78,14 +80,17 @@ impl CoopExitManager {
         if forced { self.stats.forced_exits += 1; } else { self.stats.clean_exits += 1; }
     }
 
+    #[inline(always)]
     pub fn register_orphan(&mut self, child: u64, new_parent: u64) {
         self.orphans.insert(child, new_parent);
     }
 
+    #[inline(always)]
     pub fn reparent_orphan(&mut self, child: u64) -> Option<u64> {
-        self.orphans.remove(&child)
+        self.orphans.remove(child)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopExitStats {
         &self.stats
     }

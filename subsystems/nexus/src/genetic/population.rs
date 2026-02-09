@@ -28,6 +28,7 @@ pub struct Population {
 
 /// Population statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PopulationStats {
     /// Total individuals added
     pub total_added: u64,
@@ -48,6 +49,7 @@ impl Population {
     }
 
     /// Add individual
+    #[inline]
     pub fn add(&mut self, individual: Individual) {
         self.individuals.push(individual);
         self.stats.total_added += 1;
@@ -55,6 +57,7 @@ impl Population {
     }
 
     /// Remove individual by ID
+    #[inline]
     pub fn remove(&mut self, id: GenomeId) -> Option<Individual> {
         if let Some(idx) = self.individuals.iter().position(|i| i.id == id) {
             self.stats.total_removed += 1;
@@ -65,16 +68,19 @@ impl Population {
     }
 
     /// Get individual by ID
+    #[inline(always)]
     pub fn get(&self, id: GenomeId) -> Option<&Individual> {
         self.individuals.iter().find(|i| i.id == id)
     }
 
     /// Get individual by ID (mutable)
+    #[inline(always)]
     pub fn get_mut(&mut self, id: GenomeId) -> Option<&mut Individual> {
         self.individuals.iter_mut().find(|i| i.id == id)
     }
 
     /// Get best individual
+    #[inline]
     pub fn best(&self) -> Option<&Individual> {
         self.individuals
             .iter()
@@ -87,6 +93,7 @@ impl Population {
     }
 
     /// Get worst individual
+    #[inline]
     pub fn worst(&self) -> Option<&Individual> {
         self.individuals
             .iter()
@@ -116,6 +123,7 @@ impl Population {
     }
 
     /// Replace population with new individuals
+    #[inline]
     pub fn replace(&mut self, new_individuals: Vec<Individual>) {
         self.stats.total_removed += self.individuals.len() as u64;
         self.individuals = new_individuals;
@@ -124,21 +132,25 @@ impl Population {
     }
 
     /// Get population size
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.individuals.len()
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.individuals.is_empty()
     }
 
     /// Iterator over individuals
+    #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = &Individual> {
         self.individuals.iter()
     }
 
     /// Mutable iterator
+    #[inline(always)]
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Individual> {
         self.individuals.iter_mut()
     }
@@ -256,6 +268,7 @@ impl Population {
     }
 
     /// Truncation selection
+    #[inline(always)]
     pub fn truncation_selection(&self, ratio: f64) -> Vec<Individual> {
         let cutoff = (self.individuals.len() as f64 * ratio).ceil() as usize;
         self.elites(cutoff)
@@ -383,6 +396,7 @@ impl Population {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PopulationStats {
         &self.stats
     }
@@ -448,6 +462,7 @@ impl Population {
 
 /// Population metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PopulationMetrics {
     pub size: usize,
     pub mean_fitness: f64,

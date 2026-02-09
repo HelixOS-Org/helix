@@ -103,6 +103,7 @@ pub struct DetectedBias {
 
 /// Aggregate statistics about introspection
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct IntrospectionStats {
     pub total_decisions: u64,
     pub avg_reasoning_depth: f32,
@@ -143,6 +144,7 @@ impl CategoryTracker {
         }
     }
 
+    #[inline]
     fn record(&mut self, confidence: f32, outcome: f32, success: bool) {
         self.total_decisions += 1;
         self.total_confidence += confidence;
@@ -169,6 +171,7 @@ impl CategoryTracker {
 /// Analyzes the bridge's own decision process, recording reasoning chains,
 /// detecting biases, and calibrating confidence against outcomes.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeIntrospector {
     /// Ring buffer of recent decisions
     decisions: Vec<Decision>,
@@ -233,6 +236,7 @@ impl BridgeIntrospector {
     }
 
     /// Update a decision's outcome after the fact
+    #[inline]
     pub fn record_outcome(&mut self, decision_id: u64, outcome: DecisionOutcome, score: f32) {
         let clamped = score.max(0.0).min(1.0);
         for d in self.decisions.iter_mut() {
@@ -344,11 +348,13 @@ impl BridgeIntrospector {
     }
 
     /// Average decision quality (EMA-smoothed outcome scores)
+    #[inline(always)]
     pub fn decision_quality(&self) -> f32 {
         self.global_quality_ema
     }
 
     /// Average reasoning depth across all recorded decisions
+    #[inline]
     pub fn reasoning_depth(&self) -> f32 {
         if self.decisions.is_empty() {
             return 0.0;

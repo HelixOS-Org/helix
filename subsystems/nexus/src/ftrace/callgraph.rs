@@ -44,6 +44,7 @@ impl CallGraphNode {
     }
 
     /// Average time
+    #[inline]
     pub fn avg_time_ns(&self) -> u64 {
         if self.call_count == 0 {
             return 0;
@@ -52,11 +53,13 @@ impl CallGraphNode {
     }
 
     /// Child overhead
+    #[inline(always)]
     pub fn child_time_ns(&self) -> u64 {
         self.total_time_ns.saturating_sub(self.self_time_ns)
     }
 
     /// Self time percentage
+    #[inline]
     pub fn self_time_pct(&self) -> f32 {
         if self.total_time_ns == 0 {
             return 0.0;
@@ -118,11 +121,13 @@ impl CallGraph {
     }
 
     /// Get node
+    #[inline(always)]
     pub fn get(&self, func: FuncAddr) -> Option<&CallGraphNode> {
         self.nodes.get(&func)
     }
 
     /// Get hottest functions
+    #[inline]
     pub fn hottest(&self, n: usize) -> Vec<&CallGraphNode> {
         let mut nodes: Vec<_> = self.nodes.values().collect();
         nodes.sort_by(|a, b| b.total_time_ns.cmp(&a.total_time_ns));
@@ -130,6 +135,7 @@ impl CallGraph {
     }
 
     /// Get functions by self time
+    #[inline]
     pub fn by_self_time(&self, n: usize) -> Vec<&CallGraphNode> {
         let mut nodes: Vec<_> = self.nodes.values().collect();
         nodes.sort_by(|a, b| b.self_time_ns.cmp(&a.self_time_ns));
@@ -137,6 +143,7 @@ impl CallGraph {
     }
 
     /// Total functions
+    #[inline(always)]
     pub fn function_count(&self) -> usize {
         self.nodes.len()
     }

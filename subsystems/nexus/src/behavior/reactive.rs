@@ -7,6 +7,7 @@
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -63,6 +64,7 @@ pub enum BehaviorPriority {
 }
 
 impl BehaviorPriority {
+    #[inline(always)]
     pub fn as_i32(&self) -> i32 {
         *self as i32
     }
@@ -81,6 +83,7 @@ pub enum StimulusValue {
 }
 
 impl StimulusValue {
+    #[inline]
     pub fn as_float(&self) -> Option<f64> {
         match self {
             Self::Float(v) => Some(*v),
@@ -89,6 +92,7 @@ impl StimulusValue {
         }
     }
 
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Self::Bool(v) => Some(*v),
@@ -120,21 +124,25 @@ impl Stimulus {
         }
     }
 
+    #[inline(always)]
     pub fn with_value(mut self, value: StimulusValue) -> Self {
         self.value = value;
         self
     }
 
+    #[inline(always)]
     pub fn with_intensity(mut self, intensity: f32) -> Self {
         self.intensity = intensity;
         self
     }
 
+    #[inline(always)]
     pub fn with_timestamp(mut self, timestamp: u64) -> Self {
         self.timestamp = timestamp;
         self
     }
 
+    #[inline(always)]
     pub fn with_source(mut self, source: impl Into<String>) -> Self {
         self.source = Some(source.into());
         self
@@ -162,11 +170,13 @@ impl Response {
         }
     }
 
+    #[inline(always)]
     pub fn with_intensity(mut self, intensity: f32) -> Self {
         self.intensity = intensity;
         self
     }
 
+    #[inline(always)]
     pub fn with_priority(mut self, priority: BehaviorPriority) -> Self {
         self.priority = priority;
         self
@@ -276,15 +286,18 @@ impl ReactiveBehavior {
         }
     }
 
+    #[inline(always)]
     pub fn with_inhibition(mut self, inhibitor: BehaviorId) -> Self {
         self.inhibited_by.push(inhibitor);
         self
     }
 
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.is_enabled = true;
     }
 
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.is_enabled = false;
     }
@@ -304,6 +317,7 @@ impl ReactiveBehavior {
         self.condition.evaluate(stimuli)
     }
 
+    #[inline(always)]
     pub fn generate_responses(&self, stimuli: &[Stimulus]) -> Vec<Response> {
         (self.response_generator)(stimuli)
     }
@@ -335,24 +349,29 @@ impl ReactiveLayer {
         }
     }
 
+    #[inline(always)]
     pub fn add_behavior(&mut self, behavior: ReactiveBehavior) {
         self.behaviors.push(behavior);
     }
 
+    #[inline(always)]
     pub fn with_behavior(mut self, behavior: ReactiveBehavior) -> Self {
         self.add_behavior(behavior);
         self
     }
 
+    #[inline(always)]
     pub fn suppresses_layer(mut self, layer_id: u32) -> Self {
         self.suppresses.push(layer_id);
         self
     }
 
+    #[inline(always)]
     pub fn enable(&mut self) {
         self.is_enabled = true;
     }
 
+    #[inline(always)]
     pub fn disable(&mut self) {
         self.is_enabled = false;
     }
@@ -376,6 +395,7 @@ impl SubsumptionArchitecture {
         }
     }
 
+    #[inline]
     pub fn add_layer(&mut self, layer: ReactiveLayer) {
         // Keep layers sorted by priority (highest first)
         self.layers.push(layer);
@@ -422,18 +442,22 @@ impl SubsumptionArchitecture {
         &self.current_responses
     }
 
+    #[inline(always)]
     pub fn active_behaviors(&self) -> &[BehaviorId] {
         &self.active_behaviors
     }
 
+    #[inline(always)]
     pub fn layer_count(&self) -> usize {
         self.layers.len()
     }
 
+    #[inline(always)]
     pub fn get_layer(&self, id: u32) -> Option<&ReactiveLayer> {
         self.layers.iter().find(|l| l.id == id)
     }
 
+    #[inline(always)]
     pub fn get_layer_mut(&mut self, id: u32) -> Option<&mut ReactiveLayer> {
         self.layers.iter_mut().find(|l| l.id == id)
     }
@@ -450,8 +474,9 @@ impl Default for SubsumptionArchitecture {
 // ============================================================================
 
 /// Buffer for managing incoming stimuli
+#[repr(align(64))]
 pub struct StimulusBuffer {
-    stimuli: Vec<Stimulus>,
+    stimuli: VecDeque<Stimulus>,
     max_age: u64,
     max_size: usize,
 }
@@ -459,47 +484,55 @@ pub struct StimulusBuffer {
 impl StimulusBuffer {
     pub fn new(max_age: u64, max_size: usize) -> Self {
         Self {
-            stimuli: Vec::new(),
+            stimuli: VecDeque::new(),
             max_age,
             max_size,
         }
     }
 
+    #[inline]
     pub fn add(&mut self, stimulus: Stimulus) {
-        self.stimuli.push(stimulus);
+        self.stimuli.push_back(stimulus);
 
         // Enforce size limit
         while self.stimuli.len() > self.max_size {
-            self.stimuli.remove(0);
+            self.stimuli.pop_front();
         }
     }
 
+    #[inline]
     pub fn update(&mut self, current_time: u64) {
         // Remove old stimuli
         self.stimuli
             .retain(|s| current_time.saturating_sub(s.timestamp) < self.max_age);
     }
 
+    #[inline(always)]
     pub fn get_stimuli(&self) -> &[Stimulus] {
         &self.stimuli
     }
 
+    #[inline(always)]
     pub fn get_by_id(&self, id: StimulusId) -> Option<&Stimulus> {
         self.stimuli.iter().find(|s| s.id == id)
     }
 
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Vec<&Stimulus> {
         self.stimuli.iter().filter(|s| s.name == name).collect()
     }
 
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.stimuli.clear();
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.stimuli.len()
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.stimuli.is_empty()
     }
@@ -529,6 +562,7 @@ impl ResponseExecutor {
         }
     }
 
+    #[inline(always)]
     pub fn register_custom_handler<F>(&mut self, id: u64, handler: F)
     where
         F: Fn() + Send + Sync + 'static,
@@ -536,10 +570,12 @@ impl ResponseExecutor {
         self.custom_handlers.insert(id, Box::new(handler));
     }
 
+    #[inline(always)]
     pub fn execute(&mut self, response: &Response) {
         self.execute_action(&response.action);
     }
 
+    #[inline]
     pub fn execute_all(&mut self, responses: &[Response]) {
         for response in responses {
             self.execute(response);
@@ -578,22 +614,27 @@ impl ResponseExecutor {
         }
     }
 
+    #[inline(always)]
     pub fn take_commands(&mut self) -> Vec<String> {
         core::mem::take(&mut self.pending_commands)
     }
 
+    #[inline(always)]
     pub fn get_variable(&self, name: &str) -> Option<&StimulusValue> {
         self.variables.get(name)
     }
 
+    #[inline(always)]
     pub fn take_triggered_behaviors(&mut self) -> Vec<BehaviorId> {
         core::mem::take(&mut self.triggered_behaviors)
     }
 
+    #[inline(always)]
     pub fn take_inhibited_behaviors(&mut self) -> Vec<BehaviorId> {
         core::mem::take(&mut self.inhibited_behaviors)
     }
 
+    #[inline]
     pub fn clear(&mut self) {
         self.pending_commands.clear();
         self.triggered_behaviors.clear();
@@ -625,6 +666,7 @@ pub enum KernelStimulus {
 }
 
 impl KernelStimulus {
+    #[inline(always)]
     pub fn as_stimulus_id(&self) -> StimulusId {
         StimulusId(*self as u64 + 1)
     }

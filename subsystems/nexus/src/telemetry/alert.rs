@@ -62,6 +62,7 @@ pub enum AlertCondition {
 
 impl AlertCondition {
     /// Evaluate condition
+    #[inline]
     pub fn evaluate(&self, value: f64, threshold: f64) -> bool {
         match self {
             Self::GreaterThan => value > threshold,
@@ -116,12 +117,14 @@ impl AlertRule {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Set condition
+    #[inline]
     pub fn when(mut self, condition: AlertCondition, threshold: f64) -> Self {
         self.condition = condition;
         self.threshold = threshold;
@@ -129,18 +132,21 @@ impl AlertRule {
     }
 
     /// Set for duration
+    #[inline(always)]
     pub fn for_cycles(mut self, duration: u64) -> Self {
         self.for_duration = duration;
         self
     }
 
     /// Set severity
+    #[inline(always)]
     pub fn severity(mut self, severity: AlertSeverity) -> Self {
         self.severity = severity;
         self
     }
 
     /// Add label
+    #[inline(always)]
     pub fn with_label(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.labels.insert(key.into(), value.into());
         self
@@ -185,17 +191,20 @@ impl Alert {
     }
 
     /// Fire the alert
+    #[inline(always)]
     pub fn fire(&mut self) {
         self.state = AlertState::Firing;
     }
 
     /// Resolve the alert
+    #[inline(always)]
     pub fn resolve(&mut self) {
         self.state = AlertState::Resolved;
         self.ended_at = Some(NexusTimestamp::now());
     }
 
     /// Duration
+    #[inline(always)]
     pub fn duration(&self) -> u64 {
         let end = self.ended_at.unwrap_or_else(NexusTimestamp::now);
         end.duration_since(self.started_at)

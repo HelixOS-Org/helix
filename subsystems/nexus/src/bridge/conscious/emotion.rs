@@ -18,6 +18,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -124,6 +125,7 @@ impl BridgeEmotion {
 
 /// A single active emotional state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EmotionState {
     pub emotion: BridgeEmotion,
     pub intensity: f32,
@@ -196,6 +198,7 @@ struct EmotionHistoryEntry {
 
 /// Statistics for the emotion engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EmotionStats {
     pub total_evaluations: u64,
     pub total_transitions: u64,
@@ -212,11 +215,12 @@ pub struct EmotionStats {
 
 /// Core engine managing computational emotional signals for bridge routing
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeEmotionEngine {
     active_emotions: BTreeMap<u64, EmotionState>,
     transition_rules: Vec<TransitionRule>,
-    history: Vec<EmotionHistoryEntry>,
-    trajectory_buffer: Vec<(BridgeEmotion, f32)>,
+    history: VecDeque<EmotionHistoryEntry>,
+    trajectory_buffer: VecDeque<(BridgeEmotion, f32)>,
     stress_ema: f32,
     confidence_ema: f32,
     curiosity_ema: f32,
@@ -237,8 +241,8 @@ impl BridgeEmotionEngine {
         let mut engine = Self {
             active_emotions: BTreeMap::new(),
             transition_rules: Vec::new(),
-            history: Vec::new(),
-            trajectory_buffer: Vec::new(),
+            history: VecDeque::new(),
+            trajectory_buffer: VecDeque::new(),
             stress_ema: 0.0,
             confidence_ema: 0.5,
             curiosity_ema: 0.0,
@@ -287,6 +291,7 @@ impl BridgeEmotionEngine {
     }
 
     /// Evaluate an emotional signal from a bridge observation
+    #[inline]
     pub fn evaluate_emotion(
         &mut self,
         emotion: BridgeEmotion,
@@ -336,9 +341,9 @@ impl BridgeEmotionEngine {
 
         // Record in history
         if self.history.len() >= MAX_EMOTION_HISTORY {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(EmotionHistoryEntry {
+        self.history.push_back(EmotionHistoryEntry {
             emotion,
             intensity,
             tick: self.current_tick,
@@ -346,9 +351,9 @@ impl BridgeEmotionEngine {
 
         // Update trajectory buffer
         if self.trajectory_buffer.len() >= TRAJECTORY_WINDOW {
-            self.trajectory_buffer.remove(0);
+            self.trajectory_buffer.pop_front();
         }
-        self.trajectory_buffer.push((emotion, intensity));
+        self.trajectory_buffer.push_back((emotion, intensity));
 
         // Check for emotional transitions
         self.process_transitions(emotion, intensity);
@@ -436,11 +441,13 @@ impl BridgeEmotionEngine {
     }
 
     /// Current stress level (EMA-smoothed)
+    #[inline(always)]
     pub fn stress_level(&self) -> f32 {
         self.stress_ema
     }
 
     /// Current confidence score (EMA-smoothed)
+    #[inline(always)]
     pub fn confidence_score(&self) -> f32 {
         self.confidence_ema
     }
@@ -472,16 +479,19 @@ impl BridgeEmotionEngine {
     }
 
     /// Is the bridge in a stressed state?
+    #[inline(always)]
     pub fn is_stressed(&self) -> bool {
         self.stress_ema > STRESS_THRESHOLD_HIGH
     }
 
     /// Is the bridge in a critically stressed state?
+    #[inline(always)]
     pub fn is_critical_stress(&self) -> bool {
         self.stress_ema > STRESS_THRESHOLD_CRITICAL
     }
 
     /// Routing recommendation based on emotional state
+    #[inline]
     pub fn routing_recommendation(&self) -> RoutingBias {
         if self.stress_ema > STRESS_THRESHOLD_HIGH {
             RoutingBias::Conservative
@@ -495,6 +505,7 @@ impl BridgeEmotionEngine {
     }
 
     /// Get statistics snapshot
+    #[inline]
     pub fn stats(&self) -> EmotionStats {
         EmotionStats {
             total_evaluations: self.total_evaluations,
@@ -508,6 +519,7 @@ impl BridgeEmotionEngine {
     }
 
     /// Get the current emotional palette — all active emotions and intensities
+    #[inline]
     pub fn emotional_palette(&self) -> Vec<(BridgeEmotion, f32)> {
         let mut palette: Vec<(BridgeEmotion, f32)> = self
             .active_emotions
@@ -519,6 +531,7 @@ impl BridgeEmotionEngine {
     }
 
     /// Emotional valence: positive emotions minus negative emotions
+    #[inline]
     pub fn valence(&self) -> f32 {
         let positive = self.confidence_ema + self.satisfaction_ema + self.calm_ema;
         let negative = self.stress_ema + self.urgency_ema;
@@ -527,6 +540,7 @@ impl BridgeEmotionEngine {
     }
 
     /// Emotional arousal: total intensity across all active emotions
+    #[inline]
     pub fn arousal(&self) -> f32 {
         if self.active_emotions.is_empty() {
             return 0.0;
@@ -536,6 +550,7 @@ impl BridgeEmotionEngine {
     }
 
     /// Reset all emotional states
+    #[inline]
     pub fn reset(&mut self) {
         self.active_emotions.clear();
         self.stress_ema = 0.0;

@@ -34,6 +34,7 @@ impl SelinuxCoopRecord {
 
 /// SELinux coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SelinuxCoopStats {
     pub total_events: u64,
     pub context_inherits: u64,
@@ -52,6 +53,7 @@ impl CoopSelinux {
         Self { stats: SelinuxCoopStats { total_events: 0, context_inherits: 0, transitions: 0, avc_flushes: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SelinuxCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

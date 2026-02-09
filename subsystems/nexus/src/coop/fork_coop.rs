@@ -28,6 +28,7 @@ pub struct CoopForkRecord {
 
 /// Fork cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopForkStats {
     pub total_forks: u64,
     pub eager_forks: u64,
@@ -62,6 +63,7 @@ impl CoopForkManager {
         }
     }
 
+    #[inline(always)]
     pub fn set_strategy(&mut self, pid: u64, strategy: CoopForkStrategy) {
         self.strategy_override.insert(pid, strategy);
     }
@@ -92,6 +94,7 @@ impl CoopForkManager {
         }
     }
 
+    #[inline]
     pub fn report_cow_fault(&mut self, child: u64) {
         for r in self.records.iter_mut().rev() {
             if r.child == child {
@@ -102,6 +105,7 @@ impl CoopForkManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopForkStats {
         &self.stats
     }

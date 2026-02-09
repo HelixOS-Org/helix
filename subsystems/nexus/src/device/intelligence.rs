@@ -55,11 +55,13 @@ impl DeviceIntelligence {
     }
 
     /// Allocate new device ID
+    #[inline(always)]
     pub fn allocate_device_id(&self) -> DeviceId {
         DeviceId::new(self.next_device_id.fetch_add(1, Ordering::Relaxed))
     }
 
     /// Allocate new driver ID
+    #[inline(always)]
     pub fn allocate_driver_id(&self) -> DriverId {
         DriverId::new(self.next_driver_id.fetch_add(1, Ordering::Relaxed))
     }
@@ -109,11 +111,13 @@ impl DeviceIntelligence {
     }
 
     /// Register driver
+    #[inline(always)]
     pub fn register_driver(&mut self, driver: DriverInfo) {
         self.driver_matcher.register_driver(driver);
     }
 
     /// Find driver for device
+    #[inline(always)]
     pub fn find_driver(&self, device_id: DeviceId) -> Option<MatchScore> {
         let device = self.devices.get(&device_id)?;
         self.driver_matcher.best_match(device)
@@ -145,6 +149,7 @@ impl DeviceIntelligence {
     }
 
     /// Handle probe failure
+    #[inline]
     pub fn probe_failed(&mut self, device_id: DeviceId, driver_id: DriverId, timestamp: u64) {
         if let Some(device) = self.devices.get_mut(&device_id) {
             device.state = DeviceState::DeferredProbe;
@@ -155,16 +160,19 @@ impl DeviceIntelligence {
     }
 
     /// Get device
+    #[inline(always)]
     pub fn get_device(&self, id: DeviceId) -> Option<&DeviceInfo> {
         self.devices.get(&id)
     }
 
     /// Get device mutably
+    #[inline(always)]
     pub fn get_device_mut(&mut self, id: DeviceId) -> Option<&mut DeviceInfo> {
         self.devices.get_mut(&id)
     }
 
     /// Get device children
+    #[inline(always)]
     pub fn get_children(&self, id: DeviceId) -> &[DeviceId] {
         self.hierarchy.get(&id).map(|v| v.as_slice()).unwrap_or(&[])
     }
@@ -240,6 +248,7 @@ impl DeviceIntelligence {
     }
 
     /// Get devices by bus type
+    #[inline]
     pub fn devices_by_bus(&self, bus_type: BusType) -> Vec<&DeviceInfo> {
         self.devices
             .values()
@@ -248,51 +257,61 @@ impl DeviceIntelligence {
     }
 
     /// Get devices needing drivers
+    #[inline(always)]
     pub fn devices_needing_drivers(&self) -> Vec<&DeviceInfo> {
         self.devices.values().filter(|d| d.needs_driver()).collect()
     }
 
     /// Get device tree parser
+    #[inline(always)]
     pub fn device_tree(&self) -> &DeviceTreeParser {
         &self.device_tree
     }
 
     /// Get device tree parser mutably
+    #[inline(always)]
     pub fn device_tree_mut(&mut self) -> &mut DeviceTreeParser {
         &mut self.device_tree
     }
 
     /// Get driver matcher
+    #[inline(always)]
     pub fn driver_matcher(&self) -> &DriverMatcher {
         &self.driver_matcher
     }
 
     /// Get driver matcher mutably
+    #[inline(always)]
     pub fn driver_matcher_mut(&mut self) -> &mut DriverMatcher {
         &mut self.driver_matcher
     }
 
     /// Get power manager
+    #[inline(always)]
     pub fn power_manager(&self) -> &DevicePowerManager {
         &self.power_manager
     }
 
     /// Get power manager mutably
+    #[inline(always)]
     pub fn power_manager_mut(&mut self) -> &mut DevicePowerManager {
         &mut self.power_manager
     }
 
     /// Get hotplug handler
+    #[inline(always)]
     pub fn hotplug_handler(&self) -> &HotplugHandler {
         &self.hotplug_handler
     }
 
     /// Get hotplug handler mutably
+    #[inline(always)]
     pub fn hotplug_handler_mut(&mut self) -> &mut HotplugHandler {
         &mut self.hotplug_handler
     }
 
     /// Get probe success rate
+    #[inline]
     pub fn probe_success_rate(&self) -> f32 {
         let attempts = self.probe_attempts.load(Ordering::Relaxed);
         let successes = self.probe_successes.load(Ordering::Relaxed);
@@ -303,11 +322,13 @@ impl DeviceIntelligence {
     }
 
     /// Get total device count
+    #[inline(always)]
     pub fn device_count(&self) -> usize {
         self.devices.len()
     }
 
     /// Perform periodic maintenance
+    #[inline]
     pub fn periodic_maintenance(&mut self, current_time: u64) {
         // Update hotplug rate
         self.hotplug_handler.update_rate(current_time);

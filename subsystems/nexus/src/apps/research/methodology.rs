@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -176,6 +177,7 @@ pub struct ImprovementAdvice {
 
 /// Engine-level stats.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct MethodologyStats {
     pub experiments_evaluated: u64,
     pub grade_a_count: u64,
@@ -196,7 +198,7 @@ pub struct MethodologyStats {
 pub struct AppsMethodology {
     evaluations: BTreeMap<u64, ValidationResult>,
     designs: BTreeMap<u64, ExperimentDesign>,
-    advice_log: Vec<ImprovementAdvice>,
+    advice_log: VecDeque<ImprovementAdvice>,
     stats: MethodologyStats,
     rng_state: u64,
     tick: u64,
@@ -208,7 +210,7 @@ impl AppsMethodology {
         Self {
             evaluations: BTreeMap::new(),
             designs: BTreeMap::new(),
-            advice_log: Vec::new(),
+            advice_log: VecDeque::new(),
             stats: MethodologyStats {
                 experiments_evaluated: 0,
                 grade_a_count: 0,
@@ -322,6 +324,7 @@ impl AppsMethodology {
     }
 
     /// Assess sample adequacy for an experiment.
+    #[inline]
     pub fn sample_adequacy(&mut self, experiment_id: u64) -> Option<SampleAdequacy> {
         let design = self.designs.get(&experiment_id)?;
         let c_n = design.sample_size_control;
@@ -424,6 +427,7 @@ impl AppsMethodology {
     }
 
     /// Get the methodology grade for a previously evaluated experiment.
+    #[inline(always)]
     pub fn methodology_grade(&self, experiment_id: u64) -> Option<MethodologyGrade> {
         self.evaluations.get(&experiment_id).map(|v| v.grade)
     }
@@ -479,13 +483,14 @@ impl AppsMethodology {
         };
 
         if self.advice_log.len() >= MAX_ADVICE_ENTRIES {
-            self.advice_log.remove(0);
+            self.advice_log.pop_front();
         }
-        self.advice_log.push(advice.clone());
+        self.advice_log.push_back(advice.clone());
         Some(advice)
     }
 
     /// Return engine stats.
+    #[inline(always)]
     pub fn stats(&self) -> &MethodologyStats {
         &self.stats
     }

@@ -13,7 +13,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -102,7 +104,7 @@ pub struct CoopHypothesis {
     pub statement: String,
     pub phase: HypothesisPhase,
     pub confidence: f32,
-    pub evidence: Vec<Evidence>,
+    pub evidence: VecDeque<Evidence>,
     pub anomaly_trigger: CoopAnomaly,
     pub created_tick: u64,
     pub last_updated_tick: u64,
@@ -127,6 +129,7 @@ pub struct TestCriteria {
 
 /// Aggregate hypothesis engine statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct HypothesisStats {
     pub total_generated: u64,
     pub total_confirmed: u64,
@@ -154,34 +157,35 @@ struct AnomalyRecord {
 
 #[derive(Debug)]
 struct AnomalyTracker {
-    records: Vec<AnomalyRecord>,
-    frequency: BTreeMap<u64, u32>,
+    records: VecDeque<AnomalyRecord>,
+    frequency: LinearMap<u32, 64>,
     severity_ema: f32,
 }
 
 impl AnomalyTracker {
     fn new() -> Self {
         Self {
-            records: Vec::new(),
-            frequency: BTreeMap::new(),
+            records: VecDeque::new(),
+            frequency: LinearMap::new(),
             severity_ema: 0.0,
         }
     }
 
+    #[inline]
     fn record(&mut self, anomaly: CoopAnomaly, tick: u64, severity: f32) -> u64 {
         let hash = fnv1a_hash(&(anomaly as u64).to_le_bytes()) ^ fnv1a_hash(&tick.to_le_bytes());
         self.severity_ema = EMA_ALPHA * severity + (1.0 - EMA_ALPHA) * self.severity_ema;
         let key = anomaly as u64;
         let count = self.frequency.entry(key).or_insert(0);
         *count += 1;
-        self.records.push(AnomalyRecord {
+        self.records.push_back(AnomalyRecord {
             anomaly,
             tick,
             severity,
             hash,
         });
         while self.records.len() > MAX_ANOMALIES {
-            self.records.remove(0);
+            self.records.pop_front();
         }
         hash
     }
@@ -248,7 +252,7 @@ impl CoopHypothesisEngine {
             statement,
             phase: HypothesisPhase::Formulated,
             confidence: 0.5,
-            evidence: Vec::new(),
+            evidence: VecDeque::new(),
             anomaly_trigger: anomaly,
             created_tick: self.tick,
             last_updated_tick: self.tick,
@@ -299,7 +303,7 @@ impl CoopHypothesisEngine {
             None => return false,
         };
         if hyp.evidence.len() >= MAX_EVIDENCE_PER_HYPOTHESIS {
-            hyp.evidence.remove(0);
+            hyp.evidence.pop_front().unwrap();
         }
         let supports = (observed - expected).abs() < expected * 0.15;
         let weight_raw = 1.0 - (observed - expected).abs() / (expected.abs() + 1.0);
@@ -364,6 +368,7 @@ impl CoopHypothesisEngine {
     }
 
     /// Get the current status of a hypothesis
+    #[inline]
     pub fn hypothesis_status(&mut self, hypothesis_id: u64) -> Option<HypothesisPhase> {
         let hyp = self.hypotheses.get_mut(&hypothesis_id)?;
 
@@ -409,6 +414,7 @@ impl CoopHypothesisEngine {
     }
 
     /// Get current hypothesis engine statistics
+    #[inline(always)]
     pub fn stats(&self) -> &HypothesisStats {
         &self.stats
     }

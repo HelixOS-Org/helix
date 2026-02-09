@@ -103,6 +103,7 @@ pub struct MigrationCostBenefit {
 
 impl MigrationCostBenefit {
     /// Net benefit score
+    #[inline]
     pub fn net_benefit(&self) -> f64 {
         let benefit = self.latency_benefit * 0.3
             + self.throughput_benefit * 0.3
@@ -113,6 +114,7 @@ impl MigrationCostBenefit {
     }
 
     /// Is migration worthwhile?
+    #[inline(always)]
     pub fn is_worthwhile(&self) -> bool {
         self.net_benefit() > 0.1
     }
@@ -181,6 +183,7 @@ impl MigrationRequest {
     }
 
     /// Approve
+    #[inline]
     pub fn approve(&mut self) {
         if matches!(self.state, HolisticMigrationState::Planned) {
             self.state = HolisticMigrationState::Approved;
@@ -188,6 +191,7 @@ impl MigrationRequest {
     }
 
     /// Start
+    #[inline]
     pub fn start(&mut self, now: u64) {
         if matches!(self.state, HolisticMigrationState::Approved) {
             self.state = HolisticMigrationState::InProgress;
@@ -196,6 +200,7 @@ impl MigrationRequest {
     }
 
     /// Complete
+    #[inline]
     pub fn complete(&mut self, now: u64) {
         if matches!(self.state, HolisticMigrationState::InProgress) {
             self.state = HolisticMigrationState::Completed;
@@ -204,6 +209,7 @@ impl MigrationRequest {
     }
 
     /// Fail
+    #[inline]
     pub fn fail(&mut self) {
         if matches!(self.state, HolisticMigrationState::InProgress) {
             self.state = HolisticMigrationState::Failed;
@@ -211,6 +217,7 @@ impl MigrationRequest {
     }
 
     /// Cancel
+    #[inline]
     pub fn cancel(&mut self) {
         if !matches!(
             self.state,
@@ -221,6 +228,7 @@ impl MigrationRequest {
     }
 
     /// Duration (ns)
+    #[inline]
     pub fn duration_ns(&self) -> Option<u64> {
         match (self.started_at, self.completed_at) {
             (Some(s), Some(c)) => Some(c.saturating_sub(s)),
@@ -229,6 +237,7 @@ impl MigrationRequest {
     }
 
     /// Migration bandwidth (bytes/ns)
+    #[inline]
     pub fn bandwidth(&self) -> Option<f64> {
         self.duration_ns()
             .filter(|&d| d > 0)
@@ -289,6 +298,7 @@ impl ProcessMigrationHistory {
     }
 
     /// Success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.total == 0 {
             return 1.0;
@@ -297,6 +307,7 @@ impl ProcessMigrationHistory {
     }
 
     /// Average duration
+    #[inline(always)]
     pub fn avg_duration(&self) -> f64 {
         self.avg_duration_ns
     }
@@ -308,6 +319,7 @@ impl ProcessMigrationHistory {
 
 /// Migration stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticMigrationStats {
     /// Total requests
     pub total_requests: u64,
@@ -351,6 +363,7 @@ impl HolisticMigrationEngine {
     }
 
     /// Plan migration
+    #[inline]
     pub fn plan(
         &mut self,
         pid: u64,
@@ -369,6 +382,7 @@ impl HolisticMigrationEngine {
     }
 
     /// Set cost/benefit
+    #[inline]
     pub fn set_analysis(&mut self, id: u64, analysis: MigrationCostBenefit) {
         if let Some(req) = self.requests.get_mut(&id) {
             req.analysis = analysis;
@@ -376,6 +390,7 @@ impl HolisticMigrationEngine {
     }
 
     /// Approve migration
+    #[inline]
     pub fn approve(&mut self, id: u64) -> bool {
         if let Some(req) = self.requests.get_mut(&id) {
             req.approve();
@@ -476,6 +491,7 @@ impl HolisticMigrationEngine {
     }
 
     /// Cancel migration
+    #[inline]
     pub fn cancel(&mut self, id: u64) -> bool {
         if let Some(req) = self.requests.get_mut(&id) {
             req.cancel();
@@ -488,6 +504,7 @@ impl HolisticMigrationEngine {
     }
 
     /// Process history
+    #[inline(always)]
     pub fn history(&self, pid: u64) -> Option<&ProcessMigrationHistory> {
         self.histories.get(&pid)
     }
@@ -516,6 +533,7 @@ impl HolisticMigrationEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticMigrationStats {
         &self.stats
     }

@@ -46,6 +46,7 @@ impl Conflict {
     }
 
     /// Is this a critical conflict?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         matches!(self.conflict_type, ConflictType::IncompatibleActions)
     }
@@ -66,6 +67,7 @@ pub enum ConflictType {
 
 impl ConflictType {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::IncompatibleActions => "Incompatible Actions",
@@ -105,6 +107,7 @@ impl Resolution {
     }
 
     /// Set winner and loser
+    #[inline]
     pub fn with_outcome(mut self, winner: OptionId, loser: OptionId) -> Self {
         self.winner = Some(winner);
         self.loser = Some(loser);
@@ -112,6 +115,7 @@ impl Resolution {
     }
 
     /// Was conflict resolved?
+    #[inline(always)]
     pub fn is_resolved(&self) -> bool {
         self.winner.is_some()
     }
@@ -134,6 +138,7 @@ pub enum ResolutionStrategy {
 
 impl ResolutionStrategy {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::HigherScoreWins => "Higher Score Wins",
@@ -170,6 +175,7 @@ impl ConflictResolver {
     }
 
     /// Create with specific strategy
+    #[inline]
     pub fn with_strategy(strategy: ResolutionStrategy) -> Self {
         Self {
             default_strategy: strategy,
@@ -179,6 +185,7 @@ impl ConflictResolver {
     }
 
     /// Set default strategy
+    #[inline(always)]
     pub fn set_strategy(&mut self, strategy: ResolutionStrategy) {
         self.default_strategy = strategy;
     }
@@ -258,6 +265,7 @@ impl ConflictResolver {
     }
 
     /// Resolve conflicts
+    #[inline]
     pub fn resolve(&self, conflicts: &[Conflict], options: &mut [RankedOption]) -> Vec<Resolution> {
         let mut resolutions = Vec::new();
 
@@ -370,6 +378,7 @@ impl ConflictResolver {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> ConflictStats {
         ConflictStats {
             conflicts_detected: self.conflicts_detected.load(Ordering::Relaxed),
@@ -386,6 +395,7 @@ impl Default for ConflictResolver {
 
 /// Conflict statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConflictStats {
     /// Total conflicts detected
     pub conflicts_detected: u64,

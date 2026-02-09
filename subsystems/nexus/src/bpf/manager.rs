@@ -77,6 +77,7 @@ impl BpfManager {
     }
 
     /// Unload program
+    #[inline(always)]
     pub fn unload_program(&mut self, id: BpfProgId) -> bool {
         self.programs.remove(&id).is_some()
     }
@@ -106,81 +107,97 @@ impl BpfManager {
     }
 
     /// Delete map
+    #[inline(always)]
     pub fn delete_map(&mut self, id: BpfMapId) -> bool {
         self.maps.remove(&id).is_some()
     }
 
     /// Get program
+    #[inline(always)]
     pub fn get_program(&self, id: BpfProgId) -> Option<&BpfProgInfo> {
         self.programs.get(&id)
     }
 
     /// Get program mutably
+    #[inline(always)]
     pub fn get_program_mut(&mut self, id: BpfProgId) -> Option<&mut BpfProgInfo> {
         self.programs.get_mut(&id)
     }
 
     /// Get all programs
+    #[inline(always)]
     pub fn all_programs(&self) -> impl Iterator<Item = &BpfProgInfo> {
         self.programs.values()
     }
 
     /// Get map
+    #[inline(always)]
     pub fn get_map(&self, id: BpfMapId) -> Option<&BpfMapInfo> {
         self.maps.get(&id)
     }
 
     /// Get map mutably
+    #[inline(always)]
     pub fn get_map_mut(&mut self, id: BpfMapId) -> Option<&mut BpfMapInfo> {
         self.maps.get_mut(&id)
     }
 
     /// Get all maps
+    #[inline(always)]
     pub fn all_maps(&self) -> impl Iterator<Item = &BpfMapInfo> {
         self.maps.values()
     }
 
     /// Register helper
+    #[inline(always)]
     pub fn register_helper(&mut self, info: BpfHelperInfo) {
         self.helpers.insert(info.id, info);
     }
 
     /// Get helper
+    #[inline(always)]
     pub fn get_helper(&self, id: BpfHelperId) -> Option<&BpfHelperInfo> {
         self.helpers.get(&id)
     }
 
     /// Get verifier
+    #[inline(always)]
     pub fn verifier(&self) -> &BpfVerifier {
         &self.verifier
     }
 
     /// Get verifier mutably
+    #[inline(always)]
     pub fn verifier_mut(&mut self) -> &mut BpfVerifier {
         &mut self.verifier
     }
 
     /// Get JIT compiler
+    #[inline(always)]
     pub fn jit(&self) -> &BpfJit {
         &self.jit
     }
 
     /// Get JIT compiler mutably
+    #[inline(always)]
     pub fn jit_mut(&mut self) -> &mut BpfJit {
         &mut self.jit
     }
 
     /// Count programs
+    #[inline(always)]
     pub fn program_count(&self) -> usize {
         self.programs.len()
     }
 
     /// Count maps
+    #[inline(always)]
     pub fn map_count(&self) -> usize {
         self.maps.len()
     }
 
     /// Count helpers
+    #[inline(always)]
     pub fn helper_count(&self) -> usize {
         self.helpers.len()
     }

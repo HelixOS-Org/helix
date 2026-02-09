@@ -53,6 +53,7 @@ impl ReplayEngine {
     }
 
     /// Load a session for replay
+    #[inline]
     pub fn load(&mut self, session: RecordingSession) {
         self.session = Some(session);
         self.position.store(0, Ordering::SeqCst);
@@ -60,6 +61,7 @@ impl ReplayEngine {
     }
 
     /// Start replay
+    #[inline]
     pub fn play(&mut self) {
         if self.session.is_some() {
             self.state = ReplayState::Playing;
@@ -68,6 +70,7 @@ impl ReplayEngine {
     }
 
     /// Pause replay
+    #[inline]
     pub fn pause(&mut self) {
         if self.state == ReplayState::Playing {
             self.state = ReplayState::Paused;
@@ -89,6 +92,7 @@ impl ReplayEngine {
     }
 
     /// Step backward one event
+    #[inline]
     pub fn step_back(&mut self) -> Option<&ReplayEvent> {
         let session = self.session.as_ref()?;
         let pos = self.position.load(Ordering::SeqCst);
@@ -102,6 +106,7 @@ impl ReplayEngine {
     }
 
     /// Seek to position
+    #[inline]
     pub fn seek(&mut self, position: u64) {
         if let Some(session) = &self.session {
             let clamped = position.min(session.events.len() as u64);
@@ -110,22 +115,26 @@ impl ReplayEngine {
     }
 
     /// Seek to start
+    #[inline(always)]
     pub fn rewind(&mut self) {
         self.position.store(0, Ordering::SeqCst);
         self.state = ReplayState::Paused;
     }
 
     /// Get current position
+    #[inline(always)]
     pub fn position(&self) -> u64 {
         self.position.load(Ordering::SeqCst)
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn state(&self) -> ReplayState {
         self.state
     }
 
     /// Get current event
+    #[inline]
     pub fn current_event(&self) -> Option<&ReplayEvent> {
         let session = self.session.as_ref()?;
         let pos = self.position.load(Ordering::SeqCst);
@@ -133,6 +142,7 @@ impl ReplayEngine {
     }
 
     /// Add breakpoint
+    #[inline]
     pub fn add_breakpoint(&mut self, sequence: u64) {
         if !self.breakpoints.contains(&sequence) {
             self.breakpoints.push(sequence);
@@ -141,32 +151,38 @@ impl ReplayEngine {
     }
 
     /// Remove breakpoint
+    #[inline(always)]
     pub fn remove_breakpoint(&mut self, sequence: u64) {
         self.breakpoints.retain(|&bp| bp != sequence);
     }
 
     /// Clear breakpoints
+    #[inline(always)]
     pub fn clear_breakpoints(&mut self) {
         self.breakpoints.clear();
     }
 
     /// Is at breakpoint?
+    #[inline(always)]
     pub fn at_breakpoint(&self) -> bool {
         let pos = self.position.load(Ordering::SeqCst);
         self.breakpoints.contains(&pos)
     }
 
     /// Set replay speed
+    #[inline(always)]
     pub fn set_speed(&mut self, speed: f64) {
         self.speed = speed.clamp(0.1, 100.0);
     }
 
     /// Get replay speed
+    #[inline(always)]
     pub fn speed(&self) -> f64 {
         self.speed
     }
 
     /// Run until breakpoint or end
+    #[inline]
     pub fn run_until_breakpoint(&mut self) -> Option<u64> {
         while self.state == ReplayState::Playing {
             if self.at_breakpoint() {
@@ -193,6 +209,7 @@ impl ReplayEngine {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> ReplayStats {
         ReplayStats {
             total_events: self.session.as_ref().map(|s| s.events.len()).unwrap_or(0),
@@ -212,6 +229,7 @@ impl Default for ReplayEngine {
 
 /// Replay statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReplayStats {
     /// Total events in session
     pub total_events: usize,

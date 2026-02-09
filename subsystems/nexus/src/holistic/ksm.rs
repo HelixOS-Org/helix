@@ -50,6 +50,7 @@ impl KsmScanInfo {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KsmStats {
     pub pages_shared: u64,
     pub pages_sharing: u64,
@@ -69,6 +70,7 @@ impl HolisticKsm {
         Self { stable_tree: BTreeMap::new(), scan: KsmScanInfo::new(pages_to_scan, sleep) }
     }
 
+    #[inline]
     pub fn scan_page(&mut self, pfn: u64, checksum: u64) {
         self.scan.pages_scanned += 1;
         if let Some(existing) = self.stable_tree.get_mut(&checksum) {
@@ -81,6 +83,7 @@ impl HolisticKsm {
         }
     }
 
+    #[inline]
     pub fn unmerge(&mut self, checksum: u64) {
         if let Some(p) = self.stable_tree.get_mut(&checksum) {
             if p.rmap_count > 1 { p.rmap_count -= 1; self.scan.pages_sharing -= 1; }
@@ -88,6 +91,7 @@ impl HolisticKsm {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> KsmStats {
         let saved = self.scan.pages_sharing;
         KsmStats { pages_shared: self.scan.pages_shared, pages_sharing: self.scan.pages_sharing, pages_unshared: self.scan.pages_unshared, pages_scanned: self.scan.pages_scanned, memory_saved_pages: saved }

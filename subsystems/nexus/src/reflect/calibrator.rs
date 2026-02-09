@@ -4,6 +4,7 @@
 //! to identify systematic biases and recommend adjustments.
 
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -44,11 +45,13 @@ impl PredictionRecord {
     }
 
     /// Has outcome?
+    #[inline(always)]
     pub fn has_outcome(&self) -> bool {
         self.outcome.is_some()
     }
 
     /// Was correct?
+    #[inline(always)]
     pub fn was_correct(&self) -> Option<bool> {
         self.outcome.as_ref().map(|o| o.correct)
     }
@@ -67,6 +70,7 @@ pub struct PredictionOutcome {
 
 impl PredictionOutcome {
     /// Create correct outcome
+    #[inline]
     pub fn correct() -> Self {
         Self {
             correct: true,
@@ -76,6 +80,7 @@ impl PredictionOutcome {
     }
 
     /// Create incorrect outcome
+    #[inline]
     pub fn incorrect(notes: impl Into<String>) -> Self {
         Self {
             correct: false,
@@ -117,11 +122,13 @@ impl DecisionRecord {
     }
 
     /// Has outcome?
+    #[inline(always)]
     pub fn has_outcome(&self) -> bool {
         self.outcome.is_some()
     }
 
     /// Was successful?
+    #[inline(always)]
     pub fn was_successful(&self) -> Option<bool> {
         self.outcome.as_ref().map(|o| o.successful)
     }
@@ -140,6 +147,7 @@ pub struct DecisionOutcome {
 
 impl DecisionOutcome {
     /// Create successful outcome
+    #[inline]
     pub fn success(impact: impl Into<String>) -> Self {
         Self {
             successful: true,
@@ -149,6 +157,7 @@ impl DecisionOutcome {
     }
 
     /// Create failed outcome
+    #[inline]
     pub fn failure(impact: impl Into<String>) -> Self {
         Self {
             successful: false,
@@ -181,11 +190,13 @@ pub struct CalibrationReport {
 
 impl CalibrationReport {
     /// Is well calibrated?
+    #[inline(always)]
     pub fn is_calibrated(&self) -> bool {
         self.calibration_error < 0.1
     }
 
     /// Needs adjustment?
+    #[inline(always)]
     pub fn needs_adjustment(&self) -> bool {
         self.overconfidence || self.underconfidence
     }
@@ -241,9 +252,9 @@ impl CalibrationRecommendation {
 /// Calibrator - adjusts cognitive parameters
 pub struct Calibrator {
     /// Prediction tracking
-    predictions: Vec<PredictionRecord>,
+    predictions: VecDeque<PredictionRecord>,
     /// Decision tracking
-    decisions: Vec<DecisionRecord>,
+    decisions: VecDeque<DecisionRecord>,
     /// Maximum records
     max_records: usize,
     /// Calibration adjustments made
@@ -254,22 +265,24 @@ impl Calibrator {
     /// Create new calibrator
     pub fn new(max_records: usize) -> Self {
         Self {
-            predictions: Vec::new(),
-            decisions: Vec::new(),
+            predictions: VecDeque::new(),
+            decisions: VecDeque::new(),
             max_records,
             adjustments: AtomicU64::new(0),
         }
     }
 
     /// Record a prediction
+    #[inline]
     pub fn record_prediction(&mut self, prediction: PredictionRecord) {
-        self.predictions.push(prediction);
+        self.predictions.push_back(prediction);
         if self.predictions.len() > self.max_records {
-            self.predictions.remove(0);
+            self.predictions.pop_front();
         }
     }
 
     /// Record prediction outcome
+    #[inline]
     pub fn record_prediction_outcome(
         &mut self,
         id: PredictionId,
@@ -286,14 +299,16 @@ impl Calibrator {
     }
 
     /// Record a decision
+    #[inline]
     pub fn record_decision(&mut self, decision: DecisionRecord) {
-        self.decisions.push(decision);
+        self.decisions.push_back(decision);
         if self.decisions.len() > self.max_records {
-            self.decisions.remove(0);
+            self.decisions.pop_front();
         }
     }
 
     /// Record decision outcome
+    #[inline]
     pub fn record_decision_outcome(&mut self, id: DecisionId, successful: bool, impact: String) {
         if let Some(dec) = self.decisions.iter_mut().find(|d| d.id == id) {
             dec.outcome = Some(DecisionOutcome {
@@ -383,16 +398,19 @@ impl Calibrator {
     }
 
     /// Get prediction count
+    #[inline(always)]
     pub fn prediction_count(&self) -> usize {
         self.predictions.len()
     }
 
     /// Get decision count
+    #[inline(always)]
     pub fn decision_count(&self) -> usize {
         self.decisions.len()
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> CalibratorStats {
         CalibratorStats {
             predictions_tracked: self.predictions.len(),
@@ -410,6 +428,7 @@ impl Default for Calibrator {
 
 /// Calibrator statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CalibratorStats {
     /// Predictions tracked
     pub predictions_tracked: usize,

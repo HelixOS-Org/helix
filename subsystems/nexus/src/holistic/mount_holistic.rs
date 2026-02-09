@@ -71,13 +71,17 @@ impl MountPoint {
         }
     }
 
+    #[inline(always)]
     pub fn add_child(&mut self, child_id: u64) { self.children.push(child_id); }
+    #[inline(always)]
     pub fn is_readonly(&self) -> bool { self.flags & 1 != 0 }
+    #[inline(always)]
     pub fn is_shared(&self) -> bool { self.propagation == MountPropagation::Shared }
 }
 
 /// Mount holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticMountStats {
     pub total_mounts: u64,
     pub bind_mounts: u64,
@@ -101,6 +105,7 @@ impl HolisticMount {
         }
     }
 
+    #[inline]
     pub fn mount(&mut self, mp: MountPoint) {
         self.stats.total_mounts += 1;
         match mp.mount_type {
@@ -112,6 +117,7 @@ impl HolisticMount {
         self.mounts.insert(mp.mount_id, mp);
     }
 
+    #[inline(always)]
     pub fn umount(&mut self, mount_id: u64) -> bool {
         self.mounts.remove(&mount_id).is_some()
     }
@@ -151,6 +157,7 @@ pub struct HolisticMountV2Health {
 
 /// Stats for mount holistic analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticMountV2Stats {
     pub samples: u64,
     pub analyses: u64,
@@ -184,6 +191,7 @@ impl HolisticMountV2Manager {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, metric: HolisticMountV2Metric, value: u64, mount_id: u64) {
         let sample = HolisticMountV2Sample {
             metric,
@@ -215,6 +223,7 @@ impl HolisticMountV2Manager {
         &self.health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticMountV2Stats {
         &self.stats
     }

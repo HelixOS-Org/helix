@@ -16,6 +16,7 @@ use alloc::vec::Vec;
 pub enum LockEfficiency { Excellent, Good, Marginal, Wasteful }
 
 impl LockEfficiency {
+    #[inline]
     pub fn from_access_rate(rate: f64) -> Self {
         if rate > 0.8 { Self::Excellent }
         else if rate > 0.5 { Self::Good }
@@ -35,6 +36,7 @@ pub struct ProcessLockProfile {
 }
 
 impl ProcessLockProfile {
+    #[inline(always)]
     pub fn wasted_pages(&self) -> u64 {
         ((1.0 - self.access_rate) * self.locked_pages as f64) as u64
     }
@@ -49,6 +51,7 @@ pub struct LockFairness {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MlockHolisticStats {
     pub total_locked_pages: u64,
     pub total_budget_pages: u64,
@@ -78,6 +81,7 @@ impl MlockHolisticManager {
         }
     }
 
+    #[inline(always)]
     pub fn update_profile(&mut self, profile: ProcessLockProfile) {
         self.profiles.insert(profile.pid, profile);
         self.recompute();
@@ -137,6 +141,7 @@ impl MlockHolisticManager {
     }
 
     /// Find processes with wasteful locks (should auto-unlock)
+    #[inline]
     pub fn auto_unlock_candidates(&self) -> Vec<(u64, u64)> {
         if self.stats.lock_pressure < self.pressure_threshold {
             return Vec::new();
@@ -150,17 +155,21 @@ impl MlockHolisticManager {
     }
 
     /// Is system under lock pressure?
+    #[inline(always)]
     pub fn under_pressure(&self) -> bool {
         self.stats.lock_pressure > self.pressure_threshold
     }
 
     /// Recommend lock budget adjustment for a process
+    #[inline]
     pub fn recommended_budget(&self, pid: u64) -> Option<u64> {
         let profile = self.profiles.get(&pid)?;
         // Recommend based on access rate: only lock what you use
         Some(((profile.locked_pages as f64 * profile.access_rate) * 1.2) as u64)
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessLockProfile> { self.profiles.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &MlockHolisticStats { &self.stats }
 }

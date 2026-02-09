@@ -199,6 +199,7 @@ impl Default for AnalogyConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AnalogyStats {
     /// Analogies found
     pub analogies_found: u64,
@@ -223,6 +224,7 @@ impl AnalogyEngine {
     }
 
     /// Register domain
+    #[inline(always)]
     pub fn register_domain(&mut self, domain: Domain) {
         self.domains.insert(domain.name.clone(), domain);
     }
@@ -507,11 +509,13 @@ impl AnalogyEngine {
     }
 
     /// Get analogy
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Analogy> {
         self.analogies.get(&id)
     }
 
     /// Get best analogy for target
+    #[inline]
     pub fn best_for_target(&self, target_name: &str) -> Option<&Analogy> {
         self.analogies
             .values()
@@ -520,6 +524,7 @@ impl AnalogyEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &AnalogyStats {
         &self.stats
     }
@@ -557,6 +562,7 @@ impl DomainBuilder {
     }
 
     /// Add object
+    #[inline]
     pub fn object(mut self, name: &str, object_type: &str) -> Self {
         let id = self.next_id;
         self.next_id += 1;
@@ -598,6 +604,7 @@ impl DomainBuilder {
     }
 
     /// Build domain
+    #[inline]
     pub fn build(self) -> Domain {
         Domain {
             name: self.name,

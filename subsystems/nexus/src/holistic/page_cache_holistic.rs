@@ -19,6 +19,7 @@ pub enum HolisticPageCacheMetric {
 
 /// Page cache analysis sample
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticPageCacheSample {
     pub metric: HolisticPageCacheMetric,
     pub value: u64,
@@ -27,6 +28,7 @@ pub struct HolisticPageCacheSample {
 
 /// Page cache health assessment
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticPageCacheHealth {
     pub hit_rate_score: u64,
     pub eviction_pressure: u64,
@@ -37,6 +39,7 @@ pub struct HolisticPageCacheHealth {
 
 /// Stats for page cache analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticPageCacheAnalysisStats {
     pub samples: u64,
     pub analyses: u64,
@@ -46,6 +49,7 @@ pub struct HolisticPageCacheAnalysisStats {
 }
 
 /// Manager for page cache holistic analysis
+#[repr(align(64))]
 pub struct HolisticPageCacheAnalyzer {
     samples: Vec<HolisticPageCacheSample>,
     health: HolisticPageCacheHealth,
@@ -75,6 +79,7 @@ impl HolisticPageCacheAnalyzer {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, metric: HolisticPageCacheMetric, value: u64) {
         let sample = HolisticPageCacheSample {
             metric,
@@ -111,10 +116,12 @@ impl HolisticPageCacheAnalyzer {
         &self.health
     }
 
+    #[inline(always)]
     pub fn set_min_hit_rate(&mut self, rate: u64) {
         self.min_hit_rate = rate;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticPageCacheAnalysisStats {
         &self.stats
     }

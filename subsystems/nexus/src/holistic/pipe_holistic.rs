@@ -23,6 +23,7 @@ impl PipeHolisticRecord {
 
 /// Pipe holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipeHolisticStats { pub total_samples: u64, pub congestions: u64, pub stalls: u64, pub peak_throughput: u64 }
 
 /// Main holistic pipe
@@ -31,6 +32,7 @@ pub struct HolisticPipe { pub stats: PipeHolisticStats }
 
 impl HolisticPipe {
     pub fn new() -> Self { Self { stats: PipeHolisticStats { total_samples: 0, congestions: 0, stalls: 0, peak_throughput: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &PipeHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.health {

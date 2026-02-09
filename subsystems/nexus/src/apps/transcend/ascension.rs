@@ -15,6 +15,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -72,11 +73,11 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 /// Named ascension phases.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AscensionPhaseKind {
-    Awakening = 0,
-    Expansion = 1,
-    Convergence = 2,
+    Awakening     = 0,
+    Expansion     = 1,
+    Convergence   = 2,
     Transcendence = 3,
-    Divine = 4,
+    Divine        = 4,
 }
 
 /// Description of an ascension phase with its capabilities.
@@ -135,6 +136,7 @@ pub struct TranscendentAllocation {
 
 /// Running statistics for the ascension engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct AscensionStats {
     pub current_phase: u64,
     pub total_milestones: u64,
@@ -158,7 +160,7 @@ pub struct AppsAscension {
     improvements: Vec<ImprovementAction>,
     classifications: BTreeMap<u64, DivineClassification>,
     effectiveness_history: Vec<u64>,
-    tunable_params: BTreeMap<u64, u64>,
+    tunable_params: LinearMap<u64, 64>,
     current_phase: u64,
     stats: AscensionStats,
     rng: u64,
@@ -208,6 +210,7 @@ impl AppsAscension {
     // -- public API ---------------------------------------------------------
 
     /// Return the current ascension level (phase number).
+    #[inline(always)]
     pub fn ascension_level(&self) -> u64 {
         self.current_phase
     }
@@ -236,8 +239,7 @@ impl AppsAscension {
         let optimization_quality = alloc.efficiency;
 
         let effectiveness = (classification_quality + optimization_quality) / 2;
-        self.stats.effectiveness_ema =
-            ema_update(self.stats.effectiveness_ema, effectiveness);
+        self.stats.effectiveness_ema = ema_update(self.stats.effectiveness_ema, effectiveness);
 
         self.effectiveness_history.push(effectiveness);
         if self.effectiveness_history.len() > PLATEAU_WINDOW * 4 {
@@ -262,6 +264,7 @@ impl AppsAscension {
     /// The engine evaluates its own parameters, detects which ones are
     /// underperforming, and adjusts them. Returns the number of parameters
     /// modified.
+    #[inline(always)]
     pub fn self_improvement(&mut self) -> u64 {
         self.trigger_self_improvement()
     }
@@ -283,8 +286,7 @@ impl AppsAscension {
         }
 
         self.tick += 1;
-        let milestone_id = fnv1a(description.as_bytes())
-            ^ fnv1a(&self.tick.to_le_bytes());
+        let milestone_id = fnv1a(description.as_bytes()) ^ fnv1a(&self.tick.to_le_bytes());
 
         let milestone = AscensionMilestone {
             milestone_id,
@@ -303,6 +305,7 @@ impl AppsAscension {
     /// Perform divine-level classification for an application.
     ///
     /// At the divine phase, classification is instantaneous and certain.
+    #[inline(always)]
     pub fn divine_classification(
         &mut self,
         app_id: u64,
@@ -317,6 +320,7 @@ impl AppsAscension {
     /// Perform transcendent optimization for an application.
     ///
     /// Returns an allocation that demonstrably exceeds baseline strategies.
+    #[inline(always)]
     pub fn transcendent_optimization(
         &mut self,
         app_id: u64,
@@ -328,6 +332,7 @@ impl AppsAscension {
     }
 
     /// Return a snapshot of current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &AscensionStats {
         &self.stats
     }
@@ -360,7 +365,9 @@ impl AppsAscension {
 
         let class_hash = fnv1a(label.as_bytes()) ^ fnv1a(name.as_bytes());
         let certainty = (60 + phase_bonus + (cpu + mem + io) / 10).min(100);
-        let latency = if self.current_phase >= PHASE_DIVINE { 1 } else {
+        let latency = if self.current_phase >= PHASE_DIVINE {
+            1
+        } else {
             (5u64).saturating_sub(self.current_phase)
         };
 
@@ -416,8 +423,7 @@ impl AppsAscension {
             0
         };
 
-        let resource_hash = fnv1a(b"transcendent_alloc")
-            ^ fnv1a(&app_id.to_le_bytes());
+        let resource_hash = fnv1a(b"transcendent_alloc") ^ fnv1a(&app_id.to_le_bytes());
 
         TranscendentAllocation {
             app_id,
@@ -432,14 +438,18 @@ impl AppsAscension {
         if self.effectiveness_history.len() < PLATEAU_WINDOW {
             return false;
         }
-        let window = &self.effectiveness_history
-            [self.effectiveness_history.len() - PLATEAU_WINDOW..];
+        let window =
+            &self.effectiveness_history[self.effectiveness_history.len() - PLATEAU_WINDOW..];
         if window.is_empty() {
             return false;
         }
         let first = window[0];
         let last = window[window.len() - 1];
-        let diff = if last > first { last - first } else { first - last };
+        let diff = if last > first {
+            last - first
+        } else {
+            first - last
+        };
         diff <= PLATEAU_TOLERANCE
     }
 

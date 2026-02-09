@@ -13,6 +13,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -127,6 +128,7 @@ pub struct ParetoPoint {
 
 /// Aggregate exploration statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ExplorerStats {
     pub total_generations: u64,
     pub total_evaluations: u64,
@@ -147,20 +149,21 @@ pub struct ExplorerStats {
 
 #[derive(Debug, Clone)]
 struct FitnessCurve {
-    best_per_generation: BTreeMap<u32, f32>,
-    mean_per_generation: BTreeMap<u32, f32>,
+    best_per_generation: ArrayMap<f32, 32>,
+    mean_per_generation: ArrayMap<f32, 32>,
     improvement_ema: f32,
 }
 
 impl FitnessCurve {
     fn new() -> Self {
         Self {
-            best_per_generation: BTreeMap::new(),
-            mean_per_generation: BTreeMap::new(),
+            best_per_generation: ArrayMap::new(0.0),
+            mean_per_generation: ArrayMap::new(0.0),
             improvement_ema: 0.0,
         }
     }
 
+    #[inline]
     fn record(&mut self, generation: u32, best: f32, mean: f32) {
         let prev_best = self
             .best_per_generation
@@ -315,6 +318,7 @@ impl CoopExplorer {
     }
 
     /// Evaluate fairness of a protocol variant against contention scenarios
+    #[inline]
     pub fn evaluate_fairness(
         &mut self,
         individual: &mut ProtocolIndividual,
@@ -463,6 +467,7 @@ impl CoopExplorer {
     }
 
     /// Get current exploration statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ExplorerStats {
         &self.stats
     }

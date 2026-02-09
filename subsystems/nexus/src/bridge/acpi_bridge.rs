@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -19,6 +20,7 @@ pub enum AcpiDeviceState {
 }
 
 impl AcpiDeviceState {
+    #[inline]
     pub fn power_level(&self) -> u8 {
         match self {
             Self::D0 => 0,
@@ -30,6 +32,7 @@ impl AcpiDeviceState {
         }
     }
 
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         matches!(self, Self::D0)
     }
@@ -63,6 +66,7 @@ pub struct AcpiTable {
 }
 
 impl AcpiTable {
+    #[inline(always)]
     pub fn signature_str(&self) -> String {
         String::from_utf8_lossy(&self.signature).into_owned()
     }
@@ -82,14 +86,17 @@ pub struct AcpiDevice {
 }
 
 impl AcpiDevice {
+    #[inline(always)]
     pub fn is_present(&self) -> bool {
         self.status & 0x01 != 0
     }
 
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.status & 0x02 != 0
     }
 
+    #[inline(always)]
     pub fn is_functioning(&self) -> bool {
         self.status & 0x08 != 0
     }
@@ -107,6 +114,7 @@ pub enum SleepState {
 }
 
 impl SleepState {
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::S0 => "Working",
@@ -155,6 +163,7 @@ pub struct GpeInfo {
 
 /// ACPI bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AcpiBridgeStats {
     pub table_count: u32,
     pub device_count: u32,
@@ -165,11 +174,12 @@ pub struct AcpiBridgeStats {
 }
 
 /// Main ACPI bridge
+#[repr(align(64))]
 pub struct BridgeAcpi {
     tables: Vec<AcpiTable>,
     devices: BTreeMap<String, AcpiDevice>,
     gpes: BTreeMap<u32, GpeInfo>,
-    events: Vec<AcpiEvent>,
+    events: VecDeque<AcpiEvent>,
     max_events: usize,
     sleep_states_supported: Vec<SleepState>,
     current_sleep: SleepState,
@@ -182,7 +192,7 @@ impl BridgeAcpi {
             tables: Vec::new(),
             devices: BTreeMap::new(),
             gpes: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 2048,
             sleep_states_supported: Vec::new(),
             current_sleep: SleepState::S0,
@@ -193,52 +203,62 @@ impl BridgeAcpi {
         }
     }
 
+    #[inline(always)]
     pub fn register_table(&mut self, table: AcpiTable) {
         self.stats.table_count += 1;
         self.tables.push(table);
     }
 
+    #[inline(always)]
     pub fn register_device(&mut self, dev: AcpiDevice) {
         self.stats.device_count += 1;
         self.devices.insert(dev.path.clone(), dev);
     }
 
+    #[inline(always)]
     pub fn register_gpe(&mut self, gpe: GpeInfo) {
         self.stats.gpe_count += 1;
         self.gpes.insert(gpe.number, gpe);
     }
 
+    #[inline]
     pub fn set_device_state(&mut self, path: &str, state: AcpiDeviceState) {
         if let Some(dev) = self.devices.get_mut(path) {
             dev.state = state;
         }
     }
 
+    #[inline]
     pub fn record_event(&mut self, event: AcpiEvent) {
         self.stats.event_count += 1;
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event);
+        self.events.push_back(event);
     }
 
+    #[inline(always)]
     pub fn transition_sleep(&mut self, state: SleepState) {
         self.stats.sleep_transitions += 1;
         self.current_sleep = state;
     }
 
+    #[inline(always)]
     pub fn wake_devices(&self) -> Vec<&AcpiDevice> {
         self.devices.values().filter(|d| d.wake_capable && d.wake_enabled).collect()
     }
 
+    #[inline(always)]
     pub fn devices_in_state(&self, state: AcpiDeviceState) -> Vec<&AcpiDevice> {
         self.devices.values().filter(|d| d.state == state).collect()
     }
 
+    #[inline(always)]
     pub fn find_table(&self, table_type: AcpiTableType) -> Option<&AcpiTable> {
         self.tables.iter().find(|t| t.table_type == table_type)
     }
 
+    #[inline]
     pub fn hottest_gpes(&self, n: usize) -> Vec<(u32, u64)> {
         let mut v: Vec<_> = self.gpes.iter().map(|(&num, g)| (num, g.dispatch_count)).collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
@@ -246,6 +266,7 @@ impl BridgeAcpi {
         v
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AcpiBridgeStats {
         &self.stats
     }

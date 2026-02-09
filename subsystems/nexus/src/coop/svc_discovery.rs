@@ -64,20 +64,24 @@ impl ServiceEndpoint {
         }
     }
 
+    #[inline(always)]
     pub fn is_available(&self) -> bool {
         self.state == ServiceState::Healthy && self.active_connections < self.max_connections
     }
 
+    #[inline(always)]
     pub fn error_rate(&self) -> f64 {
         let total = self.success_count + self.error_count;
         if total == 0 { 0.0 } else { self.error_count as f64 / total as f64 }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.max_connections == 0 { return 1.0; }
         self.active_connections as f64 / self.max_connections as f64
     }
 
+    #[inline]
     pub fn record_success(&mut self, latency_ns: u64) {
         self.success_count += 1;
         // EWMA latency
@@ -85,8 +89,10 @@ impl ServiceEndpoint {
         else { self.avg_latency_ns = (self.avg_latency_ns * 7 + latency_ns) / 8; }
     }
 
+    #[inline(always)]
     pub fn record_error(&mut self) { self.error_count += 1; }
 
+    #[inline]
     pub fn health_check_pass(&mut self, ts: u64) {
         self.last_health_check_ts = ts;
         self.health_check_failures = 0;
@@ -95,6 +101,7 @@ impl ServiceEndpoint {
         }
     }
 
+    #[inline]
     pub fn health_check_fail(&mut self, ts: u64) {
         self.last_health_check_ts = ts;
         self.health_check_failures += 1;
@@ -126,10 +133,12 @@ impl ServiceDescriptor {
         }
     }
 
+    #[inline(always)]
     pub fn add_endpoint(&mut self, ep_id: u64) {
         if !self.endpoints.contains(&ep_id) { self.endpoints.push(ep_id); }
     }
 
+    #[inline(always)]
     pub fn remove_endpoint(&mut self, ep_id: u64) {
         self.endpoints.retain(|&e| e != ep_id);
     }
@@ -147,6 +156,7 @@ pub struct ServiceDepEdge {
 
 /// Service discovery stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ServiceDiscoveryStats {
     pub total_services: usize,
     pub total_endpoints: usize,
@@ -190,12 +200,14 @@ impl CoopServiceDiscovery {
         self.rng_state
     }
 
+    #[inline]
     pub fn register_service(&mut self, name: String, version: u64, ts: u64) -> u64 {
         let id = Self::name_hash(&name);
         self.services.entry(id).or_insert_with(|| ServiceDescriptor::new(name, version, ts));
         id
     }
 
+    #[inline]
     pub fn add_endpoint(&mut self, service_id: u64, node: u64, address: u64, port: u16) -> u64 {
         let ep_id = self.next_id; self.next_id += 1;
         self.endpoints.insert(ep_id, ServiceEndpoint::new(ep_id, node, address, port));
@@ -203,6 +215,7 @@ impl CoopServiceDiscovery {
         ep_id
     }
 
+    #[inline(always)]
     pub fn remove_endpoint(&mut self, service_id: u64, ep_id: u64) {
         self.endpoints.remove(&ep_id);
         if let Some(svc) = self.services.get_mut(&service_id) { svc.remove_endpoint(ep_id); }
@@ -235,22 +248,26 @@ impl CoopServiceDiscovery {
         }
     }
 
+    #[inline]
     pub fn health_check(&mut self, ep_id: u64, passed: bool, ts: u64) {
         if let Some(ep) = self.endpoints.get_mut(&ep_id) {
             if passed { ep.health_check_pass(ts); } else { ep.health_check_fail(ts); }
         }
     }
 
+    #[inline]
     pub fn record_request(&mut self, ep_id: u64, success: bool, latency_ns: u64) {
         if let Some(ep) = self.endpoints.get_mut(&ep_id) {
             if success { ep.record_success(latency_ns); } else { ep.record_error(); }
         }
     }
 
+    #[inline(always)]
     pub fn add_dependency(&mut self, from: String, to: String) {
         self.dep_edges.push(ServiceDepEdge { from_service: from, to_service: to, call_count: 0, avg_latency_ns: 0, error_rate: 0.0 });
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_services = self.services.len();
         self.stats.total_endpoints = self.endpoints.len();
@@ -263,7 +280,10 @@ impl CoopServiceDiscovery {
         self.stats.dependency_edges = self.dep_edges.len();
     }
 
+    #[inline(always)]
     pub fn service(&self, id: u64) -> Option<&ServiceDescriptor> { self.services.get(&id) }
+    #[inline(always)]
     pub fn endpoint(&self, id: u64) -> Option<&ServiceEndpoint> { self.endpoints.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &ServiceDiscoveryStats { &self.stats }
 }

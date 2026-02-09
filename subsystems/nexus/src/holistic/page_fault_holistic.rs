@@ -9,7 +9,9 @@
 //! - Demand paging vs prefetch ratio optimization
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,11 +29,13 @@ pub struct SystemFaultSnapshot {
 }
 
 impl SystemFaultSnapshot {
+    #[inline]
     pub fn major_ratio(&self) -> f64 {
         let total = self.total_major + self.total_minor;
         if total == 0 { return 0.0; }
         self.total_major as f64 / total as f64
     }
+    #[inline(always)]
     pub fn working_set_ratio(&self) -> f64 {
         if self.resident_pages == 0 { return 0.0; }
         self.working_set_pages as f64 / self.resident_pages as f64
@@ -56,10 +60,12 @@ pub struct PrefetchEfficiency {
 }
 
 impl PrefetchEfficiency {
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         if self.total_prefetched == 0 { return 0.0; }
         self.prefetch_hits as f64 / self.total_prefetched as f64
     }
+    #[inline(always)]
     pub fn waste_ratio(&self) -> f64 {
         if self.total_prefetched == 0 { return 0.0; }
         self.prefetch_wasted as f64 / self.total_prefetched as f64
@@ -67,6 +73,7 @@ impl PrefetchEfficiency {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FaultHolisticStats {
     pub total_faults: u64,
     pub total_major_faults: u64,
@@ -78,13 +85,13 @@ pub struct FaultHolisticStats {
 
 pub struct PageFaultHolisticManager {
     /// Fault rate history: rolling window
-    fault_history: Vec<SystemFaultSnapshot>,
+    fault_history: VecDeque<SystemFaultSnapshot>,
     /// Subsystem cost attribution
     subsystem_costs: BTreeMap<u64, SubsystemFaultCost>,
     /// Prefetch tracking
     prefetch: PrefetchEfficiency,
     /// Per-process major fault counts for anomaly detection
-    process_majors: BTreeMap<u64, u64>,
+    process_majors: LinearMap<u64, 64>,
     history_capacity: usize,
     stats: FaultHolisticStats,
 }
@@ -98,22 +105,23 @@ impl PageFaultHolisticManager {
                 total_prefetched: 0, prefetch_hits: 0,
                 prefetch_wasted: 0, bandwidth_used_bps: 0,
             },
-            process_majors: BTreeMap::new(),
+            process_majors: LinearMap::new(),
             history_capacity,
             stats: FaultHolisticStats::default(),
         }
     }
 
     /// Record a system-wide fault snapshot
+    #[inline]
     pub fn record_snapshot(&mut self, snapshot: SystemFaultSnapshot) {
         self.stats.total_faults += snapshot.total_major + snapshot.total_minor;
         self.stats.total_major_faults += snapshot.total_major;
         self.stats.system_working_set_mb = snapshot.working_set_pages * 4 / 1024;
 
         if self.fault_history.len() >= self.history_capacity {
-            self.fault_history.remove(0);
+            self.fault_history.pop_front();
         }
-        self.fault_history.push(snapshot);
+        self.fault_history.push_back(snapshot);
     }
 
     /// Detect anomalies in fault patterns
@@ -172,6 +180,7 @@ impl PageFaultHolisticManager {
     }
 
     /// Record prefetch result
+    #[inline]
     pub fn record_prefetch(&mut self, pages: u64, hit: bool) {
         self.prefetch.total_prefetched += pages;
         if hit { self.prefetch.prefetch_hits += pages; }
@@ -180,6 +189,7 @@ impl PageFaultHolisticManager {
     }
 
     /// Optimal demand-paging vs prefetch ratio
+    #[inline]
     pub fn optimal_prefetch_depth(&self) -> u64 {
         let hit_rate = self.prefetch.hit_rate();
         if hit_rate > 0.8 { 16 }      // good prediction: prefetch more
@@ -189,11 +199,13 @@ impl PageFaultHolisticManager {
     }
 
     /// Top fault-costly subsystems
+    #[inline]
     pub fn top_costly_subsystems(&self, n: usize) -> Vec<&SubsystemFaultCost> {
         let mut sorted: Vec<_> = self.subsystem_costs.values().collect();
         sorted.sort_by(|a, b| b.total_cost_ns.cmp(&a.total_cost_ns));
         sorted.into_iter().take(n).collect()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &FaultHolisticStats { &self.stats }
 }

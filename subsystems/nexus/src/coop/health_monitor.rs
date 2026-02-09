@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Health status
@@ -77,7 +77,7 @@ pub struct MonitoredComponent {
     pub heartbeat_interval_ns: u64,
     pub missed_heartbeats: u32,
     pub max_missed: u32,
-    pub checks: Vec<HealthCheck>,
+    pub checks: VecDeque<HealthCheck>,
     pub dependencies: Vec<u64>,
     pub total_failures: u64,
     pub last_failure_ts: u64,
@@ -95,7 +95,7 @@ impl MonitoredComponent {
             heartbeat_interval_ns: 1_000_000_000, // 1s
             missed_heartbeats: 0,
             max_missed: 3,
-            checks: Vec::new(),
+            checks: VecDeque::new(),
             dependencies: Vec::new(),
             total_failures: 0,
             last_failure_ts: 0,
@@ -103,6 +103,7 @@ impl MonitoredComponent {
         }
     }
 
+    #[inline]
     pub fn record_heartbeat(&mut self, hb: Heartbeat) {
         self.last_heartbeat = hb.timestamp;
         self.missed_heartbeats = 0;
@@ -115,7 +116,9 @@ impl MonitoredComponent {
     }
 
     pub fn check_timeout(&mut self, now: u64) {
-        if self.last_heartbeat == 0 { return; }
+        if self.last_heartbeat == 0 {
+            return;
+        }
         let elapsed = now.saturating_sub(self.last_heartbeat);
         if elapsed > self.heartbeat_interval_ns {
             let missed = (elapsed / self.heartbeat_interval_ns) as u32;
@@ -130,18 +133,26 @@ impl MonitoredComponent {
         self.update_status();
     }
 
+    #[inline]
     pub fn add_check(&mut self, check: HealthCheck) {
         self.health_score = 0.7 * self.health_score + 0.3 * check.score;
-        self.checks.push(check);
-        if self.checks.len() > 32 { self.checks.remove(0); }
+        self.checks.push_back(check);
+        if self.checks.len() > 32 {
+            self.checks.pop_front();
+        }
         self.update_status();
     }
 
     fn update_status(&mut self) {
-        self.status = if self.health_score > 0.8 { HealthStatus::Healthy }
-        else if self.health_score > 0.5 { HealthStatus::Degraded }
-        else if self.health_score > 0.1 { HealthStatus::Unhealthy }
-        else { HealthStatus::Failed };
+        self.status = if self.health_score > 0.8 {
+            HealthStatus::Healthy
+        } else if self.health_score > 0.5 {
+            HealthStatus::Degraded
+        } else if self.health_score > 0.1 {
+            HealthStatus::Unhealthy
+        } else {
+            HealthStatus::Failed
+        };
 
         self.recovery_action = match self.status {
             HealthStatus::Healthy => RecoveryActionCoop::None,
@@ -152,6 +163,7 @@ impl MonitoredComponent {
         };
     }
 
+    #[inline(always)]
     pub fn is_alive(&self) -> bool {
         !matches!(self.status, HealthStatus::Failed | HealthStatus::Unknown)
     }
@@ -174,15 +186,19 @@ impl CascadeDetector {
         }
     }
 
+    #[inline(always)]
     pub fn record_failure(&mut self, component_id: u64, ts: u64) {
         self.recent_failures.push((component_id, ts));
-        self.recent_failures.retain(|&(_, t)| ts.saturating_sub(t) <= self.failure_window_ns);
+        self.recent_failures
+            .retain(|&(_, t)| ts.saturating_sub(t) <= self.failure_window_ns);
     }
 
+    #[inline(always)]
     pub fn is_cascading(&self) -> bool {
         self.recent_failures.len() as u32 >= self.failure_threshold
     }
 
+    #[inline]
     pub fn affected_components(&self) -> Vec<u64> {
         let mut ids: Vec<u64> = self.recent_failures.iter().map(|&(id, _)| id).collect();
         ids.sort();
@@ -193,6 +209,7 @@ impl CascadeDetector {
 
 /// Coop health monitor stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopHealthMonitorStats {
     pub total_components: usize,
     pub healthy_count: usize,
@@ -218,12 +235,15 @@ impl CoopHealthMonitor {
         }
     }
 
+    #[inline]
     pub fn register(&mut self, component_id: u64, domain: FailureDomain) {
-        self.components.entry(component_id)
+        self.components
+            .entry(component_id)
             .or_insert_with(|| MonitoredComponent::new(component_id, domain));
         self.recompute();
     }
 
+    #[inline]
     pub fn add_dependency(&mut self, component_id: u64, depends_on: u64) {
         if let Some(comp) = self.components.get_mut(&component_id) {
             if !comp.dependencies.contains(&depends_on) {
@@ -232,6 +252,7 @@ impl CoopHealthMonitor {
         }
     }
 
+    #[inline]
     pub fn heartbeat(&mut self, hb: Heartbeat) {
         let cid = hb.component_id;
         if let Some(comp) = self.components.get_mut(&cid) {
@@ -240,6 +261,7 @@ impl CoopHealthMonitor {
         self.recompute();
     }
 
+    #[inline]
     pub fn check(&mut self, check: HealthCheck) {
         let cid = check.component_id;
         if let Some(comp) = self.components.get_mut(&cid) {
@@ -263,6 +285,7 @@ impl CoopHealthMonitor {
     }
 
     /// Get components that would be affected if a specific component fails
+    #[inline]
     pub fn impact_analysis(&self, component_id: u64) -> Vec<u64> {
         let mut affected = Vec::new();
         for comp in self.components.values() {
@@ -275,20 +298,31 @@ impl CoopHealthMonitor {
 
     fn recompute(&mut self) {
         self.stats.total_components = self.components.len();
-        self.stats.healthy_count = self.components.values()
-            .filter(|c| c.status == HealthStatus::Healthy).count();
-        self.stats.degraded_count = self.components.values()
-            .filter(|c| c.status == HealthStatus::Degraded).count();
-        self.stats.failed_count = self.components.values()
-            .filter(|c| c.status == HealthStatus::Failed).count();
+        self.stats.healthy_count = self
+            .components
+            .values()
+            .filter(|c| c.status == HealthStatus::Healthy)
+            .count();
+        self.stats.degraded_count = self
+            .components
+            .values()
+            .filter(|c| c.status == HealthStatus::Degraded)
+            .count();
+        self.stats.failed_count = self
+            .components
+            .values()
+            .filter(|c| c.status == HealthStatus::Failed)
+            .count();
         self.stats.total_failures = self.components.values().map(|c| c.total_failures).sum();
         self.stats.is_cascading = self.cascade.is_cascading();
     }
 
+    #[inline(always)]
     pub fn component(&self, id: u64) -> Option<&MonitoredComponent> {
         self.components.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopHealthMonitorStats {
         &self.stats
     }

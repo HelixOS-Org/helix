@@ -76,20 +76,24 @@ impl SharedRegion {
         }
     }
 
+    #[inline]
     pub fn attach(&mut self, app_id: u64) {
         if !self.attachers.contains(&app_id) {
             self.attachers.push(app_id);
         }
     }
 
+    #[inline(always)]
     pub fn detach(&mut self, app_id: u64) {
         self.attachers.retain(|&id| id != app_id);
     }
 
+    #[inline(always)]
     pub fn is_orphan(&self) -> bool {
         self.attachers.is_empty()
     }
 
+    #[inline]
     pub fn sharing_ratio(&self) -> f64 {
         if self.page_count == 0 {
             return 0.0;
@@ -98,6 +102,7 @@ impl SharedRegion {
         shared as f64 / self.page_count as f64
     }
 
+    #[inline]
     pub fn cow_ratio(&self) -> f64 {
         if self.page_count == 0 {
             return 0.0;
@@ -105,29 +110,35 @@ impl SharedRegion {
         self.cow_pages as f64 / self.page_count as f64
     }
 
+    #[inline(always)]
     pub fn record_read(&mut self) {
         self.total_reads += 1;
     }
 
+    #[inline(always)]
     pub fn record_write(&mut self) {
         self.total_writes += 1;
     }
 
+    #[inline(always)]
     pub fn record_cow(&mut self) {
         self.cow_pages += 1;
     }
 
+    #[inline(always)]
     pub fn record_dedup(&mut self, pages: u64) {
         self.deduped_pages += pages;
     }
 
     /// Update access correlation between sharers
     /// A high correlation means processes access the same pages at similar times
+    #[inline(always)]
     pub fn update_correlation(&mut self, sample: f64) {
         // EMA with alpha=0.1
         self.access_correlation = self.access_correlation * 0.9 + sample * 0.1;
     }
 
+    #[inline]
     pub fn memory_saved_bytes(&self) -> u64 {
         // Shared pages × page_size + deduped pages × page_size
         let shared = self.page_count.saturating_sub(self.cow_pages);
@@ -149,6 +160,7 @@ pub struct AppShmProfile {
 
 /// Shared memory manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ShmAppStats {
     pub regions_created: u64,
     pub regions_destroyed: u64,
@@ -196,6 +208,7 @@ impl ShmAppManager {
         id
     }
 
+    #[inline]
     pub fn attach(&mut self, region_id: u64, app_id: u64) -> bool {
         if let Some(region) = self.regions.get_mut(&region_id) {
             region.attach(app_id);
@@ -207,6 +220,7 @@ impl ShmAppManager {
         }
     }
 
+    #[inline]
     pub fn detach(&mut self, region_id: u64, app_id: u64) {
         if let Some(region) = self.regions.get_mut(&region_id) {
             region.detach(app_id);
@@ -216,6 +230,7 @@ impl ShmAppManager {
         }
     }
 
+    #[inline]
     pub fn record_cow_event(&mut self, region_id: u64) {
         if let Some(region) = self.regions.get_mut(&region_id) {
             region.record_cow();
@@ -223,6 +238,7 @@ impl ShmAppManager {
         }
     }
 
+    #[inline]
     pub fn record_dedup(&mut self, region_id: u64, pages: u64) {
         if let Some(region) = self.regions.get_mut(&region_id) {
             region.record_dedup(pages);
@@ -286,10 +302,12 @@ impl ShmAppManager {
         }
     }
 
+    #[inline(always)]
     pub fn total_memory_saved(&self) -> u64 {
         self.regions.values().map(|r| r.memory_saved_bytes()).sum()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ShmAppStats {
         &self.stats
     }

@@ -362,6 +362,7 @@ pub enum ProofMethod {
 
 /// Code metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CodeMetrics {
     /// Lines of code
     pub lines: usize,
@@ -379,6 +380,7 @@ pub struct CodeMetrics {
 
 /// Generation statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GenerationStats {
     /// Candidates generated
     pub candidates_generated: usize,
@@ -477,6 +479,7 @@ impl Default for CodeGenConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CodeGenStats {
     /// Total requests
     pub total_requests: u64,
@@ -522,6 +525,7 @@ impl CodeGenEngine {
     }
 
     /// Check cache for existing generation
+    #[inline(always)]
     pub fn check_cache(&self, spec_id: SpecId) -> Option<&GeneratedCode> {
         self.cache.get(&spec_id)
     }
@@ -781,11 +785,13 @@ impl CodeGenEngine {
     }
 
     /// Register template
+    #[inline(always)]
     pub fn register_template(&mut self, template: CodeTemplate) {
         self.templates.insert(template.name.clone(), template);
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CodeGenStats {
         &self.stats
     }

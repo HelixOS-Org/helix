@@ -6,6 +6,7 @@
 
 /// Cache statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CacheStats {
     /// Total accesses
     pub total_accesses: u64,
@@ -41,6 +42,7 @@ impl CacheStats {
     }
 
     /// Get hit rate
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         if self.total_accesses == 0 {
             0.0
@@ -50,11 +52,13 @@ impl CacheStats {
     }
 
     /// Get miss rate
+    #[inline(always)]
     pub fn miss_rate(&self) -> f64 {
         1.0 - self.hit_rate()
     }
 
     /// Get fill ratio
+    #[inline]
     pub fn fill_ratio(&self) -> f64 {
         if self.max_size == 0 {
             0.0
@@ -64,6 +68,7 @@ impl CacheStats {
     }
 
     /// Record hit
+    #[inline]
     pub fn record_hit(&mut self, bytes: u64) {
         self.total_accesses += 1;
         self.hits += 1;
@@ -71,12 +76,14 @@ impl CacheStats {
     }
 
     /// Record miss
+    #[inline(always)]
     pub fn record_miss(&mut self) {
         self.total_accesses += 1;
         self.misses += 1;
     }
 
     /// Record insertion
+    #[inline]
     pub fn record_insertion(&mut self, size: u64) {
         self.insertions += 1;
         self.current_size += size;
@@ -85,6 +92,7 @@ impl CacheStats {
     }
 
     /// Record eviction
+    #[inline]
     pub fn record_eviction(&mut self, size: u64) {
         self.evictions += 1;
         self.current_size = self.current_size.saturating_sub(size);
@@ -92,6 +100,7 @@ impl CacheStats {
     }
 
     /// Record update
+    #[inline]
     pub fn record_update(&mut self, old_size: u64, new_size: u64) {
         self.updates += 1;
         self.current_size = self.current_size.saturating_sub(old_size) + new_size;

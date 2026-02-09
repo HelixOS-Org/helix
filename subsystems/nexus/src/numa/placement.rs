@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -83,7 +84,7 @@ pub struct PlacementOptimizer {
     /// Placement history
     history: Vec<PlacementEvent>,
     /// Optimization scores
-    scores: BTreeMap<u64, f64>,
+    scores: LinearMap<f64, 64>,
     /// Preferred nodes per task
     preferred: BTreeMap<u64, NodeId>,
 }
@@ -94,22 +95,25 @@ impl PlacementOptimizer {
         Self {
             placements: BTreeMap::new(),
             history: Vec::new(),
-            scores: BTreeMap::new(),
+            scores: LinearMap::new(),
             preferred: BTreeMap::new(),
         }
     }
 
     /// Set placement
+    #[inline(always)]
     pub fn set_placement(&mut self, placement: Placement) {
         self.placements.insert(placement.task_id, placement);
     }
 
     /// Get placement
+    #[inline(always)]
     pub fn get_placement(&self, task_id: u64) -> Option<&Placement> {
         self.placements.get(&task_id)
     }
 
     /// Record event
+    #[inline(always)]
     pub fn record_event(&mut self, event: PlacementEvent) {
         self.history.push(event);
     }
@@ -148,16 +152,19 @@ impl PlacementOptimizer {
     }
 
     /// Get placement score
+    #[inline(always)]
     pub fn get_score(&self, task_id: u64) -> Option<f64> {
-        self.scores.get(&task_id).copied()
+        self.scores.get(task_id).copied()
     }
 
     /// Set preferred node
+    #[inline(always)]
     pub fn set_preferred(&mut self, task_id: u64, node: NodeId) {
         self.preferred.insert(task_id, node);
     }
 
     /// Get preferred node
+    #[inline(always)]
     pub fn get_preferred(&self, task_id: u64) -> Option<NodeId> {
         self.preferred.get(&task_id).copied()
     }

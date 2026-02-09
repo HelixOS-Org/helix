@@ -28,6 +28,7 @@ pub enum ThermalEventType {
 
 impl ThermalEventType {
     /// Get event name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::TemperatureUpdate => "temp_update",
@@ -72,24 +73,28 @@ impl ThermalEvent {
     }
 
     /// With zone
+    #[inline(always)]
     pub fn with_zone(mut self, zone: ThermalZoneId) -> Self {
         self.zone = Some(zone);
         self
     }
 
     /// With temperature
+    #[inline(always)]
     pub fn with_temperature(mut self, temp: Temperature) -> Self {
         self.temperature = Some(temp);
         self
     }
 
     /// With trip index
+    #[inline(always)]
     pub fn with_trip_index(mut self, index: u32) -> Self {
         self.trip_index = Some(index);
         self
     }
 
     /// With cooling device
+    #[inline(always)]
     pub fn with_cooling_device(mut self, device: CoolingDeviceId) -> Self {
         self.cooling_device = Some(device);
         self

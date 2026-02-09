@@ -13,6 +13,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -167,7 +168,7 @@ pub struct PerceptionFilter {
     /// Input buffer
     input_buffer: Vec<SensoryInput>,
     /// Output buffer
-    output_buffer: Vec<FilteredOutput>,
+    output_buffer: VecDeque<FilteredOutput>,
     /// Next ID
     next_id: AtomicU64,
     /// Configuration
@@ -202,6 +203,7 @@ impl Default for FilterConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FilterStats {
     /// Inputs received
     pub inputs_received: u64,
@@ -219,7 +221,7 @@ impl PerceptionFilter {
         Self {
             rules: BTreeMap::new(),
             input_buffer: Vec::new(),
-            output_buffer: Vec::new(),
+            output_buffer: VecDeque::new(),
             next_id: AtomicU64::new(1),
             config,
             stats: FilterStats::default(),
@@ -320,9 +322,9 @@ impl PerceptionFilter {
         };
 
         // Add to buffer
-        self.output_buffer.push(output.clone());
+        self.output_buffer.push_back(output.clone());
         if self.output_buffer.len() > self.config.buffer_size {
-            self.output_buffer.remove(0);
+            self.output_buffer.pop_front();
         }
 
         self.stats.inputs_accepted += 1;
@@ -421,6 +423,7 @@ impl PerceptionFilter {
     }
 
     /// Enable rule
+    #[inline]
     pub fn enable_rule(&mut self, id: u64) {
         if let Some(rule) = self.rules.get_mut(&id) {
             rule.enabled = true;
@@ -428,6 +431,7 @@ impl PerceptionFilter {
     }
 
     /// Disable rule
+    #[inline]
     pub fn disable_rule(&mut self, id: u64) {
         if let Some(rule) = self.rules.get_mut(&id) {
             rule.enabled = false;
@@ -435,11 +439,13 @@ impl PerceptionFilter {
     }
 
     /// Get recent outputs
+    #[inline(always)]
     pub fn recent(&self, count: usize) -> Vec<&FilteredOutput> {
         self.output_buffer.iter().rev().take(count).collect()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &FilterStats {
         &self.stats
     }
@@ -475,6 +481,7 @@ impl InputBuilder {
     }
 
     /// Set numeric data
+    #[inline]
     pub fn numeric(mut self, value: f64) -> Self {
         self.input_type = InputType::Numeric;
         self.data = Some(InputData::Numeric(value));
@@ -482,6 +489,7 @@ impl InputBuilder {
     }
 
     /// Set text data
+    #[inline]
     pub fn text(mut self, value: &str) -> Self {
         self.input_type = InputType::Text;
         self.data = Some(InputData::Text(value.into()));
@@ -489,12 +497,14 @@ impl InputBuilder {
     }
 
     /// Add metadata
+    #[inline(always)]
     pub fn meta(mut self, key: &str, value: &str) -> Self {
         self.metadata.insert(key.into(), value.into());
         self
     }
 
     /// Build input
+    #[inline]
     pub fn build(self, id: u64) -> SensoryInput {
         SensoryInput {
             id,

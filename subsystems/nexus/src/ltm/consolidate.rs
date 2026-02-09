@@ -99,6 +99,7 @@ pub struct ConsolidationResult {
 
 /// Memory state (for consolidation)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MemoryState {
     /// Memory ID
     pub id: u64,
@@ -163,6 +164,7 @@ impl Default for ConsolidationConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ConsolidationStats {
     /// Tasks completed
     pub tasks_completed: u64,
@@ -188,11 +190,13 @@ impl ConsolidationEngine {
     }
 
     /// Register memory
+    #[inline(always)]
     pub fn register_memory(&mut self, state: MemoryState) {
         self.memory_states.insert(state.id, state);
     }
 
     /// Update memory access
+    #[inline]
     pub fn record_access(&mut self, memory_id: u64) {
         if let Some(state) = self.memory_states.get_mut(&memory_id) {
             state.access_count += 1;
@@ -509,6 +513,7 @@ impl ConsolidationEngine {
     }
 
     /// Apply decay
+    #[inline]
     pub fn apply_decay(&mut self) {
         for state in self.memory_states.values_mut() {
             state.strength *= 1.0 - self.config.decay_rate;
@@ -516,21 +521,25 @@ impl ConsolidationEngine {
     }
 
     /// Get task
+    #[inline(always)]
     pub fn get_task(&self, id: u64) -> Option<&ConsolidationTask> {
         self.tasks.get(&id)
     }
 
     /// Get memory state
+    #[inline(always)]
     pub fn get_state(&self, id: u64) -> Option<&MemoryState> {
         self.memory_states.get(&id)
     }
 
     /// Get pending tasks
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.queue.len()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ConsolidationStats {
         &self.stats
     }

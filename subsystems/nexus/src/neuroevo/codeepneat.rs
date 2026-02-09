@@ -270,6 +270,7 @@ impl CoDeepNeat {
     }
 
     /// Get the best network
+    #[inline]
     pub fn get_best(&self) -> Option<&NetworkBlueprint> {
         self.networks
             .iter()

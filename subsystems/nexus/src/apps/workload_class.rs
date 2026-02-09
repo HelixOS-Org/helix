@@ -230,6 +230,7 @@ impl ProcessClassification {
     }
 
     /// Stability: how often the class stays the same
+    #[inline]
     pub fn class_stability(&self) -> f64 {
         if self.class_history.len() < 2 {
             return 1.0;
@@ -243,6 +244,7 @@ impl ProcessClassification {
 
 /// Global workload classifier stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppWorkloadClassStats {
     pub tracked_processes: usize,
     pub class_distribution: BTreeMap<u8, usize>,
@@ -391,11 +393,13 @@ impl AppWorkloadClassifier {
             .count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppWorkloadClassStats {
         &self.stats
     }
 
     /// Get process classification
+    #[inline(always)]
     pub fn get_classification(&self, pid: u64) -> Option<&ProcessClassification> {
         self.processes.get(&pid)
     }

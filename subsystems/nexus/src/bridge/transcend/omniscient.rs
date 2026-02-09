@@ -125,6 +125,7 @@ pub struct KnowledgeGap {
 
 /// Aggregate statistics for the omniscient knowledge graph.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct OmniscienceStats {
     pub total_nodes: u64,
     pub total_edges: u64,
@@ -159,6 +160,7 @@ impl CategoryCoverage {
         }
     }
 
+    #[inline]
     fn record_node(&mut self, confidence: f32, freshness: f32) {
         self.actual_nodes += 1;
         self.total_confidence += confidence;
@@ -187,6 +189,7 @@ impl CategoryCoverage {
 /// Total knowledge engine for the syscall space. Maintains a complete knowledge
 /// graph linking syscalls ↔ effects ↔ resources, enabling omniscient queries.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeOmniscient {
     nodes: BTreeMap<u64, KnowledgeNode>,
     category_coverage: BTreeMap<u8, CategoryCoverage>,
@@ -219,6 +222,7 @@ impl BridgeOmniscient {
     }
 
     /// Retrieve the complete knowledge graph snapshot — all nodes & edges.
+    #[inline(always)]
     pub fn total_knowledge(&self) -> Vec<&KnowledgeNode> {
         self.nodes.values().collect()
     }
@@ -360,6 +364,7 @@ impl BridgeOmniscient {
 
     /// Update the knowledge graph with a new or modified node. Automatically
     /// updates coverage, confidence, freshness, and edge weights.
+    #[inline]
     pub fn knowledge_update(
         &mut self,
         name: String,
@@ -430,6 +435,7 @@ impl BridgeOmniscient {
 
     /// Composite omniscience score: combines completeness, freshness,
     /// confidence, and edge density into a single [0, 1] metric.
+    #[inline]
     pub fn omniscience_score(&self) -> f32 {
         let completeness = self.knowledge_completeness();
         let freshness = self.global_freshness_ema;

@@ -22,6 +22,7 @@ impl SemHolisticRecord {
 
 /// Semaphore holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SemHolisticStats { pub total_samples: u64, pub high_contention: u64, pub deadlocks: u64, pub avg_hold_ns: u64 }
 
 /// Main holistic semaphore
@@ -33,6 +34,7 @@ pub struct HolisticSemaphore {
 
 impl HolisticSemaphore {
     pub fn new() -> Self { Self { stats: SemHolisticStats { total_samples: 0, high_contention: 0, deadlocks: 0, avg_hold_ns: 0 }, hold_sum: 0 } }
+    #[inline]
     pub fn record(&mut self, rec: &SemHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.contention {

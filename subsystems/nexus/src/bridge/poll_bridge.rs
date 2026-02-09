@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Poll event flags
@@ -32,13 +33,20 @@ impl PollEvents {
     pub const POLLWRBAND: u32 = 0x200;
     pub const POLLRDHUP: u32 = 0x2000;
 
+    #[inline(always)]
     pub fn empty() -> Self { Self { bits: 0 } }
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn set(&mut self, flag: u32) { self.bits |= flag; }
+    #[inline(always)]
     pub fn clear(&mut self, flag: u32) { self.bits &= !flag; }
+    #[inline(always)]
     pub fn is_readable(&self) -> bool { self.has(Self::POLLIN) || self.has(Self::POLLRDNORM) }
+    #[inline(always)]
     pub fn is_writable(&self) -> bool { self.has(Self::POLLOUT) || self.has(Self::POLLWRNORM) }
+    #[inline(always)]
     pub fn is_error(&self) -> bool { self.has(Self::POLLERR) || self.has(Self::POLLHUP) || self.has(Self::POLLNVAL) }
 }
 
@@ -66,6 +74,7 @@ impl PollFdEntry {
         Self { fd, requested_events: events, returned_events: PollEvents::empty(), wait_queue_registered: false }
     }
 
+    #[inline(always)]
     pub fn is_ready(&self) -> bool { self.returned_events.bits & self.requested_events.bits != 0 || self.returned_events.is_error() }
 }
 
@@ -92,21 +101,26 @@ impl PollRequest {
         }
     }
 
+    #[inline(always)]
     pub fn add_fd(&mut self, fd: i32, events: PollEvents) {
         self.fds.push(PollFdEntry::new(fd, events));
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, ts: u64) {
         self.end_ts = ts;
         self.ready_count = self.fds.iter().filter(|f| f.is_ready()).count() as u32;
     }
 
+    #[inline(always)]
     pub fn wall_time_ns(&self) -> u64 { self.end_ts.saturating_sub(self.start_ts) }
+    #[inline(always)]
     pub fn fd_count(&self) -> usize { self.fds.len() }
 }
 
 /// Per-fd poll statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FdPollStats {
     pub fd: i32,
     pub poll_count: u64,
@@ -120,6 +134,7 @@ impl FdPollStats {
         Self { fd, poll_count: 0, ready_count: 0, avg_wait_ns: 0, total_wait_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn ready_ratio(&self) -> f64 {
         if self.poll_count == 0 { 0.0 } else { self.ready_count as f64 / self.poll_count as f64 }
     }
@@ -127,6 +142,7 @@ impl FdPollStats {
 
 /// Poll bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PollBridgeStats {
     pub total_requests: u64,
     pub select_calls: u64,
@@ -140,8 +156,9 @@ pub struct PollBridgeStats {
 }
 
 /// Bridge poll manager
+#[repr(align(64))]
 pub struct BridgePollBridge {
-    requests: Vec<PollRequest>,
+    requests: VecDeque<PollRequest>,
     fd_stats: BTreeMap<i32, FdPollStats>,
     max_requests: usize,
     next_id: u64,
@@ -150,16 +167,18 @@ pub struct BridgePollBridge {
 
 impl BridgePollBridge {
     pub fn new() -> Self {
-        Self { requests: Vec::new(), fd_stats: BTreeMap::new(), max_requests: 1024, next_id: 1, stats: PollBridgeStats::default() }
+        Self { requests: VecDeque::new(), fd_stats: BTreeMap::new(), max_requests: 1024, next_id: 1, stats: PollBridgeStats::default() }
     }
 
+    #[inline]
     pub fn begin_poll(&mut self, variant: PollVariant, ts: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.requests.push(PollRequest::new(id, variant, ts));
+        self.requests.push_back(PollRequest::new(id, variant, ts));
         id
     }
 
+    #[inline]
     pub fn add_fd(&mut self, req_id: u64, fd: i32, events: PollEvents) {
         if let Some(r) = self.requests.iter_mut().find(|r| r.request_id == req_id) {
             r.add_fd(fd, events);
@@ -178,7 +197,7 @@ impl BridgePollBridge {
                 fs.avg_wait_ns = if fs.poll_count == 0 { 0 } else { fs.total_wait_ns / fs.poll_count };
             }
         }
-        if self.requests.len() > self.max_requests { self.requests.remove(0); }
+        if self.requests.len() > self.max_requests { self.requests.pop_front(); }
     }
 
     pub fn recompute(&mut self) {
@@ -196,7 +215,9 @@ impl BridgePollBridge {
         self.stats.total_fds_tracked = self.fd_stats.len();
     }
 
+    #[inline(always)]
     pub fn fd_stats(&self, fd: i32) -> Option<&FdPollStats> { self.fd_stats.get(&fd) }
+    #[inline(always)]
     pub fn stats(&self) -> &PollBridgeStats { &self.stats }
 }
 
@@ -241,6 +262,7 @@ impl PollV2FdEntry {
         }
     }
 
+    #[inline]
     pub fn check(&mut self, available: u32, ts_ns: u64) -> bool {
         self.poll_count += 1;
         self.returned_events = self.requested_events & available;
@@ -253,6 +275,7 @@ impl PollV2FdEntry {
         }
     }
 
+    #[inline(always)]
     pub fn readiness_rate(&self) -> f64 {
         if self.poll_count == 0 { 0.0 } else { self.ready_count as f64 / self.poll_count as f64 }
     }
@@ -283,10 +306,12 @@ impl PollV2Call {
         }
     }
 
+    #[inline(always)]
     pub fn add_fd(&mut self, fd: i32, events: u32) {
         self.fds.push(PollV2FdEntry::new(fd, events));
     }
 
+    #[inline(always)]
     pub fn fd_count(&self) -> usize {
         self.fds.len()
     }
@@ -294,6 +319,7 @@ impl PollV2Call {
 
 /// Poll v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PollV2BridgeStats {
     pub total_calls: u64,
     pub total_fds_polled: u64,
@@ -304,6 +330,7 @@ pub struct PollV2BridgeStats {
 
 /// Main bridge poll v2
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgePollV2 {
     pub stats: PollV2BridgeStats,
     pub fd_history: BTreeMap<i32, u64>,
@@ -340,10 +367,12 @@ impl BridgePollV2 {
         }
     }
 
+    #[inline(always)]
     pub fn most_polled_fd(&self) -> Option<(i32, u64)> {
         self.fd_history.iter().max_by_key(|(_, &v)| v).map(|(&k, &v)| (k, v))
     }
 
+    #[inline(always)]
     pub fn timeout_rate(&self) -> f64 {
         if self.stats.total_calls == 0 { 0.0 } else { self.stats.timeouts as f64 / self.stats.total_calls as f64 }
     }
@@ -372,6 +401,7 @@ impl PollV3Record {
 
 /// Poll v3 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PollV3BridgeStats { pub total_polls: u64, pub ready_events: u64, pub errors: u64, pub timeouts: u64 }
 
 /// Main bridge poll v3
@@ -380,6 +410,7 @@ pub struct BridgePollV3 { pub stats: PollV3BridgeStats }
 
 impl BridgePollV3 {
     pub fn new() -> Self { Self { stats: PollV3BridgeStats { total_polls: 0, ready_events: 0, errors: 0, timeouts: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &PollV3Record) {
         self.stats.total_polls += 1;
         match rec.event {

@@ -75,6 +75,7 @@ impl XattrRecord {
         }
     }
 
+    #[inline]
     pub fn is_write(&self) -> bool {
         matches!(
             self.op,
@@ -87,6 +88,7 @@ impl XattrRecord {
         )
     }
 
+    #[inline(always)]
     pub fn is_security(&self) -> bool {
         self.ns == XattrNs::Security
     }
@@ -94,6 +96,7 @@ impl XattrRecord {
 
 /// Xattr app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct XattrAppStats {
     pub total_ops: u64,
     pub gets: u64,

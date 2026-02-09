@@ -5,6 +5,7 @@ use alloc::format;
 use super::invariant::{Invariant, InvariantResult};
 
 /// Create a simple boolean invariant
+#[inline]
 pub fn bool_invariant(
     name: impl Into<alloc::string::String>,
     check: impl Fn() -> bool + Send + Sync + 'static,
@@ -16,6 +17,7 @@ pub fn bool_invariant(
 }
 
 /// Create a range invariant
+#[inline]
 pub fn range_invariant<T: PartialOrd + core::fmt::Display + Clone + Send + Sync + 'static>(
     name: impl Into<alloc::string::String>,
     get_value: impl Fn() -> T + Send + Sync + 'static,

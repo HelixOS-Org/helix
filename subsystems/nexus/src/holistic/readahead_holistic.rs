@@ -53,18 +53,22 @@ impl HolisticRaWindow {
         }
     }
 
+    #[inline(always)]
     pub fn issue(&mut self, pages: u64) {
         self.pages_issued += pages;
         self.state = ReadaheadState::Async;
     }
 
+    #[inline(always)]
     pub fn use_page(&mut self) {
         self.pages_used += 1;
     }
+    #[inline(always)]
     pub fn waste(&mut self, pages: u64) {
         self.wasted_pages += pages;
     }
 
+    #[inline]
     pub fn efficiency(&self) -> f64 {
         if self.pages_issued == 0 {
             0.0
@@ -73,6 +77,7 @@ impl HolisticRaWindow {
         }
     }
 
+    #[inline]
     pub fn adjust_window(&mut self) {
         let eff = self.efficiency();
         if eff > 0.8 {
@@ -85,6 +90,7 @@ impl HolisticRaWindow {
 
 /// Holistic readahead stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticReadaheadStats {
     pub total_issues: u64,
     pub total_pages_issued: u64,
@@ -116,6 +122,7 @@ impl HolisticReadahead {
         }
     }
 
+    #[inline]
     pub fn issue_readahead(&mut self, inode: u64, pages: u64) {
         self.stats.total_issues += 1;
         self.stats.total_pages_issued += pages;
@@ -126,6 +133,7 @@ impl HolisticReadahead {
         w.issue(pages);
     }
 
+    #[inline]
     pub fn record_use(&mut self, inode: u64) {
         self.stats.total_pages_used += 1;
         if let Some(w) = self.windows.get_mut(&inode) {
@@ -133,6 +141,7 @@ impl HolisticReadahead {
         }
     }
 
+    #[inline]
     pub fn overall_efficiency(&self) -> f64 {
         if self.stats.total_pages_issued == 0 {
             0.0

@@ -32,6 +32,7 @@ impl CapCoopRecord {
 
 /// Capability coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CapCoopStats {
     pub total_events: u64,
     pub inherits: u64,
@@ -50,6 +51,7 @@ impl CoopCapability {
         Self { stats: CapCoopStats { total_events: 0, inherits: 0, propagations: 0, drops: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &CapCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

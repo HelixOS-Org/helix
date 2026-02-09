@@ -140,6 +140,7 @@ impl TransferChunk {
     }
 
     /// Verify checksum
+    #[inline(always)]
     pub fn verify(&self) -> bool {
         self.checksum == Self::compute_checksum(&self.data)
     }
@@ -223,11 +224,13 @@ impl TransferSession {
     }
 
     /// Check if all chunks received
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.chunks_received.iter().all(|c| c.is_some())
     }
 
     /// Get missing chunk indices
+    #[inline]
     pub fn missing_chunks(&self) -> Vec<u32> {
         self.chunks_received
             .iter()
@@ -238,6 +241,7 @@ impl TransferSession {
     }
 
     /// Get progress (0-1)
+    #[inline(always)]
     pub fn progress(&self) -> f64 {
         let received = self.chunks_received.iter().filter(|c| c.is_some()).count();
         received as f64 / self.total_chunks as f64
@@ -307,6 +311,7 @@ impl Default for TransferConfig {
 
 /// Transfer statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TransferStats {
     /// Total transfers initiated
     pub total_initiated: u64,
@@ -374,6 +379,7 @@ impl TransferManager {
     }
 
     /// Create chunks from data
+    #[inline]
     pub fn create_chunks(&self, transfer_id: u64, data: &[u8]) -> Vec<TransferChunk> {
         let chunk_size = self.config.chunk_size;
         let total_chunks = ((data.len() + chunk_size - 1) / chunk_size) as u32;
@@ -426,16 +432,19 @@ impl TransferManager {
     }
 
     /// Get session
+    #[inline(always)]
     pub fn get_session(&self, id: u64) -> Option<&TransferSession> {
         self.sessions.get(&id)
     }
 
     /// Get session data
+    #[inline(always)]
     pub fn get_data(&self, id: u64) -> Option<Vec<u8>> {
         self.sessions.get(&id).and_then(|s| s.reassemble())
     }
 
     /// Cancel transfer
+    #[inline]
     pub fn cancel(&mut self, id: u64) -> bool {
         if let Some(session) = self.sessions.get_mut(&id) {
             session.status = TransferStatus::Cancelled;
@@ -448,6 +457,7 @@ impl TransferManager {
     }
 
     /// Pause transfer
+    #[inline]
     pub fn pause(&mut self, id: u64) {
         if let Some(session) = self.sessions.get_mut(&id) {
             session.status = TransferStatus::Paused;
@@ -455,6 +465,7 @@ impl TransferManager {
     }
 
     /// Resume transfer
+    #[inline]
     pub fn resume(&mut self, id: u64) {
         if let Some(session) = self.sessions.get_mut(&id) {
             if session.status == TransferStatus::Paused {
@@ -522,6 +533,7 @@ impl TransferManager {
     }
 
     /// Get transfers for domain
+    #[inline]
     pub fn transfers_for(&self, domain: DomainId) -> Vec<&TransferSession> {
         self.sessions
             .values()
@@ -530,6 +542,7 @@ impl TransferManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &TransferStats {
         &self.stats
     }
@@ -593,22 +606,26 @@ impl StreamHandle {
     }
 
     /// Read data from stream
+    #[inline(always)]
     pub fn read(&mut self, max_bytes: usize) -> Vec<u8> {
         let to_read = max_bytes.min(self.buffer.len());
         self.buffer.drain(..to_read).collect()
     }
 
     /// Check if buffer has data
+    #[inline(always)]
     pub fn has_data(&self) -> bool {
         !self.buffer.is_empty()
     }
 
     /// Get buffer fill level
+    #[inline(always)]
     pub fn fill_level(&self) -> f64 {
         self.buffer.len() as f64 / self.capacity as f64
     }
 
     /// Close stream
+    #[inline(always)]
     pub fn close(&mut self) {
         self.active = false;
     }

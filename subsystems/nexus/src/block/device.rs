@@ -89,41 +89,49 @@ impl BlockDevice {
     }
 
     /// Size in bytes
+    #[inline(always)]
     pub fn size_bytes(&self) -> u64 {
         self.size_sectors * self.sector_size as u64
     }
 
     /// Size in GiB
+    #[inline(always)]
     pub fn size_gib(&self) -> f32 {
         self.size_bytes() as f32 / (1024.0 * 1024.0 * 1024.0)
     }
 
     /// Is partition
+    #[inline(always)]
     pub fn is_partition(&self) -> bool {
         self.parent.is_some()
     }
 
     /// Has partitions
+    #[inline(always)]
     pub fn has_partitions(&self) -> bool {
         !self.children.is_empty()
     }
 
     /// Initialize request queue
+    #[inline(always)]
     pub fn init_request_queue(&mut self) {
         self.request_queue = Some(RequestQueue::new(self.id, self.queue_depth));
     }
 
     /// Get request queue
+    #[inline(always)]
     pub fn request_queue(&self) -> Option<&RequestQueue> {
         self.request_queue.as_ref()
     }
 
     /// Get request queue mutably
+    #[inline(always)]
     pub fn request_queue_mut(&mut self) -> Option<&mut RequestQueue> {
         self.request_queue.as_mut()
     }
 
     /// Submit I/O request
+    #[inline]
     pub fn submit_io(&mut self, request: IoRequest) {
         if let Some(queue) = self.request_queue.as_mut() {
             queue.submit(request);
@@ -131,6 +139,7 @@ impl BlockDevice {
     }
 
     /// Complete I/O request
+    #[inline]
     pub fn complete_io(&mut self, id: u64, end_time: u64) -> Option<IoRequest> {
         if let Some(queue) = self.request_queue.as_mut() {
             queue.complete(id, end_time)
@@ -153,6 +162,7 @@ pub enum PartitionType {
 
 impl PartitionType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Gpt => "gpt",
@@ -207,11 +217,13 @@ impl Partition {
     }
 
     /// End sector
+    #[inline(always)]
     pub fn end_sector(&self) -> u64 {
         self.start_sector + self.size_sectors
     }
 
     /// Size in bytes
+    #[inline(always)]
     pub fn size_bytes(&self) -> u64 {
         self.size_sectors * 512
     }

@@ -45,15 +45,21 @@ impl Claim {
         Self { id, resource_id: resource, owner, claim_type: ctype, state: ClaimState::Pending, priority: prio, created_at: now, expires_at: 0, granted_at: 0 }
     }
 
+    #[inline(always)]
     pub fn grant(&mut self, now: u64) { self.state = ClaimState::Granted; self.granted_at = now; }
+    #[inline(always)]
     pub fn revoke(&mut self) { self.state = ClaimState::Revoked; }
+    #[inline(always)]
     pub fn expire(&mut self) { self.state = ClaimState::Expired; }
 
+    #[inline(always)]
     pub fn is_active(&self) -> bool { self.state == ClaimState::Granted }
+    #[inline(always)]
     pub fn check_expiry(&mut self, now: u64) -> bool {
         if self.expires_at > 0 && now >= self.expires_at && self.is_active() { self.expire(); true } else { false }
     }
 
+    #[inline]
     pub fn conflicts_with(&self, other: &Claim) -> bool {
         if self.resource_id != other.resource_id { return false; }
         matches!((self.claim_type, other.claim_type),
@@ -63,6 +69,7 @@ impl Claim {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ClaimMgrStats {
     pub total_claims: u32,
     pub granted: u32,
@@ -81,6 +88,7 @@ pub struct CoopClaimMgr {
 impl CoopClaimMgr {
     pub fn new() -> Self { Self { claims: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn claim(&mut self, resource: u64, owner: u64, ctype: ClaimType, prio: i32, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut c = Claim::new(id, resource, owner, ctype, prio, now);
@@ -91,10 +99,12 @@ impl CoopClaimMgr {
         id
     }
 
+    #[inline(always)]
     pub fn release(&mut self, id: u64) {
         if let Some(c) = self.claims.get_mut(&id) { c.revoke(); }
     }
 
+    #[inline]
     pub fn stats(&self) -> ClaimMgrStats {
         let granted = self.claims.values().filter(|c| c.state == ClaimState::Granted).count() as u32;
         let pending = self.claims.values().filter(|c| c.state == ClaimState::Pending).count() as u32;

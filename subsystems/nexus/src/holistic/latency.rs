@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -93,6 +94,7 @@ impl RequestTrace {
     }
 
     /// Add span
+    #[inline]
     pub fn add_span(&mut self, span: LatencySpan) {
         self.total_ns += span.duration_ns;
         if span.on_critical_path {
@@ -155,7 +157,7 @@ impl RequestTrace {
 #[derive(Debug, Clone)]
 pub struct LatencyPercentiles {
     /// Sorted values (ns)
-    values: Vec<u64>,
+    values: VecDeque<u64>,
     /// Max values
     max_values: usize,
 }
@@ -163,22 +165,24 @@ pub struct LatencyPercentiles {
 impl LatencyPercentiles {
     pub fn new(max_values: usize) -> Self {
         Self {
-            values: Vec::new(),
+            values: VecDeque::new(),
             max_values,
         }
     }
 
     /// Record value
+    #[inline]
     pub fn record(&mut self, ns: u64) {
         // Insert sorted
         let pos = self.values.partition_point(|&v| v < ns);
         self.values.insert(pos, ns);
         if self.values.len() > self.max_values {
-            self.values.remove(0);
+            self.values.pop_front();
         }
     }
 
     /// Get percentile
+    #[inline]
     pub fn percentile(&self, p: f64) -> u64 {
         if self.values.is_empty() {
             return 0;
@@ -187,33 +191,42 @@ impl LatencyPercentiles {
         self.values[idx]
     }
 
+    #[inline(always)]
     pub fn p50(&self) -> u64 {
         self.percentile(50.0)
     }
+    #[inline(always)]
     pub fn p90(&self) -> u64 {
         self.percentile(90.0)
     }
+    #[inline(always)]
     pub fn p95(&self) -> u64 {
         self.percentile(95.0)
     }
+    #[inline(always)]
     pub fn p99(&self) -> u64 {
         self.percentile(99.0)
     }
+    #[inline(always)]
     pub fn p999(&self) -> u64 {
         self.percentile(99.9)
     }
 
+    #[inline(always)]
     pub fn min(&self) -> u64 {
         self.values.first().copied().unwrap_or(0)
     }
+    #[inline(always)]
     pub fn max(&self) -> u64 {
-        self.values.last().copied().unwrap_or(0)
+        self.values.back().copied().unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.values.len()
     }
 
+    #[inline]
     pub fn mean(&self) -> u64 {
         if self.values.is_empty() {
             return 0;
@@ -253,11 +266,13 @@ impl LatencyBudget {
     }
 
     /// Set component budget
+    #[inline(always)]
     pub fn set_component_budget(&mut self, component: LatencyComponent, ns: u64) {
         self.component_budgets.insert(component as u8, ns);
     }
 
     /// Check trace against budget
+    #[inline]
     pub fn check(&mut self, trace: &RequestTrace) -> bool {
         self.checks += 1;
         if trace.total_ns > self.total_budget_ns {
@@ -268,6 +283,7 @@ impl LatencyBudget {
     }
 
     /// Violation rate
+    #[inline]
     pub fn violation_rate(&self) -> f64 {
         if self.checks == 0 {
             return 0.0;
@@ -282,6 +298,7 @@ impl LatencyBudget {
 
 /// Latency analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LatencyAnalyzerStats {
     /// Total traces
     pub total_traces: u64,
@@ -302,7 +319,7 @@ pub struct HolisticLatencyAnalyzer {
     /// Active traces
     active_traces: BTreeMap<u64, RequestTrace>,
     /// Completed traces (ring buffer)
-    completed: Vec<RequestTrace>,
+    completed: VecDeque<RequestTrace>,
     /// Percentile tracker
     percentiles: LatencyPercentiles,
     /// Per-component percentiles
@@ -323,7 +340,7 @@ impl HolisticLatencyAnalyzer {
     pub fn new() -> Self {
         Self {
             active_traces: BTreeMap::new(),
-            completed: Vec::new(),
+            completed: VecDeque::new(),
             percentiles: LatencyPercentiles::new(10000),
             component_percentiles: BTreeMap::new(),
             budgets: BTreeMap::new(),
@@ -335,6 +352,7 @@ impl HolisticLatencyAnalyzer {
     }
 
     /// Start new trace
+    #[inline]
     pub fn start_trace(&mut self, pid: u64, timestamp: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -345,6 +363,7 @@ impl HolisticLatencyAnalyzer {
     }
 
     /// Add span to trace
+    #[inline]
     pub fn add_span(&mut self, trace_id: u64, span: LatencySpan) {
         if let Some(trace) = self.active_traces.get_mut(&trace_id) {
             trace.add_span(span);
@@ -376,9 +395,9 @@ impl HolisticLatencyAnalyzer {
         // Check budgets
         // (Would check against request type, simplified here)
 
-        self.completed.push(trace);
+        self.completed.push_back(trace);
         if self.completed.len() > self.max_completed {
-            self.completed.remove(0);
+            self.completed.pop_front();
         }
 
         self.stats.total_traces += 1;
@@ -395,21 +414,25 @@ impl HolisticLatencyAnalyzer {
     }
 
     /// Set budget
+    #[inline(always)]
     pub fn set_budget(&mut self, budget: LatencyBudget) {
         self.budgets.insert(budget.request_type, budget);
     }
 
     /// Get percentiles
+    #[inline(always)]
     pub fn percentiles(&self) -> &LatencyPercentiles {
         &self.percentiles
     }
 
     /// Get component percentiles
+    #[inline(always)]
     pub fn component_percentiles(&self, component: LatencyComponent) -> Option<&LatencyPercentiles> {
         self.component_percentiles.get(&(component as u8))
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &LatencyAnalyzerStats {
         &self.stats
     }

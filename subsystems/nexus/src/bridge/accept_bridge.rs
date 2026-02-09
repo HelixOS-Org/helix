@@ -23,6 +23,7 @@ impl AcceptBridgeRecord {
 
 /// Accept bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AcceptBridgeStats { pub total_events: u64, pub accepted: u64, pub refused: u64, pub timeouts: u64 }
 
 /// Main bridge accept
@@ -31,6 +32,7 @@ pub struct BridgeAccept { pub stats: AcceptBridgeStats }
 
 impl BridgeAccept {
     pub fn new() -> Self { Self { stats: AcceptBridgeStats { total_events: 0, accepted: 0, refused: 0, timeouts: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &AcceptBridgeRecord) {
         self.stats.total_events += 1;
         match rec.event {

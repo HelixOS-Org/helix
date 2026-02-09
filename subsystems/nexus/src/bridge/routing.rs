@@ -54,6 +54,7 @@ impl RoutePath {
     }
 
     /// Is synchronous
+    #[inline]
     pub fn is_synchronous(&self) -> bool {
         matches!(
             self,
@@ -108,6 +109,7 @@ pub struct RouteEntry {
 
 /// Conditions for route selection
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RouteConditions {
     /// Required process trust level (0 = any)
     pub min_trust_level: u32,
@@ -135,6 +137,7 @@ impl Default for RouteConditions {
 
 /// Route statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RouteStats {
     /// Total calls through this route
     pub total_calls: u64,
@@ -154,6 +157,7 @@ pub struct RouteStats {
 
 /// Cached route decision
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct CachedRoute {
     /// Syscall number
     pub syscall_nr: u32,
@@ -172,6 +176,7 @@ pub struct CachedRoute {
 }
 
 /// Route cache (per-process recent routes)
+#[repr(align(64))]
 pub struct RouteCache {
     /// Cache entries (pid -> syscall_nr -> cached route)
     entries: BTreeMap<u64, BTreeMap<u32, CachedRoute>>,
@@ -249,11 +254,13 @@ impl RouteCache {
     }
 
     /// Invalidate routes for process
+    #[inline(always)]
     pub fn invalidate_process(&mut self, pid: u64) {
         self.entries.remove(&pid);
     }
 
     /// Invalidate specific syscall across all processes
+    #[inline]
     pub fn invalidate_syscall(&mut self, syscall_nr: u32) {
         for process_cache in self.entries.values_mut() {
             process_cache.remove(&syscall_nr);
@@ -261,6 +268,7 @@ impl RouteCache {
     }
 
     /// Hit rate
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.total_hits + self.total_misses;
         if total == 0 {
@@ -304,6 +312,7 @@ impl FallbackChain {
         }
     }
 
+    #[inline]
     pub fn add_handler(&mut self, handler_id: u32, path: RoutePath, order: u32) {
         self.handlers.push(FallbackHandler {
             handler_id,
@@ -329,6 +338,7 @@ impl FallbackChain {
     }
 
     /// Get first enabled handler
+    #[inline(always)]
     pub fn first(&self) -> Option<&FallbackHandler> {
         self.handlers.iter().find(|h| h.enabled)
     }
@@ -339,6 +349,7 @@ impl FallbackChain {
 // ============================================================================
 
 /// Syscall routing engine
+#[repr(align(64))]
 pub struct RoutingEngine {
     /// Route table (syscall_nr -> routes)
     routes: BTreeMap<u32, Vec<RouteEntry>>,
@@ -367,6 +378,7 @@ impl RoutingEngine {
     }
 
     /// Register route
+    #[inline]
     pub fn add_route(&mut self, entry: RouteEntry) {
         self.routes
             .entry(entry.syscall_nr)
@@ -375,6 +387,7 @@ impl RoutingEngine {
     }
 
     /// Register fallback chain
+    #[inline(always)]
     pub fn add_fallback(&mut self, chain: FallbackChain) {
         self.fallbacks.insert(chain.syscall_nr, chain);
     }
@@ -445,6 +458,7 @@ impl RoutingEngine {
     }
 
     /// Update CPU load
+    #[inline(always)]
     pub fn update_load(&mut self, cpu_load: u32) {
         self.cpu_load = cpu_load;
     }
@@ -475,6 +489,7 @@ impl RoutingEngine {
     }
 
     /// Get cache stats
+    #[inline(always)]
     pub fn cache_hit_rate(&self) -> f64 {
         self.cache.hit_rate()
     }

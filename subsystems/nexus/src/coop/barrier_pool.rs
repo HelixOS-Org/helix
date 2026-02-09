@@ -37,7 +37,9 @@ pub struct BarrierParticipant {
 
 impl BarrierParticipant {
     pub fn new(tid: u64) -> Self { Self { tid, arrived: false, arrival_time: 0, phase: 0, trip_count: 0 } }
+    #[inline(always)]
     pub fn arrive(&mut self, now: u64) { self.arrived = true; self.arrival_time = now; }
+    #[inline(always)]
     pub fn reset(&mut self) { self.arrived = false; self.phase += 1; self.trip_count += 1; }
 }
 
@@ -59,8 +61,10 @@ impl BarrierInstance {
         Self { id, barrier_type: btype, state: BarrierState::Open, parties, participants: Vec::new(), generation: 0, trip_count: 0, total_wait_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, tid: u64) { if self.participants.len() < self.parties as usize { self.participants.push(BarrierParticipant::new(tid)); } }
 
+    #[inline]
     pub fn arrive(&mut self, tid: u64, now: u64) -> bool {
         if let Some(p) = self.participants.iter_mut().find(|p| p.tid == tid) { p.arrive(now); }
         let arrived = self.participants.iter().filter(|p| p.arrived).count();
@@ -82,11 +86,13 @@ impl BarrierInstance {
         }
     }
 
+    #[inline(always)]
     pub fn avg_trip_wait(&self) -> u64 { if self.trip_count == 0 { 0 } else { self.total_wait_ns / self.trip_count } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BarrierPoolStats {
     pub total_barriers: u32,
     pub total_trips: u64,
@@ -96,6 +102,7 @@ pub struct BarrierPoolStats {
 }
 
 /// Main barrier pool
+#[repr(align(64))]
 pub struct CoopBarrierPool {
     barriers: BTreeMap<u64, BarrierInstance>,
     next_id: u64,
@@ -104,16 +111,19 @@ pub struct CoopBarrierPool {
 impl CoopBarrierPool {
     pub fn new() -> Self { Self { barriers: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, btype: BarrierType, parties: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.barriers.insert(id, BarrierInstance::new(id, btype, parties));
         id
     }
 
+    #[inline(always)]
     pub fn arrive(&mut self, barrier: u64, tid: u64, now: u64) -> bool {
         self.barriers.get_mut(&barrier).map(|b| b.arrive(tid, now)).unwrap_or(false)
     }
 
+    #[inline]
     pub fn stats(&self) -> BarrierPoolStats {
         let trips: u64 = self.barriers.values().map(|b| b.trip_count).sum();
         let active = self.barriers.values().filter(|b| b.state == BarrierState::Waiting).count() as u32;

@@ -207,6 +207,7 @@ impl Default for PolicyConfig {
 
 /// Policy statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PolicyStats {
     /// Total evaluations
     pub evaluations: u64,
@@ -320,6 +321,7 @@ impl PolicyEngine {
     }
 
     /// Remove policy
+    #[inline]
     pub fn remove_policy(&mut self, id: PolicyId) {
         if let Some(&idx) = self.by_id.get(&id) {
             self.policies.remove(idx);
@@ -333,6 +335,7 @@ impl PolicyEngine {
     }
 
     /// Enable/disable policy
+    #[inline]
     pub fn set_enabled(&mut self, id: PolicyId, enabled: bool) {
         if let Some(&idx) = self.by_id.get(&id) {
             if let Some(policy) = self.policies.get_mut(idx) {
@@ -476,16 +479,19 @@ impl PolicyEngine {
     }
 
     /// Get policy by ID
+    #[inline(always)]
     pub fn get_policy(&self, id: PolicyId) -> Option<&Policy> {
         self.by_id.get(&id).and_then(|&idx| self.policies.get(idx))
     }
 
     /// Get all policies
+    #[inline(always)]
     pub fn policies(&self) -> &[Policy] {
         &self.policies
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PolicyStats {
         &self.stats
     }

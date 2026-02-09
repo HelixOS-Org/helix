@@ -47,6 +47,7 @@ pub enum OptimizationType {
 
 /// Estimated benefit of an optimization
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct OptimizationBenefit {
     /// Estimated latency reduction (ns)
     pub latency_reduction_ns: u64,
@@ -64,6 +65,7 @@ pub struct OptimizationBenefit {
 
 impl OptimizationBenefit {
     /// Net benefit score (higher = better)
+    #[inline]
     pub fn score(&self) -> f64 {
         let benefit = self.latency_reduction_ns as f64 / 1000.0 // µs saved
             + self.throughput_improvement_pct * 10.0
@@ -98,6 +100,7 @@ pub struct OptimizationOpportunity {
 // ============================================================================
 
 /// Detects resource contention between processes
+#[repr(align(64))]
 pub struct ContentionDetector {
     /// Lock contention tracking: resource_id → (pid, acquire_count, wait_time_ns)
     lock_contention: BTreeMap<u64, Vec<(u64, u64, u64)>>,
@@ -137,6 +140,7 @@ impl ContentionDetector {
     }
 
     /// Record a file access
+    #[inline]
     pub fn record_file_access(&mut self, inode: u64, pid: u64) {
         let pids = self.file_contention.entry(inode).or_insert_with(Vec::new);
         if !pids.contains(&pid) {
@@ -196,6 +200,7 @@ impl ContentionDetector {
     }
 
     /// Remove process from all tracking
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
         for entries in self.lock_contention.values_mut() {
             entries.retain(|(p, _, _)| *p != pid);
@@ -285,6 +290,7 @@ impl TunableParam {
     }
 
     /// Increase the parameter
+    #[inline]
     pub fn increase(&mut self) -> bool {
         let new = self.current + self.step;
         if new <= self.max {
@@ -296,6 +302,7 @@ impl TunableParam {
     }
 
     /// Decrease the parameter
+    #[inline]
     pub fn decrease(&mut self) -> bool {
         let new = self.current - self.step;
         if new >= self.min {
@@ -307,6 +314,7 @@ impl TunableParam {
     }
 
     /// Check if last adjustment improved performance
+    #[inline(always)]
     pub fn adjustment_improved(&self) -> bool {
         self.post_adjustment_perf > self.pre_adjustment_perf
     }
@@ -358,6 +366,7 @@ impl AdaptiveTuner {
     }
 
     /// Add a tunable parameter
+    #[inline(always)]
     pub fn add_param(&mut self, param: TunableParam) {
         self.params.push(param);
     }
@@ -441,11 +450,13 @@ impl AdaptiveTuner {
     }
 
     /// Get current parameter values
+    #[inline(always)]
     pub fn param_values(&self) -> Vec<(&str, f64)> {
         self.params.iter().map(|p| (p.name, p.current)).collect()
     }
 
     /// Success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         if self.total_adjustments == 0 {
             0.0
@@ -545,6 +556,7 @@ impl GlobalOptimizer {
     }
 
     /// Get top N opportunities by score
+    #[inline]
     pub fn top_opportunities(&self, n: usize) -> Vec<&OptimizationOpportunity> {
         let mut sorted: Vec<&OptimizationOpportunity> = self.opportunities.iter().collect();
         sorted.sort_by(|a, b| {
@@ -558,6 +570,7 @@ impl GlobalOptimizer {
     }
 
     /// Mark an optimization as applied
+    #[inline]
     pub fn mark_applied(&mut self, idx: usize, saved_ns: u64) {
         if idx < self.opportunities.len() {
             self.opportunities[idx].active = true;
@@ -567,16 +580,19 @@ impl GlobalOptimizer {
     }
 
     /// Run tuning step
+    #[inline(always)]
     pub fn tune(&mut self, current_perf: f64, timestamp: u64) -> Option<TuningAction> {
         self.tuner.tune_step(current_perf, timestamp)
     }
 
     /// Number of opportunities
+    #[inline(always)]
     pub fn opportunity_count(&self) -> usize {
         self.opportunities.len()
     }
 
     /// Remove process from tracking
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
         self.contention.remove_process(pid);
         self.opportunities

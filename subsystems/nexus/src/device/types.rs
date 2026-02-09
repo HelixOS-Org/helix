@@ -8,11 +8,13 @@ pub struct DeviceId(pub u64);
 
 impl DeviceId {
     /// Create a new device ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +26,13 @@ pub struct DriverId(pub u64);
 
 impl DriverId {
     /// Create a new driver ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -40,11 +44,13 @@ pub struct BusId(pub u64);
 
 impl BusId {
     /// Create a new bus ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -56,11 +62,13 @@ pub struct ClassId(pub u64);
 
 impl ClassId {
     /// Create a new class ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -99,11 +107,13 @@ pub enum BusType {
 
 impl BusType {
     /// Check if bus supports hotplug
+    #[inline(always)]
     pub fn supports_hotplug(&self) -> bool {
         matches!(self, Self::Usb | Self::Thunderbolt | Self::Pci | Self::Sdio)
     }
 
     /// Check if bus supports power management
+    #[inline(always)]
     pub fn supports_power_management(&self) -> bool {
         matches!(self, Self::Pci | Self::Usb | Self::Acpi | Self::Platform)
     }
@@ -164,6 +174,7 @@ pub enum PowerState {
 
 impl PowerState {
     /// Get power consumption factor (0.0-1.0)
+    #[inline]
     pub fn power_factor(&self) -> f32 {
         match self {
             Self::D0 => 1.0,
@@ -175,6 +186,7 @@ impl PowerState {
     }
 
     /// Get wake latency (microseconds)
+    #[inline]
     pub fn wake_latency_us(&self) -> u64 {
         match self {
             Self::D0 => 0,

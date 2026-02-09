@@ -26,6 +26,7 @@ impl Position {
     }
 
     /// Create zero position
+    #[inline]
     pub fn zeros(dim: usize) -> Self {
         Self {
             values: alloc::vec![0.0; dim],
@@ -49,16 +50,19 @@ impl Position {
     }
 
     /// Dimension
+    #[inline(always)]
     pub fn dim(&self) -> usize {
         self.values.len()
     }
 
     /// Get value at index
+    #[inline(always)]
     pub fn get(&self, i: usize) -> f64 {
         self.values.get(i).copied().unwrap_or(0.0)
     }
 
     /// Set value at index
+    #[inline]
     pub fn set(&mut self, i: usize, v: f64) {
         if i < self.values.len() {
             self.values[i] = v;
@@ -66,6 +70,7 @@ impl Position {
     }
 
     /// Add another position
+    #[inline]
     pub fn add(&self, other: &Position) -> Position {
         let values = self
             .values
@@ -77,6 +82,7 @@ impl Position {
     }
 
     /// Subtract another position
+    #[inline]
     pub fn sub(&self, other: &Position) -> Position {
         let values = self
             .values
@@ -88,6 +94,7 @@ impl Position {
     }
 
     /// Scale by factor
+    #[inline]
     pub fn scale(&self, factor: f64) -> Position {
         Position {
             values: self.values.iter().map(|&v| v * factor).collect(),
@@ -95,6 +102,7 @@ impl Position {
     }
 
     /// Distance to another position
+    #[inline]
     pub fn distance(&self, other: &Position) -> f64 {
         let sq_sum: f64 = self
             .values
@@ -106,6 +114,7 @@ impl Position {
     }
 
     /// Euclidean norm
+    #[inline(always)]
     pub fn norm(&self) -> f64 {
         let sq_sum: f64 = self.values.iter().map(|&v| v * v).sum();
         libm::sqrt(sq_sum)
@@ -140,6 +149,7 @@ impl Velocity {
     }
 
     /// Create zero velocity
+    #[inline]
     pub fn zeros(dim: usize) -> Self {
         Self {
             values: alloc::vec![0.0; dim],
@@ -147,11 +157,13 @@ impl Velocity {
     }
 
     /// Dimension
+    #[inline(always)]
     pub fn dim(&self) -> usize {
         self.values.len()
     }
 
     /// Add another velocity
+    #[inline]
     pub fn add(&self, other: &Velocity) -> Velocity {
         let values = self
             .values
@@ -163,6 +175,7 @@ impl Velocity {
     }
 
     /// Scale by factor
+    #[inline]
     pub fn scale(&self, factor: f64) -> Velocity {
         Velocity {
             values: self.values.iter().map(|&v| v * factor).collect(),
@@ -170,6 +183,7 @@ impl Velocity {
     }
 
     /// Clamp magnitude
+    #[inline]
     pub fn clamp_magnitude(&mut self, max_speed: f64) {
         let speed: f64 = self.values.iter().map(|&v| v * v).sum();
         let speed = libm::sqrt(speed);
@@ -216,6 +230,7 @@ impl Particle {
     }
 
     /// Create random particle within bounds
+    #[inline]
     pub fn random(bounds: &[(f64, f64)], seed: u64) -> Self {
         let position = Position::random_in_bounds(bounds, seed);
         let velocity = Velocity::zeros(bounds.len());
@@ -223,6 +238,7 @@ impl Particle {
     }
 
     /// Update personal best if current is better
+    #[inline]
     pub fn update_best(&mut self) {
         if self.fitness < self.best_fitness {
             self.best_fitness = self.fitness;
@@ -259,6 +275,7 @@ impl Ant {
     }
 
     /// Check if node is visited
+    #[inline]
     pub fn is_visited(&self, node: usize) -> bool {
         if node < 64 {
             (self.visited >> node) & 1 == 1
@@ -268,6 +285,7 @@ impl Ant {
     }
 
     /// Visit a node
+    #[inline]
     pub fn visit(&mut self, node: usize, cost: f64) {
         self.path.push(node);
         self.path_cost += cost;
@@ -277,11 +295,13 @@ impl Ant {
     }
 
     /// Get path length
+    #[inline(always)]
     pub fn path_len(&self) -> usize {
         self.path.len()
     }
 
     /// Reset ant for new iteration
+    #[inline]
     pub fn reset(&mut self, start: usize) {
         self.path.clear();
         self.path.push(start);
@@ -320,6 +340,7 @@ impl Boid {
     }
 
     /// Apply force
+    #[inline]
     pub fn apply_force(&mut self, force: &Velocity) {
         for (i, &f) in force.values.iter().enumerate() {
             if i < self.acceleration.values.len() {
@@ -380,6 +401,7 @@ impl PheromoneMatrix {
     }
 
     /// Get pheromone level between nodes
+    #[inline]
     pub fn get(&self, from: usize, to: usize) -> f64 {
         if from < self.n_nodes && to < self.n_nodes {
             self.values[from * self.n_nodes + to]
@@ -389,6 +411,7 @@ impl PheromoneMatrix {
     }
 
     /// Set pheromone level
+    #[inline]
     pub fn set(&mut self, from: usize, to: usize, value: f64) {
         if from < self.n_nodes && to < self.n_nodes {
             self.values[from * self.n_nodes + to] = value;
@@ -396,6 +419,7 @@ impl PheromoneMatrix {
     }
 
     /// Deposit pheromone
+    #[inline]
     pub fn deposit(&mut self, from: usize, to: usize, amount: f64) {
         if from < self.n_nodes && to < self.n_nodes {
             let idx = from * self.n_nodes + to;
@@ -404,6 +428,7 @@ impl PheromoneMatrix {
     }
 
     /// Evaporate pheromones
+    #[inline]
     pub fn evaporate(&mut self, rate: f64) {
         let retention = 1.0 - rate;
         for v in &mut self.values {
@@ -416,6 +441,7 @@ impl PheromoneMatrix {
     }
 
     /// Reset all pheromones
+    #[inline]
     pub fn reset(&mut self) {
         for v in &mut self.values {
             *v = self.initial;
@@ -452,6 +478,7 @@ impl StigmergyGrid {
     }
 
     /// Get signal at position
+    #[inline]
     pub fn get(&self, x: usize, y: usize) -> f64 {
         if x < self.width && y < self.height {
             self.signals[y * self.width + x]
@@ -461,6 +488,7 @@ impl StigmergyGrid {
     }
 
     /// Set signal at position
+    #[inline]
     pub fn set(&mut self, x: usize, y: usize, value: f64) {
         if x < self.width && y < self.height {
             self.signals[y * self.width + x] = value;
@@ -468,6 +496,7 @@ impl StigmergyGrid {
     }
 
     /// Deposit signal at position
+    #[inline]
     pub fn deposit(&mut self, x: usize, y: usize, amount: f64) {
         if x < self.width && y < self.height {
             self.signals[y * self.width + x] += amount;
@@ -475,6 +504,7 @@ impl StigmergyGrid {
     }
 
     /// Apply decay
+    #[inline]
     pub fn decay(&mut self) {
         let retention = 1.0 - self.decay_rate;
         for s in &mut self.signals {

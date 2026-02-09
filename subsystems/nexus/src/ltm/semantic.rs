@@ -69,6 +69,7 @@ pub enum PatternConfidence {
 
 impl PatternConfidence {
     /// Get confidence name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Speculative => "speculative",
@@ -80,6 +81,7 @@ impl PatternConfidence {
     }
 
     /// From percentage
+    #[inline]
     pub fn from_percentage(pct: f32) -> Self {
         match pct {
             x if x >= 0.95 => Self::VeryHigh,
@@ -91,6 +93,7 @@ impl PatternConfidence {
     }
 
     /// To percentage (midpoint)
+    #[inline]
     pub fn to_percentage(&self) -> f32 {
         match self {
             Self::Speculative => 0.30,
@@ -216,16 +219,19 @@ impl SemanticPattern {
     }
 
     /// Add condition
+    #[inline(always)]
     pub fn add_condition(&mut self, condition: PatternCondition) {
         self.conditions.push(condition);
     }
 
     /// Set action
+    #[inline(always)]
     pub fn set_action(&mut self, action: String) {
         self.action = Some(action);
     }
 
     /// Record observation
+    #[inline]
     pub fn record_observation(&mut self, timestamp: Timestamp, success: bool) {
         if self.observations == 0 {
             self.first_seen = timestamp;
@@ -258,6 +264,7 @@ impl SemanticPattern {
     }
 
     /// Is reliable
+    #[inline(always)]
     pub fn is_reliable(&self) -> bool {
         self.confidence >= PatternConfidence::Medium && self.observations >= 10
     }
@@ -308,21 +315,25 @@ impl SemanticMemory {
     }
 
     /// Get pattern
+    #[inline(always)]
     pub fn get(&self, id: PatternId) -> Option<&SemanticPattern> {
         self.patterns.get(&id)
     }
 
     /// Get pattern mutably
+    #[inline(always)]
     pub fn get_mut(&mut self, id: PatternId) -> Option<&mut SemanticPattern> {
         self.patterns.get_mut(&id)
     }
 
     /// Find by name
+    #[inline(always)]
     pub fn find_by_name(&self, name: &str) -> Option<&SemanticPattern> {
         self.by_name.get(name).and_then(|id| self.patterns.get(id))
     }
 
     /// Find by category
+    #[inline]
     pub fn find_by_category(&self, category: PatternCategory) -> Vec<&SemanticPattern> {
         self.by_category
             .get(&category)
@@ -331,17 +342,20 @@ impl SemanticMemory {
     }
 
     /// Find reliable patterns
+    #[inline(always)]
     pub fn find_reliable(&self) -> Vec<&SemanticPattern> {
         self.patterns.values().filter(|p| p.is_reliable()).collect()
     }
 
     /// Find matching patterns (simplified)
+    #[inline(always)]
     pub fn find_matching(&self, _conditions: &BTreeMap<String, String>) -> Vec<&SemanticPattern> {
         // Simplified: would implement proper condition matching
         self.patterns.values().collect()
     }
 
     /// Record observation for pattern
+    #[inline]
     pub fn record_observation(&mut self, id: PatternId, timestamp: Timestamp, success: bool) {
         if let Some(pattern) = self.patterns.get_mut(&id) {
             pattern.record_observation(timestamp, success);
@@ -349,11 +363,13 @@ impl SemanticMemory {
     }
 
     /// Pattern count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.patterns.len()
     }
 
     /// Reliable pattern count
+    #[inline(always)]
     pub fn reliable_count(&self) -> usize {
         self.patterns.values().filter(|p| p.is_reliable()).count()
     }

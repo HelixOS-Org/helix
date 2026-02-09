@@ -69,6 +69,7 @@ impl WorkInfo {
     }
 
     /// Get queue wait time in nanoseconds
+    #[inline]
     pub fn wait_time_ns(&self) -> u64 {
         if let Some(started) = self.started_at {
             started.saturating_sub(self.enqueued_at)
@@ -78,6 +79,7 @@ impl WorkInfo {
     }
 
     /// Check if work is overdue
+    #[inline]
     pub fn is_overdue(&self, current_time: u64) -> bool {
         if self.state == WorkState::Pending {
             let wait_time = current_time.saturating_sub(self.enqueued_at);
@@ -90,6 +92,7 @@ impl WorkInfo {
 
 /// Work queue information
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WorkQueueInfo {
     /// Queue ID
     pub id: WorkQueueId,
@@ -146,6 +149,7 @@ impl WorkQueueInfo {
     }
 
     /// Calculate queue utilization
+    #[inline]
     pub fn utilization(&self) -> f32 {
         if self.max_workers == 0 {
             return 0.0;
@@ -154,6 +158,7 @@ impl WorkQueueInfo {
     }
 
     /// Calculate failure rate
+    #[inline]
     pub fn failure_rate(&self) -> f32 {
         let total = self.processed_count + self.failed_count;
         if total == 0 {

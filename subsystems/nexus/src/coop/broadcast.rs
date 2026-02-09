@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -63,6 +64,7 @@ impl BroadcastMsg {
         }
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         if self.ttl_ns == 0 { return false; }
         now_ns.saturating_sub(self.timestamp_ns) > self.ttl_ns
@@ -96,6 +98,7 @@ impl Subscriber {
         }
     }
 
+    #[inline]
     pub fn matches_topic(&self, topic: &str) -> bool {
         if self.topic_filter == "*" { return true; }
         if self.topic_filter.ends_with(".*") {
@@ -106,6 +109,7 @@ impl Subscriber {
         }
     }
 
+    #[inline(always)]
     pub fn can_accept(&self) -> bool {
         self.pending_count < self.max_pending
     }
@@ -123,10 +127,12 @@ impl Subscriber {
         true
     }
 
+    #[inline(always)]
     pub fn ack(&mut self) {
         self.pending_count = self.pending_count.saturating_sub(1);
     }
 
+    #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.total_received + self.dropped_count;
         if total == 0 { return 0.0; }
@@ -159,6 +165,7 @@ impl BroadcastTopic {
         }
     }
 
+    #[inline]
     pub fn add_subscriber(&mut self, sub_id: u64) {
         if !self.subscribers.contains(&sub_id) {
             self.subscribers.push(sub_id);
@@ -166,6 +173,7 @@ impl BroadcastTopic {
         }
     }
 
+    #[inline]
     pub fn remove_subscriber(&mut self, sub_id: u64) {
         if let Some(pos) = self.subscribers.iter().position(|&s| s == sub_id) {
             self.subscribers.swap_remove(pos);
@@ -173,11 +181,13 @@ impl BroadcastTopic {
         }
     }
 
+    #[inline(always)]
     pub fn record_publish(&mut self, size: usize) {
         self.msg_count += 1;
         self.total_bytes += size as u64;
     }
 
+    #[inline(always)]
     pub fn avg_msg_size(&self) -> f64 {
         if self.msg_count == 0 { return 0.0; }
         self.total_bytes as f64 / self.msg_count as f64
@@ -186,6 +196,7 @@ impl BroadcastTopic {
 
 /// Broadcast stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BroadcastStats {
     pub total_topics: u64,
     pub total_subscribers: u64,
@@ -200,7 +211,7 @@ pub struct BroadcastStats {
 pub struct CoopBroadcast {
     topics: BTreeMap<String, BroadcastTopic>,
     subscribers: BTreeMap<u64, Subscriber>,
-    messages: Vec<BroadcastMsg>,
+    messages: VecDeque<BroadcastMsg>,
     next_sub_id: u64,
     next_seq: u64,
     max_history: usize,
@@ -212,7 +223,7 @@ impl CoopBroadcast {
         Self {
             topics: BTreeMap::new(),
             subscribers: BTreeMap::new(),
-            messages: Vec::new(),
+            messages: VecDeque::new(),
             next_sub_id: 1,
             next_seq: 1,
             max_history,
@@ -228,6 +239,7 @@ impl CoopBroadcast {
         }
     }
 
+    #[inline]
     pub fn create_topic(&mut self, name: String, now_ns: u64) {
         if !self.topics.contains_key(&name) {
             self.topics.insert(name.clone(), BroadcastTopic::new(name, now_ns));
@@ -297,13 +309,14 @@ impl CoopBroadcast {
         self.stats.total_deliveries += delivered as u64;
         self.stats.total_bytes += payload_size as u64;
 
-        self.messages.push(msg);
+        self.messages.push_back(msg);
         if self.messages.len() > self.max_history {
-            self.messages.remove(0);
+            self.messages.pop_front();
         }
         seq
     }
 
+    #[inline]
     pub fn ack(&mut self, sub_id: u64) {
         if let Some(sub) = self.subscribers.get_mut(&sub_id) {
             sub.ack();
@@ -311,12 +324,14 @@ impl CoopBroadcast {
         }
     }
 
+    #[inline]
     pub fn expire_messages(&mut self, now_ns: u64) -> usize {
         let before = self.messages.len();
         self.messages.retain(|m| !m.is_expired(now_ns));
         before - self.messages.len()
     }
 
+    #[inline]
     pub fn busiest_topics(&self, top: usize) -> Vec<(&str, u64)> {
         let mut v: Vec<(&str, u64)> = self.topics.iter()
             .map(|(name, t)| (name.as_str(), t.msg_count))
@@ -326,6 +341,7 @@ impl CoopBroadcast {
         v
     }
 
+    #[inline]
     pub fn slowest_subscribers(&self, top: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<(u64, f64)> = self.subscribers.iter()
             .map(|(&id, s)| (id, s.drop_rate()))
@@ -335,10 +351,12 @@ impl CoopBroadcast {
         v
     }
 
+    #[inline(always)]
     pub fn get_subscriber(&self, id: u64) -> Option<&Subscriber> {
         self.subscribers.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BroadcastStats {
         &self.stats
     }

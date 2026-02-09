@@ -19,6 +19,7 @@ use super::syscall::SyscallType;
 
 /// Full process context for syscall execution
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessContext {
     /// Process ID
     pub pid: u64,
@@ -83,16 +84,19 @@ impl ProcessContext {
     }
 
     /// Check if process has a capability
+    #[inline(always)]
     pub fn has_capability(&self, cap: Capability) -> bool {
         self.capabilities.has(cap)
     }
 
     /// Check if process is root
+    #[inline(always)]
     pub fn is_root(&self) -> bool {
         self.euid == 0
     }
 
     /// Check if process can perform a specific syscall
+    #[inline]
     pub fn can_perform(&self, syscall_type: SyscallType) -> bool {
         match syscall_type {
             SyscallType::Mmap => self.has_capability(Capability::SysMmap),
@@ -153,38 +157,46 @@ pub struct CapabilitySet {
 }
 
 impl CapabilitySet {
+    #[inline(always)]
     pub fn empty() -> Self {
         Self { bits: 0 }
     }
 
+    #[inline(always)]
     pub fn full() -> Self {
         Self { bits: u64::MAX }
     }
 
+    #[inline(always)]
     pub fn add(&mut self, cap: Capability) {
         self.bits |= 1u64 << (cap as u32);
     }
 
+    #[inline(always)]
     pub fn remove(&mut self, cap: Capability) {
         self.bits &= !(1u64 << (cap as u32));
     }
 
+    #[inline(always)]
     pub fn has(&self, cap: Capability) -> bool {
         (self.bits & (1u64 << (cap as u32))) != 0
     }
 
+    #[inline]
     pub fn intersect(&self, other: &CapabilitySet) -> CapabilitySet {
         CapabilitySet {
             bits: self.bits & other.bits,
         }
     }
 
+    #[inline]
     pub fn union(&self, other: &CapabilitySet) -> CapabilitySet {
         CapabilitySet {
             bits: self.bits | other.bits,
         }
     }
 
+    #[inline(always)]
     pub fn count(&self) -> u32 {
         self.bits.count_ones()
     }
@@ -196,6 +208,7 @@ impl CapabilitySet {
 
 /// Namespace context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NamespaceContext {
     /// PID namespace ID
     pub pid_ns: u64,
@@ -229,6 +242,7 @@ impl Default for NamespaceContext {
 
 impl NamespaceContext {
     /// Check if two contexts share the same namespace
+    #[inline]
     pub fn shares_namespace(&self, other: &NamespaceContext, ns_type: NamespaceType) -> bool {
         match ns_type {
             NamespaceType::Pid => self.pid_ns == other.pid_ns,
@@ -303,6 +317,7 @@ impl RLimit {
         Self { soft, hard }
     }
 
+    #[inline]
     pub fn unlimited() -> Self {
         Self {
             soft: Self::UNLIMITED,
@@ -310,6 +325,7 @@ impl RLimit {
         }
     }
 
+    #[inline]
     pub fn check(&self, value: u64) -> LimitCheck {
         if value > self.hard {
             LimitCheck::HardLimitExceeded
@@ -384,11 +400,13 @@ impl Default for SecurityLabel {
 
 impl SecurityLabel {
     /// Check if this label dominates another (for MAC)
+    #[inline(always)]
     pub fn dominates(&self, other: &SecurityLabel) -> bool {
         self.level >= other.level && (self.categories & other.categories) == other.categories
     }
 
     /// Check if labels are in the same domain
+    #[inline(always)]
     pub fn same_domain(&self, other: &SecurityLabel) -> bool {
         self.domain == other.domain
     }
@@ -420,6 +438,7 @@ pub enum SchedClass {
 // ============================================================================
 
 /// Manages execution contexts for all processes
+#[repr(align(64))]
 pub struct ContextManager {
     /// Process contexts
     contexts: BTreeMap<u64, ProcessContext>,
@@ -431,6 +450,7 @@ pub struct ContextManager {
 
 /// Thread-specific context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ThreadContext {
     /// Thread ID
     pub tid: u64,
@@ -468,6 +488,7 @@ impl ThreadContext {
     }
 
     /// Mark syscall entry
+    #[inline]
     pub fn enter_syscall(&mut self, syscall_type: SyscallType, timestamp: u64) {
         self.in_syscall = true;
         self.current_syscall = Some(syscall_type);
@@ -475,6 +496,7 @@ impl ThreadContext {
     }
 
     /// Mark syscall exit
+    #[inline]
     pub fn exit_syscall(&mut self) -> u64 {
         self.in_syscall = false;
         let entry = self.syscall_entry_time;
@@ -494,6 +516,7 @@ impl ContextManager {
     }
 
     /// Register a new process
+    #[inline]
     pub fn register_process(&mut self, ctx: ProcessContext) -> bool {
         if self.contexts.len() >= self.max_contexts {
             return false;
@@ -504,11 +527,13 @@ impl ContextManager {
     }
 
     /// Get process context
+    #[inline(always)]
     pub fn get_process(&self, pid: u64) -> Option<&ProcessContext> {
         self.contexts.get(&pid)
     }
 
     /// Get mutable process context
+    #[inline(always)]
     pub fn get_process_mut(&mut self, pid: u64) -> Option<&mut ProcessContext> {
         self.contexts.get_mut(&pid)
     }
@@ -529,11 +554,13 @@ impl ContextManager {
     }
 
     /// Get thread context
+    #[inline(always)]
     pub fn get_thread(&self, pid: u64, tid: u64) -> Option<&ThreadContext> {
         self.thread_contexts.get(&pid).and_then(|m| m.get(&tid))
     }
 
     /// Get mutable thread context
+    #[inline]
     pub fn get_thread_mut(&mut self, pid: u64, tid: u64) -> Option<&mut ThreadContext> {
         self.thread_contexts
             .get_mut(&pid)
@@ -541,12 +568,14 @@ impl ContextManager {
     }
 
     /// Remove process and all threads
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.contexts.remove(&pid);
         self.thread_contexts.remove(&pid);
     }
 
     /// Remove a thread
+    #[inline]
     pub fn remove_thread(&mut self, pid: u64, tid: u64) {
         if let Some(threads) = self.thread_contexts.get_mut(&pid) {
             threads.remove(&tid);
@@ -557,11 +586,13 @@ impl ContextManager {
     }
 
     /// Number of tracked processes
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.contexts.len()
     }
 
     /// Total thread count
+    #[inline(always)]
     pub fn thread_count(&self) -> usize {
         self.thread_contexts.values().map(|m| m.len()).sum()
     }

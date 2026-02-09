@@ -14,6 +14,7 @@ pub enum MsQueueOpResult {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsQueueNode {
     pub value: u64,
     pub next: Option<u64>,
@@ -27,6 +28,7 @@ impl MsQueueNode {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsQueueState {
     pub head_tag: u64,
     pub tail_tag: u64,
@@ -49,6 +51,7 @@ impl MsQueueState {
         }
     }
 
+    #[inline]
     pub fn enqueue(&mut self) {
         self.size += 1;
         self.enqueue_count += 1;
@@ -56,6 +59,7 @@ impl MsQueueState {
         if self.size > self.max_size { self.max_size = self.size; }
     }
 
+    #[inline]
     pub fn dequeue(&mut self, latency_ns: u64) -> bool {
         if self.size == 0 { return false; }
         self.size -= 1;
@@ -65,10 +69,12 @@ impl MsQueueState {
         true
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.dequeue_count == 0 { 0 } else { self.total_latency_ns / self.dequeue_count }
     }
 
+    #[inline(always)]
     pub fn contention_rate(&self) -> u64 {
         let total = self.enqueue_count + self.dequeue_count;
         if total == 0 { 0 } else { (self.cas_failures * 100) / total }
@@ -76,6 +82,7 @@ impl MsQueueState {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsQueueStats {
     pub total_queues: u64,
     pub total_enqueues: u64,
@@ -84,6 +91,7 @@ pub struct MsQueueStats {
     pub total_helps: u64,
 }
 
+#[repr(align(64))]
 pub struct CoopMichaelScottQueue {
     queues: Vec<MsQueueState>,
     stats: MsQueueStats,
@@ -101,6 +109,7 @@ impl CoopMichaelScottQueue {
         }
     }
 
+    #[inline]
     pub fn create_queue(&mut self) -> usize {
         let idx = self.queues.len();
         self.queues.push(MsQueueState::new());
@@ -108,6 +117,7 @@ impl CoopMichaelScottQueue {
         idx
     }
 
+    #[inline]
     pub fn enqueue(&mut self, queue_idx: usize) {
         if let Some(q) = self.queues.get_mut(queue_idx) {
             q.enqueue();
@@ -115,6 +125,7 @@ impl CoopMichaelScottQueue {
         }
     }
 
+    #[inline]
     pub fn dequeue(&mut self, queue_idx: usize, latency_ns: u64) -> MsQueueOpResult {
         if let Some(q) = self.queues.get_mut(queue_idx) {
             if q.dequeue(latency_ns) {
@@ -124,5 +135,6 @@ impl CoopMichaelScottQueue {
         } else { MsQueueOpResult::Empty }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MsQueueStats { &self.stats }
 }

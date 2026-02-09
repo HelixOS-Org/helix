@@ -24,6 +24,7 @@ pub struct AdaptationId(pub u64);
 static ADAPTATION_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl AdaptationId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(ADAPTATION_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -137,6 +138,7 @@ pub enum AdaptationAction {
 
 /// Metric sample
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct MetricSample {
     /// Value
     pub value: f64,
@@ -145,6 +147,7 @@ pub struct MetricSample {
 }
 
 /// Metric buffer with history
+#[repr(align(64))]
 pub struct MetricBuffer {
     /// Samples
     samples: Vec<MetricSample>,
@@ -167,6 +170,7 @@ impl MetricBuffer {
     }
 
     /// Add sample
+    #[inline]
     pub fn push(&mut self, sample: MetricSample) {
         if self.samples.len() < self.capacity {
             self.samples.push(sample);
@@ -196,6 +200,7 @@ impl MetricBuffer {
     }
 
     /// Get mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.samples.is_empty() {
             return 0.0;
@@ -220,6 +225,7 @@ impl MetricBuffer {
     }
 
     /// Get min
+    #[inline]
     pub fn min(&self) -> Option<f64> {
         self.samples
             .iter()
@@ -228,6 +234,7 @@ impl MetricBuffer {
     }
 
     /// Get max
+    #[inline]
     pub fn max(&self) -> Option<f64> {
         self.samples
             .iter()
@@ -277,6 +284,7 @@ impl MetricBuffer {
     }
 
     /// Detect anomaly (z-score based)
+    #[inline]
     pub fn is_anomaly(&self, value: f64, sensitivity: f64) -> bool {
         let mean = self.mean();
         let std = self.std_dev();
@@ -342,23 +350,27 @@ impl AdaptationEngine {
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: AdaptationRule) {
         self.rules.push(rule);
         self.rules.sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
     /// Remove rule
+    #[inline(always)]
     pub fn remove_rule(&mut self, id: AdaptationId) {
         self.rules.retain(|r| r.id != id);
     }
 
     /// Register metric
+    #[inline(always)]
     pub fn register_metric(&mut self, name: &str, buffer_size: usize) {
         self.metrics
             .insert(String::from(name), MetricBuffer::new(buffer_size));
     }
 
     /// Update metric
+    #[inline]
     pub fn update_metric(&mut self, name: &str, value: f64) {
         let timestamp = self.tick.load(Ordering::Relaxed);
         if let Some(buffer) = self.metrics.get_mut(name) {
@@ -367,21 +379,25 @@ impl AdaptationEngine {
     }
 
     /// Set parameter
+    #[inline(always)]
     pub fn set_parameter(&mut self, name: &str, value: f64) {
         self.parameters.insert(String::from(name), value);
     }
 
     /// Get parameter
+    #[inline(always)]
     pub fn get_parameter(&self, name: &str) -> Option<f64> {
         self.parameters.get(name).copied()
     }
 
     /// Set feature
+    #[inline(always)]
     pub fn set_feature(&mut self, name: &str, enabled: bool) {
         self.features.insert(String::from(name), enabled);
     }
 
     /// Push event
+    #[inline]
     pub fn push_event(&mut self, event_type: &str) {
         let timestamp = self.tick.load(Ordering::Relaxed);
         self.events.push((String::from(event_type), timestamp));
@@ -555,11 +571,13 @@ impl AdaptationEngine {
     }
 
     /// Get adaptation history
+    #[inline(always)]
     pub fn history(&self) -> &[AdaptationRecord] {
         &self.history
     }
 
     /// Enable/disable
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }
@@ -607,6 +625,7 @@ impl AdaptiveParameter {
     }
 
     /// Get current value
+    #[inline(always)]
     pub fn value(&self) -> f64 {
         self.value
     }
@@ -655,6 +674,7 @@ impl AdaptiveParameter {
     }
 
     /// Reset to best known value
+    #[inline(always)]
     pub fn reset_to_best(&mut self) {
         self.value = self.best_value;
     }

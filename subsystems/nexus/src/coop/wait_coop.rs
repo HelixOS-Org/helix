@@ -28,6 +28,7 @@ pub struct CoopWaitEntry {
 
 /// Wait cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopWaitStats {
     pub total_waits: u64,
     pub blocking_waits: u64,
@@ -97,10 +98,12 @@ impl CoopWaitManager {
         self.completed.extend(to_complete);
     }
 
+    #[inline(always)]
     pub fn pending_count(&self, waiter: u64) -> usize {
         self.pending.get(&waiter).map(|v| v.len()).unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopWaitStats {
         &self.stats
     }

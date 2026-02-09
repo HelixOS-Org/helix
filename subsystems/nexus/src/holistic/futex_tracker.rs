@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Futex operation type
@@ -60,16 +61,19 @@ impl FutexWaiter {
         }
     }
 
+    #[inline(always)]
     pub fn wake(&mut self, ts: u64) {
         self.state = WaiterState::Woken;
         self.wake_ts = ts;
     }
 
+    #[inline(always)]
     pub fn timeout(&mut self, ts: u64) {
         self.state = WaiterState::TimedOut;
         self.wake_ts = ts;
     }
 
+    #[inline(always)]
     pub fn wait_time_ns(&self) -> u64 {
         if self.wake_ts > self.enqueue_ts { self.wake_ts - self.enqueue_ts } else { 0 }
     }
@@ -112,6 +116,7 @@ impl FutexBucket {
         h
     }
 
+    #[inline]
     pub fn add_waiter(&mut self, waiter: FutexWaiter) {
         self.total_waits += 1;
         self.waiters.push(waiter);
@@ -120,6 +125,7 @@ impl FutexBucket {
         if cur > 1 { self.contention_count += 1; }
     }
 
+    #[inline]
     pub fn wake_one(&mut self, ts: u64, bitset: u32) -> Option<u64> {
         for w in &mut self.waiters {
             if w.state == WaiterState::Waiting && (w.bitset & bitset) != 0 {
@@ -144,6 +150,7 @@ impl FutexBucket {
         woken
     }
 
+    #[inline]
     pub fn process_timeouts(&mut self, ts: u64) -> u32 {
         let mut timed_out = 0u32;
         for w in &mut self.waiters {
@@ -156,14 +163,17 @@ impl FutexBucket {
         timed_out
     }
 
+    #[inline(always)]
     pub fn cleanup_completed(&mut self) {
         self.waiters.retain(|w| w.state == WaiterState::Waiting);
     }
 
+    #[inline(always)]
     pub fn active_waiters(&self) -> usize {
         self.waiters.iter().filter(|w| w.state == WaiterState::Waiting).count()
     }
 
+    #[inline]
     pub fn avg_wait_time_ns(&self) -> u64 {
         let completed: Vec<&FutexWaiter> = self.waiters.iter().filter(|w| w.state != WaiterState::Waiting).collect();
         if completed.is_empty() { return 0; }
@@ -186,6 +196,7 @@ impl PiChain {
         Self { chain: Vec::new(), boosted_priority: 0, depth: 0, has_cycle: false }
     }
 
+    #[inline]
     pub fn add_link(&mut self, task: u64, futex_addr: u64) {
         // Check for cycle
         if self.chain.iter().any(|(t, _)| *t == task) {
@@ -211,6 +222,7 @@ pub struct RequeueOp {
 
 /// Futex tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FutexTrackerStats {
     pub total_futexes: usize,
     pub total_active_waiters: u64,
@@ -229,7 +241,7 @@ pub struct FutexTrackerStats {
 pub struct HolisticFutexTracker {
     buckets: BTreeMap<u64, FutexBucket>,
     pi_chains: Vec<PiChain>,
-    requeue_history: Vec<RequeueOp>,
+    requeue_history: VecDeque<RequeueOp>,
     max_history: usize,
     stats: FutexTrackerStats,
 }
@@ -238,11 +250,12 @@ impl HolisticFutexTracker {
     pub fn new() -> Self {
         Self {
             buckets: BTreeMap::new(), pi_chains: Vec::new(),
-            requeue_history: Vec::new(), max_history: 256,
+            requeue_history: VecDeque::new(), max_history: 256,
             stats: FutexTrackerStats::default(),
         }
     }
 
+    #[inline]
     pub fn wait(&mut self, addr: u64, task_id: u64, ts: u64, bitset: u32, timeout_ns: Option<u64>) {
         let bucket = self.buckets.entry(addr).or_insert_with(|| FutexBucket::new(addr));
         let mut waiter = FutexWaiter::new(task_id, ts, bitset);
@@ -250,12 +263,14 @@ impl HolisticFutexTracker {
         bucket.add_waiter(waiter);
     }
 
+    #[inline]
     pub fn wake(&mut self, addr: u64, nr_wake: u32, ts: u64) -> u32 {
         if let Some(bucket) = self.buckets.get_mut(&addr) {
             bucket.wake_n(nr_wake, ts, u32::MAX)
         } else { 0 }
     }
 
+    #[inline]
     pub fn wake_bitset(&mut self, addr: u64, nr_wake: u32, ts: u64, bitset: u32) -> u32 {
         if let Some(bucket) = self.buckets.get_mut(&addr) {
             bucket.wake_n(nr_wake, ts, bitset)
@@ -286,15 +301,16 @@ impl HolisticFutexTracker {
             for w in to_move { dst_bucket.add_waiter(w); }
         }
 
-        self.requeue_history.push(RequeueOp {
+        self.requeue_history.push_back(RequeueOp {
             src_addr: src, dst_addr: dst, nr_wake, nr_requeue,
             actual_woken: woken, actual_requeued: requeued, timestamp: ts,
         });
-        if self.requeue_history.len() > self.max_history { self.requeue_history.remove(0); }
+        if self.requeue_history.len() > self.max_history { self.requeue_history.pop_front(); }
 
         (woken, requeued)
     }
 
+    #[inline]
     pub fn process_timeouts(&mut self, ts: u64) -> u32 {
         let mut total = 0u32;
         let addrs: Vec<u64> = self.buckets.keys().copied().collect();
@@ -340,6 +356,7 @@ impl HolisticFutexTracker {
         is_deadlock
     }
 
+    #[inline]
     pub fn cleanup(&mut self) {
         let addrs: Vec<u64> = self.buckets.keys().copied().collect();
         for addr in addrs {
@@ -364,6 +381,8 @@ impl HolisticFutexTracker {
         self.stats.deadlocks_detected = self.pi_chains.iter().filter(|c| c.has_cycle).count();
     }
 
+    #[inline(always)]
     pub fn bucket(&self, addr: u64) -> Option<&FutexBucket> { self.buckets.get(&addr) }
+    #[inline(always)]
     pub fn stats(&self) -> &FutexTrackerStats { &self.stats }
 }

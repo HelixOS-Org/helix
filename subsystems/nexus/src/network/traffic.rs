@@ -3,6 +3,7 @@
 //! Analyzes network traffic patterns.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -16,7 +17,7 @@ pub struct TrafficAnalyzer {
     /// Flow timeout in ticks
     flow_timeout: u64,
     /// Bandwidth samples
-    bandwidth_history: Vec<(NexusTimestamp, u64)>,
+    bandwidth_history: VecDeque<(NexusTimestamp, u64)>,
     /// Maximum history size
     max_history: usize,
     /// Total bytes processed
@@ -31,7 +32,7 @@ impl TrafficAnalyzer {
         Self {
             flows: BTreeMap::new(),
             flow_timeout,
-            bandwidth_history: Vec::new(),
+            bandwidth_history: VecDeque::new(),
             max_history: 3600, // 1 hour at 1 sample/second
             total_bytes: AtomicU64::new(0),
             total_packets: AtomicU64::new(0),
@@ -59,6 +60,7 @@ impl TrafficAnalyzer {
     }
 
     /// Record RTT for flow
+    #[inline]
     pub fn record_rtt(&mut self, flow_id: FlowId, rtt_ns: u64) {
         if let Some(stats) = self.flows.get_mut(&flow_id) {
             stats.record_rtt(rtt_ns);
@@ -66,6 +68,7 @@ impl TrafficAnalyzer {
     }
 
     /// Set connection state
+    #[inline]
     pub fn set_state(&mut self, flow_id: FlowId, state: ConnectionState) {
         if let Some(stats) = self.flows.get_mut(&flow_id) {
             stats.state = state;
@@ -73,6 +76,7 @@ impl TrafficAnalyzer {
     }
 
     /// Record retransmission
+    #[inline]
     pub fn record_retransmission(&mut self, flow_id: FlowId) {
         if let Some(stats) = self.flows.get_mut(&flow_id) {
             stats.retransmissions += 1;
@@ -80,11 +84,13 @@ impl TrafficAnalyzer {
     }
 
     /// Get flow stats
+    #[inline(always)]
     pub fn get_flow(&self, flow_id: &FlowId) -> Option<&FlowStats> {
         self.flows.get(flow_id)
     }
 
     /// Get all active flows
+    #[inline]
     pub fn active_flows(&self) -> impl Iterator<Item = &FlowStats> {
         self.flows
             .values()
@@ -92,20 +98,22 @@ impl TrafficAnalyzer {
     }
 
     /// Cleanup idle flows
+    #[inline(always)]
     pub fn cleanup_idle(&mut self) {
         let timeout = self.flow_timeout;
         self.flows.retain(|_, stats| !stats.is_idle(timeout));
     }
 
     /// Record bandwidth sample
+    #[inline]
     pub fn sample_bandwidth(&mut self) {
         let now = NexusTimestamp::now();
         let bytes = self.total_bytes.load(Ordering::Relaxed);
 
-        self.bandwidth_history.push((now, bytes));
+        self.bandwidth_history.push_back((now, bytes));
 
         if self.bandwidth_history.len() > self.max_history {
-            self.bandwidth_history.remove(0);
+            self.bandwidth_history.pop_front();
         }
     }
 
@@ -129,21 +137,25 @@ impl TrafficAnalyzer {
     }
 
     /// Get total statistics
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.total_bytes.load(Ordering::Relaxed)
     }
 
     /// Get total packets
+    #[inline(always)]
     pub fn total_packets(&self) -> u64 {
         self.total_packets.load(Ordering::Relaxed)
     }
 
     /// Get flow count
+    #[inline(always)]
     pub fn flow_count(&self) -> usize {
         self.flows.len()
     }
 
     /// Get top flows by bytes
+    #[inline]
     pub fn top_flows_by_bytes(&self, n: usize) -> Vec<&FlowStats> {
         let mut flows: Vec<_> = self.flows.values().collect();
         flows.sort_by(|a, b| {

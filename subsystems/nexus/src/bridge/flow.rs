@@ -95,6 +95,7 @@ impl CreditBucket {
     }
 
     /// Refill credits based on elapsed time
+    #[inline]
     pub fn refill(&mut self, now: u64) {
         let elapsed_ns = now.saturating_sub(self.last_refill_ns);
         let elapsed_secs = elapsed_ns as f64 / 1_000_000_000.0;
@@ -106,6 +107,7 @@ impl CreditBucket {
     }
 
     /// Try to consume credits
+    #[inline]
     pub fn try_consume(&mut self, amount: u64, now: u64) -> bool {
         self.refill(now);
         if self.credits >= amount {
@@ -119,6 +121,7 @@ impl CreditBucket {
     }
 
     /// Fill ratio (0.0-1.0)
+    #[inline]
     pub fn fill_ratio(&self) -> f64 {
         if self.max_credits == 0 {
             return 0.0;
@@ -161,6 +164,7 @@ impl AdmissionWindow {
     }
 
     /// Try to admit
+    #[inline]
     pub fn try_admit(&mut self) -> bool {
         if self.in_flight < self.window_size {
             self.in_flight += 1;
@@ -173,6 +177,7 @@ impl AdmissionWindow {
     }
 
     /// Release (completion)
+    #[inline]
     pub fn release(&mut self) {
         if self.in_flight > 0 {
             self.in_flight -= 1;
@@ -184,6 +189,7 @@ impl AdmissionWindow {
     }
 
     /// Signal congestion (multiplicative decrease)
+    #[inline]
     pub fn on_congestion(&mut self) {
         self.ssthresh = (self.window_size / 2).max(1);
         self.window_size = self.ssthresh;
@@ -191,6 +197,7 @@ impl AdmissionWindow {
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.window_size == 0 {
             return 0.0;
@@ -205,6 +212,7 @@ impl AdmissionWindow {
 
 /// Per-process flow state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessFlow {
     /// Process ID
     pub pid: u64,
@@ -263,6 +271,7 @@ impl ProcessFlow {
     }
 
     /// Complete a request
+    #[inline]
     pub fn complete(&mut self, latency_ns: u64) {
         self.window.release();
         // EMA update
@@ -290,6 +299,7 @@ impl ProcessFlow {
     }
 
     /// Recover from congestion
+    #[inline]
     pub fn recover(&mut self) {
         if self.state == FlowState::Throttled || self.state == FlowState::Congested {
             self.state = FlowState::Open;
@@ -303,6 +313,7 @@ impl ProcessFlow {
 
 /// Flow control stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeFlowStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -319,6 +330,7 @@ pub struct BridgeFlowStats {
 }
 
 /// Bridge flow controller
+#[repr(align(64))]
 pub struct BridgeFlowController {
     /// Per-process flows
     flows: BTreeMap<u64, ProcessFlow>,
@@ -344,6 +356,7 @@ impl BridgeFlowController {
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, priority: FlowPriority, now: u64) {
         self.flows.insert(pid, ProcessFlow::new(pid, priority, now));
         self.update_stats();
@@ -377,6 +390,7 @@ impl BridgeFlowController {
     }
 
     /// Complete request
+    #[inline]
     pub fn complete(&mut self, pid: u64, latency_ns: u64) {
         if let Some(flow) = self.flows.get_mut(&pid) {
             flow.complete(latency_ns);
@@ -422,6 +436,7 @@ impl BridgeFlowController {
     }
 
     /// Unregister process
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) {
         self.flows.remove(&pid);
         self.update_stats();
@@ -443,6 +458,7 @@ impl BridgeFlowController {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeFlowStats {
         &self.stats
     }

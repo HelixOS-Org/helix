@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -31,6 +32,7 @@ pub enum MsgPriority {
 
 /// A message in the queue
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QueueMsg {
     pub seq: u64,
     pub producer_id: u64,
@@ -52,6 +54,7 @@ impl QueueMsg {
         }
     }
 
+    #[inline(always)]
     pub fn latency_ns(&self, now_ns: u64) -> u64 {
         now_ns.saturating_sub(self.enqueue_ns)
     }
@@ -73,15 +76,18 @@ impl Producer {
         Self { id, pid, enqueued: 0, blocked_count: 0, dropped_count: 0, bytes_sent: 0 }
     }
 
+    #[inline(always)]
     pub fn record_enqueue(&mut self, size: usize) {
         self.enqueued += 1;
         self.bytes_sent += size as u64;
     }
 
+    #[inline(always)]
     pub fn record_drop(&mut self) {
         self.dropped_count += 1;
     }
 
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         let total = self.enqueued + self.dropped_count;
         if total == 0 { return 1.0; }
@@ -105,17 +111,20 @@ impl Consumer {
         Self { id, pid, dequeued: 0, empty_polls: 0, bytes_received: 0, total_latency_ns: 0 }
     }
 
+    #[inline]
     pub fn record_dequeue(&mut self, size: usize, latency_ns: u64) {
         self.dequeued += 1;
         self.bytes_received += size as u64;
         self.total_latency_ns += latency_ns;
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> f64 {
         if self.dequeued == 0 { return 0.0; }
         self.total_latency_ns as f64 / self.dequeued as f64
     }
 
+    #[inline]
     pub fn empty_rate(&self) -> f64 {
         let total = self.dequeued + self.empty_polls;
         if total == 0 { return 0.0; }
@@ -130,7 +139,7 @@ pub struct MpscInstance {
     pub name: String,
     pub capacity: usize,
     pub overflow_action: OverflowAction,
-    queue: Vec<QueueMsg>,
+    queue: VecDeque<QueueMsg>,
     producers: Vec<Producer>,
     consumer: Option<Consumer>,
     next_seq: u64,
@@ -153,7 +162,7 @@ impl MpscInstance {
             name,
             capacity,
             overflow_action: OverflowAction::DropNewest,
-            queue: Vec::new(),
+            queue: VecDeque::new(),
             producers: Vec::new(),
             consumer: None,
             next_seq: 1,
@@ -168,10 +177,12 @@ impl MpscInstance {
         }
     }
 
+    #[inline(always)]
     pub fn add_producer(&mut self, prod_id: u64, pid: u64) {
         self.producers.push(Producer::new(prod_id, pid));
     }
 
+    #[inline(always)]
     pub fn set_consumer(&mut self, cons_id: u64, pid: u64) {
         self.consumer = Some(Consumer::new(cons_id, pid));
     }
@@ -187,7 +198,7 @@ impl MpscInstance {
                     return None;
                 }
                 OverflowAction::DropOldest => {
-                    self.queue.remove(0);
+                    self.queue.pop_front();
                     self.total_drops += 1;
                 }
                 OverflowAction::Expand => {
@@ -205,7 +216,7 @@ impl MpscInstance {
         let seq = self.next_seq;
         self.next_seq += 1;
         let msg = QueueMsg::new(seq, producer_pid, payload_size, now_ns);
-        self.queue.push(msg);
+        self.queue.push_back(msg);
 
         if let Some(p) = self.producers.iter_mut().find(|p| p.pid == producer_pid) {
             p.record_enqueue(payload_size);
@@ -228,7 +239,7 @@ impl MpscInstance {
             }
             return None;
         }
-        let msg = self.queue.remove(0);
+        let msg = self.queue.pop_front().unwrap();
         let latency = now_ns.saturating_sub(msg.enqueue_ns);
         if let Some(ref mut c) = self.consumer {
             c.record_dequeue(msg.payload_size, latency);
@@ -237,20 +248,24 @@ impl MpscInstance {
         Some(msg)
     }
 
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.queue.len()
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 { return 0.0; }
         self.queue.len() as f64 / self.capacity as f64
     }
 
+    #[inline(always)]
     pub fn throughput_ratio(&self) -> f64 {
         if self.total_enqueues == 0 { return 0.0; }
         self.total_dequeues as f64 / self.total_enqueues as f64
     }
 
+    #[inline(always)]
     pub fn producer_count(&self) -> usize {
         self.producers.len()
     }
@@ -258,6 +273,7 @@ impl MpscInstance {
 
 /// MPSC stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MpscStats {
     pub total_queues: u64,
     pub total_enqueues: u64,
@@ -267,6 +283,7 @@ pub struct MpscStats {
 }
 
 /// Main MPSC queue manager
+#[repr(align(64))]
 pub struct CoopMpscQueue {
     queues: BTreeMap<u64, MpscInstance>,
     next_id: u64,
@@ -290,6 +307,7 @@ impl CoopMpscQueue {
         }
     }
 
+    #[inline]
     pub fn create_queue(&mut self, name: String, capacity: usize) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -298,6 +316,7 @@ impl CoopMpscQueue {
         id
     }
 
+    #[inline]
     pub fn add_producer(&mut self, queue_id: u64, pid: u64) -> u64 {
         let eid = self.next_endpoint;
         self.next_endpoint += 1;
@@ -307,6 +326,7 @@ impl CoopMpscQueue {
         eid
     }
 
+    #[inline]
     pub fn set_consumer(&mut self, queue_id: u64, pid: u64) -> u64 {
         let eid = self.next_endpoint;
         self.next_endpoint += 1;
@@ -331,6 +351,7 @@ impl CoopMpscQueue {
         }
     }
 
+    #[inline]
     pub fn dequeue(&mut self, queue_id: u64, now_ns: u64) -> Option<QueueMsg> {
         if let Some(q) = self.queues.get_mut(&queue_id) {
             let msg = q.dequeue(now_ns);
@@ -343,6 +364,7 @@ impl CoopMpscQueue {
         }
     }
 
+    #[inline]
     pub fn fullest_queues(&self, top: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<(u64, f64)> = self.queues.iter()
             .map(|(&id, q)| (id, q.utilization()))
@@ -352,10 +374,12 @@ impl CoopMpscQueue {
         v
     }
 
+    #[inline(always)]
     pub fn get_queue(&self, id: u64) -> Option<&MpscInstance> {
         self.queues.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MpscStats {
         &self.stats
     }

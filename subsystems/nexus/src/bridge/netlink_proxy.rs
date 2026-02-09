@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -58,12 +59,15 @@ impl NlMsgFlags {
     pub fn new() -> Self {
         Self { request: false, multi: false, ack: false, echo: false, dump: false, root: false, match_flag: false, atomic: false }
     }
+    #[inline(always)]
     pub fn request() -> Self { Self { request: true, ..Self::new() } }
+    #[inline(always)]
     pub fn dump_request() -> Self { Self { request: true, dump: true, root: true, match_flag: true, ..Self::new() } }
 }
 
 /// Netlink message
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NlMessage {
     pub seq: u64,
     pub family: NlFamily,
@@ -83,7 +87,7 @@ pub struct NlSocket {
     pub groups: Vec<u32>,
     pub recv_buf_size: u32,
     pub send_buf_size: u32,
-    pub recv_queue: Vec<NlMessage>,
+    pub recv_queue: VecDeque<NlMessage>,
     pub pending_acks: u32,
     pub drop_count: u64,
     pub msg_count: u64,
@@ -94,23 +98,28 @@ impl NlSocket {
         Self {
             port_id: port, family, groups: Vec::new(),
             recv_buf_size: 65536, send_buf_size: 65536,
-            recv_queue: Vec::new(), pending_acks: 0,
+            recv_queue: VecDeque::new(), pending_acks: 0,
             drop_count: 0, msg_count: 0,
         }
     }
 
+    #[inline(always)]
     pub fn join_group(&mut self, group: u32) { if !self.groups.contains(&group) { self.groups.push(group); } }
+    #[inline(always)]
     pub fn leave_group(&mut self, group: u32) { self.groups.retain(|&g| g != group); }
 
+    #[inline]
     pub fn enqueue(&mut self, msg: NlMessage) -> bool {
         let total_bytes: usize = self.recv_queue.iter().map(|m| m.payload.len()).sum();
         if total_bytes + msg.payload.len() > self.recv_buf_size as usize { self.drop_count += 1; return false; }
-        self.recv_queue.push(msg);
+        self.recv_queue.push_back(msg);
         self.msg_count += 1;
         true
     }
 
-    pub fn dequeue(&mut self) -> Option<NlMessage> { if self.recv_queue.is_empty() { None } else { Some(self.recv_queue.remove(0)) } }
+    #[inline(always)]
+    pub fn dequeue(&mut self) -> Option<NlMessage> { if self.recv_queue.is_empty() { None } else { self.recv_queue.pop_front() } }
+    #[inline(always)]
     pub fn queue_len(&self) -> usize { self.recv_queue.len() }
 }
 
@@ -144,6 +153,7 @@ pub struct GenlOp {
 
 /// Netlink proxy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NetlinkProxyStats {
     pub total_sockets: usize,
     pub total_messages: u64,
@@ -154,6 +164,7 @@ pub struct NetlinkProxyStats {
 }
 
 /// Bridge netlink proxy
+#[repr(align(64))]
 pub struct BridgeNetlinkProxy {
     sockets: BTreeMap<u32, NlSocket>,
     mcast_groups: BTreeMap<u32, NlMcastGroup>,
@@ -169,15 +180,18 @@ impl BridgeNetlinkProxy {
         Self { sockets: BTreeMap::new(), mcast_groups: BTreeMap::new(), genl_families: BTreeMap::new(), stats: NetlinkProxyStats::default(), next_group: 1, next_genl_id: 128, msg_seq: 0 }
     }
 
+    #[inline(always)]
     pub fn create_socket(&mut self, port: u32, family: NlFamily) {
         self.sockets.insert(port, NlSocket::new(port, family));
     }
 
+    #[inline(always)]
     pub fn destroy_socket(&mut self, port: u32) {
         self.sockets.remove(&port);
         for g in self.mcast_groups.values_mut() { g.subscribers.retain(|&s| s != port); }
     }
 
+    #[inline]
     pub fn send_message(&mut self, from: u32, to: u32, payload: Vec<u8>, ts: u64) -> bool {
         self.msg_seq += 1;
         let family = self.sockets.get(&from).map(|s| s.family).unwrap_or(NlFamily::Generic);
@@ -185,6 +199,7 @@ impl BridgeNetlinkProxy {
         if let Some(s) = self.sockets.get_mut(&to) { s.enqueue(msg) } else { false }
     }
 
+    #[inline]
     pub fn multicast(&mut self, group_id: u32, payload: Vec<u8>, ts: u64) {
         let subs: Vec<u32> = self.mcast_groups.get(&group_id).map(|g| g.subscribers.clone()).unwrap_or_default();
         let family = self.mcast_groups.get(&group_id).map(|g| g.family).unwrap_or(NlFamily::Generic);
@@ -195,23 +210,27 @@ impl BridgeNetlinkProxy {
         }
     }
 
+    #[inline]
     pub fn register_mcast_group(&mut self, name: String, family: NlFamily) -> u32 {
         let id = self.next_group; self.next_group += 1;
         self.mcast_groups.insert(id, NlMcastGroup { id, name, family, subscribers: Vec::new() });
         id
     }
 
+    #[inline(always)]
     pub fn subscribe(&mut self, port: u32, group: u32) {
         if let Some(s) = self.sockets.get_mut(&port) { s.join_group(group); }
         if let Some(g) = self.mcast_groups.get_mut(&group) { if !g.subscribers.contains(&port) { g.subscribers.push(port); } }
     }
 
+    #[inline]
     pub fn register_genl_family(&mut self, name: String, version: u8) -> u16 {
         let id = self.next_genl_id; self.next_genl_id += 1;
         self.genl_families.insert(id, GenlFamily { id, name, version, max_attr: 0, ops: Vec::new(), mcast_groups: Vec::new() });
         id
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_sockets = self.sockets.len();
         self.stats.total_messages = self.sockets.values().map(|s| s.msg_count).sum();
@@ -221,6 +240,8 @@ impl BridgeNetlinkProxy {
         self.stats.queued_messages = self.sockets.values().map(|s| s.queue_len()).sum();
     }
 
+    #[inline(always)]
     pub fn socket(&self, port: u32) -> Option<&NlSocket> { self.sockets.get(&port) }
+    #[inline(always)]
     pub fn stats(&self) -> &NetlinkProxyStats { &self.stats }
 }

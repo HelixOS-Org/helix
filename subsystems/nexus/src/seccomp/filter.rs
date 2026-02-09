@@ -53,16 +53,19 @@ impl SeccompFilter {
     }
 
     /// Add syscall rule
+    #[inline(always)]
     pub fn add_rule(&mut self, syscall: SyscallNum, action: FilterAction) {
         self.rules.insert(syscall, action);
     }
 
     /// Remove syscall rule
+    #[inline(always)]
     pub fn remove_rule(&mut self, syscall: SyscallNum) -> Option<FilterAction> {
         self.rules.remove(&syscall)
     }
 
     /// Get action for syscall
+    #[inline]
     pub fn get_action(&self, syscall: SyscallNum) -> FilterAction {
         self.rules
             .get(&syscall)
@@ -71,6 +74,7 @@ impl SeccompFilter {
     }
 
     /// Check if syscall is allowed
+    #[inline(always)]
     pub fn is_allowed(&self, syscall: SyscallNum) -> bool {
         matches!(self.get_action(syscall), FilterAction::Allow)
     }
@@ -129,36 +133,43 @@ impl SeccompFilter {
     }
 
     /// Get instruction count
+    #[inline(always)]
     pub fn instruction_count(&self) -> usize {
         self.insns.len()
     }
 
     /// Get rule count
+    #[inline(always)]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }
 
     /// Activate filter
+    #[inline(always)]
     pub fn activate(&self) {
         self.active.store(true, Ordering::Relaxed);
     }
 
     /// Deactivate filter
+    #[inline(always)]
     pub fn deactivate(&self) {
         self.active.store(false, Ordering::Relaxed);
     }
 
     /// Is active
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.active.load(Ordering::Relaxed)
     }
 
     /// Record trigger
+    #[inline(always)]
     pub fn record_trigger(&self) {
         self.triggers.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get trigger count
+    #[inline(always)]
     pub fn trigger_count(&self) -> u64 {
         self.triggers.load(Ordering::Relaxed)
     }

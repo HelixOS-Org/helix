@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -22,6 +23,7 @@ use crate::types::Timestamp;
 
 /// Decision context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DecisionContext {
     /// Context ID
     pub id: u64,
@@ -173,7 +175,7 @@ pub struct OptionScore {
     /// Overall score
     pub overall: f64,
     /// Score by criterion
-    pub by_criterion: BTreeMap<u64, f64>,
+    pub by_criterion: LinearMap<f64, 64>,
     /// Rank
     pub rank: usize,
     /// Feasible
@@ -197,7 +199,7 @@ pub enum EvaluationMethod {
 #[derive(Debug, Clone)]
 pub struct SensitivityAnalysis {
     /// Weight sensitivity
-    pub weight_sensitivity: BTreeMap<u64, f64>,
+    pub weight_sensitivity: LinearMap<f64, 64>,
     /// Stable range
     pub stable_ranges: BTreeMap<u64, (f64, f64)>,
 }
@@ -243,6 +245,7 @@ impl Default for EvaluatorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct EvaluatorStats {
     /// Evaluations performed
     pub evaluations: u64,
@@ -350,6 +353,7 @@ impl DecisionEvaluator {
     }
 
     /// Evaluate
+    #[inline(always)]
     pub fn evaluate(&mut self, context_id: u64) -> Option<EvaluationResult> {
         self.evaluate_with_method(context_id, self.config.default_method)
     }
@@ -482,8 +486,8 @@ impl DecisionEvaluator {
         let normalized = self.normalize_values(options, criteria);
 
         // Find ideal and anti-ideal
-        let mut ideal: BTreeMap<u64, f64> = BTreeMap::new();
-        let mut anti_ideal: BTreeMap<u64, f64> = BTreeMap::new();
+        let mut ideal: LinearMap<f64, 64> = BTreeMap::new();
+        let mut anti_ideal: LinearMap<f64, 64> = BTreeMap::new();
 
         for criterion in criteria {
             let values: Vec<f64> = options
@@ -572,7 +576,7 @@ impl DecisionEvaluator {
                 OptionScore {
                     option_id: option.id,
                     overall,
-                    by_criterion: BTreeMap::new(),
+                    by_criterion: LinearMap::new(),
                     rank: i + 1,
                     feasible,
                 }
@@ -646,7 +650,7 @@ impl DecisionEvaluator {
         criteria: &[Criterion],
     ) -> SensitivityAnalysis {
         // Simplified sensitivity analysis
-        let weight_sensitivity: BTreeMap<u64, f64> =
+        let weight_sensitivity: LinearMap<f64, 64> =
             criteria.iter().map(|c| (c.id, c.weight)).collect();
 
         let stable_ranges: BTreeMap<u64, (f64, f64)> = criteria
@@ -665,16 +669,19 @@ impl DecisionEvaluator {
     }
 
     /// Get context
+    #[inline(always)]
     pub fn get_context(&self, id: u64) -> Option<&DecisionContext> {
         self.contexts.get(&id)
     }
 
     /// Get result
+    #[inline(always)]
     pub fn get_result(&self, context_id: u64) -> Option<&EvaluationResult> {
         self.results.get(&context_id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &EvaluatorStats {
         &self.stats
     }

@@ -79,23 +79,27 @@ impl ChaosExperiment {
     }
 
     /// Set description
+    #[inline(always)]
     pub fn with_description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
     /// Add a fault
+    #[inline(always)]
     pub fn add_fault(&mut self, fault: FaultConfig) {
         self.faults.push(fault);
     }
 
     /// Set duration
+    #[inline(always)]
     pub fn with_duration(mut self, cycles: u64) -> Self {
         self.duration_cycles = Some(cycles);
         self
     }
 
     /// Start experiment
+    #[inline]
     pub fn start(&mut self) {
         self.started = Some(NexusTimestamp::now());
         self.running = true;
@@ -103,12 +107,14 @@ impl ChaosExperiment {
     }
 
     /// Stop experiment
+    #[inline(always)]
     pub fn stop(&mut self) {
         self.ended = Some(NexusTimestamp::now());
         self.running = false;
     }
 
     /// Check if experiment should end
+    #[inline]
     pub fn should_end(&self) -> bool {
         if !self.running {
             return true;
@@ -122,6 +128,7 @@ impl ChaosExperiment {
     }
 
     /// Record a fault injection
+    #[inline]
     pub fn record_injection(&mut self) {
         if let Some(ref mut results) = self.results {
             results.faults_injected += 1;
@@ -129,6 +136,7 @@ impl ChaosExperiment {
     }
 
     /// Record an error
+    #[inline]
     pub fn record_error(&mut self) {
         if let Some(ref mut results) = self.results {
             results.errors_observed += 1;
@@ -136,6 +144,7 @@ impl ChaosExperiment {
     }
 
     /// Record healing
+    #[inline]
     pub fn record_healing(&mut self) {
         if let Some(ref mut results) = self.results {
             results.healing_triggered += 1;

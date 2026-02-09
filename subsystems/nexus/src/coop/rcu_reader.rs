@@ -52,6 +52,7 @@ impl RcuCallback {
 
 /// Per-CPU RCU reader state.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct RcuCpuState {
     pub cpu: u32,
     pub nesting_depth: u32,
@@ -81,6 +82,7 @@ impl RcuCpuState {
         }
     }
 
+    #[inline]
     pub fn rcu_read_lock(&mut self) {
         self.nesting_depth += 1;
         self.state = RcuReaderState::InCriticalSection;
@@ -90,6 +92,7 @@ impl RcuCpuState {
         }
     }
 
+    #[inline]
     pub fn rcu_read_unlock(&mut self) {
         if self.nesting_depth > 0 {
             self.nesting_depth -= 1;
@@ -99,6 +102,7 @@ impl RcuCpuState {
         }
     }
 
+    #[inline]
     pub fn report_qs(&mut self, gp: u64) {
         if self.nesting_depth == 0 {
             self.qs_reported_gp = gp;
@@ -107,6 +111,7 @@ impl RcuCpuState {
         }
     }
 
+    #[inline(always)]
     pub fn enqueue_callback(&mut self, cb: RcuCallback) {
         self.pending_callbacks.push(cb);
     }
@@ -125,6 +130,7 @@ impl RcuCpuState {
         done
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending_callbacks.len()
     }
@@ -132,6 +138,7 @@ impl RcuCpuState {
 
 /// Statistics for RCU reader.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RcuReaderStats {
     pub total_cpus: u64,
     pub total_cs_entered: u64,
@@ -170,6 +177,7 @@ impl CoopRcuReader {
         }
     }
 
+    #[inline]
     pub fn register_cpu(&mut self, cpu: u32) {
         if !self.cpus.contains_key(&cpu) {
             self.cpus.insert(cpu, RcuCpuState::new(cpu));
@@ -177,6 +185,7 @@ impl CoopRcuReader {
         }
     }
 
+    #[inline]
     pub fn rcu_read_lock(&mut self, cpu: u32) {
         if let Some(state) = self.cpus.get_mut(&cpu) {
             state.rcu_read_lock();
@@ -184,6 +193,7 @@ impl CoopRcuReader {
         }
     }
 
+    #[inline]
     pub fn rcu_read_unlock(&mut self, cpu: u32) {
         if let Some(state) = self.cpus.get_mut(&cpu) {
             state.rcu_read_unlock();
@@ -203,6 +213,7 @@ impl CoopRcuReader {
         true
     }
 
+    #[inline]
     pub fn advance_gp(&self) {
         if self.check_gp_complete() {
             let current = self.current_gp.load(Ordering::Acquire);
@@ -211,6 +222,7 @@ impl CoopRcuReader {
         }
     }
 
+    #[inline(always)]
     pub fn cpu_count(&self) -> usize {
         self.cpus.len()
     }

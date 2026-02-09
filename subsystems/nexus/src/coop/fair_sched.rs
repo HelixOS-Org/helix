@@ -34,6 +34,7 @@ impl FairTask {
         Self { id, class, vruntime: 0, weight, total_runtime_ns: 0, slices_used: 0, last_scheduled: 0, waiting_since: 0 }
     }
 
+    #[inline]
     pub fn account(&mut self, runtime_ns: u64) {
         let weighted = if self.weight == 0 { runtime_ns } else { runtime_ns * 1024 / self.weight as u64 };
         self.vruntime += weighted;
@@ -44,6 +45,7 @@ impl FairTask {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FairSchedStats {
     pub total_tasks: u32,
     pub total_schedules: u64,
@@ -62,6 +64,7 @@ pub struct CoopFairSched {
 impl CoopFairSched {
     pub fn new(granularity_ns: u64) -> Self { Self { tasks: BTreeMap::new(), total_schedules: 0, min_granularity_ns: granularity_ns } }
 
+    #[inline]
     pub fn add_task(&mut self, id: u64, class: FairSchedClass, weight: u32) {
         let min_vruntime = self.tasks.values().map(|t| t.vruntime).min().unwrap_or(0);
         let mut task = FairTask::new(id, class, weight);
@@ -69,17 +72,21 @@ impl CoopFairSched {
         self.tasks.insert(id, task);
     }
 
+    #[inline(always)]
     pub fn pick_next(&mut self) -> Option<u64> {
         self.total_schedules += 1;
         self.tasks.values().min_by_key(|t| t.vruntime).map(|t| t.id)
     }
 
+    #[inline(always)]
     pub fn account(&mut self, id: u64, runtime_ns: u64) {
         if let Some(t) = self.tasks.get_mut(&id) { t.account(runtime_ns); }
     }
 
+    #[inline(always)]
     pub fn remove_task(&mut self, id: u64) { self.tasks.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> FairSchedStats {
         let vruntimes: Vec<u64> = self.tasks.values().map(|t| t.vruntime).collect();
         let min = vruntimes.iter().copied().min().unwrap_or(0);

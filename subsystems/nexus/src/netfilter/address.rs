@@ -8,11 +8,13 @@ pub struct Ipv4Addr(pub [u8; 4]);
 
 impl Ipv4Addr {
     /// Create from octets
+    #[inline(always)]
     pub const fn new(a: u8, b: u8, c: u8, d: u8) -> Self {
         Self([a, b, c, d])
     }
 
     /// Create from u32
+    #[inline]
     pub const fn from_u32(addr: u32) -> Self {
         Self([
             ((addr >> 24) & 0xFF) as u8,
@@ -23,6 +25,7 @@ impl Ipv4Addr {
     }
 
     /// Convert to u32
+    #[inline]
     pub const fn to_u32(&self) -> u32 {
         ((self.0[0] as u32) << 24)
             | ((self.0[1] as u32) << 16)
@@ -46,6 +49,7 @@ pub struct Ipv6Addr(pub [u8; 16]);
 
 impl Ipv6Addr {
     /// Create from segments
+    #[inline]
     pub const fn new(segments: [u16; 8]) -> Self {
         let mut octets = [0u8; 16];
         let mut i = 0;
@@ -105,11 +109,13 @@ pub struct PortRange {
 
 impl PortRange {
     /// Create single port
+    #[inline(always)]
     pub const fn single(port: u16) -> Self {
         Self { start: port, end: port }
     }
 
     /// Create range
+    #[inline(always)]
     pub const fn range(start: u16, end: u16) -> Self {
         Self { start, end }
     }
@@ -118,6 +124,7 @@ impl PortRange {
     pub const ANY: Self = Self { start: 0, end: 65535 };
 
     /// Check if port is in range
+    #[inline(always)]
     pub fn contains(&self, port: u16) -> bool {
         port >= self.start && port <= self.end
     }

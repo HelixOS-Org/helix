@@ -25,6 +25,7 @@ pub enum PcieLinkSpeed {
 
 impl PcieLinkSpeed {
     /// Get speed name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Gen1 => "2.5GT/s",
@@ -38,6 +39,7 @@ impl PcieLinkSpeed {
     }
 
     /// From encoding
+    #[inline]
     pub fn from_encoding(encoding: u8) -> Self {
         match encoding {
             1 => Self::Gen1,
@@ -51,6 +53,7 @@ impl PcieLinkSpeed {
     }
 
     /// Get bandwidth per lane (MB/s)
+    #[inline]
     pub fn bandwidth_per_lane(&self) -> u32 {
         match self {
             Self::Gen1 => 250,  // 2.5GT/s * 8/10 = 2Gbps = 250MB/s
@@ -157,16 +160,19 @@ impl PcieLink {
     }
 
     /// Get current bandwidth (MB/s)
+    #[inline(always)]
     pub fn bandwidth(&self) -> u32 {
         self.speed.bandwidth_per_lane() * self.width.lanes() as u32
     }
 
     /// Get max bandwidth (MB/s)
+    #[inline(always)]
     pub fn max_bandwidth(&self) -> u32 {
         self.max_speed.bandwidth_per_lane() * self.max_width.lanes() as u32
     }
 
     /// Efficiency (current/max)
+    #[inline]
     pub fn efficiency(&self) -> f32 {
         let max = self.max_bandwidth();
         if max > 0 {
@@ -206,6 +212,7 @@ pub enum PowerState {
 
 impl PowerState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::D0 => "D0",

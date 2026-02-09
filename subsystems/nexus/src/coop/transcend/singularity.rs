@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -86,6 +87,7 @@ pub struct CoopDomain {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct UnifiedState {
     pub global_fairness: u64,
     pub global_contention: u64,
@@ -100,6 +102,7 @@ pub struct UnifiedState {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct SingularityStats {
     pub domains_count: usize,
     pub avg_fairness: u64,
@@ -118,7 +121,7 @@ pub struct SingularityStats {
 pub struct CoopSingularity {
     domains: BTreeMap<u64, CoopDomain>,
     unified: UnifiedState,
-    convergence_history: Vec<u64>,
+    convergence_history: VecDeque<u64>,
     rng_state: u64,
     tick: u64,
     convergence_events: u64,
@@ -137,7 +140,7 @@ impl CoopSingularity {
                 intelligence_score: 0,
                 convergence_velocity: 0,
             },
-            convergence_history: Vec::new(),
+            convergence_history: VecDeque::new(),
             rng_state: seed | 1,
             tick: 0,
             convergence_events: 0,
@@ -289,14 +292,15 @@ impl CoopSingularity {
             convergence_velocity: velocity,
         };
 
-        self.convergence_history.push(combined);
+        self.convergence_history.push_back(combined);
         if self.convergence_history.len() > MAX_CONVERGENCE_HISTORY {
-            self.convergence_history.remove(0);
+            self.convergence_history.pop_front();
         }
     }
 
     // -- perfect fairness ---------------------------------------------------
 
+    #[inline]
     pub fn perfect_fairness(&self) -> u64 {
         if self.domains.is_empty() {
             return 100;
@@ -309,6 +313,7 @@ impl CoopSingularity {
 
     // -- zero contention ----------------------------------------------------
 
+    #[inline]
     pub fn zero_contention(&self) -> u64 {
         if self.domains.is_empty() {
             return 100;
@@ -320,6 +325,7 @@ impl CoopSingularity {
 
     // -- cooperation singularity --------------------------------------------
 
+    #[inline]
     pub fn cooperation_singularity(&mut self) -> bool {
         let fairness = self.perfect_fairness();
         let zero_cont = self.zero_contention();
@@ -334,6 +340,7 @@ impl CoopSingularity {
 
     // -- intelligence level -------------------------------------------------
 
+    #[inline(always)]
     pub fn intelligence_level(&self) -> u64 {
         self.compute_intelligence()
     }
@@ -368,6 +375,7 @@ impl CoopSingularity {
 
     // -- tick ---------------------------------------------------------------
 
+    #[inline]
     pub fn tick(&mut self) {
         self.tick += 1;
         for d in self.domains.values_mut() {
@@ -420,6 +428,7 @@ impl CoopSingularity {
         };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> SingularityStats {
         self.stats.clone()
     }

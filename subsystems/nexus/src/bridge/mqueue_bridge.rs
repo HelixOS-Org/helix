@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Message priority (0-31)
@@ -34,11 +35,12 @@ pub struct MqMessage {
 
 /// Message queue
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct MessageQueue {
     pub id: u64,
     pub name_hash: u64,
     pub attr: MqAttr,
-    pub messages: Vec<MqMessage>,
+    pub messages: VecDeque<MqMessage>,
     pub readers_waiting: u32,
     pub writers_waiting: u32,
     pub send_count: u64,
@@ -49,31 +51,36 @@ pub struct MessageQueue {
 
 impl MessageQueue {
     pub fn new(id: u64, name_hash: u64, max_msg: u32, msg_size: u32) -> Self {
-        Self { id, name_hash, attr: MqAttr::new(max_msg, msg_size), messages: Vec::new(), readers_waiting: 0, writers_waiting: 0, send_count: 0, recv_count: 0, owner_uid: 0, permissions: 0o644 }
+        Self { id, name_hash, attr: MqAttr::new(max_msg, msg_size), messages: VecDeque::new(), readers_waiting: 0, writers_waiting: 0, send_count: 0, recv_count: 0, owner_uid: 0, permissions: 0o644 }
     }
 
+    #[inline]
     pub fn send(&mut self, msg: MqMessage) -> bool {
         if self.messages.len() as u32 >= self.attr.max_msg { return false; }
-        self.messages.push(msg);
+        self.messages.push_back(msg);
         self.messages.sort_by(|a, b| b.priority.cmp(&a.priority));
         self.attr.cur_msgs += 1;
         self.send_count += 1;
         true
     }
 
+    #[inline]
     pub fn receive(&mut self) -> Option<MqMessage> {
         if self.messages.is_empty() { return None; }
         self.attr.cur_msgs -= 1;
         self.recv_count += 1;
-        Some(self.messages.remove(0))
+        self.messages.pop_front()
     }
 
+    #[inline(always)]
     pub fn is_full(&self) -> bool { self.attr.cur_msgs >= self.attr.max_msg }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.messages.is_empty() }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MqueueBridgeStats {
     pub total_queues: u32,
     pub total_messages: u32,
@@ -83,6 +90,7 @@ pub struct MqueueBridgeStats {
 }
 
 /// Main mqueue bridge
+#[repr(align(64))]
 pub struct BridgeMqueue {
     queues: BTreeMap<u64, MessageQueue>,
     next_id: u64,
@@ -91,22 +99,27 @@ pub struct BridgeMqueue {
 impl BridgeMqueue {
     pub fn new() -> Self { Self { queues: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, name_hash: u64, max_msg: u32, msg_size: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.queues.insert(id, MessageQueue::new(id, name_hash, max_msg, msg_size));
         id
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, id: u64) { self.queues.remove(&id); }
 
+    #[inline(always)]
     pub fn send(&mut self, queue: u64, msg: MqMessage) -> bool {
         if let Some(q) = self.queues.get_mut(&queue) { q.send(msg) } else { false }
     }
 
+    #[inline(always)]
     pub fn receive(&mut self, queue: u64) -> Option<MqMessage> {
         self.queues.get_mut(&queue)?.receive()
     }
 
+    #[inline]
     pub fn stats(&self) -> MqueueBridgeStats {
         let msgs: u32 = self.queues.values().map(|q| q.attr.cur_msgs).sum();
         let sent: u64 = self.queues.values().map(|q| q.send_count).sum();
@@ -166,6 +179,7 @@ impl MqueueV2Record {
 
 /// Mqueue v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MqueueV2BridgeStats {
     pub total_ops: u64,
     pub sends: u64,
@@ -185,6 +199,7 @@ impl BridgeMqueueV2 {
         Self { stats: MqueueV2BridgeStats { total_ops: 0, sends: 0, receives: 0, queues_opened: 0, timeouts: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &MqueueV2Record) {
         self.stats.total_ops += 1;
         match rec.op {

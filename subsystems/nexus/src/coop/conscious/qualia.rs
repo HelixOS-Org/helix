@@ -77,6 +77,7 @@ fn xorshift64(state: &mut u64) -> u64 {
 
 /// The subjective cooperation experience state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QualiaState {
     /// Degree of cooperative alignment (0.0–1.0)
     pub harmony: f32,
@@ -155,6 +156,7 @@ impl ProcessQualia {
     }
 
     /// Update this process's qualia contributions
+    #[inline]
     pub fn update(
         &mut self,
         harmony: f32,
@@ -201,6 +203,7 @@ pub struct ExperienceRecord {
 // ============================================================================
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopQualiaStats {
     pub total_experiences: u64,
     pub tracked_processes: usize,
@@ -326,6 +329,7 @@ impl CoopQualiaEngine {
     }
 
     /// Recompute the global qualia state from all process contributions
+    #[inline]
     fn recompute_global_qualia(&mut self) {
         let count = self.process_qualia.len();
         if count == 0 {
@@ -394,11 +398,13 @@ impl CoopQualiaEngine {
     // ========================================================================
 
     /// Current cooperation harmony measure
+    #[inline(always)]
     pub fn harmony_level(&self) -> f32 {
         self.current_state.harmony
     }
 
     /// Per-process harmony contributions
+    #[inline]
     pub fn harmony_by_process(&self) -> Vec<(u64, f32)> {
         let mut result = Vec::new();
         for (pid, pq) in self.process_qualia.iter() {
@@ -429,11 +435,13 @@ impl CoopQualiaEngine {
     // ========================================================================
 
     /// Current cooperation friction measure
+    #[inline(always)]
     pub fn friction_score(&self) -> f32 {
         self.current_state.friction
     }
 
     /// Processes contributing most to friction
+    #[inline]
     pub fn friction_sources(&self) -> Vec<(u64, f32)> {
         let mut sources: Vec<(u64, f32)> = self
             .process_qualia
@@ -449,6 +457,7 @@ impl CoopQualiaEngine {
     // ========================================================================
 
     /// Current solidarity strength across all cooperating processes
+    #[inline(always)]
     pub fn solidarity_index(&self) -> f32 {
         self.current_state.solidarity
     }
@@ -473,6 +482,7 @@ impl CoopQualiaEngine {
     // ========================================================================
 
     /// Full qualia state snapshot
+    #[inline(always)]
     pub fn qualia_snapshot(&self) -> QualiaState {
         self.current_state.clone()
     }
@@ -499,11 +509,13 @@ impl CoopQualiaEngine {
     ///
     /// Integrates all four qualia dimensions into a single score.
     /// Positive = good cooperation experience, negative = poor.
+    #[inline(always)]
     pub fn experience_quality(&self) -> f32 {
         self.current_state.quality
     }
 
     /// Quality trend: positive = improving, negative = degrading
+    #[inline(always)]
     pub fn quality_trend(&self) -> f32 {
         self.quality_trend_ema
     }
@@ -585,19 +597,23 @@ impl CoopQualiaEngine {
     // QUERIES
     // ========================================================================
 
+    #[inline(always)]
     pub fn process_qualia(&self, process_id: u64) -> Option<&ProcessQualia> {
         self.process_qualia.get(&process_id)
     }
 
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.process_qualia.len()
     }
 
+    #[inline(always)]
     pub fn snapshot_stats(&self) -> CoopQualiaStats {
         self.stats.clone()
     }
 
     /// Tension level
+    #[inline(always)]
     pub fn tension_level(&self) -> f32 {
         self.current_state.tension
     }

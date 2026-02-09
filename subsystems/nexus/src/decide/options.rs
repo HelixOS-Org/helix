@@ -57,36 +57,42 @@ impl Option {
     }
 
     /// Set target
+    #[inline(always)]
     pub fn with_target(mut self, target: ActionTarget) -> Self {
         self.target = target;
         self
     }
 
     /// Set parameters
+    #[inline(always)]
     pub fn with_parameters(mut self, parameters: ActionParameters) -> Self {
         self.parameters = parameters;
         self
     }
 
     /// Set expected outcome
+    #[inline(always)]
     pub fn with_outcome(mut self, outcome: ExpectedOutcome) -> Self {
         self.expected_outcome = outcome;
         self
     }
 
     /// Set cost
+    #[inline(always)]
     pub fn with_cost(mut self, cost: ActionCost) -> Self {
         self.cost = cost;
         self
     }
 
     /// Set source
+    #[inline(always)]
     pub fn with_source(mut self, source: OptionSource) -> Self {
         self.source = source;
         self
     }
 
     /// Is this a safe option?
+    #[inline(always)]
     pub fn is_safe(&self) -> bool {
         self.action_type.is_safe() && self.cost.risk <= RiskLevel::Low
     }
@@ -135,6 +141,7 @@ pub enum ActionType {
 
 impl ActionType {
     /// Is this a safe action
+    #[inline]
     pub fn is_safe(&self) -> bool {
         matches!(
             self,
@@ -143,11 +150,13 @@ impl ActionType {
     }
 
     /// Is this a destructive action
+    #[inline(always)]
     pub fn is_destructive(&self) -> bool {
         matches!(self, Self::Kill | Self::Deallocate | Self::Quarantine)
     }
 
     /// Requires confirmation
+    #[inline(always)]
     pub fn requires_confirmation(&self) -> bool {
         self.is_destructive()
     }
@@ -237,6 +246,7 @@ impl ActionTarget {
     }
 
     /// Is system-wide target?
+    #[inline(always)]
     pub fn is_system_wide(&self) -> bool {
         matches!(self, Self::System)
     }
@@ -266,50 +276,59 @@ impl ActionParameters {
     }
 
     /// Set integer parameter
+    #[inline(always)]
     pub fn set_int(&mut self, key: impl Into<String>, value: i64) -> &mut Self {
         self.integers.insert(key.into(), value);
         self
     }
 
     /// Set string parameter
+    #[inline(always)]
     pub fn set_str(&mut self, key: impl Into<String>, value: impl Into<String>) -> &mut Self {
         self.strings.insert(key.into(), value.into());
         self
     }
 
     /// Set boolean parameter
+    #[inline(always)]
     pub fn set_bool(&mut self, key: impl Into<String>, value: bool) -> &mut Self {
         self.booleans.insert(key.into(), value);
         self
     }
 
     /// Set float parameter
+    #[inline(always)]
     pub fn set_float(&mut self, key: impl Into<String>, value: f64) -> &mut Self {
         self.floats.insert(key.into(), value);
         self
     }
 
     /// Get integer parameter
+    #[inline(always)]
     pub fn get_int(&self, key: &str) -> Option<i64> {
         self.integers.get(key).copied()
     }
 
     /// Get string parameter
+    #[inline(always)]
     pub fn get_str(&self, key: &str) -> Option<&str> {
         self.strings.get(key).map(|s| s.as_str())
     }
 
     /// Get boolean parameter
+    #[inline(always)]
     pub fn get_bool(&self, key: &str) -> Option<bool> {
         self.booleans.get(key).copied()
     }
 
     /// Get float parameter
+    #[inline(always)]
     pub fn get_float(&self, key: &str) -> Option<f64> {
         self.floats.get(key).copied()
     }
 
     /// Is empty?
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.integers.is_empty()
             && self.strings.is_empty()
@@ -318,6 +337,7 @@ impl ActionParameters {
     }
 
     /// Total parameter count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.integers.len() + self.strings.len() + self.booleans.len() + self.floats.len()
     }
@@ -363,18 +383,21 @@ impl ExpectedOutcome {
     }
 
     /// Set time to effect
+    #[inline(always)]
     pub fn with_time(mut self, time: Duration) -> Self {
         self.time_to_effect = time;
         self
     }
 
     /// Add side effect
+    #[inline(always)]
     pub fn with_side_effect(mut self, effect: impl Into<String>) -> Self {
         self.side_effects.push(effect.into());
         self
     }
 
     /// Is likely to succeed?
+    #[inline(always)]
     pub fn is_likely(&self) -> bool {
         self.success_probability >= 0.7
     }
@@ -424,23 +447,27 @@ impl ActionCost {
     }
 
     /// Set memory cost
+    #[inline(always)]
     pub fn with_memory(mut self, memory: u64) -> Self {
         self.memory = memory;
         self
     }
 
     /// Set time cost
+    #[inline(always)]
     pub fn with_time(mut self, time: Duration) -> Self {
         self.time = time;
         self
     }
 
     /// Get total resource cost (0-100)
+    #[inline(always)]
     pub fn total_resource_cost(&self) -> u8 {
         ((self.cpu as u16 + self.io as u16) / 2).min(100) as u8
     }
 
     /// Is expensive?
+    #[inline(always)]
     pub fn is_expensive(&self) -> bool {
         self.total_resource_cost() > 50 || self.risk >= RiskLevel::Medium
     }
@@ -467,6 +494,7 @@ pub enum RiskLevel {
 
 impl RiskLevel {
     /// Get numeric value (0-4)
+    #[inline]
     pub fn value(&self) -> u8 {
         match self {
             Self::Minimal => 0,
@@ -478,6 +506,7 @@ impl RiskLevel {
     }
 
     /// From numeric value
+    #[inline]
     pub fn from_value(value: u8) -> Self {
         match value {
             0 => Self::Minimal,
@@ -532,6 +561,7 @@ impl Impact {
     }
 
     /// Is positive overall?
+    #[inline(always)]
     pub fn is_positive(&self) -> bool {
         (self.performance as i16 + self.reliability as i16 - self.resources as i16) > 0
     }

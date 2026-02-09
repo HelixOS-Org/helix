@@ -51,6 +51,7 @@ impl RaidBridgeRecord {
 
 /// RAID bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RaidBridgeStats {
     pub total_ops: u64,
     pub creates: u64,
@@ -71,6 +72,7 @@ impl BridgeRaid {
         Self { stats: RaidBridgeStats { total_ops: 0, creates: 0, disk_failures: 0, rebuilds: 0, scrubs: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &RaidBridgeRecord) {
         self.stats.total_ops += 1;
         match rec.op {

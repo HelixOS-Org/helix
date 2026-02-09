@@ -1,5 +1,6 @@
 //! System load prediction.
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -9,9 +10,10 @@ use crate::core::NexusTimestamp;
 // ============================================================================
 
 /// System load predictor
+#[repr(align(64))]
 pub struct LoadPredictor {
     /// Historical load samples
-    history: Vec<LoadSample>,
+    history: VecDeque<LoadSample>,
     /// Seasonal patterns (by hour)
     hourly_patterns: [f64; 24],
     /// Trend component
@@ -35,7 +37,7 @@ impl LoadPredictor {
     /// Create new load predictor
     pub fn new() -> Self {
         Self {
-            history: Vec::new(),
+            history: VecDeque::new(),
             hourly_patterns: [0.5; 24],
             trend: 0.0,
             horizon: 3_600_000_000_000,
@@ -43,6 +45,7 @@ impl LoadPredictor {
     }
 
     /// Record current load
+    #[inline]
     pub fn record(&mut self, load: f64, hour: u8) {
         let sample = LoadSample {
             timestamp: NexusTimestamp::now(),
@@ -50,7 +53,7 @@ impl LoadPredictor {
             hour,
         };
 
-        self.history.push(sample);
+        self.history.push_back(sample);
 
         self.hourly_patterns[hour as usize] =
             0.9 * self.hourly_patterns[hour as usize] + 0.1 * load;
@@ -80,11 +83,12 @@ impl LoadPredictor {
         }
 
         if self.history.len() > 10000 {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
     /// Predict load at future hour
+    #[inline]
     pub fn predict(&self, future_hour: u8) -> f64 {
         let base = self.hourly_patterns[future_hour as usize];
         let adjusted = base + self.trend;
@@ -92,6 +96,7 @@ impl LoadPredictor {
     }
 
     /// Predict load for next N hours
+    #[inline]
     pub fn predict_range(&self, current_hour: u8, n_hours: usize) -> Vec<f64> {
         (0..n_hours)
             .map(|offset| {
@@ -102,21 +107,25 @@ impl LoadPredictor {
     }
 
     /// Get current trend
+    #[inline(always)]
     pub fn trend(&self) -> f64 {
         self.trend
     }
 
     /// Is load increasing?
+    #[inline(always)]
     pub fn is_increasing(&self) -> bool {
         self.trend > 0.05
     }
 
     /// Is load decreasing?
+    #[inline(always)]
     pub fn is_decreasing(&self) -> bool {
         self.trend < -0.05
     }
 
     /// Detect anomalous load
+    #[inline]
     pub fn detect_anomaly(&self, current_load: f64, current_hour: u8) -> bool {
         let expected = self.hourly_patterns[current_hour as usize];
         let diff = (current_load - expected).abs();

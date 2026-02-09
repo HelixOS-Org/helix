@@ -23,6 +23,7 @@ pub struct JitResult {
 
 impl JitResult {
     /// Create success result
+    #[inline]
     pub fn success(compiled_size: u32, compile_time_ns: u64, image_addr: u64, passes: u32) -> Self {
         Self {
             success: true,
@@ -34,6 +35,7 @@ impl JitResult {
     }
 
     /// Create failure result
+    #[inline]
     pub fn failure() -> Self {
         Self {
             success: false,
@@ -47,6 +49,7 @@ impl JitResult {
 
 /// JIT compiler statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct JitStats {
     /// Programs compiled
     pub programs_compiled: u64,
@@ -98,26 +101,31 @@ impl BpfJit {
     }
 
     /// Enable/disable JIT
+    #[inline(always)]
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }
 
     /// Is enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }
 
     /// Is hardened
+    #[inline(always)]
     pub fn is_hardened(&self) -> bool {
         self.hardened
     }
 
     /// Set hardened mode
+    #[inline(always)]
     pub fn set_hardened(&mut self, hardened: bool) {
         self.hardened = hardened;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &JitStats {
         &self.stats
     }

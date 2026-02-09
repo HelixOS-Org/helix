@@ -45,6 +45,7 @@ impl Default for ChaosConfig {
 
 impl ChaosConfig {
     /// Disable chaos testing
+    #[inline]
     pub fn disabled() -> Self {
         Self {
             enabled: false,

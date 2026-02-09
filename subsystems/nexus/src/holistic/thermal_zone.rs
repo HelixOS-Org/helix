@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -30,6 +31,7 @@ pub enum TripType {
 }
 
 impl TripType {
+    #[inline]
     pub fn severity(&self) -> u8 {
         match self {
             Self::Active => 1,
@@ -50,14 +52,17 @@ pub struct TripPoint {
 }
 
 impl TripPoint {
+    #[inline(always)]
     pub fn temp_celsius(&self) -> f64 {
         self.temperature_mc as f64 / 1000.0
     }
 
+    #[inline(always)]
     pub fn is_exceeded(&self, current_mc: i32) -> bool {
         current_mc >= self.temperature_mc
     }
 
+    #[inline(always)]
     pub fn is_cleared(&self, current_mc: i32) -> bool {
         current_mc < (self.temperature_mc - self.hysteresis_mc)
     }
@@ -85,15 +90,18 @@ pub struct CoolingDevice {
 }
 
 impl CoolingDevice {
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.max_state == 0 { return 0.0; }
         self.current_state as f64 / self.max_state as f64
     }
 
+    #[inline(always)]
     pub fn can_increase(&self) -> bool {
         self.current_state < self.max_state
     }
 
+    #[inline(always)]
     pub fn can_decrease(&self) -> bool {
         self.current_state > 0
     }
@@ -123,7 +131,7 @@ pub struct ThermalZone {
     pub polling_interval_ms: u32,
     pub mode_enabled: bool,
     pub last_update: u64,
-    pub temp_history: Vec<i32>,
+    pub temp_history: VecDeque<i32>,
     max_history: usize,
 }
 
@@ -139,41 +147,47 @@ impl ThermalZone {
             polling_interval_ms: 1000,
             mode_enabled: true,
             last_update: 0,
-            temp_history: Vec::new(),
+            temp_history: VecDeque::new(),
             max_history: 256,
         }
     }
 
+    #[inline(always)]
     pub fn temp_celsius(&self) -> f64 {
         self.temperature_mc as f64 / 1000.0
     }
 
+    #[inline]
     pub fn update_temp(&mut self, temp_mc: i32, timestamp: u64) {
         self.temperature_mc = temp_mc;
         self.last_update = timestamp;
         if self.temp_history.len() >= self.max_history {
-            self.temp_history.remove(0);
+            self.temp_history.pop_front();
         }
-        self.temp_history.push(temp_mc);
+        self.temp_history.push_back(temp_mc);
     }
 
+    #[inline]
     pub fn active_trips(&self) -> Vec<&TripPoint> {
         self.trip_points.iter()
             .filter(|tp| tp.is_exceeded(self.temperature_mc))
             .collect()
     }
 
+    #[inline(always)]
     pub fn highest_trip(&self) -> Option<&TripPoint> {
         self.active_trips().into_iter()
             .max_by_key(|tp| tp.trip_type.severity())
     }
 
+    #[inline]
     pub fn is_critical(&self) -> bool {
         self.trip_points.iter().any(|tp| {
             tp.trip_type == TripType::Critical && tp.is_exceeded(self.temperature_mc)
         })
     }
 
+    #[inline]
     pub fn trend(&self) -> f64 {
         if self.temp_history.len() < 2 { return 0.0; }
         let n = self.temp_history.len();
@@ -182,12 +196,14 @@ impl ThermalZone {
         recent - prev
     }
 
+    #[inline]
     pub fn avg_temp_mc(&self) -> i32 {
         if self.temp_history.is_empty() { return self.temperature_mc; }
         let sum: i64 = self.temp_history.iter().map(|&t| t as i64).sum();
         (sum / self.temp_history.len() as i64) as i32
     }
 
+    #[inline(always)]
     pub fn max_temp_mc(&self) -> i32 {
         self.temp_history.iter().copied().max().unwrap_or(self.temperature_mc)
     }
@@ -216,6 +232,7 @@ pub enum ThermalEventType {
 
 /// Thermal stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ThermalStats {
     pub zone_count: u32,
     pub cooling_device_count: u32,
@@ -229,7 +246,7 @@ pub struct ThermalStats {
 pub struct HolisticThermalZone {
     zones: BTreeMap<u32, ThermalZone>,
     cooling_devices: BTreeMap<u32, CoolingDevice>,
-    events: Vec<ThermalEvent>,
+    events: VecDeque<ThermalEvent>,
     max_events: usize,
     stats: ThermalStats,
 }
@@ -239,7 +256,7 @@ impl HolisticThermalZone {
         Self {
             zones: BTreeMap::new(),
             cooling_devices: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 2048,
             stats: ThermalStats {
                 zone_count: 0, cooling_device_count: 0,
@@ -249,16 +266,19 @@ impl HolisticThermalZone {
         }
     }
 
+    #[inline(always)]
     pub fn add_zone(&mut self, zone: ThermalZone) {
         self.stats.zone_count += 1;
         self.zones.insert(zone.id, zone);
     }
 
+    #[inline(always)]
     pub fn add_cooling_device(&mut self, dev: CoolingDevice) {
         self.stats.cooling_device_count += 1;
         self.cooling_devices.insert(dev.id, dev);
     }
 
+    #[inline]
     pub fn update_temperature(&mut self, zone_id: u32, temp_mc: i32, timestamp: u64) {
         if temp_mc > self.stats.max_temp_seen_mc {
             self.stats.max_temp_seen_mc = temp_mc;
@@ -268,6 +288,7 @@ impl HolisticThermalZone {
         }
     }
 
+    #[inline]
     pub fn record_event(&mut self, event: ThermalEvent) {
         match event.event_type {
             ThermalEventType::ThrottleStart => self.stats.total_throttle_events += 1,
@@ -275,17 +296,19 @@ impl HolisticThermalZone {
             _ => {}
         }
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event);
+        self.events.push_back(event);
     }
 
+    #[inline]
     pub fn set_cooling_state(&mut self, dev_id: u32, state: u32) {
         if let Some(dev) = self.cooling_devices.get_mut(&dev_id) {
             dev.current_state = state.min(dev.max_state);
         }
     }
 
+    #[inline]
     pub fn critical_zones(&self) -> Vec<u32> {
         self.zones.iter()
             .filter(|(_, z)| z.is_critical())
@@ -293,6 +316,7 @@ impl HolisticThermalZone {
             .collect()
     }
 
+    #[inline]
     pub fn hottest_zones(&self, n: usize) -> Vec<(u32, f64)> {
         let mut v: Vec<_> = self.zones.iter()
             .map(|(&id, z)| (id, z.temp_celsius()))
@@ -302,6 +326,7 @@ impl HolisticThermalZone {
         v
     }
 
+    #[inline]
     pub fn zones_exceeding(&self, temp_mc: i32) -> Vec<u32> {
         self.zones.iter()
             .filter(|(_, z)| z.temperature_mc > temp_mc)
@@ -309,12 +334,14 @@ impl HolisticThermalZone {
             .collect()
     }
 
+    #[inline]
     pub fn cooling_utilization(&self) -> f64 {
         if self.cooling_devices.is_empty() { return 0.0; }
         let sum: f64 = self.cooling_devices.values().map(|d| d.utilization()).sum();
         sum / self.cooling_devices.len() as f64
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ThermalStats {
         &self.stats
     }

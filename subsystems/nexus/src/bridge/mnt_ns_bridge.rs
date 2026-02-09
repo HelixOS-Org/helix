@@ -37,7 +37,9 @@ impl MountFlags {
     pub const LAZYTIME: u64 = 1 << 25;
 
     pub fn new(bits: u64) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u64) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn is_readonly(&self) -> bool { self.has(Self::RDONLY) }
 }
 
@@ -82,6 +84,7 @@ impl MountPoint {
         }
     }
 
+    #[inline]
     pub fn fnv_hash(&self) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
         for b in self.target.as_bytes() {
@@ -107,7 +110,9 @@ impl MountNamespace {
         Self { id, owner_pid: owner, mount_ids: Vec::new(), created_at: now, ref_count: 1 }
     }
 
+    #[inline(always)]
     pub fn add_mount(&mut self, mount_id: u64) { self.mount_ids.push(mount_id); }
+    #[inline(always)]
     pub fn remove_mount(&mut self, mount_id: u64) { self.mount_ids.retain(|&id| id != mount_id); }
 }
 
@@ -123,6 +128,7 @@ pub enum MountEventType {
 
 /// Bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MntNsBridgeStats {
     pub total_namespaces: u32,
     pub total_mounts: u32,
@@ -132,6 +138,7 @@ pub struct MntNsBridgeStats {
 }
 
 /// Main mount namespace bridge
+#[repr(align(64))]
 pub struct BridgeMntNs {
     namespaces: BTreeMap<u64, MountNamespace>,
     mounts: BTreeMap<u64, MountPoint>,
@@ -148,6 +155,7 @@ impl BridgeMntNs {
         }
     }
 
+    #[inline]
     pub fn create_namespace(&mut self, owner: u64, now: u64) -> u64 {
         let id = self.next_ns_id;
         self.next_ns_id += 1;
@@ -155,6 +163,7 @@ impl BridgeMntNs {
         id
     }
 
+    #[inline]
     pub fn mount(&mut self, ns_id: u64, source: String, target: String, fs_type: FsType, now: u64) -> Option<u64> {
         let mid = self.next_mount_id;
         self.next_mount_id += 1;
@@ -166,6 +175,7 @@ impl BridgeMntNs {
         Some(mid)
     }
 
+    #[inline]
     pub fn umount(&mut self, mount_id: u64) -> bool {
         if let Some(mp) = self.mounts.remove(&mount_id) {
             if let Some(ns) = self.namespaces.get_mut(&mp.ns_id) { ns.remove_mount(mount_id); }
@@ -174,6 +184,7 @@ impl BridgeMntNs {
         } else { false }
     }
 
+    #[inline]
     pub fn stats(&self) -> MntNsBridgeStats {
         let shared = self.mounts.values().filter(|m| m.propagation == MountPropagation::Shared).count() as u32;
         let ro = self.mounts.values().filter(|m| m.flags.is_readonly()).count() as u32;

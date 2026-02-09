@@ -4,6 +4,7 @@
 
 /// Disk statistics (like /proc/diskstats)
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DiskStats {
     /// Reads completed
     pub reads_completed: u64,
@@ -44,21 +45,25 @@ impl DiskStats {
     }
 
     /// Total I/O operations
+    #[inline(always)]
     pub fn total_ios(&self) -> u64 {
         self.reads_completed + self.writes_completed + self.discards_completed
     }
 
     /// Total bytes read
+    #[inline(always)]
     pub fn bytes_read(&self) -> u64 {
         self.sectors_read * 512
     }
 
     /// Total bytes written
+    #[inline(always)]
     pub fn bytes_written(&self) -> u64 {
         self.sectors_written * 512
     }
 
     /// Utilization (0-1)
+    #[inline]
     pub fn utilization(&self, time_window_ms: u64) -> f32 {
         if time_window_ms > 0 {
             (self.io_time_ms as f32 / time_window_ms as f32).min(1.0)
@@ -68,6 +73,7 @@ impl DiskStats {
     }
 
     /// Average I/O size (bytes)
+    #[inline]
     pub fn avg_io_size(&self) -> u64 {
         let total_ios = self.total_ios();
         if total_ios > 0 {

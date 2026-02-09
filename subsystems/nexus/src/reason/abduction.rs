@@ -168,6 +168,7 @@ impl Default for AbductionConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AbductionStats {
     /// Observations recorded
     pub observations_recorded: u64,
@@ -191,6 +192,7 @@ impl AbductionEngine {
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: ExplanationRule) {
         self.rules.push(rule);
     }
@@ -365,6 +367,7 @@ impl AbductionEngine {
     }
 
     /// Add supporting evidence
+    #[inline]
     pub fn add_support(&mut self, explanation_id: u64, evidence: Evidence) {
         if let Some(exp) = self.explanations.get_mut(&explanation_id) {
             exp.supporting_evidence.push(evidence);
@@ -372,6 +375,7 @@ impl AbductionEngine {
     }
 
     /// Add contradicting evidence
+    #[inline]
     pub fn add_contradiction(&mut self, explanation_id: u64, evidence: Evidence) {
         if let Some(exp) = self.explanations.get_mut(&explanation_id) {
             exp.contradicting_evidence.push(evidence);
@@ -379,6 +383,7 @@ impl AbductionEngine {
     }
 
     /// Accept explanation
+    #[inline]
     pub fn accept(&mut self, id: u64) {
         if let Some(exp) = self.explanations.get_mut(&id) {
             exp.status = ExplanationStatus::Accepted;
@@ -386,6 +391,7 @@ impl AbductionEngine {
     }
 
     /// Reject explanation
+    #[inline]
     pub fn reject(&mut self, id: u64) {
         if let Some(exp) = self.explanations.get_mut(&id) {
             exp.status = ExplanationStatus::Rejected;
@@ -393,6 +399,7 @@ impl AbductionEngine {
     }
 
     /// Get best explanation
+    #[inline]
     pub fn best_explanation(&self) -> Option<&Explanation> {
         self.explanations
             .values()
@@ -401,11 +408,13 @@ impl AbductionEngine {
     }
 
     /// Get explanation
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Explanation> {
         self.explanations.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &AbductionStats {
         &self.stats
     }
@@ -441,6 +450,7 @@ impl RuleBuilder {
     }
 
     /// Add condition
+    #[inline]
     pub fn when(mut self, feature: &str, pattern: ValuePattern) -> Self {
         self.if_observed.push(FeaturePattern {
             name: feature.into(),
@@ -450,18 +460,21 @@ impl RuleBuilder {
     }
 
     /// Set hypothesis
+    #[inline(always)]
     pub fn then(mut self, hypothesis: &str) -> Self {
         self.then_hypothesis = hypothesis.into();
         self
     }
 
     /// Set plausibility
+    #[inline(always)]
     pub fn with_plausibility(mut self, plausibility: f64) -> Self {
         self.base_plausibility = plausibility;
         self
     }
 
     /// Build
+    #[inline]
     pub fn build(self) -> ExplanationRule {
         ExplanationRule {
             id: self.id,

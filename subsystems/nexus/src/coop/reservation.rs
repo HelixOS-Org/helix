@@ -99,6 +99,7 @@ pub struct GrantedAllocation {
 
 impl GrantedAllocation {
     /// Utilization ratio
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.granted == 0 {
             return 0.0;
@@ -159,6 +160,7 @@ impl Reservation {
     }
 
     /// Admit reservation with grants
+    #[inline]
     pub fn admit(&mut self, grants: Vec<GrantedAllocation>, now: u64) {
         self.state = ReservationState::Admitted;
         self.grants = grants;
@@ -166,6 +168,7 @@ impl Reservation {
     }
 
     /// Activate (start using)
+    #[inline]
     pub fn activate(&mut self) {
         if self.state == ReservationState::Admitted {
             self.state = ReservationState::Active;
@@ -173,6 +176,7 @@ impl Reservation {
     }
 
     /// Suspend
+    #[inline]
     pub fn suspend(&mut self) {
         if self.state == ReservationState::Active {
             self.state = ReservationState::Suspended;
@@ -180,6 +184,7 @@ impl Reservation {
     }
 
     /// Resume
+    #[inline]
     pub fn resume(&mut self) {
         if self.state == ReservationState::Suspended {
             self.state = ReservationState::Active;
@@ -187,6 +192,7 @@ impl Reservation {
     }
 
     /// Renew
+    #[inline]
     pub fn renew(&mut self, additional_ns: u64) -> bool {
         if self.renewals >= self.max_renewals {
             return false;
@@ -197,11 +203,13 @@ impl Reservation {
     }
 
     /// Cancel
+    #[inline(always)]
     pub fn cancel(&mut self) {
         self.state = ReservationState::Cancelled;
     }
 
     /// Check expiry
+    #[inline]
     pub fn check_expiry(&mut self, now: u64) -> bool {
         if now >= self.expires_at
             && self.state != ReservationState::Expired
@@ -215,6 +223,7 @@ impl Reservation {
     }
 
     /// Average utilization across grants
+    #[inline]
     pub fn avg_utilization(&self) -> f64 {
         if self.grants.is_empty() {
             return 0.0;
@@ -268,31 +277,37 @@ impl ResourceCapacity {
     }
 
     /// Effective capacity (with overcommit)
+    #[inline(always)]
     pub fn effective_capacity(&self) -> u64 {
         (self.total as f64 * self.overcommit_ratio) as u64
     }
 
     /// Available
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.effective_capacity().saturating_sub(self.reserved)
     }
 
     /// Can admit amount?
+    #[inline(always)]
     pub fn can_admit(&self, amount: u64) -> bool {
         amount <= self.available()
     }
 
     /// Reserve
+    #[inline(always)]
     pub fn reserve(&mut self, amount: u64) {
         self.reserved += amount;
     }
 
     /// Release
+    #[inline(always)]
     pub fn release(&mut self, amount: u64) {
         self.reserved = self.reserved.saturating_sub(amount);
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total == 0 {
             return 0.0;
@@ -307,6 +322,7 @@ impl ResourceCapacity {
 
 /// Reservation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopReservationStats {
     /// Total reservations
     pub total_reservations: u64,
@@ -343,6 +359,7 @@ impl CoopReservationManager {
     }
 
     /// Set capacity
+    #[inline(always)]
     pub fn set_capacity(&mut self, capacity: ResourceCapacity) {
         self.capacities.insert(capacity.resource as u8, capacity);
     }
@@ -445,6 +462,7 @@ impl CoopReservationManager {
     }
 
     /// Get reservation
+    #[inline(always)]
     pub fn reservation(&self, id: u64) -> Option<&Reservation> {
         self.reservations.get(&id)
     }
@@ -465,6 +483,7 @@ impl CoopReservationManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopReservationStats {
         &self.stats
     }

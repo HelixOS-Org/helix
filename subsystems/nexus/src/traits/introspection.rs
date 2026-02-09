@@ -58,6 +58,7 @@ pub struct IntrospectionReport {
 
 impl IntrospectionReport {
     /// Is healthy?
+    #[inline(always)]
     pub fn is_healthy(&self) -> bool {
         self.health_score >= 70 && self.issues.is_empty()
     }
@@ -78,12 +79,14 @@ impl IntrospectionReport {
     }
 
     /// With health score
+    #[inline(always)]
     pub fn with_health(mut self, score: u8) -> Self {
         self.health_score = score.min(100);
         self
     }
 
     /// Add issue
+    #[inline(always)]
     pub fn with_issue(mut self, issue: impl Into<String>) -> Self {
         self.issues.push(issue.into());
         self
@@ -122,23 +125,27 @@ impl DiagnosisReport {
     }
 
     /// Add finding
+    #[inline(always)]
     pub fn with_finding(mut self, finding: DiagnosisFinding) -> Self {
         self.findings.push(finding);
         self
     }
 
     /// Add recommendation
+    #[inline(always)]
     pub fn with_recommendation(mut self, rec: impl Into<String>) -> Self {
         self.recommendations.push(rec.into());
         self
     }
 
     /// Is healthy?
+    #[inline(always)]
     pub fn is_healthy(&self) -> bool {
         matches!(self.health, HealthStatus::Healthy)
     }
 
     /// Has critical issues?
+    #[inline(always)]
     pub fn has_critical(&self) -> bool {
         self.findings.iter().any(|f| f.severity.value() >= 9)
     }
@@ -165,6 +172,7 @@ pub enum HealthStatus {
 
 impl HealthStatus {
     /// Get status name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Healthy => "healthy",
@@ -176,11 +184,13 @@ impl HealthStatus {
     }
 
     /// Is operational?
+    #[inline(always)]
     pub const fn is_operational(&self) -> bool {
         matches!(self, Self::Healthy | Self::Warning | Self::Degraded)
     }
 
     /// From health score
+    #[inline]
     pub fn from_score(score: u8) -> Self {
         match score {
             90..=100 => Self::Healthy,
@@ -227,12 +237,14 @@ impl DiagnosisFinding {
     }
 
     /// With severity
+    #[inline(always)]
     pub fn with_severity(mut self, severity: Severity) -> Self {
         self.severity = severity;
         self
     }
 
     /// With evidence
+    #[inline(always)]
     pub fn with_evidence(mut self, evidence: impl Into<String>) -> Self {
         self.evidence.push(evidence.into());
         self
@@ -260,6 +272,7 @@ pub enum FindingType {
 
 impl FindingType {
     /// Get type name
+    #[inline]
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Performance => "performance",
@@ -315,6 +328,7 @@ pub struct CognitiveAssessment {
 
 impl CognitiveAssessment {
     /// Is cognitive system healthy?
+    #[inline(always)]
     pub fn is_healthy(&self) -> bool {
         self.score >= 70
     }
@@ -417,6 +431,7 @@ pub struct CalibrationResult {
 
 impl CalibrationResult {
     /// No changes needed
+    #[inline]
     pub fn unchanged() -> Self {
         Self {
             success: true,

@@ -20,6 +20,7 @@ pub struct ProtocolVersion {
 impl ProtocolVersion {
     pub const CURRENT: Self = Self { major: 1, minor: 0 };
 
+    #[inline(always)]
     pub fn is_compatible(&self, other: &Self) -> bool {
         self.major == other.major
     }
@@ -114,16 +115,19 @@ impl CoopMessage {
         }
     }
 
+    #[inline(always)]
     pub fn with_sequence(mut self, seq: u64) -> Self {
         self.sequence = seq;
         self
     }
 
+    #[inline(always)]
     pub fn with_timestamp(mut self, ts: u64) -> Self {
         self.timestamp = ts;
         self
     }
 
+    #[inline(always)]
     pub fn with_payload(mut self, data: Vec<u8>) -> Self {
         self.payload = data;
         self
@@ -201,6 +205,7 @@ impl CoopSession {
     }
 
     /// Activate the session
+    #[inline]
     pub fn activate(&mut self, capabilities: Vec<CoopCapability>, timestamp: u64) {
         self.state = CoopSessionState::Active;
         self.capabilities = capabilities;
@@ -209,17 +214,20 @@ impl CoopSession {
     }
 
     /// Check if the app has a capability
+    #[inline(always)]
     pub fn has_capability(&self, cap: CoopCapability) -> bool {
         self.capabilities.contains(&cap)
     }
 
     /// Record that a message was sent to the app
+    #[inline(always)]
     pub fn record_sent(&mut self, timestamp: u64) {
         self.messages_sent += 1;
         self.last_activity = timestamp;
     }
 
     /// Record that a message was received from the app
+    #[inline]
     pub fn record_received(&mut self, timestamp: u64) {
         self.messages_received += 1;
         self.last_activity = timestamp;
@@ -227,16 +235,19 @@ impl CoopSession {
     }
 
     /// Whether the session is active
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.state == CoopSessionState::Active
     }
 
     /// Check if session has timed out (no activity for `timeout_ms`)
+    #[inline(always)]
     pub fn is_timed_out(&self, current_time: u64, timeout_ms: u64) -> bool {
         current_time.saturating_sub(self.last_activity) > timeout_ms
     }
 
     /// Close the session
+    #[inline(always)]
     pub fn close(&mut self) {
         self.state = CoopSessionState::Closed;
     }

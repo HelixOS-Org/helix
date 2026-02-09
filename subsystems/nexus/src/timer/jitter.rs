@@ -3,6 +3,7 @@
 //! Analyzes timer jitter and timing precision.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -11,6 +12,7 @@ use super::TimerId;
 
 /// Jitter statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct JitterStats {
     /// Timer ID
     pub timer_id: TimerId,
@@ -43,6 +45,7 @@ impl JitterStats {
     }
 
     /// Jitter range
+    #[inline(always)]
     pub fn range(&self) -> i64 {
         self.max_jitter_ns - self.min_jitter_ns
     }
@@ -85,6 +88,7 @@ impl JitterAnalyzer {
     }
 
     /// Set threshold
+    #[inline(always)]
     pub fn set_threshold(&mut self, threshold_ns: u64) {
         self.threshold_ns = threshold_ns;
     }
@@ -103,7 +107,7 @@ impl JitterAnalyzer {
         let samples = self.samples.entry(timer_id).or_default();
         samples.push(sample);
         if samples.len() > self.max_samples {
-            samples.remove(0);
+            samples.pop_front();
         }
 
         let stats = self.stats.entry(timer_id).or_insert_with(|| JitterStats {
@@ -115,11 +119,13 @@ impl JitterAnalyzer {
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn get_stats(&self, timer_id: TimerId) -> Option<&JitterStats> {
         self.stats.get(&timer_id)
     }
 
     /// Get high jitter timers
+    #[inline]
     pub fn high_jitter_timers(&self) -> Vec<TimerId> {
         self.stats
             .iter()

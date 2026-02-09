@@ -179,6 +179,7 @@ impl Default for MaintainerConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MaintainerStats {
     /// Entries tracked
     pub entries_tracked: u64,
@@ -235,6 +236,7 @@ impl MemoryMaintainer {
     }
 
     /// Access entry
+    #[inline]
     pub fn access(&mut self, id: u64) {
         if let Some(entry) = self.entries.get_mut(&id) {
             entry.accessed = Timestamp::now();
@@ -258,6 +260,7 @@ impl MemoryMaintainer {
     }
 
     /// Remove entry
+    #[inline]
     pub fn remove(&mut self, id: u64) -> Option<MemoryEntry> {
         if let Some(entry) = self.entries.remove(&id) {
             self.stats.bytes_tracked = self.stats.bytes_tracked.saturating_sub(entry.size);
@@ -316,16 +319,19 @@ impl MemoryMaintainer {
     }
 
     /// Schedule consolidation
+    #[inline(always)]
     pub fn schedule_consolidation(&mut self) -> u64 {
         self.create_task(TaskType::Consolidation)
     }
 
     /// Schedule cleanup
+    #[inline(always)]
     pub fn schedule_cleanup(&mut self) -> u64 {
         self.create_task(TaskType::Cleanup)
     }
 
     /// Schedule indexing
+    #[inline(always)]
     pub fn schedule_indexing(&mut self) -> u64 {
         self.create_task(TaskType::Indexing)
     }
@@ -484,11 +490,13 @@ impl MemoryMaintainer {
     }
 
     /// Get entry
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&MemoryEntry> {
         self.entries.get(&id)
     }
 
     /// Get by tag
+    #[inline]
     pub fn by_tag(&self, tag: &str) -> Vec<&MemoryEntry> {
         for index in self.indexes.values() {
             if let Some(ids) = index.entries.get(tag) {
@@ -501,6 +509,7 @@ impl MemoryMaintainer {
     }
 
     /// Get memory usage
+    #[inline]
     pub fn memory_usage(&self) -> MemoryUsage {
         MemoryUsage {
             entries: self.entries.len(),
@@ -512,6 +521,7 @@ impl MemoryMaintainer {
     }
 
     /// Get pending tasks
+    #[inline]
     pub fn pending_tasks(&self) -> Vec<&MaintenanceTask> {
         self.tasks.iter()
             .filter(|t| t.status == TaskStatus::Pending)
@@ -519,6 +529,7 @@ impl MemoryMaintainer {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MaintainerStats {
         &self.stats
     }

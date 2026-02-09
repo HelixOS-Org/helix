@@ -124,6 +124,7 @@ pub struct ReviewVerdict {
 
 /// Peer review statistics.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct PeerReviewStats {
     pub total_submissions: u64,
     pub accepted_findings: u64,
@@ -153,6 +154,7 @@ pub struct ConsensusResult {
 // ============================================================================
 
 /// Cross-validation engine for bridge research findings.
+#[repr(align(64))]
 pub struct BridgePeerReview {
     findings: BTreeMap<u64, Finding>,
     reviewers: BTreeMap<u64, Reviewer>,
@@ -404,6 +406,7 @@ impl BridgePeerReview {
     }
 
     /// Compute overall peer agreement metric.
+    #[inline]
     pub fn peer_agreement(&self) -> f32 {
         if self.findings.is_empty() {
             return 0.0;
@@ -413,16 +416,19 @@ impl BridgePeerReview {
     }
 
     /// Get stats.
+    #[inline(always)]
     pub fn stats(&self) -> &PeerReviewStats {
         &self.stats
     }
 
     /// Number of findings.
+    #[inline(always)]
     pub fn finding_count(&self) -> usize {
         self.findings.len()
     }
 
     /// Number of accepted findings.
+    #[inline]
     pub fn accepted_count(&self) -> usize {
         self.findings
             .values()
@@ -431,6 +437,7 @@ impl BridgePeerReview {
     }
 
     /// Findings pending review.
+    #[inline]
     pub fn pending_count(&self) -> usize {
         self.findings
             .values()

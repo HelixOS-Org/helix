@@ -39,6 +39,7 @@ pub struct BridgeMmapRegion {
 
 /// Mmap stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeMmapStats {
     pub total_maps: u64,
     pub anonymous: u64,
@@ -49,6 +50,7 @@ pub struct BridgeMmapStats {
 }
 
 /// Manager for mmap bridging
+#[repr(align(64))]
 pub struct BridgeMmapManager {
     regions: BTreeMap<u64, BridgeMmapRegion>,
     next_addr: u64,
@@ -86,6 +88,8 @@ impl BridgeMmapManager {
         addr
     }
 
+    #[inline(always)]
     pub fn region_count(&self) -> usize { self.regions.len() }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeMmapStats { &self.stats }
 }

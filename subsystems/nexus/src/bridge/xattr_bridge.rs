@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -25,6 +26,7 @@ pub enum XattrNamespace {
 }
 
 impl XattrNamespace {
+    #[inline]
     pub fn from_name(name: &str) -> Self {
         if name.starts_with("user.") { Self::User }
         else if name.starts_with("trusted.") { Self::Trusted }
@@ -86,6 +88,7 @@ impl XattrEntry {
 
 /// Per-inode xattr collection
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InodeXattrs {
     pub inode: u64,
     pub attrs: BTreeMap<String, XattrEntry>,
@@ -131,6 +134,7 @@ impl InodeXattrs {
         true
     }
 
+    #[inline]
     pub fn get(&mut self, name: &str) -> Option<&XattrEntry> {
         if let Some(e) = self.attrs.get_mut(&String::from(name)) {
             e.get_count += 1;
@@ -138,6 +142,7 @@ impl InodeXattrs {
         self.attrs.get(&String::from(name))
     }
 
+    #[inline]
     pub fn remove(&mut self, name: &str) -> bool {
         let key = String::from(name);
         if let Some(e) = self.attrs.remove(&key) {
@@ -148,12 +153,15 @@ impl InodeXattrs {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn list(&self) -> Vec<&str> {
         self.attrs.keys().map(|k| k.as_str()).collect()
     }
 
+    #[inline(always)]
     pub fn count(&self) -> usize { self.attrs.len() }
 
+    #[inline(always)]
     pub fn count_in_ns(&self, ns: XattrNamespace) -> usize {
         self.attrs.values().filter(|e| e.namespace == ns).count()
     }
@@ -173,6 +181,7 @@ pub struct XattrOpRecord {
 
 /// Xattr bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct XattrBridgeStats {
     pub inodes_tracked: usize,
     pub total_attrs: usize,
@@ -186,46 +195,52 @@ pub struct XattrBridgeStats {
 }
 
 /// Bridge xattr manager
+#[repr(align(64))]
 pub struct BridgeXattrBridge {
     inodes: BTreeMap<u64, InodeXattrs>,
-    ops: Vec<XattrOpRecord>,
+    ops: VecDeque<XattrOpRecord>,
     max_ops: usize,
     stats: XattrBridgeStats,
 }
 
 impl BridgeXattrBridge {
     pub fn new() -> Self {
-        Self { inodes: BTreeMap::new(), ops: Vec::new(), max_ops: 1024, stats: XattrBridgeStats::default() }
+        Self { inodes: BTreeMap::new(), ops: VecDeque::new(), max_ops: 1024, stats: XattrBridgeStats::default() }
     }
 
+    #[inline]
     pub fn setxattr(&mut self, inode: u64, name: String, size: usize, flag: XattrSetFlag, pid: u64, ts: u64) -> bool {
         let ix = self.inodes.entry(inode).or_insert_with(|| InodeXattrs::new(inode));
         let success = ix.set(name.clone(), size, ts, flag);
-        self.ops.push(XattrOpRecord { op: XattrOp::Set, inode, name, size, success, timestamp: ts, pid });
-        if self.ops.len() > self.max_ops { self.ops.remove(0); }
+        self.ops.push_back(XattrOpRecord { op: XattrOp::Set, inode, name, size, success, timestamp: ts, pid });
+        if self.ops.len() > self.max_ops { self.ops.pop_front(); }
         success
     }
 
+    #[inline]
     pub fn getxattr(&mut self, inode: u64, name: &str, pid: u64, ts: u64) -> Option<usize> {
         let ix = self.inodes.entry(inode).or_insert_with(|| InodeXattrs::new(inode));
         let result = ix.get(name).map(|e| e.value_size);
-        self.ops.push(XattrOpRecord { op: XattrOp::Get, inode, name: String::from(name), size: result.unwrap_or(0), success: result.is_some(), timestamp: ts, pid });
+        self.ops.push_back(XattrOpRecord { op: XattrOp::Get, inode, name: String::from(name), size: result.unwrap_or(0), success: result.is_some(), timestamp: ts, pid });
         result
     }
 
+    #[inline]
     pub fn removexattr(&mut self, inode: u64, name: &str, pid: u64, ts: u64) -> bool {
         let ix = self.inodes.entry(inode).or_insert_with(|| InodeXattrs::new(inode));
         let success = ix.remove(name);
-        self.ops.push(XattrOpRecord { op: XattrOp::Remove, inode, name: String::from(name), size: 0, success, timestamp: ts, pid });
+        self.ops.push_back(XattrOpRecord { op: XattrOp::Remove, inode, name: String::from(name), size: 0, success, timestamp: ts, pid });
         success
     }
 
+    #[inline]
     pub fn listxattr(&mut self, inode: u64) -> Vec<String> {
         if let Some(ix) = self.inodes.get(&inode) {
             ix.list().into_iter().map(|s| String::from(s)).collect()
         } else { Vec::new() }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.inodes_tracked = self.inodes.len();
         self.stats.total_attrs = self.inodes.values().map(|ix| ix.count()).sum();
@@ -238,7 +253,9 @@ impl BridgeXattrBridge {
         self.stats.security_labeled = self.inodes.values().filter(|ix| ix.security_label.is_some()).count();
     }
 
+    #[inline(always)]
     pub fn inode_xattrs(&self, inode: u64) -> Option<&InodeXattrs> { self.inodes.get(&inode) }
+    #[inline(always)]
     pub fn stats(&self) -> &XattrBridgeStats { &self.stats }
 }
 
@@ -266,7 +283,9 @@ impl XattrFlags {
     pub const REPLACE: u32 = 2;
 
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn create_only(&self) -> bool { self.bits & Self::CREATE != 0 }
+    #[inline(always)]
     pub fn replace_only(&self) -> bool { self.bits & Self::REPLACE != 0 }
 }
 
@@ -285,10 +304,13 @@ impl XattrEntry {
         Self { name, namespace: ns, value, set_at: now, access_count: 0 }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> usize { self.name.len() + self.value.len() }
 
+    #[inline(always)]
     pub fn access(&mut self) { self.access_count += 1; }
 
+    #[inline]
     pub fn name_hash(&self) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
         for b in self.name.as_bytes() {
@@ -301,6 +323,7 @@ impl XattrEntry {
 
 /// Inode xattr store
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct InodeXattrs {
     pub inode_id: u64,
     pub attrs: BTreeMap<u64, XattrEntry>, // keyed by name_hash
@@ -331,11 +354,13 @@ impl InodeXattrs {
         true
     }
 
+    #[inline(always)]
     pub fn get(&mut self, name: &str) -> Option<&Vec<u8>> {
         let hash = Self::hash_name(name);
         self.attrs.get_mut(&hash).map(|e| { e.access(); &e.value })
     }
 
+    #[inline]
     pub fn remove(&mut self, name: &str) -> bool {
         let hash = Self::hash_name(name);
         if let Some(entry) = self.attrs.remove(&hash) {
@@ -344,6 +369,7 @@ impl InodeXattrs {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn list(&self) -> Vec<&String> {
         self.attrs.values().map(|e| &e.name).collect()
     }
@@ -369,6 +395,7 @@ pub enum XattrOp {
 
 /// Bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct XattrV2BridgeStats {
     pub total_inodes_tracked: u32,
     pub total_attrs: u64,
@@ -378,6 +405,7 @@ pub struct XattrV2BridgeStats {
 }
 
 /// Main xattr v2 bridge
+#[repr(align(64))]
 pub struct BridgeXattrV2 {
     inodes: BTreeMap<u64, InodeXattrs>,
     total_ops: u64,
@@ -386,6 +414,7 @@ pub struct BridgeXattrV2 {
 impl BridgeXattrV2 {
     pub fn new() -> Self { Self { inodes: BTreeMap::new(), total_ops: 0 } }
 
+    #[inline]
     pub fn set_xattr(&mut self, inode: u64, name: String, ns: XattrNamespace, value: Vec<u8>, flags: XattrFlags, now: u64) -> bool {
         let store = self.inodes.entry(inode).or_insert_with(|| InodeXattrs::new(inode));
         let entry = XattrEntry::new(name, ns, value, now);
@@ -393,16 +422,19 @@ impl BridgeXattrV2 {
         store.set(entry, flags)
     }
 
+    #[inline(always)]
     pub fn get_xattr(&mut self, inode: u64, name: &str) -> Option<Vec<u8>> {
         self.total_ops += 1;
         self.inodes.get_mut(&inode)?.get(name).cloned()
     }
 
+    #[inline(always)]
     pub fn remove_xattr(&mut self, inode: u64, name: &str) -> bool {
         self.total_ops += 1;
         self.inodes.get_mut(&inode).map(|s| s.remove(name)).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn list_xattrs(&self, inode: u64) -> Vec<String> {
         self.inodes.get(&inode).map(|s| s.list().into_iter().cloned().collect()).unwrap_or_default()
     }
@@ -485,11 +517,13 @@ impl InodeXattrsV3 {
         true
     }
 
+    #[inline(always)]
     pub fn get(&mut self, name_hash: u64) -> Option<u64> {
         self.get_count += 1;
         self.attrs.iter().find(|a| a.name_hash == name_hash).map(|a| a.value_hash)
     }
 
+    #[inline]
     pub fn remove(&mut self, name_hash: u64) -> bool {
         if let Some(idx) = self.attrs.iter().position(|a| a.name_hash == name_hash) {
             self.total_size -= self.attrs[idx].value_size;
@@ -499,11 +533,13 @@ impl InodeXattrsV3 {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn list(&mut self) -> Vec<u64> { self.list_count += 1; self.attrs.iter().map(|a| a.name_hash).collect() }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct XattrV3BridgeStats {
     pub total_inodes: u32,
     pub total_attrs: u32,
@@ -512,6 +548,7 @@ pub struct XattrV3BridgeStats {
 }
 
 /// Main xattr v3 bridge
+#[repr(align(64))]
 pub struct BridgeXattrV3 {
     inodes: BTreeMap<u64, InodeXattrsV3>,
 }
@@ -519,15 +556,18 @@ pub struct BridgeXattrV3 {
 impl BridgeXattrV3 {
     pub fn new() -> Self { Self { inodes: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn ensure_inode(&mut self, inode: u64, max_size: u32) {
         self.inodes.entry(inode).or_insert_with(|| InodeXattrsV3::new(inode, max_size));
     }
 
+    #[inline(always)]
     pub fn setxattr(&mut self, inode: u64, name_hash: u64, ns: XattrV3Namespace, size: u32, value_hash: u64) -> bool {
         self.ensure_inode(inode, 65536);
         self.inodes.get_mut(&inode).map_or(false, |i| i.set(name_hash, ns, size, value_hash))
     }
 
+    #[inline]
     pub fn stats(&self) -> XattrV3BridgeStats {
         let attrs: u32 = self.inodes.values().map(|i| i.attrs.len() as u32).sum();
         let size: u64 = self.inodes.values().map(|i| i.total_size as u64).sum();

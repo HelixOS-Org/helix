@@ -12,6 +12,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -143,7 +144,7 @@ pub struct ConfidenceEngine {
     /// Assessments
     assessments: BTreeMap<u64, ConfidenceAssessment>,
     /// Calibration records
-    calibration: Vec<CalibrationRecord>,
+    calibration: VecDeque<CalibrationRecord>,
     /// Confidence adjustments
     adjustments: BTreeMap<AssessmentType, f64>,
     /// Next ID
@@ -177,6 +178,7 @@ impl Default for ConfidenceConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ConfidenceStats {
     /// Assessments made
     pub assessments_made: u64,
@@ -191,7 +193,7 @@ impl ConfidenceEngine {
     pub fn new(config: ConfidenceConfig) -> Self {
         Self {
             assessments: BTreeMap::new(),
-            calibration: Vec::new(),
+            calibration: VecDeque::new(),
             adjustments: BTreeMap::new(),
             next_id: AtomicU64::new(1),
             config,
@@ -305,12 +307,12 @@ impl ConfidenceEngine {
                 timestamp: Timestamp::now(),
             };
 
-            self.calibration.push(record);
+            self.calibration.push_back(record);
             self.stats.calibrations_recorded += 1;
 
             // Limit history
             while self.calibration.len() > self.config.max_history {
-                self.calibration.remove(0);
+                self.calibration.pop_front();
             }
 
             // Update adjustments based on calibration error
@@ -418,11 +420,13 @@ impl ConfidenceEngine {
     }
 
     /// Get assessment
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&ConfidenceAssessment> {
         self.assessments.get(&id)
     }
 
     /// Get by type
+    #[inline]
     pub fn by_type(&self, assessment_type: AssessmentType) -> Vec<&ConfidenceAssessment> {
         self.assessments
             .values()
@@ -431,6 +435,7 @@ impl ConfidenceEngine {
     }
 
     /// Get high confidence assessments
+    #[inline]
     pub fn high_confidence(&self, threshold: f64) -> Vec<&ConfidenceAssessment> {
         self.assessments
             .values()
@@ -439,6 +444,7 @@ impl ConfidenceEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ConfidenceStats {
         &self.stats
     }
@@ -470,6 +476,7 @@ impl EvidenceBuilder {
     }
 
     /// Add supporting evidence
+    #[inline]
     pub fn supporting(mut self, description: &str, strength: f64) -> Self {
         self.evidence.push(Evidence {
             id: self.next_id,
@@ -482,6 +489,7 @@ impl EvidenceBuilder {
     }
 
     /// Add opposing evidence
+    #[inline]
     pub fn opposing(mut self, description: &str, strength: f64) -> Self {
         self.evidence.push(Evidence {
             id: self.next_id,
@@ -494,6 +502,7 @@ impl EvidenceBuilder {
     }
 
     /// Add neutral evidence
+    #[inline]
     pub fn neutral(mut self, description: &str, strength: f64) -> Self {
         self.evidence.push(Evidence {
             id: self.next_id,
@@ -506,6 +515,7 @@ impl EvidenceBuilder {
     }
 
     /// Build evidence list
+    #[inline(always)]
     pub fn build(self) -> Vec<Evidence> {
         self.evidence
     }

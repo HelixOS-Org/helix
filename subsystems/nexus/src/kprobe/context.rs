@@ -4,6 +4,7 @@
 
 /// Kprobe context (registers and state)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KprobeContext {
     /// Instruction pointer
     pub ip: u64,
@@ -53,6 +54,7 @@ impl KprobeContext {
     }
 
     /// Get return value (after function returns)
+    #[inline(always)]
     pub fn return_value(&self) -> u64 {
         self.regs[0] // rax on x86_64
     }

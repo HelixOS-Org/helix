@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -232,6 +233,7 @@ impl WorkloadFingerprint {
     }
 
     /// Similarity to another fingerprint (0.0-1.0)
+    #[inline]
     pub fn similarity(&self, other: &WorkloadFingerprint) -> f64 {
         let cpu_diff = libm::fabs(self.avg_cpu - other.avg_cpu);
         let mem_diff = libm::fabs(self.avg_memory - other.avg_memory);
@@ -251,7 +253,7 @@ impl WorkloadFingerprint {
 #[derive(Debug, Clone)]
 pub struct PhaseDetector {
     /// Window of snapshots
-    window: Vec<ResourceSnapshot>,
+    window: VecDeque<ResourceSnapshot>,
     /// Window size
     window_size: usize,
     /// Current phase
@@ -265,7 +267,7 @@ pub struct PhaseDetector {
 impl PhaseDetector {
     pub fn new(window_size: usize) -> Self {
         Self {
-            window: Vec::new(),
+            window: VecDeque::new(),
             window_size,
             current_phase: WorkloadPhase::Startup,
             phase_duration: 0,
@@ -275,9 +277,9 @@ impl PhaseDetector {
 
     /// Add snapshot and detect phase
     pub fn observe(&mut self, snapshot: ResourceSnapshot) -> WorkloadPhase {
-        self.window.push(snapshot);
+        self.window.push_back(snapshot);
         if self.window.len() > self.window_size {
-            self.window.remove(0);
+            self.window.pop_front();
         }
 
         let new_phase = self.detect();
@@ -424,6 +426,7 @@ impl WorkloadMix {
 
 /// Workload analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticWorkloadStats {
     /// Tracked entities
     pub tracked_entities: usize,
@@ -444,7 +447,7 @@ pub struct HolisticWorkloadAnalyzer {
     /// Phase detector (system-wide)
     phase_detector: PhaseDetector,
     /// Load pattern history
-    load_history: Vec<f64>,
+    load_history: VecDeque<f64>,
     /// Max history
     max_history: usize,
     /// Next fingerprint ID
@@ -460,7 +463,7 @@ impl HolisticWorkloadAnalyzer {
         Self {
             fingerprints: BTreeMap::new(),
             phase_detector: PhaseDetector::new(30),
-            load_history: Vec::new(),
+            load_history: VecDeque::new(),
             max_history: 1000,
             next_fp_id: 1,
             current_mix: WorkloadMix::new(),
@@ -469,6 +472,7 @@ impl HolisticWorkloadAnalyzer {
     }
 
     /// Register entity
+    #[inline]
     pub fn register_entity(&mut self, entity_id: u64) -> u64 {
         let fp_id = self.next_fp_id;
         self.next_fp_id += 1;
@@ -479,12 +483,14 @@ impl HolisticWorkloadAnalyzer {
     }
 
     /// Unregister entity
+    #[inline(always)]
     pub fn unregister_entity(&mut self, entity_id: u64) {
         self.fingerprints.remove(&entity_id);
         self.stats.tracked_entities = self.fingerprints.len();
     }
 
     /// Report snapshot for entity
+    #[inline]
     pub fn report_entity(&mut self, entity_id: u64, snapshot: &ResourceSnapshot) {
         if let Some(fp) = self.fingerprints.get_mut(&entity_id) {
             fp.update(snapshot);
@@ -494,9 +500,9 @@ impl HolisticWorkloadAnalyzer {
     /// Report system-wide snapshot
     pub fn report_system(&mut self, snapshot: ResourceSnapshot) {
         let total_load = snapshot.cpu_util + snapshot.io_util + snapshot.network_util;
-        self.load_history.push(total_load);
+        self.load_history.push_back(total_load);
         if self.load_history.len() > self.max_history {
-            self.load_history.remove(0);
+            self.load_history.pop_front();
         }
 
         let phase = self.phase_detector.observe(snapshot);
@@ -554,11 +560,13 @@ impl HolisticWorkloadAnalyzer {
     }
 
     /// Get fingerprint
+    #[inline(always)]
     pub fn fingerprint(&self, entity_id: u64) -> Option<&WorkloadFingerprint> {
         self.fingerprints.get(&entity_id)
     }
 
     /// Current mix
+    #[inline(always)]
     pub fn mix(&self) -> &WorkloadMix {
         &self.current_mix
     }
@@ -582,6 +590,7 @@ impl HolisticWorkloadAnalyzer {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticWorkloadStats {
         &self.stats
     }

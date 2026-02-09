@@ -50,6 +50,7 @@ impl LogRecord {
         Self { lsn, txn_id, record_type: rtype, prev_lsn, data_hash, data_size, ts, checksum: ck }
     }
 
+    #[inline]
     pub fn verify(&self) -> bool {
         let mut ck: u64 = 0xcbf29ce484222325;
         ck ^= self.lsn; ck = ck.wrapping_mul(0x100000001b3);
@@ -77,13 +78,16 @@ impl LogSegment {
         Self { id, start_lsn, end_lsn: start_lsn, records: Vec::new(), size_bytes: 0, sealed: false, create_ts: ts }
     }
 
+    #[inline]
     pub fn append(&mut self, record: LogRecord) {
         self.size_bytes += record.data_size as u64 + 64;
         self.end_lsn = record.lsn;
         self.records.push(record);
     }
 
+    #[inline(always)]
     pub fn seal(&mut self) { self.sealed = true; }
+    #[inline(always)]
     pub fn record_count(&self) -> usize { self.records.len() }
 }
 
@@ -160,6 +164,7 @@ pub enum RecoveryActionType {
 
 /// Transaction log stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TxnLogStats {
     pub total_records: u64,
     pub total_bytes: u64,
@@ -210,6 +215,7 @@ impl CoopTxnLog {
         self.segments.last_mut().unwrap()
     }
 
+    #[inline]
     pub fn begin_txn(&mut self, txn_id: u64, ts: u64) -> u64 {
         let lsn = self.current_lsn; self.current_lsn += 1;
         let record = LogRecord::new(lsn, txn_id, LogRecordType::BeginTxn, 0, 0, 0, ts);
@@ -219,6 +225,7 @@ impl CoopTxnLog {
         lsn
     }
 
+    #[inline]
     pub fn write(&mut self, txn_id: u64, data_hash: u64, data_size: u32, ts: u64) -> u64 {
         let lsn = self.current_lsn; self.current_lsn += 1;
         let prev = self.txns.get(&txn_id).map(|t| t.last_lsn).unwrap_or(0);
@@ -230,6 +237,7 @@ impl CoopTxnLog {
         lsn
     }
 
+    #[inline]
     pub fn commit(&mut self, txn_id: u64, ts: u64) -> u64 {
         let lsn = self.current_lsn; self.current_lsn += 1;
         let prev = self.txns.get(&txn_id).map(|t| t.last_lsn).unwrap_or(0);
@@ -242,6 +250,7 @@ impl CoopTxnLog {
         lsn
     }
 
+    #[inline]
     pub fn abort(&mut self, txn_id: u64, ts: u64) -> u64 {
         let lsn = self.current_lsn; self.current_lsn += 1;
         let prev = self.txns.get(&txn_id).map(|t| t.last_lsn).unwrap_or(0);
@@ -253,6 +262,7 @@ impl CoopTxnLog {
         lsn
     }
 
+    #[inline]
     pub fn flush_group(&mut self, ts: u64) -> Option<GroupCommitBatch> {
         if self.group_batch.is_empty() { return None; }
         let txns = core::mem::replace(&mut self.group_batch, Vec::new());
@@ -264,6 +274,7 @@ impl CoopTxnLog {
         Some(batch)
     }
 
+    #[inline]
     pub fn checkpoint(&mut self, ts: u64) -> u64 {
         let lsn = self.current_lsn; self.current_lsn += 1;
         let active: Vec<u64> = self.txns.values().filter(|t| t.state == TxnState::Active).map(|t| t.id).collect();
@@ -275,6 +286,7 @@ impl CoopTxnLog {
         lsn
     }
 
+    #[inline(always)]
     pub fn truncate_before(&mut self, lsn: u64) {
         self.segments.retain(|s| s.end_lsn >= lsn);
     }
@@ -298,6 +310,7 @@ impl CoopTxnLog {
         actions
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.segments = self.segments.len();
         self.stats.active_txns = self.txns.values().filter(|t| t.state == TxnState::Active).count();
@@ -305,7 +318,10 @@ impl CoopTxnLog {
         self.stats.current_lsn = self.current_lsn;
     }
 
+    #[inline(always)]
     pub fn txn(&self, id: u64) -> Option<&TxnMeta> { self.txns.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &TxnLogStats { &self.stats }
+    #[inline(always)]
     pub fn lsn(&self) -> u64 { self.current_lsn }
 }

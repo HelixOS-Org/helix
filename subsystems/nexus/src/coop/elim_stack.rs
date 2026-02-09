@@ -34,6 +34,7 @@ impl ElimSlot {
         Self { state: ElimSlotState::Empty, op: None, value: 0, thread_id: 0, exchanges: 0, timeouts: 0 }
     }
 
+    #[inline]
     pub fn offer(&mut self, thread_id: u32, op: ElimOpType) {
         self.state = ElimSlotState::Waiting;
         self.op = Some(op);
@@ -59,6 +60,7 @@ impl ElimSlot {
         }
     }
 
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.state = ElimSlotState::Empty;
         self.op = None;
@@ -73,12 +75,14 @@ pub struct ElimArrayConfig {
 }
 
 impl ElimArrayConfig {
+    #[inline(always)]
     pub fn default_config() -> Self {
         Self { num_slots: 16, timeout_ns: 1_000_000, backoff_base: 100 }
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ElimStackStats {
     pub total_pushes: u64,
     pub total_pops: u64,
@@ -149,5 +153,6 @@ impl CoopElimStack {
         } else { None }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ElimStackStats { &self.stats }
 }

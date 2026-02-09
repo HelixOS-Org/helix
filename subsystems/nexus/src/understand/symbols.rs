@@ -190,6 +190,7 @@ pub struct SymbolTable {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SymbolTableStats {
     /// Total symbols
     pub total_symbols: u64,
@@ -261,6 +262,7 @@ impl SymbolTable {
     }
 
     /// Exit current scope
+    #[inline]
     pub fn exit_scope(&mut self) -> Option<u64> {
         let current = self.scopes.get(&self.current_scope)?;
         let parent = current.parent?;
@@ -323,6 +325,7 @@ impl SymbolTable {
     }
 
     /// Define with type
+    #[inline]
     pub fn define_typed(
         &mut self,
         name: &str,
@@ -353,6 +356,7 @@ impl SymbolTable {
     }
 
     /// Lookup in specific scope
+    #[inline]
     pub fn lookup_in_scope(&self, name: &str, scope_id: u64) -> Option<&Symbol> {
         let scope = self.scopes.get(&scope_id)?;
         let symbol_id = scope.symbols.get(name)?;
@@ -360,26 +364,31 @@ impl SymbolTable {
     }
 
     /// Get symbol by ID
+    #[inline(always)]
     pub fn get_symbol(&self, id: u64) -> Option<&Symbol> {
         self.symbols.get(&id)
     }
 
     /// Get mutable symbol
+    #[inline(always)]
     pub fn get_symbol_mut(&mut self, id: u64) -> Option<&mut Symbol> {
         self.symbols.get_mut(&id)
     }
 
     /// Get scope
+    #[inline(always)]
     pub fn get_scope(&self, id: u64) -> Option<&Scope> {
         self.scopes.get(&id)
     }
 
     /// Get current scope
+    #[inline(always)]
     pub fn current_scope(&self) -> &Scope {
         self.scopes.get(&self.current_scope).unwrap()
     }
 
     /// Add reference to symbol
+    #[inline]
     pub fn add_reference(&mut self, symbol_id: u64, location: Location) {
         if let Some(symbol) = self.symbols.get_mut(&symbol_id) {
             symbol.references.push(location);
@@ -387,6 +396,7 @@ impl SymbolTable {
     }
 
     /// Set symbol type
+    #[inline]
     pub fn set_type(&mut self, symbol_id: u64, symbol_type: SymbolType) {
         if let Some(symbol) = self.symbols.get_mut(&symbol_id) {
             symbol.symbol_type = Some(symbol_type);
@@ -394,6 +404,7 @@ impl SymbolTable {
     }
 
     /// Set visibility
+    #[inline]
     pub fn set_visibility(&mut self, symbol_id: u64, visibility: Visibility) {
         if let Some(symbol) = self.symbols.get_mut(&symbol_id) {
             symbol.visibility = visibility;
@@ -401,6 +412,7 @@ impl SymbolTable {
     }
 
     /// Set mutability
+    #[inline]
     pub fn set_mutability(&mut self, symbol_id: u64, mutability: Mutability) {
         if let Some(symbol) = self.symbols.get_mut(&symbol_id) {
             symbol.mutability = mutability;
@@ -408,6 +420,7 @@ impl SymbolTable {
     }
 
     /// Find all symbols by name
+    #[inline]
     pub fn find_by_name(&self, name: &str) -> Vec<&Symbol> {
         self.by_name.get(name)
             .map(|ids| ids.iter().filter_map(|id| self.symbols.get(id)).collect())
@@ -415,6 +428,7 @@ impl SymbolTable {
     }
 
     /// Find symbols by kind
+    #[inline]
     pub fn find_by_kind(&self, kind: SymbolKind) -> Vec<&Symbol> {
         self.symbols.values()
             .filter(|s| s.kind == kind)
@@ -422,6 +436,7 @@ impl SymbolTable {
     }
 
     /// Get all symbols in scope
+    #[inline]
     pub fn symbols_in_scope(&self, scope_id: u64) -> Vec<&Symbol> {
         self.scopes.get(&scope_id)
             .map(|scope| {
@@ -458,11 +473,13 @@ impl SymbolTable {
     }
 
     /// Check if symbol is in scope
+    #[inline(always)]
     pub fn is_in_scope(&self, name: &str) -> bool {
         self.lookup(name).is_some()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SymbolTableStats {
         &self.stats
     }
@@ -506,24 +523,28 @@ impl SymbolBuilder {
     }
 
     /// Set type
+    #[inline(always)]
     pub fn typed(mut self, ty: SymbolType) -> Self {
         self.symbol_type = Some(ty);
         self
     }
 
     /// Set visibility
+    #[inline(always)]
     pub fn visibility(mut self, vis: Visibility) -> Self {
         self.visibility = vis;
         self
     }
 
     /// Set mutability
+    #[inline(always)]
     pub fn mutable(mut self) -> Self {
         self.mutability = Mutability::Mutable;
         self
     }
 
     /// Set location
+    #[inline]
     pub fn at(mut self, file: &str, line: u32, column: u32) -> Self {
         self.location = Location {
             file: file.into(),
@@ -535,6 +556,7 @@ impl SymbolBuilder {
     }
 
     /// Add documentation
+    #[inline(always)]
     pub fn doc(mut self, doc: &str) -> Self {
         self.doc = Some(doc.into());
         self

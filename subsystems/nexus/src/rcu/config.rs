@@ -3,6 +3,7 @@
 //! This module provides adaptive configuration management for RCU tuning.
 
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use super::{GracePeriodStats, MemoryPressureLevel};
 
@@ -86,7 +87,7 @@ pub struct AdaptiveConfigurator {
     /// Current configuration
     config: RcuConfig,
     /// Configuration history
-    history: Vec<(u64, RcuConfig)>,
+    history: VecDeque<(u64, RcuConfig)>,
     /// Maximum history entries
     max_history: usize,
     /// Auto-tune enabled
@@ -106,7 +107,7 @@ impl AdaptiveConfigurator {
     pub fn new() -> Self {
         Self {
             config: RcuConfig::default(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 100,
             auto_tune: true,
             last_tune_ns: 0,
@@ -117,11 +118,13 @@ impl AdaptiveConfigurator {
     }
 
     /// Get current configuration
+    #[inline(always)]
     pub fn config(&self) -> &RcuConfig {
         &self.config
     }
 
     /// Get mutable configuration
+    #[inline(always)]
     pub fn config_mut(&mut self) -> &mut RcuConfig {
         &mut self.config
     }
@@ -208,9 +211,9 @@ impl AdaptiveConfigurator {
     pub fn apply_recommendation(&mut self, param: RcuConfigParam, value: u64, timestamp_ns: u64) {
         // Save current config to history
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push((timestamp_ns, self.config.clone()));
+        self.history.push_back((timestamp_ns, self.config.clone()));
 
         // Apply change
         match param {
@@ -241,26 +244,31 @@ impl AdaptiveConfigurator {
     }
 
     /// Get pending recommendations
+    #[inline(always)]
     pub fn recommendations(&self) -> &[ConfigRecommendation] {
         &self.recommendations
     }
 
     /// Enable auto-tuning
+    #[inline(always)]
     pub fn set_auto_tune(&mut self, enabled: bool) {
         self.auto_tune = enabled;
     }
 
     /// Check if auto-tune is enabled
+    #[inline(always)]
     pub fn is_auto_tune(&self) -> bool {
         self.auto_tune
     }
 
     /// Get changes applied count
+    #[inline(always)]
     pub fn changes_applied(&self) -> u64 {
         self.changes_applied
     }
 
     /// Rollback to previous configuration
+    #[inline]
     pub fn rollback(&mut self) -> bool {
         if let Some((_, config)) = self.history.pop() {
             self.config = config;

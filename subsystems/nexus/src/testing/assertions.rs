@@ -4,6 +4,7 @@ use alloc::format;
 use alloc::string::String;
 
 /// Assert two values are equal
+#[inline]
 pub fn assert_eq<T: PartialEq + core::fmt::Debug>(actual: T, expected: T) -> Result<(), String> {
     if actual == expected {
         Ok(())
@@ -13,6 +14,7 @@ pub fn assert_eq<T: PartialEq + core::fmt::Debug>(actual: T, expected: T) -> Res
 }
 
 /// Assert two values are not equal
+#[inline]
 pub fn assert_ne<T: PartialEq + core::fmt::Debug>(actual: T, expected: T) -> Result<(), String> {
     if actual != expected {
         Ok(())
@@ -22,6 +24,7 @@ pub fn assert_ne<T: PartialEq + core::fmt::Debug>(actual: T, expected: T) -> Res
 }
 
 /// Assert a condition is true
+#[inline]
 pub fn assert_true(condition: bool, message: &str) -> Result<(), String> {
     if condition {
         Ok(())
@@ -31,6 +34,7 @@ pub fn assert_true(condition: bool, message: &str) -> Result<(), String> {
 }
 
 /// Assert a condition is false
+#[inline]
 pub fn assert_false(condition: bool, message: &str) -> Result<(), String> {
     if !condition {
         Ok(())
@@ -40,6 +44,7 @@ pub fn assert_false(condition: bool, message: &str) -> Result<(), String> {
 }
 
 /// Assert a value is within range
+#[inline]
 pub fn assert_in_range<T: PartialOrd + core::fmt::Debug>(
     value: T,
     min: T,
@@ -56,11 +61,13 @@ pub fn assert_in_range<T: PartialOrd + core::fmt::Debug>(
 }
 
 /// Assert a result is Ok
+#[inline(always)]
 pub fn assert_ok<T, E: core::fmt::Debug>(result: Result<T, E>) -> Result<T, String> {
     result.map_err(|e| format!("Expected Ok, got Err({:?})", e))
 }
 
 /// Assert a result is Err
+#[inline]
 pub fn assert_err<T: core::fmt::Debug, E>(result: Result<T, E>) -> Result<E, String> {
     match result {
         Ok(v) => Err(format!("Expected Err, got Ok({:?})", v)),

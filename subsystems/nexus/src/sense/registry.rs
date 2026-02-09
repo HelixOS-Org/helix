@@ -36,6 +36,7 @@ impl ProbeRegistry {
     }
 
     /// Register a probe
+    #[inline]
     pub fn register(&mut self, probe: Box<dyn Probe>) -> ProbeId {
         let id = probe.id();
         let probe_type = probe.probe_type();
@@ -63,16 +64,19 @@ impl ProbeRegistry {
     }
 
     /// Get probe by ID
+    #[inline(always)]
     pub fn get(&self, id: ProbeId) -> Option<&dyn Probe> {
         self.probes.get(&id).map(|p| p.as_ref())
     }
 
     /// Get mutable probe by ID
+    #[inline(always)]
     pub fn get_mut(&mut self, id: ProbeId) -> Option<&mut (dyn Probe + 'static)> {
         self.probes.get_mut(&id).map(|p| &mut **p)
     }
 
     /// Get probes by type
+    #[inline]
     pub fn by_type(&self, probe_type: ProbeType) -> Vec<&dyn Probe> {
         self.by_type
             .get(&probe_type)
@@ -85,11 +89,13 @@ impl ProbeRegistry {
     }
 
     /// Get all probe IDs
+    #[inline(always)]
     pub fn all_ids(&self) -> Vec<ProbeId> {
         self.probes.keys().copied().collect()
     }
 
     /// Get all active probes
+    #[inline]
     pub fn active(&self) -> Vec<&dyn Probe> {
         self.probes
             .values()
@@ -99,6 +105,7 @@ impl ProbeRegistry {
     }
 
     /// Get all active probe IDs
+    #[inline]
     pub fn active_ids(&self) -> Vec<ProbeId> {
         self.probes
             .iter()
@@ -212,26 +219,31 @@ impl ProbeRegistry {
     }
 
     /// Count of registered probes
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.probes.len()
     }
 
     /// Count of active probes
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.active_count
     }
 
     /// Count by type
+    #[inline(always)]
     pub fn count_by_type(&self, probe_type: ProbeType) -> usize {
         self.by_type.get(&probe_type).map(|v| v.len()).unwrap_or(0)
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.probes.is_empty()
     }
 
     /// Clear all probes
+    #[inline]
     pub fn clear(&mut self) {
         self.probes.clear();
         self.by_type.clear();

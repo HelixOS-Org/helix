@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -46,21 +47,25 @@ impl ThermalZone {
     }
 
     /// Get temperature in Celsius
+    #[inline(always)]
     pub fn temp_celsius(&self) -> f64 {
         self.temperature as f64 / 1000.0
     }
 
     /// Is in critical state?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.temperature >= self.critical_temp
     }
 
     /// Is hot?
+    #[inline(always)]
     pub fn is_hot(&self) -> bool {
         self.temperature >= self.hot_temp
     }
 
     /// Should throttle?
+    #[inline(always)]
     pub fn should_throttle(&self) -> bool {
         self.temperature >= self.passive_temp
     }
@@ -92,7 +97,7 @@ pub struct ThermalManager {
     /// Thermal zones
     zones: BTreeMap<u32, ThermalZone>,
     /// Temperature history
-    history: Vec<(NexusTimestamp, i32)>, // (time, avg_temp)
+    history: VecDeque<(NexusTimestamp, i32)>, // (time, avg_temp)
     /// Max history entries
     max_history: usize,
     /// Current throttle level
@@ -106,7 +111,7 @@ impl ThermalManager {
     pub fn new() -> Self {
         Self {
             zones: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
             current_throttle: 0,
             emergency_temp: 105_000, // 105°C
@@ -114,6 +119,7 @@ impl ThermalManager {
     }
 
     /// Add thermal zone
+    #[inline(always)]
     pub fn add_zone(&mut self, zone: ThermalZone) {
         self.zones.insert(zone.id, zone);
     }
@@ -129,9 +135,9 @@ impl ThermalManager {
 
         // Record history
         let avg_temp = self.average_temperature();
-        self.history.push((NexusTimestamp::now(), avg_temp));
+        self.history.push_back((NexusTimestamp::now(), avg_temp));
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
@@ -147,6 +153,7 @@ impl ThermalManager {
     }
 
     /// Get average temperature
+    #[inline]
     pub fn average_temperature(&self) -> i32 {
         if self.zones.is_empty() {
             return 0;
@@ -157,6 +164,7 @@ impl ThermalManager {
     }
 
     /// Get maximum temperature
+    #[inline]
     pub fn max_temperature(&self) -> i32 {
         self.zones
             .values()
@@ -166,11 +174,13 @@ impl ThermalManager {
     }
 
     /// Get current throttle level
+    #[inline(always)]
     pub fn throttle_level(&self) -> u8 {
         self.current_throttle
     }
 
     /// Need emergency shutdown?
+    #[inline]
     pub fn needs_emergency_shutdown(&self) -> bool {
         self.zones
             .values()
@@ -178,6 +188,7 @@ impl ThermalManager {
     }
 
     /// Get hottest zone
+    #[inline(always)]
     pub fn hottest_zone(&self) -> Option<&ThermalZone> {
         self.zones.values().max_by_key(|z| z.temperature)
     }
@@ -204,6 +215,7 @@ impl ThermalManager {
     }
 
     /// Predict temperature in N seconds
+    #[inline]
     pub fn predict_temperature(&self, seconds: f64) -> i32 {
         let trend = self.temperature_trend();
         let current = self.average_temperature();

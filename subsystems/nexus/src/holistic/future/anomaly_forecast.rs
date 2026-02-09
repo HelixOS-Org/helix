@@ -18,6 +18,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -61,6 +62,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f32, sample: f32) -> f32 {
     EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * current
 }
@@ -191,8 +193,8 @@ pub struct CliffWarning {
 #[derive(Debug, Clone)]
 pub struct SystemicRisk {
     pub overall_risk_score: f32,
-    pub risk_by_category: BTreeMap<u64, f32>,
-    pub risk_by_source: BTreeMap<u64, f32>,
+    pub risk_by_category: LinearMap<f32, 64>,
+    pub risk_by_source: LinearMap<f32, 64>,
     pub fragility_index: f32,
     pub resilience_score: f32,
     pub risk_trend: f32,
@@ -260,6 +262,7 @@ pub enum PreventionActionType {
 
 /// Runtime statistics for the anomaly forecast engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AnomalyForecastStats {
     pub forecasts_generated: u64,
     pub cascades_predicted: u64,
@@ -297,7 +300,7 @@ impl AnomalyForecastStats {
 /// System-wide anomaly prediction engine
 pub struct HolisticAnomalyForecast {
     signals: Vec<AnomalySignal>,
-    signal_index: BTreeMap<u64, usize>,
+    signal_index: LinearMap<usize, 64>,
     cascade_history: Vec<CascadePrediction>,
     risk_history: Vec<SystemicRisk>,
     warning_log: Vec<EarlySystemWarning>,
@@ -316,7 +319,7 @@ impl HolisticAnomalyForecast {
     pub fn new(seed: u64) -> Self {
         Self {
             signals: Vec::new(),
-            signal_index: BTreeMap::new(),
+            signal_index: LinearMap::new(),
             cascade_history: Vec::new(),
             risk_history: Vec::new(),
             warning_log: Vec::new(),
@@ -575,8 +578,8 @@ impl HolisticAnomalyForecast {
     /// Assess overall systemic risk
     pub fn systemic_risk(&mut self) -> SystemicRisk {
         self.stats.risk_assessments += 1;
-        let mut risk_by_cat: BTreeMap<u64, f32> = BTreeMap::new();
-        let mut risk_by_src: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut risk_by_cat: LinearMap<f32, 64> = BTreeMap::new();
+        let mut risk_by_src: LinearMap<f32, 64> = BTreeMap::new();
         let mut total_risk = 0.0_f32;
         let mut factors: Vec<RiskFactor> = Vec::new();
 
@@ -751,6 +754,7 @@ impl HolisticAnomalyForecast {
     }
 
     /// Get current statistics
+    #[inline(always)]
     pub fn stats(&self) -> &AnomalyForecastStats {
         &self.stats
     }

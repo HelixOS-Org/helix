@@ -3,6 +3,7 @@
 //! Tracking kobject lifecycle events.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -41,7 +42,7 @@ pub enum LifecycleEventType {
 /// Lifecycle tracker
 pub struct LifecycleTracker {
     /// Lifecycle events
-    events: Vec<LifecycleEvent>,
+    events: VecDeque<LifecycleEvent>,
     /// Maximum events
     max_events: usize,
     /// Per-kobject events
@@ -94,19 +95,21 @@ impl LifecycleTracker {
 
         // Store event
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event.clone());
+        self.events.push_back(event.clone());
 
         self.per_object.entry(kobject).or_default().push(event);
     }
 
     /// Get events for kobject
+    #[inline(always)]
     pub fn get_events(&self, kobject: KobjectId) -> Option<&[LifecycleEvent]> {
         self.per_object.get(&kobject).map(|v| v.as_slice())
     }
 
     /// Get average lifetime
+    #[inline]
     pub fn average_lifetime(&self) -> u64 {
         if self.lifetimes.is_empty() {
             return 0;
@@ -116,6 +119,7 @@ impl LifecycleTracker {
     }
 
     /// Get recent events
+    #[inline(always)]
     pub fn recent_events(&self, limit: usize) -> &[LifecycleEvent] {
         let start = self.events.len().saturating_sub(limit);
         &self.events[start..]

@@ -2,6 +2,7 @@
 //! NEXUS Holistic — Exit (holistic exit/cleanup analysis)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -29,6 +30,7 @@ pub struct HolisticExitRecord {
 
 /// Exit holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticExitStats {
     pub total_analyzed: u64,
     pub clean_exits: u64,
@@ -42,7 +44,7 @@ pub struct HolisticExitStats {
 /// Manager for holistic exit analysis
 pub struct HolisticExitManager {
     records: Vec<HolisticExitRecord>,
-    exit_times: BTreeMap<u64, u64>,
+    exit_times: LinearMap<u64, 64>,
     stats: HolisticExitStats,
 }
 
@@ -50,7 +52,7 @@ impl HolisticExitManager {
     pub fn new() -> Self {
         Self {
             records: Vec::new(),
-            exit_times: BTreeMap::new(),
+            exit_times: LinearMap::new(),
             stats: HolisticExitStats {
                 total_analyzed: 0,
                 clean_exits: 0,
@@ -96,6 +98,7 @@ impl HolisticExitManager {
         pattern
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticExitStats {
         &self.stats
     }

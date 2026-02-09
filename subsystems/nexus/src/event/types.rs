@@ -20,6 +20,7 @@ impl EventId {
     }
 
     /// Get raw ID
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }

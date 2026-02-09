@@ -29,6 +29,7 @@ impl Predicate {
     }
 
     /// Check predicate
+    #[inline(always)]
     pub fn check(&self, state: &State) -> bool {
         (self.checker)(state)
     }

@@ -80,16 +80,19 @@ pub fn apply_single_qubit_gate(state: &mut StateVector, qubit: usize, gate: [[Co
 }
 
 /// Identity gate matrix
+#[inline(always)]
 pub fn gate_i() -> [[Complex; 2]; 2] {
     [[Complex::ONE, Complex::ZERO], [Complex::ZERO, Complex::ONE]]
 }
 
 /// Pauli-X gate matrix
+#[inline(always)]
 pub fn gate_x() -> [[Complex; 2]; 2] {
     [[Complex::ZERO, Complex::ONE], [Complex::ONE, Complex::ZERO]]
 }
 
 /// Pauli-Y gate matrix
+#[inline]
 pub fn gate_y() -> [[Complex; 2]; 2] {
     [[Complex::ZERO, Complex::new(0.0, -1.0)], [
         Complex::new(0.0, 1.0),
@@ -98,6 +101,7 @@ pub fn gate_y() -> [[Complex; 2]; 2] {
 }
 
 /// Pauli-Z gate matrix
+#[inline]
 pub fn gate_z() -> [[Complex; 2]; 2] {
     [[Complex::ONE, Complex::ZERO], [
         Complex::ZERO,
@@ -106,6 +110,7 @@ pub fn gate_z() -> [[Complex; 2]; 2] {
 }
 
 /// Hadamard gate matrix
+#[inline]
 pub fn gate_h() -> [[Complex; 2]; 2] {
     let inv_sqrt2 = 1.0 / libm::sqrt(2.0);
     let h = Complex::new(inv_sqrt2, 0.0);
@@ -113,11 +118,13 @@ pub fn gate_h() -> [[Complex; 2]; 2] {
 }
 
 /// S gate matrix (√Z)
+#[inline(always)]
 pub fn gate_s() -> [[Complex; 2]; 2] {
     [[Complex::ONE, Complex::ZERO], [Complex::ZERO, Complex::I]]
 }
 
 /// S-dagger gate matrix
+#[inline]
 pub fn gate_sdg() -> [[Complex; 2]; 2] {
     [[Complex::ONE, Complex::ZERO], [
         Complex::ZERO,
@@ -126,24 +133,28 @@ pub fn gate_sdg() -> [[Complex; 2]; 2] {
 }
 
 /// T gate matrix
+#[inline(always)]
 pub fn gate_t() -> [[Complex; 2]; 2] {
     let phase = Complex::from_polar(1.0, core::f64::consts::PI / 4.0);
     [[Complex::ONE, Complex::ZERO], [Complex::ZERO, phase]]
 }
 
 /// T-dagger gate matrix
+#[inline(always)]
 pub fn gate_tdg() -> [[Complex; 2]; 2] {
     let phase = Complex::from_polar(1.0, -core::f64::consts::PI / 4.0);
     [[Complex::ONE, Complex::ZERO], [Complex::ZERO, phase]]
 }
 
 /// Phase gate P(θ)
+#[inline(always)]
 pub fn gate_p(theta: f64) -> [[Complex; 2]; 2] {
     let phase = Complex::from_polar(1.0, theta);
     [[Complex::ONE, Complex::ZERO], [Complex::ZERO, phase]]
 }
 
 /// Rotation X gate Rx(θ)
+#[inline]
 pub fn gate_rx(theta: f64) -> [[Complex; 2]; 2] {
     let cos = Complex::new(libm::cos(theta / 2.0), 0.0);
     let sin = Complex::new(0.0, -libm::sin(theta / 2.0));
@@ -151,6 +162,7 @@ pub fn gate_rx(theta: f64) -> [[Complex; 2]; 2] {
 }
 
 /// Rotation Y gate Ry(θ)
+#[inline]
 pub fn gate_ry(theta: f64) -> [[Complex; 2]; 2] {
     let cos = Complex::new(libm::cos(theta / 2.0), 0.0);
     let sin_pos = Complex::new(libm::sin(theta / 2.0), 0.0);
@@ -159,6 +171,7 @@ pub fn gate_ry(theta: f64) -> [[Complex; 2]; 2] {
 }
 
 /// Rotation Z gate Rz(θ)
+#[inline]
 pub fn gate_rz(theta: f64) -> [[Complex; 2]; 2] {
     let neg = Complex::from_polar(1.0, -theta / 2.0);
     let pos = Complex::from_polar(1.0, theta / 2.0);
@@ -317,36 +330,43 @@ pub fn apply_toffoli(state: &mut StateVector, control1: usize, control2: usize, 
 // ============================================================================
 
 /// Apply X gate to qubit
+#[inline(always)]
 pub fn apply_x(state: &mut StateVector, qubit: usize) {
     apply_single_qubit_gate(state, qubit, gate_x());
 }
 
 /// Apply Y gate to qubit
+#[inline(always)]
 pub fn apply_y(state: &mut StateVector, qubit: usize) {
     apply_single_qubit_gate(state, qubit, gate_y());
 }
 
 /// Apply Z gate to qubit
+#[inline(always)]
 pub fn apply_z(state: &mut StateVector, qubit: usize) {
     apply_single_qubit_gate(state, qubit, gate_z());
 }
 
 /// Apply Hadamard gate to qubit
+#[inline(always)]
 pub fn apply_h(state: &mut StateVector, qubit: usize) {
     apply_single_qubit_gate(state, qubit, gate_h());
 }
 
 /// Apply Rx gate to qubit
+#[inline(always)]
 pub fn apply_rx(state: &mut StateVector, qubit: usize, theta: f64) {
     apply_single_qubit_gate(state, qubit, gate_rx(theta));
 }
 
 /// Apply Ry gate to qubit
+#[inline(always)]
 pub fn apply_ry(state: &mut StateVector, qubit: usize, theta: f64) {
     apply_single_qubit_gate(state, qubit, gate_ry(theta));
 }
 
 /// Apply Rz gate to qubit
+#[inline(always)]
 pub fn apply_rz(state: &mut StateVector, qubit: usize, theta: f64) {
     apply_single_qubit_gate(state, qubit, gate_rz(theta));
 }

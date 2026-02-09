@@ -1,5 +1,6 @@
 //! NUMA topology analysis and optimization.
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -15,7 +16,7 @@ pub struct NumaAnalyzer {
     /// Local access counts by node
     local_accesses: Vec<u64>,
     /// Task-to-node mapping
-    task_home_node: BTreeMap<u64, u32>,
+    task_home_node: LinearMap<u32, 64>,
     /// Number of NUMA nodes
     num_nodes: u32,
 }
@@ -27,7 +28,7 @@ impl NumaAnalyzer {
         Self {
             cross_node_accesses: vec![vec![0; n]; n],
             local_accesses: vec![0; n],
-            task_home_node: BTreeMap::new(),
+            task_home_node: LinearMap::new(),
             num_nodes,
         }
     }
@@ -74,13 +75,15 @@ impl NumaAnalyzer {
     }
 
     /// Get cross-node traffic matrix
+    #[inline(always)]
     pub fn cross_node_traffic(&self) -> Vec<Vec<u64>> {
         self.cross_node_accesses.clone()
     }
 
     /// Recommend node for task based on memory access patterns
+    #[inline(always)]
     pub fn recommend_node(&self, task_id: u64) -> Option<u32> {
-        self.task_home_node.get(&task_id).copied()
+        self.task_home_node.get(task_id).copied()
     }
 
     /// Get node with most memory for a task
@@ -107,6 +110,7 @@ impl NumaAnalyzer {
     }
 
     /// Should migrate memory?
+    #[inline]
     pub fn should_migrate(&self, _task_id: u64, current_node: u32, target_node: u32) -> bool {
         if current_node == target_node {
             return false;
@@ -120,6 +124,7 @@ impl NumaAnalyzer {
     }
 
     /// Get overall NUMA efficiency
+    #[inline]
     pub fn numa_efficiency(&self) -> f64 {
         let local: u64 = self.local_accesses.iter().sum();
         let remote: u64 = self.cross_node_accesses.iter().flatten().sum();

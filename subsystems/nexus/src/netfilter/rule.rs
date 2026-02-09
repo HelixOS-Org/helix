@@ -107,11 +107,13 @@ impl RuleDef {
     }
 
     /// Add match condition
+    #[inline(always)]
     pub fn add_match(&mut self, condition: MatchCondition) {
         self.matches.push(condition);
     }
 
     /// Record hit
+    #[inline]
     pub fn hit(&self, packet_size: u64, timestamp: u64) {
         self.hits.fetch_add(1, Ordering::Relaxed);
         self.bytes.fetch_add(packet_size, Ordering::Relaxed);
@@ -119,16 +121,19 @@ impl RuleDef {
     }
 
     /// Get hit count
+    #[inline(always)]
     pub fn hit_count(&self) -> u64 {
         self.hits.load(Ordering::Relaxed)
     }
 
     /// Get byte count
+    #[inline(always)]
     pub fn byte_count(&self) -> u64 {
         self.bytes.load(Ordering::Relaxed)
     }
 
     /// Get last hit
+    #[inline(always)]
     pub fn get_last_hit(&self) -> u64 {
         self.last_hit.load(Ordering::Relaxed)
     }

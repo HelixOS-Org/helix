@@ -49,6 +49,7 @@ impl QuarantineManager {
     }
 
     /// Quarantine a component
+    #[inline]
     pub fn quarantine(&mut self, component: ComponentId, reason: impl Into<String>) {
         let entry = QuarantinedComponent {
             component,
@@ -62,6 +63,7 @@ impl QuarantineManager {
     }
 
     /// Quarantine with scheduled release
+    #[inline]
     pub fn quarantine_with_release(
         &mut self,
         component: ComponentId,
@@ -80,26 +82,31 @@ impl QuarantineManager {
     }
 
     /// Check if a component is quarantined
+    #[inline(always)]
     pub fn is_quarantined(&self, component: ComponentId) -> bool {
         self.quarantined.contains_key(&component.raw())
     }
 
     /// Get quarantine entry
+    #[inline(always)]
     pub fn get(&self, component: ComponentId) -> Option<&QuarantinedComponent> {
         self.quarantined.get(&component.raw())
     }
 
     /// Get quarantine entry mutably
+    #[inline(always)]
     pub fn get_mut(&mut self, component: ComponentId) -> Option<&mut QuarantinedComponent> {
         self.quarantined.get_mut(&component.raw())
     }
 
     /// Release a component from quarantine
+    #[inline(always)]
     pub fn release(&mut self, component: ComponentId) -> Option<QuarantinedComponent> {
         self.quarantined.remove(&component.raw())
     }
 
     /// Record a failed healing attempt
+    #[inline]
     pub fn record_failure(&mut self, component: ComponentId, error: impl Into<String>) {
         if let Some(entry) = self.quarantined.get_mut(&component.raw()) {
             entry.failed_attempts += 1;
@@ -108,11 +115,13 @@ impl QuarantineManager {
     }
 
     /// Get all quarantined components
+    #[inline(always)]
     pub fn all_quarantined(&self) -> Vec<&QuarantinedComponent> {
         self.quarantined.values().collect()
     }
 
     /// Count quarantined components
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.quarantined.len()
     }
@@ -143,6 +152,7 @@ impl QuarantineManager {
     }
 
     /// Set maximum quarantine duration
+    #[inline(always)]
     pub fn set_max_duration(&mut self, duration: u64) {
         self.max_duration = duration;
     }

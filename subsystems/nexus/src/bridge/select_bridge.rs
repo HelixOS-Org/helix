@@ -24,6 +24,7 @@ impl SelectMask {
         Self { bits: [0; 16] }
     }
 
+    #[inline]
     pub fn set(&mut self, fd: i32) {
         if fd >= 0 && (fd as usize) < 1024 {
             let idx = fd as usize / 64;
@@ -32,6 +33,7 @@ impl SelectMask {
         }
     }
 
+    #[inline]
     pub fn clear(&mut self, fd: i32) {
         if fd >= 0 && (fd as usize) < 1024 {
             let idx = fd as usize / 64;
@@ -40,6 +42,7 @@ impl SelectMask {
         }
     }
 
+    #[inline]
     pub fn is_set(&self, fd: i32) -> bool {
         if fd >= 0 && (fd as usize) < 1024 {
             let idx = fd as usize / 64;
@@ -50,6 +53,7 @@ impl SelectMask {
         }
     }
 
+    #[inline]
     pub fn count(&self) -> u32 {
         let mut c = 0u32;
         for word in &self.bits {
@@ -62,6 +66,7 @@ impl SelectMask {
         c
     }
 
+    #[inline]
     pub fn intersect(&self, other: &SelectMask) -> SelectMask {
         let mut result = SelectMask::new();
         for i in 0..16 {
@@ -70,6 +75,7 @@ impl SelectMask {
         result
     }
 
+    #[inline]
     pub fn highest_fd(&self) -> i32 {
         for i in (0..16).rev() {
             if self.bits[i] != 0 {
@@ -108,6 +114,7 @@ impl SelectCall {
         }
     }
 
+    #[inline(always)]
     pub fn total_fds_monitored(&self) -> u32 {
         self.read_set.count() + self.write_set.count() + self.except_set.count()
     }
@@ -115,6 +122,7 @@ impl SelectCall {
 
 /// Select bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SelectBridgeStats {
     pub total_calls: u64,
     pub total_fds_monitored: u64,
@@ -157,10 +165,12 @@ impl BridgeSelect {
         }
     }
 
+    #[inline(always)]
     pub fn timeout_rate(&self) -> f64 {
         if self.stats.total_calls == 0 { 0.0 } else { self.stats.timeouts as f64 / self.stats.total_calls as f64 }
     }
 
+    #[inline(always)]
     pub fn avg_fds_per_call(&self) -> f64 {
         if self.stats.total_calls == 0 { 0.0 } else { self.stats.total_fds_monitored as f64 / self.stats.total_calls as f64 }
     }
@@ -188,6 +198,7 @@ impl SelectV2Record {
 
 /// Select v2 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SelectV2BridgeStats { pub total_selects: u64, pub read_ready: u64, pub write_ready: u64, pub timeouts: u64 }
 
 /// Main bridge select v2
@@ -196,6 +207,7 @@ pub struct BridgeSelectV2 { pub stats: SelectV2BridgeStats }
 
 impl BridgeSelectV2 {
     pub fn new() -> Self { Self { stats: SelectV2BridgeStats { total_selects: 0, read_ready: 0, write_ready: 0, timeouts: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SelectV2Record) {
         self.stats.total_selects += 1;
         match rec.set {

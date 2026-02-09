@@ -14,6 +14,7 @@ use super::temporal::Timestamp;
 
 /// Metric value with metadata
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Metric {
     /// Metric name
     pub name: String,
@@ -37,16 +38,19 @@ impl Metric {
     }
 
     /// Create counter metric
+    #[inline(always)]
     pub fn counter(name: impl Into<String>, value: u64) -> Self {
         Self::new(name, MetricValue::Counter(value), MetricUnit::Count)
     }
 
     /// Create gauge metric
+    #[inline(always)]
     pub fn gauge(name: impl Into<String>, value: f64, unit: MetricUnit) -> Self {
         Self::new(name, MetricValue::Gauge(value), unit)
     }
 
     /// Create flag metric
+    #[inline(always)]
     pub fn flag(name: impl Into<String>, value: bool) -> Self {
         Self::new(name, MetricValue::Flag(value), MetricUnit::None)
     }
@@ -93,21 +97,25 @@ impl MetricValue {
     }
 
     /// Is this a counter?
+    #[inline(always)]
     pub const fn is_counter(&self) -> bool {
         matches!(self, Self::Counter(_))
     }
 
     /// Is this a gauge?
+    #[inline(always)]
     pub const fn is_gauge(&self) -> bool {
         matches!(self, Self::Gauge(_))
     }
 
     /// Is this a histogram?
+    #[inline(always)]
     pub const fn is_histogram(&self) -> bool {
         matches!(self, Self::Histogram { .. })
     }
 
     /// Is this a flag?
+    #[inline(always)]
     pub const fn is_flag(&self) -> bool {
         matches!(self, Self::Flag(_))
     }
@@ -267,6 +275,7 @@ impl MetricUnit {
     }
 
     /// Is this a time unit?
+    #[inline]
     pub const fn is_time(&self) -> bool {
         matches!(
             self,
@@ -275,6 +284,7 @@ impl MetricUnit {
     }
 
     /// Is this a size unit?
+    #[inline]
     pub const fn is_size(&self) -> bool {
         matches!(
             self,
@@ -283,6 +293,7 @@ impl MetricUnit {
     }
 
     /// Is this a rate unit?
+    #[inline]
     pub const fn is_rate(&self) -> bool {
         matches!(
             self,

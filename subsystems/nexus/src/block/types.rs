@@ -21,6 +21,7 @@ pub struct BlockDeviceId {
 
 impl BlockDeviceId {
     /// Create new device ID
+    #[inline]
     pub const fn new(major: u32, minor: u32) -> Self {
         Self {
             major: Major(major),
@@ -29,6 +30,7 @@ impl BlockDeviceId {
     }
 
     /// Create dev_t value
+    #[inline(always)]
     pub fn dev_t(&self) -> u64 {
         ((self.major.0 as u64) << 20) | (self.minor.0 as u64)
     }
@@ -107,16 +109,19 @@ impl BlockDeviceType {
     }
 
     /// Is rotational
+    #[inline(always)]
     pub fn is_rotational(&self) -> bool {
         matches!(self, Self::Hdd | Self::Floppy | Self::Optical)
     }
 
     /// Is solid state
+    #[inline(always)]
     pub fn is_solid_state(&self) -> bool {
         matches!(self, Self::Ssd | Self::Nvme | Self::Ram)
     }
 
     /// Supports trim
+    #[inline(always)]
     pub fn supports_trim(&self) -> bool {
         matches!(self, Self::Ssd | Self::Nvme)
     }
@@ -139,6 +144,7 @@ pub enum BlockDeviceState {
 
 impl BlockDeviceState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Active => "active",

@@ -23,6 +23,7 @@ pub struct TypeId(pub u64);
 static TYPE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl TypeId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(TYPE_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -75,6 +76,7 @@ impl Type {
         }
     }
 
+    #[inline]
     pub fn with_layout(mut self, size: usize, align: usize) -> Self {
         self.size = Some(size);
         self.align = Some(align);
@@ -167,6 +169,7 @@ pub enum IntTy {
 }
 
 impl IntTy {
+    #[inline]
     pub fn size(&self) -> usize {
         match self {
             IntTy::I8 => 1,
@@ -191,6 +194,7 @@ pub enum UintTy {
 }
 
 impl UintTy {
+    #[inline]
     pub fn size(&self) -> usize {
         match self {
             UintTy::U8 => 1,
@@ -211,6 +215,7 @@ pub enum FloatTy {
 }
 
 impl FloatTy {
+    #[inline]
     pub fn size(&self) -> usize {
         match self {
             FloatTy::F32 => 4,
@@ -425,6 +430,7 @@ impl Default for Abi {
 // ============================================================================
 
 /// Type context (interning and caching)
+#[repr(align(64))]
 pub struct TypeContext {
     /// Type storage
     types: BTreeMap<TypeId, Type>,
@@ -587,11 +593,13 @@ impl TypeContext {
     }
 
     /// Get type
+    #[inline(always)]
     pub fn get(&self, id: TypeId) -> Option<&Type> {
         self.types.get(&id)
     }
 
     /// Register type
+    #[inline]
     pub fn register(&mut self, ty: Type) -> TypeId {
         let id = ty.id;
         self.types.insert(id, ty);
@@ -599,16 +607,19 @@ impl TypeContext {
     }
 
     /// Create type variable
+    #[inline(always)]
     pub fn new_var(&self) -> TypeVarId {
         TypeVarId(self.next_var.fetch_add(1, Ordering::SeqCst))
     }
 
     /// Bind type variable
+    #[inline(always)]
     pub fn bind(&mut self, var: TypeVarId, ty: Type) {
         self.bindings.insert(var, ty);
     }
 
     /// Resolve type variable
+    #[inline(always)]
     pub fn resolve(&self, var: TypeVarId) -> Option<&Type> {
         self.bindings.get(&var)
     }
@@ -676,6 +687,7 @@ impl TypeContext {
     }
 
     /// Register trait
+    #[inline]
     pub fn register_trait(&mut self, def: TraitDef) -> TraitId {
         let id = def.id;
         self.traits.insert(id, def);
@@ -683,6 +695,7 @@ impl TypeContext {
     }
 
     /// Get trait
+    #[inline(always)]
     pub fn get_trait(&self, id: TraitId) -> Option<&TraitDef> {
         self.traits.get(&id)
     }
@@ -724,6 +737,7 @@ impl<'a> TypeUnifier<'a> {
     }
 
     /// Add constraint
+    #[inline(always)]
     pub fn constrain(&mut self, constraint: TypeConstraint) {
         self.constraints.push(constraint);
     }

@@ -54,6 +54,7 @@ impl WorkFlags {
     pub const ORDERED: u32 = 1 << 5;
 
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
 }
 
@@ -85,28 +86,34 @@ impl WorkItem {
         }
     }
 
+    #[inline(always)]
     pub fn enqueue(&mut self, now: u64) {
         self.state = WorkItemState::Pending;
         self.enqueued_at = now;
     }
 
+    #[inline(always)]
     pub fn start(&mut self, now: u64) {
         self.state = WorkItemState::Running;
         self.started_at = now;
     }
 
+    #[inline]
     pub fn complete(&mut self, now: u64) {
         self.state = WorkItemState::Completed;
         self.completed_at = now;
         self.execution_ns = now.saturating_sub(self.started_at);
     }
 
+    #[inline(always)]
     pub fn fail(&mut self) {
         self.state = WorkItemState::Failed;
         self.retries += 1;
     }
 
+    #[inline(always)]
     pub fn wait_time(&self, now: u64) -> u64 { now.saturating_sub(self.enqueued_at) }
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 { if self.completed_at > 0 { self.completed_at.saturating_sub(self.enqueued_at) } else { 0 } }
 }
 
@@ -131,11 +138,13 @@ impl WqWorker {
         }
     }
 
+    #[inline(always)]
     pub fn assign(&mut self, work_id: u64) {
         self.current_work = Some(work_id);
         self.active = true;
     }
 
+    #[inline]
     pub fn finish(&mut self, exec_ns: u64, now: u64) {
         self.current_work = None;
         self.active = false;
@@ -144,6 +153,7 @@ impl WqWorker {
         self.idle_since = now;
     }
 
+    #[inline(always)]
     pub fn avg_exec_ns(&self) -> u64 {
         if self.items_processed == 0 { 0 } else { self.total_exec_ns / self.items_processed }
     }
@@ -171,6 +181,7 @@ impl Workqueue {
         }
     }
 
+    #[inline]
     pub fn submit(&mut self, mut item: WorkItem, now: u64) -> u64 {
         let id = item.id;
         item.enqueue(now);
@@ -179,6 +190,7 @@ impl Workqueue {
         id
     }
 
+    #[inline]
     pub fn dispatch(&mut self, now: u64) -> Option<(u32, u64)> {
         let worker_id = self.workers.iter().position(|w| !w.active)?;
         let item = self.pending.pop()?;
@@ -187,17 +199,20 @@ impl Workqueue {
         Some((self.workers[worker_id].id, work_id))
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.workers.is_empty() { return 0.0; }
         let active = self.workers.iter().filter(|w| w.active).count();
         active as f64 / self.workers.len() as f64
     }
 
+    #[inline(always)]
     pub fn queue_depth(&self) -> u32 { self.pending.len() as u32 }
 }
 
 /// WQ scheduler stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WqSchedulerStats {
     pub total_workqueues: u32,
     pub total_workers: u32,
@@ -225,6 +240,7 @@ impl HolisticWqScheduler {
         }
     }
 
+    #[inline]
     pub fn create_workqueue(&mut self, wq_type: WqType, max_workers: u32) -> u32 {
         let id = self.next_wq_id;
         self.next_wq_id += 1;
@@ -232,6 +248,7 @@ impl HolisticWqScheduler {
         id
     }
 
+    #[inline]
     pub fn add_worker(&mut self, wq_id: u32, cpu_id: u32) -> Option<u32> {
         let wq = self.workqueues.get_mut(&wq_id)?;
         let worker_id = wq.workers.len() as u32;
@@ -239,6 +256,7 @@ impl HolisticWqScheduler {
         Some(worker_id)
     }
 
+    #[inline]
     pub fn submit(&mut self, wq_id: u32, priority: WorkPriority, now: u64) -> Option<u64> {
         let work_id = self.next_work_id;
         self.next_work_id += 1;

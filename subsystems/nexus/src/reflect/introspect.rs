@@ -11,6 +11,7 @@ extern crate alloc;
 use alloc::format;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -23,6 +24,7 @@ use crate::types::Timestamp;
 
 /// Cognitive state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CognitiveState {
     /// State ID
     pub id: u64,
@@ -40,6 +42,7 @@ pub struct CognitiveState {
 
 /// Process state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessState {
     /// Process ID
     pub id: u64,
@@ -90,6 +93,7 @@ pub struct ResourceUsage {
 
 /// Attention state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AttentionState {
     /// Focus targets
     pub focus: Vec<u64>,
@@ -103,6 +107,7 @@ pub struct AttentionState {
 
 /// Goal state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GoalState {
     /// Goal ID
     pub id: u64,
@@ -160,7 +165,7 @@ pub enum Severity {
 /// Introspection engine
 pub struct IntrospectionEngine {
     /// State history
-    history: Vec<CognitiveState>,
+    history: VecDeque<CognitiveState>,
     /// Current processes
     processes: BTreeMap<u64, ProcessState>,
     /// Current goals
@@ -198,6 +203,7 @@ impl Default for IntrospectionConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IntrospectionStats {
     /// States captured
     pub states_captured: u64,
@@ -211,7 +217,7 @@ impl IntrospectionEngine {
     /// Create new engine
     pub fn new(config: IntrospectionConfig) -> Self {
         Self {
-            history: Vec::new(),
+            history: VecDeque::new(),
             processes: BTreeMap::new(),
             goals: BTreeMap::new(),
             insights: Vec::new(),
@@ -240,6 +246,7 @@ impl IntrospectionEngine {
     }
 
     /// Update process
+    #[inline]
     pub fn update_process(&mut self, id: u64, status: ProcessStatus, load: f64) {
         if let Some(process) = self.processes.get_mut(&id) {
             process.status = status;
@@ -265,6 +272,7 @@ impl IntrospectionEngine {
     }
 
     /// Update goal progress
+    #[inline]
     pub fn update_goal(&mut self, id: u64, progress: f64) {
         if let Some(goal) = self.goals.get_mut(&id) {
             goal.progress = progress.clamp(0.0, 1.0);
@@ -287,12 +295,12 @@ impl IntrospectionEngine {
             timestamp: Timestamp::now(),
         };
 
-        self.history.push(state.clone());
+        self.history.push_back(state.clone());
         self.stats.states_captured += 1;
 
         // Limit history
         while self.history.len() > self.config.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         state
@@ -471,6 +479,7 @@ impl IntrospectionEngine {
     }
 
     /// Query state
+    #[inline]
     pub fn query(&self, domain: Option<CognitiveDomain>) -> Vec<&ProcessState> {
         self.processes
             .values()
@@ -479,21 +488,25 @@ impl IntrospectionEngine {
     }
 
     /// Get process
+    #[inline(always)]
     pub fn get_process(&self, id: u64) -> Option<&ProcessState> {
         self.processes.get(&id)
     }
 
     /// Get goal
+    #[inline(always)]
     pub fn get_goal(&self, id: u64) -> Option<&GoalState> {
         self.goals.get(&id)
     }
 
     /// Get recent states
+    #[inline(always)]
     pub fn recent_states(&self, count: usize) -> Vec<&CognitiveState> {
         self.history.iter().rev().take(count).collect()
     }
 
     /// Get insights by type
+    #[inline]
     pub fn insights_by_type(&self, insight_type: InsightType) -> Vec<&Insight> {
         self.insights
             .iter()
@@ -502,6 +515,7 @@ impl IntrospectionEngine {
     }
 
     /// Get high severity insights
+    #[inline]
     pub fn high_severity_insights(&self) -> Vec<&Insight> {
         self.insights
             .iter()
@@ -510,6 +524,7 @@ impl IntrospectionEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &IntrospectionStats {
         &self.stats
     }

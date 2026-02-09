@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
@@ -34,9 +35,10 @@ pub enum GovernorAlgorithm {
 
 /// P-State statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PStateStats {
     /// Time in each state
-    pub time_in_state: BTreeMap<u32, u64>, // freq -> nanoseconds
+    pub time_in_state: ArrayMap<u64, 32>, // freq -> nanoseconds
     /// State transitions
     pub transitions: u64,
     /// Energy saved estimate
@@ -48,6 +50,7 @@ pub struct PStateStats {
 // ============================================================================
 
 /// Intelligent P-State governor
+#[repr(align(64))]
 pub struct PStateGovernor {
     /// Available P-States
     available_states: Vec<PState>,
@@ -160,26 +163,31 @@ impl PStateGovernor {
     }
 
     /// Set algorithm
+    #[inline(always)]
     pub fn set_algorithm(&mut self, algo: GovernorAlgorithm) {
         self.algorithm = algo;
     }
 
     /// Set power mode
+    #[inline(always)]
     pub fn set_power_mode(&mut self, mode: PowerMode) {
         self.power_mode = mode;
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn current_state(&self) -> &PState {
         &self.available_states[self.current_idx]
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &PStateStats {
         &self.stats
     }
 
     /// Get workload predictor
+    #[inline(always)]
     pub fn workload_predictor(&self) -> &WorkloadPredictor {
         &self.workload
     }

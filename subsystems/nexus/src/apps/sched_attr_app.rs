@@ -31,16 +31,20 @@ pub struct SchedAttr {
 }
 
 impl SchedAttr {
+    #[inline(always)]
     pub fn normal(nice: i8) -> Self {
         Self { size: 56, policy: SchedPolicy::Normal, flags: 0, nice, priority: 0, runtime_ns: 0, deadline_ns: 0, period_ns: 0, utilization_hint: 0 }
     }
 
+    #[inline(always)]
     pub fn deadline(runtime: u64, deadline: u64, period: u64) -> Self {
         Self { size: 56, policy: SchedPolicy::Deadline, flags: 0, nice: 0, priority: 0, runtime_ns: runtime, deadline_ns: deadline, period_ns: period, utilization_hint: 0 }
     }
 
+    #[inline(always)]
     pub fn is_realtime(&self) -> bool { matches!(self.policy, SchedPolicy::Fifo | SchedPolicy::RoundRobin | SchedPolicy::Deadline) }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.period_ns == 0 { 0.0 } else { self.runtime_ns as f64 / self.period_ns as f64 }
     }
@@ -48,6 +52,7 @@ impl SchedAttr {
 
 /// Process sched state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessSchedState {
     pub pid: u64,
     pub attr: SchedAttr,
@@ -58,6 +63,7 @@ pub struct ProcessSchedState {
 impl ProcessSchedState {
     pub fn new(pid: u64) -> Self { Self { pid, attr: SchedAttr::normal(0), change_count: 0, last_change_ns: 0 } }
 
+    #[inline(always)]
     pub fn set_attr(&mut self, attr: SchedAttr, now: u64) {
         self.attr = attr; self.change_count += 1; self.last_change_ns = now;
     }
@@ -65,6 +71,7 @@ impl ProcessSchedState {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SchedAttrAppStats {
     pub tracked_processes: u32,
     pub realtime_processes: u32,
@@ -80,12 +87,15 @@ pub struct AppSchedAttr {
 
 impl AppSchedAttr {
     pub fn new() -> Self { Self { processes: BTreeMap::new() } }
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessSchedState::new(pid)); }
 
+    #[inline(always)]
     pub fn set_attr(&mut self, pid: u64, attr: SchedAttr, now: u64) {
         if let Some(p) = self.processes.get_mut(&pid) { p.set_attr(attr, now); }
     }
 
+    #[inline]
     pub fn stats(&self) -> SchedAttrAppStats {
         let rt = self.processes.values().filter(|p| p.attr.is_realtime()).count() as u32;
         let dl = self.processes.values().filter(|p| p.attr.policy == SchedPolicy::Deadline).count() as u32;

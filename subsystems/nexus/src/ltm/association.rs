@@ -147,6 +147,7 @@ impl Default for AssociationConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AssociationStats {
     /// Nodes created
     pub nodes_created: u64,
@@ -201,12 +202,14 @@ impl AssociativeMemory {
     }
 
     /// Get concept by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&ConceptNode> {
         self.name_to_id.get(name)
             .and_then(|id| self.nodes.get(id))
     }
 
     /// Get concept by ID
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&ConceptNode> {
         self.nodes.get(&id)
     }
@@ -241,6 +244,7 @@ impl AssociativeMemory {
     }
 
     /// Activate concept
+    #[inline]
     pub fn activate(&mut self, id: u64, amount: f64) {
         if let Some(node) = self.nodes.get_mut(&id) {
             node.activation = (node.activation + amount).min(self.config.max_activation);
@@ -312,6 +316,7 @@ impl AssociativeMemory {
     }
 
     /// Decay activations
+    #[inline]
     pub fn decay(&mut self) {
         for node in self.nodes.values_mut() {
             node.activation *= 1.0 - self.config.decay_rate;
@@ -407,6 +412,7 @@ impl AssociativeMemory {
     }
 
     /// Get most active concepts
+    #[inline]
     pub fn most_active(&self, limit: usize) -> Vec<&ConceptNode> {
         let mut nodes: Vec<_> = self.nodes.values().collect();
         nodes.sort_by(|a, b| b.activation.partial_cmp(&a.activation).unwrap_or(core::cmp::Ordering::Equal));
@@ -414,6 +420,7 @@ impl AssociativeMemory {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &AssociationStats {
         &self.stats
     }

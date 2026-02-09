@@ -2,6 +2,7 @@
 //!
 //! Network flow identification and statistics.
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::{ConnectionState, QosClass};
@@ -36,6 +37,7 @@ impl FlowId {
     }
 
     /// Get reverse flow
+    #[inline]
     pub fn reverse(&self) -> Self {
         Self {
             src_ip: self.dst_ip,
@@ -47,6 +49,7 @@ impl FlowId {
     }
 
     /// Create bidirectional key (ordered)
+    #[inline]
     pub fn bidirectional(&self) -> Self {
         let reverse = self.reverse();
         if (self.src_ip, self.src_port) < (reverse.src_ip, reverse.src_port) {
@@ -59,6 +62,7 @@ impl FlowId {
 
 /// Network flow statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FlowStats {
     /// Flow ID
     pub flow_id: FlowId,
@@ -79,7 +83,7 @@ pub struct FlowStats {
     /// QoS class
     pub qos_class: QosClass,
     /// Round-trip time samples (ns)
-    pub rtt_samples: Vec<u64>,
+    pub rtt_samples: VecDeque<u64>,
     /// Retransmission count
     pub retransmissions: u32,
 }
@@ -98,12 +102,13 @@ impl FlowStats {
             last_seen: now,
             state: ConnectionState::New,
             qos_class: QosClass::BestEffort,
-            rtt_samples: Vec::new(),
+            rtt_samples: VecDeque::new(),
             retransmissions: 0,
         }
     }
 
     /// Record outbound packet
+    #[inline]
     pub fn record_send(&mut self, bytes: u64) {
         self.packets_sent += 1;
         self.bytes_sent += bytes;
@@ -111,6 +116,7 @@ impl FlowStats {
     }
 
     /// Record inbound packet
+    #[inline]
     pub fn record_recv(&mut self, bytes: u64) {
         self.packets_received += 1;
         self.bytes_received += bytes;
@@ -118,14 +124,16 @@ impl FlowStats {
     }
 
     /// Record RTT sample
+    #[inline]
     pub fn record_rtt(&mut self, rtt_ns: u64) {
-        self.rtt_samples.push(rtt_ns);
+        self.rtt_samples.push_back(rtt_ns);
         if self.rtt_samples.len() > 100 {
-            self.rtt_samples.remove(0);
+            self.rtt_samples.pop_front();
         }
     }
 
     /// Get average RTT
+    #[inline]
     pub fn avg_rtt(&self) -> Option<f64> {
         if self.rtt_samples.is_empty() {
             None
@@ -135,6 +143,7 @@ impl FlowStats {
     }
 
     /// Get minimum RTT
+    #[inline(always)]
     pub fn min_rtt(&self) -> Option<u64> {
         self.rtt_samples.iter().copied().min()
     }
@@ -157,6 +166,7 @@ impl FlowStats {
     }
 
     /// Calculate throughput in bytes per second
+    #[inline]
     pub fn throughput(&self) -> f64 {
         let duration = self.last_seen.duration_since(self.first_seen);
         if duration == 0 {
@@ -169,11 +179,13 @@ impl FlowStats {
     }
 
     /// Is flow idle?
+    #[inline(always)]
     pub fn is_idle(&self, timeout_ticks: u64) -> bool {
         NexusTimestamp::now().duration_since(self.last_seen) > timeout_ticks
     }
 
     /// Get loss rate
+    #[inline]
     pub fn loss_rate(&self) -> f64 {
         if self.packets_sent == 0 {
             return 0.0;

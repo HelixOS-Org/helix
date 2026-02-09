@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -88,7 +89,7 @@ impl Default for FsOptimalSettings {
 /// Classifies filesystem workloads
 pub struct FsWorkloadClassifier {
     /// Recent I/O operations
-    recent_ops: Vec<IoOperation>,
+    recent_ops: VecDeque<IoOperation>,
     /// Max recent ops
     max_ops: usize,
     /// Current workload type
@@ -101,7 +102,7 @@ impl FsWorkloadClassifier {
     /// Create new classifier
     pub fn new() -> Self {
         Self {
-            recent_ops: Vec::new(),
+            recent_ops: VecDeque::new(),
             max_ops: 10000,
             current_workload: FsWorkloadType::General,
             confidence: 0.0,
@@ -110,14 +111,14 @@ impl FsWorkloadClassifier {
 
     /// Record I/O operation
     fn record(&mut self, op: IoOpType, size: u32) {
-        self.recent_ops.push(IoOperation {
+        self.recent_ops.push_back(IoOperation {
             op_type: op,
             size,
             timestamp: NexusTimestamp::now().raw(),
         });
 
         if self.recent_ops.len() > self.max_ops {
-            self.recent_ops.remove(0);
+            self.recent_ops.pop_front();
         }
 
         if self.recent_ops.len() >= 1000 && self.recent_ops.len() % 100 == 0 {
@@ -126,16 +127,19 @@ impl FsWorkloadClassifier {
     }
 
     /// Record read
+    #[inline(always)]
     pub fn record_read(&mut self, size: u32) {
         self.record(IoOpType::Read, size);
     }
 
     /// Record write
+    #[inline(always)]
     pub fn record_write(&mut self, size: u32) {
         self.record(IoOpType::Write, size);
     }
 
     /// Record metadata operation
+    #[inline(always)]
     pub fn record_metadata(&mut self) {
         self.record(IoOpType::Metadata, 0);
     }
@@ -201,11 +205,13 @@ impl FsWorkloadClassifier {
     }
 
     /// Get current workload
+    #[inline(always)]
     pub fn current_workload(&self) -> FsWorkloadType {
         self.current_workload
     }
 
     /// Get confidence
+    #[inline(always)]
     pub fn confidence(&self) -> f64 {
         self.confidence
     }

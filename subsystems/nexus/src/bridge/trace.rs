@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -157,6 +158,7 @@ impl TraceFilter {
 // ============================================================================
 
 /// Ring buffer for trace events
+#[repr(align(64))]
 pub struct TraceRingBuffer {
     /// Events
     events: Vec<TraceEvent>,
@@ -218,6 +220,7 @@ impl TraceRingBuffer {
     }
 
     /// Read recent N events
+    #[inline]
     pub fn read_recent(&self, n: usize) -> Vec<&TraceEvent> {
         let all = self.read_all();
         let start = all.len().saturating_sub(n);
@@ -225,6 +228,7 @@ impl TraceRingBuffer {
     }
 
     /// Clear buffer
+    #[inline]
     pub fn clear(&mut self) {
         self.events.clear();
         self.write_pos = 0;
@@ -232,11 +236,13 @@ impl TraceRingBuffer {
     }
 
     /// Event count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.events.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.events.is_empty()
     }
@@ -310,6 +316,7 @@ impl LatencyHistogram {
     }
 
     /// Average latency
+    #[inline]
     pub fn avg_ns(&self) -> f64 {
         if self.count == 0 {
             return 0.0;
@@ -318,6 +325,7 @@ impl LatencyHistogram {
     }
 
     /// Approximate percentile
+    #[inline]
     pub fn percentile(&self, p: f64) -> u64 {
         let target = (self.count as f64 * p / 100.0) as u64;
         let mut cumulative = 0u64;
@@ -337,6 +345,7 @@ impl LatencyHistogram {
 
 /// Per-syscall trace summary
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallTraceSummary {
     /// Syscall number
     pub syscall_nr: u32,
@@ -347,7 +356,7 @@ pub struct SyscallTraceSummary {
     /// Latency histogram
     pub latency: LatencyHistogram,
     /// By process
-    pub by_pid: BTreeMap<u64, u64>,
+    pub by_pid: LinearMap<u64, 64>,
 }
 
 impl SyscallTraceSummary {
@@ -357,7 +366,7 @@ impl SyscallTraceSummary {
             count: 0,
             errors: 0,
             latency: LatencyHistogram::new(),
-            by_pid: BTreeMap::new(),
+            by_pid: LinearMap::new(),
         }
     }
 }
@@ -380,6 +389,7 @@ pub enum SessionState {
 }
 
 /// A trace session
+#[repr(align(64))]
 pub struct BridgeTraceSession {
     /// Session ID
     pub id: u32,
@@ -411,17 +421,20 @@ impl BridgeTraceSession {
     }
 
     /// Start session
+    #[inline(always)]
     pub fn start(&mut self, timestamp: u64) {
         self.state = SessionState::Active;
         self.started_at = timestamp;
     }
 
     /// Pause session
+    #[inline(always)]
     pub fn pause(&mut self) {
         self.state = SessionState::Paused;
     }
 
     /// Resume session
+    #[inline]
     pub fn resume(&mut self) {
         if self.state == SessionState::Paused {
             self.state = SessionState::Active;
@@ -429,6 +442,7 @@ impl BridgeTraceSession {
     }
 
     /// Stop session
+    #[inline(always)]
     pub fn stop(&mut self) {
         self.state = SessionState::Stopped;
     }
@@ -469,21 +483,25 @@ impl BridgeTraceSession {
     }
 
     /// Get summary for syscall
+    #[inline(always)]
     pub fn summary(&self, syscall_nr: u32) -> Option<&SyscallTraceSummary> {
         self.summaries.get(&syscall_nr)
     }
 
     /// Get all summaries
+    #[inline(always)]
     pub fn all_summaries(&self) -> &BTreeMap<u32, SyscallTraceSummary> {
         &self.summaries
     }
 
     /// Event count
+    #[inline(always)]
     pub fn event_count(&self) -> usize {
         self.buffer.len()
     }
 
     /// Recent events
+    #[inline(always)]
     pub fn recent_events(&self, n: usize) -> Vec<&TraceEvent> {
         self.buffer.read_recent(n)
     }
@@ -494,6 +512,7 @@ impl BridgeTraceSession {
 // ============================================================================
 
 /// Syscall trace manager
+#[repr(align(64))]
 pub struct BridgeTraceManager {
     /// Active sessions
     sessions: BTreeMap<u32, BridgeTraceSession>,
@@ -516,6 +535,7 @@ impl BridgeTraceManager {
     }
 
     /// Create trace session
+    #[inline]
     pub fn create_session(&mut self, filter: TraceFilter, buffer_size: usize) -> u32 {
         let id = self.next_session_id;
         self.next_session_id += 1;
@@ -525,6 +545,7 @@ impl BridgeTraceManager {
     }
 
     /// Start session
+    #[inline]
     pub fn start_session(&mut self, session_id: u32, timestamp: u64) -> bool {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             session.start(timestamp);
@@ -535,6 +556,7 @@ impl BridgeTraceManager {
     }
 
     /// Stop session
+    #[inline]
     pub fn stop_session(&mut self, session_id: u32) -> bool {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             session.stop();
@@ -545,11 +567,13 @@ impl BridgeTraceManager {
     }
 
     /// Destroy session
+    #[inline(always)]
     pub fn destroy_session(&mut self, session_id: u32) -> bool {
         self.sessions.remove(&session_id).is_some()
     }
 
     /// Dispatch event to all active sessions
+    #[inline]
     pub fn dispatch(&mut self, event: TraceEvent) {
         self.total_events += 1;
         for session in self.sessions.values_mut() {
@@ -558,11 +582,13 @@ impl BridgeTraceManager {
     }
 
     /// Get session
+    #[inline(always)]
     pub fn session(&self, session_id: u32) -> Option<&BridgeTraceSession> {
         self.sessions.get(&session_id)
     }
 
     /// Active session count
+    #[inline]
     pub fn active_sessions(&self) -> usize {
         self.sessions
             .values()

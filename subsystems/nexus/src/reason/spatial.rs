@@ -33,10 +33,12 @@ impl Point {
         Self { x, y, z }
     }
 
+    #[inline(always)]
     pub fn origin() -> Self {
         Self { x: 0.0, y: 0.0, z: 0.0 }
     }
 
+    #[inline]
     pub fn distance(&self, other: &Point) -> f64 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
@@ -57,18 +59,21 @@ impl BoundingBox {
         Self { min, max }
     }
 
+    #[inline]
     pub fn contains(&self, point: &Point) -> bool {
         point.x >= self.min.x && point.x <= self.max.x &&
         point.y >= self.min.y && point.y <= self.max.y &&
         point.z >= self.min.z && point.z <= self.max.z
     }
 
+    #[inline]
     pub fn intersects(&self, other: &BoundingBox) -> bool {
         self.min.x <= other.max.x && self.max.x >= other.min.x &&
         self.min.y <= other.max.y && self.max.y >= other.min.y &&
         self.min.z <= other.max.z && self.max.z >= other.min.z
     }
 
+    #[inline]
     pub fn center(&self) -> Point {
         Point {
             x: (self.min.x + self.max.x) / 2.0,
@@ -77,6 +82,7 @@ impl BoundingBox {
         }
     }
 
+    #[inline]
     pub fn volume(&self) -> f64 {
         (self.max.x - self.min.x) *
         (self.max.y - self.min.y) *
@@ -214,6 +220,7 @@ impl Default for SpatialConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SpatialStats {
     /// Objects created
     pub objects_created: u64,
@@ -300,6 +307,7 @@ impl SpatialReasoner {
     }
 
     /// Move object
+    #[inline]
     pub fn move_object(&mut self, id: u64, new_position: Point) {
         if let Some(obj) = self.objects.get_mut(&id) {
             obj.position = new_position;
@@ -477,6 +485,7 @@ impl SpatialReasoner {
     }
 
     /// Add object to region
+    #[inline]
     pub fn add_to_region(&mut self, region_id: u64, object_id: u64) {
         if let Some(region) = self.regions.get_mut(&region_id) {
             if !region.objects.contains(&object_id) {
@@ -486,16 +495,19 @@ impl SpatialReasoner {
     }
 
     /// Get object
+    #[inline(always)]
     pub fn get_object(&self, id: u64) -> Option<&SpatialObject> {
         self.objects.get(&id)
     }
 
     /// Get region
+    #[inline(always)]
     pub fn get_region(&self, id: u64) -> Option<&Region> {
         self.regions.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SpatialStats {
         &self.stats
     }

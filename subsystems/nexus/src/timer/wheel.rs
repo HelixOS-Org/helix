@@ -8,6 +8,7 @@ use alloc::vec::Vec;
 use super::TimerId;
 
 /// Hierarchical timer wheel
+#[repr(align(64))]
 pub struct TimerWheel {
     /// Wheel levels
     levels: Vec<WheelLevel>,
@@ -81,6 +82,7 @@ impl TimerWheel {
     }
 
     /// Set current time
+    #[inline(always)]
     pub fn set_time(&mut self, now_ns: u64) {
         self.now_ns = now_ns;
     }
@@ -153,11 +155,13 @@ impl TimerWheel {
     }
 
     /// Get total timers
+    #[inline(always)]
     pub fn total_timers(&self) -> u64 {
         self.total_timers
     }
 
     /// Get resolution
+    #[inline(always)]
     pub fn resolution(&self) -> u64 {
         self.resolution_ns
     }

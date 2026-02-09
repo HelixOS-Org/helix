@@ -8,6 +8,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::format;
 use alloc::vec;
 
@@ -121,7 +122,7 @@ pub struct ProbabilisticEngine {
     /// Bayesian network
     network: BTreeMap<u64, BayesNode>,
     /// Priors
-    priors: BTreeMap<u64, f64>,
+    priors: LinearMap<f64, 64>,
     /// Next ID
     next_id: AtomicU64,
     /// Configuration
@@ -153,6 +154,7 @@ impl Default for ProbConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ProbStats {
     /// Variables defined
     pub variables_defined: u64,
@@ -169,7 +171,7 @@ impl ProbabilisticEngine {
             variables: BTreeMap::new(),
             distributions: BTreeMap::new(),
             network: BTreeMap::new(),
-            priors: BTreeMap::new(),
+            priors: LinearMap::new(),
             next_id: AtomicU64::new(1),
             config,
             stats: ProbStats::default(),
@@ -229,6 +231,7 @@ impl ProbabilisticEngine {
     }
 
     /// Add dependency
+    #[inline]
     pub fn add_dependency(&mut self, child: u64, parents: Vec<u64>, cpt: BTreeMap<String, f64>) {
         let node = BayesNode {
             variable: child,
@@ -240,6 +243,7 @@ impl ProbabilisticEngine {
     }
 
     /// Set evidence
+    #[inline]
     pub fn set_evidence(&mut self, variable_id: u64, value: DomainValue) {
         if let Some(var) = self.variables.get_mut(&variable_id) {
             var.observed = Some(value);
@@ -247,6 +251,7 @@ impl ProbabilisticEngine {
     }
 
     /// Clear evidence
+    #[inline]
     pub fn clear_evidence(&mut self, variable_id: u64) {
         if let Some(var) = self.variables.get_mut(&variable_id) {
             var.observed = None;
@@ -254,6 +259,7 @@ impl ProbabilisticEngine {
     }
 
     /// Query probability
+    #[inline]
     pub fn query(&mut self, variable_id: u64) -> Option<InferenceResult> {
         let var = self.variables.get(&variable_id)?;
 
@@ -271,7 +277,7 @@ impl ProbabilisticEngine {
         let prob_true = if let Some(node) = self.network.get(&variable_id) {
             self.compute_conditional_prob(node)
         } else {
-            *self.priors.get(&variable_id).unwrap_or(&0.5)
+            *self.priors.get(variable_id).unwrap_or(&0.5)
         };
 
         let mut distribution = BTreeMap::new();
@@ -386,7 +392,7 @@ impl ProbabilisticEngine {
         self.stats.updates += 1;
 
         // Get current prior
-        let prior = *self.priors.get(&variable_id).unwrap_or(&0.5);
+        let prior = *self.priors.get(variable_id).unwrap_or(&0.5);
 
         // Calculate posterior using Bayes rule
         // P(H|E) = P(E|H) * P(H) / P(E)
@@ -441,16 +447,19 @@ impl ProbabilisticEngine {
     }
 
     /// Get variable
+    #[inline(always)]
     pub fn get_variable(&self, id: u64) -> Option<&Variable> {
         self.variables.get(&id)
     }
 
     /// Get prior
+    #[inline(always)]
     pub fn get_prior(&self, id: u64) -> f64 {
-        *self.priors.get(&id).unwrap_or(&0.5)
+        *self.priors.get(id).unwrap_or(&0.5)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ProbStats {
         &self.stats
     }

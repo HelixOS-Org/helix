@@ -124,6 +124,7 @@ pub struct KnowledgeGap {
 
 /// State of the art summary for a domain
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateOfArt {
     pub domain: OptimizationDomain,
     pub best_known_impact: f32,
@@ -140,6 +141,7 @@ pub struct StateOfArt {
 
 /// Aggregate literature engine statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct LiteratureStats {
     pub total_entries: u64,
     pub total_novelty_checks: u64,
@@ -236,6 +238,7 @@ impl FingerprintEngine {
 
 /// Internal literature review and knowledge base engine
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeLiterature {
     entries: BTreeMap<u64, KnowledgeEntry>,
     domain_index: BTreeMap<u64, Vec<u64>>,
@@ -352,6 +355,7 @@ impl BridgeLiterature {
     }
 
     /// Check if a proposed research topic is novel
+    #[inline]
     pub fn novelty_check(&mut self, title: &str, summary: &str) -> NoveltyResult {
         self.stats.total_novelty_checks += 1;
         let query_fps = self.fingerprint_engine.generate(summary);
@@ -557,11 +561,13 @@ impl BridgeLiterature {
     }
 
     /// Get an entry by ID
+    #[inline(always)]
     pub fn get_entry(&self, entry_id: u64) -> Option<&KnowledgeEntry> {
         self.entries.get(&entry_id)
     }
 
     /// Cite an entry (bumps its recency and citation count)
+    #[inline]
     pub fn cite(&mut self, entry_id: u64, tick: u64) {
         if let Some(entry) = self.entries.get_mut(&entry_id) {
             entry.last_cited_tick = tick;
@@ -570,6 +576,7 @@ impl BridgeLiterature {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> LiteratureStats {
         self.stats
     }

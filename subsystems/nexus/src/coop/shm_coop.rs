@@ -22,6 +22,7 @@ impl ShmCoopRecord {
 
 /// Shm coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ShmCoopStats { pub total_events: u64, pub shares: u64, pub migrations: u64, pub cow_forks: u64 }
 
 /// Main coop shm
@@ -30,6 +31,7 @@ pub struct CoopShm { pub stats: ShmCoopStats }
 
 impl CoopShm {
     pub fn new() -> Self { Self { stats: ShmCoopStats { total_events: 0, shares: 0, migrations: 0, cow_forks: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &ShmCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

@@ -125,6 +125,7 @@ impl Default for DomainConfig {
 
 /// Domain statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DomainStats {
     /// Total executions
     pub total_executions: u64,
@@ -228,6 +229,7 @@ impl Default for CoordinatorConfig {
 
 /// Coordinator statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoordinatorStats {
     /// Total requests
     pub total_requests: u64,
@@ -256,21 +258,25 @@ impl DomainCoordinator {
     }
 
     /// Register a domain
+    #[inline(always)]
     pub fn register_domain(&mut self, descriptor: DomainDescriptor) {
         self.domains.insert(descriptor.id, descriptor);
     }
 
     /// Unregister a domain
+    #[inline(always)]
     pub fn unregister_domain(&mut self, domain_id: DomainId) {
         self.domains.remove(&domain_id);
     }
 
     /// Get domain
+    #[inline(always)]
     pub fn get_domain(&self, domain_id: DomainId) -> Option<&DomainDescriptor> {
         self.domains.get(&domain_id)
     }
 
     /// Get mutable domain
+    #[inline(always)]
     pub fn get_domain_mut(&mut self, domain_id: DomainId) -> Option<&mut DomainDescriptor> {
         self.domains.get_mut(&domain_id)
     }
@@ -370,6 +376,7 @@ impl DomainCoordinator {
     }
 
     /// Get result
+    #[inline(always)]
     pub fn get_result(&self, request_id: u64) -> Option<&ExecutionResult> {
         self.pending_results.get(&request_id)
     }
@@ -392,6 +399,7 @@ impl DomainCoordinator {
     }
 
     /// Set domain state
+    #[inline]
     pub fn set_domain_state(&mut self, domain_id: DomainId, state: DomainState) {
         if let Some(domain) = self.domains.get_mut(&domain_id) {
             domain.state = state;
@@ -420,11 +428,13 @@ impl DomainCoordinator {
     }
 
     /// Get queue depth
+    #[inline(always)]
     pub fn queue_depth(&self) -> usize {
         self.queue.len()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CoordinatorStats {
         &self.stats
     }
@@ -455,6 +465,7 @@ impl DependencyGraph {
     }
 
     /// Add a node
+    #[inline]
     pub fn add_node(&mut self, domain_id: DomainId) {
         if !self.nodes.contains(&domain_id) {
             self.nodes.push(domain_id);
@@ -462,12 +473,14 @@ impl DependencyGraph {
     }
 
     /// Add a dependency edge
+    #[inline(always)]
     pub fn add_dependency(&mut self, from: DomainId, to: DomainId) {
         self.edges.entry(from).or_default().push(to);
         self.reverse_edges.entry(to).or_default().push(from);
     }
 
     /// Get dependencies for a domain
+    #[inline]
     pub fn get_dependencies(&self, domain_id: DomainId) -> &[DomainId] {
         self.edges
             .get(&domain_id)
@@ -476,6 +489,7 @@ impl DependencyGraph {
     }
 
     /// Get dependents (domains that depend on this one)
+    #[inline]
     pub fn get_dependents(&self, domain_id: DomainId) -> &[DomainId] {
         self.reverse_edges
             .get(&domain_id)
@@ -529,6 +543,7 @@ impl DependencyGraph {
     }
 
     /// Check for cycles
+    #[inline(always)]
     pub fn has_cycle(&self) -> bool {
         self.topological_sort().is_none()
     }

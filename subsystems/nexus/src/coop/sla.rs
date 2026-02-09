@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -149,16 +150,19 @@ impl ErrorBudget {
     }
 
     /// Consume budget
+    #[inline(always)]
     pub fn consume(&mut self, amount: f64) {
         self.consumed += amount;
     }
 
     /// Remaining budget
+    #[inline(always)]
     pub fn remaining(&self) -> f64 {
         (self.total_budget - self.consumed).max(0.0)
     }
 
     /// Remaining fraction
+    #[inline]
     pub fn remaining_fraction(&self) -> f64 {
         if self.total_budget <= 0.0 {
             return 0.0;
@@ -167,11 +171,13 @@ impl ErrorBudget {
     }
 
     /// Budget exhausted?
+    #[inline(always)]
     pub fn exhausted(&self) -> bool {
         self.consumed >= self.total_budget
     }
 
     /// Reset if window expired
+    #[inline]
     pub fn check_window(&mut self, now: u64) {
         if now.saturating_sub(self.window_start_ns) >= self.window_ns {
             self.consumed = 0.0;
@@ -180,6 +186,7 @@ impl ErrorBudget {
     }
 
     /// Burn rate (budget consumed / time elapsed)
+    #[inline]
     pub fn burn_rate(&self, now: u64) -> f64 {
         let elapsed = now.saturating_sub(self.window_start_ns) as f64;
         if elapsed <= 0.0 {
@@ -209,7 +216,7 @@ pub struct SlaContract {
     /// Error budgets per SLO
     pub error_budgets: BTreeMap<u64, ErrorBudget>,
     /// Current metric values
-    pub current_values: BTreeMap<u64, f64>,
+    pub current_values: LinearMap<f64, 64>,
     /// Breach count
     pub breach_count: u64,
     /// Created (ns)
@@ -227,7 +234,7 @@ impl SlaContract {
             tier,
             slos: Vec::new(),
             error_budgets: BTreeMap::new(),
-            current_values: BTreeMap::new(),
+            current_values: LinearMap::new(),
             breach_count: 0,
             created_ns: now,
             active: true,
@@ -235,6 +242,7 @@ impl SlaContract {
     }
 
     /// Add SLO with error budget
+    #[inline]
     pub fn add_slo(&mut self, slo: SloDefinition, error_budget: f64, now: u64) {
         let slo_id = slo.slo_id;
         let window_ns = slo.window_ns;
@@ -277,6 +285,7 @@ impl SlaContract {
     }
 
     /// All budgets OK?
+    #[inline(always)]
     pub fn budgets_ok(&self) -> bool {
         self.error_budgets.values().all(|b| !b.exhausted())
     }
@@ -288,6 +297,7 @@ impl SlaContract {
 
 /// SLA engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopSlaStats {
     /// Active contracts
     pub active_contracts: usize,
@@ -324,6 +334,7 @@ impl CoopSlaEngine {
     }
 
     /// Create SLA contract
+    #[inline]
     pub fn create_contract(&mut self, provider: u64, consumer: u64, tier: SlaTier, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -336,6 +347,7 @@ impl CoopSlaEngine {
     }
 
     /// Add SLO to contract
+    #[inline]
     pub fn add_slo(&mut self, contract_id: u64, slo: SloDefinition, error_budget: f64, now: u64) {
         if let Some(contract) = self.contracts.get_mut(&contract_id) {
             contract.add_slo(slo, error_budget, now);
@@ -344,6 +356,7 @@ impl CoopSlaEngine {
     }
 
     /// Update metric
+    #[inline]
     pub fn update_metric(&mut self, contract_id: u64, slo_id: u64, value: f64, now: u64) {
         if let Some(contract) = self.contracts.get_mut(&contract_id) {
             contract.update_metric(slo_id, value, now);
@@ -352,11 +365,13 @@ impl CoopSlaEngine {
     }
 
     /// Get contract health
+    #[inline(always)]
     pub fn contract_health(&self, contract_id: u64) -> f64 {
         self.contracts.get(&contract_id).map(|c| c.health()).unwrap_or(0.0)
     }
 
     /// Remove process
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
         if let Some(ids) = self.process_contracts.remove(&pid) {
             for id in ids {
@@ -392,6 +407,7 @@ impl CoopSlaEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopSlaStats {
         &self.stats
     }

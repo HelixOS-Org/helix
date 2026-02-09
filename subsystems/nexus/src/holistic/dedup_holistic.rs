@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -93,7 +94,7 @@ pub struct MergeGroup {
     /// Canonical PFN (the shared page)
     pub canonical_pfn: u64,
     /// Merged page entries: owner pid -> pfn
-    pub members: BTreeMap<u64, u64>,
+    pub members: LinearMap<u64, 64>,
     /// NUMA node of canonical
     pub numa_node: u32,
     /// Creation time
@@ -108,7 +109,7 @@ impl MergeGroup {
             id,
             content_hash,
             canonical_pfn,
-            members: BTreeMap::new(),
+            members: LinearMap::new(),
             numa_node: numa,
             created_at: now,
             cow_breaks: 0,
@@ -116,13 +117,15 @@ impl MergeGroup {
     }
 
     /// Add member
+    #[inline(always)]
     pub fn add_member(&mut self, pid: u64, pfn: u64) {
         self.members.insert(pid, pfn);
     }
 
     /// Remove member (COW break)
+    #[inline]
     pub fn remove_member(&mut self, pid: u64) -> bool {
-        if self.members.remove(&pid).is_some() {
+        if self.members.remove(pid).is_some() {
             self.cow_breaks += 1;
             true
         } else {
@@ -131,6 +134,7 @@ impl MergeGroup {
     }
 
     /// Pages saved
+    #[inline]
     pub fn pages_saved(&self) -> u64 {
         if self.members.is_empty() {
             0
@@ -140,6 +144,7 @@ impl MergeGroup {
     }
 
     /// Is stable? (no recent COW breaks)
+    #[inline(always)]
     pub fn is_stable(&self) -> bool {
         self.cow_breaks == 0 || self.members.len() > self.cow_breaks as usize
     }
@@ -151,6 +156,7 @@ impl MergeGroup {
 
 /// Scan statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ScanStats {
     /// Pages scanned
     pub pages_scanned: u64,
@@ -194,11 +200,13 @@ impl DedupScanner {
     }
 
     /// Should scan now?
+    #[inline(always)]
     pub fn should_scan(&self, now: u64) -> bool {
         now.saturating_sub(self.last_scan) >= self.interval_ns
     }
 
     /// Record scan
+    #[inline]
     pub fn record_scan(&mut self, scanned: u64, found: u64, merged: u64, duration_ns: u64) {
         self.stats.pages_scanned += scanned;
         self.stats.duplicates_found += found;
@@ -214,6 +222,7 @@ impl DedupScanner {
 
 /// Dedup engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticDedupStats {
     /// Tracked pages
     pub tracked_pages: usize,
@@ -234,7 +243,7 @@ pub struct HolisticDedupEngine {
     /// Page fingerprints: pfn -> fingerprint
     pages: BTreeMap<u64, PageFingerprint>,
     /// Hash index: content_hash -> group_id
-    hash_index: BTreeMap<u64, u64>,
+    hash_index: LinearMap<u64, 64>,
     /// Merge groups
     groups: BTreeMap<u64, MergeGroup>,
     /// Scanner
@@ -249,7 +258,7 @@ impl HolisticDedupEngine {
     pub fn new() -> Self {
         Self {
             pages: BTreeMap::new(),
-            hash_index: BTreeMap::new(),
+            hash_index: LinearMap::new(),
             groups: BTreeMap::new(),
             scanner: DedupScanner::new(),
             next_group_id: 1,
@@ -258,6 +267,7 @@ impl HolisticDedupEngine {
     }
 
     /// Register page for dedup scanning
+    #[inline(always)]
     pub fn register_page(&mut self, pfn: u64, owner: u64, content_hash: u64) {
         let fp = PageFingerprint::new(pfn, owner, content_hash);
         self.pages.insert(pfn, fp);
@@ -281,7 +291,7 @@ impl HolisticDedupEngine {
                 let hash = fp.full_hash;
                 let owner = fp.owner;
 
-                if let Some(&group_id) = self.hash_index.get(&hash) {
+                if let Some(&group_id) = self.hash_index.get(hash) {
                     new_merges.push((pfn, owner, hash, group_id));
                     merged += 1;
                 }
@@ -343,6 +353,7 @@ impl HolisticDedupEngine {
     }
 
     /// COW break (page was written)
+    #[inline]
     pub fn cow_break(&mut self, pfn: u64) {
         if let Some(fp) = self.pages.get_mut(&pfn) {
             if let Some(gid) = fp.merge_group.take() {
@@ -356,6 +367,7 @@ impl HolisticDedupEngine {
     }
 
     /// Remove page
+    #[inline]
     pub fn remove_page(&mut self, pfn: u64) {
         if let Some(fp) = self.pages.remove(&pfn) {
             if let Some(gid) = fp.merge_group {
@@ -379,6 +391,7 @@ impl HolisticDedupEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticDedupStats {
         &self.stats
     }

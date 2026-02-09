@@ -61,11 +61,13 @@ impl CpuCgroupLimits {
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.max_us == 0 { return 0.0; }
         self.usage_us as f64 / self.max_us as f64
     }
 
+    #[inline]
     pub fn throttle_ratio(&self) -> f64 {
         let total = self.usage_us + self.throttled_us;
         if total == 0 { return 0.0; }
@@ -102,15 +104,18 @@ impl MemCgroupLimits {
         }
     }
 
+    #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
         if self.max_bytes == 0 { return 0.0; }
         self.usage_bytes as f64 / self.max_bytes as f64
     }
 
+    #[inline(always)]
     pub fn is_under_pressure(&self) -> bool {
         self.usage_bytes > self.high_bytes
     }
 
+    #[inline(always)]
     pub fn available(&self) -> u64 {
         self.max_bytes.saturating_sub(self.usage_bytes)
     }
@@ -169,6 +174,7 @@ impl PsiInfo {
         }
     }
 
+    #[inline]
     pub fn worst_pressure(&self) -> f64 {
         let vals = [
             self.cpu_full_avg10, self.mem_full_avg10, self.io_full_avg10,
@@ -208,10 +214,12 @@ impl CgroupNode {
         }
     }
 
+    #[inline(always)]
     pub fn is_under_cpu_pressure(&self) -> bool {
         self.cpu.throttle_ratio() > 0.1 || self.psi.cpu_some_avg10 > 20.0
     }
 
+    #[inline(always)]
     pub fn is_under_mem_pressure(&self) -> bool {
         self.memory.is_under_pressure() || self.psi.mem_some_avg10 > 20.0
     }
@@ -219,6 +227,7 @@ impl CgroupNode {
 
 /// Holistic Cgroup Manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticCgroupStats {
     pub total_cgroups: usize,
     pub cpu_throttled: usize,
@@ -241,6 +250,7 @@ impl HolisticCgroupMgr {
         }
     }
 
+    #[inline]
     pub fn create_cgroup(&mut self, node: CgroupNode) {
         let id = node.cgroup_id;
         let parent = node.parent_id;
@@ -252,18 +262,21 @@ impl HolisticCgroupMgr {
         }
     }
 
+    #[inline]
     pub fn set_cpu_limits(&mut self, cg_id: u64, weight: u32, max_us: u64, period_us: u64) {
         if let Some(cg) = self.cgroups.get_mut(&cg_id) {
             cg.cpu = CpuCgroupLimits::new(weight, max_us, period_us);
         }
     }
 
+    #[inline]
     pub fn set_mem_limits(&mut self, cg_id: u64, max: u64, high: u64) {
         if let Some(cg) = self.cgroups.get_mut(&cg_id) {
             cg.memory = MemCgroupLimits::new(max, high);
         }
     }
 
+    #[inline]
     pub fn update_usage(&mut self, cg_id: u64, cpu_us: u64, mem_bytes: u64) {
         if let Some(cg) = self.cgroups.get_mut(&cg_id) {
             cg.cpu.usage_us = cpu_us;
@@ -272,6 +285,7 @@ impl HolisticCgroupMgr {
     }
 
     /// Find cgroups that need resource adjustment
+    #[inline]
     pub fn pressured_cgroups(&self) -> Vec<u64> {
         self.cgroups.values()
             .filter(|cg| cg.is_under_cpu_pressure() || cg.is_under_mem_pressure())
@@ -280,6 +294,7 @@ impl HolisticCgroupMgr {
     }
 
     /// OOM kill candidate scoring (lower = more likely to be killed)
+    #[inline]
     pub fn oom_score(&self, cg_id: u64) -> i32 {
         if let Some(cg) = self.cgroups.get(&cg_id) {
             let mem_score = (cg.memory.usage_ratio() * 1000.0) as i32;
@@ -301,6 +316,8 @@ impl HolisticCgroupMgr {
             .fold(0.0f64, |a, b| if b > a { b } else { a });
     }
 
+    #[inline(always)]
     pub fn cgroup(&self, id: u64) -> Option<&CgroupNode> { self.cgroups.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticCgroupStats { &self.stats }
 }

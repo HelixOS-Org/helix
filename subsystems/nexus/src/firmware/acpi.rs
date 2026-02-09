@@ -141,6 +141,7 @@ impl AcpiParser {
     }
 
     /// Set RSDP address
+    #[inline(always)]
     pub fn set_rsdp(&mut self, address: u64) {
         self.rsdp_address = Some(address);
     }
@@ -168,42 +169,50 @@ impl AcpiParser {
     }
 
     /// Register table
+    #[inline(always)]
     pub fn register_table(&mut self, info: AcpiTableInfo) {
         self.tables.insert(info.signature, info);
         self.tables_parsed.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get table info
+    #[inline(always)]
     pub fn get_table(&self, signature: AcpiSignature) -> Option<&AcpiTableInfo> {
         self.tables.get(&signature)
     }
 
     /// Check if table exists
+    #[inline(always)]
     pub fn has_table(&self, signature: AcpiSignature) -> bool {
         self.tables.contains_key(&signature)
     }
 
     /// Add MADT entry
+    #[inline(always)]
     pub fn add_madt_entry(&mut self, entry: MadtEntry) {
         self.madt_entries.push(entry);
     }
 
     /// Add SRAT entry
+    #[inline(always)]
     pub fn add_srat_entry(&mut self, entry: SratEntry) {
         self.srat_entries.push(entry);
     }
 
     /// Set revision
+    #[inline(always)]
     pub fn set_revision(&mut self, revision: AcpiRevision) {
         self.revision = revision;
     }
 
     /// Get table count
+    #[inline(always)]
     pub fn table_count(&self) -> usize {
         self.tables.len()
     }
 
     /// Get CPU count from MADT
+    #[inline]
     pub fn cpu_count(&self) -> u32 {
         self.madt_entries.iter()
             .filter(|e| matches!(e.entry_type, MadtEntryType::LocalApic | MadtEntryType::LocalX2Apic))

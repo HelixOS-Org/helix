@@ -3,6 +3,7 @@
 //! Process behavior pattern analysis.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -50,7 +51,7 @@ pub struct ProcessBehaviorAnalyzer {
     /// Recent metrics
     recent_metrics: BTreeMap<ProcessId, ProcessMetrics>,
     /// Behavior events
-    events: Vec<BehaviorEvent>,
+    events: VecDeque<BehaviorEvent>,
     /// Max events to keep
     max_events: usize,
     /// Anomaly detector
@@ -63,7 +64,7 @@ impl ProcessBehaviorAnalyzer {
         Self {
             profiles: BTreeMap::new(),
             recent_metrics: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 10000,
             anomaly_detector: ProcessAnomalyDetector::new(),
         }
@@ -153,15 +154,16 @@ impl ProcessBehaviorAnalyzer {
             details,
         };
 
-        self.events.push(event.clone());
+        self.events.push_back(event.clone());
         if self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
 
         event
     }
 
     /// Record process start
+    #[inline]
     pub fn record_start(&mut self, pid: ProcessId, name: &str) {
         let mut profile = ProcessProfile::new(pid);
         profile.name = String::from(name);
@@ -175,6 +177,7 @@ impl ProcessBehaviorAnalyzer {
     }
 
     /// Record process exit
+    #[inline]
     pub fn record_exit(&mut self, pid: ProcessId, exit_code: i32) {
         self.record_event(
             BehaviorEventType::Exited,
@@ -186,27 +189,32 @@ impl ProcessBehaviorAnalyzer {
     }
 
     /// Get process profile
+    #[inline(always)]
     pub fn get_profile(&self, pid: ProcessId) -> Option<&ProcessProfile> {
         self.profiles.get(&pid)
     }
 
     /// Get all profiles
+    #[inline(always)]
     pub fn all_profiles(&self) -> impl Iterator<Item = (&ProcessId, &ProcessProfile)> {
         self.profiles.iter()
     }
 
     /// Get recent events
+    #[inline(always)]
     pub fn recent_events(&self, n: usize) -> &[BehaviorEvent] {
         let start = self.events.len().saturating_sub(n);
         &self.events[start..]
     }
 
     /// Get events for process
+    #[inline(always)]
     pub fn events_for_process(&self, pid: ProcessId) -> Vec<&BehaviorEvent> {
         self.events.iter().filter(|e| e.pid == pid).collect()
     }
 
     /// Cleanup old data
+    #[inline]
     pub fn cleanup(&mut self, max_age_ticks: u64) {
         let now = NexusTimestamp::now();
 

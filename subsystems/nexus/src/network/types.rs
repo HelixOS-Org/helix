@@ -21,6 +21,7 @@ pub enum Protocol {
 
 impl Protocol {
     /// From IP protocol number
+    #[inline]
     pub fn from_number(n: u8) -> Self {
         match n {
             1 => Self::Icmp,
@@ -32,6 +33,7 @@ impl Protocol {
     }
 
     /// To IP protocol number
+    #[inline]
     pub fn to_number(&self) -> u8 {
         match self {
             Self::Icmp => 1,
@@ -44,11 +46,13 @@ impl Protocol {
     }
 
     /// Is reliable protocol
+    #[inline(always)]
     pub fn is_reliable(&self) -> bool {
         matches!(self, Self::Tcp | Self::Sctp)
     }
 
     /// Is connection-oriented
+    #[inline(always)]
     pub fn is_connection_oriented(&self) -> bool {
         matches!(self, Self::Tcp | Self::Sctp)
     }
@@ -103,6 +107,7 @@ pub enum QosClass {
 
 impl QosClass {
     /// Get DSCP value
+    #[inline]
     pub fn to_dscp(&self) -> u8 {
         match self {
             Self::BestEffort => 0,

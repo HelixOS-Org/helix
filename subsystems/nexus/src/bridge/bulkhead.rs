@@ -71,6 +71,7 @@ pub enum OverflowPolicy {
 
 /// A bulkhead partition
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct Bulkhead {
     /// Class
     pub class: BulkheadClass,
@@ -170,6 +171,7 @@ impl Bulkhead {
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.max_concurrent == 0 {
             return 0.0;
@@ -178,6 +180,7 @@ impl Bulkhead {
     }
 
     /// Error rate
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         let total = self.total_completed + self.total_failed;
         if total == 0 {
@@ -187,6 +190,7 @@ impl Bulkhead {
     }
 
     /// Rejection rate
+    #[inline]
     pub fn rejection_rate(&self) -> f64 {
         let total = self.total_accepted + self.total_rejected;
         if total == 0 {
@@ -211,6 +215,7 @@ impl Bulkhead {
     }
 
     /// Reset failure state
+    #[inline]
     pub fn reset(&mut self) {
         self.state = BulkheadState::Normal;
         self.total_failed = 0;
@@ -224,6 +229,7 @@ impl Bulkhead {
 
 /// Bulkhead stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeBulkheadStats {
     /// Active bulkheads
     pub active_bulkheads: usize,
@@ -236,6 +242,7 @@ pub struct BridgeBulkheadStats {
 }
 
 /// Bridge bulkhead manager
+#[repr(align(64))]
 pub struct BridgeBulkheadManager {
     /// Bulkheads
     bulkheads: BTreeMap<u8, Bulkhead>,
@@ -252,6 +259,7 @@ impl BridgeBulkheadManager {
     }
 
     /// Register bulkhead
+    #[inline]
     pub fn register(&mut self, class: BulkheadClass, max_concurrent: u32, max_queue: u32) {
         let key = class as u8;
         self.bulkheads.insert(key, Bulkhead::new(class, max_concurrent, max_queue));
@@ -259,6 +267,7 @@ impl BridgeBulkheadManager {
     }
 
     /// Acquire slot
+    #[inline]
     pub fn acquire(&mut self, class: BulkheadClass) -> bool {
         let key = class as u8;
         if let Some(bh) = self.bulkheads.get_mut(&key) {
@@ -271,6 +280,7 @@ impl BridgeBulkheadManager {
     }
 
     /// Release slot
+    #[inline]
     pub fn release(&mut self, class: BulkheadClass, success: bool, latency_ns: u64) {
         let key = class as u8;
         if let Some(bh) = self.bulkheads.get_mut(&key) {
@@ -280,11 +290,13 @@ impl BridgeBulkheadManager {
     }
 
     /// Get bulkhead
+    #[inline(always)]
     pub fn bulkhead(&self, class: BulkheadClass) -> Option<&Bulkhead> {
         self.bulkheads.get(&(class as u8))
     }
 
     /// Failed bulkheads
+    #[inline]
     pub fn failed(&self) -> Vec<BulkheadClass> {
         self.bulkheads.values()
             .filter(|b| b.state == BulkheadState::Failed)
@@ -301,6 +313,7 @@ impl BridgeBulkheadManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeBulkheadStats {
         &self.stats
     }

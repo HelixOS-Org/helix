@@ -34,6 +34,7 @@ impl IntegrityCoopRecord {
 
 /// Integrity coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IntegrityCoopStats {
     pub total_events: u64,
     pub digest_shares: u64,
@@ -52,6 +53,7 @@ impl CoopIntegrity {
         Self { stats: IntegrityCoopStats { total_events: 0, digest_shares: 0, measurement_syncs: 0, mismatches: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &IntegrityCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

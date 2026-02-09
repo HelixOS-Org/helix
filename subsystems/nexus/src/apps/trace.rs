@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -72,7 +73,7 @@ pub struct CallNode {
     /// Call count
     pub call_count: u64,
     /// Children (callee address -> call count)
-    pub children: BTreeMap<u64, u64>,
+    pub children: LinearMap<u64, 64>,
     /// Last entry timestamp
     last_entry: u64,
 }
@@ -84,29 +85,33 @@ impl CallNode {
             self_time_ns: 0,
             total_time_ns: 0,
             call_count: 0,
-            children: BTreeMap::new(),
+            children: LinearMap::new(),
             last_entry: 0,
         }
     }
 
     /// Record entry
+    #[inline(always)]
     pub fn enter(&mut self, now: u64) {
         self.call_count += 1;
         self.last_entry = now;
     }
 
     /// Record exit
+    #[inline(always)]
     pub fn exit(&mut self, now: u64) {
         let duration = now.saturating_sub(self.last_entry);
         self.total_time_ns += duration;
     }
 
     /// Record call to child
+    #[inline(always)]
     pub fn call_child(&mut self, child_addr: u64) {
-        *self.children.entry(child_addr).or_insert(0) += 1;
+        self.children.add(child_addr, 1);
     }
 
     /// Average time per call
+    #[inline]
     pub fn avg_time_ns(&self) -> f64 {
         if self.call_count == 0 {
             return 0.0;
@@ -115,6 +120,7 @@ impl CallNode {
     }
 
     /// Children sorted by call count
+    #[inline]
     pub fn top_callees(&self, n: usize) -> Vec<(u64, u64)> {
         let mut callees: Vec<(u64, u64)> = self.children.iter().map(|(&a, &c)| (a, c)).collect();
         callees.sort_by(|a, b| b.1.cmp(&a.1));
@@ -166,6 +172,7 @@ impl AppCallGraph {
     }
 
     /// Process function exit
+    #[inline]
     pub fn on_exit(&mut self, addr: u64, now: u64) {
         if let Some(node) = self.nodes.get_mut(&addr) {
             node.exit(now);
@@ -176,6 +183,7 @@ impl AppCallGraph {
     }
 
     /// Get hot functions (top N by total time)
+    #[inline]
     pub fn hot_functions(&self, n: usize) -> Vec<&CallNode> {
         let mut sorted: Vec<&CallNode> = self.nodes.values().collect();
         sorted.sort_by(|a, b| b.total_time_ns.cmp(&a.total_time_ns));
@@ -184,6 +192,7 @@ impl AppCallGraph {
     }
 
     /// Most called functions
+    #[inline]
     pub fn most_called(&self, n: usize) -> Vec<&CallNode> {
         let mut sorted: Vec<&CallNode> = self.nodes.values().collect();
         sorted.sort_by(|a, b| b.call_count.cmp(&a.call_count));
@@ -192,11 +201,13 @@ impl AppCallGraph {
     }
 
     /// Node count
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
 
     /// Current stack depth
+    #[inline(always)]
     pub fn depth(&self) -> usize {
         self.stack.len()
     }
@@ -242,6 +253,7 @@ impl FlameGraphCollector {
     }
 
     /// Record a stack sample
+    #[inline]
     pub fn record(&mut self, stack: Vec<u64>) {
         let key = Self::stack_key(&stack);
         self.total_samples += 1;
@@ -253,6 +265,7 @@ impl FlameGraphCollector {
     }
 
     /// Top stacks by sample count
+    #[inline]
     pub fn top_stacks(&self, n: usize) -> Vec<&FlameStack> {
         let mut sorted: Vec<&FlameStack> = self.stacks.values().collect();
         sorted.sort_by(|a, b| b.samples.cmp(&a.samples));
@@ -261,6 +274,7 @@ impl FlameGraphCollector {
     }
 
     /// Unique stack count
+    #[inline(always)]
     pub fn unique_stacks(&self) -> usize {
         self.stacks.len()
     }
@@ -272,6 +286,7 @@ impl FlameGraphCollector {
 
 /// Trace stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppTraceStats {
     /// Processes traced
     pub traced_processes: usize,
@@ -328,12 +343,14 @@ impl AppTraceProfiler {
     }
 
     /// Get call graph for thread
+    #[inline(always)]
     pub fn graph(&self, pid: u64, tid: u64) -> Option<&AppCallGraph> {
         let key = Self::thread_key(pid, tid);
         self.graphs.get(&key)
     }
 
     /// Remove process
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
         // Remove all graphs that belong to this process
         // Since keys are hashed, we'd need to track pid->keys mapping
@@ -347,6 +364,7 @@ impl AppTraceProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppTraceStats {
         &self.stats
     }

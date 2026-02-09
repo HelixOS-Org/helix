@@ -184,6 +184,7 @@ impl Default for AuditConfig {
 
 /// Audit statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AuditStats {
     /// Total entries
     pub total_entries: u64,
@@ -209,6 +210,7 @@ impl AuditLog {
     }
 
     /// Get global audit log (returns a lock guard)
+    #[inline]
     pub fn global() -> spin::MutexGuard<'static, AuditLog> {
         GLOBAL_LOG
             .call_once(|| Mutex::new(AuditLog::new(AuditConfig::default())))
@@ -292,6 +294,7 @@ impl AuditLog {
     }
 
     /// Record with source
+    #[inline]
     pub fn record_from(&mut self, event: AuditEvent, source: impl Into<String>) -> AuditEntryId {
         let id = self.record(event);
 
@@ -327,11 +330,13 @@ impl AuditLog {
     }
 
     /// Get entry by ID
+    #[inline(always)]
     pub fn get(&self, id: AuditEntryId) -> Option<&AuditEntry> {
         self.entries.iter().find(|e| e.id == id)
     }
 
     /// Get entries for modification
+    #[inline]
     pub fn for_modification(&self, mod_id: ModificationId) -> Vec<&AuditEntry> {
         self.by_modification
             .get(&mod_id)
@@ -340,6 +345,7 @@ impl AuditLog {
     }
 
     /// Get entries for version
+    #[inline]
     pub fn for_version(&self, ver_id: VersionId) -> Vec<&AuditEntry> {
         self.by_version
             .get(&ver_id)
@@ -348,6 +354,7 @@ impl AuditLog {
     }
 
     /// Query entries
+    #[inline(always)]
     pub fn query(&self, filter: AuditFilter) -> Vec<&AuditEntry> {
         self.entries.iter().filter(|e| filter.matches(e)).collect()
     }
@@ -378,11 +385,13 @@ impl AuditLog {
     }
 
     /// Get all entries
+    #[inline(always)]
     pub fn entries(&self) -> &[AuditEntry] {
         &self.entries
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &AuditStats {
         &self.stats
     }
@@ -424,6 +433,7 @@ impl AuditFilter {
     }
 
     /// Filter by time range
+    #[inline]
     pub fn time_range(mut self, from: u64, to: u64) -> Self {
         self.from_time = Some(from);
         self.to_time = Some(to);
@@ -431,18 +441,21 @@ impl AuditFilter {
     }
 
     /// Filter by modification
+    #[inline(always)]
     pub fn modification(mut self, id: ModificationId) -> Self {
         self.modifications.push(id);
         self
     }
 
     /// Filter by source
+    #[inline(always)]
     pub fn source(mut self, source: impl Into<String>) -> Self {
         self.sources.push(source.into());
         self
     }
 
     /// Security events only
+    #[inline(always)]
     pub fn security(mut self) -> Self {
         self.security_only = true;
         self
@@ -527,6 +540,7 @@ impl AuditReporter {
     }
 
     /// Generate report
+    #[inline]
     pub fn generate(&self, log: &AuditLog, filter: AuditFilter) -> AuditReport {
         let entries = log.query(filter);
 

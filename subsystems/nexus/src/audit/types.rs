@@ -8,11 +8,13 @@ pub struct AuditEventId(pub u64);
 
 impl AuditEventId {
     /// Create a new audit event ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -24,11 +26,13 @@ pub struct AuditRuleId(pub u64);
 
 impl AuditRuleId {
     /// Create a new audit rule ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get the raw ID value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -40,11 +44,13 @@ pub struct Uid(pub u32);
 
 impl Uid {
     /// Create a new UID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -62,11 +68,13 @@ pub struct Gid(pub u32);
 
 impl Gid {
     /// Create a new GID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -81,11 +89,13 @@ pub struct Pid(pub u32);
 
 impl Pid {
     /// Create a new PID
+    #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
 
     /// Get the raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -218,6 +228,7 @@ impl AuditMessageType {
     }
 
     /// Is security related
+    #[inline]
     pub fn is_security(&self) -> bool {
         matches!(
             self,
@@ -244,6 +255,7 @@ pub enum AuditResult {
 
 impl AuditResult {
     /// Get result name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Success => "success",

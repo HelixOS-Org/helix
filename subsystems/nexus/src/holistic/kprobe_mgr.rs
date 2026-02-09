@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Probe type
@@ -46,30 +47,35 @@ pub struct KprobeEntry {
     pub offset: u32,
     pub hit_count: u64,
     pub miss_count: u64,
-    pub recent_hits: Vec<ProbeHit>,
+    pub recent_hits: VecDeque<ProbeHit>,
     pub max_recent: usize,
     pub overhead_ns: u64,
 }
 
 impl KprobeEntry {
     pub fn new(id: u64, ptype: ProbeType, addr: u64) -> Self {
-        Self { id, probe_type: ptype, state: ProbeState::Registered, address: addr, symbol_hash: addr, offset: 0, hit_count: 0, miss_count: 0, recent_hits: Vec::new(), max_recent: 64, overhead_ns: 0 }
+        Self { id, probe_type: ptype, state: ProbeState::Registered, address: addr, symbol_hash: addr, offset: 0, hit_count: 0, miss_count: 0, recent_hits: VecDeque::new(), max_recent: 64, overhead_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn enable(&mut self) { self.state = ProbeState::Enabled; }
+    #[inline(always)]
     pub fn disable(&mut self) { self.state = ProbeState::Disabled; }
 
+    #[inline]
     pub fn hit(&mut self, cpu: u32, pid: u64, now: u64) {
         self.hit_count += 1;
-        if self.recent_hits.len() >= self.max_recent { self.recent_hits.remove(0); }
-        self.recent_hits.push(ProbeHit { cpu, pid, timestamp: now, regs_hash: 0, ret_val: 0 });
+        if self.recent_hits.len() >= self.max_recent { self.recent_hits.pop_front(); }
+        self.recent_hits.push_back(ProbeHit { cpu, pid, timestamp: now, regs_hash: 0, ret_val: 0 });
     }
 
+    #[inline(always)]
     pub fn is_active(&self) -> bool { self.state == ProbeState::Enabled }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KprobeMgrStats {
     pub total_probes: u32,
     pub enabled_probes: u32,
@@ -89,19 +95,24 @@ pub struct HolisticKprobeMgr {
 impl HolisticKprobeMgr {
     pub fn new() -> Self { Self { probes: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn register(&mut self, ptype: ProbeType, addr: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.probes.insert(id, KprobeEntry::new(id, ptype, addr));
         id
     }
 
+    #[inline(always)]
     pub fn enable(&mut self, id: u64) { if let Some(p) = self.probes.get_mut(&id) { p.enable(); } }
+    #[inline(always)]
     pub fn disable(&mut self, id: u64) { if let Some(p) = self.probes.get_mut(&id) { p.disable(); } }
 
+    #[inline(always)]
     pub fn hit(&mut self, id: u64, cpu: u32, pid: u64, now: u64) {
         if let Some(p) = self.probes.get_mut(&id) { if p.is_active() { p.hit(cpu, pid, now); } }
     }
 
+    #[inline]
     pub fn stats(&self) -> KprobeMgrStats {
         let enabled = self.probes.values().filter(|p| p.is_active()).count() as u32;
         let hits: u64 = self.probes.values().map(|p| p.hit_count).sum();

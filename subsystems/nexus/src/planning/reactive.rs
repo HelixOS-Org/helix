@@ -5,6 +5,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -57,6 +58,7 @@ pub struct TriggerCondition {
 
 impl TriggerCondition {
     /// Create state changed condition
+    #[inline]
     pub fn state_changed(variable: String) -> Self {
         Self {
             condition_type: TriggerConditionType::StateChanged,
@@ -67,6 +69,7 @@ impl TriggerCondition {
     }
 
     /// Create threshold condition
+    #[inline]
     pub fn threshold(variable: String, threshold: f64) -> Self {
         Self {
             condition_type: TriggerConditionType::ThresholdCrossed,
@@ -77,6 +80,7 @@ impl TriggerCondition {
     }
 
     /// Create always-true condition
+    #[inline]
     pub fn always() -> Self {
         Self {
             condition_type: TriggerConditionType::Always,
@@ -161,23 +165,27 @@ impl Trigger {
     }
 
     /// Set priority
+    #[inline(always)]
     pub fn with_priority(mut self, priority: u32) -> Self {
         self.priority = priority;
         self
     }
 
     /// Set cooldown
+    #[inline(always)]
     pub fn with_cooldown(mut self, cooldown: u64) -> Self {
         self.cooldown = cooldown;
         self
     }
 
     /// Check if can fire
+    #[inline(always)]
     pub fn can_fire(&self, current_time: u64) -> bool {
         self.enabled && (current_time >= self.last_fired + self.cooldown)
     }
 
     /// Fire trigger
+    #[inline(always)]
     pub fn fire(&mut self, current_time: u64) {
         self.fire_count += 1;
         self.last_fired = current_time;
@@ -224,6 +232,7 @@ pub struct Response {
 
 impl Response {
     /// Create execute action response
+    #[inline]
     pub fn execute(id: ResponseId, name: String, action: ActionId) -> Self {
         Self {
             id,
@@ -236,6 +245,7 @@ impl Response {
     }
 
     /// Create adopt goal response
+    #[inline]
     pub fn adopt_goal(id: ResponseId, name: String, goal: GoalId) -> Self {
         Self {
             id,
@@ -248,6 +258,7 @@ impl Response {
     }
 
     /// Create replan response
+    #[inline]
     pub fn replan(id: ResponseId, name: String) -> Self {
         Self {
             id,
@@ -291,7 +302,7 @@ pub struct ReactivePlanner {
     next_trigger_id: u32,
     next_response_id: u32,
     /// Fired triggers history
-    fire_history: Vec<(u64, TriggerId)>,
+    fire_history: VecDeque<(u64, TriggerId)>,
     /// Max history size
     max_history: usize,
 }
@@ -307,12 +318,13 @@ impl ReactivePlanner {
             current_time: 0,
             next_trigger_id: 0,
             next_response_id: 0,
-            fire_history: Vec::new(),
+            fire_history: VecDeque::new(),
             max_history: 100,
         }
     }
 
     /// Add trigger
+    #[inline]
     pub fn add_trigger(&mut self, trigger: Trigger) -> TriggerId {
         let id = trigger.id;
         self.triggers.insert(id, trigger);
@@ -320,6 +332,7 @@ impl ReactivePlanner {
     }
 
     /// Create trigger
+    #[inline]
     pub fn create_trigger(&mut self, name: String, condition: TriggerCondition) -> TriggerId {
         let id = TriggerId(self.next_trigger_id);
         self.next_trigger_id += 1;
@@ -328,6 +341,7 @@ impl ReactivePlanner {
     }
 
     /// Add response
+    #[inline]
     pub fn add_response(&mut self, response: Response) -> ResponseId {
         let id = response.id;
         self.responses.insert(id, response);
@@ -350,6 +364,7 @@ impl ReactivePlanner {
     }
 
     /// Link trigger to response
+    #[inline]
     pub fn link(&mut self, trigger: TriggerId, response: ResponseId) {
         self.rules.push(ReactiveRule {
             trigger,
@@ -390,9 +405,9 @@ impl ReactivePlanner {
 
             // Record history
             if self.fire_history.len() >= self.max_history {
-                self.fire_history.remove(0);
+                self.fire_history.pop_front();
             }
-            self.fire_history.push((self.current_time, trigger_id));
+            self.fire_history.push_back((self.current_time, trigger_id));
 
             // Find matching rules
             for rule in &self.rules {
@@ -411,16 +426,19 @@ impl ReactivePlanner {
     }
 
     /// Advance time
+    #[inline(always)]
     pub fn advance_time(&mut self, delta: u64) {
         self.current_time += delta;
     }
 
     /// Get trigger
+    #[inline(always)]
     pub fn get_trigger(&self, id: TriggerId) -> Option<&Trigger> {
         self.triggers.get(&id)
     }
 
     /// Enable/disable trigger
+    #[inline]
     pub fn set_trigger_enabled(&mut self, id: TriggerId, enabled: bool) {
         if let Some(trigger) = self.triggers.get_mut(&id) {
             trigger.enabled = enabled;
@@ -428,11 +446,13 @@ impl ReactivePlanner {
     }
 
     /// Get fire history
+    #[inline(always)]
     pub fn fire_history(&self) -> &[(u64, TriggerId)] {
         &self.fire_history
     }
 
     /// Get trigger count
+    #[inline(always)]
     pub fn trigger_count(&self) -> usize {
         self.triggers.len()
     }
@@ -538,16 +558,19 @@ impl ReplanManager {
     }
 
     /// Get pending replan events
+    #[inline(always)]
     pub fn pending_events(&mut self) -> Vec<ReplanEvent> {
         core::mem::take(&mut self.events)
     }
 
     /// Get replan count
+    #[inline(always)]
     pub fn replan_count(&self) -> u64 {
         self.replan_count
     }
 
     /// Set minimum interval
+    #[inline(always)]
     pub fn set_min_interval(&mut self, interval: u64) {
         self.min_interval = interval;
     }

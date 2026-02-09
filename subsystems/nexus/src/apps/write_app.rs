@@ -42,6 +42,7 @@ pub struct AppWriteCompletion {
 
 /// Statistics for write operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppWriteStats {
     pub total_writes: u64,
     pub total_bytes_written: u64,
@@ -123,12 +124,14 @@ impl AppWriteManager {
         }
     }
 
+    #[inline]
     pub fn flush_dirty(&mut self) -> u64 {
         let flushed = self.dirty_bytes;
         self.dirty_bytes = 0;
         flushed
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppWriteStats {
         &self.stats
     }

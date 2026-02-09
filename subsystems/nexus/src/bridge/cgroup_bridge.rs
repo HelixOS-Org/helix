@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -72,8 +73,11 @@ impl CgroupNode {
         Self { id, name, parent_id: parent, children: Vec::new(), controllers: Vec::new(), nr_tasks: 0, frozen: false, depth }
     }
 
+    #[inline(always)]
     pub fn add_child(&mut self, child_id: u64) { self.children.push(child_id); }
+    #[inline(always)]
     pub fn attach_controller(&mut self, ctrl: CgroupController) { if !self.controllers.contains(&ctrl) { self.controllers.push(ctrl); } }
+    #[inline(always)]
     pub fn detach_controller(&mut self, ctrl: CgroupController) { self.controllers.retain(|c| c != &ctrl); }
 }
 
@@ -109,6 +113,7 @@ pub struct CgroupMigration {
 
 /// Cgroup bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CgroupBridgeStats {
     pub total_cgroups: usize,
     pub total_ops: u64,
@@ -119,6 +124,7 @@ pub struct CgroupBridgeStats {
 }
 
 /// Bridge cgroup manager
+#[repr(align(64))]
 pub struct BridgeCgroupBridge {
     nodes: BTreeMap<u64, CgroupNode>,
     limits: Vec<ControllerLimit>,
@@ -136,6 +142,7 @@ impl BridgeCgroupBridge {
         Self { nodes, limits: Vec::new(), events: Vec::new(), migrations: Vec::new(), version: ver, stats: CgroupBridgeStats::default(), next_id: 1 }
     }
 
+    #[inline]
     pub fn create_cgroup(&mut self, name: String, parent: u64, ts: u64) -> Option<u64> {
         let depth = self.nodes.get(&parent).map(|p| p.depth + 1)?;
         let id = self.next_id; self.next_id += 1;
@@ -146,6 +153,7 @@ impl BridgeCgroupBridge {
         Some(id)
     }
 
+    #[inline]
     pub fn destroy_cgroup(&mut self, id: u64, ts: u64) -> bool {
         if id == 0 { return false; }
         let ok = if let Some(n) = self.nodes.get(&id) { n.children.is_empty() && n.nr_tasks == 0 } else { return false; };
@@ -157,16 +165,19 @@ impl BridgeCgroupBridge {
         true
     }
 
+    #[inline(always)]
     pub fn attach_controller(&mut self, id: u64, ctrl: CgroupController, ts: u64) {
         if let Some(n) = self.nodes.get_mut(&id) { n.attach_controller(ctrl); }
         self.events.push(CgroupEvent { cgroup_id: id, op: CgroupOp::Attach, controller: Some(ctrl), ts, result: 0 });
     }
 
+    #[inline(always)]
     pub fn set_limit(&mut self, id: u64, ctrl: CgroupController, param: String, val: u64, max: u64, ts: u64) {
         self.limits.push(ControllerLimit { controller: ctrl, cgroup_id: id, param_name: param, value: val, max_value: max });
         self.events.push(CgroupEvent { cgroup_id: id, op: CgroupOp::SetLimit, controller: Some(ctrl), ts, result: 0 });
     }
 
+    #[inline]
     pub fn migrate_task(&mut self, task: u64, from: u64, to: u64, charge: bool, ts: u64) {
         if let Some(n) = self.nodes.get_mut(&from) { n.nr_tasks = n.nr_tasks.saturating_sub(1); }
         if let Some(n) = self.nodes.get_mut(&to) { n.nr_tasks += 1; }
@@ -174,16 +185,19 @@ impl BridgeCgroupBridge {
         self.events.push(CgroupEvent { cgroup_id: to, op: CgroupOp::Migrate, controller: None, ts, result: 0 });
     }
 
+    #[inline(always)]
     pub fn freeze(&mut self, id: u64, ts: u64) {
         if let Some(n) = self.nodes.get_mut(&id) { n.frozen = true; }
         self.events.push(CgroupEvent { cgroup_id: id, op: CgroupOp::Freeze, controller: None, ts, result: 0 });
     }
 
+    #[inline(always)]
     pub fn unfreeze(&mut self, id: u64, ts: u64) {
         if let Some(n) = self.nodes.get_mut(&id) { n.frozen = false; }
         self.events.push(CgroupEvent { cgroup_id: id, op: CgroupOp::Unfreeze, controller: None, ts, result: 0 });
     }
 
+    #[inline]
     pub fn descendants(&self, id: u64) -> Vec<u64> {
         let mut result = Vec::new();
         let mut stack = alloc::vec![id];
@@ -194,6 +208,7 @@ impl BridgeCgroupBridge {
         result
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_cgroups = self.nodes.len();
         self.stats.total_ops = self.events.len() as u64;
@@ -203,7 +218,9 @@ impl BridgeCgroupBridge {
         self.stats.max_depth = self.nodes.values().map(|n| n.depth).max().unwrap_or(0);
     }
 
+    #[inline(always)]
     pub fn node(&self, id: u64) -> Option<&CgroupNode> { self.nodes.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &CgroupBridgeStats { &self.stats }
 }
 
@@ -267,8 +284,11 @@ impl CgroupV2Node {
         }
     }
 
+    #[inline(always)]
     pub fn add_child(&mut self, child_id: u64) { self.children.push(child_id); }
+    #[inline(always)]
     pub fn enable_controller(&mut self, ctrl: CgroupV2Controller) { self.controllers.push(ctrl); }
+    #[inline(always)]
     pub fn is_leaf(&self) -> bool { self.children.is_empty() }
 }
 
@@ -283,6 +303,7 @@ pub struct CpuWeightConfig {
 }
 
 impl CpuWeightConfig {
+    #[inline(always)]
     pub fn default_config() -> Self {
         Self { weight: 100, weight_nice: 0, max_usec: u64::MAX, max_period: 100_000, burst_usec: 0 }
     }
@@ -301,10 +322,12 @@ pub struct MemoryLimits {
 }
 
 impl MemoryLimits {
+    #[inline(always)]
     pub fn unlimited() -> Self {
         Self { min_bytes: 0, low_bytes: 0, high_bytes: u64::MAX, max_bytes: u64::MAX, swap_max: u64::MAX, current: 0, oom_kills: 0 }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.max_bytes == u64::MAX || self.max_bytes == 0 { return 0.0; }
         self.current as f64 / self.max_bytes as f64
@@ -322,6 +345,7 @@ pub struct IoConfig {
 }
 
 impl IoConfig {
+    #[inline(always)]
     pub fn default_config() -> Self {
         Self { weight: 100, rbps_max: u64::MAX, wbps_max: u64::MAX, riops_max: u64::MAX, wiops_max: u64::MAX }
     }
@@ -350,6 +374,7 @@ pub enum CgroupV2EventType {
 
 /// Bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupV2BridgeStats {
     pub total_cgroups: u32,
     pub total_events: u64,
@@ -359,6 +384,7 @@ pub struct CgroupV2BridgeStats {
 }
 
 /// Main cgroup v2 bridge
+#[repr(align(64))]
 pub struct BridgeCgroupV2 {
     nodes: BTreeMap<u64, CgroupV2Node>,
     cpu_configs: BTreeMap<u64, CpuWeightConfig>,
@@ -381,6 +407,7 @@ impl BridgeCgroupV2 {
         }
     }
 
+    #[inline]
     pub fn create_cgroup(&mut self, name: String, parent_id: u64) -> Option<u64> {
         let depth = self.nodes.get(&parent_id)?.depth + 1;
         let id = self.next_id;
@@ -390,18 +417,22 @@ impl BridgeCgroupV2 {
         Some(id)
     }
 
+    #[inline(always)]
     pub fn set_cpu_config(&mut self, id: u64, config: CpuWeightConfig) {
         self.cpu_configs.insert(id, config);
     }
 
+    #[inline(always)]
     pub fn set_memory_limits(&mut self, id: u64, limits: MemoryLimits) {
         self.mem_limits.insert(id, limits);
     }
 
+    #[inline(always)]
     pub fn set_io_config(&mut self, id: u64, config: IoConfig) {
         self.io_configs.insert(id, config);
     }
 
+    #[inline]
     pub fn stats(&self) -> CgroupV2BridgeStats {
         let frozen = self.nodes.values().filter(|n| n.frozen).count() as u32;
         let max_depth = self.nodes.values().map(|n| n.depth).max().unwrap_or(0);
@@ -452,11 +483,13 @@ impl CgroupV3Node {
         Self { id, name, parent_id: parent, children: Vec::new(), controllers: Vec::new(), processes: Vec::new(), cpu_weight: 100, cpu_max_us: u64::MAX, memory_max: u64::MAX, memory_current: 0, pids_max: u32::MAX, pids_current: 0 }
     }
 
+    #[inline(always)]
     pub fn memory_pressure(&self) -> f64 { if self.memory_max == u64::MAX || self.memory_max == 0 { 0.0 } else { self.memory_current as f64 / self.memory_max as f64 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupV3BridgeStats {
     pub total_groups: u32,
     pub total_processes: u32,
@@ -465,6 +498,7 @@ pub struct CgroupV3BridgeStats {
 }
 
 /// Main cgroup v3 bridge
+#[repr(align(64))]
 pub struct BridgeCgroupV3 {
     groups: BTreeMap<u64, CgroupV3Node>,
     next_id: u64,
@@ -477,6 +511,7 @@ impl BridgeCgroupV3 {
         Self { groups, next_id: 1 }
     }
 
+    #[inline]
     pub fn create(&mut self, name: String, parent: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.groups.insert(id, CgroupV3Node::new(id, name, Some(parent)));
@@ -484,10 +519,12 @@ impl BridgeCgroupV3 {
         id
     }
 
+    #[inline(always)]
     pub fn attach_process(&mut self, cg: u64, pid: u64) {
         if let Some(g) = self.groups.get_mut(&cg) { g.processes.push(pid); g.pids_current += 1; }
     }
 
+    #[inline]
     pub fn stats(&self) -> CgroupV3BridgeStats {
         let procs: u32 = self.groups.values().map(|g| g.processes.len() as u32).sum();
         let ctrls: u32 = self.groups.values().map(|g| g.controllers.len() as u32).sum();
@@ -545,6 +582,7 @@ pub struct CgroupV4Pressure {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupV4ControllerState {
     pub controller: CgroupV4Controller,
     pub enabled: bool,
@@ -566,6 +604,7 @@ impl CgroupV4ControllerState {
         }
     }
 
+    #[inline]
     pub fn update_usage(&mut self, usage: u64) {
         self.current_usage = usage;
         if usage > self.peak_usage {
@@ -573,6 +612,7 @@ impl CgroupV4ControllerState {
         }
     }
 
+    #[inline]
     pub fn utilization_pct(&self) -> u64 {
         if self.max_limit == 0 || self.max_limit == u64::MAX {
             return 0;
@@ -614,6 +654,7 @@ impl CgroupV4Group {
         }
     }
 
+    #[inline]
     pub fn enable_controller(&mut self, ctrl: CgroupV4Controller) {
         if !self.controllers.iter().any(|c| c.controller == ctrl) {
             let mut state = CgroupV4ControllerState::new(ctrl);
@@ -622,6 +663,7 @@ impl CgroupV4Group {
         }
     }
 
+    #[inline]
     pub fn total_pressure(&self) -> u64 {
         let mut total = 0u64;
         for p in &self.pressures {
@@ -632,6 +674,7 @@ impl CgroupV4Group {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupV4BridgeStats {
     pub total_groups: u64,
     pub total_controllers_enabled: u64,
@@ -640,6 +683,7 @@ pub struct CgroupV4BridgeStats {
     pub pressure_events: u64,
 }
 
+#[repr(align(64))]
 pub struct BridgeCgroupV4 {
     groups: BTreeMap<u64, CgroupV4Group>,
     next_id: AtomicU64,
@@ -661,6 +705,7 @@ impl BridgeCgroupV4 {
         }
     }
 
+    #[inline]
     pub fn create_group(&mut self, path: &[u8]) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let group = CgroupV4Group::new(id, path);
@@ -669,6 +714,7 @@ impl BridgeCgroupV4 {
         id
     }
 
+    #[inline]
     pub fn enable_controller(&mut self, group_id: u64, ctrl: CgroupV4Controller) {
         if let Some(g) = self.groups.get_mut(&group_id) {
             g.enable_controller(ctrl);
@@ -676,6 +722,7 @@ impl BridgeCgroupV4 {
         }
     }
 
+    #[inline]
     pub fn freeze_group(&mut self, group_id: u64) {
         if let Some(g) = self.groups.get_mut(&group_id) {
             if !g.frozen {
@@ -685,6 +732,7 @@ impl BridgeCgroupV4 {
         }
     }
 
+    #[inline]
     pub fn kill_group(&mut self, group_id: u64) {
         if let Some(g) = self.groups.get_mut(&group_id) {
             g.kill_requested = true;
@@ -692,6 +740,7 @@ impl BridgeCgroupV4 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CgroupV4BridgeStats {
         &self.stats
     }
@@ -734,6 +783,7 @@ pub struct BridgeCgroupV5Entry {
 
 /// Stats for cgroup operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeCgroupV5Stats {
     pub total_cgroups: u64,
     pub active_cgroups: u64,
@@ -743,9 +793,10 @@ pub struct BridgeCgroupV5Stats {
 }
 
 /// Manager for cgroup bridge operations
+#[repr(align(64))]
 pub struct BridgeCgroupV5Manager {
     cgroups: BTreeMap<u64, BridgeCgroupV5Entry>,
-    pid_cgroup: BTreeMap<u64, u64>,
+    pid_cgroup: LinearMap<u64, 64>,
     next_id: u64,
     stats: BridgeCgroupV5Stats,
 }
@@ -754,7 +805,7 @@ impl BridgeCgroupV5Manager {
     pub fn new() -> Self {
         Self {
             cgroups: BTreeMap::new(),
-            pid_cgroup: BTreeMap::new(),
+            pid_cgroup: LinearMap::new(),
             next_id: 1,
             stats: BridgeCgroupV5Stats {
                 total_cgroups: 0,
@@ -782,6 +833,7 @@ impl BridgeCgroupV5Manager {
         id
     }
 
+    #[inline]
     pub fn set_limit(&mut self, cg_id: u64, controller: BridgeCgroupV5Controller, max_val: u64, soft: u64) {
         if let Some(cg) = self.cgroups.get_mut(&cg_id) {
             let limit = BridgeCgroupV5Limit {
@@ -795,7 +847,7 @@ impl BridgeCgroupV5Manager {
     }
 
     pub fn attach_pid(&mut self, cg_id: u64, pid: u64) -> bool {
-        if let Some(old_cg) = self.pid_cgroup.get(&pid).cloned() {
+        if let Some(old_cg) = self.pid_cgroup.get(pid).cloned() {
             if let Some(cg) = self.cgroups.get_mut(&old_cg) {
                 cg.member_pids = cg.member_pids.saturating_sub(1);
             }
@@ -810,6 +862,7 @@ impl BridgeCgroupV5Manager {
         }
     }
 
+    #[inline]
     pub fn destroy_cgroup(&mut self, cg_id: u64) -> bool {
         if let Some(cg) = self.cgroups.remove(&cg_id) {
             self.stats.active_cgroups = self.stats.active_cgroups.saturating_sub(1);
@@ -819,6 +872,7 @@ impl BridgeCgroupV5Manager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeCgroupV5Stats {
         &self.stats
     }

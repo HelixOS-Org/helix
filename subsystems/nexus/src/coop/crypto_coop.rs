@@ -43,6 +43,7 @@ impl CryptoCoopRecord {
 
 /// Crypto coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CryptoCoopStats {
     pub total_events: u64,
     pub tfm_shares: u64,
@@ -61,6 +62,7 @@ impl CoopCrypto {
         Self { stats: CryptoCoopStats { total_events: 0, tfm_shares: 0, batch_ops: 0, bytes_saved: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &CryptoCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

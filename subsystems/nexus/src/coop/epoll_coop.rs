@@ -22,6 +22,7 @@ impl EpollCoopRecord {
 
 /// Epoll coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EpollCoopStats { pub total_events: u64, pub merges: u64, pub batches: u64, pub coalesced: u64 }
 
 /// Main coop epoll
@@ -30,6 +31,7 @@ pub struct CoopEpoll { pub stats: EpollCoopStats }
 
 impl CoopEpoll {
     pub fn new() -> Self { Self { stats: EpollCoopStats { total_events: 0, merges: 0, batches: 0, coalesced: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &EpollCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

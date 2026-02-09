@@ -26,6 +26,7 @@ pub enum ComplianceFramework {
 
 impl ComplianceFramework {
     /// Get framework name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::PciDss => "PCI-DSS",
@@ -39,6 +40,7 @@ impl ComplianceFramework {
     }
 
     /// Get all frameworks
+    #[inline]
     pub fn all() -> &'static [ComplianceFramework] {
         &[
             Self::PciDss,
@@ -86,22 +88,26 @@ impl ComplianceCheck {
     }
 
     /// Add required rule
+    #[inline(always)]
     pub fn add_required_rule(&mut self, rule: String) {
         self.required_rules.push(rule);
     }
 
     /// Add violation
+    #[inline(always)]
     pub fn add_violation(&mut self, violation: String) {
         self.violations.push(violation);
         self.passing = false;
     }
 
     /// Update check
+    #[inline(always)]
     pub fn update(&mut self, timestamp: u64) {
         self.last_checked = timestamp;
     }
 
     /// Reset violations
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.violations.clear();
         self.passing = true;

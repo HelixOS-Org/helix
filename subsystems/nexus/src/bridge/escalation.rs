@@ -115,16 +115,19 @@ impl TrackedSyscall {
     }
 
     /// Age (ns)
+    #[inline(always)]
     pub fn age_ns(&self, now: u64) -> u64 {
         now.saturating_sub(self.created_at)
     }
 
     /// Time to deadline
+    #[inline(always)]
     pub fn time_to_deadline(&self, now: u64) -> Option<u64> {
         self.deadline_ns.map(|d| d.saturating_sub(now))
     }
 
     /// Is deadline imminent?
+    #[inline]
     pub fn deadline_imminent(&self, now: u64, threshold_ns: u64) -> bool {
         self.time_to_deadline(now)
             .map(|t| t < threshold_ns)
@@ -196,6 +199,7 @@ pub struct EscalationPolicy {
 }
 
 impl EscalationPolicy {
+    #[inline]
     pub fn default_policy() -> Self {
         Self {
             age_threshold_ns: 100_000_000, // 100ms
@@ -214,6 +218,7 @@ impl EscalationPolicy {
 
 /// Escalation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct EscalationStats {
     /// Tracked syscalls
     pub tracked: usize,
@@ -232,6 +237,7 @@ pub struct EscalationStats {
 }
 
 /// Bridge priority escalation manager
+#[repr(align(64))]
 pub struct BridgeEscalationManager {
     /// Tracked syscalls
     tracked: BTreeMap<u64, TrackedSyscall>,
@@ -254,11 +260,13 @@ impl BridgeEscalationManager {
     }
 
     /// Set policy
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: EscalationPolicy) {
         self.policy = policy;
     }
 
     /// Track syscall
+    #[inline]
     pub fn track(
         &mut self,
         id: u64,
@@ -279,6 +287,7 @@ impl BridgeEscalationManager {
     }
 
     /// Remove tracking (completed)
+    #[inline]
     pub fn complete(&mut self, id: u64) {
         if let Some(sc) = self.tracked.remove(&id) {
             if let Some(pids) = self.process_map.get_mut(&sc.pid) {
@@ -372,11 +381,13 @@ impl BridgeEscalationManager {
     }
 
     /// Get effective priority
+    #[inline(always)]
     pub fn effective_priority(&self, id: u64) -> Option<u8> {
         self.tracked.get(&id).map(|sc| sc.effective_priority)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &EscalationStats {
         &self.stats
     }

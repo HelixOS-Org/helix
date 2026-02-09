@@ -9,6 +9,7 @@ pub enum TimerfdCoopEvent { TimerGroup, ExpiryCoalesce, IntervalAlign, WakeupBat
 
 /// Timerfd coop record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdCoopRecord {
     pub event: TimerfdCoopEvent,
     pub timers: u32,
@@ -22,14 +23,17 @@ impl TimerfdCoopRecord {
 
 /// Timerfd coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdCoopStats { pub total_events: u64, pub groups: u64, pub coalesced: u64, pub batches: u64 }
 
 /// Main coop timerfd
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CoopTimerfd { pub stats: TimerfdCoopStats }
 
 impl CoopTimerfd {
     pub fn new() -> Self { Self { stats: TimerfdCoopStats { total_events: 0, groups: 0, coalesced: 0, batches: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &TimerfdCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

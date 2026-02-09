@@ -109,11 +109,13 @@ impl Game {
     }
 
     /// Get payoff for strategy profile
+    #[inline(always)]
     pub fn payoff(&self, strategies: &[StrategyId]) -> Vec<Utility> {
         self.payoffs.calculate(strategies, &self.strategies)
     }
 
     /// Get payoff for player given strategy profile
+    #[inline(always)]
     pub fn player_payoff(&self, player: PlayerId, strategies: &[StrategyId]) -> Utility {
         let payoffs = self.payoff(strategies);
         payoffs.get(player as usize).copied().unwrap_or(0.0)
@@ -131,6 +133,7 @@ pub struct StrategyProfile {
 
 impl StrategyProfile {
     /// Create pure strategy profile
+    #[inline]
     pub fn pure(strategies: Vec<StrategyId>) -> Self {
         Self {
             pure: strategies,

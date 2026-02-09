@@ -40,12 +40,14 @@ impl RandomForest {
     }
 
     /// Set sample ratio
+    #[inline(always)]
     pub fn with_sample_ratio(mut self, ratio: f64) -> Self {
         self.sample_ratio = ratio.clamp(0.1, 1.0);
         self
     }
 
     /// Set seed
+    #[inline(always)]
     pub fn with_seed(mut self, seed: u64) -> Self {
         self.seed = seed;
         self
@@ -154,6 +156,7 @@ impl RandomForest {
     }
 
     /// Number of trees
+    #[inline(always)]
     pub fn n_trees(&self) -> usize {
         self.trees.len()
     }

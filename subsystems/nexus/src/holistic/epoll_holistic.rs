@@ -22,6 +22,7 @@ impl EpollHolisticRecord {
 
 /// Epoll holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EpollHolisticStats { pub total_samples: u64, pub bottlenecks: u64, pub max_fds: u32, pub avg_latency_us: u64 }
 
 /// Main holistic epoll
@@ -33,6 +34,7 @@ pub struct HolisticEpoll {
 
 impl HolisticEpoll {
     pub fn new() -> Self { Self { stats: EpollHolisticStats { total_samples: 0, bottlenecks: 0, max_fds: 0, avg_latency_us: 0 }, latency_sum: 0 } }
+    #[inline]
     pub fn record(&mut self, rec: &EpollHolisticRecord) {
         self.stats.total_samples += 1;
         if rec.scalability == EpollScalability::Bottlenecked || rec.scalability == EpollScalability::Thrashing { self.stats.bottlenecks += 1; }

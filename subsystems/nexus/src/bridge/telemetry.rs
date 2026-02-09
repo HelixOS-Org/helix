@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -48,6 +49,7 @@ pub enum MetricValue {
 
 /// Monotonic counter
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TelemetryCounter {
     /// Name
     pub name: String,
@@ -66,15 +68,18 @@ impl TelemetryCounter {
         }
     }
 
+    #[inline(always)]
     pub fn with_label(mut self, key: String, value: String) -> Self {
         self.labels.insert(key, value);
         self
     }
 
+    #[inline(always)]
     pub fn increment(&mut self) {
         self.value += 1;
     }
 
+    #[inline(always)]
     pub fn add(&mut self, n: u64) {
         self.value += n;
     }
@@ -86,6 +91,7 @@ impl TelemetryCounter {
 
 /// Gauge (up/down metric)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TelemetryGauge {
     /// Name
     pub name: String,
@@ -110,6 +116,7 @@ impl TelemetryGauge {
         }
     }
 
+    #[inline]
     pub fn set(&mut self, value: f64) {
         self.value = value;
         if value < self.min {
@@ -120,10 +127,12 @@ impl TelemetryGauge {
         }
     }
 
+    #[inline(always)]
     pub fn increment(&mut self, delta: f64) {
         self.set(self.value + delta);
     }
 
+    #[inline(always)]
     pub fn decrement(&mut self, delta: f64) {
         self.set(self.value - delta);
     }
@@ -135,6 +144,7 @@ impl TelemetryGauge {
 
 /// Telemetry histogram
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TelemetryHistogram {
     /// Name
     pub name: String,
@@ -164,6 +174,7 @@ impl TelemetryHistogram {
     }
 
     /// Default buckets for latency (microseconds)
+    #[inline]
     pub fn default_latency_buckets() -> Vec<f64> {
         alloc::vec![
             1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0, 10000.0,
@@ -171,6 +182,7 @@ impl TelemetryHistogram {
     }
 
     /// Observe a value
+    #[inline]
     pub fn observe(&mut self, value: f64) {
         self.count += 1;
         self.sum += value;
@@ -183,6 +195,7 @@ impl TelemetryHistogram {
     }
 
     /// Mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.count == 0 {
             return 0.0;
@@ -222,6 +235,7 @@ pub enum SpanStatus {
 
 /// Telemetry span
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TelemetrySpan {
     /// Span ID
     pub span_id: u64,
@@ -255,23 +269,28 @@ impl TelemetrySpan {
         }
     }
 
+    #[inline(always)]
     pub fn with_parent(mut self, parent_id: u64) -> Self {
         self.parent_id = parent_id;
         self
     }
 
+    #[inline(always)]
     pub fn finish(&mut self, end_ns: u64) {
         self.end_ns = end_ns;
     }
 
+    #[inline(always)]
     pub fn set_error(&mut self) {
         self.status = SpanStatus::Error;
     }
 
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.end_ns.saturating_sub(self.start_ns)
     }
 
+    #[inline(always)]
     pub fn add_attribute(&mut self, key: String, value: String) {
         self.attributes.insert(key, value);
     }
@@ -283,6 +302,7 @@ impl TelemetrySpan {
 
 /// Telemetry stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TelemetryStats {
     /// Counter count
     pub counter_count: usize,
@@ -297,6 +317,7 @@ pub struct TelemetryStats {
 }
 
 /// Bridge telemetry manager
+#[repr(align(64))]
 pub struct BridgeTelemetryManager {
     /// Counters
     counters: BTreeMap<String, TelemetryCounter>,
@@ -307,7 +328,7 @@ pub struct BridgeTelemetryManager {
     /// Active spans
     active_spans: BTreeMap<u64, TelemetrySpan>,
     /// Completed spans
-    completed_spans: Vec<TelemetrySpan>,
+    completed_spans: VecDeque<TelemetrySpan>,
     /// Max completed
     max_completed: usize,
     /// Next span ID
@@ -323,7 +344,7 @@ impl BridgeTelemetryManager {
             gauges: BTreeMap::new(),
             histograms: BTreeMap::new(),
             active_spans: BTreeMap::new(),
-            completed_spans: Vec::new(),
+            completed_spans: VecDeque::new(),
             max_completed: 1000,
             next_span_id: 1,
             stats: TelemetryStats::default(),
@@ -331,6 +352,7 @@ impl BridgeTelemetryManager {
     }
 
     /// Get or create counter
+    #[inline]
     pub fn counter(&mut self, name: String) -> &mut TelemetryCounter {
         if !self.counters.contains_key(&name) {
             self.counters
@@ -341,6 +363,7 @@ impl BridgeTelemetryManager {
     }
 
     /// Get or create gauge
+    #[inline]
     pub fn gauge(&mut self, name: String) -> &mut TelemetryGauge {
         if !self.gauges.contains_key(&name) {
             self.gauges
@@ -351,6 +374,7 @@ impl BridgeTelemetryManager {
     }
 
     /// Get or create histogram
+    #[inline]
     pub fn histogram(&mut self, name: String, buckets: Vec<f64>) -> &mut TelemetryHistogram {
         if !self.histograms.contains_key(&name) {
             self.histograms
@@ -361,6 +385,7 @@ impl BridgeTelemetryManager {
     }
 
     /// Start span
+    #[inline]
     pub fn start_span(&mut self, trace_id: u64, operation: String, start_ns: u64) -> u64 {
         let id = self.next_span_id;
         self.next_span_id += 1;
@@ -371,23 +396,26 @@ impl BridgeTelemetryManager {
     }
 
     /// End span
+    #[inline]
     pub fn end_span(&mut self, span_id: u64, end_ns: u64) {
         if let Some(mut span) = self.active_spans.remove(&span_id) {
             span.finish(end_ns);
-            self.completed_spans.push(span);
+            self.completed_spans.push_back(span);
             if self.completed_spans.len() > self.max_completed {
-                self.completed_spans.remove(0);
+                self.completed_spans.pop_front();
             }
         }
         self.stats.active_spans = self.active_spans.len();
     }
 
     /// Record observation (increment total)
+    #[inline(always)]
     pub fn observe(&mut self) {
         self.stats.total_observations += 1;
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &TelemetryStats {
         &self.stats
     }

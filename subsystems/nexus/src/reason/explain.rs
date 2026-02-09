@@ -222,6 +222,7 @@ impl Default for GeneratorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct GeneratorStats {
     /// Explanations generated
     pub explanations_generated: u64,
@@ -487,11 +488,13 @@ impl ExplanationGenerator {
     }
 
     /// Get explanation
+    #[inline(always)]
     pub fn get_explanation(&self, id: u64) -> Option<&Explanation> {
         self.explanations.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &GeneratorStats {
         &self.stats
     }
@@ -529,6 +532,7 @@ impl ExplanationBuilder {
     }
 
     /// Set target
+    #[inline]
     pub fn target(mut self, target_type: TargetType, description: &str) -> Self {
         self.target = Some(ExplanationTarget {
             target_type,
@@ -540,12 +544,14 @@ impl ExplanationBuilder {
     }
 
     /// Set explanation type
+    #[inline(always)]
     pub fn explanation_type(mut self, exp_type: ExplanationType) -> Self {
         self.explanation_type = Some(exp_type);
         self
     }
 
     /// Add cause
+    #[inline]
     pub fn add_cause(mut self, cause: &str, importance: f64) -> Self {
         self.components.push(ExplanationComponent {
             component_type: ComponentType::Cause,
@@ -557,6 +563,7 @@ impl ExplanationBuilder {
     }
 
     /// Add evidence
+    #[inline]
     pub fn add_evidence(mut self, evidence: &str, importance: f64) -> Self {
         self.components.push(ExplanationComponent {
             component_type: ComponentType::Evidence,
@@ -568,6 +575,7 @@ impl ExplanationBuilder {
     }
 
     /// Set audience
+    #[inline(always)]
     pub fn audience(mut self, audience: AudienceLevel) -> Self {
         self.audience = audience;
         self

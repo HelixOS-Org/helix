@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::NodeId;
@@ -75,7 +76,7 @@ impl LatencyPredictor {
         let samples = self.samples.entry(node).or_default();
         samples.push(sample);
         if samples.len() > 1000 {
-            samples.remove(0);
+            samples.pop_front();
         }
 
         // Update model
@@ -83,6 +84,7 @@ impl LatencyPredictor {
     }
 
     /// Record cross-node latency
+    #[inline]
     pub fn record_cross(&mut self, from: NodeId, to: NodeId, latency_ns: u64) {
         let key = (from, to);
         let prev = self
@@ -134,6 +136,7 @@ impl LatencyPredictor {
     }
 
     /// Predict latency
+    #[inline]
     pub fn predict(&self, node: NodeId, load: f64) -> f64 {
         if let Some(model) = self.models.get(&node) {
             model.base_latency + model.load_coef * load * model.contention_factor
@@ -143,6 +146,7 @@ impl LatencyPredictor {
     }
 
     /// Predict cross-node latency
+    #[inline]
     pub fn predict_cross(&self, from: NodeId, to: NodeId) -> f64 {
         self.cross_latency
             .get(&(from, to))
@@ -151,6 +155,7 @@ impl LatencyPredictor {
     }
 
     /// Get model
+    #[inline(always)]
     pub fn get_model(&self, node: NodeId) -> Option<&LatencyModel> {
         self.models.get(&node)
     }

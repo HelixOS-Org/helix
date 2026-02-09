@@ -74,6 +74,7 @@ impl CgroupInfo {
     }
 
     /// Check if cgroup is alive
+    #[inline]
     pub fn is_alive(&self) -> bool {
         matches!(
             self.state,
@@ -82,16 +83,19 @@ impl CgroupInfo {
     }
 
     /// Get process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }
 
     /// Check if empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.processes.is_empty() && self.children.is_empty()
     }
 
     /// Has controller
+    #[inline(always)]
     pub fn has_controller(&self, controller: ControllerType) -> bool {
         self.controllers.contains(&controller)
     }

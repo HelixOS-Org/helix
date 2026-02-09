@@ -35,12 +35,14 @@ impl MorphogenField {
     }
 
     /// Set diffusion coefficient
+    #[inline(always)]
     pub fn with_diffusion(mut self, diffusion: f64) -> Self {
         self.diffusion = diffusion;
         self
     }
 
     /// Set decay rate
+    #[inline(always)]
     pub fn with_decay(mut self, decay: f64) -> Self {
         self.decay = decay;
         self
@@ -52,6 +54,7 @@ impl MorphogenField {
     }
 
     /// Get concentration at position
+    #[inline]
     pub fn get(&self, x: usize, y: usize, z: usize) -> f64 {
         if x < self.size && y < self.size && z < self.size {
             self.concentrations[self.index(x, y, z)]
@@ -61,6 +64,7 @@ impl MorphogenField {
     }
 
     /// Set concentration at position
+    #[inline]
     pub fn set(&mut self, x: usize, y: usize, z: usize, value: f64) {
         if x < self.size && y < self.size && z < self.size {
             let idx = self.index(x, y, z);
@@ -69,6 +73,7 @@ impl MorphogenField {
     }
 
     /// Add concentration (source)
+    #[inline]
     pub fn add_source(&mut self, x: usize, y: usize, z: usize, amount: f64) {
         if x < self.size && y < self.size && z < self.size {
             let idx = self.index(x, y, z);
@@ -142,6 +147,7 @@ impl MorphogenField {
     }
 
     /// Get total concentration
+    #[inline(always)]
     pub fn total(&self) -> f64 {
         self.concentrations.iter().sum()
     }

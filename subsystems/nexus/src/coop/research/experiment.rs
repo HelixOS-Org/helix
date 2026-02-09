@@ -144,6 +144,7 @@ pub struct Conclusion {
 
 /// Aggregate experiment engine statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ExperimentStats {
     pub total_designed: u64,
     pub total_concluded: u64,
@@ -450,6 +451,7 @@ impl CoopExperiment {
     }
 
     /// Get current experiment engine statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ExperimentStats {
         &self.stats
     }

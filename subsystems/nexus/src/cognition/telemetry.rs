@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::format;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -107,9 +108,9 @@ pub struct Resource {
 /// Collects telemetry data
 pub struct TelemetryCollector {
     /// Metric points
-    points: Vec<TelemetryPoint>,
+    points: VecDeque<TelemetryPoint>,
     /// Events
-    events: Vec<TelemetryEvent>,
+    events: VecDeque<TelemetryEvent>,
     /// Metric series (aggregated)
     series: BTreeMap<String, MetricSeries>,
     /// Next point ID
@@ -126,6 +127,7 @@ pub struct TelemetryCollector {
 
 /// Metric time series
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricSeries {
     /// Series name
     pub name: String,
@@ -174,6 +176,7 @@ impl Default for TelemetryConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TelemetryStats {
     /// Total points collected
     pub total_points: u64,
@@ -193,8 +196,8 @@ impl TelemetryCollector {
     /// Create a new collector
     pub fn new(config: TelemetryConfig, resource: Resource) -> Self {
         Self {
-            points: Vec::new(),
-            events: Vec::new(),
+            points: VecDeque::new(),
+            events: VecDeque::new(),
             series: BTreeMap::new(),
             next_point_id: AtomicU64::new(1),
             next_event_id: AtomicU64::new(1),
@@ -217,7 +220,7 @@ impl TelemetryCollector {
 
         // Check buffer limit
         if self.points.len() >= self.config.max_points {
-            self.points.remove(0);
+            self.points.pop_front();
             self.stats.points_dropped += 1;
         }
 
@@ -234,7 +237,7 @@ impl TelemetryCollector {
             source,
         };
 
-        self.points.push(point);
+        self.points.push_back(point);
         self.stats.total_points += 1;
 
         // Update series if aggregation enabled
@@ -294,6 +297,7 @@ impl TelemetryCollector {
     }
 
     /// Record a gauge value
+    #[inline]
     pub fn record_gauge(&mut self, name: &str, value: f64, source: DomainId) -> u64 {
         self.record_metric(
             name,
@@ -316,7 +320,7 @@ impl TelemetryCollector {
 
         // Check buffer limit
         if self.events.len() >= self.config.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
             self.stats.events_dropped += 1;
         }
 
@@ -330,48 +334,56 @@ impl TelemetryCollector {
             source,
         };
 
-        self.events.push(event);
+        self.events.push_back(event);
         self.stats.total_events += 1;
 
         id
     }
 
     /// Record info event
+    #[inline(always)]
     pub fn info(&mut self, name: &str, message: &str, source: DomainId) -> u64 {
         self.record_event(name, EventSeverity::Info, message, BTreeMap::new(), source)
     }
 
     /// Record warning event
+    #[inline(always)]
     pub fn warn(&mut self, name: &str, message: &str, source: DomainId) -> u64 {
         self.record_event(name, EventSeverity::Warn, message, BTreeMap::new(), source)
     }
 
     /// Record error event
+    #[inline(always)]
     pub fn error(&mut self, name: &str, message: &str, source: DomainId) -> u64 {
         self.record_event(name, EventSeverity::Error, message, BTreeMap::new(), source)
     }
 
     /// Get metric series
+    #[inline(always)]
     pub fn get_series(&self, name: &str) -> Option<&MetricSeries> {
         self.series.get(name)
     }
 
     /// Get all series
+    #[inline(always)]
     pub fn all_series(&self) -> Vec<&MetricSeries> {
         self.series.values().collect()
     }
 
     /// Get recent points
+    #[inline(always)]
     pub fn recent_points(&self, count: usize) -> Vec<&TelemetryPoint> {
         self.points.iter().rev().take(count).collect()
     }
 
     /// Get recent events
+    #[inline(always)]
     pub fn recent_events(&self, count: usize) -> Vec<&TelemetryEvent> {
         self.events.iter().rev().take(count).collect()
     }
 
     /// Get events by severity
+    #[inline]
     pub fn events_by_severity(&self, min_severity: EventSeverity) -> Vec<&TelemetryEvent> {
         self.events.iter()
             .filter(|e| e.severity >= min_severity)
@@ -379,6 +391,7 @@ impl TelemetryCollector {
     }
 
     /// Flush and return all buffered data
+    #[inline]
     pub fn flush(&mut self) -> TelemetryBatch {
         self.stats.flushes += 1;
         self.stats.last_flush = Some(Timestamp::now());
@@ -392,6 +405,7 @@ impl TelemetryCollector {
     }
 
     /// Clear all data
+    #[inline]
     pub fn clear(&mut self) {
         self.points.clear();
         self.events.clear();
@@ -399,11 +413,13 @@ impl TelemetryCollector {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &TelemetryStats {
         &self.stats
     }
 
     /// Get resource
+    #[inline(always)]
     pub fn resource(&self) -> &Resource {
         &self.resource
     }
@@ -413,9 +429,9 @@ impl TelemetryCollector {
 #[derive(Debug, Clone)]
 pub struct TelemetryBatch {
     /// Metric points
-    pub points: Vec<TelemetryPoint>,
+    pub points: VecDeque<TelemetryPoint>,
     /// Events
-    pub events: Vec<TelemetryEvent>,
+    pub events: VecDeque<TelemetryEvent>,
     /// Resource
     pub resource: Resource,
     /// Batch timestamp
@@ -595,6 +611,7 @@ impl TelemetryExporter {
     }
 
     /// Get batches exported count
+    #[inline(always)]
     pub fn batches_exported(&self) -> u64 {
         self.batches_exported
     }

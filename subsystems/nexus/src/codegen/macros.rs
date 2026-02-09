@@ -26,6 +26,7 @@ pub struct MacroId(pub u64);
 static MACRO_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl MacroId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(MACRO_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -38,6 +39,7 @@ pub struct ExpansionId(pub u64);
 static EXPANSION_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl ExpansionId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(EXPANSION_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -222,18 +224,22 @@ impl TokenStream {
         Self { tokens: Vec::new() }
     }
 
+    #[inline(always)]
     pub fn push(&mut self, token: Token) {
         self.tokens.push(token);
     }
 
+    #[inline(always)]
     pub fn extend(&mut self, other: TokenStream) {
         self.tokens.extend(other.tokens);
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.tokens.is_empty()
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.tokens.len()
     }
@@ -245,6 +251,7 @@ impl TokenStream {
 
 /// Hygiene context
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct HygieneContext {
     /// Expansion ID
     pub expansion: ExpansionId,
@@ -255,6 +262,7 @@ pub struct HygieneContext {
 }
 
 impl HygieneContext {
+    #[inline]
     pub fn root() -> Self {
         Self {
             expansion: ExpansionId(0),
@@ -263,6 +271,7 @@ impl HygieneContext {
         }
     }
 
+    #[inline]
     pub fn child(parent: ExpansionId, transparency: Transparency) -> Self {
         Self {
             expansion: ExpansionId::generate(),
@@ -300,6 +309,7 @@ impl HygieneTracker {
     }
 
     /// Create expansion context
+    #[inline]
     pub fn create_expansion(
         &mut self,
         parent: Option<ExpansionId>,
@@ -312,16 +322,19 @@ impl HygieneTracker {
     }
 
     /// Resolve symbol
+    #[inline(always)]
     pub fn resolve(&self, expansion: ExpansionId, name: &str) -> Option<&String> {
         self.resolutions.get(&(expansion, name.to_string()))
     }
 
     /// Bind symbol
+    #[inline(always)]
     pub fn bind(&mut self, expansion: ExpansionId, name: String, resolved: String) {
         self.resolutions.insert((expansion, name), resolved);
     }
 
     /// Generate unique name
+    #[inline(always)]
     pub fn gensym(&self, base: &str, expansion: ExpansionId) -> String {
         alloc::format!("__{}_{}", base, expansion.0)
     }
@@ -497,6 +510,7 @@ impl MacroExpander {
     }
 
     /// Define macro
+    #[inline(always)]
     pub fn define(&mut self, def: MacroDef) {
         self.macros.insert(def.name.clone(), def);
     }
@@ -740,14 +754,17 @@ impl MacroBindings {
         Self::default()
     }
 
+    #[inline(always)]
     pub fn bind(&mut self, name: String, binding: MacroBinding) {
         self.singles.insert(name, binding);
     }
 
+    #[inline(always)]
     pub fn bind_rep(&mut self, items: Vec<MacroBindings>) {
         self.repetitions = items;
     }
 
+    #[inline(always)]
     pub fn get(&self, name: &str) -> Option<&MacroBinding> {
         self.singles.get(name)
     }
@@ -808,19 +825,23 @@ impl ProcMacroRegistry {
         }
     }
 
+    #[inline(always)]
     pub fn register_proc(&mut self, name: impl Into<String>, mac: Box<dyn ProcMacro>) {
         self.proc_macros.insert(name.into(), mac);
     }
 
+    #[inline(always)]
     pub fn register_derive(&mut self, mac: Box<dyn DeriveMacro>) {
         let name = mac.name().to_string();
         self.derive_macros.insert(name, mac);
     }
 
+    #[inline(always)]
     pub fn register_attr(&mut self, name: impl Into<String>, mac: Box<dyn AttributeMacro>) {
         self.attr_macros.insert(name.into(), mac);
     }
 
+    #[inline]
     pub fn expand_proc(&self, name: &str, input: TokenStream) -> Result<TokenStream, MacroError> {
         self.proc_macros
             .get(name)
@@ -828,6 +849,7 @@ impl ProcMacroRegistry {
             .expand(input)
     }
 
+    #[inline]
     pub fn expand_derive(&self, name: &str, input: TokenStream) -> Result<TokenStream, MacroError> {
         self.derive_macros
             .get(name)
@@ -835,6 +857,7 @@ impl ProcMacroRegistry {
             .expand(input)
     }
 
+    #[inline]
     pub fn expand_attr(
         &self,
         name: &str,

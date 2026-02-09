@@ -16,6 +16,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -54,6 +55,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f64, sample: f64, alpha: f64) -> f64 {
     alpha * sample + (1.0 - alpha) * current
 }
@@ -167,7 +169,7 @@ struct HorizonTracker {
     ema_abs_error: f64,
     ema_accuracy: f64,
     prediction_count: u64,
-    error_history: Vec<f64>,
+    error_history: VecDeque<f64>,
     last_prediction: f64,
     last_tick: u64,
 }
@@ -181,7 +183,7 @@ impl HorizonTracker {
             ema_abs_error: 0.5,
             ema_accuracy: 0.5,
             prediction_count: 0,
-            error_history: Vec::new(),
+            error_history: VecDeque::new(),
             last_prediction: 0.0,
             last_tick: 0,
         }
@@ -203,9 +205,9 @@ impl HorizonTracker {
         self.ema_accuracy = ema_update(self.ema_accuracy, acc, EMA_ALPHA);
 
         if self.error_history.len() >= MAX_HISTORY {
-            self.error_history.remove(0);
+            self.error_history.pop_front();
         }
-        self.error_history.push(abs_err);
+        self.error_history.push_back(abs_err);
     }
 
     fn update_weight(&mut self, inv_err_sum: f64) {
@@ -226,7 +228,7 @@ impl HorizonTracker {
 struct AppFusionState {
     app_id: u64,
     trackers: [HorizonTracker; NUM_HORIZONS],
-    consistency_history: Vec<f64>,
+    consistency_history: VecDeque<f64>,
     ema_consistency: f64,
     total_fusions: u64,
     last_fused_value: f64,
@@ -243,7 +245,7 @@ impl AppFusionState {
                 HorizonTracker::new(FusionHorizon::TenSeconds),
                 HorizonTracker::new(FusionHorizon::OneMinute),
             ],
-            consistency_history: Vec::new(),
+            consistency_history: VecDeque::new(),
             ema_consistency: 1.0,
             total_fusions: 0,
             last_fused_value: 0.0,
@@ -274,6 +276,7 @@ impl AppFusionState {
 
 /// Engine-level statistics for temporal fusion.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TemporalFusionStats {
     pub total_fusions: u64,
     pub total_outcomes_recorded: u64,
@@ -374,7 +377,7 @@ impl AppsTemporalFusion {
         let (consistency, inconsistencies) = self.check_consistency_internal(predictions);
         state.ema_consistency = ema_update(state.ema_consistency, consistency, EMA_ALPHA);
         if state.consistency_history.len() >= MAX_HISTORY {
-            state.consistency_history.remove(0);
+            state.consistency_history.pop_front().unwrap();
         }
         state.consistency_history.push(consistency);
         state.last_fused_value = fused;
@@ -433,6 +436,7 @@ impl AppsTemporalFusion {
     }
 
     /// Produce an immediate (next-syscall) prediction from the tracker.
+    #[inline]
     pub fn immediate_prediction(&self, app_id: u64) -> f64 {
         match self.app_states.get(&app_id) {
             Some(s) => s.trackers[FusionHorizon::NextSyscall.index()].last_prediction,
@@ -441,6 +445,7 @@ impl AppsTemporalFusion {
     }
 
     /// Produce a medium-term (1s) prediction from the tracker.
+    #[inline]
     pub fn medium_term(&self, app_id: u64) -> f64 {
         match self.app_states.get(&app_id) {
             Some(s) => s.trackers[FusionHorizon::OneSecond.index()].last_prediction,
@@ -449,6 +454,7 @@ impl AppsTemporalFusion {
     }
 
     /// Produce a long-term (1min) forecast from the tracker.
+    #[inline]
     pub fn long_term_forecast(&self, app_id: u64) -> f64 {
         match self.app_states.get(&app_id) {
             Some(s) => s.trackers[FusionHorizon::OneMinute.index()].last_prediction,
@@ -457,6 +463,7 @@ impl AppsTemporalFusion {
     }
 
     /// Check consistency across horizons for an app. Returns score in [0,1].
+    #[inline]
     pub fn consistency_check(&self, app_id: u64) -> f64 {
         match self.app_states.get(&app_id) {
             Some(s) => s.ema_consistency,
@@ -510,16 +517,19 @@ impl AppsTemporalFusion {
     }
 
     /// Return a snapshot of engine statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &TemporalFusionStats {
         &self.stats
     }
 
     /// Number of tracked apps.
+    #[inline(always)]
     pub fn tracked_apps(&self) -> usize {
         self.app_states.len()
     }
 
     /// Global EMA-smoothed consistency score.
+    #[inline(always)]
     pub fn avg_consistency(&self) -> f64 {
         self.ema_consistency_global
     }

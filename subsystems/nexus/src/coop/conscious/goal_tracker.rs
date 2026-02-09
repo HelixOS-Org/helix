@@ -121,6 +121,7 @@ pub struct ContractQuality {
 
 /// Aggregate goal tracking statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct GoalTrackerStats {
     pub total_goals: usize,
     pub active_goals: usize,
@@ -218,6 +219,7 @@ impl CoopGoalTracker {
     }
 
     /// Update a goal with a new measurement and compute progress
+    #[inline]
     fn update_goal(&mut self, name: &str, current: f32) {
         self.tick += 1;
         let id = fnv1a_hash(name.as_bytes());
@@ -263,11 +265,13 @@ impl CoopGoalTracker {
     }
 
     /// Measure fairness toward a goal — shorthand for fairness-type goals
+    #[inline(always)]
     pub fn measure_fairness(&mut self, fairness_value: f32) {
         self.update_goal("perfect_fairness", fairness_value);
     }
 
     /// Record resource waste observation
+    #[inline]
     pub fn waste_tracking(&mut self, wasted_units: f32, total_units: f32, source: &str) {
         self.tick += 1;
         let waste_fraction = if total_units > f32::EPSILON {
@@ -299,6 +303,7 @@ impl CoopGoalTracker {
     }
 
     /// Record contract quality measurement
+    #[inline]
     pub fn contract_quality(
         &mut self,
         contract_id: u64,

@@ -110,6 +110,7 @@ pub struct HierarchySnapshot {
 
 /// Aggregate statistics for the abstraction engine.
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct AbstractionStats {
     pub total_abstractions: u64,
     pub total_patterns: u64,
@@ -187,6 +188,7 @@ impl PatternTracker {
 /// Dynamic abstraction creation engine. Discovers co-occurring syscall
 /// patterns and promotes them into first-class meta-abstractions.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeAbstraction {
     abstractions: BTreeMap<u64, AbstractionLevel>,
     tracker: PatternTracker,
@@ -357,6 +359,7 @@ impl BridgeAbstraction {
     }
 
     /// Compute utility for a given abstraction based on usage and compression.
+    #[inline]
     pub fn abstraction_utility(&mut self, abs_id: u64) -> f32 {
         if let Some(abs) = self.abstractions.get_mut(&abs_id) {
             let age = (self.tick.saturating_sub(abs.created_tick) + 1) as f32;
@@ -411,6 +414,7 @@ impl BridgeAbstraction {
     }
 
     /// Prune abstractions with zero utility.
+    #[inline]
     pub fn prune_dead(&mut self) -> usize {
         let before = self.abstractions.len();
         self.abstractions.retain(|_, a| a.utility > 0.001 || a.usage_count > 0);
@@ -418,11 +422,13 @@ impl BridgeAbstraction {
     }
 
     /// Look up an abstraction by ID.
+    #[inline(always)]
     pub fn get_abstraction(&self, abs_id: u64) -> Option<&AbstractionLevel> {
         self.abstractions.get(&abs_id)
     }
 
     /// All children of a given parent abstraction.
+    #[inline]
     pub fn children_of(&self, parent_id: u64) -> Vec<u64> {
         self.abstractions
             .iter()
@@ -432,6 +438,7 @@ impl BridgeAbstraction {
     }
 
     /// Total abstractions count.
+    #[inline(always)]
     pub fn abstraction_count(&self) -> usize {
         self.abstractions.len()
     }
@@ -468,6 +475,7 @@ impl BridgeAbstraction {
     }
 
     /// Current tick.
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

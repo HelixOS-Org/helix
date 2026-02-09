@@ -3,6 +3,7 @@
 //! Detects patterns in signal flow such as storms, bursts, and ping-pong.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::{ProcessId, SignalNumber};
@@ -55,7 +56,7 @@ pub(crate) struct SignalEvent {
 /// Signal pattern detector
 pub struct SignalPatternDetector {
     /// Recent signal events
-    events: Vec<SignalEvent>,
+    events: VecDeque<SignalEvent>,
     /// Maximum events to track
     max_events: usize,
     /// Detected patterns
@@ -100,9 +101,9 @@ impl SignalPatternDetector {
         };
 
         if self.events.len() >= self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(event);
+        self.events.push_back(event);
 
         // Run pattern detection
         self.detect_patterns(timestamp);
@@ -250,11 +251,13 @@ impl SignalPatternDetector {
     }
 
     /// Get active patterns
+    #[inline(always)]
     pub fn get_patterns(&self) -> &[SignalPattern] {
         &self.patterns
     }
 
     /// Clear old patterns
+    #[inline]
     pub fn cleanup(&mut self, max_age_ns: u64, current_time: u64) {
         let cutoff = current_time.saturating_sub(max_age_ns);
         self.patterns.retain(|p| p.detected_at >= cutoff);
@@ -262,16 +265,19 @@ impl SignalPatternDetector {
     }
 
     /// Get patterns detected count
+    #[inline(always)]
     pub fn patterns_detected(&self) -> u64 {
         self.patterns_detected
     }
 
     /// Set storm threshold
+    #[inline(always)]
     pub fn set_storm_threshold(&mut self, threshold: f32) {
         self.storm_threshold = threshold;
     }
 
     /// Set burst threshold
+    #[inline(always)]
     pub fn set_burst_threshold(&mut self, threshold: u32) {
         self.burst_threshold = threshold;
     }

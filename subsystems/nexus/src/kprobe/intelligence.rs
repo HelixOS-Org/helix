@@ -33,6 +33,7 @@ impl KprobeIntelligence {
     }
 
     /// Add symbol
+    #[inline(always)]
     pub fn add_symbol(&mut self, symbol: SymbolInfo) {
         self.symbols.insert(symbol.address, symbol);
     }
@@ -101,6 +102,7 @@ impl KprobeIntelligence {
     }
 
     /// Handle kprobe hit
+    #[inline]
     pub fn handle_hit(&mut self, id: KprobeId, ctx: &KprobeContext) {
         if let Some(def) = self.manager.get_mut(id) {
             def.hit();
@@ -112,6 +114,7 @@ impl KprobeIntelligence {
     }
 
     /// Handle kretprobe hit
+    #[inline(always)]
     pub fn handle_return(&mut self, id: KprobeId, ctx: &KprobeContext) {
         self.tracer.record_exit(id, ctx);
     }
@@ -206,21 +209,25 @@ impl KprobeIntelligence {
     }
 
     /// Get kprobe manager
+    #[inline(always)]
     pub fn manager(&self) -> &KprobeManager {
         &self.manager
     }
 
     /// Get kprobe manager mutably
+    #[inline(always)]
     pub fn manager_mut(&mut self) -> &mut KprobeManager {
         &mut self.manager
     }
 
     /// Get function tracer
+    #[inline(always)]
     pub fn tracer(&self) -> &FunctionTracer {
         &self.tracer
     }
 
     /// Get function tracer mutably
+    #[inline(always)]
     pub fn tracer_mut(&mut self) -> &mut FunctionTracer {
         &mut self.tracer
     }

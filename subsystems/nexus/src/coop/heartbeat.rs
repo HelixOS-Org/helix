@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Heartbeat status
@@ -25,24 +26,27 @@ pub enum HeartbeatStatus {
 /// Arrival time window for phi calculation
 #[derive(Debug, Clone)]
 pub struct ArrivalWindow {
-    samples: Vec<u64>,
+    samples: VecDeque<u64>,
     max_samples: usize,
 }
 
 impl ArrivalWindow {
-    pub fn new(max: usize) -> Self { Self { samples: Vec::new(), max_samples: max } }
+    pub fn new(max: usize) -> Self { Self { samples: VecDeque::new(), max_samples: max } }
 
+    #[inline(always)]
     pub fn record(&mut self, interval_ns: u64) {
-        self.samples.push(interval_ns);
-        if self.samples.len() > self.max_samples { self.samples.remove(0); }
+        self.samples.push_back(interval_ns);
+        if self.samples.len() > self.max_samples { self.samples.pop_front(); }
     }
 
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.samples.is_empty() { return 0.0; }
         let sum: u64 = self.samples.iter().sum();
         sum as f64 / self.samples.len() as f64
     }
 
+    #[inline]
     pub fn variance(&self) -> f64 {
         if self.samples.len() < 2 { return 0.0; }
         let m = self.mean();
@@ -50,6 +54,7 @@ impl ArrivalWindow {
         sum_sq / (self.samples.len() - 1) as f64
     }
 
+    #[inline(always)]
     pub fn stddev(&self) -> f64 { libm::sqrt(self.variance()) }
 
     pub fn phi(&self, time_since_last_ns: u64) -> f64 {
@@ -68,6 +73,7 @@ impl ArrivalWindow {
         if phi > 16.0 { 16.0 } else { phi }
     }
 
+    #[inline(always)]
     pub fn sample_count(&self) -> usize { self.samples.len() }
 }
 
@@ -99,6 +105,7 @@ impl PeerHeartbeat {
         }
     }
 
+    #[inline]
     pub fn receive_heartbeat(&mut self, ts: u64, payload_version: u64) {
         if self.heartbeats_received > 0 {
             let interval = ts.saturating_sub(self.last_heartbeat_ts);
@@ -111,6 +118,7 @@ impl PeerHeartbeat {
         self.status = HeartbeatStatus::Alive;
     }
 
+    #[inline]
     pub fn compute_phi(&mut self, now: u64) -> f64 {
         if self.heartbeats_received < 2 { return 0.0; }
         let time_since = now.saturating_sub(self.last_heartbeat_ts);
@@ -118,6 +126,7 @@ impl PeerHeartbeat {
         self.last_phi
     }
 
+    #[inline]
     pub fn update_status(&mut self, phi_suspect: f64, phi_fail: f64) {
         if self.last_phi >= phi_fail {
             self.status = HeartbeatStatus::Failed;
@@ -131,6 +140,7 @@ impl PeerHeartbeat {
 
 /// Heartbeat V2 stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HeartbeatV2Stats {
     pub total_peers: usize,
     pub alive_peers: usize,
@@ -161,20 +171,25 @@ impl CoopHeartbeatV2 {
         }
     }
 
+    #[inline(always)]
     pub fn register_peer(&mut self, id: u64, ts: u64) {
         self.peers.insert(id, PeerHeartbeat::new(id, self.default_interval_ns, ts));
     }
 
+    #[inline(always)]
     pub fn unregister_peer(&mut self, id: u64) { self.peers.remove(&id); }
 
+    #[inline(always)]
     pub fn receive_heartbeat(&mut self, peer_id: u64, ts: u64, payload_version: u64) {
         if let Some(p) = self.peers.get_mut(&peer_id) { p.receive_heartbeat(ts, payload_version); }
     }
 
+    #[inline(always)]
     pub fn record_send(&mut self, peer_id: u64) {
         if let Some(p) = self.peers.get_mut(&peer_id) { p.heartbeats_sent += 1; }
     }
 
+    #[inline]
     pub fn tick(&mut self, now: u64) {
         for peer in self.peers.values_mut() {
             peer.compute_phi(now);
@@ -182,15 +197,18 @@ impl CoopHeartbeatV2 {
         }
     }
 
+    #[inline(always)]
     pub fn set_thresholds(&mut self, suspect: f64, fail: f64) {
         self.phi_suspect_threshold = suspect;
         self.phi_fail_threshold = fail;
     }
 
+    #[inline(always)]
     pub fn failed_peers(&self) -> Vec<u64> {
         self.peers.iter().filter(|(_, p)| p.status == HeartbeatStatus::Failed).map(|(&id, _)| id).collect()
     }
 
+    #[inline(always)]
     pub fn suspected_peers(&self) -> Vec<u64> {
         self.peers.iter().filter(|(_, p)| p.status == HeartbeatStatus::Suspected).map(|(&id, _)| id).collect()
     }
@@ -209,6 +227,8 @@ impl CoopHeartbeatV2 {
         }
     }
 
+    #[inline(always)]
     pub fn peer(&self, id: u64) -> Option<&PeerHeartbeat> { self.peers.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &HeartbeatV2Stats { &self.stats }
 }

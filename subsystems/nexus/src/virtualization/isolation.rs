@@ -118,21 +118,25 @@ impl IsolationAnalyzer {
     }
 
     /// Record violation
+    #[inline(always)]
     pub fn record_violation(&mut self, violation: IsolationViolation) {
         self.violations.push(violation);
     }
 
     /// Set security boundary
+    #[inline(always)]
     pub fn set_boundary(&mut self, boundary: SecurityBoundary) {
         self.boundaries.insert(boundary.workload_id, boundary);
     }
 
     /// Record escape attempt
+    #[inline(always)]
     pub fn record_escape(&mut self, attempt: EscapeAttempt) {
         self.escape_attempts.push(attempt);
     }
 
     /// Get violations for workload
+    #[inline]
     pub fn get_violations(&self, workload_id: VirtId) -> Vec<&IsolationViolation> {
         self.violations
             .iter()
@@ -141,11 +145,13 @@ impl IsolationAnalyzer {
     }
 
     /// Get boundary
+    #[inline(always)]
     pub fn get_boundary(&self, workload_id: VirtId) -> Option<&SecurityBoundary> {
         self.boundaries.get(&workload_id)
     }
 
     /// Get critical violations
+    #[inline]
     pub fn critical_violations(&self) -> Vec<&IsolationViolation> {
         self.violations
             .iter()
@@ -154,11 +160,13 @@ impl IsolationAnalyzer {
     }
 
     /// Get blocked escape count
+    #[inline(always)]
     pub fn blocked_escapes(&self) -> usize {
         self.escape_attempts.iter().filter(|e| e.blocked).count()
     }
 
     /// Get escape attempts for workload
+    #[inline]
     pub fn get_escape_attempts(&self, workload_id: VirtId) -> Vec<&EscapeAttempt> {
         self.escape_attempts
             .iter()
@@ -167,11 +175,13 @@ impl IsolationAnalyzer {
     }
 
     /// Total violations
+    #[inline(always)]
     pub fn total_violations(&self) -> usize {
         self.violations.len()
     }
 
     /// Total escape attempts
+    #[inline(always)]
     pub fn total_escape_attempts(&self) -> usize {
         self.escape_attempts.len()
     }

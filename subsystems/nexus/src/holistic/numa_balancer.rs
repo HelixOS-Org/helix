@@ -89,6 +89,7 @@ impl NumaNode {
     }
 
     /// Memory utilization
+    #[inline]
     pub fn mem_utilization(&self) -> f64 {
         if self.total_pages == 0 {
             return 0.0;
@@ -97,6 +98,7 @@ impl NumaNode {
     }
 
     /// Locality ratio (local / total accesses)
+    #[inline]
     pub fn locality_ratio(&self) -> f64 {
         let total = self.local_accesses + self.remote_accesses;
         if total == 0 {
@@ -106,6 +108,7 @@ impl NumaNode {
     }
 
     /// Update pressure EMA
+    #[inline]
     pub fn update_pressure(&mut self) {
         let current = self.mem_utilization();
         self.mem_pressure_ema = 0.8 * self.mem_pressure_ema + 0.2 * current;
@@ -120,6 +123,7 @@ impl NumaNode {
     }
 
     /// Score for placing a task (lower is better)
+    #[inline]
     pub fn placement_score(&self, distance: u32) -> f64 {
         let mem_factor = self.mem_utilization();
         let cpu_factor = self.cpu_utilization;
@@ -154,6 +158,7 @@ impl NumaDistanceMatrix {
     }
 
     /// Set distance
+    #[inline]
     pub fn set_distance(&mut self, from: usize, to: usize, dist: u32) {
         if from < self.node_count && to < self.node_count {
             self.distances[from * self.node_count + to] = dist;
@@ -162,6 +167,7 @@ impl NumaDistanceMatrix {
     }
 
     /// Get distance
+    #[inline]
     pub fn distance(&self, from: usize, to: usize) -> u32 {
         if from < self.node_count && to < self.node_count {
             self.distances[from * self.node_count + to]
@@ -171,6 +177,7 @@ impl NumaDistanceMatrix {
     }
 
     /// Find nearest node with capacity
+    #[inline]
     pub fn nearest_with_capacity(&self, from: usize, nodes: &BTreeMap<u32, NumaNode>) -> Option<u32> {
         let mut candidates: Vec<(u32, u32)> = Vec::new();
         for (&nid, node) in nodes {
@@ -209,6 +216,7 @@ pub struct NumaPageMigration {
 
 /// NUMA balancer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticNumaBalancerStats {
     /// Active nodes
     pub active_nodes: usize,
@@ -250,6 +258,7 @@ impl HolisticNumaBalancer {
     }
 
     /// Register node
+    #[inline(always)]
     pub fn register_node(&mut self, node_id: u32, total_pages: u64, cpu_capacity: u32) {
         self.nodes.insert(node_id, NumaNode::new(node_id, total_pages, cpu_capacity));
         self.update_stats();
@@ -356,6 +365,7 @@ impl HolisticNumaBalancer {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticNumaBalancerStats {
         &self.stats
     }

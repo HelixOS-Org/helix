@@ -28,6 +28,7 @@ pub struct TaskId(pub u64);
 static TASK_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl TaskId {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(TASK_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -75,6 +76,7 @@ impl WorkerInfo {
     }
 
     /// Get load ratio
+    #[inline]
     pub fn load_ratio(&self) -> f64 {
         if self.capacity == 0 {
             1.0
@@ -84,6 +86,7 @@ impl WorkerInfo {
     }
 
     /// Is available?
+    #[inline(always)]
     pub fn is_available(&self) -> bool {
         self.healthy && self.current_load < self.capacity
     }
@@ -420,6 +423,7 @@ pub struct LoadBalancer {
 
 /// Load balancer statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LoadBalancerStats {
     /// Total tasks assigned
     pub tasks_assigned: u64,
@@ -450,6 +454,7 @@ impl LoadBalancer {
     }
 
     /// Register worker
+    #[inline(always)]
     pub fn register_worker(&mut self, worker: WorkerInfo) {
         self.workers.insert(worker.id, worker);
     }
@@ -473,6 +478,7 @@ impl LoadBalancer {
     }
 
     /// Submit task
+    #[inline]
     pub fn submit(&mut self, task: TaskInfo) -> TaskId {
         let id = task.id;
         self.pending_tasks.push(task);
@@ -597,6 +603,7 @@ impl LoadBalancer {
     }
 
     /// Worker heartbeat
+    #[inline]
     pub fn heartbeat(&mut self, worker_id: WorkerId) {
         if let Some(worker) = self.workers.get_mut(&worker_id) {
             worker.last_heartbeat = self.tick;
@@ -620,31 +627,37 @@ impl LoadBalancer {
     }
 
     /// Get worker info
+    #[inline(always)]
     pub fn get_worker(&self, id: WorkerId) -> Option<&WorkerInfo> {
         self.workers.get(&id)
     }
 
     /// Get all workers
+    #[inline(always)]
     pub fn workers(&self) -> impl Iterator<Item = &WorkerInfo> {
         self.workers.values()
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &LoadBalancerStats {
         &self.stats
     }
 
     /// Get pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending_tasks.len()
     }
 
     /// Get active count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.active_tasks.len()
     }
 
     /// Get total load
+    #[inline]
     pub fn total_load(&self) -> (usize, usize) {
         let current: usize = self.workers.values().map(|w| w.current_load).sum();
         let capacity: usize = self.workers.values().map(|w| w.capacity).sum();

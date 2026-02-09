@@ -3,6 +3,7 @@
 //! Device hotplug event management.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -47,7 +48,7 @@ pub struct HotplugHandler {
     /// Pending events
     pending_events: Vec<HotplugNotification>,
     /// Event history
-    event_history: Vec<HotplugNotification>,
+    event_history: VecDeque<HotplugNotification>,
     /// Maximum history
     max_history: usize,
     /// Event count by type
@@ -78,6 +79,7 @@ impl HotplugHandler {
     }
 
     /// Queue hotplug event
+    #[inline]
     pub fn queue_event(&mut self, notification: HotplugNotification) {
         *self.event_counts.entry(notification.event).or_default() += 1;
         self.events_since_calc += 1;
@@ -91,25 +93,28 @@ impl HotplugHandler {
         // Store in history
         for event in &events {
             if self.event_history.len() >= self.max_history {
-                self.event_history.remove(0);
+                self.event_history.pop_front();
             }
-            self.event_history.push(event.clone());
+            self.event_history.push_back(event.clone());
         }
 
         events
     }
 
     /// Get pending event count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending_events.len()
     }
 
     /// Get event count by type
+    #[inline(always)]
     pub fn event_count(&self, event: HotplugEvent) -> u64 {
         self.event_counts.get(&event).copied().unwrap_or(0)
     }
 
     /// Calculate event rate
+    #[inline]
     pub fn update_rate(&mut self, current_time: u64) {
         let elapsed = current_time.saturating_sub(self.last_rate_calc);
         if elapsed > 1_000_000_000 {
@@ -122,11 +127,13 @@ impl HotplugHandler {
     }
 
     /// Get current event rate
+    #[inline(always)]
     pub fn event_rate(&self) -> f32 {
         self.event_rate
     }
 
     /// Find recent events for device
+    #[inline]
     pub fn device_events(&self, device_id: DeviceId, limit: usize) -> Vec<&HotplugNotification> {
         self.event_history
             .iter()
@@ -137,11 +144,13 @@ impl HotplugHandler {
     }
 
     /// Register subsystem handler
+    #[inline(always)]
     pub fn register_handler(&mut self, subsystem: String, handler: fn(&HotplugNotification)) {
         self.subsystem_handlers.insert(subsystem, handler);
     }
 
     /// Get event history
+    #[inline(always)]
     pub fn history(&self) -> &[HotplugNotification] {
         &self.event_history
     }

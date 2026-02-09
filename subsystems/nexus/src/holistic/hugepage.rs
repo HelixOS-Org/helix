@@ -14,6 +14,7 @@ pub enum HugePageSize {
 }
 
 impl HugePageSize {
+    #[inline(always)]
     pub fn bytes(self) -> u64 { match self { Self::Size2M => 2 * 1024 * 1024, Self::Size1G => 1024 * 1024 * 1024 } }
 }
 
@@ -29,6 +30,7 @@ pub enum ThpPolicy {
 
 /// Huge page pool
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct HugePagePool {
     pub size: HugePageSize,
     pub total: u64,
@@ -45,12 +47,15 @@ impl HugePagePool {
         Self { size, total, free: total, reserved: 0, surplus: 0, alloc_count: 0, free_count: 0, fail_count: 0 }
     }
 
+    #[inline(always)]
     pub fn alloc(&mut self) -> Option<u64> {
         if self.free > 0 { self.free -= 1; self.alloc_count += 1; Some(self.alloc_count) }
         else { self.fail_count += 1; None }
     }
 
+    #[inline(always)]
     pub fn free(&mut self) { self.free += 1; self.free_count += 1; }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 { if self.total == 0 { 0.0 } else { (self.total - self.free) as f64 / self.total as f64 } }
 }
 
@@ -66,6 +71,7 @@ pub struct ThpCollapseEvent {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HugePageV2Stats {
     pub pools: u32,
     pub total_2m: u64,
@@ -88,23 +94,28 @@ pub struct HolisticHugePageV2 {
 impl HolisticHugePageV2 {
     pub fn new() -> Self { Self { pools: BTreeMap::new(), thp_policy: ThpPolicy::Madvise, thp_events: Vec::new(), next_pool_id: 1 } }
 
+    #[inline]
     pub fn add_pool(&mut self, size: HugePageSize, count: u64) -> u32 {
         let id = self.next_pool_id; self.next_pool_id += 1;
         self.pools.insert(id, HugePagePool::new(size, count));
         id
     }
 
+    #[inline(always)]
     pub fn set_thp_policy(&mut self, policy: ThpPolicy) { self.thp_policy = policy; }
 
+    #[inline(always)]
     pub fn alloc(&mut self, pool: u32) -> Option<u64> {
         self.pools.get_mut(&pool)?.alloc()
     }
 
+    #[inline(always)]
     pub fn record_thp(&mut self, event: ThpCollapseEvent) {
         if self.thp_events.len() >= 4096 { self.thp_events.drain(..2048); }
         self.thp_events.push(event);
     }
 
+    #[inline]
     pub fn stats(&self) -> HugePageV2Stats {
         let total_2m: u64 = self.pools.values().filter(|p| p.size == HugePageSize::Size2M).map(|p| p.total).sum();
         let free_2m: u64 = self.pools.values().filter(|p| p.size == HugePageSize::Size2M).map(|p| p.free).sum();
@@ -129,6 +140,7 @@ pub enum HugePageV3Size {
 }
 
 impl HugePageV3Size {
+    #[inline]
     pub fn bytes(&self) -> u64 {
         match self {
             Self::Page2M => 2 * 1024 * 1024,
@@ -177,10 +189,12 @@ impl CmaRegion {
         }
     }
 
+    #[inline(always)]
     pub fn size_bytes(&self) -> u64 {
         self.page_count * 4096
     }
 
+    #[inline(always)]
     pub fn is_available(&self) -> bool {
         self.state == CmaRegionState::Free
     }
@@ -188,6 +202,7 @@ impl CmaRegion {
 
 /// Per-NUMA-node huge page pool.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NumaHugePagePool {
     pub node_id: u32,
     pub page_size: HugePageV3Size,
@@ -226,10 +241,12 @@ impl NumaHugePagePool {
         }
     }
 
+    #[inline(always)]
     pub fn free_page(&mut self) {
         self.free_pages += 1;
     }
 
+    #[inline]
     pub fn utilization_percent(&self) -> f64 {
         if self.total_pages == 0 {
             return 0.0;
@@ -252,6 +269,7 @@ pub struct MigrationCandidate {
 
 /// Statistics for huge page V3 manager.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HugePageV3Stats {
     pub total_pools: u64,
     pub total_cma_regions: u64,
@@ -292,6 +310,7 @@ impl HolisticHugePageV3 {
         }
     }
 
+    #[inline]
     pub fn create_pool(&mut self, node_id: u32, page_size: HugePageV3Size, count: u64) -> u64 {
         let key = (node_id as u64) << 32 | (page_size.bytes() & 0xFFFFFFFF);
         let mut pool = NumaHugePagePool::new(node_id, page_size);
@@ -303,6 +322,7 @@ impl HolisticHugePageV3 {
         key
     }
 
+    #[inline]
     pub fn register_cma_region(&mut self, base_pfn: u64, page_count: u64, numa_node: u32) -> u64 {
         let id = self.next_region_id;
         self.next_region_id += 1;
@@ -312,6 +332,7 @@ impl HolisticHugePageV3 {
         id
     }
 
+    #[inline(always)]
     pub fn enqueue_migration(&mut self, candidate: MigrationCandidate) {
         self.migration_queue.push(candidate);
         self.migration_queue.sort_by(|a, b| a.estimated_cost.cmp(&b.estimated_cost));
@@ -346,10 +367,12 @@ impl HolisticHugePageV3 {
         1.0 - (free / total)
     }
 
+    #[inline(always)]
     pub fn pool_count(&self) -> usize {
         self.pools.len()
     }
 
+    #[inline(always)]
     pub fn region_count(&self) -> usize {
         self.cma_regions.len()
     }

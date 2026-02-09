@@ -18,6 +18,7 @@ pub enum DualQueueNodeState {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DualQueueNode {
     pub node_type: DualQueueNodeType,
     pub state: DualQueueNodeState,
@@ -27,6 +28,7 @@ pub struct DualQueueNode {
 }
 
 impl DualQueueNode {
+    #[inline]
     pub fn data(thread_id: u32, value: u64, ts: u64) -> Self {
         Self {
             node_type: DualQueueNodeType::Data(value),
@@ -35,6 +37,7 @@ impl DualQueueNode {
         }
     }
 
+    #[inline]
     pub fn request(thread_id: u32, ts: u64) -> Self {
         Self {
             node_type: DualQueueNodeType::Request,
@@ -43,20 +46,25 @@ impl DualQueueNode {
         }
     }
 
+    #[inline(always)]
     pub fn fulfill(&mut self, value: u64) {
         self.state = DualQueueNodeState::Matched;
         self.result = Some(value);
     }
 
+    #[inline(always)]
     pub fn cancel(&mut self) {
         self.state = DualQueueNodeState::Cancelled;
     }
 
+    #[inline(always)]
     pub fn is_data(&self) -> bool { matches!(self.node_type, DualQueueNodeType::Data(_)) }
+    #[inline(always)]
     pub fn is_request(&self) -> bool { matches!(self.node_type, DualQueueNodeType::Request) }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DualQueueState {
     pub queue: Vec<DualQueueNode>,
     pub total_data: u64,
@@ -110,14 +118,17 @@ impl DualQueueState {
         None
     }
 
+    #[inline(always)]
     pub fn cleanup(&mut self) {
         self.queue.retain(|n| n.state == DualQueueNodeState::Pending);
     }
 
+    #[inline(always)]
     pub fn avg_match_latency_ns(&self) -> u64 {
         if self.total_matches == 0 { 0 } else { self.total_latency_ns / self.total_matches }
     }
 
+    #[inline(always)]
     pub fn match_rate(&self) -> u64 {
         let total = self.total_data + self.total_requests;
         if total == 0 { 0 } else { (self.total_matches * 200) / total } // x2 because each match takes 2
@@ -125,6 +136,7 @@ impl DualQueueState {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DualQueueStats {
     pub total_queues: u64,
     pub total_data: u64,
@@ -132,6 +144,7 @@ pub struct DualQueueStats {
     pub total_matches: u64,
 }
 
+#[repr(align(64))]
 pub struct CoopDualQueue {
     queues: Vec<DualQueueState>,
     stats: DualQueueStats,
@@ -148,6 +161,7 @@ impl CoopDualQueue {
         }
     }
 
+    #[inline]
     pub fn create_queue(&mut self) -> usize {
         let idx = self.queues.len();
         self.queues.push(DualQueueState::new());
@@ -155,6 +169,7 @@ impl CoopDualQueue {
         idx
     }
 
+    #[inline]
     pub fn put(&mut self, queue_idx: usize, thread_id: u32, value: u64, ts: u64) {
         if let Some(q) = self.queues.get_mut(queue_idx) {
             q.put(thread_id, value, ts);
@@ -162,6 +177,7 @@ impl CoopDualQueue {
         }
     }
 
+    #[inline]
     pub fn take(&mut self, queue_idx: usize, thread_id: u32, ts: u64) -> Option<u64> {
         if let Some(q) = self.queues.get_mut(queue_idx) {
             self.stats.total_requests += 1;
@@ -171,5 +187,6 @@ impl CoopDualQueue {
         } else { None }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &DualQueueStats { &self.stats }
 }

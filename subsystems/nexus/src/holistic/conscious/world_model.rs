@@ -67,6 +67,7 @@ pub enum StateDomain {
 
 /// A single state entry in the world model
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateEntry {
     pub name: String,
     pub id: u64,
@@ -80,6 +81,7 @@ pub struct StateEntry {
 
 /// A prediction about future state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StatePrediction {
     pub state_id: u64,
     pub predicted_value: f32,
@@ -104,6 +106,7 @@ pub struct Surprise {
 
 /// A complete state snapshot for fidelity checking
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct StateSnapshot {
     pub tick: u64,
     pub entry_count: u32,
@@ -119,6 +122,7 @@ pub struct StateSnapshot {
 
 /// Aggregate world model statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct WorldModelStats {
     pub total_entries: usize,
     pub avg_confidence: f32,
@@ -172,6 +176,7 @@ impl HolisticWorldModel {
     }
 
     /// Update or insert a world state entry
+    #[inline]
     pub fn update_state(
         &mut self,
         name: String,
@@ -240,6 +245,7 @@ impl HolisticWorldModel {
     }
 
     /// Resolve predictions and detect surprises
+    #[inline]
     pub fn resolve_predictions(&mut self) {
         self.tick += 1;
         let mut surprise_count = 0u32;
@@ -293,6 +299,7 @@ impl HolisticWorldModel {
     }
 
     /// Get the complete state of the world model
+    #[inline]
     pub fn complete_state(&self) -> Vec<(u64, StateDomain, f32, f32)> {
         self.states
             .values()
@@ -301,6 +308,7 @@ impl HolisticWorldModel {
     }
 
     /// Get current state predictions
+    #[inline]
     pub fn state_prediction(&self) -> Vec<&StatePrediction> {
         self.predictions
             .iter()
@@ -309,6 +317,7 @@ impl HolisticWorldModel {
     }
 
     /// Get recent surprises
+    #[inline(always)]
     pub fn surprise_detection(&self) -> Vec<&Surprise> {
         self.surprises.values().collect()
     }
@@ -335,6 +344,7 @@ impl HolisticWorldModel {
     }
 
     /// Check model against reality — returns fidelity score
+    #[inline]
     pub fn reality_check(&mut self) -> f32 {
         if self.states.is_empty() {
             return 0.5;
@@ -377,6 +387,7 @@ impl HolisticWorldModel {
     }
 
     /// Model fidelity score — how well the model represents reality
+    #[inline(always)]
     pub fn model_fidelity(&self) -> f32 {
         self.fidelity_ema
     }

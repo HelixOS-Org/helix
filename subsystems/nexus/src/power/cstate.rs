@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::{CState, PowerMode};
@@ -16,7 +17,7 @@ use crate::math;
 #[derive(Debug, Clone)]
 pub struct IdleTimePredictor {
     /// Recent idle durations
-    history: Vec<u32>, // microseconds
+    history: VecDeque<u32>, // microseconds
     /// Moving average
     avg_idle: f64,
     /// Standard deviation
@@ -27,7 +28,7 @@ impl IdleTimePredictor {
     /// Create new idle time predictor
     pub fn new() -> Self {
         Self {
-            history: Vec::new(),
+            history: VecDeque::new(),
             avg_idle: 100.0,
             std_dev: 50.0,
         }
@@ -35,9 +36,9 @@ impl IdleTimePredictor {
 
     /// Record idle duration
     pub fn record(&mut self, duration_us: u32) {
-        self.history.push(duration_us);
+        self.history.push_back(duration_us);
         if self.history.len() > 100 {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         // Update statistics
@@ -57,6 +58,7 @@ impl IdleTimePredictor {
     }
 
     /// Predict next idle duration
+    #[inline(always)]
     pub fn predict(&self) -> u32 {
         // Conservative estimate: mean - 0.5 * std_dev
         (self.avg_idle - 0.5 * self.std_dev).max(0.0) as u32
@@ -75,6 +77,7 @@ impl Default for IdleTimePredictor {
 
 /// C-State statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CStateStats {
     /// Time spent in each C-State (nanoseconds)
     pub time_in_state: BTreeMap<u8, u64>,
@@ -89,6 +92,7 @@ pub struct CStateStats {
 // ============================================================================
 
 /// Intelligent C-State selector
+#[repr(align(64))]
 pub struct CStateSelector {
     /// Available C-States
     available_states: Vec<CState>,
@@ -163,16 +167,19 @@ impl CStateSelector {
     }
 
     /// Set latency tolerance
+    #[inline(always)]
     pub fn set_latency_tolerance(&mut self, tolerance_us: u32) {
         self.latency_tolerance = tolerance_us;
     }
 
     /// Set power mode
+    #[inline(always)]
     pub fn set_power_mode(&mut self, mode: PowerMode) {
         self.power_mode = mode;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CStateStats {
         &self.stats
     }

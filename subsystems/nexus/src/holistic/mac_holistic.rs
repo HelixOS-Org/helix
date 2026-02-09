@@ -33,6 +33,7 @@ impl MacHolisticFinding {
 
 /// MAC holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MacHolisticStats {
     pub total_analyses: u64,
     pub policy_conflicts: u64,
@@ -51,6 +52,7 @@ impl HolisticMac {
         Self { stats: MacHolisticStats { total_analyses: 0, policy_conflicts: 0, label_issues: 0, gaps_found: 0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &MacHolisticFinding) {
         self.stats.total_analyses += 1;
         self.stats.policy_conflicts += finding.conflicts as u64;

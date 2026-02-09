@@ -45,6 +45,7 @@ impl RecordingSession {
     }
 
     /// Start recording
+    #[inline]
     pub fn start(&mut self) {
         self.events.clear();
         self.per_cpu_events.clear();
@@ -54,11 +55,13 @@ impl RecordingSession {
     }
 
     /// Stop recording
+    #[inline(always)]
     pub fn stop(&self) {
         self.recording.store(false, Ordering::SeqCst);
     }
 
     /// Is recording?
+    #[inline(always)]
     pub fn is_recording(&self) -> bool {
         self.recording.load(Ordering::SeqCst)
     }
@@ -81,6 +84,7 @@ impl RecordingSession {
     }
 
     /// Record interrupt
+    #[inline]
     pub fn record_interrupt(&mut self, vector: u8, error_code: Option<u32>) -> Option<u64> {
         self.record(ReplayEventType::Interrupt, EventData::Interrupt {
             vector,
@@ -89,6 +93,7 @@ impl RecordingSession {
     }
 
     /// Record syscall
+    #[inline]
     pub fn record_syscall(&mut self, number: u64, args: [u64; 6], result: i64) -> Option<u64> {
         self.record(ReplayEventType::Syscall, EventData::Syscall {
             number,
@@ -98,21 +103,25 @@ impl RecordingSession {
     }
 
     /// Record random bytes
+    #[inline(always)]
     pub fn record_random(&mut self, bytes: &[u8]) -> Option<u64> {
         self.record(ReplayEventType::Random, EventData::Random(bytes.to_vec()))
     }
 
     /// Get events
+    #[inline(always)]
     pub fn events(&self) -> &[ReplayEvent] {
         &self.events
     }
 
     /// Get event count
+    #[inline(always)]
     pub fn event_count(&self) -> usize {
         self.events.len()
     }
 
     /// Get duration
+    #[inline(always)]
     pub fn duration(&self) -> u64 {
         NexusTimestamp::now().duration_since(self.start_time)
     }

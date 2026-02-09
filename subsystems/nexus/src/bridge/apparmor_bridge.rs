@@ -42,6 +42,7 @@ pub enum AppArmorResult {
 
 /// AppArmor bridge record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppArmorRecord {
     pub op: AppArmorOp,
     pub result: AppArmorResult,
@@ -71,6 +72,7 @@ impl AppArmorRecord {
 
 /// AppArmor bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppArmorBridgeStats {
     pub total_ops: u64,
     pub profiles_loaded: u64,

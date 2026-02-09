@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Memory protection flags
@@ -28,8 +29,10 @@ impl ProtFlags {
     pub const RX: Self = Self { read: true, write: false, exec: true };
     pub const RWX: Self = Self { read: true, write: true, exec: true };
 
+    #[inline(always)]
     pub fn violates_wx(&self) -> bool { self.write && self.exec }
 
+    #[inline]
     pub fn allows(&self, op: AccessType) -> bool {
         match op {
             AccessType::Read => self.read,
@@ -38,6 +41,7 @@ impl ProtFlags {
         }
     }
 
+    #[inline]
     pub fn as_bits(&self) -> u8 {
         let mut bits = 0u8;
         if self.read { bits |= 1; }
@@ -88,9 +92,12 @@ impl ProtRegion {
         }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool { addr >= self.start && addr < self.end }
 
+    #[inline]
     pub fn change_protection(&mut self, new_flags: ProtFlags, ts: u64) {
         self.flags = new_flags;
         self.change_count += 1;
@@ -148,6 +155,7 @@ pub enum WxPolicy {
 
 /// Per-process protection state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessProtState {
     pub pid: u32,
     pub regions: Vec<u64>, // region start addrs
@@ -159,6 +167,7 @@ pub struct ProcessProtState {
 
 /// Mprotect manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MprotectMgrStats {
     pub total_regions: usize,
     pub total_processes: usize,
@@ -176,7 +185,7 @@ pub struct HolisticMprotectMgr {
     processes: BTreeMap<u32, ProcessProtState>,
     pkeys: BTreeMap<u16, ProtectionKey>,
     guards: Vec<StackGuard>,
-    violations: Vec<ProtViolation>,
+    violations: VecDeque<ProtViolation>,
     wx_policy: WxPolicy,
     next_violation_id: u64,
     max_violations: usize,
@@ -188,12 +197,13 @@ impl HolisticMprotectMgr {
         Self {
             regions: BTreeMap::new(), processes: BTreeMap::new(),
             pkeys: BTreeMap::new(), guards: Vec::new(),
-            violations: Vec::new(), wx_policy: policy,
+            violations: VecDeque::new(), wx_policy: policy,
             next_violation_id: 1, max_violations: 10_000,
             stats: MprotectMgrStats::default(),
         }
     }
 
+    #[inline]
     pub fn register_process(&mut self, pid: u32) {
         self.processes.insert(pid, ProcessProtState {
             pid, regions: Vec::new(), pkeys_allocated: Vec::new(),
@@ -201,6 +211,7 @@ impl HolisticMprotectMgr {
         });
     }
 
+    #[inline]
     pub fn add_region(&mut self, start: u64, end: u64, flags: ProtFlags, pid: u32, ts: u64) -> bool {
         if self.wx_policy == WxPolicy::Strict && flags.violates_wx() { return false; }
         let region = ProtRegion::new(start, end, flags, pid, ts);
@@ -229,11 +240,11 @@ impl HolisticMprotectMgr {
             if region.contains(addr) && region.owner_pid == pid {
                 if region.flags.allows(access) { return true; }
                 let vid = self.next_violation_id; self.next_violation_id += 1;
-                self.violations.push(ProtViolation {
+                self.violations.push_back(ProtViolation {
                     violation_id: vid, pid, addr, attempted: access,
                     region_flags: region.flags, timestamp_ns: ts, instruction_ptr: ip,
                 });
-                if self.violations.len() > self.max_violations { self.violations.remove(0); }
+                if self.violations.len() > self.max_violations { self.violations.pop_front(); }
                 if let Some(proc) = self.processes.get_mut(&pid) { proc.violations += 1; }
                 return false;
             }
@@ -241,8 +252,10 @@ impl HolisticMprotectMgr {
         false
     }
 
+    #[inline(always)]
     pub fn add_guard(&mut self, guard: StackGuard) { self.guards.push(guard); }
 
+    #[inline(always)]
     pub fn allocate_pkey(&mut self, pkey: u16, pid: u32) {
         self.pkeys.insert(pkey, ProtectionKey::new(pkey, pid));
         if let Some(proc) = self.processes.get_mut(&pid) { proc.pkeys_allocated.push(pkey); }
@@ -261,5 +274,6 @@ impl HolisticMprotectMgr {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MprotectMgrStats { &self.stats }
 }

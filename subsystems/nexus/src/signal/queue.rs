@@ -10,6 +10,7 @@ use super::{DeliveryState, PendingSignal, ProcessId, SignalNumber};
 
 /// Queue statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct QueueStats {
     /// Total signals enqueued
     pub enqueued: u64,
@@ -28,6 +29,7 @@ pub struct QueueStats {
 }
 
 /// Signal queue manager
+#[repr(align(64))]
 pub struct SignalQueueManager {
     /// Pending signals per process
     pending: BTreeMap<ProcessId, Vec<PendingSignal>>,
@@ -145,6 +147,7 @@ impl SignalQueueManager {
     }
 
     /// Mark signal as delivered
+    #[inline]
     pub fn mark_delivered(&mut self, pid: ProcessId, signo: SignalNumber) {
         if let Some(queue) = self.pending.get_mut(&pid) {
             for signal in queue.iter_mut() {
@@ -177,6 +180,7 @@ impl SignalQueueManager {
     }
 
     /// Get pending count for process
+    #[inline]
     pub fn pending_count(&self, pid: ProcessId) -> usize {
         self.pending
             .get(&pid)
@@ -189,11 +193,13 @@ impl SignalQueueManager {
     }
 
     /// Get pending signals for process
+    #[inline(always)]
     pub fn get_pending(&self, pid: ProcessId) -> Option<&[PendingSignal]> {
         self.pending.get(&pid).map(|v| v.as_slice())
     }
 
     /// Check if signal is pending
+    #[inline]
     pub fn is_pending(&self, pid: ProcessId, signo: SignalNumber) -> bool {
         self.pending
             .get(&pid)
@@ -205,6 +211,7 @@ impl SignalQueueManager {
     }
 
     /// Cleanup delivered signals
+    #[inline]
     pub fn cleanup(&mut self, pid: ProcessId) {
         if let Some(queue) = self.pending.get_mut(&pid) {
             queue
@@ -213,31 +220,37 @@ impl SignalQueueManager {
     }
 
     /// Get global stats
+    #[inline(always)]
     pub fn global_stats(&self) -> &QueueStats {
         &self.global_stats
     }
 
     /// Get per-process stats
+    #[inline(always)]
     pub fn process_stats(&self, pid: ProcessId) -> Option<&QueueStats> {
         self.per_process_stats.get(&pid)
     }
 
     /// Set coalescing enabled
+    #[inline(always)]
     pub fn set_coalescing(&mut self, enabled: bool) {
         self.coalescing_enabled = enabled;
     }
 
     /// Set coalescable signals
+    #[inline(always)]
     pub fn set_coalescable_signals(&mut self, signals: Vec<SignalNumber>) {
         self.coalescable_signals = signals;
     }
 
     /// Set priority signals
+    #[inline(always)]
     pub fn set_priority_signals(&mut self, signals: Vec<SignalNumber>) {
         self.priority_signals = signals;
     }
 
     /// Get queue capacity
+    #[inline(always)]
     pub fn capacity(&self) -> usize {
         self.queue_capacity
     }

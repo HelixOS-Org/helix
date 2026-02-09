@@ -52,6 +52,7 @@ impl SignalBridgeRecord {
 
 /// Signal bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SignalBridgeStats {
     pub total_ops: u64,
     pub delivered: u64,
@@ -70,6 +71,7 @@ impl BridgeSignalMgr {
         Self { stats: SignalBridgeStats { total_ops: 0, delivered: 0, denied: 0, queued: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SignalBridgeRecord) {
         self.stats.total_ops += 1;
         match rec.result {

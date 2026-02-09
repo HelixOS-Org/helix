@@ -10,6 +10,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -22,6 +23,7 @@ use crate::types::{DomainId, Timestamp};
 
 /// Quality metric
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct QualityMetric {
     /// Metric name
     pub name: String,
@@ -144,7 +146,7 @@ pub struct QualityCheckResult {
     /// Timestamp
     pub timestamp: Timestamp,
     /// Issues found
-    pub issues: Vec<QualityIssue>,
+    pub issues: VecDeque<QualityIssue>,
 }
 
 /// Quality issue
@@ -204,7 +206,7 @@ pub struct QualityAssessment {
     /// Check results
     pub check_results: Vec<QualityCheckResult>,
     /// Issues
-    pub issues: Vec<QualityIssue>,
+    pub issues: VecDeque<QualityIssue>,
     /// Timestamp
     pub timestamp: Timestamp,
     /// Recommendations
@@ -254,9 +256,9 @@ pub struct QualityManager {
     /// Metrics by domain
     metrics: BTreeMap<DomainId, Vec<QualityMetric>>,
     /// Assessment history
-    assessments: Vec<QualityAssessment>,
+    assessments: VecDeque<QualityAssessment>,
     /// Active issues
-    issues: Vec<QualityIssue>,
+    issues: VecDeque<QualityIssue>,
     /// Next ID
     next_id: AtomicU64,
     /// Configuration
@@ -291,6 +293,7 @@ impl Default for QualityConfig {
 
 /// Quality statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct QualityStats {
     /// Total checks executed
     pub total_checks: u64,
@@ -310,8 +313,8 @@ impl QualityManager {
         Self {
             checks: BTreeMap::new(),
             metrics: BTreeMap::new(),
-            assessments: Vec::new(),
-            issues: Vec::new(),
+            assessments: VecDeque::new(),
+            issues: VecDeque::new(),
             next_id: AtomicU64::new(1),
             config,
             stats: QualityStats::default(),
@@ -337,11 +340,13 @@ impl QualityManager {
     }
 
     /// Remove check
+    #[inline(always)]
     pub fn remove_check(&mut self, id: u64) {
         self.checks.remove(&id);
     }
 
     /// Enable/disable check
+    #[inline]
     pub fn set_check_enabled(&mut self, id: u64, enabled: bool) {
         if let Some(check) = self.checks.get_mut(&id) {
             check.enabled = enabled;
@@ -503,11 +508,11 @@ impl QualityManager {
             self.stats.critical_issues += 1;
         }
 
-        self.issues.push(issue);
+        self.issues.push_back(issue);
 
         // Limit issues
         while self.issues.len() > self.config.max_issues {
-            let removed = self.issues.remove(0);
+            let removed = self.issues.pop_front().unwrap();
             if removed.severity == IssueSeverity::Critical {
                 self.stats.critical_issues = self.stats.critical_issues.saturating_sub(1);
             }
@@ -517,6 +522,7 @@ impl QualityManager {
     }
 
     /// Resolve issue
+    #[inline]
     pub fn resolve_issue(&mut self, issue_id: u64) {
         if let Some(pos) = self.issues.iter().position(|i| i.id == issue_id) {
             let issue = self.issues.remove(pos);
@@ -576,7 +582,7 @@ impl QualityManager {
         let grade = QualityGrade::from_score(score);
 
         // Collect issues for domain
-        let issues: Vec<_> = check_results
+        let issues: VecDeque<_> = check_results
             .iter()
             .flat_map(|r| r.issues.clone())
             .collect();
@@ -610,24 +616,27 @@ impl QualityManager {
 
         // Store assessment
         if self.assessments.len() >= self.config.max_assessments {
-            self.assessments.remove(0);
+            self.assessments.pop_front();
         }
-        self.assessments.push(assessment.clone());
+        self.assessments.push_back(assessment.clone());
 
         assessment
     }
 
     /// Get metrics for domain
+    #[inline(always)]
     pub fn get_metrics(&self, domain: DomainId) -> Option<&Vec<QualityMetric>> {
         self.metrics.get(&domain)
     }
 
     /// Get active issues
+    #[inline(always)]
     pub fn active_issues(&self) -> &[QualityIssue] {
         &self.issues
     }
 
     /// Get issues by severity
+    #[inline]
     pub fn issues_by_severity(&self, min_severity: IssueSeverity) -> Vec<&QualityIssue> {
         self.issues
             .iter()
@@ -636,12 +645,14 @@ impl QualityManager {
     }
 
     /// Get recent assessments
+    #[inline(always)]
     pub fn recent_assessments(&self, count: usize) -> &[QualityAssessment] {
         let start = self.assessments.len().saturating_sub(count);
         &self.assessments[start..]
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &QualityStats {
         &self.stats
     }

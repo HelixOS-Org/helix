@@ -27,6 +27,7 @@ pub struct BridgeForkEntry {
 
 /// Stats for fork operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeForkStats {
     pub total_forks: u64,
     pub vforks: u64,
@@ -36,6 +37,7 @@ pub struct BridgeForkStats {
 }
 
 /// Manager for fork bridge operations
+#[repr(align(64))]
 pub struct BridgeForkManager {
     children: BTreeMap<u64, BridgeForkEntry>,
     parent_map: BTreeMap<u64, Vec<u64>>,
@@ -83,6 +85,7 @@ impl BridgeForkManager {
         child_pid
     }
 
+    #[inline]
     pub fn exit_child(&mut self, child_pid: u64) -> bool {
         if let Some(entry) = self.children.remove(&child_pid) {
             if let Some(list) = self.parent_map.get_mut(&entry.parent_pid) {
@@ -94,10 +97,12 @@ impl BridgeForkManager {
         }
     }
 
+    #[inline(always)]
     pub fn children_of(&self, parent: u64) -> usize {
         self.parent_map.get(&parent).map(|v| v.len()).unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeForkStats {
         &self.stats
     }

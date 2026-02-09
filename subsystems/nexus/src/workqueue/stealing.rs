@@ -9,6 +9,7 @@ use super::CpuId;
 
 /// Work stealing statistics per CPU
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StealingStats {
     /// CPU ID
     pub cpu_id: CpuId,
@@ -47,6 +48,7 @@ impl StealingStats {
     }
 
     /// Calculate steal success rate
+    #[inline]
     pub fn steal_success_rate(&self) -> f32 {
         if self.steal_attempts == 0 {
             return 0.0;
@@ -55,6 +57,7 @@ impl StealingStats {
     }
 
     /// Calculate CPU utilization
+    #[inline]
     pub fn cpu_utilization(&self) -> f32 {
         let total = self.idle_time_ns + self.busy_time_ns;
         if total == 0 {
@@ -78,6 +81,7 @@ pub struct StealTarget {
 }
 
 /// Work stealing optimizer
+#[repr(align(64))]
 pub struct WorkStealingOptimizer {
     /// Per-CPU statistics
     stats: BTreeMap<CpuId, StealingStats>,
@@ -110,6 +114,7 @@ impl WorkStealingOptimizer {
     }
 
     /// Register CPU for work stealing
+    #[inline]
     pub fn register_cpu(&mut self, cpu_id: CpuId) {
         self.stats
             .entry(cpu_id)
@@ -117,11 +122,13 @@ impl WorkStealingOptimizer {
     }
 
     /// Set NUMA preference for CPU
+    #[inline(always)]
     pub fn set_numa_preference(&mut self, cpu_id: CpuId, preferred_cpus: Vec<CpuId>) {
         self.numa_preference.insert(cpu_id, preferred_cpus);
     }
 
     /// Update local queue depth for CPU
+    #[inline]
     pub fn update_queue_depth(&mut self, cpu_id: CpuId, depth: u64) {
         if let Some(stats) = self.stats.get_mut(&cpu_id) {
             stats.local_queue_depth = depth;
@@ -251,6 +258,7 @@ impl WorkStealingOptimizer {
     }
 
     /// Get global steal success rate
+    #[inline]
     pub fn global_steal_success_rate(&self) -> f32 {
         let attempts = self.global_steal_attempts.load(Ordering::Relaxed);
         if attempts == 0 {
@@ -261,11 +269,13 @@ impl WorkStealingOptimizer {
     }
 
     /// Get stats for CPU
+    #[inline(always)]
     pub fn get_stats(&self, cpu_id: CpuId) -> Option<&StealingStats> {
         self.stats.get(&cpu_id)
     }
 
     /// Get CPU count
+    #[inline(always)]
     pub fn cpu_count(&self) -> usize {
         self.stats.len()
     }

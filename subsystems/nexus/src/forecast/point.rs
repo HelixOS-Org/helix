@@ -18,6 +18,7 @@ impl TimePoint {
     }
 
     /// Create with current timestamp
+    #[inline]
     pub fn now(value: f64) -> Self {
         Self {
             timestamp: NexusTimestamp::now().ticks(),

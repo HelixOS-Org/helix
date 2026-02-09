@@ -128,6 +128,7 @@ impl Default for LearnerConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LearnerStats {
     /// Samples in pool
     pub pool_size: u64,
@@ -193,6 +194,7 @@ impl ActiveLearner {
     }
 
     /// Update uncertainty scores
+    #[inline]
     pub fn update_uncertainty(&mut self, predictions: &BTreeMap<u64, Vec<f64>>) {
         for (id, probs) in predictions {
             let uncertainty = self.compute_uncertainty(probs);
@@ -224,6 +226,7 @@ impl ActiveLearner {
     }
 
     /// Query samples for labeling
+    #[inline(always)]
     pub fn query(&mut self, count: Option<usize>) -> QueryResult {
         self.query_with_strategy(self.config.default_strategy, count)
     }
@@ -380,11 +383,13 @@ impl ActiveLearner {
     }
 
     /// Get sample
+    #[inline(always)]
     pub fn get_sample(&self, id: u64) -> Option<&Sample> {
         self.samples.get(&id).or_else(|| self.labeled.get(&id))
     }
 
     /// Get unlabeled samples
+    #[inline]
     pub fn unlabeled(&self) -> Vec<&Sample> {
         self.samples
             .values()
@@ -393,11 +398,13 @@ impl ActiveLearner {
     }
 
     /// Get labeled samples
+    #[inline(always)]
     pub fn get_labeled(&self) -> Vec<&Sample> {
         self.labeled.values().collect()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &LearnerStats {
         &self.stats
     }

@@ -7,6 +7,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -20,6 +21,7 @@ use super::ModificationId;
 
 /// Metric ID
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct MetricId(pub u64);
 
 static METRIC_COUNTER: AtomicU64 = AtomicU64::new(1);
@@ -84,6 +86,7 @@ pub struct PercentileSet {
 
 /// Metric definition
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricDefinition {
     /// Metric ID
     pub id: MetricId,
@@ -101,6 +104,7 @@ pub struct MetricDefinition {
 
 /// Metric sample
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricSample {
     /// Metric ID
     pub metric_id: MetricId,
@@ -118,6 +122,7 @@ pub struct MetricSample {
 
 /// Performance metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PerformanceMetrics {
     /// Execution time (cycles)
     pub execution_time: u64,
@@ -143,6 +148,7 @@ pub struct PerformanceMetrics {
 
 impl PerformanceMetrics {
     /// Calculate IPC (instructions per cycle)
+    #[inline]
     pub fn ipc(&self) -> f64 {
         if self.execution_time == 0 {
             return 0.0;
@@ -151,6 +157,7 @@ impl PerformanceMetrics {
     }
 
     /// Calculate cache hit rate
+    #[inline]
     pub fn cache_hit_rate(&self) -> f64 {
         let total = self.cache_hits + self.cache_misses;
         if total == 0 {
@@ -160,6 +167,7 @@ impl PerformanceMetrics {
     }
 
     /// Calculate branch prediction accuracy
+    #[inline]
     pub fn branch_accuracy(&self) -> f64 {
         let total = self.branch_correct + self.branch_miss;
         if total == 0 {
@@ -169,6 +177,7 @@ impl PerformanceMetrics {
     }
 
     /// Calculate memory bandwidth (bytes/cycle)
+    #[inline]
     pub fn memory_bandwidth(&self) -> f64 {
         if self.execution_time == 0 {
             return 0.0;
@@ -179,6 +188,7 @@ impl PerformanceMetrics {
 
 /// Safety metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SafetyMetrics {
     /// Bounds checks passed
     pub bounds_checks_passed: u64,
@@ -223,6 +233,7 @@ impl SafetyMetrics {
 // ============================================================================
 
 /// Metrics collector
+#[repr(align(64))]
 pub struct MetricsCollector {
     /// Metric definitions
     definitions: BTreeMap<MetricId, MetricDefinition>,
@@ -240,6 +251,7 @@ pub struct MetricsCollector {
 
 /// Metrics configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricsConfig {
     /// Maximum history per metric
     pub max_history: usize,
@@ -266,6 +278,7 @@ impl Default for MetricsConfig {
 
 /// Collector statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CollectorStats {
     /// Total samples collected
     pub samples_collected: u64,
@@ -346,6 +359,7 @@ impl MetricsCollector {
     }
 
     /// Define a metric
+    #[inline]
     pub fn define(&mut self, definition: MetricDefinition) {
         let id = definition.id;
         self.definitions.insert(id, definition);
@@ -354,6 +368,7 @@ impl MetricsCollector {
     }
 
     /// Record integer value
+    #[inline]
     pub fn record_int(&mut self, name: &str, value: i64) {
         if let Some(id) = self.find_by_name(name) {
             self.record_value(id, MetricValue::Integer(value));
@@ -361,6 +376,7 @@ impl MetricsCollector {
     }
 
     /// Record float value
+    #[inline]
     pub fn record_float(&mut self, name: &str, value: f64) {
         if let Some(id) = self.find_by_name(name) {
             self.record_value(id, MetricValue::Float(value));
@@ -383,7 +399,7 @@ impl MetricsCollector {
 
             // Trim history
             if history.len() > self.config.max_history {
-                history.remove(0);
+                history.pop_front();
             }
         }
 
@@ -391,6 +407,7 @@ impl MetricsCollector {
     }
 
     /// Record performance metrics
+    #[inline]
     pub fn record_performance(&mut self, perf: &PerformanceMetrics) {
         self.record_int("execution_time", perf.execution_time as i64);
         self.record_float("cache_hit_rate", perf.cache_hit_rate());
@@ -399,6 +416,7 @@ impl MetricsCollector {
     }
 
     /// Record safety metrics
+    #[inline(always)]
     pub fn record_safety(&mut self, safety: &SafetyMetrics) {
         self.record_float("safety_score", safety.safety_score());
     }
@@ -411,21 +429,25 @@ impl MetricsCollector {
     }
 
     /// Get current value
+    #[inline(always)]
     pub fn get(&self, id: MetricId) -> Option<&MetricValue> {
         self.current.get(&id)
     }
 
     /// Get by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&MetricValue> {
         self.find_by_name(name).and_then(|id| self.get(id))
     }
 
     /// Get history
+    #[inline(always)]
     pub fn get_history(&self, id: MetricId) -> Option<&Vec<MetricSample>> {
         self.history.get(&id)
     }
 
     /// Set baseline
+    #[inline(always)]
     pub fn set_baseline(&mut self, id: MetricId, value: MetricValue) {
         self.baselines.insert(id, value);
     }
@@ -455,6 +477,7 @@ impl MetricsCollector {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CollectorStats {
         &self.stats
     }
@@ -472,6 +495,7 @@ impl Default for MetricsCollector {
 
 /// Modification metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ModificationMetrics {
     /// Modification ID
     pub modification_id: ModificationId,
@@ -485,6 +509,7 @@ pub struct ModificationMetrics {
 
 /// Metrics delta
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MetricsDelta {
     /// Execution time change (percentage)
     pub execution_time: f64,
@@ -498,6 +523,7 @@ pub struct MetricsDelta {
 
 impl ModificationMetrics {
     /// Calculate delta
+    #[inline]
     pub fn calculate_delta(&mut self) {
         if self.before.execution_time > 0 {
             self.delta.execution_time = (self.after.execution_time as f64
@@ -509,6 +535,7 @@ impl ModificationMetrics {
     }
 
     /// Is improvement?
+    #[inline(always)]
     pub fn is_improvement(&self) -> bool {
         self.delta.execution_time < 0.0 && self.delta.cache_hit_rate >= 0.0
     }
@@ -519,6 +546,7 @@ impl ModificationMetrics {
 // ============================================================================
 
 /// Metric aggregator
+#[repr(align(64))]
 pub struct MetricAggregator {
     /// Aggregation window (cycles)
     window: u64,
@@ -591,6 +619,7 @@ impl MetricAggregator {
     }
 
     /// Add value
+    #[inline]
     pub fn add(&mut self, id: MetricId, value: f64) {
         self.aggregations
             .entry(id)
@@ -599,11 +628,13 @@ impl MetricAggregator {
     }
 
     /// Get aggregation
+    #[inline(always)]
     pub fn get(&self, id: MetricId) -> Option<&Aggregation> {
         self.aggregations.get(&id)
     }
 
     /// Reset
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.aggregations.clear();
     }

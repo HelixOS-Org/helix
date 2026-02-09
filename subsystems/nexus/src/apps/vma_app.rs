@@ -32,12 +32,16 @@ pub struct VmaEntry {
 }
 
 impl VmaEntry {
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
+    #[inline(always)]
     pub fn page_count(&self) -> u64 { self.size() / 4096 }
+    #[inline(always)]
     pub fn residency_ratio(&self) -> f64 {
         if self.page_count() == 0 { return 0.0; }
         self.resident_pages as f64 / self.page_count() as f64
     }
+    #[inline(always)]
     pub fn dirty_ratio(&self) -> f64 {
         if self.resident_pages == 0 { return 0.0; }
         self.dirty_pages as f64 / self.resident_pages as f64
@@ -45,6 +49,7 @@ impl VmaEntry {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct VmaAppStats {
     pub total_vmas: u64,
     pub total_mapped_bytes: u64,
@@ -71,6 +76,7 @@ impl VmaAppManager {
         }
     }
 
+    #[inline]
     pub fn add_vma(&mut self, app_id: u64, entry: VmaEntry) {
         self.stats.total_mapped_bytes += entry.size();
         self.stats.total_resident_bytes += entry.resident_pages * 4096;
@@ -83,6 +89,7 @@ impl VmaAppManager {
         vmas.insert(pos, entry);
     }
 
+    #[inline]
     pub fn remove_vma(&mut self, app_id: u64, start: u64) -> Option<VmaEntry> {
         let vmas = self.app_vmas.get_mut(&app_id)?;
         let idx = vmas.iter().position(|v| v.start == start)?;
@@ -154,6 +161,7 @@ impl VmaAppManager {
     }
 
     /// Estimate cost of defragmenting an app's address space
+    #[inline]
     pub fn defrag_cost_estimate(&self, app_id: u64) -> u64 {
         let vmas = match self.app_vmas.get(&app_id) {
             Some(v) => v,
@@ -165,9 +173,11 @@ impl VmaAppManager {
         dirty_total * 100 + tlb_cost // 100ns per page copy
     }
 
+    #[inline(always)]
     pub fn app_vmas(&self, app_id: u64) -> &[VmaEntry] {
         self.app_vmas.get(&app_id).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &VmaAppStats { &self.stats }
 }

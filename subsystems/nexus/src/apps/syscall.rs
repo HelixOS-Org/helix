@@ -52,6 +52,7 @@ impl SyscallArgPattern {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, val: u64) {
         if val < self.min_value {
             self.min_value = val;
@@ -61,6 +62,7 @@ impl SyscallArgPattern {
         }
     }
 
+    #[inline]
     pub fn range(&self) -> u64 {
         if self.max_value >= self.min_value {
             self.max_value - self.min_value
@@ -72,6 +74,7 @@ impl SyscallArgPattern {
 
 /// Per-syscall-number statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallV2Stats {
     pub syscall_nr: u32,
     pub count: u64,
@@ -144,15 +147,18 @@ impl SyscallV2Stats {
         }
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> f64 {
         if self.count == 0 { 0.0 } else { self.total_latency_ns as f64 / self.count as f64 }
     }
 
+    #[inline(always)]
     pub fn error_rate(&self) -> f64 {
         if self.count == 0 { 0.0 } else { self.error_count as f64 / self.count as f64 }
     }
 
     /// Top errors
+    #[inline]
     pub fn top_errors(&self, n: usize) -> Vec<(i32, u64)> {
         let mut errors: Vec<(i32, u64)> = self.error_freq.iter()
             .map(|(&errno, &count)| (errno, count))
@@ -255,6 +261,7 @@ impl ProcessSyscallV2Profile {
     }
 
     /// Predict next syscall
+    #[inline]
     pub fn predict_next(&self) -> Option<u32> {
         let last = self.last_syscall?;
         self.bigrams.iter()
@@ -264,6 +271,7 @@ impl ProcessSyscallV2Profile {
     }
 
     /// Hottest syscalls
+    #[inline]
     pub fn hottest(&self, n: usize) -> Vec<(u32, u64)> {
         let mut syscalls: Vec<(u32, u64)> = self.syscall_stats.iter()
             .map(|(&nr, stats)| (nr, stats.count))
@@ -274,6 +282,7 @@ impl ProcessSyscallV2Profile {
     }
 
     /// Slowest syscalls by avg latency
+    #[inline]
     pub fn slowest(&self, n: usize) -> Vec<(u32, f64)> {
         let mut syscalls: Vec<(u32, f64)> = self.syscall_stats.iter()
             .filter(|(_, s)| s.count > 10)
@@ -285,6 +294,7 @@ impl ProcessSyscallV2Profile {
     }
 
     /// Most error-prone syscalls
+    #[inline]
     pub fn error_prone(&self, n: usize) -> Vec<(u32, f64)> {
         let mut syscalls: Vec<(u32, f64)> = self.syscall_stats.iter()
             .filter(|(_, s)| s.count > 10)
@@ -296,6 +306,7 @@ impl ProcessSyscallV2Profile {
     }
 
     /// Common syscall patterns (top bigrams)
+    #[inline]
     pub fn common_patterns(&self, n: usize) -> Vec<(SyscallBigram, u64)> {
         let mut patterns: Vec<(SyscallBigram, u64)> = self.bigrams.iter()
             .map(|(&bg, &count)| (bg, count))
@@ -306,6 +317,7 @@ impl ProcessSyscallV2Profile {
     }
 
     /// Overall error rate
+    #[inline]
     pub fn overall_error_rate(&self) -> f64 {
         if self.total_syscalls == 0 { 0.0 } else {
             self.total_errors as f64 / self.total_syscalls as f64
@@ -315,6 +327,7 @@ impl ProcessSyscallV2Profile {
 
 /// Global stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppSyscallV2GlobalStats {
     pub tracked_processes: usize,
     pub total_syscalls: u64,
@@ -337,6 +350,7 @@ impl AppSyscallV2Profiler {
         }
     }
 
+    #[inline]
     pub fn record(
         &mut self,
         pid: u64,
@@ -362,6 +376,7 @@ impl AppSyscallV2Profiler {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppSyscallV2GlobalStats {
         &self.stats
     }

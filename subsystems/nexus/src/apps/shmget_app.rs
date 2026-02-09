@@ -23,6 +23,7 @@ impl ShmgetRecord {
 
 /// Shmget app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ShmgetAppStats { pub total_ops: u64, pub created: u64, pub total_bytes: u64, pub errors: u64 }
 
 /// Main app shmget
@@ -31,6 +32,7 @@ pub struct AppShmget { pub stats: ShmgetAppStats }
 
 impl AppShmget {
     pub fn new() -> Self { Self { stats: ShmgetAppStats { total_ops: 0, created: 0, total_bytes: 0, errors: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &ShmgetRecord) {
         self.stats.total_ops += 1;
         if rec.result == ShmgetResult::Success { self.stats.created += 1; self.stats.total_bytes += rec.size; }

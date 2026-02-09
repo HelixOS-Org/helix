@@ -26,6 +26,7 @@ pub enum TimerfdState {
 
 /// Timerfd spec
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdSpec {
     pub interval_ns: u64,
     pub value_ns: u64,
@@ -35,6 +36,7 @@ pub struct TimerfdSpec {
 
 /// Timerfd instance
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct TimerfdInstance {
     pub fd: u64,
     pub clock: TimerClockId,
@@ -56,19 +58,23 @@ impl TimerfdInstance {
         }
     }
 
+    #[inline]
     pub fn arm(&mut self, spec: TimerfdSpec, now: u64) {
         self.spec = spec;
         self.state = TimerfdState::Armed;
         self.armed_at = now;
     }
 
+    #[inline(always)]
     pub fn disarm(&mut self) { self.state = TimerfdState::Disarmed; }
 
+    #[inline(always)]
     pub fn expire(&mut self) {
         self.expiration_count += 1;
         if self.spec.interval_ns == 0 { self.state = TimerfdState::Expired; }
     }
 
+    #[inline]
     pub fn read(&mut self) -> u64 {
         self.total_reads += 1;
         let count = self.expiration_count;
@@ -79,6 +85,7 @@ impl TimerfdInstance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerfdAppStats {
     pub total_timers: u32,
     pub armed_timers: u32,
@@ -88,6 +95,7 @@ pub struct TimerfdAppStats {
 }
 
 /// Main app timerfd
+#[repr(align(64))]
 pub struct AppTimerfd {
     timers: BTreeMap<u64, TimerfdInstance>,
     next_fd: u64,
@@ -96,27 +104,33 @@ pub struct AppTimerfd {
 impl AppTimerfd {
     pub fn new() -> Self { Self { timers: BTreeMap::new(), next_fd: 1 } }
 
+    #[inline]
     pub fn create(&mut self, clock: TimerClockId, now: u64) -> u64 {
         let fd = self.next_fd; self.next_fd += 1;
         self.timers.insert(fd, TimerfdInstance::new(fd, clock, now));
         fd
     }
 
+    #[inline(always)]
     pub fn settime(&mut self, fd: u64, spec: TimerfdSpec, now: u64) {
         if let Some(t) = self.timers.get_mut(&fd) { t.arm(spec, now); }
     }
 
+    #[inline(always)]
     pub fn expire(&mut self, fd: u64) {
         if let Some(t) = self.timers.get_mut(&fd) { t.expire(); }
     }
 
+    #[inline(always)]
     pub fn read(&mut self, fd: u64) -> u64 {
         if let Some(t) = self.timers.get_mut(&fd) { t.read() }
         else { 0 }
     }
 
+    #[inline(always)]
     pub fn close(&mut self, fd: u64) { self.timers.remove(&fd); }
 
+    #[inline]
     pub fn stats(&self) -> TimerfdAppStats {
         let armed = self.timers.values().filter(|t| t.state == TimerfdState::Armed).count() as u32;
         let exps: u64 = self.timers.values().map(|t| t.expiration_count).sum();

@@ -9,6 +9,7 @@
 //! - DNS pre-resolution
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
@@ -139,6 +140,7 @@ impl Default for PrefetchConfig {
 
 /// Tracks sequential file access and decides read-ahead
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct FileReadAhead {
     /// Per-(pid, fd) access tracking
     access_patterns: BTreeMap<(u64, u64), FileAccessTracker>,
@@ -156,9 +158,9 @@ pub struct FileReadAhead {
 #[derive(Debug, Clone)]
 struct FileAccessTracker {
     /// Recent read offsets
-    offsets: Vec<u64>,
+    offsets: VecDeque<u64>,
     /// Recent read sizes
-    sizes: Vec<u64>,
+    sizes: VecDeque<u64>,
     /// Last read-ahead offset
     last_readahead: u64,
     /// Sequential read count
@@ -176,8 +178,8 @@ struct FileAccessTracker {
 impl FileAccessTracker {
     fn new() -> Self {
         Self {
-            offsets: Vec::new(),
-            sizes: Vec::new(),
+            offsets: VecDeque::new(),
+            sizes: VecDeque::new(),
             last_readahead: 0,
             sequential_count: 0,
             random_count: 0,
@@ -188,8 +190,8 @@ impl FileAccessTracker {
     }
 
     fn record(&mut self, offset: u64, size: u64, timestamp: u64) {
-        if let Some(&last_off) = self.offsets.last() {
-            if let Some(&last_size) = self.sizes.last() {
+        if let Some(&last_off) = self.offsets.back() {
+            if let Some(&last_size) = self.sizes.back() {
                 if offset == last_off + last_size {
                     self.sequential_count += 1;
                 } else {
@@ -210,11 +212,11 @@ impl FileAccessTracker {
         }
 
         if self.offsets.len() >= 32 {
-            self.offsets.remove(0);
-            self.sizes.remove(0);
+            self.offsets.pop_front();
+            self.sizes.pop_front();
         }
-        self.offsets.push(offset);
-        self.sizes.push(size);
+        self.offsets.push_back(offset);
+        self.sizes.push_back(size);
 
         // Update average read size
         let total: u64 = self.sizes.iter().sum();
@@ -326,21 +328,25 @@ impl FileReadAhead {
     }
 
     /// Report that a prefetch was wasted
+    #[inline(always)]
     pub fn report_waste(&mut self, _pid: u64, _fd: u64) {
         self.wastes += 1;
     }
 
     /// Remove file tracking
+    #[inline(always)]
     pub fn close_file(&mut self, pid: u64, fd: u64) {
         self.access_patterns.remove(&(pid, fd));
     }
 
     /// Remove all tracking for a process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.access_patterns.retain(|&(p, _), _| p != pid);
     }
 
     /// Hit rate
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.wastes;
         if total == 0 {
@@ -493,6 +499,7 @@ impl PrefetchManager {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.file_readahead.remove_process(pid);
         self.pending.retain(|r| r.pid != pid);

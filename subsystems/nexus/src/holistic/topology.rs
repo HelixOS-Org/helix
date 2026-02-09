@@ -133,6 +133,7 @@ pub enum CacheLevel {
 
 /// Cache descriptor
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheDescriptor {
     /// Cache ID
     pub id: u32,
@@ -224,6 +225,7 @@ pub enum ProximityLevel {
 
 impl ProximityLevel {
     /// Migration cost relative units
+    #[inline]
     pub fn migration_cost(&self) -> u32 {
         match self {
             Self::SameCore => 1,
@@ -236,6 +238,7 @@ impl ProximityLevel {
     }
 
     /// Cache benefit (probability of cache hits after migration)
+    #[inline]
     pub fn cache_benefit(&self) -> f64 {
         match self {
             Self::SameCore => 0.95,
@@ -293,29 +296,34 @@ impl TopologyManager {
     }
 
     /// Register logical CPU
+    #[inline(always)]
     pub fn add_cpu(&mut self, cpu: LogicalCpu) {
         self.cpus.insert(cpu.id, cpu);
         self.total_cpus = self.cpus.len() as u32;
     }
 
     /// Register physical core
+    #[inline(always)]
     pub fn add_core(&mut self, core: PhysicalCore) {
         self.cores.insert(core.id, core);
         self.total_cores = self.cores.len() as u32;
     }
 
     /// Register package
+    #[inline(always)]
     pub fn add_package(&mut self, pkg: CpuPackage) {
         self.packages.insert(pkg.id, pkg);
     }
 
     /// Register NUMA node
+    #[inline(always)]
     pub fn add_numa_node(&mut self, node: NumaNode) {
         self.numa_nodes.insert(node.id, node);
         self.total_numa_nodes = self.numa_nodes.len() as u32;
     }
 
     /// Add NUMA distance
+    #[inline]
     pub fn add_numa_distance(&mut self, source: u32, target: u32, distance: u32) {
         self.numa_distances.push(NumaDistance {
             source,
@@ -325,16 +333,19 @@ impl TopologyManager {
     }
 
     /// Register cache
+    #[inline(always)]
     pub fn add_cache(&mut self, cache: CacheDescriptor) {
         self.caches.insert(cache.id, cache);
     }
 
     /// Register device
+    #[inline(always)]
     pub fn add_device(&mut self, device: TopologyDevice) {
         self.devices.insert(device.id, device);
     }
 
     /// Get NUMA distance between two nodes
+    #[inline]
     pub fn numa_distance(&self, source: u32, target: u32) -> u32 {
         if source == target {
             return 10; // Local access
@@ -376,6 +387,7 @@ impl TopologyManager {
     }
 
     /// Get CPUs on a NUMA node
+    #[inline]
     pub fn cpus_on_node(&self, numa_node: u32) -> Vec<u32> {
         self.cpus
             .values()
@@ -385,6 +397,7 @@ impl TopologyManager {
     }
 
     /// Get cores on a package
+    #[inline]
     pub fn cores_on_package(&self, package_id: u32) -> Vec<u32> {
         self.cores
             .values()
@@ -394,6 +407,7 @@ impl TopologyManager {
     }
 
     /// Find best NUMA node for allocation
+    #[inline]
     pub fn best_numa_node_for_cpu(&self, cpu_id: u32) -> u32 {
         self.cpus
             .get(&cpu_id)
@@ -402,6 +416,7 @@ impl TopologyManager {
     }
 
     /// Get NUMA node with most free memory
+    #[inline]
     pub fn node_with_most_free_memory(&self) -> Option<u32> {
         self.numa_nodes
             .values()

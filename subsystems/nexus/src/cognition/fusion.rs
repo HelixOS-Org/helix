@@ -212,6 +212,7 @@ impl Default for FusionConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FusionStats {
     /// Total sources received
     pub total_sources: u64,
@@ -515,11 +516,13 @@ impl FusionEngine {
     }
 
     /// Get fused result
+    #[inline(always)]
     pub fn get_result(&self, result_id: u64) -> Option<&FusedResult> {
         self.results.get(&result_id)
     }
 
     /// Clear old sources
+    #[inline]
     pub fn cleanup(&mut self, current_cycle: u64) {
         let threshold = current_cycle.saturating_sub(self.config.max_age);
         self.sources
@@ -527,6 +530,7 @@ impl FusionEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &FusionStats {
         &self.stats
     }

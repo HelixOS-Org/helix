@@ -146,6 +146,7 @@ impl Default for ValidationConfig {
 
 /// Validation statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ValidationStats {
     /// Total validations
     pub total: u64,
@@ -191,6 +192,7 @@ impl ValidationEngine {
     }
 
     /// Add validator
+    #[inline(always)]
     pub fn add_validator(&mut self, validator: Box<dyn Validator>) {
         self.validators.push(validator);
     }
@@ -278,6 +280,7 @@ impl ValidationEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ValidationStats {
         &self.stats
     }
@@ -520,6 +523,7 @@ pub struct Proof {
 
 /// Counter-example
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterExample {
     /// Property violated
     pub property: String,

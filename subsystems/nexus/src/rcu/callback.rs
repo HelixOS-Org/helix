@@ -98,6 +98,7 @@ impl CallbackCoalescer {
     }
 
     /// Add callback to be coalesced
+    #[inline]
     pub fn add_callback(&mut self, callback: CallbackInfo) {
         let id = callback.id;
         self.pending.insert(id, callback);
@@ -168,6 +169,7 @@ impl CallbackCoalescer {
     }
 
     /// Process completed callbacks
+    #[inline]
     pub fn remove_callbacks(&mut self, ids: &[CallbackId]) {
         for id in ids {
             self.pending.remove(id);
@@ -175,26 +177,31 @@ impl CallbackCoalescer {
     }
 
     /// Set batch threshold
+    #[inline(always)]
     pub fn set_batch_threshold(&mut self, threshold: usize) {
         self.batch_threshold = threshold;
     }
 
     /// Set time threshold
+    #[inline(always)]
     pub fn set_time_threshold(&mut self, threshold_ns: u64) {
         self.time_threshold_ns = threshold_ns;
     }
 
     /// Get pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }
 
     /// Get current batch size
+    #[inline(always)]
     pub fn current_batch_size(&self) -> usize {
         self.current_batch.len()
     }
 
     /// Get coalescing ratio
+    #[inline]
     pub fn coalescing_ratio(&self) -> f32 {
         if self.total_batches == 0 {
             return 1.0;

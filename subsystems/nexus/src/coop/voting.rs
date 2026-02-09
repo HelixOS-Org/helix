@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -75,7 +76,7 @@ pub struct Ballot {
     /// Eligible voters
     pub eligible: Vec<u64>,
     /// Voter weights
-    pub weights: BTreeMap<u64, u32>,
+    pub weights: LinearMap<u32, 64>,
     /// Votes cast
     pub votes: BTreeMap<u64, VoteValue>,
     /// State
@@ -105,7 +106,7 @@ impl Ballot {
             vote_type,
             num_options,
             eligible: Vec::new(),
-            weights: BTreeMap::new(),
+            weights: LinearMap::new(),
             votes: BTreeMap::new(),
             state: BallotState::Open,
             created_at: now,
@@ -116,6 +117,7 @@ impl Ballot {
     }
 
     /// Add eligible voter
+    #[inline]
     pub fn add_voter(&mut self, pid: u64, weight: u32) {
         if !self.eligible.contains(&pid) {
             self.eligible.push(pid);
@@ -141,6 +143,7 @@ impl Ballot {
     }
 
     /// Has quorum?
+    #[inline]
     pub fn has_quorum(&self) -> bool {
         if self.eligible.is_empty() {
             return false;
@@ -155,7 +158,7 @@ impl Ballot {
 
     /// Weight of voter
     fn weight_of(&self, pid: u64) -> u32 {
-        self.weights.get(&pid).copied().unwrap_or(1)
+        self.weights.get(pid).copied().unwrap_or(1)
     }
 
     /// Tally votes (binary)
@@ -228,6 +231,7 @@ impl Ballot {
     }
 
     /// Check deadline
+    #[inline]
     pub fn check_deadline(&mut self, now: u64) -> bool {
         if now >= self.deadline && self.state == BallotState::Open {
             self.state = BallotState::Failed;
@@ -237,6 +241,7 @@ impl Ballot {
     }
 
     /// Participation rate
+    #[inline]
     pub fn participation(&self) -> f64 {
         if self.eligible.is_empty() {
             return 0.0;
@@ -251,6 +256,7 @@ impl Ballot {
 
 /// Voting stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopVotingStats {
     /// Active ballots
     pub active_ballots: usize,
@@ -287,6 +293,7 @@ impl CoopVotingManager {
     }
 
     /// Create ballot
+    #[inline]
     pub fn create_ballot(
         &mut self,
         topic: u64,
@@ -304,6 +311,7 @@ impl CoopVotingManager {
     }
 
     /// Add voter to ballot
+    #[inline]
     pub fn add_voter(&mut self, ballot_id: u64, pid: u64, weight: u32) -> bool {
         if let Some(ballot) = self.ballots.get_mut(&ballot_id) {
             ballot.add_voter(pid, weight);
@@ -314,6 +322,7 @@ impl CoopVotingManager {
     }
 
     /// Cast vote
+    #[inline]
     pub fn cast_vote(&mut self, ballot_id: u64, pid: u64, value: VoteValue) -> bool {
         if let Some(ballot) = self.ballots.get_mut(&ballot_id) {
             ballot.cast_vote(pid, value)
@@ -340,6 +349,7 @@ impl CoopVotingManager {
     }
 
     /// Check deadlines
+    #[inline]
     pub fn check_deadlines(&mut self, now: u64) -> Vec<u64> {
         let mut expired = Vec::new();
         for ballot in self.ballots.values_mut() {
@@ -353,6 +363,7 @@ impl CoopVotingManager {
     }
 
     /// Get ballot
+    #[inline(always)]
     pub fn ballot(&self, id: u64) -> Option<&Ballot> {
         self.ballots.get(&id)
     }
@@ -371,6 +382,7 @@ impl CoopVotingManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopVotingStats {
         &self.stats
     }

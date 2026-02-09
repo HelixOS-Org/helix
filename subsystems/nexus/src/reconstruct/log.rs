@@ -1,6 +1,7 @@
 //! State log for event sourcing.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::event::StateEvent;
@@ -8,9 +9,10 @@ use super::snapshot::StateSnapshot;
 use crate::core::{ComponentId, NexusTimestamp};
 
 /// Log of state events
+#[repr(align(64))]
 pub struct StateLog {
     /// Events
-    events: Vec<StateEvent>,
+    events: VecDeque<StateEvent>,
     /// Maximum events to keep
     max_events: usize,
     /// Snapshots by timestamp
@@ -25,7 +27,7 @@ impl StateLog {
     /// Create a new state log
     pub fn new(max_events: usize) -> Self {
         Self {
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events,
             snapshots: BTreeMap::new(),
             snapshot_interval: 100,
@@ -34,35 +36,40 @@ impl StateLog {
     }
 
     /// Set snapshot interval
+    #[inline(always)]
     pub fn with_snapshot_interval(mut self, interval: usize) -> Self {
         self.snapshot_interval = interval;
         self
     }
 
     /// Append an event
+    #[inline]
     pub fn append(&mut self, mut event: StateEvent) {
         event.calculate_checksum();
-        self.events.push(event);
+        self.events.push_back(event);
         self.events_since_snapshot += 1;
 
         // Enforce max events
         while self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
     }
 
     /// Add a snapshot
+    #[inline(always)]
     pub fn add_snapshot(&mut self, snapshot: StateSnapshot) {
         self.snapshots.insert(snapshot.timestamp.ticks(), snapshot);
         self.events_since_snapshot = 0;
     }
 
     /// Should create snapshot?
+    #[inline(always)]
     pub fn should_snapshot(&self) -> bool {
         self.events_since_snapshot >= self.snapshot_interval
     }
 
     /// Get events since timestamp
+    #[inline]
     pub fn events_since(&self, timestamp: NexusTimestamp) -> Vec<&StateEvent> {
         self.events
             .iter()
@@ -71,6 +78,7 @@ impl StateLog {
     }
 
     /// Get events for component
+    #[inline]
     pub fn events_for(&self, component: ComponentId) -> Vec<&StateEvent> {
         self.events
             .iter()
@@ -79,6 +87,7 @@ impl StateLog {
     }
 
     /// Get latest snapshot before timestamp
+    #[inline]
     pub fn snapshot_before(&self, timestamp: NexusTimestamp) -> Option<&StateSnapshot> {
         self.snapshots
             .range(..timestamp.ticks())
@@ -87,21 +96,25 @@ impl StateLog {
     }
 
     /// Get all events
+    #[inline(always)]
     pub fn events(&self) -> &[StateEvent] {
         &self.events
     }
 
     /// Get length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.events.len()
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.events.is_empty()
     }
 
     /// Clear
+    #[inline]
     pub fn clear(&mut self) {
         self.events.clear();
         self.snapshots.clear();

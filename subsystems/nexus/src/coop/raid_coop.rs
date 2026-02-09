@@ -52,6 +52,7 @@ impl CoopRebuildTask {
         }
     }
 
+    #[inline]
     pub fn advance(&mut self, sectors: u64) {
         self.sectors_rebuilt += sectors;
         if self.total_sectors > 0 {
@@ -59,9 +60,11 @@ impl CoopRebuildTask {
         }
     }
 
+    #[inline(always)]
     pub fn donate_bandwidth(&mut self, bps: u64) {
         self.donated_bandwidth += bps;
     }
+    #[inline(always)]
     pub fn is_complete(&self) -> bool {
         self.sectors_rebuilt >= self.total_sectors
     }
@@ -69,6 +72,7 @@ impl CoopRebuildTask {
 
 /// Coop RAID stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopRaidStats {
     pub total_arrays: u64,
     pub degraded: u64,
@@ -98,6 +102,7 @@ impl CoopRaid {
         }
     }
 
+    #[inline]
     pub fn start_rebuild(&mut self, array_id: u64, src: u64, tgt: u64, total_sectors: u64) {
         self.stats.active_rebuilds += 1;
         self.rebuilds.insert(
@@ -106,6 +111,7 @@ impl CoopRaid {
         );
     }
 
+    #[inline]
     pub fn advance_rebuild(&mut self, array_id: u64, sectors: u64) {
         if let Some(task) = self.rebuilds.get_mut(&array_id) {
             task.advance(sectors);

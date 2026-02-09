@@ -1,6 +1,7 @@
 //! Complete world model combining encoder, decoder, transition, and reward models.
 
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::world_model::decoder::Decoder;
@@ -22,7 +23,7 @@ pub struct WorldModel {
     /// Current latent state
     pub current_state: LatentState,
     /// State history
-    pub state_history: Vec<LatentState>,
+    pub state_history: VecDeque<LatentState>,
     /// Maximum history size
     pub max_history: usize,
     /// Model name
@@ -47,7 +48,7 @@ impl WorldModel {
             transition: TransitionModel::new(latent_dim, action_dim, hidden_sizes, false),
             reward: RewardModel::new(latent_dim, action_dim, hidden_sizes),
             current_state: LatentState::new(latent_dim),
-            state_history: Vec::new(),
+            state_history: VecDeque::new(),
             max_history: 1000,
             name: String::from("WorldModel"),
         }
@@ -59,15 +60,16 @@ impl WorldModel {
 
         // Store in history
         if self.state_history.len() >= self.max_history {
-            self.state_history.remove(0);
+            self.state_history.pop_front();
         }
-        self.state_history.push(state.clone());
+        self.state_history.push_back(state.clone());
 
         self.current_state = state;
         &self.current_state
     }
 
     /// Predict next state and reward
+    #[inline]
     pub fn step(&self, action: &[f64]) -> (LatentState, f64) {
         let next_state = self.transition.predict(&self.current_state, action);
         let reward = self.reward.predict(&self.current_state, action);
@@ -98,11 +100,13 @@ impl WorldModel {
     }
 
     /// Reconstruct observation from latent state
+    #[inline(always)]
     pub fn reconstruct(&self, state: &LatentState) -> Vec<f64> {
         self.decoder.decode(state)
     }
 
     /// Reconstruction loss
+    #[inline]
     pub fn reconstruction_loss(&self, observation: &[f64]) -> f64 {
         let state = self.encoder.encode(observation);
         let reconstructed = self.decoder.decode(&state);

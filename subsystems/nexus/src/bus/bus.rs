@@ -49,26 +49,31 @@ impl MessageBus {
     }
 
     /// Get bus ID
+    #[inline(always)]
     pub fn id(&self) -> NexusId {
         self.id
     }
 
     /// Start the bus
+    #[inline(always)]
     pub fn start(&self) {
         self.running.store(true, Ordering::Release);
     }
 
     /// Stop the bus
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::Release);
     }
 
     /// Is running
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Acquire)
     }
 
     /// Send message
+    #[inline]
     pub fn send(&mut self, message: Message) -> NexusResult<()> {
         if !self.is_running() {
             return Err(NexusError::new(ErrorCode::InvalidState, "Bus not running"));
@@ -78,6 +83,7 @@ impl MessageBus {
     }
 
     /// Send to domain
+    #[inline]
     pub fn send_to(
         &mut self,
         source: Domain,
@@ -91,6 +97,7 @@ impl MessageBus {
     }
 
     /// Send with priority
+    #[inline]
     pub fn send_priority(
         &mut self,
         source: Domain,
@@ -105,6 +112,7 @@ impl MessageBus {
     }
 
     /// Broadcast
+    #[inline]
     pub fn broadcast(&mut self, source: Domain, payload: MessagePayload) -> usize {
         if !self.is_running() {
             return 0;
@@ -113,6 +121,7 @@ impl MessageBus {
     }
 
     /// Receive from channel
+    #[inline]
     pub fn receive(&mut self, source: Domain, target: Domain) -> Option<Message> {
         self.router
             .get_channel(source, target)
@@ -143,6 +152,7 @@ impl MessageBus {
     }
 
     /// Receive all from specific source
+    #[inline]
     pub fn receive_from(&mut self, source: Domain, target: Domain) -> Vec<Message> {
         self.router
             .get_channel(source, target)
@@ -165,16 +175,19 @@ impl MessageBus {
     }
 
     /// Get total pending count
+    #[inline(always)]
     pub fn total_pending(&self) -> usize {
         self.router.stats().total_pending() as usize
     }
 
     /// Expire old messages
+    #[inline(always)]
     pub fn expire(&mut self, now: Timestamp) -> usize {
         self.router.expire_all(now)
     }
 
     /// Get bus stats
+    #[inline]
     pub fn stats(&self) -> BusStats {
         BusStats {
             id: self.id,
@@ -184,16 +197,19 @@ impl MessageBus {
     }
 
     /// Reset stats
+    #[inline(always)]
     pub fn reset_stats(&self) {
         self.router.reset_stats();
     }
 
     /// Pause bus (close all channels)
+    #[inline(always)]
     pub fn pause(&self) {
         self.router.close_all();
     }
 
     /// Resume bus (reopen all channels)
+    #[inline(always)]
     pub fn resume(&self) {
         self.router.reopen_all();
     }
@@ -211,6 +227,7 @@ impl Default for MessageBus {
 
 /// Bus statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BusStats {
     /// Bus ID
     pub id: NexusId,
@@ -222,11 +239,13 @@ pub struct BusStats {
 
 impl BusStats {
     /// Get total messages processed
+    #[inline(always)]
     pub fn total_processed(&self) -> u64 {
         self.router_stats.total_routed
     }
 
     /// Get total pending
+    #[inline(always)]
     pub fn total_pending(&self) -> u64 {
         self.router_stats.total_pending()
     }
@@ -254,18 +273,21 @@ impl MessageFilter {
     }
 
     /// Filter by source
+    #[inline(always)]
     pub fn from_source(mut self, source: Domain) -> Self {
         self.sources.push(source);
         self
     }
 
     /// Filter by payload type
+    #[inline(always)]
     pub fn of_type(mut self, payload_type: &str) -> Self {
         self.payload_types.push(String::from(payload_type));
         self
     }
 
     /// Filter by minimum priority
+    #[inline(always)]
     pub fn min_priority(mut self, priority: MessagePriority) -> Self {
         self.min_priority = Some(priority);
         self

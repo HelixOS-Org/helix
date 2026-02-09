@@ -9,7 +9,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -92,6 +94,7 @@ impl FilterRule {
     }
 
     /// Record hit
+    #[inline(always)]
     pub fn record_hit(&mut self, now: u64) {
         self.hit_count += 1;
         self.last_hit_ns = now;
@@ -128,11 +131,13 @@ impl FilterChain {
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: FilterRule) {
         self.rules.push(rule);
     }
 
     /// Evaluate syscall
+    #[inline]
     pub fn evaluate(&mut self, syscall_nr: u32, now: u64) -> (SeccompAction, FilterResult) {
         self.total_evals += 1;
         for rule in &mut self.rules {
@@ -145,6 +150,7 @@ impl FilterChain {
     }
 
     /// Count allowed syscalls
+    #[inline]
     pub fn allowed_count(&self) -> usize {
         self.rules
             .iter()
@@ -153,6 +159,7 @@ impl FilterChain {
     }
 
     /// Count denied syscalls
+    #[inline]
     pub fn denied_count(&self) -> usize {
         self.rules
             .iter()
@@ -216,13 +223,13 @@ pub struct ProcessSeccompProfile {
     /// Installed filter chain
     pub filter: Option<FilterChain>,
     /// Violations
-    violations: Vec<ViolationRecord>,
+    violations: VecDeque<ViolationRecord>,
     /// Total syscalls evaluated
     pub total_evals: u64,
     /// Total violations
     pub total_violations: u64,
     /// Violation histogram (syscall_nr -> count)
-    violation_hist: BTreeMap<u32, u64>,
+    violation_hist: ArrayMap<u64, 32>,
 }
 
 impl ProcessSeccompProfile {
@@ -230,14 +237,15 @@ impl ProcessSeccompProfile {
         Self {
             pid,
             filter: None,
-            violations: Vec::new(),
+            violations: VecDeque::new(),
             total_evals: 0,
             total_violations: 0,
-            violation_hist: BTreeMap::new(),
+            violation_hist: ArrayMap::new(0),
         }
     }
 
     /// Install filter
+    #[inline(always)]
     pub fn install_filter(&mut self, filter: FilterChain) {
         self.filter = Some(filter);
     }
@@ -258,7 +266,7 @@ impl ProcessSeccompProfile {
 
     fn record_violation(&mut self, syscall_nr: u32, action: SeccompAction, now: u64) {
         self.total_violations += 1;
-        *self.violation_hist.entry(syscall_nr).or_insert(0) += 1;
+        self.violation_hist.add(syscall_nr as usize, 1);
 
         let severity = match action {
             SeccompAction::Kill | SeccompAction::KillThread => ViolationSeverity::Fatal,
@@ -276,9 +284,9 @@ impl ProcessSeccompProfile {
         }
 
         if self.violations.len() >= 256 {
-            self.violations.remove(0);
+            self.violations.pop_front();
         }
-        self.violations.push(ViolationRecord {
+        self.violations.push_back(ViolationRecord {
             pid: self.pid,
             syscall_nr,
             action,
@@ -289,6 +297,7 @@ impl ProcessSeccompProfile {
     }
 
     /// Violation rate
+    #[inline]
     pub fn violation_rate(&self) -> f64 {
         if self.total_evals == 0 {
             return 0.0;
@@ -297,6 +306,7 @@ impl ProcessSeccompProfile {
     }
 
     /// Top violated syscalls
+    #[inline]
     pub fn top_violated(&self, n: usize) -> Vec<(u32, u64)> {
         let mut sorted: Vec<(u32, u64)> =
             self.violation_hist.iter().map(|(&k, &v)| (k, v)).collect();
@@ -306,6 +316,7 @@ impl ProcessSeccompProfile {
     }
 
     /// Security score
+    #[inline]
     pub fn security_score(&self) -> f64 {
         match &self.filter {
             None => 0.0, // No filter = no protection
@@ -320,6 +331,7 @@ impl ProcessSeccompProfile {
 
 /// Seccomp profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppSeccompProfilerStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -348,6 +360,7 @@ impl AppSeccompProfiler {
     }
 
     /// Get/create process
+    #[inline]
     pub fn process(&mut self, pid: u64) -> &mut ProcessSeccompProfile {
         self.processes
             .entry(pid)
@@ -355,6 +368,7 @@ impl AppSeccompProfiler {
     }
 
     /// Install filter
+    #[inline]
     pub fn install_filter(&mut self, pid: u64, filter: FilterChain) {
         let proc = self
             .processes
@@ -365,6 +379,7 @@ impl AppSeccompProfiler {
     }
 
     /// Evaluate syscall
+    #[inline]
     pub fn evaluate(&mut self, pid: u64, syscall_nr: u32, now: u64) -> SeccompAction {
         let proc = self
             .processes
@@ -378,6 +393,7 @@ impl AppSeccompProfiler {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.update_stats();
@@ -401,6 +417,7 @@ impl AppSeccompProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppSeccompProfilerStats {
         &self.stats
     }

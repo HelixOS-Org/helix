@@ -95,31 +95,37 @@ pub enum Term {
 
 impl Term {
     /// Create a constant term
+    #[inline(always)]
     pub fn constant(name: &str) -> Self {
         Term::Constant(Symbol::new(name))
     }
 
     /// Create a variable term
+    #[inline(always)]
     pub fn variable(name: &str) -> Self {
         Term::Variable(Symbol::new(name))
     }
 
     /// Create a compound term
+    #[inline(always)]
     pub fn compound(functor: &str, args: Vec<Term>) -> Self {
         Term::Compound(Symbol::new(functor), args)
     }
 
     /// Create an integer term
+    #[inline(always)]
     pub fn integer(value: i64) -> Self {
         Term::Integer(value)
     }
 
     /// Check if term is a variable
+    #[inline(always)]
     pub fn is_variable(&self) -> bool {
         matches!(self, Term::Variable(_))
     }
 
     /// Check if term is ground (no variables)
+    #[inline]
     pub fn is_ground(&self) -> bool {
         match self {
             Term::Variable(_) => false,
@@ -130,6 +136,7 @@ impl Term {
     }
 
     /// Get all variables in the term
+    #[inline]
     pub fn variables(&self) -> Vec<Symbol> {
         match self {
             Term::Variable(v) => alloc::vec![v.clone()],
@@ -192,21 +199,25 @@ impl Substitution {
     }
 
     /// Bind variable to term
+    #[inline(always)]
     pub fn bind(&mut self, var: Symbol, term: Term) {
         self.bindings.insert(var, term);
     }
 
     /// Get binding for variable
+    #[inline(always)]
     pub fn get(&self, var: &Symbol) -> Option<&Term> {
         self.bindings.get(var)
     }
 
     /// Check if substitution is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.bindings.is_empty()
     }
 
     /// Compose two substitutions
+    #[inline]
     pub fn compose(&self, other: &Substitution) -> Substitution {
         let mut result = self.clone();
         for (var, term) in &other.bindings {
@@ -234,6 +245,7 @@ impl Atom {
     }
 
     /// Apply substitution
+    #[inline]
     pub fn apply_substitution(&self, subst: &Substitution) -> Atom {
         Atom {
             predicate: self.predicate.clone(),
@@ -246,11 +258,13 @@ impl Atom {
     }
 
     /// Get all variables
+    #[inline(always)]
     pub fn variables(&self) -> Vec<Symbol> {
         self.args.iter().flat_map(|a| a.variables()).collect()
     }
 
     /// Check if ground
+    #[inline(always)]
     pub fn is_ground(&self) -> bool {
         self.args.iter().all(|a| a.is_ground())
     }
@@ -294,17 +308,20 @@ pub enum CompareOp {
 
 impl Formula {
     /// Create an atomic formula
+    #[inline(always)]
     pub fn atom(predicate: &str, args: Vec<Term>) -> Self {
         Formula::Atom(Atom::new(predicate, args))
     }
 
     /// Create negation
     #[allow(clippy::should_implement_trait)]
+    #[inline(always)]
     pub fn not(f: Formula) -> Self {
         Formula::Not(Box::new(f))
     }
 
     /// Create conjunction
+    #[inline]
     pub fn and(formulas: Vec<Formula>) -> Self {
         if formulas.is_empty() {
             Formula::True
@@ -316,6 +333,7 @@ impl Formula {
     }
 
     /// Create disjunction
+    #[inline]
     pub fn or(formulas: Vec<Formula>) -> Self {
         if formulas.is_empty() {
             Formula::False
@@ -327,6 +345,7 @@ impl Formula {
     }
 
     /// Create implication
+    #[inline(always)]
     pub fn implies(antecedent: Formula, consequent: Formula) -> Self {
         Formula::Implies(Box::new(antecedent), Box::new(consequent))
     }
@@ -408,6 +427,7 @@ pub struct Clause {
 
 impl Clause {
     /// Create a fact (clause with no body)
+    #[inline]
     pub fn fact(head: Atom) -> Self {
         Self {
             head,
@@ -417,6 +437,7 @@ impl Clause {
     }
 
     /// Create a rule
+    #[inline]
     pub fn rule(head: Atom, body: Vec<Atom>) -> Self {
         Self {
             head,
@@ -426,6 +447,7 @@ impl Clause {
     }
 
     /// Create a soft rule with confidence
+    #[inline]
     pub fn soft_rule(head: Atom, body: Vec<Atom>, confidence: f64) -> Self {
         Self {
             head,
@@ -435,6 +457,7 @@ impl Clause {
     }
 
     /// Check if this is a fact
+    #[inline(always)]
     pub fn is_fact(&self) -> bool {
         self.body.is_empty()
     }
@@ -458,27 +481,32 @@ impl KnowledgeBase {
     }
 
     /// Add a clause
+    #[inline(always)]
     pub fn add_clause(&mut self, clause: Clause) {
         let pred = clause.head.predicate.clone();
         self.clauses.entry(pred).or_default().push(clause);
     }
 
     /// Add a fact
+    #[inline(always)]
     pub fn add_fact(&mut self, predicate: &str, args: Vec<Term>) {
         self.add_clause(Clause::fact(Atom::new(predicate, args)));
     }
 
     /// Add a rule
+    #[inline(always)]
     pub fn add_rule(&mut self, head: Atom, body: Vec<Atom>) {
         self.add_clause(Clause::rule(head, body));
     }
 
     /// Add integrity constraint
+    #[inline(always)]
     pub fn add_integrity_constraint(&mut self, formula: Formula) {
         self.integrity_constraints.push(formula);
     }
 
     /// Get clauses for predicate
+    #[inline]
     pub fn get_clauses(&self, predicate: &Symbol) -> &[Clause] {
         self.clauses
             .get(predicate)
@@ -487,6 +515,7 @@ impl KnowledgeBase {
     }
 
     /// Count facts
+    #[inline]
     pub fn num_facts(&self) -> usize {
         self.clauses
             .values()
@@ -496,6 +525,7 @@ impl KnowledgeBase {
     }
 
     /// Count rules
+    #[inline]
     pub fn num_rules(&self) -> usize {
         self.clauses
             .values()
@@ -553,6 +583,7 @@ impl UnificationEngine {
     }
 
     /// Unify two terms
+    #[inline(always)]
     pub fn unify(&self, term1: &Term, term2: &Term) -> Option<Substitution> {
         self.unify_with_subst(term1, term2, Substitution::new(), 0)
     }
@@ -628,6 +659,7 @@ impl UnificationEngine {
     }
 
     /// Unify two atoms
+    #[inline]
     pub fn unify_atoms(&self, atom1: &Atom, atom2: &Atom) -> Option<Substitution> {
         if atom1.predicate != atom2.predicate || atom1.args.len() != atom2.args.len() {
             return None;
@@ -677,12 +709,14 @@ impl InferenceEngine {
     }
 
     /// Query the knowledge base
+    #[inline(always)]
     pub fn query(&mut self, goal: &Atom) -> Vec<Substitution> {
         self.trace.clear();
         self.prove(goal, Substitution::new(), 0)
     }
 
     /// Query with limit on solutions
+    #[inline(always)]
     pub fn query_first(&mut self, goal: &Atom) -> Option<Substitution> {
         self.query(goal).into_iter().next()
     }
@@ -786,11 +820,13 @@ impl InferenceEngine {
     }
 
     /// Get proof trace
+    #[inline(always)]
     pub fn get_trace(&self) -> &[ProofStep] {
         &self.trace
     }
 
     /// Check if goal is provable
+    #[inline(always)]
     pub fn is_provable(&mut self, goal: &Atom) -> bool {
         !self.query(goal).is_empty()
     }
@@ -817,22 +853,26 @@ impl NeuralSymbolicBridge {
     }
 
     /// Register a symbol with its embedding
+    #[inline(always)]
     pub fn register_symbol(&mut self, symbol: Symbol, embedding: Vec<f64>) {
         self.concept_embeddings.insert(symbol, embedding);
     }
 
     /// Get embedding for symbol
+    #[inline(always)]
     pub fn get_embedding(&self, symbol: &Symbol) -> Option<&Vec<f64>> {
         self.concept_embeddings.get(symbol)
     }
 
     /// Update predicate confidence from neural network output
+    #[inline(always)]
     pub fn update_confidence(&mut self, predicate: Symbol, args: Vec<Term>, confidence: f64) {
         self.predicate_confidence
             .insert((predicate, args), confidence);
     }
 
     /// Get confidence for predicate
+    #[inline]
     pub fn get_confidence(&self, predicate: &Symbol, args: &[Term]) -> f64 {
         self.predicate_confidence
             .get(&(predicate.clone(), args.to_vec()))
@@ -898,11 +938,13 @@ impl RuleLearner {
     }
 
     /// Add positive example
+    #[inline(always)]
     pub fn add_positive(&mut self, example: Atom) {
         self.positive_examples.push(example);
     }
 
     /// Add negative example
+    #[inline(always)]
     pub fn add_negative(&mut self, example: Atom) {
         self.negative_examples.push(example);
     }
@@ -1119,12 +1161,14 @@ impl KernelSymbolicReasoner {
     }
 
     /// Query if action is safe
+    #[inline(always)]
     pub fn is_safe(&mut self, action: &str, args: Vec<Term>) -> bool {
         let goal = Atom::new(action, args);
         self.engine.is_provable(&goal)
     }
 
     /// Check for potential deadlock
+    #[inline]
     pub fn check_deadlock(&mut self, proc1: &str, proc2: &str) -> bool {
         let goal = Atom::new("potential_deadlock", alloc::vec![
             Term::constant(proc1),
@@ -1134,6 +1178,7 @@ impl KernelSymbolicReasoner {
     }
 
     /// Explain a decision
+    #[inline(always)]
     pub fn explain(&self, _goal: &Atom) -> Vec<ProofStep> {
         self.engine.get_trace().to_vec()
     }

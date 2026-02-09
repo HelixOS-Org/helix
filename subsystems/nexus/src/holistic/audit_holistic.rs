@@ -30,6 +30,7 @@ impl AuditHolisticFinding {
         Self { metric, score: 0, events_logged: 0, events_dropped: 0, rules_active: 0, rules_effective: 0 }
     }
 
+    #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         let total = self.events_logged + self.events_dropped;
         if total == 0 { 0.0 } else { self.events_dropped as f64 / total as f64 }
@@ -38,6 +39,7 @@ impl AuditHolisticFinding {
 
 /// Audit holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AuditHolisticStats {
     pub total_analyses: u64,
     pub high_drop_rates: u64,
@@ -56,6 +58,7 @@ impl HolisticAudit {
         Self { stats: AuditHolisticStats { total_analyses: 0, high_drop_rates: 0, ineffective_rules: 0, integrity_issues: 0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &AuditHolisticFinding) {
         self.stats.total_analyses += 1;
         if finding.drop_rate() > 0.01 { self.stats.high_drop_rates += 1; }

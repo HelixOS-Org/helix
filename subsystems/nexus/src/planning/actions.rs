@@ -18,6 +18,7 @@ pub struct ActionId(pub u32);
 
 /// State variable identifier
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(align(64))]
 pub struct StateVar(pub String);
 
 /// State value
@@ -35,6 +36,7 @@ pub enum StateValue {
 
 impl StateValue {
     /// Get as bool
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             StateValue::Bool(b) => Some(*b),
@@ -43,6 +45,7 @@ impl StateValue {
     }
 
     /// Get as int
+    #[inline]
     pub fn as_int(&self) -> Option<i64> {
         match self {
             StateValue::Int(i) => Some(*i),
@@ -51,6 +54,7 @@ impl StateValue {
     }
 
     /// Get as float
+    #[inline]
     pub fn as_float(&self) -> Option<f64> {
         match self {
             StateValue::Float(f) => Some(*f),
@@ -62,6 +66,7 @@ impl StateValue {
 
 /// World state
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct WorldState {
     /// State variables
     variables: BTreeMap<StateVar, StateValue>,
@@ -76,41 +81,49 @@ impl WorldState {
     }
 
     /// Set variable
+    #[inline(always)]
     pub fn set(&mut self, var: StateVar, value: StateValue) {
         self.variables.insert(var, value);
     }
 
     /// Get variable
+    #[inline(always)]
     pub fn get(&self, var: &StateVar) -> Option<&StateValue> {
         self.variables.get(var)
     }
 
     /// Check if variable is set
+    #[inline(always)]
     pub fn has(&self, var: &StateVar) -> bool {
         self.variables.contains_key(var)
     }
 
     /// Set bool variable
+    #[inline(always)]
     pub fn set_bool(&mut self, name: &str, value: bool) {
         self.set(StateVar(String::from(name)), StateValue::Bool(value));
     }
 
     /// Set int variable
+    #[inline(always)]
     pub fn set_int(&mut self, name: &str, value: i64) {
         self.set(StateVar(String::from(name)), StateValue::Int(value));
     }
 
     /// Get bool variable
+    #[inline(always)]
     pub fn get_bool(&self, name: &str) -> Option<bool> {
         self.get(&StateVar(String::from(name)))?.as_bool()
     }
 
     /// Get int variable
+    #[inline(always)]
     pub fn get_int(&self, name: &str) -> Option<i64> {
         self.get(&StateVar(String::from(name)))?.as_int()
     }
 
     /// Apply changes from another state
+    #[inline]
     pub fn apply(&mut self, changes: &WorldState) {
         for (var, value) in &changes.variables {
             self.variables.insert(var.clone(), value.clone());
@@ -118,6 +131,7 @@ impl WorldState {
     }
 
     /// Clone with changes
+    #[inline]
     pub fn with_changes(&self, changes: &WorldState) -> Self {
         let mut new_state = self.clone();
         new_state.apply(changes);
@@ -168,16 +182,19 @@ impl ActionPrecondition {
     }
 
     /// Create equality precondition
+    #[inline(always)]
     pub fn equals(name: &str, value: StateValue) -> Self {
         Self::new(StateVar(String::from(name)), Comparison::Eq, value)
     }
 
     /// Create bool true precondition
+    #[inline(always)]
     pub fn is_true(name: &str) -> Self {
         Self::equals(name, StateValue::Bool(true))
     }
 
     /// Create bool false precondition
+    #[inline(always)]
     pub fn is_false(name: &str) -> Self {
         Self::equals(name, StateValue::Bool(false))
     }
@@ -281,16 +298,19 @@ impl ActionEffect {
     }
 
     /// Create set effect
+    #[inline(always)]
     pub fn set(name: &str, value: StateValue) -> Self {
         Self::new(StateVar(String::from(name)), EffectType::Set, value)
     }
 
     /// Create set true effect
+    #[inline(always)]
     pub fn set_true(name: &str) -> Self {
         Self::set(name, StateValue::Bool(true))
     }
 
     /// Create set false effect
+    #[inline(always)]
     pub fn set_false(name: &str) -> Self {
         Self::set(name, StateValue::Bool(false))
     }
@@ -374,35 +394,41 @@ impl Action {
     }
 
     /// Add precondition
+    #[inline(always)]
     pub fn with_precondition(mut self, precondition: ActionPrecondition) -> Self {
         self.preconditions.push(precondition);
         self
     }
 
     /// Add effect
+    #[inline(always)]
     pub fn with_effect(mut self, effect: ActionEffect) -> Self {
         self.effects.push(effect);
         self
     }
 
     /// Set cost
+    #[inline(always)]
     pub fn with_cost(mut self, cost: f64) -> Self {
         self.cost = cost.max(0.0);
         self
     }
 
     /// Set duration
+    #[inline(always)]
     pub fn with_duration(mut self, duration: u64) -> Self {
         self.duration = duration;
         self
     }
 
     /// Check if action is applicable in state
+    #[inline(always)]
     pub fn is_applicable(&self, state: &WorldState) -> bool {
         self.preconditions.iter().all(|p| p.check(state))
     }
 
     /// Apply action to state (returns new state)
+    #[inline]
     pub fn apply(&self, state: &WorldState) -> WorldState {
         let mut new_state = state.clone();
         for effect in &self.effects {
@@ -412,6 +438,7 @@ impl Action {
     }
 
     /// Get variables read by this action
+    #[inline]
     pub fn reads(&self) -> BTreeSet<StateVar> {
         self.preconditions
             .iter()
@@ -420,6 +447,7 @@ impl Action {
     }
 
     /// Get variables written by this action
+    #[inline(always)]
     pub fn writes(&self) -> BTreeSet<StateVar> {
         self.effects.iter().map(|e| e.variable.clone()).collect()
     }
@@ -450,6 +478,7 @@ impl ActionSpace {
     }
 
     /// Add action
+    #[inline]
     pub fn add(&mut self, action: Action) -> ActionId {
         let id = action.id;
         self.by_name.insert(action.name.clone(), id);
@@ -458,6 +487,7 @@ impl ActionSpace {
     }
 
     /// Create and add action
+    #[inline]
     pub fn create(&mut self, name: String) -> ActionId {
         let id = ActionId(self.next_id);
         self.next_id += 1;
@@ -466,16 +496,19 @@ impl ActionSpace {
     }
 
     /// Get action by ID
+    #[inline(always)]
     pub fn get(&self, id: ActionId) -> Option<&Action> {
         self.actions.get(&id)
     }
 
     /// Get action by name
+    #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> Option<&Action> {
         self.by_name.get(name).and_then(|id| self.actions.get(id))
     }
 
     /// Get applicable actions for state
+    #[inline]
     pub fn get_applicable(&self, state: &WorldState) -> Vec<&Action> {
         self.actions
             .values()
@@ -484,11 +517,13 @@ impl ActionSpace {
     }
 
     /// Get all actions
+    #[inline(always)]
     pub fn all(&self) -> Vec<&Action> {
         self.actions.values().collect()
     }
 
     /// Get action count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.actions.len()
     }

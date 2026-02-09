@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -72,6 +72,7 @@ impl PressureSeverity {
     }
 
     /// Requires action?
+    #[inline(always)]
     pub fn requires_action(&self) -> bool {
         matches!(self, Self::High | Self::Critical)
     }
@@ -108,6 +109,7 @@ impl PressureWindow {
     }
 
     /// Record a sample
+    #[inline]
     pub fn record(&mut self, stall_ns: u64, total_ns: u64) {
         self.stall_samples[self.index] = stall_ns;
         self.total_samples[self.index] = total_ns;
@@ -200,31 +202,37 @@ impl ResourcePressure {
     }
 
     /// Short-term pressure
+    #[inline(always)]
     pub fn short_pressure(&self) -> f64 {
         self.short_window.average()
     }
 
     /// Medium-term pressure
+    #[inline(always)]
     pub fn medium_pressure(&self) -> f64 {
         self.medium_window.average()
     }
 
     /// Long-term pressure
+    #[inline(always)]
     pub fn long_pressure(&self) -> f64 {
         self.long_window.average()
     }
 
     /// Severity
+    #[inline(always)]
     pub fn severity(&self) -> PressureSeverity {
         PressureSeverity::from_percentage(self.some_pct)
     }
 
     /// Trend (positive = increasing pressure)
+    #[inline(always)]
     pub fn trend(&self) -> f64 {
         self.short_window.average() - self.long_window.average()
     }
 
     /// Is pressure increasing rapidly?
+    #[inline(always)]
     pub fn is_spiking(&self) -> bool {
         self.short_window.average() > self.medium_window.average() * 2.0
             && self.short_window.average() > 10.0
@@ -271,6 +279,7 @@ pub struct ThrottleRecommendation {
 
 /// Pressure stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticPressureStats {
     /// Resources tracked
     pub resources_tracked: usize,
@@ -291,7 +300,7 @@ pub struct HolisticPressureEngine {
     /// Event thresholds
     thresholds: BTreeMap<u8, f64>,
     /// Events
-    events: Vec<PressureEvent>,
+    events: VecDeque<PressureEvent>,
     /// Max events
     max_events: usize,
     /// Stats
@@ -303,7 +312,7 @@ impl HolisticPressureEngine {
         let mut engine = Self {
             resources: BTreeMap::new(),
             thresholds: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 2048,
             stats: HolisticPressureStats::default(),
         };
@@ -317,9 +326,7 @@ impl HolisticPressureEngine {
         ];
 
         for r in &resources {
-            engine
-                .resources
-                .insert(*r as u8, ResourcePressure::new(*r));
+            engine.resources.insert(*r as u8, ResourcePressure::new(*r));
             engine.thresholds.insert(*r as u8, 20.0);
         }
 
@@ -328,6 +335,7 @@ impl HolisticPressureEngine {
     }
 
     /// Set threshold for resource
+    #[inline(always)]
     pub fn set_threshold(&mut self, resource: PressureResource, threshold: f64) {
         self.thresholds.insert(resource as u8, threshold);
     }
@@ -349,7 +357,11 @@ impl HolisticPressureEngine {
         rp.record(some_stall_ns, full_stall_ns, total_ns);
 
         let pressure = rp.short_pressure();
-        let threshold = self.thresholds.get(&(resource as u8)).copied().unwrap_or(20.0);
+        let threshold = self
+            .thresholds
+            .get(&(resource as u8))
+            .copied()
+            .unwrap_or(20.0);
 
         let event = if pressure > threshold {
             let category = if rp.full_pct > threshold * 0.5 {
@@ -367,9 +379,9 @@ impl HolisticPressureEngine {
                 timestamp: now,
             };
 
-            self.events.push(event.clone());
+            self.events.push_back(event.clone());
             if self.events.len() > self.max_events {
-                self.events.remove(0);
+                self.events.pop_front();
             }
             self.stats.events_generated += 1;
 
@@ -383,6 +395,7 @@ impl HolisticPressureEngine {
     }
 
     /// Get resource pressure
+    #[inline(always)]
     pub fn resource_pressure(&self, resource: PressureResource) -> Option<&ResourcePressure> {
         self.resources.get(&(resource as u8))
     }
@@ -420,6 +433,7 @@ impl HolisticPressureEngine {
     }
 
     /// System-wide pressure summary
+    #[inline]
     pub fn system_pressure(&self) -> f64 {
         if self.resources.is_empty() {
             return 0.0;
@@ -429,6 +443,7 @@ impl HolisticPressureEngine {
     }
 
     /// Most pressured resource
+    #[inline]
     pub fn most_pressured(&self) -> Option<(PressureResource, f64)> {
         self.resources
             .values()
@@ -454,6 +469,7 @@ impl HolisticPressureEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticPressureStats {
         &self.stats
     }

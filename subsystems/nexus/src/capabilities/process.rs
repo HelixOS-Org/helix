@@ -65,27 +65,32 @@ impl ProcessCaps {
     }
 
     /// Check if has capability
+    #[inline(always)]
     pub fn has_capability(&self, cap: Capability) -> bool {
         self.effective.has(cap)
     }
 
     /// Can acquire capability
+    #[inline(always)]
     pub fn can_acquire(&self, cap: Capability) -> bool {
         self.permitted.has(cap) && self.bounding.has(cap)
     }
 
     /// Is capability bounded
+    #[inline(always)]
     pub fn is_bounded(&self, cap: Capability) -> bool {
         self.bounding.has(cap)
     }
 
     /// Drop capability
+    #[inline(always)]
     pub fn drop_cap(&mut self, cap: Capability) {
         self.effective.clear(cap);
         self.permitted.clear(cap);
     }
 
     /// Raise capability (if permitted)
+    #[inline]
     pub fn raise_cap(&mut self, cap: Capability) -> bool {
         if self.permitted.has(cap) {
             self.effective.set(cap);
@@ -96,6 +101,7 @@ impl ProcessCaps {
     }
 
     /// Get risk score
+    #[inline]
     pub fn risk_score(&self) -> f32 {
         let mut score = 0.0f32;
 
@@ -108,6 +114,7 @@ impl ProcessCaps {
     }
 
     /// Is privileged
+    #[inline]
     pub fn is_privileged(&self) -> bool {
         for cap in self.effective.iter() {
             if cap.is_privileged() {
@@ -118,6 +125,7 @@ impl ProcessCaps {
     }
 
     /// Get privileged caps
+    #[inline]
     pub fn privileged_caps(&self) -> Vec<Capability> {
         self.effective
             .iter()

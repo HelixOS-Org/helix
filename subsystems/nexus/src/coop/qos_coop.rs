@@ -43,18 +43,22 @@ impl BwAllocation {
         Self { class, rate_bps, ceil_bps, burst_bytes: 4096, used_bps: 0, priority: 4 }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.rate_bps == 0 { 0.0 } else { self.used_bps as f64 / self.rate_bps as f64 }
     }
 
+    #[inline(always)]
     pub fn can_borrow(&self) -> bool {
         self.used_bps < self.ceil_bps
     }
 
+    #[inline(always)]
     pub fn consume(&mut self, bytes: u64) {
         self.used_bps += bytes * 8;
     }
 
+    #[inline(always)]
     pub fn reset_interval(&mut self) {
         self.used_bps = 0;
     }
@@ -74,18 +78,22 @@ impl SharedQosPolicy {
         Self { policy_id, allocations: Vec::new(), total_bandwidth_bps: total_bw, subscribers: Vec::new() }
     }
 
+    #[inline(always)]
     pub fn add_class(&mut self, alloc: BwAllocation) {
         self.allocations.push(alloc);
     }
 
+    #[inline(always)]
     pub fn allocated_bps(&self) -> u64 {
         self.allocations.iter().map(|a| a.rate_bps).sum()
     }
 
+    #[inline(always)]
     pub fn remaining_bps(&self) -> u64 {
         self.total_bandwidth_bps.saturating_sub(self.allocated_bps())
     }
 
+    #[inline(always)]
     pub fn subscribe(&mut self, ns_id: u64) {
         if !self.subscribers.contains(&ns_id) { self.subscribers.push(ns_id); }
     }
@@ -105,6 +113,7 @@ impl CoopTokenBucket {
         Self { tokens: max_tokens, max_tokens, rate, last_refill_ns: 0 }
     }
 
+    #[inline]
     pub fn refill(&mut self, now_ns: u64) {
         let elapsed = now_ns.saturating_sub(self.last_refill_ns);
         let new_tokens = (self.rate * elapsed) / 1_000_000_000;
@@ -112,6 +121,7 @@ impl CoopTokenBucket {
         self.last_refill_ns = now_ns;
     }
 
+    #[inline(always)]
     pub fn consume(&mut self, tokens: u64) -> bool {
         if self.tokens >= tokens { self.tokens -= tokens; true } else { false }
     }
@@ -119,6 +129,7 @@ impl CoopTokenBucket {
 
 /// Coop QoS stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopQosStats {
     pub total_policies: u64,
     pub total_classes: u64,
@@ -143,11 +154,13 @@ impl CoopQos {
         }
     }
 
+    #[inline(always)]
     pub fn create_policy(&mut self, policy_id: u64, total_bw: u64) {
         self.policies.insert(policy_id, SharedQosPolicy::new(policy_id, total_bw));
         self.stats.total_policies += 1;
     }
 
+    #[inline]
     pub fn add_class(&mut self, policy_id: u64, alloc: BwAllocation) -> bool {
         if let Some(policy) = self.policies.get_mut(&policy_id) {
             policy.add_class(alloc);

@@ -49,6 +49,7 @@ pub struct LoadVector {
 }
 
 impl LoadVector {
+    #[inline]
     pub fn zero() -> Self {
         Self {
             cpu_util: 0.0,
@@ -60,6 +61,7 @@ impl LoadVector {
     }
 
     /// Weighted composite load
+    #[inline]
     pub fn composite(&self, weights: &LoadWeights) -> f64 {
         self.cpu_util * weights.cpu
             + self.runqueue_depth as f64 * weights.runqueue * 0.1
@@ -69,6 +71,7 @@ impl LoadVector {
     }
 
     /// L2 distance between load vectors
+    #[inline]
     pub fn distance(&self, other: &LoadVector) -> f64 {
         let d_cpu = self.cpu_util - other.cpu_util;
         let d_rq = self.runqueue_depth as f64 - other.runqueue_depth as f64;
@@ -90,6 +93,7 @@ pub struct LoadWeights {
 }
 
 impl LoadWeights {
+    #[inline]
     pub fn default_weights() -> Self {
         Self {
             cpu: 0.4,
@@ -103,6 +107,7 @@ impl LoadWeights {
 
 /// Per-CPU load state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuLoadState {
     pub cpu_id: u32,
     pub domain_level: BalanceDomainLevel,
@@ -178,6 +183,7 @@ pub struct MigrationRecommendation {
 
 /// Load balancer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticLoadBalanceStats {
     pub tracked_cpus: usize,
     pub balance_groups: usize,
@@ -216,10 +222,12 @@ impl HolisticLoadBalance {
         }
     }
 
+    #[inline(always)]
     pub fn set_weights(&mut self, weights: LoadWeights) {
         self.weights = weights;
     }
 
+    #[inline]
     pub fn register_cpu(&mut self, cpu_id: u32, group_id: u32) {
         self.cpus.insert(cpu_id, CpuLoadState::new(cpu_id, group_id));
         let group = self.groups.entry(group_id)
@@ -229,6 +237,7 @@ impl HolisticLoadBalance {
         }
     }
 
+    #[inline]
     pub fn update_load(&mut self, cpu_id: u32, load: LoadVector, nr_tasks: u32) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.composite_load = load.composite(&self.weights);
@@ -318,16 +327,19 @@ impl HolisticLoadBalance {
     }
 
     /// Accept a migration (mark completed)
+    #[inline]
     pub fn complete_migration(&mut self, idx: usize) {
         if idx < self.recommendations.len() {
             self.total_migrations += 1;
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticLoadBalanceStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn recommendations(&self) -> &[MigrationRecommendation] {
         &self.recommendations
     }

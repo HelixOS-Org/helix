@@ -52,6 +52,7 @@ pub enum NamespaceIssueType {
 
 impl NamespaceIssueType {
     /// Get issue type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::EmptyNamespace => "empty_namespace",
@@ -92,6 +93,7 @@ pub enum NamespaceAction {
 
 impl NamespaceAction {
     /// Get action name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::CleanupEmpty => "cleanup_empty",

@@ -14,12 +14,14 @@ pub struct BridgeHugepageAlloc { pub addr: u64, pub size: BridgeHugepageSize, pu
 
 /// Hugepage stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BridgeHugepageStats {
     pub total_allocs: u64, pub two_mb_pages: u64, pub one_gb_pages: u64, pub transparent_promotions: u64,
     pub total_huge_bytes: u64, pub defrag_attempts: u64,
 }
 
 /// Manager for hugepage bridge
+#[repr(align(64))]
 pub struct BridgeHugepageManager {
     allocs: BTreeMap<u64, BridgeHugepageAlloc>,
     pool_2mb: u32, pool_1gb: u32,
@@ -47,6 +49,8 @@ impl BridgeHugepageManager {
         true
     }
 
+    #[inline(always)]
     pub fn promote_transparent(&mut self, addr: u64) { self.stats.transparent_promotions += 1; }
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeHugepageStats { &self.stats }
 }

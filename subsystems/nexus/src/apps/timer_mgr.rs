@@ -46,6 +46,7 @@ pub enum AppTimerState {
 
 /// Timer entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppTimer {
     pub id: u64,
     pub process_id: u64,
@@ -75,6 +76,7 @@ impl AppTimer {
         }
     }
 
+    #[inline]
     pub fn arm(&mut self, value_ns: u64, interval_ns: u64, now: u64) {
         self.value_ns = value_ns;
         self.interval_ns = interval_ns;
@@ -83,6 +85,7 @@ impl AppTimer {
         self.state = AppTimerState::Armed;
     }
 
+    #[inline(always)]
     pub fn disarm(&mut self) {
         self.state = AppTimerState::Disarmed;
     }
@@ -106,16 +109,19 @@ impl AppTimer {
         false
     }
 
+    #[inline(always)]
     pub fn remaining(&self, now: u64) -> u64 {
         if self.state != AppTimerState::Armed { return 0; }
         self.expiry_ns.saturating_sub(now)
     }
 
+    #[inline(always)]
     pub fn is_armed(&self) -> bool { self.state == AppTimerState::Armed }
 }
 
 /// Interval timer (setitimer)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IntervalTimer {
     pub which: IntervalTimerWhich,
     pub value_ns: u64,
@@ -139,6 +145,7 @@ impl IntervalTimer {
 
 /// Per-process timer set
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessTimerSet {
     pub process_id: u64,
     pub timers: BTreeMap<u64, AppTimer>,
@@ -167,6 +174,7 @@ impl ProcessTimerSet {
 
 /// Coalesce group for power savings
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimerCoalesceGroup {
     pub window_ns: u64,
     pub timers: Vec<u64>,
@@ -176,6 +184,7 @@ pub struct TimerCoalesceGroup {
 
 /// Apps timer manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsTimerMgrStats {
     pub total_processes: usize,
     pub total_timers: usize,
@@ -186,6 +195,7 @@ pub struct AppsTimerMgrStats {
 }
 
 /// Apps Timer Manager
+#[repr(align(64))]
 pub struct AppsTimerMgr {
     process_timers: BTreeMap<u64, ProcessTimerSet>,
     coalesce_groups: Vec<TimerCoalesceGroup>,
@@ -205,10 +215,12 @@ impl AppsTimerMgr {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.process_timers.entry(pid).or_insert_with(|| ProcessTimerSet::new(pid));
     }
 
+    #[inline]
     pub fn timer_create(&mut self, pid: u64, clock: AppClockType, ts: u64) -> Option<u64> {
         let timer_id = self.next_timer_id;
         self.next_timer_id += 1;
@@ -220,6 +232,7 @@ impl AppsTimerMgr {
         } else { None }
     }
 
+    #[inline]
     pub fn timer_settime(&mut self, pid: u64, timer_id: u64, value_ns: u64, interval_ns: u64, now: u64) -> bool {
         if let Some(set) = self.process_timers.get_mut(&pid) {
             if let Some(timer) = set.timers.get_mut(&timer_id) {
@@ -230,6 +243,7 @@ impl AppsTimerMgr {
         false
     }
 
+    #[inline]
     pub fn timer_delete(&mut self, pid: u64, timer_id: u64) -> bool {
         if let Some(set) = self.process_timers.get_mut(&pid) {
             if set.timers.remove(&timer_id).is_some() {
@@ -253,6 +267,7 @@ impl AppsTimerMgr {
         expired
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) { self.process_timers.remove(&pid); }
 
     pub fn recompute(&mut self) {
@@ -268,6 +283,8 @@ impl AppsTimerMgr {
         self.stats.coalesce_groups = self.coalesce_groups.len();
     }
 
+    #[inline(always)]
     pub fn process_timers(&self, pid: u64) -> Option<&ProcessTimerSet> { self.process_timers.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsTimerMgrStats { &self.stats }
 }

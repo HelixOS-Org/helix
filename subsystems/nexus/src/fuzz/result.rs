@@ -27,11 +27,13 @@ pub enum FuzzResult {
 
 impl FuzzResult {
     /// Is this interesting?
+    #[inline(always)]
     pub fn is_interesting(&self) -> bool {
         matches!(self, Self::Crash { .. } | Self::NewCoverage { .. })
     }
 
     /// Is this a crash?
+    #[inline(always)]
     pub fn is_crash(&self) -> bool {
         matches!(self, Self::Crash { .. })
     }

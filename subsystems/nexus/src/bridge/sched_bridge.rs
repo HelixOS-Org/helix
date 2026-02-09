@@ -67,6 +67,7 @@ pub enum PriorityInheritance {
 
 /// Syscall classifier
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct SyscallClassifier {
     /// Classification map
     classifications: BTreeMap<u32, SyscallSchedClass>,
@@ -83,16 +84,19 @@ impl SyscallClassifier {
     }
 
     /// Register classification
+    #[inline(always)]
     pub fn register(&mut self, syscall_nr: u32, class: SyscallSchedClass) {
         self.classifications.insert(syscall_nr, class);
     }
 
     /// Classify syscall
+    #[inline(always)]
     pub fn classify(&self, syscall_nr: u32) -> SyscallSchedClass {
         self.classifications.get(&syscall_nr).copied().unwrap_or(self.default_class)
     }
 
     /// Get scheduling hint
+    #[inline]
     pub fn hint_for(&self, syscall_nr: u32) -> SchedHint {
         match self.classify(syscall_nr) {
             SyscallSchedClass::FastPath => SchedHint::NoPreempt,
@@ -148,6 +152,7 @@ impl BlockedSyscall {
     }
 
     /// Add waiter (priority inheritance)
+    #[inline]
     pub fn add_waiter(&mut self, waiter_pid: u64, waiter_priority: u8) {
         self.waiters.push(waiter_pid);
         if waiter_priority > self.current_priority {
@@ -157,11 +162,13 @@ impl BlockedSyscall {
     }
 
     /// Block duration
+    #[inline(always)]
     pub fn block_duration(&self, now: u64) -> u64 {
         now.saturating_sub(self.block_start_ns)
     }
 
     /// Was priority boosted
+    #[inline(always)]
     pub fn is_boosted(&self) -> bool {
         self.current_priority > self.original_priority
     }
@@ -173,6 +180,7 @@ impl BlockedSyscall {
 
 /// Per-class latency tracker
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ClassLatencyTracker {
     /// Total latency (ns)
     pub total_ns: u64,
@@ -209,6 +217,7 @@ impl ClassLatencyTracker {
     }
 
     /// Average
+    #[inline(always)]
     pub fn avg_ns(&self) -> u64 {
         if self.count == 0 { 0 } else { self.total_ns / self.count }
     }
@@ -248,6 +257,7 @@ impl PreemptionRegion {
     }
 
     /// Check if expired
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now.saturating_sub(self.start_ns) > self.max_duration_ns
     }
@@ -259,6 +269,7 @@ impl PreemptionRegion {
 
 /// Scheduler bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeSchedStats {
     /// Total syscalls classified
     pub classified: u64,
@@ -273,6 +284,7 @@ pub struct BridgeSchedStats {
 }
 
 /// Bridge scheduler integration
+#[repr(align(64))]
 pub struct BridgeSchedBridge {
     /// Classifier
     classifier: SyscallClassifier,
@@ -298,11 +310,13 @@ impl BridgeSchedBridge {
     }
 
     /// Register syscall classification
+    #[inline(always)]
     pub fn register_class(&mut self, syscall_nr: u32, class: SyscallSchedClass) {
         self.classifier.register(syscall_nr, class);
     }
 
     /// Get scheduling hint for syscall
+    #[inline]
     pub fn get_hint(&mut self, syscall_nr: u32) -> SchedHint {
         self.stats.classified += 1;
         self.stats.hints_issued += 1;
@@ -310,6 +324,7 @@ impl BridgeSchedBridge {
     }
 
     /// Record syscall block
+    #[inline]
     pub fn record_block(&mut self, pid: u64, tid: u64, syscall_nr: u32, priority: u8, now: u64) {
         let class = self.classifier.classify(syscall_nr);
         let entry = BlockedSyscall::new(pid, tid, syscall_nr, class, priority, now);
@@ -320,6 +335,7 @@ impl BridgeSchedBridge {
     }
 
     /// Record unblock
+    #[inline]
     pub fn record_unblock(&mut self, pid: u64, tid: u64, now: u64) {
         let key = Self::block_key(pid, tid);
         if let Some(entry) = self.blocked.remove(&key) {
@@ -333,6 +349,7 @@ impl BridgeSchedBridge {
     }
 
     /// Apply priority inheritance
+    #[inline]
     pub fn apply_pi(&mut self, blocked_pid: u64, blocked_tid: u64, waiter_pid: u64, waiter_priority: u8) {
         let key = Self::block_key(blocked_pid, blocked_tid);
         if let Some(entry) = self.blocked.get_mut(&key) {
@@ -342,6 +359,7 @@ impl BridgeSchedBridge {
     }
 
     /// Enter preemption-disabled region
+    #[inline]
     pub fn enter_no_preempt(&mut self, pid: u64, tid: u64, syscall_nr: u32, now: u64) {
         let max_ns = match self.classifier.classify(syscall_nr) {
             SyscallSchedClass::FastPath => 10_000, // 10us
@@ -353,12 +371,14 @@ impl BridgeSchedBridge {
     }
 
     /// Leave preemption-disabled region
+    #[inline(always)]
     pub fn leave_no_preempt(&mut self, pid: u64, tid: u64) {
         self.regions.retain(|r| !(r.pid == pid && r.tid == tid));
         self.stats.preempt_regions = self.regions.len();
     }
 
     /// Expire preemption regions
+    #[inline(always)]
     pub fn expire_regions(&mut self, now: u64) {
         self.regions.retain(|r| !r.is_expired(now));
         self.stats.preempt_regions = self.regions.len();
@@ -374,6 +394,7 @@ impl BridgeSchedBridge {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeSchedStats {
         &self.stats
     }
@@ -429,6 +450,7 @@ impl ProcessSchedV2 {
         Self { pid, attr: SchedV2Attr::new(policy), vruntime: 0, total_runtime_ns: 0, nr_switches: 0, nr_migrations: 0, wait_time_ns: 0, last_cpu: 0 }
     }
 
+    #[inline]
     pub fn context_switch(&mut self, runtime_ns: u64, cpu: u32) {
         self.total_runtime_ns += runtime_ns;
         self.nr_switches += 1;
@@ -439,6 +461,7 @@ impl ProcessSchedV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SchedV2BridgeStats {
     pub total_tasks: u32,
     pub total_switches: u64,
@@ -447,6 +470,7 @@ pub struct SchedV2BridgeStats {
 }
 
 /// Main bridge sched v2
+#[repr(align(64))]
 pub struct BridgeSchedV2 {
     tasks: BTreeMap<u64, ProcessSchedV2>,
 }
@@ -454,20 +478,25 @@ pub struct BridgeSchedV2 {
 impl BridgeSchedV2 {
     pub fn new() -> Self { Self { tasks: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn add_task(&mut self, pid: u64, policy: SchedV2Policy) {
         self.tasks.insert(pid, ProcessSchedV2::new(pid, policy));
     }
 
+    #[inline(always)]
     pub fn context_switch(&mut self, pid: u64, runtime: u64, cpu: u32) {
         if let Some(t) = self.tasks.get_mut(&pid) { t.context_switch(runtime, cpu); }
     }
 
+    #[inline(always)]
     pub fn set_nice(&mut self, pid: u64, nice: i32) {
         if let Some(t) = self.tasks.get_mut(&pid) { t.attr.nice = nice; }
     }
 
+    #[inline(always)]
     pub fn remove_task(&mut self, pid: u64) { self.tasks.remove(&pid); }
 
+    #[inline]
     pub fn stats(&self) -> SchedV2BridgeStats {
         let switches: u64 = self.tasks.values().map(|t| t.nr_switches).sum();
         let migrations: u64 = self.tasks.values().map(|t| t.nr_migrations).sum();
@@ -510,16 +539,19 @@ pub struct SchedV3DeadlineParams {
 }
 
 impl SchedV3DeadlineParams {
+    #[inline(always)]
     pub fn utilization_pct(&self) -> u64 {
         if self.period_ns == 0 { 0 } else { (self.runtime_ns * 100) / self.period_ns }
     }
 
+    #[inline(always)]
     pub fn is_feasible(&self) -> bool {
         self.runtime_ns <= self.deadline_ns && self.deadline_ns <= self.period_ns
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SchedV3EevdfState {
     pub vruntime: u64,
     pub vdeadline: u64,
@@ -533,12 +565,14 @@ impl SchedV3EevdfState {
         Self { vruntime: 0, vdeadline: 0, slice_ns: 4_000_000, lag: 0, eligible: true }
     }
 
+    #[inline]
     pub fn update_vruntime(&mut self, delta_ns: u64, weight: u32) {
         let weighted = if weight > 0 { (delta_ns * 1024) / weight as u64 } else { delta_ns };
         self.vruntime = self.vruntime.wrapping_add(weighted);
         self.vdeadline = self.vruntime.wrapping_add(self.slice_ns);
     }
 
+    #[inline(always)]
     pub fn update_lag(&mut self, avg_vruntime: u64) {
         self.lag = avg_vruntime as i64 - self.vruntime as i64;
         self.eligible = self.lag >= 0;
@@ -571,6 +605,7 @@ impl SchedV3ExtOps {
         }
     }
 
+    #[inline(always)]
     pub fn total_ops(&self) -> u64 {
         self.dispatch_count + self.select_cpu_count + self.enqueue_count
             + self.dequeue_count + self.running_count + self.stopping_count
@@ -578,6 +613,7 @@ impl SchedV3ExtOps {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SchedV3TaskState {
     pub pid: u64,
     pub policy: SchedV3Policy,
@@ -612,20 +648,24 @@ impl SchedV3TaskState {
         }
     }
 
+    #[inline]
     pub fn context_switch(&mut self, runtime_ns: u64) {
         self.total_runtime_ns += runtime_ns;
         self.nr_switches += 1;
         self.eevdf.update_vruntime(runtime_ns, self.weight);
     }
 
+    #[inline(always)]
     pub fn wakeup(&mut self) { self.nr_wakeups += 1; }
 
+    #[inline(always)]
     pub fn avg_timeslice_ns(&self) -> u64 {
         if self.nr_switches == 0 { 0 } else { self.total_runtime_ns / self.nr_switches }
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SchedV3BridgeStats {
     pub total_tasks: u64,
     pub total_switches: u64,
@@ -636,6 +676,7 @@ pub struct SchedV3BridgeStats {
     pub total_wakeups: u64,
 }
 
+#[repr(align(64))]
 pub struct BridgeSchedV3 {
     tasks: BTreeMap<u64, SchedV3TaskState>,
     ext_ops: Option<SchedV3ExtOps>,
@@ -655,6 +696,7 @@ impl BridgeSchedV3 {
         }
     }
 
+    #[inline]
     pub fn add_task(&mut self, pid: u64, policy: SchedV3Policy) {
         let task = SchedV3TaskState::new(pid, policy);
         self.tasks.insert(pid, task);
@@ -667,10 +709,12 @@ impl BridgeSchedV3 {
         }
     }
 
+    #[inline(always)]
     pub fn load_ext_ops(&mut self, name: &[u8]) {
         self.ext_ops = Some(SchedV3ExtOps::new(name));
     }
 
+    #[inline]
     pub fn record_switch(&mut self, pid: u64, runtime_ns: u64) {
         if let Some(t) = self.tasks.get_mut(&pid) {
             t.context_switch(runtime_ns);
@@ -678,6 +722,7 @@ impl BridgeSchedV3 {
         }
     }
 
+    #[inline]
     pub fn record_wakeup(&mut self, pid: u64) {
         if let Some(t) = self.tasks.get_mut(&pid) {
             t.wakeup();
@@ -685,6 +730,7 @@ impl BridgeSchedV3 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &SchedV3BridgeStats {
         &self.stats
     }

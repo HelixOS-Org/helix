@@ -22,14 +22,17 @@ pub enum EpochState {
 pub struct Epoch(pub u64);
 
 impl Epoch {
+    #[inline(always)]
     pub fn next(self) -> Self {
         Epoch(self.0.wrapping_add(1))
     }
 
+    #[inline(always)]
     pub fn distance(self, other: Epoch) -> u64 {
         self.0.wrapping_sub(other.0)
     }
 
+    #[inline(always)]
     pub fn is_safe_to_reclaim(self, current: Epoch, grace: u64) -> bool {
         current.0.wrapping_sub(self.0) >= grace
     }
@@ -78,6 +81,7 @@ impl ThreadEpoch {
         }
     }
 
+    #[inline]
     pub fn pin(&mut self, global_epoch: Epoch) {
         self.pin_count += 1;
         if self.pin_count == 1 {
@@ -87,6 +91,7 @@ impl ThreadEpoch {
         }
     }
 
+    #[inline]
     pub fn unpin(&mut self) {
         self.pin_count = self.pin_count.saturating_sub(1);
         if self.pin_count == 0 {
@@ -94,6 +99,7 @@ impl ThreadEpoch {
         }
     }
 
+    #[inline]
     pub fn defer(&mut self, drop: DeferredDrop) {
         self.total_deferred_bytes += drop.size_bytes as u64;
         self.deferred.push(drop);
@@ -122,6 +128,7 @@ impl ThreadEpoch {
         reclaimed
     }
 
+    #[inline(always)]
     pub fn pending_bytes(&self) -> u64 {
         self.deferred.iter().map(|d| d.size_bytes as u64).sum()
     }
@@ -129,6 +136,7 @@ impl ThreadEpoch {
 
 /// Epoch barrier stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EpochBarrierStats {
     pub global_epoch: u64,
     pub total_threads: u64,
@@ -173,16 +181,19 @@ impl CoopEpochBarrier {
         }
     }
 
+    #[inline(always)]
     pub fn register_thread(&mut self, thread_id: u64) {
         self.threads.insert(thread_id, ThreadEpoch::new(thread_id));
         self.stats.total_threads += 1;
     }
 
+    #[inline(always)]
     pub fn unregister_thread(&mut self, thread_id: u64) {
         self.threads.remove(&thread_id);
         self.stats.total_threads = self.stats.total_threads.saturating_sub(1);
     }
 
+    #[inline]
     pub fn pin(&mut self, thread_id: u64) {
         if let Some(t) = self.threads.get_mut(&thread_id) {
             t.pin(self.global_epoch);
@@ -190,6 +201,7 @@ impl CoopEpochBarrier {
         }
     }
 
+    #[inline]
     pub fn unpin(&mut self, thread_id: u64) {
         if let Some(t) = self.threads.get_mut(&thread_id) {
             t.unpin();
@@ -257,10 +269,12 @@ impl CoopEpochBarrier {
         (total_count, total_bytes)
     }
 
+    #[inline(always)]
     pub fn set_grace_epochs(&mut self, grace: u64) {
         self.grace_epochs = grace;
     }
 
+    #[inline]
     pub fn lagging_threads(&self) -> Vec<u64> {
         self.threads.iter()
             .filter(|(_, t)| {
@@ -270,6 +284,7 @@ impl CoopEpochBarrier {
             .collect()
     }
 
+    #[inline]
     pub fn heaviest_threads(&self, top: usize) -> Vec<(u64, u64)> {
         let mut v: Vec<(u64, u64)> = self.threads.iter()
             .map(|(&tid, t)| (tid, t.pending_bytes()))
@@ -279,10 +294,12 @@ impl CoopEpochBarrier {
         v
     }
 
+    #[inline(always)]
     pub fn current_epoch(&self) -> Epoch {
         self.global_epoch
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &EpochBarrierStats {
         &self.stats
     }

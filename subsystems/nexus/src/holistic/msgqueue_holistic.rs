@@ -23,6 +23,7 @@ impl MsgqueueHolisticRecord {
 
 /// Msgqueue holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsgqueueHolisticStats { pub total_samples: u64, pub overflows: u64, pub near_full: u64, pub peak_depth: u32 }
 
 /// Main holistic msgqueue
@@ -31,6 +32,7 @@ pub struct HolisticMsgqueue { pub stats: MsgqueueHolisticStats }
 
 impl HolisticMsgqueue {
     pub fn new() -> Self { Self { stats: MsgqueueHolisticStats { total_samples: 0, overflows: 0, near_full: 0, peak_depth: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &MsgqueueHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.state {

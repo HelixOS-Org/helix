@@ -31,6 +31,7 @@ pub struct CoopExecRecord {
 
 /// Exec cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopExecStats {
     pub total_execs: u64,
     pub successful: u64,
@@ -93,6 +94,7 @@ impl CoopExecManager {
         CoopExecPhase::Complete
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopExecStats {
         &self.stats
     }

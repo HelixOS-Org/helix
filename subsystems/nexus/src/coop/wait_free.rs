@@ -38,7 +38,9 @@ impl WaitFreeAnnouncement {
         Self { thread_id, op_type, sequence: seq, progress: WaitFreeProgress::Pending, helped_by: None }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self) { self.progress = WaitFreeProgress::Completed; }
+    #[inline(always)]
     pub fn help(&mut self, helper: u32) {
         self.progress = WaitFreeProgress::Helping;
         self.helped_by = Some(helper);
@@ -59,12 +61,14 @@ impl WaitFreeRegister {
         Self { id, value: AtomicU64::new(0), version: AtomicU64::new(0), reads: 0, writes: 0 }
     }
 
+    #[inline]
     pub fn read(&self) -> (u64, u64) {
         let ver = self.version.load(Ordering::Acquire);
         let val = self.value.load(Ordering::Acquire);
         (val, ver)
     }
 
+    #[inline(always)]
     pub fn write(&self, val: u64) -> u64 {
         self.value.store(val, Ordering::Release);
         self.version.fetch_add(1, Ordering::Release)
@@ -72,6 +76,7 @@ impl WaitFreeRegister {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WaitFreeThreadState {
     pub thread_id: u32,
     pub total_ops: u64,
@@ -85,16 +90,21 @@ impl WaitFreeThreadState {
         Self { thread_id, total_ops: 0, total_helps_given: 0, total_helps_received: 0, max_phase: 0 }
     }
 
+    #[inline(always)]
     pub fn record_op(&mut self) { self.total_ops += 1; }
+    #[inline(always)]
     pub fn record_help_given(&mut self) { self.total_helps_given += 1; }
+    #[inline(always)]
     pub fn record_help_received(&mut self) { self.total_helps_received += 1; }
 
+    #[inline(always)]
     pub fn help_ratio(&self) -> u64 {
         if self.total_ops == 0 { 0 } else { (self.total_helps_given * 100) / self.total_ops }
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct WaitFreeStats {
     pub total_threads: u32,
     pub total_ops: u64,
@@ -124,11 +134,13 @@ impl CoopWaitFree {
         }
     }
 
+    #[inline(always)]
     pub fn register_thread(&mut self, id: u32) {
         self.threads.insert(id, WaitFreeThreadState::new(id));
         self.stats.total_threads += 1;
     }
 
+    #[inline]
     pub fn announce(&mut self, thread_id: u32, op_type: WaitFreeOpType) -> u64 {
         let seq = self.next_seq.fetch_add(1, Ordering::Relaxed);
         self.announcements.push(WaitFreeAnnouncement::new(thread_id, op_type, seq));
@@ -155,5 +167,6 @@ impl CoopWaitFree {
         helped
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &WaitFreeStats { &self.stats }
 }

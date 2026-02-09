@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -88,9 +89,10 @@ pub struct SynthStrategy {
 
 /// Per-app observation buffer for synthesis.
 #[derive(Clone, Debug)]
+#[repr(align(64))]
 pub struct AppObservationBuffer {
     pub app_id: u64,
-    pub samples: Vec<[u64; 4]>,
+    pub samples: VecDeque<[u64; 4]>,
     pub sample_count: u64,
 }
 
@@ -107,6 +109,7 @@ pub struct EvolutionRecord {
 
 /// Statistics for the synthesis engine.
 #[derive(Clone, Debug, Default)]
+#[repr(align(64))]
 pub struct SynthesisStats {
     pub total_dimensions: u64,
     pub total_features: u64,
@@ -154,11 +157,11 @@ impl AppsSynthesisEngine {
     pub fn feed_sample(&mut self, app_id: u64, cpu: u64, mem: u64, io: u64, ipc: u64) {
         let buf = self.observations.entry(app_id).or_insert(AppObservationBuffer {
             app_id,
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             sample_count: 0,
         });
         if buf.samples.len() >= 256 {
-            buf.samples.remove(0);
+            buf.samples.pop_front().unwrap();
         }
         buf.samples.push([cpu, mem, io, ipc]);
         buf.sample_count += 1;
@@ -279,6 +282,7 @@ impl AppsSynthesisEngine {
     }
 
     /// Compute the overall impact of synthesis on understanding quality (0–100).
+    #[inline]
     pub fn synthesis_impact(&self) -> u64 {
         let dim_factor = (self.stats.total_dimensions * 3).min(100);
         let feat_factor = (self.stats.total_features * 2).min(100);
@@ -288,6 +292,7 @@ impl AppsSynthesisEngine {
     }
 
     /// Return current statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &SynthesisStats {
         &self.stats
     }

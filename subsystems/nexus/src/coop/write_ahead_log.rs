@@ -60,10 +60,12 @@ impl WalEntry {
         hash
     }
 
+    #[inline(always)]
     pub fn verify(&self) -> bool {
         self.checksum == Self::compute_checksum(self.lsn, self.entry_type as u8, self.table_id, &self.key, self.data_size)
     }
 
+    #[inline(always)]
     pub fn is_tx_boundary(&self) -> bool {
         matches!(self.entry_type, WalEntryType::BeginTx | WalEntryType::CommitTx | WalEntryType::AbortTx)
     }
@@ -92,10 +94,12 @@ impl WalSegment {
         }
     }
 
+    #[inline(always)]
     pub fn can_append(&self, entry_size: usize) -> bool {
         !self.sealed && self.byte_size + entry_size <= self.max_byte_size
     }
 
+    #[inline]
     pub fn append(&mut self, entry: WalEntry) {
         let size = entry.data_size + 128; // overhead
         self.last_lsn = entry.lsn;
@@ -104,14 +108,18 @@ impl WalSegment {
         self.entries.push(entry);
     }
 
+    #[inline(always)]
     pub fn seal(&mut self) { self.sealed = true; }
 
+    #[inline(always)]
     pub fn entries(&self) -> &[WalEntry] { &self.entries }
 
+    #[inline(always)]
     pub fn entries_from(&self, lsn: u64) -> Vec<&WalEntry> {
         self.entries.iter().filter(|e| e.lsn >= lsn).collect()
     }
 
+    #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
         if self.max_byte_size == 0 { return 0.0; }
         self.byte_size as f64 / self.max_byte_size as f64
@@ -140,6 +148,7 @@ pub struct ActiveTransaction {
 
 /// WAL stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct WalStats {
     pub total_segments: usize,
     pub sealed_segments: usize,
@@ -226,6 +235,7 @@ impl CoopWriteAheadLog {
         lsn
     }
 
+    #[inline]
     pub fn checkpoint(&mut self, ts: u64) -> u64 {
         let cp_id = self.checkpoints.len() as u64 + 1;
         let active: Vec<u64> = self.active_txs.keys().copied().collect();
@@ -236,6 +246,7 @@ impl CoopWriteAheadLog {
         cp_id
     }
 
+    #[inline]
     pub fn truncate_before(&mut self, lsn: u64) {
         let to_remove: Vec<u64> = self.segments.iter()
             .filter(|(_, s)| s.last_lsn < lsn && s.sealed)
@@ -247,6 +258,7 @@ impl CoopWriteAheadLog {
         }
     }
 
+    #[inline]
     pub fn replay_from(&self, lsn: u64) -> Vec<&WalEntry> {
         let mut entries: Vec<&WalEntry> = Vec::new();
         for seg in self.segments.values() {
@@ -257,6 +269,7 @@ impl CoopWriteAheadLog {
         entries
     }
 
+    #[inline]
     pub fn verify_integrity(&mut self) -> usize {
         let mut failures = 0;
         for seg in self.segments.values() {
@@ -268,6 +281,7 @@ impl CoopWriteAheadLog {
         failures
     }
 
+    #[inline(always)]
     pub fn last_checkpoint_lsn(&self) -> u64 {
         self.checkpoints.last().map(|c| c.lsn).unwrap_or(0)
     }
@@ -285,5 +299,6 @@ impl CoopWriteAheadLog {
         self.stats.truncated_segments = self.truncated_segments;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &WalStats { &self.stats }
 }

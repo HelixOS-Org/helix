@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Lock type in the system
@@ -77,28 +77,44 @@ impl LockInstance {
         }
     }
 
+    #[inline(always)]
     pub fn avg_hold_ns(&self) -> u64 {
-        if self.acquire_count == 0 { return 0; }
+        if self.acquire_count == 0 {
+            return 0;
+        }
         self.total_hold_ns / self.acquire_count
     }
 
+    #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
-        if self.contention_count == 0 { return 0; }
+        if self.contention_count == 0 {
+            return 0;
+        }
         self.total_wait_ns / self.contention_count
     }
 
+    #[inline(always)]
     pub fn contention_ratio(&self) -> f64 {
-        if self.acquire_count == 0 { return 0.0; }
+        if self.acquire_count == 0 {
+            return 0.0;
+        }
         self.contention_count as f64 / self.acquire_count as f64
     }
 
+    #[inline]
     pub fn severity(&self) -> ContentionLevel {
         let ratio = self.contention_ratio();
-        if ratio > 0.5 { ContentionLevel::Severe }
-        else if ratio > 0.3 { ContentionLevel::High }
-        else if ratio > 0.1 { ContentionLevel::Moderate }
-        else if ratio > 0.01 { ContentionLevel::Low }
-        else { ContentionLevel::None }
+        if ratio > 0.5 {
+            ContentionLevel::Severe
+        } else if ratio > 0.3 {
+            ContentionLevel::High
+        } else if ratio > 0.1 {
+            ContentionLevel::Moderate
+        } else if ratio > 0.01 {
+            ContentionLevel::Low
+        } else {
+            ContentionLevel::None
+        }
     }
 }
 
@@ -188,15 +204,21 @@ impl LockDepGraph {
     pub fn has_cycle(&self) -> bool {
         let mut nodes: Vec<u64> = Vec::new();
         for e in &self.edges {
-            if !nodes.contains(&e.lock_a) { nodes.push(e.lock_a); }
-            if !nodes.contains(&e.lock_b) { nodes.push(e.lock_b); }
+            if !nodes.contains(&e.lock_a) {
+                nodes.push(e.lock_a);
+            }
+            if !nodes.contains(&e.lock_b) {
+                nodes.push(e.lock_b);
+            }
         }
 
         for &start in &nodes {
             let mut visited: Vec<u64> = Vec::new();
             let mut stack: Vec<u64> = alloc::vec![start];
             while let Some(node) = stack.pop() {
-                if visited.contains(&node) { return true; }
+                if visited.contains(&node) {
+                    return true;
+                }
                 visited.push(node);
                 for e in &self.edges {
                     if e.lock_a == node {
@@ -211,6 +233,7 @@ impl LockDepGraph {
 
 /// Holistic Lock Contention stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticLockContentionStats {
     pub total_locks: usize,
     pub contended_locks: usize,
@@ -224,7 +247,7 @@ pub struct HolisticLockContentionStats {
 pub struct HolisticLockContention {
     locks: BTreeMap<u64, LockInstance>,
     dep_graph: LockDepGraph,
-    inversions: Vec<PriorityInversionHolistic>,
+    inversions: VecDeque<PriorityInversionHolistic>,
     max_inversions: usize,
     stats: HolisticLockContentionStats,
 }
@@ -234,51 +257,68 @@ impl HolisticLockContention {
         Self {
             locks: BTreeMap::new(),
             dep_graph: LockDepGraph::new(),
-            inversions: Vec::new(),
+            inversions: VecDeque::new(),
             max_inversions,
             stats: HolisticLockContentionStats::default(),
         }
     }
 
+    #[inline(always)]
     pub fn register_lock(&mut self, lock: LockInstance) {
         self.locks.insert(lock.lock_id, lock);
     }
 
-    pub fn record_acquire(&mut self, lock_id: u64, task_id: u64, waited: bool, wait_ns: u64, ts: u64) {
+    pub fn record_acquire(
+        &mut self,
+        lock_id: u64,
+        task_id: u64,
+        waited: bool,
+        wait_ns: u64,
+        ts: u64,
+    ) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.acquire_count += 1;
             lock.current_holder = Some(task_id);
             if waited {
                 lock.contention_count += 1;
                 lock.total_wait_ns += wait_ns;
-                if wait_ns > lock.max_wait_ns { lock.max_wait_ns = wait_ns; }
+                if wait_ns > lock.max_wait_ns {
+                    lock.max_wait_ns = wait_ns;
+                }
             }
             let _ = ts;
         }
     }
 
+    #[inline]
     pub fn record_release(&mut self, lock_id: u64, hold_ns: u64) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.current_holder = None;
             lock.total_hold_ns += hold_ns;
-            if hold_ns > lock.max_hold_ns { lock.max_hold_ns = hold_ns; }
+            if hold_ns > lock.max_hold_ns {
+                lock.max_hold_ns = hold_ns;
+            }
         }
     }
 
+    #[inline(always)]
     pub fn record_order(&mut self, held_lock: u64, acquiring_lock: u64, task: u64) {
         self.dep_graph.add_edge(held_lock, acquiring_lock, task);
     }
 
+    #[inline]
     pub fn record_inversion(&mut self, inv: PriorityInversionHolistic) {
-        self.inversions.push(inv);
+        self.inversions.push_back(inv);
         while self.inversions.len() > self.max_inversions {
-            self.inversions.remove(0);
+            self.inversions.pop_front();
         }
     }
 
     /// Find contention hotspots
+    #[inline]
     pub fn hotspots(&self, min_severity: ContentionLevel) -> Vec<ContentionHotspot> {
-        self.locks.values()
+        self.locks
+            .values()
             .filter(|l| l.severity() >= min_severity)
             .map(|l| ContentionHotspot {
                 lock_id: l.lock_id,
@@ -289,19 +329,34 @@ impl HolisticLockContention {
             .collect()
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_locks = self.locks.len();
-        self.stats.contended_locks = self.locks.values()
-            .filter(|l| l.contention_count > 0).count();
-        self.stats.severe_hotspots = self.locks.values()
-            .filter(|l| l.severity() >= ContentionLevel::Severe).count();
+        self.stats.contended_locks = self
+            .locks
+            .values()
+            .filter(|l| l.contention_count > 0)
+            .count();
+        self.stats.severe_hotspots = self
+            .locks
+            .values()
+            .filter(|l| l.severity() >= ContentionLevel::Severe)
+            .count();
         self.stats.ordering_violations = self.dep_graph.ordering_violations().len();
         self.stats.priority_inversions = self.inversions.len() as u64;
-        self.stats.total_contention_ns = self.locks.values()
-            .map(|l| l.total_wait_ns).sum();
+        self.stats.total_contention_ns = self.locks.values().map(|l| l.total_wait_ns).sum();
     }
 
-    pub fn lock(&self, id: u64) -> Option<&LockInstance> { self.locks.get(&id) }
-    pub fn has_deadlock_risk(&self) -> bool { self.dep_graph.has_cycle() }
-    pub fn stats(&self) -> &HolisticLockContentionStats { &self.stats }
+    #[inline(always)]
+    pub fn lock(&self, id: u64) -> Option<&LockInstance> {
+        self.locks.get(&id)
+    }
+    #[inline(always)]
+    pub fn has_deadlock_risk(&self) -> bool {
+        self.dep_graph.has_cycle()
+    }
+    #[inline(always)]
+    pub fn stats(&self) -> &HolisticLockContentionStats {
+        &self.stats
+    }
 }

@@ -185,6 +185,7 @@ impl ScaledDotProductAttention {
     }
 
     /// Create causal attention (for autoregressive models)
+    #[inline]
     pub fn causal(d_k: usize) -> Self {
         Self {
             scale: 1.0 / libm::sqrt(d_k as f64),
@@ -404,6 +405,7 @@ impl MultiHeadAttention {
     }
 
     /// Create with causal masking
+    #[inline]
     pub fn causal(d_model: usize, num_heads: usize, seed: u64) -> Self {
         let mut mha = Self::new(d_model, num_heads, seed);
         mha.attention.mask = AttentionMask::Causal;
@@ -468,6 +470,7 @@ impl MultiHeadAttention {
     }
 
     /// Self-attention (query = key = value)
+    #[inline(always)]
     pub fn self_attention(&mut self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         self.forward(input, input, input)
     }
@@ -1042,6 +1045,7 @@ impl CrossAttention {
     }
 
     /// Forward pass
+    #[inline]
     pub fn forward(&mut self, query: &[Vec<f64>], context: &[Vec<f64>]) -> Vec<Vec<f64>> {
         let q_proj = self.w_q.forward(query);
         let k_proj = self.w_k.forward(context);
@@ -1223,6 +1227,7 @@ impl KernelAttentionManager {
     }
 
     /// Select attention type based on sequence length
+    #[inline]
     pub fn auto_select(&mut self, seq_len: usize) {
         self.active_type = if seq_len <= 512 {
             KernelAttentionType::Full
@@ -1236,6 +1241,7 @@ impl KernelAttentionManager {
     }
 
     /// Apply attention using current type
+    #[inline]
     pub fn apply(
         &mut self,
         query: &[Vec<f64>],
@@ -1253,12 +1259,14 @@ impl KernelAttentionManager {
     }
 
     /// Self-attention helper
+    #[inline(always)]
     pub fn self_attention(&mut self, input: &[Vec<f64>]) -> Vec<Vec<f64>> {
         self.auto_select(input.len());
         self.apply(input, input, input)
     }
 
     /// Get attention statistics
+    #[inline]
     pub fn get_stats(&self) -> AttentionStats {
         AttentionStats {
             d_model: self.d_model,
@@ -1271,6 +1279,7 @@ impl KernelAttentionManager {
 
 /// Attention statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AttentionStats {
     /// Model dimension
     pub d_model: usize,

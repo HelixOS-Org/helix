@@ -8,6 +8,7 @@
 
 /// Interface statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct InterfaceStats {
     // RX stats
     /// Received bytes
@@ -53,21 +54,25 @@ impl InterfaceStats {
     }
 
     /// Total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.rx_bytes + self.tx_bytes
     }
 
     /// Total packets
+    #[inline(always)]
     pub fn total_packets(&self) -> u64 {
         self.rx_packets + self.tx_packets
     }
 
     /// Total errors
+    #[inline(always)]
     pub fn total_errors(&self) -> u64 {
         self.rx_errors + self.tx_errors
     }
 
     /// Error rate
+    #[inline]
     pub fn error_rate(&self) -> f32 {
         let total = self.total_packets();
         if total > 0 {
@@ -78,6 +83,7 @@ impl InterfaceStats {
     }
 
     /// Drop rate
+    #[inline]
     pub fn drop_rate(&self) -> f32 {
         let total = self.total_packets();
         if total > 0 {
@@ -88,6 +94,7 @@ impl InterfaceStats {
     }
 
     /// Average packet size
+    #[inline]
     pub fn avg_packet_size(&self) -> u64 {
         let total_packets = self.total_packets();
         if total_packets > 0 {
@@ -104,6 +111,7 @@ impl InterfaceStats {
 
 /// Ring buffer statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RingStats {
     /// RX ring size
     pub rx_pending: u32,
@@ -122,6 +130,7 @@ impl RingStats {
     }
 
     /// RX utilization
+    #[inline]
     pub fn rx_utilization(&self) -> f32 {
         if self.rx_max > 0 {
             self.rx_pending as f32 / self.rx_max as f32
@@ -131,6 +140,7 @@ impl RingStats {
     }
 
     /// TX utilization
+    #[inline]
     pub fn tx_utilization(&self) -> f32 {
         if self.tx_max > 0 {
             self.tx_pending as f32 / self.tx_max as f32
@@ -146,6 +156,7 @@ impl RingStats {
 
 /// Queue statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct QueueStats {
     /// Bytes
     pub bytes: u64,

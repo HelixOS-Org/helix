@@ -8,6 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -102,6 +103,7 @@ pub struct Trace {
 
 /// Trace context for propagation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TraceContext {
     /// Trace ID
     pub trace_id: u64,
@@ -162,6 +164,7 @@ impl Default for TracerConfig {
 
 /// Tracer statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TracerStats {
     /// Total traces started
     pub total_traces: u64,
@@ -287,11 +290,13 @@ impl Tracer {
     }
 
     /// Finish span with OK status
+    #[inline(always)]
     pub fn finish_span_ok(&mut self, span_id: u64) {
         self.finish_span(span_id, SpanStatus::Ok);
     }
 
     /// Finish span with error
+    #[inline]
     pub fn finish_span_error(&mut self, span_id: u64, error: &str) {
         if let Some(span) = self.active_spans.get_mut(&span_id) {
             span.tags.insert("error".into(), "true".into());
@@ -301,6 +306,7 @@ impl Tracer {
     }
 
     /// Add tag to span
+    #[inline]
     pub fn tag(&mut self, span_id: u64, key: &str, value: &str) {
         if let Some(span) = self.active_spans.get_mut(&span_id) {
             span.tags.insert(key.into(), value.into());
@@ -322,6 +328,7 @@ impl Tracer {
     }
 
     /// Set baggage
+    #[inline]
     pub fn set_baggage(&mut self, context: &mut TraceContext, key: &str, value: &str) {
         if self.config.enable_baggage {
             context.baggage.insert(key.into(), value.into());
@@ -334,6 +341,7 @@ impl Tracer {
     }
 
     /// Get baggage
+    #[inline(always)]
     pub fn get_baggage(&self, context: &TraceContext, key: &str) -> Option<&String> {
         context.baggage.get(key)
     }
@@ -392,11 +400,13 @@ impl Tracer {
     }
 
     /// Get active span
+    #[inline(always)]
     pub fn get_span(&self, span_id: u64) -> Option<&Span> {
         self.active_spans.get(&span_id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &TracerStats {
         &self.stats
     }
@@ -424,12 +434,14 @@ impl<'a> SpanBuilder<'a> {
     }
 
     /// Add a tag
+    #[inline(always)]
     pub fn tag(mut self, key: &str, value: &str) -> Self {
         self.tags.insert(key.into(), value.into());
         self
     }
 
     /// Apply tags to span
+    #[inline]
     pub fn apply(self) -> TraceContext {
         for (key, value) in self.tags {
             self.tracer.tag(self.context.span_id, &key, &value);
@@ -445,7 +457,7 @@ impl<'a> SpanBuilder<'a> {
 /// Analyzes traces for patterns
 pub struct TraceAnalyzer {
     /// Traces
-    traces: Vec<Trace>,
+    traces: VecDeque<Trace>,
     /// Maximum traces to keep
     max_traces: usize,
 }
@@ -454,17 +466,18 @@ impl TraceAnalyzer {
     /// Create a new analyzer
     pub fn new(max_traces: usize) -> Self {
         Self {
-            traces: Vec::new(),
+            traces: VecDeque::new(),
             max_traces,
         }
     }
 
     /// Add a trace
+    #[inline]
     pub fn add_trace(&mut self, trace: Trace) {
         if self.traces.len() >= self.max_traces {
-            self.traces.remove(0);
+            self.traces.pop_front();
         }
-        self.traces.push(trace);
+        self.traces.push_back(trace);
     }
 
     /// Get average trace duration
@@ -484,7 +497,7 @@ impl TraceAnalyzer {
 
     /// Get slowest traces
     pub fn slowest(&self, n: usize) -> Vec<&Trace> {
-        let mut traces: Vec<_> = self.traces.iter().collect();
+        let mut traces: VecDeque<_> = self.traces.iter().collect();
         traces.sort_by(|a, b| {
             let dur_a = a
                 .end_time
@@ -501,6 +514,7 @@ impl TraceAnalyzer {
     }
 
     /// Get traces with errors
+    #[inline]
     pub fn with_errors(&self) -> Vec<&Trace> {
         self.traces
             .iter()
@@ -509,6 +523,7 @@ impl TraceAnalyzer {
     }
 
     /// Get spans by operation
+    #[inline]
     pub fn spans_by_operation(&self, operation: &str) -> Vec<&Span> {
         self.traces
             .iter()
@@ -547,11 +562,13 @@ impl TraceAnalyzer {
     }
 
     /// Get trace count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.traces.len()
     }
 
     /// Clear traces
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.traces.clear();
     }

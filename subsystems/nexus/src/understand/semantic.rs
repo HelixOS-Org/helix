@@ -18,6 +18,7 @@ pub struct SymbolId(pub u64);
 
 impl SymbolId {
     /// Create new symbol ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
@@ -124,11 +125,13 @@ impl Scope {
     }
 
     /// Add symbol
+    #[inline(always)]
     pub fn add_symbol(&mut self, name: String, id: SymbolId) {
         self.symbols.insert(name, id);
     }
 
     /// Lookup symbol
+    #[inline(always)]
     pub fn lookup(&self, name: &str) -> Option<SymbolId> {
         self.symbols.get(name).copied()
     }
@@ -163,6 +166,7 @@ impl SemanticModel {
     }
 
     /// Create symbol
+    #[inline]
     pub fn create_symbol(&mut self, name: String, kind: SymbolKind, span: Span) -> SymbolId {
         let id = SymbolId(self.symbol_counter.fetch_add(1, Ordering::Relaxed));
         let symbol = Symbol::new(id, name, kind, span);
@@ -171,11 +175,13 @@ impl SemanticModel {
     }
 
     /// Get symbol
+    #[inline(always)]
     pub fn get_symbol(&self, id: SymbolId) -> Option<&Symbol> {
         self.symbols.get(&id)
     }
 
     /// Get symbol mutably
+    #[inline(always)]
     pub fn get_symbol_mut(&mut self, id: SymbolId) -> Option<&mut Symbol> {
         self.symbols.get_mut(&id)
     }
@@ -196,11 +202,13 @@ impl SemanticModel {
     }
 
     /// Get scope
+    #[inline(always)]
     pub fn get_scope(&self, id: SymbolId) -> Option<&Scope> {
         self.scopes.get(&id)
     }
 
     /// Get scope mutably
+    #[inline(always)]
     pub fn get_scope_mut(&mut self, id: SymbolId) -> Option<&mut Scope> {
         self.scopes.get_mut(&id)
     }
@@ -224,6 +232,7 @@ impl SemanticModel {
     }
 
     /// Symbol count
+    #[inline(always)]
     pub fn symbol_count(&self) -> usize {
         self.symbols.len()
     }

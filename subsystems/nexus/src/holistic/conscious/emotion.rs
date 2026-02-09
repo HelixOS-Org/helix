@@ -131,11 +131,13 @@ impl SystemEmotion {
     }
 
     /// Whether this emotion is negative / stress-inducing
+    #[inline(always)]
     pub fn is_negative(&self) -> bool {
         matches!(self, SystemEmotion::SystemStress | SystemEmotion::SystemAlarm)
     }
 
     /// Whether this emotion is positive / restorative
+    #[inline]
     pub fn is_positive(&self) -> bool {
         matches!(
             self,
@@ -195,6 +197,7 @@ impl SystemEmotionSignal {
     }
 
     /// Observe a new raw value and update EMA
+    #[inline]
     pub fn observe(&mut self, raw: f32, tick: u64) {
         let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
         self.raw_intensity = clamped;
@@ -211,6 +214,7 @@ impl SystemEmotionSignal {
     }
 
     /// Decay this emotion toward baseline with stochastic jitter
+    #[inline]
     pub fn decay(&mut self, rng: &mut u64) {
         let jitter_raw = xorshift64(rng);
         let jitter = (jitter_raw % 100) as f32 / 100_000.0;
@@ -298,6 +302,7 @@ pub struct EmotionForecast {
 
 /// Statistics for the holistic emotion engine
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticEmotionStats {
     pub total_observations: u64,
     pub total_fusions: u64,
@@ -391,11 +396,13 @@ impl HolisticEmotionEngine {
     }
 
     /// Retrieve the current dominant system emotion
+    #[inline(always)]
     pub fn system_emotion(&self) -> SystemEmotion {
         self.landscape.dominant
     }
 
     /// Compute and return the full emotional landscape
+    #[inline]
     pub fn emotional_landscape(&mut self, tick: u64) -> &EmotionalLandscape {
         self.tick = tick;
         self.recompute_landscape();
@@ -430,12 +437,14 @@ impl HolisticEmotionEngine {
     }
 
     /// Aggregate stress across all subsystems
+    #[inline(always)]
     pub fn stress_aggregate(&self) -> f32 {
         let stress_idx = 0u8; // SystemStress is index 0
         self.signals.get(&stress_idx).map_or(0.0, |s| s.intensity)
     }
 
     /// Aggregate confidence across all subsystems
+    #[inline]
     pub fn confidence_aggregate(&self) -> f32 {
         let confidence_idx = 1u8; // SystemConfidence is index 1
         self.signals
@@ -474,6 +483,7 @@ impl HolisticEmotionEngine {
     }
 
     /// Return snapshot of emotion history for a given emotion kind
+    #[inline]
     pub fn emotion_history(&self, kind_idx: u8) -> Vec<f32> {
         self.signals
             .get(&kind_idx)
@@ -482,6 +492,7 @@ impl HolisticEmotionEngine {
     }
 
     /// Ingest a subsystem's emotion report
+    #[inline]
     pub fn ingest_subsystem(&mut self, input: SubsystemEmotionInput) {
         let id = input.subsystem_id;
         self.stats.total_observations += 1;
@@ -489,6 +500,7 @@ impl HolisticEmotionEngine {
     }
 
     /// Decay all emotion signals
+    #[inline]
     pub fn decay_all(&mut self) {
         for (_idx, signal) in self.signals.iter_mut() {
             signal.decay(&mut self.rng);
@@ -496,22 +508,26 @@ impl HolisticEmotionEngine {
     }
 
     /// Get engine statistics
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticEmotionStats {
         &self.stats
     }
 
     /// Get intensity of a specific emotion
+    #[inline(always)]
     pub fn emotion_intensity(&self, kind_idx: u8) -> f32 {
         self.signals.get(&kind_idx).map_or(0.0, |s| s.intensity)
     }
 
     /// Check if system is in alarm state
+    #[inline(always)]
     pub fn is_alarm_active(&self) -> bool {
         let alarm_idx = 4u8; // SystemAlarm
         self.signals.get(&alarm_idx).map_or(false, |s| s.intensity > ALARM_CRITICAL)
     }
 
     /// Check if system is serene
+    #[inline(always)]
     pub fn is_serene(&self) -> bool {
         let serenity_idx = 5u8; // SystemSerenity
         self.signals.get(&serenity_idx).map_or(false, |s| s.intensity > SERENITY_THRESHOLD)

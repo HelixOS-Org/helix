@@ -22,6 +22,7 @@ impl ZerocopyCoopRecord {
 
 /// Zerocopy coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ZerocopyCoopStats { pub total_events: u64, pub page_shares: u64, pub splices: u64, pub bytes_saved: u64 }
 
 /// Main coop zerocopy
@@ -30,6 +31,7 @@ pub struct CoopZerocopy { pub stats: ZerocopyCoopStats }
 
 impl CoopZerocopy {
     pub fn new() -> Self { Self { stats: ZerocopyCoopStats { total_events: 0, page_shares: 0, splices: 0, bytes_saved: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &ZerocopyCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

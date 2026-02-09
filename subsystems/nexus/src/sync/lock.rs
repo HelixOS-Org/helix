@@ -48,6 +48,7 @@ impl LockInfo {
     }
 
     /// Contention ratio
+    #[inline]
     pub fn contention_ratio(&self) -> f64 {
         if self.acquisitions == 0 {
             0.0
@@ -57,11 +58,13 @@ impl LockInfo {
     }
 
     /// Is highly contended?
+    #[inline(always)]
     pub fn is_highly_contended(&self) -> bool {
         self.contention_ratio() > 0.3
     }
 
     /// Add waiter
+    #[inline]
     pub fn add_waiter(&mut self, thread: ThreadId) {
         if !self.waiters.contains(&thread) {
             self.waiters.push(thread);
@@ -69,6 +72,7 @@ impl LockInfo {
     }
 
     /// Remove waiter
+    #[inline(always)]
     pub fn remove_waiter(&mut self, thread: ThreadId) {
         self.waiters.retain(|&t| t != thread);
     }

@@ -28,6 +28,7 @@ pub struct LogIndex(pub u64);
 static PROPOSAL_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 impl ProposalNumber {
+    #[inline(always)]
     pub fn generate() -> Self {
         Self(PROPOSAL_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
@@ -115,6 +116,7 @@ pub enum ConfigCommand {
 // ============================================================================
 
 /// Raft state
+#[repr(align(64))]
 pub struct RaftState {
     /// Current term
     current_term: Term,
@@ -230,6 +232,7 @@ impl RaftState {
     }
 
     /// Append entry to log
+    #[inline]
     pub fn append_entry(&mut self, command: Command) -> LogIndex {
         let index = LogIndex(self.log.len() as u64 + 1);
         self.log.push(LogEntry {
@@ -316,31 +319,37 @@ impl RaftState {
     }
 
     /// Get last log index
+    #[inline(always)]
     pub fn last_log_index(&self) -> LogIndex {
         self.log.last().map(|e| e.index).unwrap_or(LogIndex(0))
     }
 
     /// Get last log term
+    #[inline(always)]
     pub fn last_log_term(&self) -> Term {
         self.log.last().map(|e| e.term).unwrap_or(Term(0))
     }
 
     /// Get current term
+    #[inline(always)]
     pub fn current_term(&self) -> Term {
         self.current_term
     }
 
     /// Is leader
+    #[inline(always)]
     pub fn is_leader(&self) -> bool {
         self.role == ConsensusRole::Leader
     }
 
     /// Get leader
+    #[inline(always)]
     pub fn leader(&self) -> Option<NodeId> {
         self.leader_id
     }
 
     /// Add member
+    #[inline]
     pub fn add_member(&mut self, node_id: NodeId) {
         if !self.members.contains(&node_id) {
             self.members.push(node_id);
@@ -348,11 +357,13 @@ impl RaftState {
     }
 
     /// Remove member
+    #[inline(always)]
     pub fn remove_member(&mut self, node_id: NodeId) {
         self.members.retain(|&m| m != node_id);
     }
 
     /// Get committed entries
+    #[inline]
     pub fn committed_entries(&self) -> Vec<&LogEntry> {
         self.log
             .iter()
@@ -422,6 +433,7 @@ pub struct AppendEntriesResponse {
 // ============================================================================
 
 /// Paxos state
+#[repr(align(64))]
 pub struct PaxosState {
     /// Proposer state
     proposer: ProposerState,
@@ -437,6 +449,7 @@ pub struct PaxosState {
 
 /// Proposer state
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ProposerState {
     /// Current proposal number
     proposal_number: ProposalNumber,
@@ -452,6 +465,7 @@ pub struct ProposerState {
 
 /// Acceptor state
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AcceptorState {
     /// Highest promised
     promised: ProposalNumber,
@@ -463,6 +477,7 @@ pub struct AcceptorState {
 
 /// Learner state
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LearnerState {
     /// Learned values
     learned: BTreeMap<ProposalNumber, Vec<u8>>,
@@ -481,6 +496,7 @@ impl PaxosState {
     }
 
     /// Prepare (Phase 1a)
+    #[inline]
     pub fn prepare(&mut self, value: Vec<u8>) -> Prepare {
         self.proposer.proposal_number = ProposalNumber::generate();
         self.proposer.proposed_value = Some(value);
@@ -681,6 +697,7 @@ impl Default for ConsensusConfig {
 
 /// Consensus statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ConsensusStats {
     /// Elections held
     pub elections: u64,
@@ -706,11 +723,13 @@ impl ConsensusEngine {
     }
 
     /// Start the engine
+    #[inline(always)]
     pub fn start(&self) {
         self.running.store(true, Ordering::Release);
     }
 
     /// Stop the engine
+    #[inline(always)]
     pub fn stop(&self) {
         self.running.store(false, Ordering::Release);
     }
@@ -736,6 +755,7 @@ impl ConsensusEngine {
     }
 
     /// Is leader
+    #[inline]
     pub fn is_leader(&self) -> bool {
         match self.algorithm {
             ConsensusAlgorithm::Raft => self.raft.is_leader(),
@@ -744,6 +764,7 @@ impl ConsensusEngine {
     }
 
     /// Get leader
+    #[inline]
     pub fn leader(&self) -> Option<NodeId> {
         match self.algorithm {
             ConsensusAlgorithm::Raft => self.raft.leader(),
@@ -752,16 +773,19 @@ impl ConsensusEngine {
     }
 
     /// Get Raft state
+    #[inline(always)]
     pub fn raft(&self) -> &RaftState {
         &self.raft
     }
 
     /// Get Raft state mutable
+    #[inline(always)]
     pub fn raft_mut(&mut self) -> &mut RaftState {
         &mut self.raft
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ConsensusStats {
         &self.stats
     }

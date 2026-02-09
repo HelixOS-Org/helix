@@ -68,12 +68,14 @@ impl Token {
         }
     }
 
+    #[inline]
     pub fn acquire(&mut self, pid: u64, now_ns: u64) {
         self.holder = Some(pid);
         self.state = TokenState::Held;
         self.acquired_ns = now_ns;
     }
 
+    #[inline]
     pub fn release(&mut self, now_ns: u64) {
         self.holder = None;
         self.state = TokenState::Free;
@@ -81,10 +83,12 @@ impl Token {
         self.last_pass_ns = now_ns;
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now_ns: u64) -> bool {
         self.state == TokenState::Held && now_ns.saturating_sub(self.acquired_ns) > self.max_hold_ns
     }
 
+    #[inline]
     pub fn hold_time_ns(&self, now_ns: u64) -> u64 {
         if self.state == TokenState::Held {
             now_ns.saturating_sub(self.acquired_ns)
@@ -94,6 +98,7 @@ impl Token {
     }
 
     /// Token rotation rate (passes per second from recent)
+    #[inline]
     pub fn rotation_rate(&self, now_ns: u64) -> f64 {
         if self.pass_count == 0 || now_ns == 0 {
             return 0.0;
@@ -137,6 +142,7 @@ impl RingNode {
         }
     }
 
+    #[inline]
     pub fn avg_hold_time_ns(&self) -> f64 {
         if self.tokens_passed == 0 {
             0.0
@@ -148,6 +154,7 @@ impl RingNode {
 
 /// Token ring stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopTokenRingStats {
     pub ring_size: usize,
     pub active_tokens: usize,
@@ -182,6 +189,7 @@ impl CoopTokenRing {
     }
 
     /// Add a node to the ring
+    #[inline]
     pub fn join(&mut self, pid: u64, now_ns: u64) {
         let node = RingNode::new(pid, now_ns);
         self.nodes.insert(pid, node);
@@ -221,6 +229,7 @@ impl CoopTokenRing {
     }
 
     /// Create a token
+    #[inline]
     pub fn create_token(&mut self, max_hold_ns: u64) -> u64 {
         let id = self.next_token_id;
         self.next_token_id += 1;
@@ -298,6 +307,7 @@ impl CoopTokenRing {
     }
 
     /// Get next in ring
+    #[inline(always)]
     pub fn next_after(&self, pid: u64) -> Option<u64> {
         self.nodes.get(&pid)?.next_node
     }
@@ -327,6 +337,7 @@ impl CoopTokenRing {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopTokenRingStats {
         &self.stats
     }
@@ -379,6 +390,7 @@ impl TokenRingV2Instance {
         }
     }
 
+    #[inline]
     pub fn add_participant(&mut self, pid: u64) -> u32 {
         let pos = self.participants.len() as u32;
         self.participants.push(TokenV2Participant {
@@ -416,6 +428,7 @@ impl TokenRingV2Instance {
 
 /// Statistics for token ring V2
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TokenRingV2Stats {
     pub rings_created: u64,
     pub total_passes: u64,
@@ -445,6 +458,7 @@ impl CoopTokenRingV2 {
         }
     }
 
+    #[inline]
     pub fn create_ring(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -453,6 +467,7 @@ impl CoopTokenRingV2 {
         id
     }
 
+    #[inline]
     pub fn add_participant(&mut self, ring_id: u64, pid: u64) -> Option<u32> {
         if let Some(ring) = self.rings.get_mut(&ring_id) {
             let pos = ring.add_participant(pid);
@@ -461,6 +476,7 @@ impl CoopTokenRingV2 {
         } else { None }
     }
 
+    #[inline]
     pub fn pass_token(&mut self, ring_id: u64) -> Option<u32> {
         if let Some(ring) = self.rings.get_mut(&ring_id) {
             let result = ring.pass_token();
@@ -471,6 +487,7 @@ impl CoopTokenRingV2 {
         } else { None }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &TokenRingV2Stats {
         &self.stats
     }

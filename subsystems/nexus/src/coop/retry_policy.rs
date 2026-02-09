@@ -110,6 +110,7 @@ impl RetryPolicy {
         capped
     }
 
+    #[inline]
     pub fn within_deadline(&self, elapsed_ms: u64, next_delay_ms: u64) -> bool {
         match self.deadline_ms {
             Some(dl) => elapsed_ms + next_delay_ms < dl,
@@ -120,6 +121,7 @@ impl RetryPolicy {
 
 /// Per-operation retry state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RetryState {
     pub operation_id: u64,
     pub policy_name: String,
@@ -152,6 +154,7 @@ impl CircuitBreaker {
         }
     }
 
+    #[inline]
     pub fn can_attempt(&self, now_ms: u64) -> bool {
         match self.state {
             CircuitState::Closed => true,
@@ -192,6 +195,7 @@ impl CircuitBreaker {
         }
     }
 
+    #[inline]
     pub fn check_transition(&mut self, now_ms: u64) {
         if self.state == CircuitState::Open && now_ms.saturating_sub(self.open_since_ms) >= self.cool_down_ms {
             self.state = CircuitState::HalfOpen;
@@ -215,6 +219,7 @@ impl StormDetector {
         Self { window_ms, threshold, recent_retries: Vec::new(), storm_detected: false }
     }
 
+    #[inline]
     pub fn record_retry(&mut self, ts: u64) {
         self.recent_retries.push(ts);
         let cutoff = ts.saturating_sub(self.window_ms);
@@ -222,6 +227,7 @@ impl StormDetector {
         self.storm_detected = self.recent_retries.len() as u32 >= self.threshold;
     }
 
+    #[inline(always)]
     pub fn retry_rate(&self) -> f64 {
         if self.window_ms == 0 { return 0.0; }
         (self.recent_retries.len() as f64 * 1000.0) / self.window_ms as f64
@@ -230,6 +236,7 @@ impl StormDetector {
 
 /// Retry policy stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RetryPolicyStats {
     pub total_policies: usize,
     pub active_retries: usize,
@@ -264,14 +271,17 @@ impl CoopRetryPolicy {
         }
     }
 
+    #[inline(always)]
     pub fn register_policy(&mut self, policy: RetryPolicy) {
         self.policies.insert(policy.name.clone(), policy);
     }
 
+    #[inline(always)]
     pub fn register_breaker(&mut self, name: String, breaker: CircuitBreaker) {
         self.breakers.insert(name, breaker);
     }
 
+    #[inline]
     pub fn begin_retry(&mut self, policy_name: &str, now_ms: u64) -> Option<u64> {
         if !self.policies.contains_key(policy_name) { return None; }
         let id = self.next_op_id; self.next_op_id += 1;
@@ -283,6 +293,7 @@ impl CoopRetryPolicy {
         Some(id)
     }
 
+    #[inline]
     pub fn next_delay(&self, op_id: u64, seed: u64) -> Option<u64> {
         let state = self.active.get(&op_id)?;
         let policy = self.policies.get(&state.policy_name)?;
@@ -315,8 +326,10 @@ impl CoopRetryPolicy {
         }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, op_id: u64) -> Option<RetryState> { self.active.remove(&op_id) }
 
+    #[inline]
     pub fn recompute(&mut self) {
         for cb in self.breakers.values_mut() { cb.check_transition(0); }
         self.stats.total_policies = self.policies.len();
@@ -329,5 +342,6 @@ impl CoopRetryPolicy {
         self.stats.storm_detected = self.storm.storm_detected;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &RetryPolicyStats { &self.stats }
 }

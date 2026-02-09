@@ -48,6 +48,7 @@ pub struct HealthCheckResult {
 
 impl HealthCheckResult {
     /// Create a healthy result
+    #[inline]
     pub fn healthy(component: ComponentId) -> Self {
         Self {
             component,
@@ -60,6 +61,7 @@ impl HealthCheckResult {
     }
 
     /// Create an unhealthy result
+    #[inline]
     pub fn unhealthy(component: ComponentId, message: impl Into<String>) -> Self {
         Self {
             component,
@@ -72,6 +74,7 @@ impl HealthCheckResult {
     }
 
     /// Set health value
+    #[inline]
     pub fn with_health(mut self, health: f32) -> Self {
         self.health = health.clamp(0.0, 1.0);
         self.status = if health >= 0.8 {
@@ -85,6 +88,7 @@ impl HealthCheckResult {
     }
 
     /// Set duration
+    #[inline(always)]
     pub fn with_duration(mut self, duration: u64) -> Self {
         self.duration = duration;
         self

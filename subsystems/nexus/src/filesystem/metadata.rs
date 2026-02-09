@@ -54,6 +54,7 @@ impl FileMeta {
     }
 
     /// Record access
+    #[inline]
     pub fn record_access(&mut self) {
         self.access_count += 1;
         self.last_access = NexusTimestamp::now();
@@ -64,6 +65,7 @@ impl FileMeta {
     }
 
     /// Get access rate (accesses per hour)
+    #[inline]
     pub fn access_rate(&self) -> f64 {
         let age = self.last_access.duration_since(self.created);
         if age == 0 {
@@ -74,6 +76,7 @@ impl FileMeta {
     }
 
     /// Is file cold (rarely accessed)?
+    #[inline(always)]
     pub fn is_cold(&self) -> bool {
         let idle = NexusTimestamp::now().duration_since(self.last_access);
         idle > 86_400_000_000_000 && self.access_count < 10 // 24 hours

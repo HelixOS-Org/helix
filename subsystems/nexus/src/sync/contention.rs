@@ -3,6 +3,7 @@
 //! Lock contention analysis and hotspot detection.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::{LockId, ThreadId};
@@ -10,6 +11,7 @@ use crate::core::NexusTimestamp;
 
 /// Contention statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ContentionStats {
     /// Lock ID
     pub lock_id: LockId,
@@ -44,11 +46,13 @@ impl ContentionStats {
     }
 
     /// Record failed attempt
+    #[inline(always)]
     pub fn record_failed(&mut self) {
         self.failed_attempts += 1;
     }
 
     /// Contention ratio
+    #[inline]
     pub fn contention_ratio(&self) -> f64 {
         if self.acquisitions == 0 {
             0.0
@@ -78,7 +82,7 @@ pub struct ContentionAnalyzer {
     /// Per-lock stats
     stats: BTreeMap<LockId, ContentionStats>,
     /// Contention events
-    events: Vec<ContentionEvent>,
+    events: VecDeque<ContentionEvent>,
     /// Max events
     max_events: usize,
     /// Hotspots
@@ -90,7 +94,7 @@ impl ContentionAnalyzer {
     pub fn new() -> Self {
         Self {
             stats: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             max_events: 10000,
             hotspots: Vec::new(),
         }
@@ -124,9 +128,9 @@ impl ContentionAnalyzer {
                 timestamp: NexusTimestamp::now(),
             };
 
-            self.events.push(event);
+            self.events.push_back(event);
             if self.events.len() > self.max_events {
-                self.events.remove(0);
+                self.events.pop_front();
             }
         }
 
@@ -148,22 +152,27 @@ impl ContentionAnalyzer {
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn get_stats(&self, lock_id: LockId) -> Option<&ContentionStats> {
         self.stats.get(&lock_id)
     }
 
     /// Get hotspots
+    #[inline(always)]
     pub fn hotspots(&self) -> &[LockId] {
         &self.hotspots
     }
 
     /// Get recent events
-    pub fn recent_events(&self, n: usize) -> &[ContentionEvent] {
+    #[inline]
+    pub fn recent_events(&mut self, n: usize) -> &[ContentionEvent] {
         let start = self.events.len().saturating_sub(n);
-        &self.events[start..]
+        let slice = self.events.make_contiguous();
+        &slice[start..]
     }
 
     /// Get highly contended locks
+    #[inline]
     pub fn highly_contended(&self, threshold: f64) -> Vec<LockId> {
         self.stats
             .iter()

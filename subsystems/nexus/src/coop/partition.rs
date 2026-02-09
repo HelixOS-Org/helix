@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -44,9 +45,9 @@ pub struct Partition {
     /// Maximum allowed per member
     pub max_cap: u64,
     /// Members (pid -> allocation)
-    pub members: BTreeMap<u64, u64>,
+    pub members: LinearMap<u64, 64>,
     /// Weight-based proportional share
-    pub weights: BTreeMap<u64, u32>,
+    pub weights: LinearMap<u32, 64>,
     pub created_ns: u64,
     /// Utilization (0.0-1.0)
     pub utilization: f64,
@@ -62,8 +63,8 @@ impl Partition {
             allocated: 0,
             min_guarantee: 0,
             max_cap: capacity,
-            members: BTreeMap::new(),
-            weights: BTreeMap::new(),
+            members: LinearMap::new(),
+            weights: LinearMap::new(),
             created_ns: now_ns,
             utilization: 0.0,
             active: true,
@@ -71,15 +72,17 @@ impl Partition {
     }
 
     /// Add a member with weight
+    #[inline(always)]
     pub fn add_member(&mut self, pid: u64, weight: u32) {
         self.weights.insert(pid, weight);
         self.recompute_allocations();
     }
 
     /// Remove a member
+    #[inline]
     pub fn remove_member(&mut self, pid: u64) {
-        self.weights.remove(&pid);
-        self.members.remove(&pid);
+        self.weights.remove(pid);
+        self.members.remove(pid);
         self.recompute_allocations();
     }
 
@@ -118,16 +121,19 @@ impl Partition {
     }
 
     /// Get allocation for a member
+    #[inline(always)]
     pub fn get_allocation(&self, pid: u64) -> u64 {
-        self.members.get(&pid).copied().unwrap_or(0)
+        self.members.get(pid).copied().unwrap_or(0)
     }
 
     /// Free capacity
+    #[inline(always)]
     pub fn free_capacity(&self) -> u64 {
         self.capacity.saturating_sub(self.allocated)
     }
 
     /// Fragmentation: how much of capacity is unused
+    #[inline]
     pub fn fragmentation(&self) -> f64 {
         if self.capacity == 0 {
             0.0
@@ -137,6 +143,7 @@ impl Partition {
     }
 
     /// Update utilization based on actual usage
+    #[inline]
     pub fn update_utilization(&mut self, actual_used: u64) {
         if self.allocated == 0 {
             self.utilization = 0.0;
@@ -146,11 +153,13 @@ impl Partition {
     }
 
     /// Is this partition hot? (high utilization)
+    #[inline(always)]
     pub fn is_hot(&self) -> bool {
         self.utilization > 0.85
     }
 
     /// Is this partition cold? (low utilization)
+    #[inline(always)]
     pub fn is_cold(&self) -> bool {
         self.utilization < 0.2 && self.members.len() > 1
     }
@@ -182,6 +191,7 @@ pub enum PartitionOp {
 
 /// Partition manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopPartitionStats {
     pub total_partitions: usize,
     pub active_partitions: usize,
@@ -212,6 +222,7 @@ impl CoopPartitionManager {
     }
 
     /// Create a partition
+    #[inline]
     pub fn create_partition(
         &mut self,
         resource: PartitionResource,
@@ -229,6 +240,7 @@ impl CoopPartitionManager {
     }
 
     /// Add member to partition
+    #[inline]
     pub fn add_member(&mut self, partition_id: u64, pid: u64, weight: u32) {
         if let Some(part) = self.partitions.get_mut(&partition_id) {
             part.add_member(pid, weight);
@@ -237,6 +249,7 @@ impl CoopPartitionManager {
     }
 
     /// Remove member
+    #[inline]
     pub fn remove_member(&mut self, partition_id: u64, pid: u64) {
         if let Some(part) = self.partitions.get_mut(&partition_id) {
             part.remove_member(pid);
@@ -342,6 +355,7 @@ impl CoopPartitionManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopPartitionStats {
         &self.stats
     }

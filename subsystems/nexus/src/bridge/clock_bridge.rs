@@ -66,6 +66,7 @@ impl ClockSource {
         }
     }
 
+    #[inline]
     pub fn read(&mut self, cycles: u64) -> u64 {
         self.read_count += 1;
         self.cycle_last = cycles;
@@ -74,8 +75,11 @@ impl ClockSource {
         ns as u64
     }
 
+    #[inline(always)]
     pub fn is_stable(&self) -> bool { !self.flags.contains(&ClockFlag::Unstable) }
+    #[inline(always)]
     pub fn is_hres_valid(&self) -> bool { self.flags.contains(&ClockFlag::ValidForHres) }
+    #[inline(always)]
     pub fn resolution_ns(&self) -> u64 { if self.freq_hz == 0 { u64::MAX } else { 1_000_000_000 / self.freq_hz } }
 }
 
@@ -113,13 +117,17 @@ impl ClockEventDevice {
         }
     }
 
+    #[inline(always)]
     pub fn set_mode(&mut self, mode: ClockEventMode) { self.mode = mode; }
+    #[inline(always)]
     pub fn program_event(&mut self, ns: u64) { self.next_event_ns = ns; }
+    #[inline(always)]
     pub fn fire(&mut self) { self.event_count += 1; }
 }
 
 /// Timekeeping state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TimekeepingState {
     pub clock_id: u64,
     pub xtime_sec: u64,
@@ -142,12 +150,14 @@ impl TimekeepingState {
         }
     }
 
+    #[inline]
     pub fn monotonic_ns(&self) -> u64 {
         let wall_ns = self.xtime_sec * 1_000_000_000 + self.xtime_nsec;
         let mono_off = self.wall_to_monotonic_sec * 1_000_000_000 + self.wall_to_monotonic_nsec;
         (wall_ns as i64 + mono_off) as u64
     }
 
+    #[inline(always)]
     pub fn update_wall(&mut self, sec: u64, nsec: u64) {
         self.xtime_sec = sec; self.xtime_nsec = nsec; self.seq += 1;
     }
@@ -155,6 +165,7 @@ impl TimekeepingState {
 
 /// Clock bridge stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ClockBridgeStats {
     pub total_sources: usize,
     pub total_events: usize,
@@ -165,6 +176,7 @@ pub struct ClockBridgeStats {
 }
 
 /// Bridge clock manager
+#[repr(align(64))]
 pub struct BridgeClockBridge {
     sources: BTreeMap<u64, ClockSource>,
     events: BTreeMap<u64, ClockEventDevice>,
@@ -184,6 +196,7 @@ impl BridgeClockBridge {
         }
     }
 
+    #[inline]
     pub fn register_source(&mut self, name: String, freq: u64, rating: ClockRating) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let src = ClockSource::new(id, name, freq, rating);
@@ -192,6 +205,7 @@ impl BridgeClockBridge {
         id
     }
 
+    #[inline]
     pub fn register_event_device(&mut self, name: String, cpu: u32, freq: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.events.insert(id, ClockEventDevice::new(id, name, cpu, freq));
@@ -203,27 +217,34 @@ impl BridgeClockBridge {
         if let Some(b) = best { self.current_source = b.id; self.timekeeping.clock_id = b.id; }
     }
 
+    #[inline(always)]
     pub fn read_clock(&mut self, cycles: u64) -> u64 {
         if let Some(s) = self.sources.get_mut(&self.current_source) { s.read(cycles) } else { 0 }
     }
 
+    #[inline(always)]
     pub fn mark_unstable(&mut self, id: u64) {
         if let Some(s) = self.sources.get_mut(&id) { if !s.flags.contains(&ClockFlag::Unstable) { s.flags.push(ClockFlag::Unstable); } }
         if self.current_source == id { self.select_best_source(); }
     }
 
+    #[inline(always)]
     pub fn set_watchdog(&mut self, id: u64) { self.watchdog_source = Some(id); }
 
+    #[inline(always)]
     pub fn program_timer(&mut self, dev_id: u64, ns: u64) {
         if let Some(d) = self.events.get_mut(&dev_id) { d.program_event(ns); }
     }
 
+    #[inline(always)]
     pub fn fire_timer(&mut self, dev_id: u64) {
         if let Some(d) = self.events.get_mut(&dev_id) { d.fire(); }
     }
 
+    #[inline(always)]
     pub fn update_wall_time(&mut self, sec: u64, nsec: u64) { self.timekeeping.update_wall(sec, nsec); }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_sources = self.sources.len();
         self.stats.total_events = self.events.len();
@@ -233,8 +254,12 @@ impl BridgeClockBridge {
         self.stats.unstable_sources = self.sources.values().filter(|s| !s.is_stable()).count();
     }
 
+    #[inline(always)]
     pub fn source(&self, id: u64) -> Option<&ClockSource> { self.sources.get(&id) }
+    #[inline(always)]
     pub fn event_device(&self, id: u64) -> Option<&ClockEventDevice> { self.events.get(&id) }
+    #[inline(always)]
     pub fn timekeeping(&self) -> &TimekeepingState { &self.timekeeping }
+    #[inline(always)]
     pub fn stats(&self) -> &ClockBridgeStats { &self.stats }
 }

@@ -50,6 +50,7 @@ impl RegenerationManager {
     }
 
     /// Request regeneration for a tissue
+    #[inline]
     pub fn regenerate(&mut self, tissue: &mut Tissue, count: usize) {
         let to_add = count.min(self.stem_cells.len());
 
@@ -62,6 +63,7 @@ impl RegenerationManager {
     }
 
     /// Replenish stem cell pool
+    #[inline]
     pub fn replenish(&mut self, center: Position) {
         if self.stem_cells.len() < self.max_stem_cells / 2 {
             self.add_stem_cells(10, center);

@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Fair mutex state
@@ -28,7 +29,7 @@ pub struct FairMutex {
     pub id: u64,
     pub state: FairMutexState,
     pub owner: u64,
-    pub waiters: Vec<FairMutexWaiter>,
+    pub waiters: VecDeque<FairMutexWaiter>,
     pub lock_count: u64,
     pub total_wait_ns: u64,
     pub max_wait_ns: u64,
@@ -36,9 +37,10 @@ pub struct FairMutex {
 
 impl FairMutex {
     pub fn new(id: u64) -> Self {
-        Self { id, state: FairMutexState::Unlocked, owner: 0, waiters: Vec::new(), lock_count: 0, total_wait_ns: 0, max_wait_ns: 0 }
+        Self { id, state: FairMutexState::Unlocked, owner: 0, waiters: VecDeque::new(), lock_count: 0, total_wait_ns: 0, max_wait_ns: 0 }
     }
 
+    #[inline]
     pub fn try_lock(&mut self, tid: u64) -> bool {
         if self.state == FairMutexState::Unlocked {
             self.state = FairMutexState::Locked;
@@ -48,9 +50,10 @@ impl FairMutex {
         } else { false }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, tid: u64, now: u64) {
         let pos = self.waiters.len() as u32;
-        self.waiters.push(FairMutexWaiter { tid, enqueue_time: now, position: pos });
+        self.waiters.push_back(FairMutexWaiter { tid, enqueue_time: now, position: pos });
         self.state = FairMutexState::Contended;
     }
 
@@ -60,7 +63,7 @@ impl FairMutex {
             self.owner = 0;
             None
         } else {
-            let next = self.waiters.remove(0);
+            let next = self.waiters.pop_front().unwrap();
             let wait = if now > next.enqueue_time { now - next.enqueue_time } else { 0 };
             self.total_wait_ns += wait;
             if wait > self.max_wait_ns { self.max_wait_ns = wait; }
@@ -74,6 +77,7 @@ impl FairMutex {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FairMutexStats {
     pub total_mutexes: u32,
     pub total_locks: u64,
@@ -90,26 +94,32 @@ pub struct CoopFairMutex {
 impl CoopFairMutex {
     pub fn new() -> Self { Self { mutexes: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.mutexes.insert(id, FairMutex::new(id));
         id
     }
 
+    #[inline(always)]
     pub fn try_lock(&mut self, id: u64, tid: u64) -> bool {
         if let Some(m) = self.mutexes.get_mut(&id) { m.try_lock(tid) } else { false }
     }
 
+    #[inline(always)]
     pub fn enqueue(&mut self, id: u64, tid: u64, now: u64) {
         if let Some(m) = self.mutexes.get_mut(&id) { m.enqueue(tid, now); }
     }
 
+    #[inline(always)]
     pub fn unlock(&mut self, id: u64, now: u64) -> Option<u64> {
         if let Some(m) = self.mutexes.get_mut(&id) { m.unlock(now) } else { None }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, id: u64) { self.mutexes.remove(&id); }
 
+    #[inline]
     pub fn stats(&self) -> FairMutexStats {
         let locks: u64 = self.mutexes.values().map(|m| m.lock_count).sum();
         let waiters: u32 = self.mutexes.values().map(|m| m.waiters.len() as u32).sum();

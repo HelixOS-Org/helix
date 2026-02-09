@@ -29,6 +29,7 @@ pub enum PrctlOption {
 
 /// Process prctl state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessPrctlState {
     pub pid: u64,
     pub dumpable: bool,
@@ -50,6 +51,7 @@ impl ProcessPrctlState {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrctlBridgeStats {
     pub tracked_procs: u32,
     pub total_calls: u64,
@@ -58,6 +60,7 @@ pub struct PrctlBridgeStats {
 }
 
 /// Main bridge prctl
+#[repr(align(64))]
 pub struct BridgePrctl {
     procs: BTreeMap<u64, ProcessPrctlState>,
 }
@@ -65,6 +68,7 @@ pub struct BridgePrctl {
 impl BridgePrctl {
     pub fn new() -> Self { Self { procs: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn track(&mut self, pid: u64) { self.procs.insert(pid, ProcessPrctlState::new(pid)); }
 
     pub fn prctl(&mut self, pid: u64, opt: PrctlOption, arg: u64) {
@@ -84,8 +88,10 @@ impl BridgePrctl {
         }
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, pid: u64) { self.procs.remove(&pid); }
 
+    #[inline]
     pub fn stats(&self) -> PrctlBridgeStats {
         let calls: u64 = self.procs.values().map(|p| p.total_calls).sum();
         let nnp = self.procs.values().filter(|p| p.no_new_privs).count() as u32;
@@ -152,6 +158,7 @@ pub enum PrctlV2Securebits {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrctlV2ProcessState {
     pub pid: u64,
     pub name_hash: u64,
@@ -187,6 +194,7 @@ impl PrctlV2ProcessState {
         }
     }
 
+    #[inline]
     pub fn set_name(&mut self, name: &[u8]) {
         let mut h: u64 = 0xcbf29ce484222325;
         for &b in name {
@@ -197,23 +205,27 @@ impl PrctlV2ProcessState {
         self.total_ops += 1;
     }
 
+    #[inline]
     pub fn set_securebit(&mut self, bit: PrctlV2Securebits) {
         let flag = 1u32 << (bit as u32);
         self.securebits |= flag;
         self.total_ops += 1;
     }
 
+    #[inline(always)]
     pub fn has_securebit(&self, bit: PrctlV2Securebits) -> bool {
         let flag = 1u32 << (bit as u32);
         (self.securebits & flag) != 0
     }
 
+    #[inline(always)]
     pub fn is_locked_down(&self) -> bool {
         self.no_new_privs && self.mdwe_enabled && !self.dumpable
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrctlV2BridgeStats {
     pub total_processes: u64,
     pub total_ops: u64,
@@ -222,6 +234,7 @@ pub struct PrctlV2BridgeStats {
     pub mdwe_count: u64,
 }
 
+#[repr(align(64))]
 pub struct BridgePrctlV2 {
     processes: BTreeMap<u64, PrctlV2ProcessState>,
     stats: PrctlV2BridgeStats,
@@ -241,11 +254,13 @@ impl BridgePrctlV2 {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.insert(pid, PrctlV2ProcessState::new(pid));
         self.stats.total_processes += 1;
     }
 
+    #[inline]
     pub fn set_no_new_privs(&mut self, pid: u64) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.no_new_privs = true;
@@ -255,6 +270,7 @@ impl BridgePrctlV2 {
         }
     }
 
+    #[inline]
     pub fn set_child_subreaper(&mut self, pid: u64) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.child_subreaper = true;
@@ -264,6 +280,7 @@ impl BridgePrctlV2 {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PrctlV2BridgeStats {
         &self.stats
     }

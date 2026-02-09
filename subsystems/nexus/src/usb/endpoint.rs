@@ -15,6 +15,7 @@ pub enum EndpointDirection {
 
 impl EndpointDirection {
     /// Get direction name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::In => "in",
@@ -38,6 +39,7 @@ pub enum TransferType {
 
 impl TransferType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Control => "control",
@@ -48,6 +50,7 @@ impl TransferType {
     }
 
     /// From attributes
+    #[inline]
     pub fn from_attributes(attrs: u8) -> Self {
         match attrs & 0x03 {
             0 => Self::Control,
@@ -111,11 +114,13 @@ impl UsbEndpoint {
     }
 
     /// Endpoint number
+    #[inline(always)]
     pub fn number(&self) -> u8 {
         self.address & 0x0f
     }
 
     /// Record transfer
+    #[inline]
     pub fn record_transfer(&self, bytes: u64, success: bool) {
         self.transfer_count.fetch_add(1, Ordering::Relaxed);
         if success {
@@ -126,16 +131,19 @@ impl UsbEndpoint {
     }
 
     /// Get bytes transferred
+    #[inline(always)]
     pub fn bytes_transferred(&self) -> u64 {
         self.bytes_transferred.load(Ordering::Relaxed)
     }
 
     /// Get transfer count
+    #[inline(always)]
     pub fn transfer_count(&self) -> u64 {
         self.transfer_count.load(Ordering::Relaxed)
     }
 
     /// Get error rate
+    #[inline]
     pub fn error_rate(&self) -> f32 {
         let total = self.transfer_count.load(Ordering::Relaxed);
         let errors = self.error_count.load(Ordering::Relaxed);

@@ -131,21 +131,25 @@ impl Pmu {
     }
 
     /// Active counter count
+    #[inline(always)]
     pub fn active_counters(&self) -> u32 {
         self.active_counters.load(Ordering::Relaxed)
     }
 
     /// Increment active counters
+    #[inline(always)]
     pub fn add_counter(&self) {
         self.active_counters.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Decrement active counters
+    #[inline(always)]
     pub fn remove_counter(&self) {
         self.active_counters.fetch_sub(1, Ordering::Relaxed);
     }
 
     /// Available counters
+    #[inline(always)]
     pub fn available_counters(&self) -> u32 {
         let total = self.capabilities.num_counters + self.capabilities.num_fixed_counters;
         total.saturating_sub(self.active_counters())

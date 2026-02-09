@@ -137,6 +137,7 @@ impl SlabIntelligence {
     }
 
     /// Register slab cache
+    #[inline]
     pub fn register_cache(&mut self, id: SlabCacheId, name: String, object_size: usize) {
         let info = SlabCacheInfo::new(id, name, object_size);
         self.caches.insert(id, info);
@@ -191,6 +192,7 @@ impl SlabIntelligence {
     }
 
     /// Record allocation failure
+    #[inline]
     pub fn record_failure(&mut self, cache_id: SlabCacheId) {
         if let Some(stats) = self.stats.get_mut(&cache_id) {
             stats.alloc_failures += 1;
@@ -350,51 +352,61 @@ impl SlabIntelligence {
     }
 
     /// Get shrink targets based on memory pressure
+    #[inline(always)]
     pub fn get_shrink_targets(&self) -> Vec<ShrinkAction> {
         self.pressure_handler.calculate_shrink_targets(&self.caches)
     }
 
     /// Update memory pressure
+    #[inline(always)]
     pub fn update_memory_pressure(&mut self, total: u64, available: u64) {
         self.pressure_handler.update_memory(total, available);
     }
 
     /// Get cache info
+    #[inline(always)]
     pub fn get_cache(&self, cache_id: SlabCacheId) -> Option<&SlabCacheInfo> {
         self.caches.get(&cache_id)
     }
 
     /// Get cache stats
+    #[inline(always)]
     pub fn get_stats(&self, cache_id: SlabCacheId) -> Option<&SlabStats> {
         self.stats.get(&cache_id)
     }
 
     /// Get lifetime stats
+    #[inline(always)]
     pub fn get_lifetime_stats(&self, cache_id: SlabCacheId) -> Option<LifetimeStats> {
         self.lifetime_predictors.get(&cache_id).map(|p| p.calculate_stats())
     }
 
     /// Get pressure handler
+    #[inline(always)]
     pub fn pressure_handler(&self) -> &MemoryPressureHandler {
         &self.pressure_handler
     }
 
     /// Get pressure handler mutably
+    #[inline(always)]
     pub fn pressure_handler_mut(&mut self) -> &mut MemoryPressureHandler {
         &mut self.pressure_handler
     }
 
     /// Get cache count
+    #[inline(always)]
     pub fn cache_count(&self) -> usize {
         self.caches.len()
     }
 
     /// Get total allocations
+    #[inline(always)]
     pub fn total_allocations(&self) -> u64 {
         self.total_allocations.load(Ordering::Relaxed)
     }
 
     /// Get total frees
+    #[inline(always)]
     pub fn total_frees(&self) -> u64 {
         self.total_frees.load(Ordering::Relaxed)
     }

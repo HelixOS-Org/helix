@@ -43,6 +43,7 @@ pub enum VfsFsType {
 
 /// Path walk state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PathWalkState {
     pub components_resolved: u32,
     pub symlinks_followed: u32,
@@ -56,15 +57,19 @@ impl PathWalkState {
         Self { components_resolved: 0, symlinks_followed: 0, mounts_crossed: 0, total_lookups: 0, cache_hits: 0 }
     }
 
+    #[inline]
     pub fn resolve_component(&mut self, cached: bool) {
         self.components_resolved += 1;
         self.total_lookups += 1;
         if cached { self.cache_hits += 1; }
     }
 
+    #[inline(always)]
     pub fn follow_symlink(&mut self) { self.symlinks_followed += 1; }
+    #[inline(always)]
     pub fn cross_mount(&mut self) { self.mounts_crossed += 1; }
 
+    #[inline(always)]
     pub fn cache_hit_rate(&self) -> f64 {
         if self.total_lookups == 0 { 0.0 } else { self.cache_hits as f64 / self.total_lookups as f64 }
     }
@@ -92,6 +97,7 @@ impl VfsOpRecord {
 
 /// VFS stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticVfsStats {
     pub total_ops: u64,
     pub total_bytes: u64,
@@ -115,6 +121,7 @@ impl HolisticVfs {
         }
     }
 
+    #[inline]
     pub fn record_op(&mut self, record: &VfsOpRecord) {
         self.stats.total_ops += 1;
         self.stats.total_bytes += record.bytes_transferred;
@@ -160,6 +167,7 @@ pub struct HolisticVfsV2Health {
 
 /// Stats for VFS holistic analysis
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticVfsV2Stats {
     pub samples_collected: u64,
     pub analyses_run: u64,
@@ -227,11 +235,13 @@ impl HolisticVfsV2Manager {
         &self.health
     }
 
+    #[inline(always)]
     pub fn health_check(&mut self) -> &HolisticVfsV2Health {
         self.stats.health_checks += 1;
         &self.health
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticVfsV2Stats {
         &self.stats
     }

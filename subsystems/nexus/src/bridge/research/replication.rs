@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -133,6 +134,7 @@ pub struct ReplicationReport {
 
 /// Replication engine statistics.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct ReplicationStats {
     pub total_findings_tracked: u64,
     pub total_attempts: u64,
@@ -161,10 +163,11 @@ pub struct CrisisAnalysis {
 // ============================================================================
 
 /// Result replication engine for bridge research.
+#[repr(align(64))]
 pub struct BridgeReplication {
     findings: BTreeMap<u64, OriginalFinding>,
     stats: ReplicationStats,
-    recent_results: Vec<bool>, // recent replication successes
+    recent_results: VecDeque<bool>, // recent replication successes
     rng_state: u64,
     tick: u64,
 }
@@ -186,7 +189,7 @@ impl BridgeReplication {
                 crisis_detected: false,
                 crisis_severity: 0.0,
             },
-            recent_results: Vec::new(),
+            recent_results: VecDeque::new(),
             rng_state: seed ^ 0x4E011CA010E001,
             tick: 0,
         }
@@ -309,9 +312,9 @@ impl BridgeReplication {
 
         // Track for crisis detection
         if self.recent_results.len() >= MAX_HISTORY {
-            self.recent_results.remove(0);
+            self.recent_results.pop_front();
         }
-        self.recent_results.push(replicated);
+        self.recent_results.push_back(replicated);
 
         // Update robust/fragile counts
         self.update_robustness_counts();
@@ -336,6 +339,7 @@ impl BridgeReplication {
     }
 
     /// Get the overall replication rate.
+    #[inline]
     pub fn replication_rate(&self) -> f32 {
         if self.stats.total_attempts == 0 {
             return 0.0;
@@ -344,6 +348,7 @@ impl BridgeReplication {
     }
 
     /// Check if conditions match between original and replication.
+    #[inline(always)]
     pub fn conditions_match(
         &self,
         original: &[(String, f32)],
@@ -403,6 +408,7 @@ impl BridgeReplication {
     }
 
     /// Get all robust (reliably replicated) findings.
+    #[inline]
     pub fn robust_findings(&self) -> Vec<u64> {
         self.findings
             .values()
@@ -479,11 +485,13 @@ impl BridgeReplication {
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &ReplicationStats {
         &self.stats
     }
 
     /// Number of tracked findings.
+    #[inline(always)]
     pub fn finding_count(&self) -> usize {
         self.findings.len()
     }

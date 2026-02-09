@@ -23,6 +23,7 @@ pub enum WorkloadType {
 
 impl WorkloadType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::SequentialRead => "seq_read",
@@ -70,6 +71,7 @@ impl WorkloadAnalysis {
     }
 
     /// Classify workload
+    #[inline]
     pub fn classify(&mut self) {
         self.workload_type = match (self.sequential_ratio > 0.7, self.read_ratio) {
             (true, r) if r > 0.8 => WorkloadType::SequentialRead,

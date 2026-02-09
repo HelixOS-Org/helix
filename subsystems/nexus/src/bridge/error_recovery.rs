@@ -75,6 +75,7 @@ pub struct SyscallError {
 
 /// Error pattern (recurring error)
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ErrorPattern {
     /// Syscall number
     pub syscall_nr: u32,
@@ -115,6 +116,7 @@ impl ErrorPattern {
     }
 
     /// Record occurrence
+    #[inline]
     pub fn record(&mut self, now_ns: u64) {
         self.count += 1;
         let interval = now_ns.saturating_sub(self.last_seen_ns) as f64 / 1_000_000_000.0;
@@ -126,6 +128,7 @@ impl ErrorPattern {
     }
 
     /// Record recovery attempt
+    #[inline]
     pub fn record_recovery(&mut self, succeeded: bool) {
         self.recovery_attempts += 1;
         if succeeded {
@@ -137,11 +140,13 @@ impl ErrorPattern {
     }
 
     /// Is this a burst?
+    #[inline(always)]
     pub fn is_burst(&self) -> bool {
         self.rate_ema > 10.0
     }
 
     /// Pattern key
+    #[inline]
     pub fn key(&self) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
         hash ^= self.syscall_nr as u64;
@@ -154,6 +159,7 @@ impl ErrorPattern {
 
 /// Error recovery engine stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeErrorRecoveryStats {
     pub total_errors: u64,
     pub unique_patterns: usize,
@@ -164,6 +170,7 @@ pub struct BridgeErrorRecoveryStats {
 }
 
 /// Bridge error recovery engine
+#[repr(align(64))]
 pub struct BridgeErrorRecovery {
     /// Error patterns
     patterns: BTreeMap<u64, ErrorPattern>,
@@ -315,6 +322,7 @@ impl BridgeErrorRecovery {
         self.stats.active_bursts = self.patterns.values().filter(|p| p.is_burst()).count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeErrorRecoveryStats {
         &self.stats
     }

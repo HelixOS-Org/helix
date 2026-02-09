@@ -87,6 +87,7 @@ pub enum PatternRoom {
 }
 
 impl PatternRoom {
+    #[inline]
     pub fn all() -> &'static [PatternRoom] {
         &[
             PatternRoom::Sharing,
@@ -151,6 +152,7 @@ impl CoopPattern {
     }
 
     /// Record a recall event, boosting relevance
+    #[inline]
     pub fn record_recall(&mut self, tick: u64) {
         self.recall_count += 1;
         self.last_recall_tick = tick;
@@ -160,6 +162,7 @@ impl CoopPattern {
     }
 
     /// Decay relevance over time
+    #[inline]
     pub fn decay_relevance(&mut self, rng: &mut u64) {
         let jitter = (xorshift64(rng) % 30) as f32 / 100_000.0;
         self.relevance *= RELEVANCE_DECAY - jitter;
@@ -170,6 +173,7 @@ impl CoopPattern {
     }
 
     /// Composite score combining relevance, quality, and recall frequency
+    #[inline(always)]
     pub fn composite_score(&self) -> f32 {
         self.relevance * 0.4 + self.outcome_quality * 0.35 + self.recall_frequency * 0.25
     }
@@ -203,6 +207,7 @@ impl PalaceRoom {
     }
 
     /// Store a pattern, evicting the least relevant if full
+    #[inline]
     pub fn store(&mut self, pattern: CoopPattern) {
         if self.patterns.len() >= MAX_PATTERNS_PER_ROOM {
             self.evict_least_relevant();
@@ -213,6 +218,7 @@ impl PalaceRoom {
     }
 
     /// Find patterns matching a context hash
+    #[inline]
     pub fn find_by_context(&self, context_hash: u64) -> Vec<&CoopPattern> {
         self.patterns
             .values()
@@ -221,6 +227,7 @@ impl PalaceRoom {
     }
 
     /// Find patterns involving a specific process
+    #[inline]
     pub fn find_by_process(&self, process_id: u64) -> Vec<&CoopPattern> {
         self.patterns
             .values()
@@ -229,6 +236,7 @@ impl PalaceRoom {
     }
 
     /// Get top N patterns by composite score
+    #[inline]
     pub fn top_patterns(&self, n: usize) -> Vec<&CoopPattern> {
         let mut sorted: Vec<&CoopPattern> = self.patterns.values().collect();
         sorted.sort_by(|a, b| {
@@ -277,6 +285,7 @@ impl PalaceRoom {
 // ============================================================================
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopPalaceStats {
     pub total_patterns: usize,
     pub sharing_count: usize,
@@ -424,6 +433,7 @@ impl CoopMemoryPalace {
     }
 
     /// Recall patterns for a specific process across all rooms
+    #[inline]
     pub fn recall_for_process(&self, process_id: u64) -> Vec<&CoopPattern> {
         let mut results = Vec::new();
         for (_, room) in self.rooms.iter() {
@@ -438,6 +448,7 @@ impl CoopMemoryPalace {
     // ========================================================================
 
     /// Reorganize and re-rank all patterns within each room
+    #[inline]
     pub fn organize_by_type(&mut self) {
         self.tick += 1;
 
@@ -576,10 +587,12 @@ impl CoopMemoryPalace {
     // QUERIES & MAINTENANCE
     // ========================================================================
 
+    #[inline(always)]
     pub fn total_pattern_count(&self) -> usize {
         self.rooms.values().map(|r| r.patterns.len()).sum()
     }
 
+    #[inline]
     pub fn room_pattern_count(&self, room: PatternRoom) -> usize {
         self.rooms
             .get(&(room as u8))
@@ -587,6 +600,7 @@ impl CoopMemoryPalace {
             .unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn snapshot_stats(&self) -> CoopPalaceStats {
         self.stats.clone()
     }

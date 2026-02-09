@@ -61,6 +61,7 @@ impl TransferChunk {
         Self { seq, offset, size, checksum: ck, acked: false, send_ts: ts, retries: 0 }
     }
 
+    #[inline(always)]
     pub fn ack(&mut self) { self.acked = true; }
 }
 
@@ -114,6 +115,7 @@ impl TransferSession {
         }
     }
 
+    #[inline]
     pub fn prepare(&mut self, ts: u64) {
         self.state = TransferState::Preparing;
         let n = self.snapshot.chunk_count;
@@ -126,6 +128,7 @@ impl TransferSession {
         self.state = TransferState::Transferring;
     }
 
+    #[inline]
     pub fn next_chunks(&self) -> Vec<u64> {
         let inflight = self.sent.saturating_sub(self.acked) as u32;
         if inflight >= self.max_inflight { return Vec::new(); }
@@ -137,6 +140,7 @@ impl TransferSession {
             .collect()
     }
 
+    #[inline]
     pub fn mark_sent(&mut self, seq: u64, ts: u64) {
         if let Some(c) = self.chunks.iter_mut().find(|c| c.seq == seq) {
             c.send_ts = ts;
@@ -145,6 +149,7 @@ impl TransferSession {
         }
     }
 
+    #[inline]
     pub fn ack_chunk(&mut self, seq: u64) -> bool {
         if let Some(c) = self.chunks.iter_mut().find(|c| c.seq == seq) {
             c.ack();
@@ -155,29 +160,38 @@ impl TransferSession {
         false
     }
 
+    #[inline]
     pub fn verify(&mut self) -> bool {
         let all_acked = self.chunks.iter().all(|c| c.acked);
         if all_acked { self.state = TransferState::Applying; }
         all_acked
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, ts: u64) { self.state = TransferState::Complete; self.end_ts = ts; }
+    #[inline(always)]
     pub fn fail(&mut self, ts: u64) { self.state = TransferState::Failed; self.end_ts = ts; }
+    #[inline(always)]
     pub fn pause(&mut self) { self.state = TransferState::Paused; }
+    #[inline(always)]
     pub fn resume(&mut self) { self.state = TransferState::Transferring; }
 
+    #[inline(always)]
     pub fn progress(&self) -> f64 {
         if self.snapshot.chunk_count == 0 { return 0.0; }
         self.acked as f64 / self.snapshot.chunk_count as f64
     }
 
+    #[inline(always)]
     pub fn elapsed(&self, now: u64) -> u64 { now.saturating_sub(self.start_ts) }
 
+    #[inline(always)]
     pub fn throughput(&self, now: u64) -> u64 {
         let e = self.elapsed(now);
         if e == 0 { 0 } else { self.bytes_sent.saturating_mul(1_000_000_000) / e }
     }
 
+    #[inline(always)]
     pub fn unacked_chunks(&self) -> Vec<u64> {
         self.chunks.iter().filter(|c| !c.acked && c.send_ts > 0).map(|c| c.seq).collect()
     }
@@ -185,6 +199,7 @@ impl TransferSession {
 
 /// Transfer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct TransferStats {
     pub sessions: usize,
     pub active: usize,
@@ -195,6 +210,7 @@ pub struct TransferStats {
 }
 
 /// Cooperative state transfer manager
+#[repr(align(64))]
 pub struct CoopStateTransfer {
     sessions: BTreeMap<u64, TransferSession>,
     stats: TransferStats,
@@ -208,6 +224,7 @@ impl CoopStateTransfer {
         Self { sessions: BTreeMap::new(), stats: TransferStats::default(), next_id: 1, default_chunk_size: chunk_size, default_inflight: inflight }
     }
 
+    #[inline]
     pub fn start_transfer(&mut self, source: u64, target: u64, mode: TransferMode, total_size: u64, epoch: u64, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let snap = SnapshotDesc::new(epoch, total_size, self.default_chunk_size, ts);
@@ -217,6 +234,7 @@ impl CoopStateTransfer {
         id
     }
 
+    #[inline]
     pub fn send_chunks(&mut self, session_id: u64, ts: u64) -> Vec<u64> {
         if let Some(s) = self.sessions.get_mut(&session_id) {
             let seqs = s.next_chunks();
@@ -226,10 +244,12 @@ impl CoopStateTransfer {
         Vec::new()
     }
 
+    #[inline(always)]
     pub fn ack(&mut self, session_id: u64, seq: u64) -> bool {
         if let Some(s) = self.sessions.get_mut(&session_id) { s.ack_chunk(seq) } else { false }
     }
 
+    #[inline]
     pub fn try_complete(&mut self, session_id: u64, ts: u64) -> bool {
         if let Some(s) = self.sessions.get_mut(&session_id) {
             if s.verify() { s.complete(ts); return true; }
@@ -237,10 +257,12 @@ impl CoopStateTransfer {
         false
     }
 
+    #[inline(always)]
     pub fn cancel(&mut self, session_id: u64, ts: u64) {
         if let Some(s) = self.sessions.get_mut(&session_id) { s.fail(ts); }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.sessions = self.sessions.len();
         self.stats.active = self.sessions.values().filter(|s| s.state == TransferState::Transferring).count();
@@ -249,6 +271,8 @@ impl CoopStateTransfer {
         self.stats.total_bytes = self.sessions.values().map(|s| s.bytes_sent).sum();
     }
 
+    #[inline(always)]
     pub fn session(&self, id: u64) -> Option<&TransferSession> { self.sessions.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &TransferStats { &self.stats }
 }

@@ -103,6 +103,7 @@ pub struct ConsciousnessSnapshot {
 
 /// Aggregate awareness statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct AwarenessStats {
     pub current_state: u8,
     pub consciousness_score: f32,
@@ -180,6 +181,7 @@ impl HolisticAwareness {
     }
 
     /// Feed a signal into an awareness channel
+    #[inline]
     pub fn feed_signal(&mut self, channel_id: u64, signal: f32, noise: f32) {
         self.tick += 1;
         if let Some(ch) = self.channels.get_mut(&channel_id) {
@@ -220,6 +222,7 @@ impl HolisticAwareness {
     }
 
     /// Compute the current consciousness level (0.0 – 1.0)
+    #[inline]
     pub fn consciousness_level(&mut self) -> f32 {
         self.tick += 1;
 
@@ -276,6 +279,7 @@ impl HolisticAwareness {
     }
 
     /// Compute the qualia score: subjective richness of experience
+    #[inline]
     pub fn qualia_score(&mut self) -> f32 {
         if self.qualia.is_empty() {
             return 0.0;
@@ -295,6 +299,7 @@ impl HolisticAwareness {
     }
 
     /// Measure unity of consciousness: how well-integrated is awareness?
+    #[inline]
     pub fn unity_of_consciousness(&mut self) -> f32 {
         if self.channels.len() < 2 {
             self.unity_ema = if self.channels.is_empty() { 0.0 } else { 1.0 };
@@ -341,6 +346,7 @@ impl HolisticAwareness {
     }
 
     /// Current state of consciousness
+    #[inline(always)]
     pub fn current_state(&self) -> ConsciousnessState {
         self.state
     }

@@ -67,14 +67,17 @@ impl Shard {
         }
     }
 
+    #[inline(always)]
     pub fn total_ops(&self) -> u64 { self.read_ops + self.write_ops }
 
+    #[inline]
     pub fn load_score(&self) -> f64 {
         let ops = self.total_ops() as f64;
         let size = self.data_bytes as f64 / (1024.0 * 1024.0);
         ops * 0.7 + size * 0.3
     }
 
+    #[inline]
     pub fn contains_range(&self, key: u64) -> bool {
         match (self.range_start, self.range_end) {
             (Some(s), Some(e)) => key >= s && key < e,
@@ -82,7 +85,9 @@ impl Shard {
         }
     }
 
+    #[inline(always)]
     pub fn record_read(&mut self, ts: u64) { self.read_ops += 1; self.last_access_ts = ts; }
+    #[inline(always)]
     pub fn record_write(&mut self, bytes: u64, ts: u64) {
         self.write_ops += 1; self.data_bytes += bytes; self.key_count += 1; self.last_access_ts = ts;
     }
@@ -103,6 +108,7 @@ impl ShardNode {
         Self { node_id: id, capacity_score: capacity, shards_assigned: Vec::new(), is_available: true, zone }
     }
 
+    #[inline]
     pub fn load_per_capacity(&self, shards: &BTreeMap<u32, Shard>) -> f64 {
         if self.capacity_score <= 0.0 { return f64::MAX; }
         let total_load: f64 = self.shards_assigned.iter()
@@ -139,6 +145,7 @@ impl Default for HotShardConfig {
 
 /// Sharding stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ShardingStats {
     pub total_shards: usize,
     pub active_shards: usize,
@@ -182,16 +189,19 @@ impl CoopSharding {
         hash
     }
 
+    #[inline(always)]
     pub fn add_node(&mut self, id: u64, capacity: f64, zone: String) {
         self.nodes.insert(id, ShardNode::new(id, capacity, zone));
         self.rebuild_ring();
     }
 
+    #[inline(always)]
     pub fn remove_node(&mut self, id: u64) {
         self.nodes.remove(&id);
         self.rebuild_ring();
     }
 
+    #[inline]
     pub fn create_shard(&mut self, node_id: u64, ts: u64) -> Option<u32> {
         if !self.nodes.contains_key(&node_id) { return None; }
         let id = self.next_shard_id; self.next_shard_id += 1;
@@ -244,6 +254,7 @@ impl CoopSharding {
         }
     }
 
+    #[inline]
     pub fn detect_hot_shards(&self) -> Vec<u32> {
         if self.shards.is_empty() { return Vec::new(); }
         let avg_ops: f64 = self.shards.values().map(|s| s.total_ops() as f64).sum::<f64>() / self.shards.len() as f64;
@@ -300,5 +311,6 @@ impl CoopSharding {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ShardingStats { &self.stats }
 }

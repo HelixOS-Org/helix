@@ -28,6 +28,7 @@ impl Bitlock {
         Self { word: AtomicU64::new(0), bit: bit & 63, lock_count: 0, contention_count: 0, spin_total: 0 }
     }
 
+    #[inline]
     pub fn try_lock(&mut self) -> bool {
         let mask = 1u64 << self.bit;
         let old = self.word.fetch_or(mask, Ordering::Acquire);
@@ -40,11 +41,13 @@ impl Bitlock {
         }
     }
 
+    #[inline(always)]
     pub fn unlock(&self) {
         let mask = 1u64 << self.bit;
         self.word.fetch_and(!mask, Ordering::Release);
     }
 
+    #[inline(always)]
     pub fn is_locked(&self) -> bool {
         let mask = 1u64 << self.bit;
         self.word.load(Ordering::Relaxed) & mask != 0
@@ -66,6 +69,7 @@ impl BitlockArray {
         Self { words: v, total_bits: bits, lock_count: 0 }
     }
 
+    #[inline]
     pub fn try_lock(&mut self, idx: u32) -> bool {
         if idx >= self.total_bits { return false; }
         let word = (idx / 64) as usize;
@@ -75,6 +79,7 @@ impl BitlockArray {
         if old & mask == 0 { self.lock_count += 1; true } else { false }
     }
 
+    #[inline]
     pub fn unlock(&self, idx: u32) {
         if idx >= self.total_bits { return; }
         let word = (idx / 64) as usize;
@@ -86,6 +91,7 @@ impl BitlockArray {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BitlockStats {
     pub total_locks: u64,
     pub total_contentions: u64,
@@ -99,12 +105,14 @@ pub struct CoopBitlock {
 impl CoopBitlock {
     pub fn new() -> Self { Self { locks: alloc::vec::Vec::new() } }
 
+    #[inline]
     pub fn create(&mut self, bit: u32) -> usize {
         let idx = self.locks.len();
         self.locks.push(Bitlock::new(bit));
         idx
     }
 
+    #[inline]
     pub fn stats(&self) -> BitlockStats {
         let locks: u64 = self.locks.iter().map(|l| l.lock_count).sum();
         let cont: u64 = self.locks.iter().map(|l| l.contention_count).sum();

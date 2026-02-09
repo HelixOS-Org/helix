@@ -39,12 +39,14 @@ impl InterruptRecord {
     }
 
     /// Set latency
+    #[inline(always)]
     pub fn with_latency(mut self, latency_ns: u64) -> Self {
         self.latency_ns = latency_ns;
         self
     }
 
     /// Mark as expected
+    #[inline(always)]
     pub fn with_expected(mut self, expected: bool) -> Self {
         self.expected = expected;
         self

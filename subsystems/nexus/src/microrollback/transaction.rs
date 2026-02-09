@@ -27,6 +27,7 @@ impl<'a> RollbackTransaction<'a> {
     }
 
     /// Add a component to the transaction
+    #[inline]
     pub fn add_component(&mut self, component: ComponentId, checkpoint_id: u64, state_hash: u64) {
         let point_id = self
             .engine
@@ -36,11 +37,13 @@ impl<'a> RollbackTransaction<'a> {
     }
 
     /// Commit the transaction (make rollback points permanent)
+    #[inline(always)]
     pub fn commit(mut self) {
         self.committed = true;
     }
 
     /// Rollback all components
+    #[inline]
     pub fn rollback(self) -> NexusResult<Vec<RollbackEntry>> {
         let mut entries = Vec::new();
 

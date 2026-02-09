@@ -12,6 +12,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -91,6 +92,7 @@ pub enum ExplorationDomain {
 
 /// Fitness evaluation result
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FitnessResult {
     pub individual_id: u64,
     pub fitness: f32,
@@ -119,6 +121,7 @@ pub struct ExplorationProgress {
 
 /// Aggregate exploration statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ExplorerStats {
     pub total_generations: u64,
     pub total_evaluations: u64,
@@ -139,20 +142,21 @@ pub struct ExplorerStats {
 /// Tracks the fitness improvement curve across generations
 #[derive(Debug, Clone)]
 struct FitnessCurve {
-    best_per_generation: BTreeMap<u32, f32>,
-    mean_per_generation: BTreeMap<u32, f32>,
+    best_per_generation: ArrayMap<f32, 32>,
+    mean_per_generation: ArrayMap<f32, 32>,
     improvement_ema: f32,
 }
 
 impl FitnessCurve {
     fn new() -> Self {
         Self {
-            best_per_generation: BTreeMap::new(),
-            mean_per_generation: BTreeMap::new(),
+            best_per_generation: ArrayMap::new(0.0),
+            mean_per_generation: ArrayMap::new(0.0),
             improvement_ema: 0.0,
         }
     }
 
+    #[inline]
     fn record(&mut self, generation: u32, best: f32, mean: f32) {
         let prev_best = self
             .best_per_generation
@@ -185,6 +189,7 @@ impl FitnessCurve {
 
 /// Autonomous genetic-algorithm bridge optimizer
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeExplorer {
     population: Vec<Individual>,
     fitness_curve: FitnessCurve,
@@ -250,6 +255,7 @@ impl BridgeExplorer {
     }
 
     /// Mutate an individual's parameters with adaptive mutation rate
+    #[inline]
     pub fn mutate_params(&mut self, individual: &mut Individual) {
         for param in individual.params.iter_mut() {
             if xorshift_f32(&mut self.rng_state) < self.mutation_rate {
@@ -295,6 +301,7 @@ impl BridgeExplorer {
     }
 
     /// Evaluate an individual's fitness based on observed performance metrics
+    #[inline]
     pub fn fitness_evaluate(
         &mut self,
         individual: &mut Individual,
@@ -456,11 +463,13 @@ impl BridgeExplorer {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> ExplorerStats {
         self.stats
     }
 
     /// Get best individual for a domain
+    #[inline(always)]
     pub fn domain_best(&self, domain: ExplorationDomain) -> Option<&Individual> {
         self.domain_best.get(&(domain as u64))
     }

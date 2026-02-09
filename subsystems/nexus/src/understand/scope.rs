@@ -172,6 +172,7 @@ impl Default for ScopeConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ScopeStats {
     /// Scopes created
     pub scopes_created: u64,
@@ -229,6 +230,7 @@ impl ScopeAnalyzer {
     }
 
     /// Exit scope
+    #[inline]
     pub fn exit_scope(&mut self, end: Position) -> Option<u64> {
         let current_id = self.current_scope?;
 
@@ -342,11 +344,13 @@ impl ScopeAnalyzer {
     }
 
     /// Get scope
+    #[inline(always)]
     pub fn get_scope(&self, id: u64) -> Option<&Scope> {
         self.scopes.get(&id)
     }
 
     /// Get current scope
+    #[inline(always)]
     pub fn current(&self) -> Option<&Scope> {
         self.current_scope.and_then(|id| self.scopes.get(&id))
     }
@@ -437,6 +441,7 @@ impl ScopeAnalyzer {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ScopeStats {
         &self.stats
     }

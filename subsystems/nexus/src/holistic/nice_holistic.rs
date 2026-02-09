@@ -26,6 +26,7 @@ pub struct HolisticNiceEntry {
 
 /// Nice holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticNiceStats {
     pub total_analyzed: u64,
     pub fair_processes: u64,
@@ -90,6 +91,7 @@ impl HolisticNiceManager {
         fairness
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticNiceStats {
         &self.stats
     }

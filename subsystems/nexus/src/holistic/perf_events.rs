@@ -3,7 +3,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -34,10 +36,12 @@ pub enum HwEventId {
 }
 
 impl HwEventId {
+    #[inline(always)]
     pub fn is_cache_related(&self) -> bool {
         matches!(self, Self::CacheReferences | Self::CacheMisses)
     }
 
+    #[inline(always)]
     pub fn is_branch_related(&self) -> bool {
         matches!(self, Self::BranchInstructions | Self::BranchMisses)
     }
@@ -79,10 +83,12 @@ pub struct PmuDesc {
 }
 
 impl PmuDesc {
+    #[inline(always)]
     pub fn total_counters(&self) -> u32 {
         self.nr_counters + self.nr_fixed
     }
 
+    #[inline(always)]
     pub fn max_count(&self) -> u64 {
         if self.counter_width >= 64 { u64::MAX }
         else { (1u64 << self.counter_width) - 1 }
@@ -129,17 +135,20 @@ impl PerfEvent {
         }
     }
 
+    #[inline(always)]
     pub fn multiplexing_ratio(&self) -> f64 {
         if self.enabled_time_ns == 0 { return 0.0; }
         self.running_time_ns as f64 / self.enabled_time_ns as f64
     }
 
+    #[inline]
     pub fn scaled_count(&self) -> u64 {
         let ratio = self.multiplexing_ratio();
         if ratio < 0.001 { return 0; }
         (self.count as f64 / ratio) as u64
     }
 
+    #[inline(always)]
     pub fn is_multiplexed(&self) -> bool {
         self.multiplexing_ratio() < 0.99
     }
@@ -156,6 +165,7 @@ pub enum PerfEventState {
 
 /// Per-CPU perf state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CpuPerfState {
     pub cpu_id: u32,
     pub active_events: Vec<u64>,
@@ -174,6 +184,7 @@ impl CpuPerfState {
         }
     }
 
+    #[inline]
     pub fn utilization(&self) -> f64 {
         let total = self.total_gp + self.total_fixed;
         if total == 0 { return 0.0; }
@@ -181,6 +192,7 @@ impl CpuPerfState {
         used as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn can_schedule(&self) -> bool {
         self.gp_counters_used < self.total_gp || self.fixed_counters_used < self.total_fixed
     }
@@ -200,6 +212,7 @@ pub struct PerfSample {
 
 /// Perf stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerfEventsStats {
     pub total_events: u64,
     pub active_events: u64,
@@ -214,7 +227,7 @@ pub struct HolisticPerfEvents {
     pmus: BTreeMap<u32, PmuDesc>,
     events: BTreeMap<u64, PerfEvent>,
     cpu_states: BTreeMap<u32, CpuPerfState>,
-    samples: Vec<PerfSample>,
+    samples: VecDeque<PerfSample>,
     max_samples: usize,
     next_event_id: u64,
     stats: PerfEventsStats,
@@ -226,7 +239,7 @@ impl HolisticPerfEvents {
             pmus: BTreeMap::new(),
             events: BTreeMap::new(),
             cpu_states: BTreeMap::new(),
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             max_samples: 8192,
             next_event_id: 1,
             stats: PerfEventsStats {
@@ -236,11 +249,13 @@ impl HolisticPerfEvents {
         }
     }
 
+    #[inline(always)]
     pub fn register_pmu(&mut self, pmu: PmuDesc) {
         self.stats.pmu_count += 1;
         self.pmus.insert(pmu.id, pmu);
     }
 
+    #[inline]
     pub fn create_event(&mut self, config: PerfEventConfig, pmu_id: u32) -> u64 {
         let id = self.next_event_id;
         self.next_event_id += 1;
@@ -280,14 +295,16 @@ impl HolisticPerfEvents {
         false
     }
 
+    #[inline]
     pub fn record_sample(&mut self, sample: PerfSample) {
         self.stats.total_samples += 1;
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
+    #[inline]
     pub fn multiplexed_events(&self) -> Vec<u64> {
         self.events.iter()
             .filter(|(_, e)| e.is_multiplexed() && e.state == PerfEventState::Active)
@@ -295,8 +312,9 @@ impl HolisticPerfEvents {
             .collect()
     }
 
+    #[inline]
     pub fn hottest_ips(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut ip_counts: BTreeMap<u64, u64> = BTreeMap::new();
+        let mut ip_counts: LinearMap<u64, 64> = BTreeMap::new();
         for s in &self.samples {
             *ip_counts.entry(s.ip).or_insert(0) += 1;
         }
@@ -306,10 +324,12 @@ impl HolisticPerfEvents {
         v
     }
 
+    #[inline(always)]
     pub fn add_cpu_state(&mut self, state: CpuPerfState) {
         self.cpu_states.insert(state.cpu_id, state);
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PerfEventsStats {
         &self.stats
     }
@@ -336,6 +356,7 @@ pub enum SwEventType {
 
 /// Event counter
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PerfCounter {
     pub id: u64,
     pub hw_event: Option<HwEventType>,
@@ -351,16 +372,21 @@ pub struct PerfCounter {
 }
 
 impl PerfCounter {
+    #[inline(always)]
     pub fn hw(id: u64, event: HwEventType) -> Self {
         Self { id, hw_event: Some(event), sw_event: None, value: 0, enabled_time: 0, running_time: 0, sample_period: 0, samples_collected: 0, overflow_count: 0, cpu: -1, pid: -1 }
     }
 
+    #[inline(always)]
     pub fn sw(id: u64, event: SwEventType) -> Self {
         Self { id, hw_event: None, sw_event: Some(event), value: 0, enabled_time: 0, running_time: 0, sample_period: 0, samples_collected: 0, overflow_count: 0, cpu: -1, pid: -1 }
     }
 
+    #[inline(always)]
     pub fn increment(&mut self, delta: u64) { self.value += delta; }
+    #[inline(always)]
     pub fn multiplexing_ratio(&self) -> f64 { if self.enabled_time == 0 { 1.0 } else { self.running_time as f64 / self.enabled_time as f64 } }
+    #[inline(always)]
     pub fn scaled_value(&self) -> u64 { let ratio = self.multiplexing_ratio(); if ratio == 0.0 { 0 } else { (self.value as f64 / ratio) as u64 } }
 }
 
@@ -388,6 +414,7 @@ pub struct PerfSampleV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PerfEventsV2Stats {
     pub total_counters: u32,
     pub hw_counters: u32,
@@ -401,31 +428,35 @@ pub struct PerfEventsV2Stats {
 pub struct HolisticPerfEventsV2 {
     counters: BTreeMap<u64, PerfCounter>,
     groups: BTreeMap<u64, PerfEventGroup>,
-    samples: Vec<PerfSampleV2>,
+    samples: VecDeque<PerfSampleV2>,
     next_id: u64,
     max_samples: usize,
 }
 
 impl HolisticPerfEventsV2 {
-    pub fn new() -> Self { Self { counters: BTreeMap::new(), groups: BTreeMap::new(), samples: Vec::new(), next_id: 1, max_samples: 8192 } }
+    pub fn new() -> Self { Self { counters: BTreeMap::new(), groups: BTreeMap::new(), samples: VecDeque::new(), next_id: 1, max_samples: 8192 } }
 
+    #[inline]
     pub fn add_hw_counter(&mut self, event: HwEventType) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.counters.insert(id, PerfCounter::hw(id, event));
         id
     }
 
+    #[inline]
     pub fn add_sw_counter(&mut self, event: SwEventType) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.counters.insert(id, PerfCounter::sw(id, event));
         id
     }
 
+    #[inline(always)]
     pub fn record_sample(&mut self, sample: PerfSampleV2) {
         if self.samples.len() >= self.max_samples { self.samples.drain(..self.max_samples / 2); }
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
+    #[inline]
     pub fn stats(&self) -> PerfEventsV2Stats {
         let hw = self.counters.values().filter(|c| c.hw_event.is_some()).count() as u32;
         let sw = self.counters.values().filter(|c| c.sw_event.is_some()).count() as u32;

@@ -57,6 +57,7 @@ impl CausalEdge {
     }
 
     /// Set latency
+    #[inline]
     pub fn with_latency(mut self, latency: u64) -> Self {
         self.latency = latency;
         self.weight = latency as f64;
@@ -64,6 +65,7 @@ impl CausalEdge {
     }
 
     /// Set weight
+    #[inline(always)]
     pub fn with_weight(mut self, weight: f64) -> Self {
         self.weight = weight;
         self

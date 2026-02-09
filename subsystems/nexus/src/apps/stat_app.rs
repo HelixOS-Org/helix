@@ -2,6 +2,7 @@
 //! NEXUS Apps — Stat App (file status and metadata tracking)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 
@@ -48,13 +49,17 @@ impl StatResult {
         }
     }
 
+    #[inline(always)]
     pub fn is_regular(&self) -> bool { self.file_type == StatFileType::Regular }
+    #[inline(always)]
     pub fn is_directory(&self) -> bool { self.file_type == StatFileType::Directory }
+    #[inline(always)]
     pub fn is_symlink(&self) -> bool { self.file_type == StatFileType::Symlink }
 }
 
 /// Stat cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StatCacheEntry {
     pub path_hash: u64,
     pub result: StatResult,
@@ -64,6 +69,7 @@ pub struct StatCacheEntry {
 
 /// Statistics for stat app
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StatAppStats {
     pub stat_calls: u64,
     pub lstat_calls: u64,
@@ -104,6 +110,7 @@ impl AppStat {
         h
     }
 
+    #[inline]
     pub fn stat(&mut self, path: &str, tick: u64) -> Option<&StatResult> {
         self.stats.stat_calls += 1;
         let hash = Self::hash_path(path);
@@ -131,11 +138,13 @@ impl AppStat {
         });
     }
 
+    #[inline(always)]
     pub fn invalidate(&mut self, path: &str) {
         let hash = Self::hash_path(path);
         self.cache.remove(&hash);
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &StatAppStats {
         &self.stats
     }
@@ -189,6 +198,7 @@ impl StatV2Record {
         Self { call, result: StatV2Result::Success, path_hash: h, inode: 0, size: 0, blocks: 0, nlink: 1, mode: 0, latency_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn is_symlink_aware(&self) -> bool {
         matches!(self.call, StatV2Call::Lstat | StatV2Call::Fstatat | StatV2Call::Statx)
     }
@@ -196,6 +206,7 @@ impl StatV2Record {
 
 /// Stat v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StatV2AppStats {
     pub total_calls: u64,
     pub stat_calls: u64,
@@ -215,6 +226,7 @@ impl AppStatV2 {
         Self { stats: StatV2AppStats { total_calls: 0, stat_calls: 0, statx_calls: 0, errors: 0, total_latency_ns: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &StatV2Record) {
         self.stats.total_calls += 1;
         self.stats.total_latency_ns += rec.latency_ns;
@@ -225,6 +237,7 @@ impl AppStatV2 {
         if rec.result != StatV2Result::Success { self.stats.errors += 1; }
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.stats.total_calls == 0 { 0 } else { self.stats.total_latency_ns / self.stats.total_calls }
     }
@@ -267,6 +280,7 @@ pub struct AppStatInfo {
 
 /// Statistics for stat operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppStatOpStats {
     pub total_stats: u64,
     pub cache_hits: u64,
@@ -279,7 +293,7 @@ pub struct AppStatOpStats {
 /// Manager for stat application operations
 pub struct AppStatV3Manager {
     stat_cache: BTreeMap<u64, AppStatInfo>,
-    path_to_inode: BTreeMap<u64, u64>,
+    path_to_inode: LinearMap<u64, 64>,
     stats: AppStatOpStats,
 }
 
@@ -287,7 +301,7 @@ impl AppStatV3Manager {
     pub fn new() -> Self {
         Self {
             stat_cache: BTreeMap::new(),
-            path_to_inode: BTreeMap::new(),
+            path_to_inode: LinearMap::new(),
             stats: AppStatOpStats {
                 total_stats: 0,
                 cache_hits: 0,
@@ -308,16 +322,18 @@ impl AppStatV3Manager {
         h
     }
 
+    #[inline]
     pub fn cache_stat(&mut self, path: &str, info: AppStatInfo) {
         let hash = Self::hash_path(path);
         self.path_to_inode.insert(hash, info.inode);
         self.stat_cache.insert(info.inode, info);
     }
 
+    #[inline]
     pub fn stat_path(&mut self, path: &str) -> Option<&AppStatInfo> {
         self.stats.total_stats += 1;
         let hash = Self::hash_path(path);
-        if let Some(&inode) = self.path_to_inode.get(&hash) {
+        if let Some(&inode) = self.path_to_inode.get(hash) {
             self.stats.cache_hits += 1;
             self.stat_cache.get(&inode)
         } else {
@@ -326,6 +342,7 @@ impl AppStatV3Manager {
         }
     }
 
+    #[inline]
     pub fn fstat(&mut self, inode: u64) -> Option<&AppStatInfo> {
         self.stats.fstat_calls += 1;
         self.stats.total_stats += 1;
@@ -338,18 +355,21 @@ impl AppStatV3Manager {
         }
     }
 
+    #[inline(always)]
     pub fn lstat(&mut self, path: &str) -> Option<&AppStatInfo> {
         self.stats.lstat_calls += 1;
         self.stat_path(path)
     }
 
+    #[inline]
     pub fn invalidate(&mut self, path: &str) {
         let hash = Self::hash_path(path);
-        if let Some(inode) = self.path_to_inode.remove(&hash) {
+        if let Some(inode) = self.path_to_inode.remove(hash) {
             self.stat_cache.remove(&inode);
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppStatOpStats {
         &self.stats
     }

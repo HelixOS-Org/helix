@@ -35,6 +35,7 @@ impl Matrix {
     }
 
     /// Create from data
+    #[inline]
     pub fn from_data(rows: usize, cols: usize, data: Vec<f64>) -> Option<Self> {
         if data.len() == rows * cols {
             Some(Self { data, rows, cols })
@@ -44,6 +45,7 @@ impl Matrix {
     }
 
     /// Create identity matrix
+    #[inline]
     pub fn identity(n: usize) -> Self {
         let mut m = Self::new(n, n);
         for i in 0..n {
@@ -69,6 +71,7 @@ impl Matrix {
     }
 
     /// Get element
+    #[inline]
     pub fn get(&self, row: usize, col: usize) -> f64 {
         if row < self.rows && col < self.cols {
             self.data[row * self.cols + col]
@@ -78,6 +81,7 @@ impl Matrix {
     }
 
     /// Set element
+    #[inline]
     pub fn set(&mut self, row: usize, col: usize, val: f64) {
         if row < self.rows && col < self.cols {
             self.data[row * self.cols + col] = val;
@@ -85,18 +89,21 @@ impl Matrix {
     }
 
     /// Get row as slice
+    #[inline(always)]
     pub fn row(&self, idx: usize) -> &[f64] {
         let start = idx * self.cols;
         &self.data[start..start + self.cols]
     }
 
     /// Get mutable row
+    #[inline(always)]
     pub fn row_mut(&mut self, idx: usize) -> &mut [f64] {
         let start = idx * self.cols;
         &mut self.data[start..start + self.cols]
     }
 
     /// Transpose
+    #[inline]
     pub fn transpose(&self) -> Self {
         let mut result = Matrix::new(self.cols, self.rows);
         for i in 0..self.rows {
@@ -149,6 +156,7 @@ impl Matrix {
     }
 
     /// Scale by factor
+    #[inline]
     pub fn scale(&self, factor: f64) -> Matrix {
         Matrix {
             data: self.data.iter().map(|&x| x * factor).collect(),
@@ -158,6 +166,7 @@ impl Matrix {
     }
 
     /// Apply function element-wise
+    #[inline]
     pub fn map<F>(&self, f: F) -> Matrix
     where
         F: Fn(f64) -> f64,
@@ -200,12 +209,14 @@ impl Matrix {
     }
 
     /// L2 norm of entire matrix
+    #[inline(always)]
     pub fn norm(&self) -> f64 {
         let sq_sum: f64 = self.data.iter().map(|&x| x * x).sum();
         libm::sqrt(sq_sum)
     }
 
     /// Frobenius norm
+    #[inline(always)]
     pub fn frobenius_norm(&self) -> f64 {
         self.norm()
     }
@@ -240,6 +251,7 @@ impl Tensor3 {
     }
 
     /// Get element
+    #[inline]
     pub fn get(&self, b: usize, s: usize, h: usize) -> f64 {
         if b < self.batch && s < self.seq_len && h < self.hidden {
             self.data[(b * self.seq_len + s) * self.hidden + h]
@@ -249,6 +261,7 @@ impl Tensor3 {
     }
 
     /// Set element
+    #[inline]
     pub fn set(&mut self, b: usize, s: usize, h: usize, val: f64) {
         if b < self.batch && s < self.seq_len && h < self.hidden {
             self.data[(b * self.seq_len + s) * self.hidden + h] = val;
@@ -256,6 +269,7 @@ impl Tensor3 {
     }
 
     /// Get batch slice as matrix
+    #[inline]
     pub fn batch_matrix(&self, b: usize) -> Matrix {
         let mut m = Matrix::new(self.seq_len, self.hidden);
         for s in 0..self.seq_len {
@@ -267,6 +281,7 @@ impl Tensor3 {
     }
 
     /// Set batch from matrix
+    #[inline]
     pub fn set_batch(&mut self, b: usize, matrix: &Matrix) {
         for s in 0..self.seq_len.min(matrix.rows) {
             for h in 0..self.hidden.min(matrix.cols) {
@@ -295,11 +310,13 @@ pub enum AttentionMask {
 
 impl AttentionMask {
     /// Create causal mask
+    #[inline(always)]
     pub fn causal(seq_len: usize) -> Self {
         AttentionMask::Causal(seq_len)
     }
 
     /// Create padding mask from lengths
+    #[inline]
     pub fn from_lengths(lengths: &[usize], max_len: usize) -> Self {
         let mut mask = Vec::with_capacity(lengths.len() * max_len);
         for &len in lengths {
@@ -368,6 +385,7 @@ impl AttentionOutput {
     }
 
     /// Create with weights
+    #[inline]
     pub fn with_weights(output: Matrix, weights: Matrix) -> Self {
         Self {
             output,
@@ -401,6 +419,7 @@ impl Linear {
     }
 
     /// Create with bias
+    #[inline(always)]
     pub fn with_bias(mut self) -> Self {
         self.bias = Some(alloc::vec![0.0; self.weight.rows]);
         self
@@ -516,6 +535,7 @@ impl Dropout {
     }
 
     /// Set training mode
+    #[inline(always)]
     pub fn train(&mut self, training: bool) {
         self.training = training;
     }

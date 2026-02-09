@@ -44,6 +44,7 @@ impl IrqThread {
         Self { irq_num: irq, cpu, state: IrqThreadState::Idle, action_type: action, handler_hash: 0, thread_fn_hash: 0, total_handled: 0, total_wake: 0, total_ns: 0, max_latency_ns: 0, affinity_mask: 1u64 << cpu }
     }
 
+    #[inline]
     pub fn handle(&mut self, latency_ns: u64) {
         self.total_handled += 1;
         self.total_ns += latency_ns;
@@ -51,13 +52,16 @@ impl IrqThread {
         self.state = IrqThreadState::Running;
     }
 
+    #[inline(always)]
     pub fn wake(&mut self) {
         self.total_wake += 1;
         self.state = IrqThreadState::Waiting;
     }
 
+    #[inline(always)]
     pub fn complete(&mut self) { self.state = IrqThreadState::Idle; }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.total_handled == 0 { 0 } else { self.total_ns / self.total_handled }
     }
@@ -65,6 +69,7 @@ impl IrqThread {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IrqThreadStats {
     pub total_threads: u32,
     pub active: u32,
@@ -81,20 +86,25 @@ pub struct HolisticIrqThread {
 impl HolisticIrqThread {
     pub fn new() -> Self { Self { threads: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn register(&mut self, irq: u32, cpu: u32, action: IrqActionType) {
         self.threads.insert(irq, IrqThread::new(irq, cpu, action));
     }
 
+    #[inline(always)]
     pub fn handle(&mut self, irq: u32, latency_ns: u64) {
         if let Some(t) = self.threads.get_mut(&irq) { t.handle(latency_ns); }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, irq: u32) {
         if let Some(t) = self.threads.get_mut(&irq) { t.complete(); }
     }
 
+    #[inline(always)]
     pub fn unregister(&mut self, irq: u32) { self.threads.remove(&irq); }
 
+    #[inline]
     pub fn stats(&self) -> IrqThreadStats {
         let active = self.threads.values().filter(|t| t.state == IrqThreadState::Running).count() as u32;
         let handled: u64 = self.threads.values().map(|t| t.total_handled).sum();

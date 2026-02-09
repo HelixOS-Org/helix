@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -98,6 +99,7 @@ pub struct ArgDescriptor {
 }
 
 impl ArgDescriptor {
+    #[inline]
     pub fn integer(index: u8, value: u64) -> Self {
         Self {
             index,
@@ -110,6 +112,7 @@ impl ArgDescriptor {
         }
     }
 
+    #[inline]
     pub fn pointer(index: u8, addr: u64, size: usize, direction: ArgDirection) -> Self {
         Self {
             index,
@@ -122,6 +125,7 @@ impl ArgDescriptor {
         }
     }
 
+    #[inline]
     pub fn fd(index: u8, fd: u64) -> Self {
         Self {
             index,
@@ -135,11 +139,13 @@ impl ArgDescriptor {
     }
 
     /// Mark validated
+    #[inline(always)]
     pub fn mark_validated(&mut self) {
         self.validated = true;
     }
 
     /// Is pointer type
+    #[inline]
     pub fn is_pointer(&self) -> bool {
         matches!(
             self.arg_type,
@@ -154,6 +160,7 @@ impl ArgDescriptor {
 
 /// Caller context embedded in envelope
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CallerContext {
     /// Process ID
     pub pid: u64,
@@ -179,6 +186,7 @@ pub struct CallerContext {
 
 /// Syscall envelope
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SyscallEnvelope {
     /// Unique envelope ID
     pub id: u64,
@@ -201,7 +209,7 @@ pub struct SyscallEnvelope {
     /// Priority
     pub priority: u8,
     /// Tags (metadata)
-    pub tags: BTreeMap<u64, u64>,
+    pub tags: LinearMap<u64, 64>,
     /// Return value (after completion)
     pub return_value: Option<i64>,
 }
@@ -219,12 +227,13 @@ impl SyscallEnvelope {
             created_ns: now,
             expires_ns: now + 30_000_000_000, // 30s default
             priority: 128,
-            tags: BTreeMap::new(),
+            tags: LinearMap::new(),
             return_value: None,
         }
     }
 
     /// Add argument
+    #[inline]
     pub fn add_arg(&mut self, arg: ArgDescriptor) {
         if self.state == EnvelopeState::Open {
             self.args.push(arg);
@@ -232,6 +241,7 @@ impl SyscallEnvelope {
     }
 
     /// Add tag
+    #[inline]
     pub fn add_tag(&mut self, key: u64, value: u64) {
         if self.state == EnvelopeState::Open {
             self.tags.insert(key, value);
@@ -282,6 +292,7 @@ impl SyscallEnvelope {
     }
 
     /// Mark delivered
+    #[inline]
     pub fn deliver(&mut self) {
         if self.state == EnvelopeState::Sealed {
             self.state = EnvelopeState::Delivered;
@@ -289,6 +300,7 @@ impl SyscallEnvelope {
     }
 
     /// Set response
+    #[inline]
     pub fn respond(&mut self, return_value: i64) {
         if self.state == EnvelopeState::Delivered {
             self.return_value = Some(return_value);
@@ -297,16 +309,19 @@ impl SyscallEnvelope {
     }
 
     /// Check expired
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now >= self.expires_ns
     }
 
     /// All args validated?
+    #[inline(always)]
     pub fn all_validated(&self) -> bool {
         self.args.iter().all(|a| a.validated || a.optional)
     }
 
     /// Pointer arg count
+    #[inline(always)]
     pub fn pointer_arg_count(&self) -> usize {
         self.args.iter().filter(|a| a.is_pointer()).count()
     }
@@ -318,6 +333,7 @@ impl SyscallEnvelope {
 
 /// Envelope stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeEnvelopeStats {
     /// Envelopes created
     pub created: u64,
@@ -334,6 +350,7 @@ pub struct BridgeEnvelopeStats {
 }
 
 /// Bridge envelope manager
+#[repr(align(64))]
 pub struct BridgeEnvelopeManager {
     /// Active envelopes
     active: BTreeMap<u64, SyscallEnvelope>,
@@ -356,6 +373,7 @@ impl BridgeEnvelopeManager {
     }
 
     /// Create envelope
+    #[inline]
     pub fn create(&mut self, syscall_nr: u32, caller: CallerContext, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -369,11 +387,13 @@ impl BridgeEnvelopeManager {
     }
 
     /// Get envelope
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&SyscallEnvelope> {
         self.active.get(&id)
     }
 
     /// Get mutable
+    #[inline(always)]
     pub fn get_mut(&mut self, id: u64) -> Option<&mut SyscallEnvelope> {
         self.active.get_mut(&id)
     }
@@ -396,6 +416,7 @@ impl BridgeEnvelopeManager {
     }
 
     /// Deliver envelope
+    #[inline]
     pub fn deliver(&mut self, id: u64) -> bool {
         if let Some(env) = self.active.get_mut(&id) {
             env.deliver();
@@ -407,6 +428,7 @@ impl BridgeEnvelopeManager {
     }
 
     /// Complete with response
+    #[inline]
     pub fn complete(&mut self, id: u64, return_value: i64) -> bool {
         if let Some(env) = self.active.get_mut(&id) {
             env.respond(return_value);
@@ -417,6 +439,7 @@ impl BridgeEnvelopeManager {
     }
 
     /// Remove completed
+    #[inline]
     pub fn remove_completed(&mut self) -> usize {
         let before = self.active.len();
         self.active
@@ -425,6 +448,7 @@ impl BridgeEnvelopeManager {
     }
 
     /// Expire old envelopes
+    #[inline]
     pub fn expire(&mut self, now: u64) {
         for env in self.active.values_mut() {
             if env.is_expired(now) && env.state != EnvelopeState::Responded {
@@ -443,11 +467,13 @@ impl BridgeEnvelopeManager {
     }
 
     /// Active count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.active.len()
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeEnvelopeStats {
         &self.stats
     }

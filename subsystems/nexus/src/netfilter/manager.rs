@@ -51,6 +51,7 @@ impl NetfilterManager {
     }
 
     /// Create table
+    #[inline]
     pub fn create_table(
         &mut self,
         name: String,
@@ -86,6 +87,7 @@ impl NetfilterManager {
     }
 
     /// Add rule
+    #[inline]
     pub fn add_rule(
         &mut self,
         chain_id: ChainId,
@@ -104,52 +106,62 @@ impl NetfilterManager {
     }
 
     /// Get table
+    #[inline(always)]
     pub fn get_table(&self, id: TableId) -> Option<&TableDef> {
         self.tables.get(&id)
     }
 
     /// Get chain
+    #[inline(always)]
     pub fn get_chain(&self, id: ChainId) -> Option<&ChainDef> {
         self.chains.get(&id)
     }
 
     /// Get rule
+    #[inline(always)]
     pub fn get_rule(&self, id: RuleId) -> Option<&RuleDef> {
         self.rules.get(&id)
     }
 
     /// Get rule mutably
+    #[inline(always)]
     pub fn get_rule_mut(&mut self, id: RuleId) -> Option<&mut RuleDef> {
         self.rules.get_mut(&id)
     }
 
     /// Get conntrack
+    #[inline(always)]
     pub fn conntrack(&self) -> &Conntrack {
         &self.conntrack
     }
 
     /// Get conntrack mutably
+    #[inline(always)]
     pub fn conntrack_mut(&mut self) -> &mut Conntrack {
         &mut self.conntrack
     }
 
     /// Get NAT table
+    #[inline(always)]
     pub fn nat(&self) -> &NatTable {
         &self.nat
     }
 
     /// Record packet
+    #[inline(always)]
     pub fn record_packet(&self, size: u64) {
         self.total_packets.fetch_add(1, Ordering::Relaxed);
         self.total_bytes.fetch_add(size, Ordering::Relaxed);
     }
 
     /// Get total packets
+    #[inline(always)]
     pub fn total_packets(&self) -> u64 {
         self.total_packets.load(Ordering::Relaxed)
     }
 
     /// Get total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.total_bytes.load(Ordering::Relaxed)
     }

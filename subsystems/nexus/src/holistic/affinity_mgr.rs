@@ -35,45 +35,55 @@ pub struct CpuMask {
 }
 
 impl CpuMask {
+    #[inline(always)]
     pub fn empty() -> Self { Self { bits: [0; 4] } }
 
+    #[inline]
     pub fn all(nr_cpus: u32) -> Self {
         let mut m = Self::empty();
         for i in 0..nr_cpus.min(256) { m.set(i); }
         m
     }
 
+    #[inline(always)]
     pub fn set(&mut self, cpu: u32) {
         if cpu < 256 { self.bits[cpu as usize / 64] |= 1 << (cpu % 64); }
     }
 
+    #[inline(always)]
     pub fn clear(&mut self, cpu: u32) {
         if cpu < 256 { self.bits[cpu as usize / 64] &= !(1 << (cpu % 64)); }
     }
 
+    #[inline(always)]
     pub fn test(&self, cpu: u32) -> bool {
         if cpu >= 256 { return false; }
         (self.bits[cpu as usize / 64] >> (cpu % 64)) & 1 != 0
     }
 
+    #[inline(always)]
     pub fn count(&self) -> u32 {
         self.bits.iter().map(|b| b.count_ones()).sum()
     }
 
+    #[inline]
     pub fn and(&self, other: &CpuMask) -> CpuMask {
         let mut r = CpuMask::empty();
         for i in 0..4 { r.bits[i] = self.bits[i] & other.bits[i]; }
         r
     }
 
+    #[inline]
     pub fn or(&self, other: &CpuMask) -> CpuMask {
         let mut r = CpuMask::empty();
         for i in 0..4 { r.bits[i] = self.bits[i] | other.bits[i]; }
         r
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.bits.iter().all(|&b| b == 0) }
 
+    #[inline]
     pub fn first_set(&self) -> Option<u32> {
         for (i, &word) in self.bits.iter().enumerate() {
             if word != 0 { return Some(i as u32 * 64 + word.trailing_zeros()); }
@@ -81,6 +91,7 @@ impl CpuMask {
         None
     }
 
+    #[inline]
     pub fn iter_set(&self) -> Vec<u32> {
         let mut v = Vec::new();
         for i in 0..256u32 { if self.test(i) { v.push(i); } }
@@ -95,9 +106,13 @@ pub struct NodeMask {
 }
 
 impl NodeMask {
+    #[inline(always)]
     pub fn empty() -> Self { Self { bits: 0 } }
+    #[inline(always)]
     pub fn set(&mut self, node: u32) { if node < 64 { self.bits |= 1 << node; } }
+    #[inline(always)]
     pub fn test(&self, node: u32) -> bool { if node >= 64 { false } else { (self.bits >> node) & 1 != 0 } }
+    #[inline(always)]
     pub fn count(&self) -> u32 { self.bits.count_ones() }
 }
 
@@ -124,12 +139,14 @@ impl AffinityBinding {
         }
     }
 
+    #[inline]
     pub fn migrate_to(&mut self, cpu: u32, now: u64) {
         self.effective_cpu = Some(cpu);
         self.migrations += 1;
         self.last_migration = now;
     }
 
+    #[inline(always)]
     pub fn is_allowed(&self, cpu: u32) -> bool { self.cpu_mask.test(cpu) }
 }
 
@@ -157,6 +174,7 @@ pub enum MigrationReason {
 
 /// Affinity manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AffinityMgrStats {
     pub total_bindings: u32,
     pub total_migrations: u64,
@@ -178,10 +196,12 @@ impl HolisticAffinityMgr {
         Self { bindings: BTreeMap::new(), migrations: Vec::new(), max_migration_log: 8192 }
     }
 
+    #[inline(always)]
     pub fn bind(&mut self, id: u64, scope: AffinityScope, policy: AffinityPolicy, mask: CpuMask, now: u64) {
         self.bindings.insert(id, AffinityBinding::new(id, scope, policy, mask, now));
     }
 
+    #[inline(always)]
     pub fn unbind(&mut self, id: u64) -> bool { self.bindings.remove(&id).is_some() }
 
     pub fn migrate(&mut self, id: u64, to_cpu: u32, reason: MigrationReason, now: u64) -> bool {
@@ -200,8 +220,10 @@ impl HolisticAffinityMgr {
         true
     }
 
+    #[inline(always)]
     pub fn get_binding(&self, id: u64) -> Option<&AffinityBinding> { self.bindings.get(&id) }
 
+    #[inline]
     pub fn bindings_on_cpu(&self, cpu: u32) -> Vec<u64> {
         self.bindings.iter()
             .filter(|(_, b)| b.effective_cpu == Some(cpu))

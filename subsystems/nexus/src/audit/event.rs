@@ -9,6 +9,7 @@ use super::{AuditEventId, AuditMessageType, AuditResult, Gid, Pid, SyscallInfo, 
 
 /// Process context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessContext {
     /// Process ID
     pub pid: Pid,
@@ -68,28 +69,33 @@ impl ProcessContext {
     }
 
     /// Is root user
+    #[inline(always)]
     pub fn is_root(&self) -> bool {
         self.euid == Uid::ROOT
     }
 
     /// Has privilege escalation
+    #[inline(always)]
     pub fn has_escalation(&self) -> bool {
         self.euid != self.uid && self.euid == Uid::ROOT
     }
 
     /// Set parent PID
+    #[inline(always)]
     pub fn with_ppid(mut self, ppid: Pid) -> Self {
         self.ppid = ppid;
         self
     }
 
     /// Set executable
+    #[inline(always)]
     pub fn with_exe(mut self, exe: String) -> Self {
         self.exe = Some(exe);
         self
     }
 
     /// Set command
+    #[inline(always)]
     pub fn with_comm(mut self, comm: String) -> Self {
         self.comm = Some(comm);
         self
@@ -187,28 +193,33 @@ impl AuditEvent {
     }
 
     /// Is security event
+    #[inline(always)]
     pub fn is_security_event(&self) -> bool {
         self.msg_type.is_security()
     }
 
     /// Is failure
+    #[inline(always)]
     pub fn is_failure(&self) -> bool {
         matches!(self.result, AuditResult::Failure)
     }
 
     /// Set syscall info
+    #[inline(always)]
     pub fn with_syscall(mut self, syscall: SyscallInfo) -> Self {
         self.syscall = Some(syscall);
         self
     }
 
     /// Set result
+    #[inline(always)]
     pub fn with_result(mut self, result: AuditResult) -> Self {
         self.result = result;
         self
     }
 
     /// Add path record
+    #[inline(always)]
     pub fn add_path(&mut self, path: PathRecord) {
         self.paths.push(path);
     }

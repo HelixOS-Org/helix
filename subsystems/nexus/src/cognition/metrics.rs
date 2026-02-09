@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -21,6 +22,7 @@ use crate::types::{DomainId, Timestamp};
 
 /// A metric value
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Metric {
     /// Metric ID
     pub id: u64,
@@ -139,6 +141,7 @@ pub struct SummaryValue {
 // ============================================================================
 
 /// Collects and aggregates metrics
+#[repr(align(64))]
 pub struct MetricCollector {
     /// Registered metrics
     metrics: BTreeMap<u64, Metric>,
@@ -158,6 +161,7 @@ pub struct MetricCollector {
 
 /// Aggregated metric
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AggregatedMetric {
     /// Metric name
     pub name: String,
@@ -176,7 +180,7 @@ pub struct AggregatedMetric {
     /// Last value
     pub last: f64,
     /// Window samples
-    pub window: Vec<f64>,
+    pub window: VecDeque<f64>,
 }
 
 impl AggregatedMetric {
@@ -214,12 +218,13 @@ impl AggregatedMetric {
 
         // Update window
         if self.window.len() >= window_size {
-            self.window.remove(0);
+            self.window.pop_front();
         }
-        self.window.push(value);
+        self.window.push_back(value);
     }
 
     /// Get standard deviation
+    #[inline]
     pub fn std_dev(&self) -> f64 {
         if self.count > 1 {
             (self.variance / (self.count - 1) as f64).sqrt()
@@ -229,6 +234,7 @@ impl AggregatedMetric {
     }
 
     /// Get windowed mean
+    #[inline]
     pub fn windowed_mean(&self) -> f64 {
         if self.window.is_empty() {
             self.mean
@@ -240,6 +246,7 @@ impl AggregatedMetric {
 
 /// Configuration
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricConfig {
     /// Maximum metrics
     pub max_metrics: usize,
@@ -267,6 +274,7 @@ impl Default for MetricConfig {
 
 /// Collector statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CollectorStats {
     /// Total metrics recorded
     pub total_recorded: u64,
@@ -431,11 +439,13 @@ impl MetricCollector {
     }
 
     /// Get metric by ID
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Metric> {
         self.metrics.get(&id)
     }
 
     /// Get metric by name
+    #[inline]
     pub fn get_by_name(&self, name: &str) -> Option<&Metric> {
         self.name_index
             .get(name)
@@ -443,11 +453,13 @@ impl MetricCollector {
     }
 
     /// Get aggregation
+    #[inline(always)]
     pub fn get_aggregation(&self, name: &str) -> Option<&AggregatedMetric> {
         self.aggregations.get(name)
     }
 
     /// Get metrics by domain
+    #[inline]
     pub fn get_by_domain(&self, domain: DomainId) -> Vec<&Metric> {
         self.domain_index
             .get(&domain)
@@ -456,21 +468,25 @@ impl MetricCollector {
     }
 
     /// Get all metric names
+    #[inline(always)]
     pub fn metric_names(&self) -> Vec<&String> {
         self.name_index.keys().collect()
     }
 
     /// Get all aggregations
+    #[inline(always)]
     pub fn all_aggregations(&self) -> &BTreeMap<String, AggregatedMetric> {
         &self.aggregations
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CollectorStats {
         &self.stats
     }
 
     /// Reset aggregation for a metric
+    #[inline]
     pub fn reset_aggregation(&mut self, name: &str) {
         if let Some(agg) = self.aggregations.get_mut(name) {
             *agg = AggregatedMetric::new(agg.name.clone(), self.config.window_size);
@@ -520,6 +536,7 @@ impl MetricCollector {
 
 /// Metric report
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricReport {
     /// Timestamp
     pub timestamp: Timestamp,
@@ -535,6 +552,7 @@ pub struct MetricReport {
 
 /// Domain metric summary
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DomainMetricSummary {
     /// Domain ID
     pub domain_id: DomainId,

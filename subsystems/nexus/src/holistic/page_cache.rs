@@ -34,6 +34,7 @@ pub enum WritebackMode {
 
 /// Per-inode cache state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InodeCacheState {
     pub inode_id: u64,
     pub device_id: u32,
@@ -61,12 +62,14 @@ impl InodeCacheState {
         }
     }
 
+    #[inline]
     pub fn hit_ratio(&self) -> f64 {
         let total = self.read_hits + self.read_misses;
         if total == 0 { return 0.0; }
         self.read_hits as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn dirty_ratio(&self) -> f64 {
         if self.cached_pages == 0 { return 0.0; }
         self.dirty_pages as f64 / self.cached_pages as f64
@@ -85,6 +88,7 @@ pub struct WritebackParams {
 }
 
 impl WritebackParams {
+    #[inline]
     pub fn default_params() -> Self {
         Self {
             dirty_background_ratio: 0.10,
@@ -99,6 +103,7 @@ impl WritebackParams {
 
 /// Per-device writeback state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DeviceWritebackState {
     pub device_id: u32,
     pub dirty_pages: u64,
@@ -125,6 +130,7 @@ impl DeviceWritebackState {
 
 /// Per-process cache usage
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessCacheUsage {
     pub process_id: u64,
     pub cached_pages: u64,
@@ -148,10 +154,12 @@ impl ProcessCacheUsage {
         }
     }
 
+    #[inline(always)]
     pub fn is_thrashing(&self) -> bool {
         self.thrashing_score > 0.5
     }
 
+    #[inline]
     pub fn update_thrashing(&mut self, refaults: u64, total_faults: u64) {
         self.refault_count += refaults;
         if total_faults > 0 {
@@ -163,6 +171,7 @@ impl ProcessCacheUsage {
 
 /// Global page cache statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GlobalCacheStats {
     pub total_cached_pages: u64,
     pub total_dirty_pages: u64,
@@ -173,11 +182,13 @@ pub struct GlobalCacheStats {
 }
 
 impl GlobalCacheStats {
+    #[inline(always)]
     pub fn cache_pressure(&self) -> f64 {
         if self.total_memory_pages == 0 { return 0.0; }
         self.total_cached_pages as f64 / self.total_memory_pages as f64
     }
 
+    #[inline(always)]
     pub fn dirty_pressure(&self) -> f64 {
         if self.total_memory_pages == 0 { return 0.0; }
         self.total_dirty_pages as f64 / self.total_memory_pages as f64
@@ -185,6 +196,7 @@ impl GlobalCacheStats {
 }
 
 /// Holistic Page Cache Optimizer
+#[repr(align(64))]
 pub struct HolisticPageCache {
     inodes: BTreeMap<u64, InodeCacheState>,
     devices: BTreeMap<u32, DeviceWritebackState>,
@@ -213,6 +225,7 @@ impl HolisticPageCache {
         }
     }
 
+    #[inline(always)]
     pub fn register_device(&mut self, state: DeviceWritebackState) {
         self.devices.insert(state.device_id, state);
     }
@@ -237,6 +250,7 @@ impl HolisticPageCache {
         } else { 0.0 };
     }
 
+    #[inline]
     pub fn record_write(&mut self, inode_id: u64, device_id: u32, pages: u64) {
         let entry = self.inodes.entry(inode_id)
             .or_insert_with(|| InodeCacheState::new(inode_id, device_id));
@@ -248,6 +262,7 @@ impl HolisticPageCache {
         }
     }
 
+    #[inline]
     pub fn record_writeback(&mut self, inode_id: u64, pages: u64, now_ns: u64) {
         if let Some(entry) = self.inodes.get_mut(&inode_id) {
             entry.dirty_pages = entry.dirty_pages.saturating_sub(pages);
@@ -259,6 +274,7 @@ impl HolisticPageCache {
     }
 
     /// Determine writeback mode based on current pressure
+    #[inline]
     pub fn writeback_mode(&self) -> WritebackMode {
         let dirty = self.stats.dirty_pressure();
         if dirty > 0.20 { WritebackMode::Forced }
@@ -267,6 +283,7 @@ impl HolisticPageCache {
         else { WritebackMode::Background }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_cached_pages = self.inodes.values().map(|i| i.cached_pages).sum();
         self.stats.total_dirty_pages = self.inodes.values().map(|i| i.dirty_pages).sum();
@@ -279,8 +296,11 @@ impl HolisticPageCache {
             .filter(|p| p.is_thrashing()).count();
     }
 
+    #[inline(always)]
     pub fn inode_cache(&self, id: u64) -> Option<&InodeCacheState> { self.inodes.get(&id) }
+    #[inline(always)]
     pub fn process_cache(&self, pid: u64) -> Option<&ProcessCacheUsage> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &GlobalCacheStats { &self.stats }
 }
 
@@ -300,6 +320,7 @@ pub enum PageCacheStateV2 {
 
 /// Cached page
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct CachedPageV2 {
     pub index: u64,
     pub inode: u64,
@@ -315,11 +336,13 @@ impl CachedPageV2 {
         Self { index, inode, state: PageCacheStateV2::Uptodate, flags: 0, access_count: 1, last_access: now, dirty_since: 0 }
     }
 
+    #[inline(always)]
     pub fn mark_dirty(&mut self, now: u64) {
         self.state = PageCacheStateV2::Dirty;
         if self.dirty_since == 0 { self.dirty_since = now; }
     }
 
+    #[inline(always)]
     pub fn access(&mut self, now: u64) { self.access_count += 1; self.last_access = now; }
 }
 
@@ -336,6 +359,7 @@ impl PageTreeNode {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PageCacheV2Stats {
     pub total_pages: u64,
     pub dirty_pages: u64,
@@ -346,6 +370,7 @@ pub struct PageCacheV2Stats {
 }
 
 /// Main holistic page cache v2
+#[repr(align(64))]
 pub struct HolisticPageCacheV2 {
     inodes: BTreeMap<u64, PageTreeNode>,
     total_lookups: u64,
@@ -355,6 +380,7 @@ pub struct HolisticPageCacheV2 {
 impl HolisticPageCacheV2 {
     pub fn new() -> Self { Self { inodes: BTreeMap::new(), total_lookups: 0, total_hits: 0 } }
 
+    #[inline]
     pub fn find_or_create(&mut self, inode: u64, index: u64, now: u64) -> bool {
         self.total_lookups += 1;
         let tree = self.inodes.entry(inode).or_insert_with(PageTreeNode::new);
@@ -362,12 +388,14 @@ impl HolisticPageCacheV2 {
         else { tree.pages.insert(index, CachedPageV2::new(index, inode, now)); tree.nr_pages += 1; false }
     }
 
+    #[inline]
     pub fn mark_dirty(&mut self, inode: u64, index: u64, now: u64) {
         if let Some(tree) = self.inodes.get_mut(&inode) {
             if let Some(page) = tree.pages.get_mut(&index) { page.mark_dirty(now); }
         }
     }
 
+    #[inline]
     pub fn evict(&mut self, inode: u64, index: u64) -> bool {
         if let Some(tree) = self.inodes.get_mut(&inode) {
             if tree.pages.remove(&index).is_some() { tree.nr_pages -= 1; return true; }
@@ -375,6 +403,7 @@ impl HolisticPageCacheV2 {
         false
     }
 
+    #[inline]
     pub fn stats(&self) -> PageCacheV2Stats {
         let total: u64 = self.inodes.values().map(|t| t.nr_pages).sum();
         let dirty: u64 = self.inodes.values().flat_map(|t| t.pages.values()).filter(|p| p.state == PageCacheStateV2::Dirty).count() as u64;
@@ -406,6 +435,7 @@ pub enum FolioOrder {
 }
 
 impl FolioOrder {
+    #[inline]
     pub fn pages(&self) -> u64 {
         match self {
             FolioOrder::Order0 => 1,
@@ -418,6 +448,7 @@ impl FolioOrder {
 
 /// A folio in the page cache.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PageCacheV3Folio {
     pub folio_id: u64,
     pub inode: u64,
@@ -449,15 +480,18 @@ impl PageCacheV3Folio {
         }
     }
 
+    #[inline(always)]
     pub fn page_count(&self) -> u64 {
         self.order.pages()
     }
 
+    #[inline(always)]
     pub fn access(&mut self) {
         self.referenced = true;
         self.access_count += 1;
     }
 
+    #[inline]
     pub fn age(&mut self) {
         if !self.referenced {
             self.generation = match self.generation {
@@ -473,6 +507,7 @@ impl PageCacheV3Folio {
 
 /// Per-generation list stats.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GenerationStats {
     pub folio_count: u64,
     pub page_count: u64,
@@ -491,6 +526,7 @@ impl GenerationStats {
 
 /// Statistics for page cache V3.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PageCacheV3Stats {
     pub total_folios: u64,
     pub total_pages: u64,
@@ -503,6 +539,7 @@ pub struct PageCacheV3Stats {
 }
 
 /// Main holistic page cache V3 manager.
+#[repr(align(64))]
 pub struct HolisticPageCacheV3 {
     pub folios: BTreeMap<u64, PageCacheV3Folio>,
     pub inode_index: BTreeMap<u64, Vec<u64>>, // inode → [folio_ids]
@@ -571,6 +608,7 @@ impl HolisticPageCacheV3 {
         None
     }
 
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         if self.stats.lookups == 0 {
             return 0.0;
@@ -578,6 +616,7 @@ impl HolisticPageCacheV3 {
         self.stats.hits as f64 / self.stats.lookups as f64
     }
 
+    #[inline(always)]
     pub fn folio_count(&self) -> usize {
         self.folios.len()
     }

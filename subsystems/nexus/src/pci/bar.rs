@@ -19,6 +19,7 @@ pub enum BarType {
 
 impl BarType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Memory32 => "mem32",
@@ -29,6 +30,7 @@ impl BarType {
     }
 
     /// Is memory BAR
+    #[inline(always)]
     pub fn is_memory(&self) -> bool {
         matches!(self, Self::Memory32 | Self::Memory64)
     }
@@ -76,11 +78,13 @@ impl Bar {
     }
 
     /// End address
+    #[inline(always)]
     pub fn end(&self) -> u64 {
         self.base + self.size
     }
 
     /// Is valid
+    #[inline(always)]
     pub fn is_valid(&self) -> bool {
         self.size > 0
     }

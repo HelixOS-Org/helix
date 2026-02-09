@@ -26,6 +26,7 @@ pub struct AbiVersion {
 }
 
 impl AbiVersion {
+    #[inline]
     pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
         Self {
             major,
@@ -41,6 +42,7 @@ impl AbiVersion {
     pub const MIN_SUPPORTED: Self = Self::new(1, 0, 0);
 
     /// Check compatibility
+    #[inline(always)]
     pub fn is_compatible(&self, other: &AbiVersion) -> bool {
         self.major == other.major && self.minor >= other.minor
     }
@@ -103,6 +105,7 @@ pub struct CompatConfig {
 }
 
 impl CompatConfig {
+    #[inline]
     pub fn native() -> Self {
         Self {
             profile: CompatProfile::Native,
@@ -115,6 +118,7 @@ impl CompatConfig {
         }
     }
 
+    #[inline]
     pub fn posix() -> Self {
         Self {
             profile: CompatProfile::Posix,
@@ -127,6 +131,7 @@ impl CompatConfig {
         }
     }
 
+    #[inline]
     pub fn linux_compat() -> Self {
         Self {
             profile: CompatProfile::LinuxCompat,
@@ -167,6 +172,7 @@ pub struct SyscallMapping {
 
 /// Mapping table for a foreign ABI
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MappingTable {
     /// Profile
     pub profile: CompatProfile,
@@ -204,11 +210,13 @@ impl MappingTable {
     }
 
     /// Add a mapping
+    #[inline(always)]
     pub fn add_mapping(&mut self, mapping: SyscallMapping) {
         self.mappings.insert(mapping.source_number, mapping);
     }
 
     /// Lookup a mapping
+    #[inline]
     pub fn lookup(&mut self, foreign_number: u32) -> Option<&SyscallMapping> {
         if let Some(mapping) = self.mappings.get(&foreign_number) {
             self.hits += 1;
@@ -220,16 +228,19 @@ impl MappingTable {
     }
 
     /// Number of mappings
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.mappings.len()
     }
 
     /// Is empty
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.mappings.is_empty()
     }
 
     /// Hit rate
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
         if total == 0 {
@@ -307,11 +318,13 @@ impl ArgRewriter {
     }
 
     /// Add a transform for a target argument
+    #[inline(always)]
     pub fn add_transform(&mut self, transform: ArgTransform) {
         self.transforms.push(transform);
     }
 
     /// Set return transform
+    #[inline(always)]
     pub fn set_return_transform(&mut self, transform: ReturnTransform) {
         self.return_transform = transform;
     }
@@ -459,6 +472,7 @@ pub struct TranslationResult {
 }
 
 /// The compatibility layer engine
+#[repr(align(64))]
 pub struct CompatLayer {
     /// Mapping tables per profile
     tables: BTreeMap<u8, MappingTable>,
@@ -491,11 +505,13 @@ impl CompatLayer {
     }
 
     /// Register a mapping table
+    #[inline(always)]
     pub fn register_table(&mut self, table: MappingTable) {
         self.tables.insert(table.profile as u8, table);
     }
 
     /// Register an argument rewriter
+    #[inline(always)]
     pub fn register_rewriter(
         &mut self,
         profile: CompatProfile,
@@ -507,11 +523,13 @@ impl CompatLayer {
     }
 
     /// Set profile for a process
+    #[inline(always)]
     pub fn set_process_profile(&mut self, pid: u64, profile: CompatProfile) {
         self.process_profiles.insert(pid, profile);
     }
 
     /// Get profile for a process
+    #[inline]
     pub fn get_process_profile(&self, pid: u64) -> CompatProfile {
         self.process_profiles
             .get(&pid)
@@ -571,11 +589,13 @@ impl CompatLayer {
     }
 
     /// Remove process data
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.process_profiles.remove(&pid);
     }
 
     /// Direct hit rate
+    #[inline]
     pub fn direct_rate(&self) -> f64 {
         if self.total_translations == 0 {
             0.0

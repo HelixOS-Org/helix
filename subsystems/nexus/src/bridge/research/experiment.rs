@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -158,6 +159,7 @@ pub struct ExperimentReport {
 
 /// Aggregate experiment statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ExperimentStats {
     pub total_designed: u64,
     pub total_running: u64,
@@ -178,8 +180,8 @@ pub struct ExperimentStats {
 struct SampleAccumulator {
     control: Vec<f32>,
     treatment: Vec<f32>,
-    control_categories: BTreeMap<u32, u32>,
-    treatment_categories: BTreeMap<u32, u32>,
+    control_categories: ArrayMap<u32, 32>,
+    treatment_categories: ArrayMap<u32, 32>,
 }
 
 impl SampleAccumulator {
@@ -187,8 +189,8 @@ impl SampleAccumulator {
         Self {
             control: Vec::new(),
             treatment: Vec::new(),
-            control_categories: BTreeMap::new(),
-            treatment_categories: BTreeMap::new(),
+            control_categories: ArrayMap::new(0),
+            treatment_categories: ArrayMap::new(0),
         }
     }
 
@@ -236,6 +238,7 @@ impl SampleAccumulator {
 
 /// Controlled A/B experiment engine for bridge optimization
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeExperiment {
     experiments: BTreeMap<u64, ExperimentInner>,
     rng_state: u64,
@@ -296,6 +299,7 @@ impl BridgeExperiment {
     }
 
     /// Begin running an experiment
+    #[inline]
     pub fn run_experiment(&mut self, experiment_id: u64) -> bool {
         if let Some(exp) = self.experiments.get_mut(&experiment_id) {
             if exp.phase == ExperimentPhase::Designed {
@@ -308,6 +312,7 @@ impl BridgeExperiment {
     }
 
     /// Add a sample to a running experiment
+    #[inline]
     pub fn add_sample(&mut self, experiment_id: u64, sample: ExperimentSample) -> bool {
         if let Some(exp) = self.experiments.get_mut(&experiment_id) {
             if exp.phase == ExperimentPhase::Running {
@@ -363,6 +368,7 @@ impl BridgeExperiment {
     }
 
     /// Approximate two-tailed p-value from |t| using logistic approximation
+    #[inline]
     pub fn p_value(&self, t_abs: f32) -> f32 {
         // Approximation: p ≈ 2 * (1 / (1 + exp(0.7 * t * sqrt(pi))))
         let z = 0.7 * t_abs * 1.7724539;
@@ -472,6 +478,7 @@ impl BridgeExperiment {
     }
 
     /// Generate a full experiment report
+    #[inline]
     pub fn experiment_report(&mut self, experiment_id: u64) -> Option<ExperimentReport> {
         let t_test = self.statistical_test(experiment_id);
         let chi_sq = self.chi_squared_test(experiment_id);
@@ -551,6 +558,7 @@ impl BridgeExperiment {
     }
 
     /// Get aggregate stats
+    #[inline(always)]
     pub fn stats(&self) -> ExperimentStats {
         self.stats
     }

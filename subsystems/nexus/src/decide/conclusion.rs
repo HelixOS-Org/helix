@@ -60,36 +60,42 @@ impl Conclusion {
     }
 
     /// Set explanation
+    #[inline(always)]
     pub fn with_explanation(mut self, explanation: impl Into<String>) -> Self {
         self.explanation = explanation.into();
         self
     }
 
     /// Add evidence
+    #[inline(always)]
     pub fn with_evidence(mut self, evidence: EvidenceItem) -> Self {
         self.evidence.push(evidence);
         self
     }
 
     /// Add suggested action
+    #[inline(always)]
     pub fn with_suggestion(mut self, action: SuggestedAction) -> Self {
         self.suggested_actions.push(action);
         self
     }
 
     /// Set TTL
+    #[inline(always)]
     pub fn with_ttl(mut self, ttl: Duration) -> Self {
         self.ttl = ttl;
         self
     }
 
     /// Check if conclusion has expired
+    #[inline(always)]
     pub fn is_expired(&self, now: Timestamp) -> bool {
         let expiry = self.timestamp.as_nanos() + self.ttl.as_nanos();
         now.as_nanos() > expiry
     }
 
     /// Get the strongest evidence
+    #[inline]
     pub fn strongest_evidence(&self) -> Option<&EvidenceItem> {
         self.evidence.iter().max_by(|a, b| {
             a.weight.partial_cmp(&b.weight).unwrap_or(core::cmp::Ordering::Equal)
@@ -120,16 +126,19 @@ pub enum ConclusionType {
 
 impl ConclusionType {
     /// Is this conclusion actionable?
+    #[inline(always)]
     pub fn is_actionable(&self) -> bool {
         matches!(self, Self::Diagnosis | Self::Prediction | Self::Warning)
     }
 
     /// Is this conclusion urgent?
+    #[inline(always)]
     pub fn is_urgent(&self) -> bool {
         matches!(self, Self::Diagnosis | Self::Prediction)
     }
 
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Diagnosis => "Diagnosis",
@@ -171,12 +180,14 @@ impl EvidenceItem {
     }
 
     /// Set weight
+    #[inline(always)]
     pub fn with_weight(mut self, weight: f32) -> Self {
         self.weight = weight.clamp(0.0, 1.0);
         self
     }
 
     /// Is this strong evidence?
+    #[inline(always)]
     pub fn is_strong(&self) -> bool {
         self.weight >= 0.75
     }
@@ -201,6 +212,7 @@ pub enum EvidenceType {
 
 impl EvidenceType {
     /// Get base weight for this type
+    #[inline]
     pub fn base_weight(&self) -> f32 {
         match self {
             Self::Observation => 0.9,
@@ -244,12 +256,14 @@ impl SuggestedAction {
     }
 
     /// Set expected impact
+    #[inline(always)]
     pub fn with_impact(mut self, impact: Impact) -> Self {
         self.expected_impact = impact;
         self
     }
 
     /// Set confidence
+    #[inline(always)]
     pub fn with_confidence(mut self, confidence: Confidence) -> Self {
         self.confidence = confidence;
         self

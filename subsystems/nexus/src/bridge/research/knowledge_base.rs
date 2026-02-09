@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -137,6 +138,7 @@ struct Category {
 
 /// Knowledge base statistics.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct KnowledgeStats {
     pub total_entries: u64,
     pub total_queries: u64,
@@ -175,6 +177,7 @@ pub struct QueryResult {
 // ============================================================================
 
 /// Persistent knowledge store for bridge research.
+#[repr(align(64))]
 pub struct BridgeKnowledgeBase {
     entries: BTreeMap<u64, KnowledgeEntry>,
     links: Vec<KnowledgeLink>,
@@ -285,7 +288,7 @@ impl BridgeKnowledgeBase {
         }
 
         // TF-IDF-inspired scoring
-        let mut scores: BTreeMap<u64, f32> = BTreeMap::new();
+        let mut scores: LinearMap<f32, 64> = BTreeMap::new();
         let n_docs = self.entries.len().max(1) as f32;
 
         for &qt in &query_tokens {
@@ -357,6 +360,7 @@ impl BridgeKnowledgeBase {
     }
 
     /// Build a knowledge graph traversal from a source entry.
+    #[inline]
     pub fn knowledge_graph(&self, source_id: u64, max_depth: usize) -> Vec<GraphPath> {
         let mut paths = Vec::new();
         let mut visited: Vec<u64> = Vec::new();
@@ -443,11 +447,13 @@ impl BridgeKnowledgeBase {
     }
 
     /// Current stats.
+    #[inline(always)]
     pub fn stats(&self) -> &KnowledgeStats {
         &self.stats
     }
 
     /// Number of entries.
+    #[inline(always)]
     pub fn entry_count(&self) -> usize {
         self.entries.len()
     }
@@ -551,6 +557,7 @@ impl BridgeKnowledgeBase {
 
 /// Report on knowledge base size.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct KnowledgeSizeReport {
     pub total_entries: usize,
     pub total_links: usize,

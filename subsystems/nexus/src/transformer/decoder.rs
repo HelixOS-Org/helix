@@ -184,6 +184,7 @@ impl DecoderLayer {
     }
 
     /// Forward pass
+    #[inline]
     pub fn forward(
         &mut self,
         x: &Tensor2,
@@ -275,6 +276,7 @@ impl DecoderOnlyLayer {
     }
 
     /// Forward with causal mask
+    #[inline(always)]
     pub fn forward(&mut self, x: &Tensor2, training: bool) -> Tensor2 {
         let causal_mask = MultiHeadSelfAttention::causal_mask(x.rows);
         self.block.forward(x, Some(&causal_mask), training)
@@ -379,6 +381,7 @@ impl DecoderOnly {
     }
 
     /// Forward pass
+    #[inline]
     pub fn forward(&mut self, x: &Tensor2, training: bool) -> Tensor2 {
         let mut hidden = x.clone();
 
@@ -509,6 +512,7 @@ impl Seq2SeqTransformer {
 // ============================================================================
 
 /// KV cache for autoregressive generation
+#[repr(align(64))]
 pub struct KVCache {
     /// Cached keys per layer (n_layers, seq_len, d_model)
     pub keys: Vec<Tensor2>,
@@ -561,6 +565,7 @@ impl KVCache {
     }
 
     /// Increment length
+    #[inline(always)]
     pub fn increment(&mut self, amount: usize) {
         self.length = (self.length + amount).min(self.max_length);
     }

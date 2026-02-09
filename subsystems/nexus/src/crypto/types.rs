@@ -16,11 +16,13 @@ pub struct AlgorithmId(pub u64);
 
 impl AlgorithmId {
     /// Create new algorithm ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -32,11 +34,13 @@ pub struct KeyId(pub u64);
 
 impl KeyId {
     /// Create new key ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -48,11 +52,13 @@ pub struct TransformId(pub u64);
 
 impl TransformId {
     /// Create new transform ID
+    #[inline(always)]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -114,6 +120,7 @@ impl AlgorithmType {
     }
 
     /// Is symmetric
+    #[inline]
     pub fn is_symmetric(&self) -> bool {
         matches!(
             self,
@@ -122,11 +129,13 @@ impl AlgorithmType {
     }
 
     /// Is asymmetric
+    #[inline(always)]
     pub fn is_asymmetric(&self) -> bool {
         matches!(self, Self::Akcipher | Self::Signature | Self::Kpp)
     }
 
     /// Is hash
+    #[inline(always)]
     pub fn is_hash(&self) -> bool {
         matches!(self, Self::Hash | Self::Hmac)
     }
@@ -142,11 +151,13 @@ pub struct Priority(pub u32);
 
 impl Priority {
     /// Create new priority
+    #[inline(always)]
     pub const fn new(value: u32) -> Self {
         Self(value)
     }
 
     /// Get raw value
+    #[inline(always)]
     pub const fn raw(&self) -> u32 {
         self.0
     }
@@ -171,21 +182,25 @@ pub struct SecurityStrength(pub u16);
 
 impl SecurityStrength {
     /// Create new security strength
+    #[inline(always)]
     pub const fn new(bits: u16) -> Self {
         Self(bits)
     }
 
     /// Get bits
+    #[inline(always)]
     pub const fn bits(&self) -> u16 {
         self.0
     }
 
     /// Is considered secure
+    #[inline(always)]
     pub fn is_secure(&self) -> bool {
         self.0 >= 128
     }
 
     /// Is considered weak
+    #[inline(always)]
     pub fn is_weak(&self) -> bool {
         self.0 < 80
     }
@@ -219,6 +234,7 @@ pub enum AlgorithmStatus {
 
 impl AlgorithmStatus {
     /// Get status name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Active => "active",
@@ -283,6 +299,7 @@ impl CipherMode {
     }
 
     /// Is authenticated
+    #[inline]
     pub fn is_authenticated(&self) -> bool {
         matches!(
             self,
@@ -291,11 +308,13 @@ impl CipherMode {
     }
 
     /// Is vulnerable to padding oracle
+    #[inline(always)]
     pub fn is_padding_vulnerable(&self) -> bool {
         matches!(self, Self::Cbc | Self::Ecb)
     }
 
     /// Is ECB (insecure for most uses)
+    #[inline(always)]
     pub fn is_ecb(&self) -> bool {
         matches!(self, Self::Ecb)
     }

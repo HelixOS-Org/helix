@@ -295,31 +295,37 @@ pub enum SmtTerm {
 
 impl SmtTerm {
     /// Create boolean variable
+    #[inline(always)]
     pub fn bool_var(name: &str) -> Self {
         SmtTerm::Var(String::from(name), SmtSort::Bool)
     }
 
     /// Create integer variable
+    #[inline(always)]
     pub fn int_var(name: &str) -> Self {
         SmtTerm::Var(String::from(name), SmtSort::Int)
     }
 
     /// Create bitvector variable
+    #[inline(always)]
     pub fn bv_var(name: &str, width: u32) -> Self {
         SmtTerm::Var(String::from(name), SmtSort::BitVec(width))
     }
 
     /// Create and of multiple terms
+    #[inline(always)]
     pub fn and(terms: Vec<SmtTerm>) -> Self {
         SmtTerm::And(terms)
     }
 
     /// Create or of multiple terms
+    #[inline(always)]
     pub fn or(terms: Vec<SmtTerm>) -> Self {
         SmtTerm::Or(terms)
     }
 
     /// Create implication
+    #[inline(always)]
     pub fn implies(a: SmtTerm, b: SmtTerm) -> Self {
         SmtTerm::Implies(Box::new(a), Box::new(b))
     }
@@ -344,11 +350,13 @@ impl SmtSolver {
     }
 
     /// Declare a variable
+    #[inline(always)]
     pub fn declare(&mut self, name: &str, sort: SmtSort) {
         self.variables.insert(String::from(name), sort);
     }
 
     /// Add assertion
+    #[inline(always)]
     pub fn assert(&mut self, term: SmtTerm) {
         self.assertions.push(term);
     }

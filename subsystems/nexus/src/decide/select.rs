@@ -11,6 +11,7 @@ extern crate alloc;
 use alloc::format;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -130,7 +131,7 @@ pub struct DecisionSelector {
     /// Constraints
     constraints: Vec<SelectionConstraint>,
     /// History
-    history: Vec<SelectionResult>,
+    history: VecDeque<SelectionResult>,
     /// Next ID
     next_id: AtomicU64,
     /// Configuration
@@ -165,6 +166,7 @@ impl Default for SelectorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SelectorStats {
     /// Selections made
     pub selections_made: u64,
@@ -178,7 +180,7 @@ impl DecisionSelector {
         Self {
             options: BTreeMap::new(),
             constraints: Vec::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             next_id: AtomicU64::new(1),
             config,
             stats: SelectorStats::default(),
@@ -186,6 +188,7 @@ impl DecisionSelector {
     }
 
     /// Add option
+    #[inline(always)]
     pub fn add_option(&mut self, option: DecisionOption) {
         self.options.insert(option.id, option);
     }
@@ -209,6 +212,7 @@ impl DecisionSelector {
     }
 
     /// Add constraint
+    #[inline(always)]
     pub fn add_constraint(&mut self, constraint: SelectionConstraint) {
         self.constraints.push(constraint);
     }
@@ -423,10 +427,10 @@ impl DecisionSelector {
     }
 
     fn record_selection(&mut self, result: &SelectionResult) {
-        self.history.push(result.clone());
+        self.history.push_back(result.clone());
 
         if self.history.len() > self.config.history_size {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         self.stats.selections_made += 1;
@@ -436,22 +440,26 @@ impl DecisionSelector {
     }
 
     /// Clear options
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.options.clear();
         self.constraints.clear();
     }
 
     /// Get option
+    #[inline(always)]
     pub fn get_option(&self, id: u64) -> Option<&DecisionOption> {
         self.options.get(&id)
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[SelectionResult] {
         &self.history
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SelectorStats {
         &self.stats
     }

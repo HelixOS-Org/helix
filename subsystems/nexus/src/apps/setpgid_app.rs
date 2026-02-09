@@ -25,6 +25,7 @@ pub struct AppPgidEntry {
 
 /// Stats for pgid operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppPgidStats {
     pub total_ops: u64,
     pub setpgid_calls: u64,
@@ -55,6 +56,7 @@ impl AppSetpgidManager {
         }
     }
 
+    #[inline]
     pub fn register_process(&mut self, pid: u64, pgid: u64, sid: u64) {
         let entry = AppPgidEntry {
             pid,
@@ -86,16 +88,19 @@ impl AppSetpgidManager {
         }
     }
 
+    #[inline]
     pub fn getpgid(&mut self, pid: u64) -> Option<u64> {
         self.stats.total_ops += 1;
         self.stats.getpgid_calls += 1;
         self.processes.get(&pid).map(|e| e.pgid)
     }
 
+    #[inline(always)]
     pub fn group_members(&self, pgid: u64) -> usize {
         self.groups.get(&pgid).map(|v| v.len()).unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppPgidStats {
         &self.stats
     }

@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -106,9 +107,9 @@ pub struct Conflict {
     /// Resolved at
     pub resolved_at: Option<u64>,
     /// Allocations (pid -> share)
-    pub allocations: BTreeMap<u64, u64>,
+    pub allocations: LinearMap<u64, 64>,
     /// Satisfaction scores (pid -> 0-100)
-    pub satisfaction: BTreeMap<u64, u32>,
+    pub satisfaction: LinearMap<u32, 64>,
 }
 
 impl Conflict {
@@ -130,36 +131,41 @@ impl Conflict {
             strategy: None,
             created_at: now,
             resolved_at: None,
-            allocations: BTreeMap::new(),
-            satisfaction: BTreeMap::new(),
+            allocations: LinearMap::new(),
+            satisfaction: LinearMap::new(),
         }
     }
 
     /// Begin mediation
+    #[inline(always)]
     pub fn begin_mediation(&mut self, strategy: ResolutionStrategy) {
         self.state = ResolutionState::Mediating;
         self.strategy = Some(strategy);
     }
 
     /// Resolve with allocations
-    pub fn resolve(&mut self, allocations: BTreeMap<u64, u64>, now: u64) {
+    #[inline]
+    pub fn resolve(&mut self, allocations: LinearMap<u64, 64>, now: u64) {
         self.allocations = allocations;
         self.state = ResolutionState::Resolved;
         self.resolved_at = Some(now);
     }
 
     /// Escalate
+    #[inline(always)]
     pub fn escalate(&mut self) {
         self.state = ResolutionState::Escalated;
     }
 
     /// Duration to resolve
+    #[inline(always)]
     pub fn resolution_time_ns(&self) -> Option<u64> {
         self.resolved_at
             .map(|r| r.saturating_sub(self.created_at))
     }
 
     /// Average satisfaction
+    #[inline]
     pub fn avg_satisfaction(&self) -> f64 {
         if self.satisfaction.is_empty() {
             return 0.0;
@@ -215,6 +221,7 @@ impl MediationPolicy {
     }
 
     /// Get strategy for resource
+    #[inline]
     pub fn strategy_for(&self, resource: ConflictResource) -> ResolutionStrategy {
         self.strategies
             .get(&(resource as u8))
@@ -254,6 +261,7 @@ impl FairnessRecord {
     }
 
     /// Satisfaction ratio
+    #[inline]
     pub fn satisfaction_ratio(&self) -> f64 {
         if self.total_requested == 0 {
             return 1.0;
@@ -262,6 +270,7 @@ impl FairnessRecord {
     }
 
     /// Win rate
+    #[inline]
     pub fn win_rate(&self) -> f64 {
         let total = self.conflicts_won + self.conflicts_lost;
         if total == 0 {
@@ -271,6 +280,7 @@ impl FairnessRecord {
     }
 
     /// Fairness debt (positive = owed resources)
+    #[inline(always)]
     pub fn fairness_debt(&self) -> i64 {
         self.total_requested as i64 - self.total_received as i64
     }
@@ -282,6 +292,7 @@ impl FairnessRecord {
 
 /// Mediation stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopMediationStats {
     /// Active conflicts
     pub active: usize,
@@ -326,6 +337,7 @@ impl CoopMediationManager {
     }
 
     /// Report conflict
+    #[inline]
     pub fn report_conflict(
         &mut self,
         parties: Vec<u64>,
@@ -431,11 +443,13 @@ impl CoopMediationManager {
     }
 
     /// Get conflict
+    #[inline(always)]
     pub fn conflict(&self, id: u64) -> Option<&Conflict> {
         self.conflicts.get(&id)
     }
 
     /// Fairness record
+    #[inline(always)]
     pub fn fairness_of(&self, pid: u64) -> Option<&FairnessRecord> {
         self.fairness.get(&pid)
     }
@@ -454,6 +468,7 @@ impl CoopMediationManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopMediationStats {
         &self.stats
     }

@@ -66,6 +66,7 @@ impl PsoOptimizer {
     }
 
     /// Initialize with custom positions
+    #[inline]
     pub fn with_initial_positions(mut self, positions: Vec<Position>) -> Self {
         for (i, pos) in positions.into_iter().enumerate() {
             if i < self.particles.len() {
@@ -77,6 +78,7 @@ impl PsoOptimizer {
     }
 
     /// Evaluate fitness for all particles
+    #[inline]
     pub fn evaluate<F>(&mut self, fitness_fn: F)
     where
         F: Fn(&Position) -> f64,
@@ -145,6 +147,7 @@ impl PsoOptimizer {
     }
 
     /// Run optimization step
+    #[inline(always)]
     pub fn step<F>(&mut self, fitness_fn: F)
     where
         F: Fn(&Position) -> f64,
@@ -276,6 +279,7 @@ impl AdaptivePso {
     }
 
     /// Run optimization step
+    #[inline(always)]
     pub fn step<F>(&mut self, fitness_fn: F)
     where
         F: Fn(&Position) -> f64,
@@ -310,6 +314,7 @@ impl AdaptivePso {
     }
 
     /// Get global best
+    #[inline(always)]
     pub fn best(&self) -> (&Position, f64) {
         (&self.inner.global_best, self.inner.global_best_fitness)
     }
@@ -388,6 +393,7 @@ impl MultiSwarmPso {
     }
 
     /// Run optimization step
+    #[inline]
     pub fn step<F>(&mut self, fitness_fn: F)
     where
         F: Fn(&Position) -> f64 + Clone,
@@ -404,6 +410,7 @@ impl MultiSwarmPso {
     }
 
     /// Get global best across all swarms
+    #[inline]
     pub fn global_best(&self) -> (Position, f64) {
         self.swarms
             .iter()

@@ -24,6 +24,7 @@ pub enum MemoryTier {
 }
 
 impl MemoryTier {
+    #[inline]
     pub fn latency_ns(&self) -> u64 {
         match self {
             MemoryTier::FastDram => 50,
@@ -34,6 +35,7 @@ impl MemoryTier {
         }
     }
 
+    #[inline]
     pub fn bandwidth_gbps(&self) -> f64 {
         match self {
             MemoryTier::FastDram => 200.0,
@@ -77,6 +79,7 @@ impl TrackedPage {
         }
     }
 
+    #[inline(always)]
     pub fn record_access(&mut self, ts: u64) {
         self.access_count += 1;
         self.last_access_ts = ts;
@@ -95,6 +98,7 @@ impl TrackedPage {
         }
     }
 
+    #[inline]
     pub fn migration_cost(&self, target_tier: MemoryTier) -> f64 {
         let bw = target_tier.bandwidth_gbps();
         if bw <= 0.0 { return f64::MAX; }
@@ -131,6 +135,7 @@ pub enum MigrationReason {
 
 /// Per-node migration state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NodeMigrationState {
     pub node_id: u32,
     pub tier: MemoryTier,
@@ -151,11 +156,13 @@ impl NodeMigrationState {
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.capacity_pages == 0 { return 0.0; }
         self.total_pages as f64 / self.capacity_pages as f64
     }
 
+    #[inline(always)]
     pub fn hot_ratio(&self) -> f64 {
         if self.total_pages == 0 { return 0.0; }
         self.hot_pages as f64 / self.total_pages as f64
@@ -164,6 +171,7 @@ impl NodeMigrationState {
 
 /// Migrate pages stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MigratePageStats {
     pub tracked_pages: usize,
     pub total_migrations: u64,
@@ -200,15 +208,18 @@ impl HolisticMigratePages {
         }
     }
 
+    #[inline(always)]
     pub fn register_node(&mut self, id: u32, tier: MemoryTier, capacity: u64) {
         self.nodes.insert(id, NodeMigrationState::new(id, tier, capacity));
     }
 
+    #[inline(always)]
     pub fn track_page(&mut self, pfn: u64, node: u32, tier: MemoryTier, pid: u32, ts: u64) {
         self.pages.insert(pfn, TrackedPage::new(pfn, node, tier, pid, ts));
         if let Some(n) = self.nodes.get_mut(&node) { n.total_pages += 1; }
     }
 
+    #[inline(always)]
     pub fn record_access(&mut self, pfn: u64, ts: u64) {
         if let Some(page) = self.pages.get_mut(&pfn) { page.record_access(ts); }
     }
@@ -288,6 +299,7 @@ impl HolisticMigratePages {
         true
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.tracked_pages = self.pages.len();
         self.stats.total_migrations = self.requests.len() as u64;
@@ -300,5 +312,6 @@ impl HolisticMigratePages {
         self.stats.cold_pages = self.pages.values().filter(|p| matches!(p.hotness, PageHotness::Cold | PageHotness::Frozen)).count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MigratePageStats { &self.stats }
 }

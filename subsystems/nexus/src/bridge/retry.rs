@@ -61,6 +61,7 @@ pub enum RetryableCategory {
 
 impl RetryableCategory {
     /// Should retry?
+    #[inline]
     pub fn should_retry(&self) -> bool {
         matches!(
             self,
@@ -93,6 +94,7 @@ pub struct RetryPolicy {
 }
 
 impl RetryPolicy {
+    #[inline]
     pub fn default_policy() -> Self {
         Self {
             strategy: RetryStrategy::ExponentialJitter,
@@ -105,6 +107,7 @@ impl RetryPolicy {
         }
     }
 
+    #[inline]
     pub fn aggressive() -> Self {
         Self {
             strategy: RetryStrategy::Exponential,
@@ -117,6 +120,7 @@ impl RetryPolicy {
         }
     }
 
+    #[inline]
     pub fn conservative() -> Self {
         Self {
             strategy: RetryStrategy::Linear,
@@ -158,6 +162,7 @@ impl RetryPolicy {
 
 /// Retry state for an active operation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RetryState {
     /// Operation id
     pub id: u64,
@@ -195,6 +200,7 @@ impl RetryState {
     }
 
     /// Should retry?
+    #[inline]
     pub fn should_retry(&self) -> bool {
         !self.completed
             && self.attempt < self.policy.max_retries
@@ -202,11 +208,13 @@ impl RetryState {
     }
 
     /// Next delay
+    #[inline(always)]
     pub fn next_delay(&self) -> u64 {
         self.policy.delay_for_attempt(self.attempt)
     }
 
     /// Record attempt
+    #[inline]
     pub fn record_attempt(&mut self, error: RetryableCategory) {
         self.attempt += 1;
         self.last_error = error;
@@ -214,12 +222,14 @@ impl RetryState {
     }
 
     /// Mark success
+    #[inline(always)]
     pub fn mark_success(&mut self) {
         self.completed = true;
         self.outcome = Some(RetryOutcome::Success);
     }
 
     /// Mark exhausted
+    #[inline(always)]
     pub fn mark_exhausted(&mut self) {
         self.completed = true;
         self.outcome = Some(RetryOutcome::Exhausted);
@@ -268,11 +278,13 @@ impl RetryBudget {
     }
 
     /// Remaining
+    #[inline(always)]
     pub fn remaining(&self) -> u32 {
         self.limit.saturating_sub(self.used)
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.limit == 0 {
             return 0.0;
@@ -287,6 +299,7 @@ impl RetryBudget {
 
 /// Retry stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BridgeRetryStats {
     /// Active retries
     pub active: usize,
@@ -303,6 +316,7 @@ pub struct BridgeRetryStats {
 }
 
 /// Bridge retry engine
+#[repr(align(64))]
 pub struct BridgeRetryEngine {
     /// Active retries
     active: BTreeMap<u64, RetryState>,
@@ -331,6 +345,7 @@ impl BridgeRetryEngine {
     }
 
     /// Set policy for syscall
+    #[inline]
     pub fn set_policy(&mut self, syscall_nr: u32, policy: RetryPolicy) {
         let budget = RetryBudget::new(policy.budget_per_window, policy.window_ns);
         self.budgets.insert(syscall_nr, budget);
@@ -408,11 +423,13 @@ impl BridgeRetryEngine {
     }
 
     /// Get delay for pending retry
+    #[inline(always)]
     pub fn pending_delay(&self, id: u64) -> Option<u64> {
         self.active.get(&id).map(|s| s.next_delay())
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &BridgeRetryStats {
         &self.stats
     }

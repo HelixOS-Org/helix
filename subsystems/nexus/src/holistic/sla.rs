@@ -9,8 +9,10 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // SLA DEFINITIONS
@@ -22,17 +24,18 @@ pub enum SlaTier {
     /// Best effort
     BestEffort = 0,
     /// Standard
-    Standard = 1,
+    Standard   = 1,
     /// Premium
-    Premium = 2,
+    Premium    = 2,
     /// Critical (real-time)
-    Critical = 3,
+    Critical   = 3,
     /// Safety-critical
-    Safety = 4,
+    Safety     = 4,
 }
 
 impl SlaTier {
     /// Default latency target for tier (microseconds)
+    #[inline]
     pub fn latency_target_us(&self) -> u64 {
         match self {
             Self::BestEffort => 100_000,
@@ -44,17 +47,19 @@ impl SlaTier {
     }
 
     /// Default availability target (nines)
+    #[inline]
     pub fn availability_nines(&self) -> u32 {
         match self {
-            Self::BestEffort => 2,  // 99%
-            Self::Standard => 3,    // 99.9%
-            Self::Premium => 4,     // 99.99%
-            Self::Critical => 5,    // 99.999%
-            Self::Safety => 6,      // 99.9999%
+            Self::BestEffort => 2, // 99%
+            Self::Standard => 3,   // 99.9%
+            Self::Premium => 4,    // 99.99%
+            Self::Critical => 5,   // 99.999%
+            Self::Safety => 6,     // 99.9999%
         }
     }
 
     /// Max error budget (percent)
+    #[inline]
     pub fn error_budget(&self) -> f64 {
         match self {
             Self::BestEffort => 1.0,
@@ -107,6 +112,7 @@ pub struct SlaTarget {
 }
 
 impl SlaTarget {
+    #[inline]
     pub fn latency(metric: SlaMetricType, target_us: f64) -> Self {
         Self {
             metric,
@@ -117,6 +123,7 @@ impl SlaTarget {
         }
     }
 
+    #[inline]
     pub fn throughput(target_ops: f64) -> Self {
         Self {
             metric: SlaMetricType::Throughput,
@@ -127,6 +134,7 @@ impl SlaTarget {
         }
     }
 
+    #[inline]
     pub fn availability(target_pct: f64) -> Self {
         Self {
             metric: SlaMetricType::Availability,
@@ -138,6 +146,7 @@ impl SlaTarget {
     }
 
     /// Check if value meets target
+    #[inline]
     pub fn meets_target(&self, value: f64) -> bool {
         if self.higher_is_better {
             value >= self.target
@@ -214,6 +223,7 @@ impl SlaDefinition {
         }
     }
 
+    #[inline]
     pub fn add_target(&mut self, target: SlaTarget, weight: f64) {
         let metric_key = target.metric as u8;
         self.targets.push(target);
@@ -255,6 +265,7 @@ impl SlaDefinition {
 
 /// Single metric evaluation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricEvaluation {
     pub metric: SlaMetricType,
     pub target: f64,
@@ -305,11 +316,13 @@ impl ErrorBudget {
     }
 
     /// Remaining budget
+    #[inline(always)]
     pub fn remaining(&self) -> f64 {
         (self.total - self.consumed).max(0.0)
     }
 
     /// Budget utilization (0.0 - 1.0+)
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.total <= 0.0 {
             return 1.0;
@@ -318,16 +331,19 @@ impl ErrorBudget {
     }
 
     /// Is budget exhausted?
+    #[inline(always)]
     pub fn is_exhausted(&self) -> bool {
         self.consumed >= self.total
     }
 
     /// Consume budget
+    #[inline(always)]
     pub fn consume(&mut self, amount: f64) {
         self.consumed += amount;
     }
 
     /// Update burn rate
+    #[inline]
     pub fn update_burn_rate(&mut self, elapsed_secs: f64) {
         if elapsed_secs > 0.0 {
             self.burn_rate = self.consumed / elapsed_secs;
@@ -335,6 +351,7 @@ impl ErrorBudget {
     }
 
     /// Time until exhaustion (seconds)
+    #[inline]
     pub fn time_to_exhaustion(&self) -> Option<u64> {
         if self.burn_rate <= 0.0 {
             return None;
@@ -397,11 +414,11 @@ pub struct SystemSlaManager {
     /// SLA definitions
     slas: BTreeMap<u32, SlaDefinition>,
     /// Process-to-SLA mapping
-    process_sla: BTreeMap<u64, u32>,
+    process_sla: LinearMap<u32, 64>,
     /// Error budgets per SLA
     error_budgets: BTreeMap<u32, ErrorBudget>,
     /// Violation history
-    violations: Vec<SlaViolation>,
+    violations: VecDeque<SlaViolation>,
     /// Max violation history
     max_violations: usize,
     /// Last metric values
@@ -416,9 +433,9 @@ impl SystemSlaManager {
     pub fn new() -> Self {
         Self {
             slas: BTreeMap::new(),
-            process_sla: BTreeMap::new(),
+            process_sla: LinearMap::new(),
             error_budgets: BTreeMap::new(),
-            violations: Vec::new(),
+            violations: VecDeque::new(),
             max_violations: 1000,
             metric_values: BTreeMap::new(),
             total_evaluations: 0,
@@ -427,6 +444,7 @@ impl SystemSlaManager {
     }
 
     /// Register SLA
+    #[inline]
     pub fn register_sla(&mut self, sla: SlaDefinition) {
         let budget = ErrorBudget::new(sla.tier.error_budget(), 0, 86400);
         self.error_budgets.insert(sla.id, budget);
@@ -434,11 +452,13 @@ impl SystemSlaManager {
     }
 
     /// Assign process to SLA
+    #[inline(always)]
     pub fn assign_process(&mut self, pid: u64, sla_id: u32) {
         self.process_sla.insert(pid, sla_id);
     }
 
     /// Update metric value for SLA
+    #[inline]
     pub fn update_metric(&mut self, sla_id: u32, metric: SlaMetricType, value: f64) {
         self.metric_values
             .entry(sla_id)
@@ -477,11 +497,7 @@ impl SystemSlaManager {
                 }
             };
 
-            let weight = sla
-                .weights
-                .get(&metric_key)
-                .copied()
-                .unwrap_or(1.0);
+            let weight = sla.weights.get(&metric_key).copied().unwrap_or(1.0);
 
             total_score += score * weight;
             total_weight += weight;
@@ -530,15 +546,17 @@ impl SystemSlaManager {
     }
 
     /// Record violation
+    #[inline]
     pub fn record_violation(&mut self, violation: SlaViolation) {
         self.total_violations += 1;
-        self.violations.push(violation);
+        self.violations.push_back(violation);
         if self.violations.len() > self.max_violations {
-            self.violations.remove(0);
+            self.violations.pop_front();
         }
     }
 
     /// Get violations for SLA
+    #[inline]
     pub fn violations_for_sla(&self, sla_id: u32) -> Vec<&SlaViolation> {
         self.violations
             .iter()
@@ -547,18 +565,21 @@ impl SystemSlaManager {
     }
 
     /// Get error budget
+    #[inline(always)]
     pub fn error_budget(&self, sla_id: u32) -> Option<&ErrorBudget> {
         self.error_budgets.get(&sla_id)
     }
 
     /// SLA count
+    #[inline(always)]
     pub fn sla_count(&self) -> usize {
         self.slas.len()
     }
 
     /// Get process SLA tier
+    #[inline(always)]
     pub fn process_tier(&self, pid: u64) -> Option<SlaTier> {
-        let sla_id = self.process_sla.get(&pid)?;
+        let sla_id = self.process_sla.get(pid)?;
         self.slas.get(sla_id).map(|s| s.tier)
     }
 }

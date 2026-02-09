@@ -196,6 +196,7 @@ impl ValidationData {
     }
 
     /// Get as f64
+    #[inline]
     pub fn as_f64(&self) -> Option<f64> {
         match self {
             ValidationData::Int(i) => Some(*i as f64),
@@ -205,6 +206,7 @@ impl ValidationData {
     }
 
     /// Get as string
+    #[inline]
     pub fn as_str(&self) -> Option<&str> {
         match self {
             ValidationData::String(s) => Some(s),
@@ -213,6 +215,7 @@ impl ValidationData {
     }
 
     /// Get field type
+    #[inline]
     pub fn field_type(&self) -> FieldType {
         match self {
             ValidationData::Null => FieldType::Any,
@@ -247,6 +250,7 @@ pub struct ValidationResult {
 
 impl ValidationResult {
     /// Create valid result
+    #[inline]
     pub fn valid() -> Self {
         Self {
             valid: true,
@@ -258,6 +262,7 @@ impl ValidationResult {
     }
 
     /// Create invalid result
+    #[inline]
     pub fn invalid(violations: Vec<Violation>) -> Self {
         Self {
             valid: false,
@@ -269,17 +274,20 @@ impl ValidationResult {
     }
 
     /// Add violation
+    #[inline(always)]
     pub fn add_violation(&mut self, violation: Violation) {
         self.valid = false;
         self.violations.push(violation);
     }
 
     /// Add warning
+    #[inline(always)]
     pub fn add_warning(&mut self, warning: Violation) {
         self.warnings.push(warning);
     }
 
     /// Merge with another result
+    #[inline]
     pub fn merge(&mut self, other: ValidationResult) {
         if !other.valid {
             self.valid = false;
@@ -355,6 +363,7 @@ impl Default for ValidatorConfig {
 
 /// Validator statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     /// Total validations
     pub total_validations: u64,
@@ -414,6 +423,7 @@ impl CognitiveValidator {
     }
 
     /// Remove rule
+    #[inline]
     pub fn remove_rule(&mut self, id: u64) {
         if let Some(rule) = self.rules.remove(&id) {
             self.rules_by_name.remove(&rule.name);
@@ -421,6 +431,7 @@ impl CognitiveValidator {
     }
 
     /// Enable/disable rule
+    #[inline]
     pub fn set_rule_enabled(&mut self, id: u64, enabled: bool) {
         if let Some(rule) = self.rules.get_mut(&id) {
             rule.enabled = enabled;
@@ -428,6 +439,7 @@ impl CognitiveValidator {
     }
 
     /// Add rule to group
+    #[inline]
     pub fn add_to_group(&mut self, rule_id: u64, group: &str) {
         self.groups
             .entry(group.into())
@@ -507,6 +519,7 @@ impl CognitiveValidator {
     }
 
     /// Validate data against a group of rules
+    #[inline]
     pub fn validate_group(&mut self, data: &ValidationData, group: &str) -> ValidationResult {
         let rule_ids: Vec<u64> = self.groups.get(group)
             .cloned()
@@ -751,11 +764,13 @@ impl CognitiveValidator {
     }
 
     /// Get rule
+    #[inline(always)]
     pub fn get_rule(&self, id: u64) -> Option<&ValidationRule> {
         self.rules.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ValidatorStats {
         &self.stats
     }

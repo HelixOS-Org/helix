@@ -45,18 +45,21 @@ impl NumaNode {
     }
 
     /// Add CPU
+    #[inline(always)]
     pub fn with_cpu(mut self, cpu: CpuId) -> Self {
         self.cpus.push(cpu);
         self
     }
 
     /// Add CPUs
+    #[inline(always)]
     pub fn with_cpus(mut self, cpus: &[CpuId]) -> Self {
         self.cpus.extend_from_slice(cpus);
         self
     }
 
     /// Set memory
+    #[inline]
     pub fn with_memory(mut self, total: u64, free: u64) -> Self {
         self.total_memory = total;
         self.free_memory = free;
@@ -64,6 +67,7 @@ impl NumaNode {
     }
 
     /// Memory usage ratio
+    #[inline]
     pub fn memory_usage(&self) -> f64 {
         if self.total_memory == 0 {
             0.0
@@ -73,11 +77,13 @@ impl NumaNode {
     }
 
     /// CPU count
+    #[inline(always)]
     pub fn cpu_count(&self) -> usize {
         self.cpus.len()
     }
 
     /// Has CPU?
+    #[inline(always)]
     pub fn has_cpu(&self, cpu: CpuId) -> bool {
         self.cpus.contains(&cpu)
     }
@@ -126,6 +132,7 @@ impl NumaTopology {
     }
 
     /// Set distance between nodes
+    #[inline]
     pub fn set_distance(&mut self, from: NodeId, to: NodeId, distance: Distance) {
         let f = from as usize;
         let t = to as usize;
@@ -136,6 +143,7 @@ impl NumaTopology {
     }
 
     /// Get distance between nodes
+    #[inline]
     pub fn get_distance(&self, from: NodeId, to: NodeId) -> Distance {
         let f = from as usize;
         let t = to as usize;
@@ -147,6 +155,7 @@ impl NumaTopology {
     }
 
     /// Set bandwidth between nodes
+    #[inline]
     pub fn set_bandwidth(&mut self, from: NodeId, to: NodeId, bandwidth: u64) {
         let f = from as usize;
         let t = to as usize;
@@ -157,6 +166,7 @@ impl NumaTopology {
     }
 
     /// Get bandwidth between nodes
+    #[inline]
     pub fn get_bandwidth(&self, from: NodeId, to: NodeId) -> u64 {
         let f = from as usize;
         let t = to as usize;
@@ -168,6 +178,7 @@ impl NumaTopology {
     }
 
     /// Find node with most free memory
+    #[inline]
     pub fn node_with_most_memory(&self) -> Option<NodeId> {
         self.nodes
             .iter()
@@ -176,11 +187,13 @@ impl NumaTopology {
     }
 
     /// Find node for CPU
+    #[inline(always)]
     pub fn node_for_cpu(&self, cpu: CpuId) -> Option<NodeId> {
         self.nodes.iter().find(|n| n.has_cpu(cpu)).map(|n| n.id)
     }
 
     /// Get nearest nodes (sorted by distance)
+    #[inline]
     pub fn nearest_nodes(&self, from: NodeId) -> Vec<NodeId> {
         let mut nodes: Vec<_> = (0..self.node_count)
             .filter(|&n| n != from)

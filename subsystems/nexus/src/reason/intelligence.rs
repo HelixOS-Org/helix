@@ -50,6 +50,7 @@ impl CausalReasoningIntelligence {
     }
 
     /// Record event
+    #[inline]
     pub fn record_event(&mut self, event_type: CausalEventType, timestamp: u64) -> CausalEventId {
         let id = CausalEventId(self.event_counter.fetch_add(1, Ordering::Relaxed));
         let event = CausalEvent::new(id, event_type, timestamp);
@@ -58,6 +59,7 @@ impl CausalReasoningIntelligence {
     }
 
     /// Record event with description
+    #[inline]
     pub fn record_event_with_description(
         &mut self,
         event_type: CausalEventType,
@@ -92,23 +94,27 @@ impl CausalReasoningIntelligence {
     }
 
     /// Query why
+    #[inline(always)]
     pub fn query_why(&self, event: CausalEventId) -> CqlResult {
         self.cql.execute(&self.graph, CqlQuery::WhyQuery { event })
     }
 
     /// Query root causes
+    #[inline(always)]
     pub fn query_root_causes(&self, event: CausalEventId) -> CqlResult {
         self.cql
             .execute(&self.graph, CqlQuery::RootCausesQuery { event })
     }
 
     /// Query effects
+    #[inline(always)]
     pub fn query_effects(&self, event: CausalEventId) -> CqlResult {
         self.cql
             .execute(&self.graph, CqlQuery::EffectsQuery { event })
     }
 
     /// Query counterfactual
+    #[inline]
     pub fn query_counterfactual(&self, event: CausalEventId) -> CqlResult {
         self.cql
             .execute(&self.graph, CqlQuery::CounterfactualQuery {
@@ -118,11 +124,13 @@ impl CausalReasoningIntelligence {
     }
 
     /// Execute CQL query
+    #[inline(always)]
     pub fn query(&self, query: CqlQuery) -> CqlResult {
         self.cql.execute(&self.graph, query)
     }
 
     /// Calculate depths
+    #[inline(always)]
     pub fn calculate_depths(&mut self) {
         self.graph.calculate_depths();
     }
@@ -152,21 +160,25 @@ impl CausalReasoningIntelligence {
     }
 
     /// Get graph reference
+    #[inline(always)]
     pub fn graph(&self) -> &CausalGraph {
         &self.graph
     }
 
     /// Get graph mutably
+    #[inline(always)]
     pub fn graph_mut(&mut self) -> &mut CausalGraph {
         &mut self.graph
     }
 
     /// Get CQL engine
+    #[inline(always)]
     pub fn cql(&self) -> &CqlEngine {
         &self.cql
     }
 
     /// Event count
+    #[inline(always)]
     pub fn event_count(&self) -> u64 {
         self.event_counter.load(Ordering::Relaxed)
     }

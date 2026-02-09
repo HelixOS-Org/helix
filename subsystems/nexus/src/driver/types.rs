@@ -41,11 +41,13 @@ pub enum DeviceClass {
 
 impl DeviceClass {
     /// Is this class critical for system operation?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         matches!(self, Self::Storage | Self::Acpi | Self::Platform)
     }
 
     /// Get typical latency tolerance
+    #[inline]
     pub fn latency_tolerance_us(&self) -> u64 {
         match self {
             Self::Input => 1000,     // 1ms for input
@@ -145,12 +147,14 @@ impl DriverInfo {
     }
 
     /// Set version
+    #[inline(always)]
     pub fn with_version(mut self, version: &str) -> Self {
         self.version = String::from(version);
         self
     }
 
     /// Add dependency
+    #[inline]
     pub fn with_dependency(mut self, dep: DriverId) -> Self {
         if !self.dependencies.contains(&dep) {
             self.dependencies.push(dep);
@@ -159,12 +163,14 @@ impl DriverInfo {
     }
 
     /// Mark as loaded
+    #[inline(always)]
     pub fn mark_loaded(&mut self) {
         self.state = DriverState::Running;
         self.loaded_at = Some(NexusTimestamp::now());
     }
 
     /// Mark as error
+    #[inline]
     pub fn mark_error(&mut self) {
         self.error_count += 1;
         if self.error_count >= 10 {
@@ -175,6 +181,7 @@ impl DriverInfo {
     }
 
     /// Mark as crashed
+    #[inline]
     pub fn mark_crashed(&mut self) {
         self.crash_count += 1;
         self.state = DriverState::Crashed;
@@ -182,6 +189,7 @@ impl DriverInfo {
     }
 
     /// Mark as restarted
+    #[inline]
     pub fn mark_restarted(&mut self) {
         self.restart_count += 1;
         self.state = DriverState::Running;
@@ -192,12 +200,14 @@ impl DriverInfo {
     }
 
     /// Get uptime
+    #[inline(always)]
     pub fn uptime(&self) -> Option<u64> {
         self.loaded_at
             .map(|t| NexusTimestamp::now().duration_since(t))
     }
 
     /// Is stable?
+    #[inline]
     pub fn is_stable(&self) -> bool {
         self.state == DriverState::Running
             && self.health <= HealthLevel::Warning

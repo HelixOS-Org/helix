@@ -46,6 +46,7 @@ pub enum PriorityClass {
 
 impl PriorityClass {
     /// Weight factor for resource distribution
+    #[inline]
     pub fn weight(&self) -> f64 {
         match self {
             Self::Critical => 10.0,
@@ -111,21 +112,25 @@ impl ResourceBalancer {
     }
 
     /// Set allocation for a process
+    #[inline(always)]
     pub fn set_allocation(&mut self, alloc: ResourceAllocation) {
         self.allocations.insert(alloc.pid, alloc);
     }
 
     /// Remove a process allocation
+    #[inline(always)]
     pub fn remove(&mut self, pid: u64) -> Option<ResourceAllocation> {
         self.allocations.remove(&pid)
     }
 
     /// Get allocation for a process
+    #[inline(always)]
     pub fn get_allocation(&self, pid: u64) -> Option<&ResourceAllocation> {
         self.allocations.get(&pid)
     }
 
     /// Available resources after kernel reservation
+    #[inline]
     pub fn available_resources(&self) -> (f64, u64) {
         let cpu = self.total_cpu as f64 - self.reserved_cpu;
         let mem = self.total_memory.saturating_sub(self.reserved_memory);
@@ -133,6 +138,7 @@ impl ResourceBalancer {
     }
 
     /// Currently committed resources
+    #[inline]
     pub fn committed_resources(&self) -> (f64, u64, u64) {
         let mut cpu = 0.0;
         let mut mem = 0u64;
@@ -231,11 +237,13 @@ impl ResourceBalancer {
     }
 
     /// Number of tracked processes
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.allocations.len()
     }
 
     /// Total rebalances performed
+    #[inline(always)]
     pub fn rebalance_count(&self) -> u64 {
         self.rebalance_count
     }

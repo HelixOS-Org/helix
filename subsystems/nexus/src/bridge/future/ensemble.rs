@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -57,6 +58,7 @@ fn rand_f32(state: &mut u64) -> f32 {
 
 /// A single model in the ensemble.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EnsembleMember {
     /// Unique identifier for this model
     pub model_id: u64,
@@ -71,7 +73,7 @@ pub struct EnsembleMember {
     /// Running mean squared error (EMA)
     mse_ema: f32,
     /// Recent predictions for diversity computation
-    recent_predictions: Vec<f32>,
+    recent_predictions: VecDeque<f32>,
     /// Streak of being the best model
     best_streak: u32,
 }
@@ -85,11 +87,12 @@ impl EnsembleMember {
             total_predictions: 0,
             mae_ema: 0.1,
             mse_ema: 0.01,
-            recent_predictions: Vec::new(),
+            recent_predictions: VecDeque::new(),
             best_streak: 0,
         }
     }
 
+    #[inline]
     fn record_prediction(&mut self, predicted: f32, actual: f32) {
         self.total_predictions += 1;
         let error = (actual - predicted).abs();
@@ -99,9 +102,9 @@ impl EnsembleMember {
         self.mse_ema = self.mse_ema * (1.0 - ACCURACY_EMA_ALPHA) + sq_error * ACCURACY_EMA_ALPHA;
         self.recent_accuracy = (1.0 - self.mae_ema).max(0.0);
 
-        self.recent_predictions.push(predicted);
+        self.recent_predictions.push_back(predicted);
         if self.recent_predictions.len() > MAX_HISTORY {
-            self.recent_predictions.remove(0);
+            self.recent_predictions.pop_front();
         }
     }
 }
@@ -129,6 +132,7 @@ pub struct EnsemblePrediction {
 
 /// Statistics for the ensemble engine.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EnsembleStats {
     pub total_ensemble_predictions: u64,
     pub total_weight_updates: u64,
@@ -175,6 +179,7 @@ struct WeightSnapshot {
 /// Combines multiple prediction models with dynamically learned weights.
 /// Automatically shifts trust toward better-performing models and tracks
 /// diversity to avoid degenerate ensembles.
+#[repr(align(64))]
 pub struct BridgeEnsemble {
     /// Ensemble members
     members: BTreeMap<u64, EnsembleMember>,
@@ -182,9 +187,9 @@ pub struct BridgeEnsemble {
     ensemble_mae_ema: f32,
     ensemble_mse_ema: f32,
     /// History of ensemble predictions vs actuals
-    prediction_history: Vec<(f32, f32)>, // (ensemble_pred, actual)
+    prediction_history: VecDeque<(f32, f32)>, // (ensemble_pred, actual)
     /// Weight snapshots for evolution tracking
-    weight_history: Vec<WeightSnapshot>,
+    weight_history: VecDeque<WeightSnapshot>,
     /// Running statistics
     stats: EnsembleStats,
     /// PRNG state
@@ -200,8 +205,8 @@ impl BridgeEnsemble {
             members: BTreeMap::new(),
             ensemble_mae_ema: 0.1,
             ensemble_mse_ema: 0.01,
-            prediction_history: Vec::new(),
-            weight_history: Vec::new(),
+            prediction_history: VecDeque::new(),
+            weight_history: VecDeque::new(),
             stats: EnsembleStats::new(),
             rng: DEFAULT_SEED,
             tick: 0,
@@ -209,6 +214,7 @@ impl BridgeEnsemble {
     }
 
     /// Register a new model in the ensemble.
+    #[inline]
     pub fn add_member(&mut self, model_id: u64) {
         if self.members.len() >= MAX_MEMBERS {
             return;
@@ -221,6 +227,7 @@ impl BridgeEnsemble {
     }
 
     /// Remove a model from the ensemble.
+    #[inline]
     pub fn remove_member(&mut self, model_id: u64) {
         self.members.remove(&model_id);
         self.normalize_weights();
@@ -361,22 +368,23 @@ impl BridgeEnsemble {
         self.stats.ensemble_mae = self.ensemble_mae_ema;
         self.stats.best_member_mae = best_error;
 
-        self.prediction_history.push((ensemble_pred, actual));
+        self.prediction_history.push_back((ensemble_pred, actual));
         if self.prediction_history.len() > MAX_HISTORY {
-            self.prediction_history.remove(0);
+            self.prediction_history.pop_front();
         }
 
         // Snapshot weights periodically
         if tick % 100 == 0 {
             let weights: Vec<(u64, f32)> = self.members.iter().map(|(id, m)| (*id, m.weight)).collect();
-            self.weight_history.push(WeightSnapshot { tick, weights });
+            self.weight_history.push_back(WeightSnapshot { tick, weights });
             if self.weight_history.len() > 100 {
-                self.weight_history.remove(0);
+                self.weight_history.pop_front();
             }
         }
     }
 
     /// Get the accuracy of a specific member.
+    #[inline(always)]
     pub fn member_accuracy(&self, model_id: u64) -> Option<f32> {
         self.members.get(&model_id).map(|m| m.recent_accuracy)
     }
@@ -478,6 +486,7 @@ impl BridgeEnsemble {
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &EnsembleStats {
         &self.stats
     }
@@ -497,11 +506,13 @@ impl BridgeEnsemble {
     }
 
     /// Get member count.
+    #[inline(always)]
     pub fn member_count(&self) -> usize {
         self.members.len()
     }
 
     /// Get weight of a specific member.
+    #[inline(always)]
     pub fn member_weight(&self, model_id: u64) -> Option<f32> {
         self.members.get(&model_id).map(|m| m.weight)
     }

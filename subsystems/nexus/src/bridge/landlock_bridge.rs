@@ -17,6 +17,7 @@ pub enum LandlockAbi {
 }
 
 impl LandlockAbi {
+    #[inline]
     pub fn version_number(&self) -> u32 {
         match self {
             Self::V1 => 1,
@@ -48,22 +49,27 @@ impl FsAccessRights {
     pub const REFER: Self = Self(1 << 13);
     pub const TRUNCATE: Self = Self(1 << 14);
 
+    #[inline(always)]
     pub fn contains(&self, other: Self) -> bool {
         (self.0 & other.0) == other.0
     }
 
+    #[inline(always)]
     pub fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
+    #[inline(always)]
     pub fn intersect(self, other: Self) -> Self {
         Self(self.0 & other.0)
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.0 == 0
     }
 
+    #[inline]
     pub fn bit_count(&self) -> u32 {
         let mut n = self.0;
         let mut count = 0u32;
@@ -83,14 +89,17 @@ impl NetAccessRights {
     pub const BIND_TCP: Self = Self(1 << 0);
     pub const CONNECT_TCP: Self = Self(1 << 1);
 
+    #[inline(always)]
     pub fn contains(&self, other: Self) -> bool {
         (self.0 & other.0) == other.0
     }
 
+    #[inline(always)]
     pub fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.0 == 0
     }
@@ -113,6 +122,7 @@ impl FsPathRule {
         }
     }
 
+    #[inline]
     pub fn matches(&self, target_path: &str) -> bool {
         if self.is_beneath {
             target_path.starts_with(self.path.as_str())
@@ -121,6 +131,7 @@ impl FsPathRule {
         }
     }
 
+    #[inline(always)]
     pub fn check_access(&self, requested: FsAccessRights) -> bool {
         self.allowed_access.contains(requested)
     }
@@ -170,10 +181,12 @@ impl Ruleset {
         }
     }
 
+    #[inline(always)]
     pub fn add_fs_rule(&mut self, rule: FsPathRule) {
         self.fs_rules.push(rule);
     }
 
+    #[inline(always)]
     pub fn add_net_rule(&mut self, rule: NetPortRule) {
         self.net_rules.push(rule);
     }
@@ -214,11 +227,13 @@ impl Ruleset {
         allowed
     }
 
+    #[inline(always)]
     pub fn deny_rate(&self) -> f64 {
         if self.check_count == 0 { return 0.0; }
         self.deny_count as f64 / self.check_count as f64
     }
 
+    #[inline(always)]
     pub fn rule_count(&self) -> usize {
         self.fs_rules.len() + self.net_rules.len()
     }
@@ -243,6 +258,7 @@ impl LandlockDomain {
         }
     }
 
+    #[inline]
     pub fn push_ruleset(&mut self, ruleset_id: u64) -> bool {
         if self.depth >= self.max_depth {
             return false;
@@ -255,6 +271,7 @@ impl LandlockDomain {
 
 /// Landlock bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LandlockBridgeStats {
     pub rulesets_created: u64,
     pub domains_active: u64,
@@ -265,6 +282,7 @@ pub struct LandlockBridgeStats {
 }
 
 /// Main landlock bridge manager
+#[repr(align(64))]
 pub struct BridgeLandlock {
     rulesets: BTreeMap<u64, Ruleset>,
     domains: BTreeMap<u64, LandlockDomain>,
@@ -291,6 +309,7 @@ impl BridgeLandlock {
         }
     }
 
+    #[inline]
     pub fn create_ruleset(
         &mut self,
         handled_fs: FsAccessRights,
@@ -381,6 +400,7 @@ impl BridgeLandlock {
         true
     }
 
+    #[inline]
     pub fn remove_domain(&mut self, pid: u64) -> bool {
         if self.domains.remove(&pid).is_some() {
             self.stats.domains_active = self.stats.domains_active.saturating_sub(1);
@@ -390,6 +410,7 @@ impl BridgeLandlock {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &LandlockBridgeStats {
         &self.stats
     }
@@ -429,7 +450,9 @@ impl LandlockFsFlags {
     pub const IOCTL_DEV: u64 = 1 << 15;
 
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn set(&mut self, f: u64) { self.0 |= f; }
+    #[inline(always)]
     pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
 }
 
@@ -446,10 +469,12 @@ pub struct LandlockV2Rule {
 }
 
 impl LandlockV2Rule {
+    #[inline(always)]
     pub fn path_beneath(id: u64, parent_fd: i32, access: LandlockFsFlags) -> Self {
         Self { id, rule_type: LandlockV2RuleType::PathBeneath, allowed_access: access, parent_fd, port: 0, match_count: 0, deny_count: 0 }
     }
 
+    #[inline]
     pub fn check(&mut self, requested: u64) -> bool {
         self.match_count += 1;
         if self.allowed_access.has(requested) { true }
@@ -474,9 +499,12 @@ impl LandlockV2Ruleset {
         Self { id, handled_fs, rules: Vec::new(), enforced: false, created_at: now, total_checks: 0, total_denials: 0 }
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: LandlockV2Rule) { self.rules.push(rule); }
+    #[inline(always)]
     pub fn enforce(&mut self) { self.enforced = true; }
 
+    #[inline]
     pub fn check_access(&mut self, requested: u64) -> bool {
         if !self.enforced { return true; }
         self.total_checks += 1;
@@ -491,6 +519,7 @@ impl LandlockV2Ruleset {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LandlockV2BridgeStats {
     pub total_rulesets: u32,
     pub enforced_rulesets: u32,
@@ -501,6 +530,7 @@ pub struct LandlockV2BridgeStats {
 }
 
 /// Main Landlock v2 bridge
+#[repr(align(64))]
 pub struct BridgeLandlockV2 {
     rulesets: BTreeMap<u64, LandlockV2Ruleset>,
     next_id: u64,
@@ -510,12 +540,14 @@ pub struct BridgeLandlockV2 {
 impl BridgeLandlockV2 {
     pub fn new() -> Self { Self { rulesets: BTreeMap::new(), next_id: 1, next_rule_id: 1 } }
 
+    #[inline]
     pub fn create_ruleset(&mut self, handled_fs: LandlockFsFlags, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.rulesets.insert(id, LandlockV2Ruleset::new(id, handled_fs, now));
         id
     }
 
+    #[inline]
     pub fn add_path_rule(&mut self, ruleset: u64, parent_fd: i32, access: LandlockFsFlags) {
         let rid = self.next_rule_id; self.next_rule_id += 1;
         if let Some(rs) = self.rulesets.get_mut(&ruleset) {
@@ -523,10 +555,12 @@ impl BridgeLandlockV2 {
         }
     }
 
+    #[inline(always)]
     pub fn enforce(&mut self, ruleset: u64) {
         if let Some(rs) = self.rulesets.get_mut(&ruleset) { rs.enforce(); }
     }
 
+    #[inline]
     pub fn stats(&self) -> LandlockV2BridgeStats {
         let enforced = self.rulesets.values().filter(|r| r.enforced).count() as u32;
         let rules: u32 = self.rulesets.values().map(|r| r.rules.len() as u32).sum();
@@ -607,6 +641,7 @@ impl LandlockV3Ruleset {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LandlockV3BridgeStats {
     pub total_rulesets: u32,
     pub enforced: u32,
@@ -616,6 +651,7 @@ pub struct LandlockV3BridgeStats {
 }
 
 /// Main bridge Landlock v3
+#[repr(align(64))]
 pub struct BridgeLandlockV3 {
     rulesets: BTreeMap<u64, LandlockV3Ruleset>,
     next_id: u64,
@@ -624,28 +660,33 @@ pub struct BridgeLandlockV3 {
 impl BridgeLandlockV3 {
     pub fn new() -> Self { Self { rulesets: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, abi: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.rulesets.insert(id, LandlockV3Ruleset::new(id, abi));
         id
     }
 
+    #[inline]
     pub fn add_fs_rule(&mut self, rs_id: u64, path_hash: u64, allowed: u64) {
         if let Some(rs) = self.rulesets.get_mut(&rs_id) {
             rs.rules.push(LandlockV3Rule { rule_type: LandlockV3RuleType::PathBeneath, path_hash, allowed_fs: allowed, allowed_net: 0, port: 0 });
         }
     }
 
+    #[inline]
     pub fn add_net_rule(&mut self, rs_id: u64, allowed: u32, port: u16) {
         if let Some(rs) = self.rulesets.get_mut(&rs_id) {
             rs.rules.push(LandlockV3Rule { rule_type: LandlockV3RuleType::Net, path_hash: 0, allowed_fs: 0, allowed_net: allowed, port });
         }
     }
 
+    #[inline(always)]
     pub fn enforce(&mut self, rs_id: u64) {
         if let Some(rs) = self.rulesets.get_mut(&rs_id) { rs.enforced = true; }
     }
 
+    #[inline]
     pub fn stats(&self) -> LandlockV3BridgeStats {
         let enforced = self.rulesets.values().filter(|r| r.enforced).count() as u32;
         let rules: u32 = self.rulesets.values().map(|r| r.rules.len() as u32).sum();
@@ -715,12 +756,14 @@ impl LandlockV4FsRule {
         }
     }
 
+    #[inline]
     pub fn allow(&mut self, access: LandlockV4FsAccess) {
         if !self.allowed_access.contains(&access) {
             self.allowed_access.push(access);
         }
     }
 
+    #[inline(always)]
     pub fn check(&self, access: LandlockV4FsAccess) -> bool {
         self.allowed_access.contains(&access)
     }
@@ -743,12 +786,14 @@ impl LandlockV4NetRule {
         }
     }
 
+    #[inline]
     pub fn allow(&mut self, access: LandlockV4NetAccess) {
         if !self.allowed_access.contains(&access) {
             self.allowed_access.push(access);
         }
     }
 
+    #[inline(always)]
     pub fn check(&self, access: LandlockV4NetAccess) -> bool {
         self.allowed_access.contains(&access)
     }
@@ -785,10 +830,12 @@ impl LandlockV4Ruleset {
         }
     }
 
+    #[inline(always)]
     pub fn add_fs_rule(&mut self, rule: LandlockV4FsRule) {
         self.fs_rules.push(rule);
     }
 
+    #[inline(always)]
     pub fn add_net_rule(&mut self, rule: LandlockV4NetRule) {
         self.net_rules.push(rule);
     }
@@ -823,6 +870,7 @@ impl LandlockV4Ruleset {
         false
     }
 
+    #[inline(always)]
     pub fn enforce(&mut self) {
         self.is_enforced = true;
     }
@@ -830,6 +878,7 @@ impl LandlockV4Ruleset {
 
 /// Statistics for Landlock V4 bridge.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LandlockV4BridgeStats {
     pub total_rulesets: u64,
     pub total_fs_rules: u64,
@@ -841,6 +890,7 @@ pub struct LandlockV4BridgeStats {
 }
 
 /// Main bridge Landlock V4 manager.
+#[repr(align(64))]
 pub struct BridgeLandlockV4 {
     pub rulesets: BTreeMap<u64, LandlockV4Ruleset>,
     pub process_domains: BTreeMap<u64, Vec<u64>>, // pid → stacked ruleset ids
@@ -868,6 +918,7 @@ impl BridgeLandlockV4 {
         }
     }
 
+    #[inline]
     pub fn create_ruleset(&mut self, name: String) -> u64 {
         let id = self.next_ruleset_id;
         self.next_ruleset_id += 1;
@@ -934,6 +985,7 @@ impl BridgeLandlockV4 {
         }
     }
 
+    #[inline(always)]
     pub fn ruleset_count(&self) -> usize {
         self.rulesets.len()
     }
@@ -1002,6 +1054,7 @@ impl LandlockV5Record {
 
 /// Landlock v5 bridge stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LandlockV5BridgeStats {
     pub total_ops: u64,
     pub rulesets_created: u64,
@@ -1022,6 +1075,7 @@ impl BridgeLandlockV5 {
         Self { stats: LandlockV5BridgeStats { total_ops: 0, rulesets_created: 0, rules_added: 0, restrictions: 0, denials: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &LandlockV5Record) {
         self.stats.total_ops += 1;
         match rec.op {

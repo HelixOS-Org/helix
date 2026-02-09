@@ -56,26 +56,31 @@ impl KprobeDef {
     }
 
     /// Record hit
+    #[inline(always)]
     pub fn hit(&self) {
         self.hits.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record miss
+    #[inline(always)]
     pub fn miss(&self) {
         self.misses.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get hit count
+    #[inline(always)]
     pub fn hit_count(&self) -> u64 {
         self.hits.load(Ordering::Relaxed)
     }
 
     /// Get miss count
+    #[inline(always)]
     pub fn miss_count(&self) -> u64 {
         self.misses.load(Ordering::Relaxed)
     }
 
     /// Is armed
+    #[inline(always)]
     pub fn is_armed(&self) -> bool {
         matches!(self.state, KprobeState::Armed)
     }
@@ -115,6 +120,7 @@ impl KretprobeDef {
     }
 
     /// Acquire instance
+    #[inline]
     pub fn acquire(&self) -> bool {
         let current = self.active.load(Ordering::Relaxed);
         if current >= self.maxactive as u64 {
@@ -126,16 +132,19 @@ impl KretprobeDef {
     }
 
     /// Release instance
+    #[inline(always)]
     pub fn release(&self) {
         self.active.fetch_sub(1, Ordering::Relaxed);
     }
 
     /// Get active count
+    #[inline(always)]
     pub fn active_count(&self) -> u64 {
         self.active.load(Ordering::Relaxed)
     }
 
     /// Get missed count
+    #[inline(always)]
     pub fn missed_count(&self) -> u64 {
         self.nmissed.load(Ordering::Relaxed)
     }

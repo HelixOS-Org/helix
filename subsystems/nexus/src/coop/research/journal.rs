@@ -12,6 +12,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -120,6 +121,7 @@ pub struct TimelineEvent {
 
 /// Aggregate journal statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct JournalStats {
     pub total_entries: u64,
     pub total_findings: u64,
@@ -143,7 +145,7 @@ pub struct CoopJournal {
     entries: BTreeMap<u64, ProtocolTestEntry>,
     findings: BTreeMap<u64, Finding>,
     timeline: Vec<TimelineEvent>,
-    category_counts: BTreeMap<u64, u32>,
+    category_counts: LinearMap<u32, 64>,
     tick: u64,
     rng_state: u64,
     stats: JournalStats,
@@ -156,7 +158,7 @@ impl CoopJournal {
             entries: BTreeMap::new(),
             findings: BTreeMap::new(),
             timeline: Vec::new(),
-            category_counts: BTreeMap::new(),
+            category_counts: LinearMap::new(),
             tick: 0,
             rng_state: seed | 1,
             stats: JournalStats::default(),
@@ -305,6 +307,7 @@ impl CoopJournal {
     }
 
     /// Retrieve the test history for a specific protocol category
+    #[inline]
     pub fn protocol_history(&self, category: TestCategory) -> Vec<&ProtocolTestEntry> {
         self.entries
             .values()
@@ -328,6 +331,7 @@ impl CoopJournal {
     }
 
     /// Cite a finding — increases its impact over time
+    #[inline]
     pub fn cite_finding(&mut self, finding_id: u64) -> bool {
         if let Some(f) = self.findings.get_mut(&finding_id) {
             f.citation_count += 1;
@@ -339,11 +343,13 @@ impl CoopJournal {
     }
 
     /// Get the full discovery timeline
+    #[inline(always)]
     pub fn discovery_timeline(&self) -> &[TimelineEvent] {
         &self.timeline
     }
 
     /// Get timeline events within a tick range
+    #[inline]
     pub fn discovery_timeline_range(&self, start_tick: u64, end_tick: u64) -> Vec<&TimelineEvent> {
         self.timeline
             .iter()
@@ -352,6 +358,7 @@ impl CoopJournal {
     }
 
     /// Get current journal statistics
+    #[inline(always)]
     pub fn stats(&self) -> &JournalStats {
         &self.stats
     }

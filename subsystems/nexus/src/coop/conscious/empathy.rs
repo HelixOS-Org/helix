@@ -87,6 +87,7 @@ pub enum CoopNeedKind {
 }
 
 impl CoopNeedKind {
+    #[inline]
     pub fn all() -> &'static [CoopNeedKind] {
         &[
             CoopNeedKind::LatencyGuarantee,
@@ -144,6 +145,7 @@ impl CoopNeed {
     }
 
     /// Observe a new need intensity signal
+    #[inline]
     pub fn observe_intensity(&mut self, raw: f32) {
         let clamped = if raw < 0.0 {
             0.0
@@ -164,6 +166,7 @@ impl CoopNeed {
     }
 
     /// Update satisfaction level
+    #[inline]
     pub fn update_satisfaction(&mut self, sat: f32) {
         let clamped = if sat < 0.0 {
             0.0
@@ -181,6 +184,7 @@ impl CoopNeed {
     }
 
     /// Decay intensity over time
+    #[inline(always)]
     pub fn decay(&mut self) {
         self.smoothed_intensity *= NEED_DECAY;
         self.update_gap();
@@ -246,6 +250,7 @@ impl EmpathyProfile {
     }
 
     /// Recompute aggregate metrics
+    #[inline]
     pub fn recompute_aggregates(&mut self) {
         let mut total_sat = 0.0f32;
         let mut total_gap = 0.0f32;
@@ -296,6 +301,7 @@ pub struct NeedConflict {
 // ============================================================================
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopEmpathyStats {
     pub tracked_processes: usize,
     pub total_evaluations: u64,
@@ -618,6 +624,7 @@ impl CoopEmpathyEngine {
     /// Compute empathy accuracy for a specific process
     ///
     /// Measures how well our need predictions match actual satisfaction outcomes.
+    #[inline]
     pub fn empathy_score(&mut self, process_id: u64) -> f32 {
         if let Some(profile) = self.profiles.get_mut(&process_id) {
             let mut accuracy_sum = 0.0f32;
@@ -648,6 +655,7 @@ impl CoopEmpathyEngine {
     /// How well do all processes understand each other's needs?
     ///
     /// Measures global empathy: low conflicts + high satisfaction = high understanding.
+    #[inline]
     pub fn cross_process_understanding(&mut self) -> f32 {
         let proc_count = self.profiles.len();
         if proc_count == 0 {
@@ -688,6 +696,7 @@ impl CoopEmpathyEngine {
     // ========================================================================
 
     /// Decay all needs over time
+    #[inline]
     pub fn decay_all(&mut self) {
         for (_, profile) in self.profiles.iter_mut() {
             for (_, need) in profile.cooperation_needs.iter_mut() {
@@ -718,14 +727,17 @@ impl CoopEmpathyEngine {
     // QUERIES
     // ========================================================================
 
+    #[inline(always)]
     pub fn profile(&self, process_id: u64) -> Option<&EmpathyProfile> {
         self.profiles.get(&process_id)
     }
 
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.profiles.len()
     }
 
+    #[inline(always)]
     pub fn snapshot_stats(&self) -> CoopEmpathyStats {
         self.stats.clone()
     }

@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -65,6 +66,7 @@ pub enum SloState {
 
 /// Metric sample
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricSample {
     /// Timestamp
     pub timestamp: u64,
@@ -74,9 +76,10 @@ pub struct MetricSample {
 
 /// Sliding metric window
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct MetricWindow {
     /// Samples
-    samples: Vec<MetricSample>,
+    samples: VecDeque<MetricSample>,
     /// Max samples
     max_samples: usize,
     /// Running sum
@@ -88,7 +91,7 @@ pub struct MetricWindow {
 impl MetricWindow {
     pub fn new(max_samples: usize) -> Self {
         Self {
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             max_samples,
             running_sum: 0.0,
             running_sq_sum: 0.0,
@@ -96,18 +99,20 @@ impl MetricWindow {
     }
 
     /// Record
+    #[inline]
     pub fn record(&mut self, sample: MetricSample) {
         if self.samples.len() >= self.max_samples {
-            let old = self.samples.remove(0);
+            let old = self.samples.pop_front().unwrap();
             self.running_sum -= old.value;
             self.running_sq_sum -= old.value * old.value;
         }
         self.running_sum += sample.value;
         self.running_sq_sum += sample.value * sample.value;
-        self.samples.push(sample);
+        self.samples.push_back(sample);
     }
 
     /// Mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.samples.is_empty() {
             return 0.0;
@@ -116,6 +121,7 @@ impl MetricWindow {
     }
 
     /// Variance
+    #[inline]
     pub fn variance(&self) -> f64 {
         let n = self.samples.len() as f64;
         if n < 2.0 {
@@ -126,6 +132,7 @@ impl MetricWindow {
     }
 
     /// Standard deviation
+    #[inline(always)]
     pub fn stddev(&self) -> f64 {
         let v = self.variance();
         if v <= 0.0 { 0.0 } else { libm::sqrt(v) }
@@ -156,6 +163,7 @@ impl MetricWindow {
     }
 
     /// Linear intercept
+    #[inline]
     pub fn linear_intercept(&self) -> f64 {
         let n = self.samples.len() as f64;
         if n < 2.0 {
@@ -167,6 +175,7 @@ impl MetricWindow {
     }
 
     /// Exponential smoothing forecast
+    #[inline]
     pub fn exp_smooth_forecast(&self, alpha: f64, steps_ahead: usize) -> f64 {
         if self.samples.is_empty() {
             return 0.0;
@@ -180,11 +189,13 @@ impl MetricWindow {
     }
 
     /// Latest
+    #[inline(always)]
     pub fn latest(&self) -> f64 {
-        self.samples.last().map(|s| s.value).unwrap_or(0.0)
+        self.samples.back().map(|s| s.value).unwrap_or(0.0)
     }
 
     /// Length
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.samples.len()
     }
@@ -266,6 +277,7 @@ pub struct SloPrediction {
 
 /// Cross-metric correlation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricCorrelation {
     /// Source metric key
     pub source_key: u64,
@@ -339,6 +351,7 @@ impl CorrelationTracker {
     }
 
     /// Strong correlations (|r| > threshold)
+    #[inline]
     pub fn strong_correlations(&self, threshold: f64) -> Vec<&MetricCorrelation> {
         self.correlations.iter()
             .filter(|c| libm::fabs(c.coefficient) > threshold)
@@ -352,6 +365,7 @@ impl CorrelationTracker {
 
 /// Predictor stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HolisticPredictorStats {
     /// Tracked metrics
     pub tracked_metrics: usize,
@@ -399,6 +413,7 @@ impl HolisticPredictorEngine {
     }
 
     /// Record metric
+    #[inline]
     pub fn record_metric(&mut self, target: PredictionTarget, subsystem_id: u32, value: f64, now: u64) {
         let key = Self::metric_key(target, subsystem_id);
         let window = self.metrics.entry(key).or_insert_with(|| MetricWindow::new(720));
@@ -475,6 +490,7 @@ impl HolisticPredictorEngine {
     }
 
     /// Add SLO
+    #[inline(always)]
     pub fn add_slo(&mut self, slo: SloDefinition) {
         self.slos.push(slo);
         self.stats.active_slos = self.slos.len();
@@ -523,6 +539,7 @@ impl HolisticPredictorEngine {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticPredictorStats {
         &self.stats
     }

@@ -60,6 +60,7 @@ pub struct NodeResources {
 
 impl NodeResources {
     /// CPU availability ratio
+    #[inline]
     pub fn cpu_ratio(&self) -> f64 {
         if self.total_cpus == 0 {
             0.0
@@ -69,6 +70,7 @@ impl NodeResources {
     }
 
     /// Memory availability ratio
+    #[inline]
     pub fn memory_ratio(&self) -> f64 {
         if self.total_memory == 0 {
             0.0
@@ -78,6 +80,7 @@ impl NodeResources {
     }
 
     /// Can fit workload?
+    #[inline(always)]
     pub fn can_fit(&self, vcpus: u32, memory: u64) -> bool {
         self.available_cpus >= vcpus as f64 && self.available_memory >= memory
     }
@@ -128,11 +131,13 @@ impl MigrationOptimizer {
     }
 
     /// Update node resources
+    #[inline(always)]
     pub fn update_node(&mut self, resources: NodeResources) {
         self.node_resources.insert(resources.node_id, resources);
     }
 
     /// Record migration
+    #[inline(always)]
     pub fn record_migration(&mut self, record: MigrationRecord) {
         self.history.push(record);
     }
@@ -189,16 +194,19 @@ impl MigrationOptimizer {
     }
 
     /// Get node resources
+    #[inline(always)]
     pub fn get_node(&self, node_id: u32) -> Option<&NodeResources> {
         self.node_resources.get(&node_id)
     }
 
     /// Get migration history
+    #[inline(always)]
     pub fn history(&self) -> &[MigrationRecord] {
         &self.history
     }
 
     /// Average migration duration
+    #[inline]
     pub fn avg_duration(&self) -> f64 {
         if self.history.is_empty() {
             0.0
@@ -209,6 +217,7 @@ impl MigrationOptimizer {
     }
 
     /// Node count
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.node_resources.len()
     }

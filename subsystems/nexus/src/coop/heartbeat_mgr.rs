@@ -91,6 +91,7 @@ impl MonitoredNode {
         self.state
     }
 
+    #[inline]
     pub fn failure_rate(&self) -> f64 {
         let total = self.heartbeat_count + self.missed_count;
         if total == 0 { return 0.0; }
@@ -100,6 +101,7 @@ impl MonitoredNode {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HeartbeatMgrStats {
     pub total_nodes: u32,
     pub healthy: u32,
@@ -122,18 +124,22 @@ impl CoopHeartbeatMgr {
         Self { nodes: BTreeMap::new(), detector_type: detector, default_timeout: timeout }
     }
 
+    #[inline(always)]
     pub fn monitor(&mut self, node_id: u64, now: u64) {
         self.nodes.insert(node_id, MonitoredNode::new(node_id, self.default_timeout, now));
     }
 
+    #[inline(always)]
     pub fn heartbeat(&mut self, node_id: u64, rtt: u64, now: u64) {
         if let Some(n) = self.nodes.get_mut(&node_id) { n.receive_heartbeat(rtt, now); }
     }
 
+    #[inline(always)]
     pub fn check_all(&mut self, now: u64) -> Vec<(u64, HeartbeatState)> {
         self.nodes.values_mut().map(|n| (n.id, n.check(now))).collect()
     }
 
+    #[inline(always)]
     pub fn timed_out_nodes(&self) -> Vec<u64> {
         self.nodes.values().filter(|n| n.state == HeartbeatState::TimedOut).map(|n| n.id).collect()
     }

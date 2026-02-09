@@ -11,7 +11,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -74,6 +76,7 @@ pub enum AnomalyType {
 
 /// A known precursor pattern that precedes an anomaly.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AnomalyPrecursor {
     /// Hash identifying this precursor pattern
     pub pattern: u64,
@@ -110,6 +113,7 @@ impl AnomalyPrecursor {
         }
     }
 
+    #[inline]
     fn record_true_positive(&mut self, actual_lead_time: u64) {
         self.true_positives += 1;
         self.lead_time_ema = self.lead_time_ema * (1.0 - EMA_ALPHA)
@@ -146,6 +150,7 @@ impl AnomalyPrecursor {
 
 /// An active early warning: an anomaly has been predicted but hasn't occurred yet.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EarlyWarning {
     /// Warning identifier
     pub warning_id: u64,
@@ -173,11 +178,11 @@ pub struct EarlyWarning {
 #[derive(Debug, Clone)]
 struct EventStream {
     /// Recent event hashes
-    events: Vec<u64>,
+    events: VecDeque<u64>,
     /// Recent event ticks
-    ticks: Vec<u64>,
+    ticks: VecDeque<u64>,
     /// Rate estimation per event type (EMA)
-    rates: BTreeMap<u64, f32>,
+    rates: LinearMap<f32, 64>,
     /// Burstiness: variance of inter-event times
     burstiness_ema: f32,
 }
@@ -185,20 +190,21 @@ struct EventStream {
 impl EventStream {
     fn new() -> Self {
         Self {
-            events: Vec::new(),
-            ticks: Vec::new(),
-            rates: BTreeMap::new(),
+            events: VecDeque::new(),
+            ticks: VecDeque::new(),
+            rates: LinearMap::new(),
             burstiness_ema: 0.0,
         }
     }
 
+    #[inline]
     fn push(&mut self, event_hash: u64, tick: u64) {
-        self.events.push(event_hash);
-        self.ticks.push(tick);
+        self.events.push_back(event_hash);
+        self.ticks.push_back(tick);
 
         if self.events.len() > MAX_HISTORY {
-            self.events.remove(0);
-            self.ticks.remove(0);
+            self.events.pop_front();
+            self.ticks.pop_front();
         }
 
         // Update rate estimate
@@ -211,7 +217,7 @@ impl EventStream {
             let prev = self.ticks[self.ticks.len() - 2];
             let gap = last.saturating_sub(prev) as f32;
             let mean_gap = if self.ticks.len() > 1 {
-                let total_span = self.ticks.last().unwrap_or(&0)
+                let total_span = self.ticks.back().unwrap_or(&0)
                     .saturating_sub(*self.ticks.first().unwrap_or(&0));
                 total_span as f32 / self.ticks.len() as f32
             } else {
@@ -228,7 +234,7 @@ impl EventStream {
     }
 
     fn recent_rate(&self, event_hash: u64) -> f32 {
-        self.rates.get(&event_hash).copied().unwrap_or(0.0)
+        self.rates.get(event_hash).copied().unwrap_or(0.0)
     }
 }
 
@@ -238,6 +244,7 @@ impl EventStream {
 
 /// Statistics for the anomaly forecast engine.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AnomalyForecastStats {
     pub total_precursors: u32,
     pub total_warnings_issued: u64,
@@ -274,6 +281,7 @@ impl AnomalyForecastStats {
 ///
 /// Detects precursors to anomalies in the event stream and issues early
 /// warnings with enough lead time to take preventive action.
+#[repr(align(64))]
 pub struct BridgeAnomalyForecast {
     /// Library of known precursor patterns
     precursors: BTreeMap<u64, AnomalyPrecursor>,
@@ -480,6 +488,7 @@ impl BridgeAnomalyForecast {
     }
 
     /// Get the precursor library sorted by confidence.
+    #[inline]
     pub fn precursor_library(&self) -> Vec<&AnomalyPrecursor> {
         let mut result: Vec<&AnomalyPrecursor> = self.precursors.values().collect();
         result.sort_by(|a, b| {
@@ -489,11 +498,13 @@ impl BridgeAnomalyForecast {
     }
 
     /// Get active early warnings.
+    #[inline(always)]
     pub fn early_warning(&self) -> Vec<&EarlyWarning> {
         self.warnings.iter().filter(|w| !w.resolved).collect()
     }
 
     /// Compute the false alarm rate across all precursors.
+    #[inline]
     pub fn false_alarm_rate(&self) -> f32 {
         let total = self.stats.total_true_positives + self.stats.total_false_positives;
         if total > 0 {
@@ -528,11 +539,13 @@ impl BridgeAnomalyForecast {
     }
 
     /// Get statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &AnomalyForecastStats {
         &self.stats
     }
 
     /// Get burstiness of the event stream.
+    #[inline(always)]
     pub fn stream_burstiness(&self) -> f32 {
         self.stream.burstiness_ema
     }

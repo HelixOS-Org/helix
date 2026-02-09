@@ -66,6 +66,7 @@ impl InterfaceType {
     }
 
     /// Is physical
+    #[inline(always)]
     pub fn is_physical(&self) -> bool {
         matches!(self, Self::Ethernet | Self::Wifi)
     }
@@ -100,6 +101,7 @@ pub enum InterfaceState {
 
 impl InterfaceState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Up => "up",
@@ -126,6 +128,7 @@ pub enum LinkState {
 
 impl LinkState {
     /// Get state name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Up => "up",
@@ -226,36 +229,43 @@ impl NetworkInterface {
     }
 
     /// Is up
+    #[inline(always)]
     pub fn is_up(&self) -> bool {
         matches!(self.state, InterfaceState::Up)
     }
 
     /// Has link
+    #[inline(always)]
     pub fn has_link(&self) -> bool {
         matches!(self.link_state, LinkState::Up)
     }
 
     /// Is running (up + link)
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.is_up() && self.has_link()
     }
 
     /// Has IPv4
+    #[inline(always)]
     pub fn has_ipv4(&self) -> bool {
         !self.ipv4_addrs.is_empty()
     }
 
     /// Has IPv6
+    #[inline(always)]
     pub fn has_ipv6(&self) -> bool {
         !self.ipv6_addrs.is_empty()
     }
 
     /// Throughput capacity (bytes/sec)
+    #[inline(always)]
     pub fn throughput_capacity(&self) -> u64 {
         self.speed.map(|s| s.bytes_per_sec()).unwrap_or(0)
     }
 
     /// Current RX utilization
+    #[inline]
     pub fn rx_utilization(&self, interval_bytes: u64, interval_secs: f64) -> f32 {
         let capacity = self.throughput_capacity();
         if capacity > 0 && interval_secs > 0.0 {

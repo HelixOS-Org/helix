@@ -15,6 +15,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -53,6 +54,7 @@ fn xorshift64(state: &mut u64) -> u64 {
     x
 }
 
+#[inline]
 fn ema_update(current: f64, sample: f64, alpha: f64) -> f64 {
     alpha * sample + (1.0 - alpha) * current
 }
@@ -138,6 +140,7 @@ impl AllocationDecision {
 
 /// A counterfactual alternative: what would have happened with a different amount.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualAlternative {
     pub alternative_amount: u64,
     pub estimated_utility: f64,
@@ -154,7 +157,7 @@ pub struct CounterfactualAlternative {
 #[derive(Debug, Clone)]
 struct AppCounterfactualState {
     app_id: u64,
-    decisions: Vec<AllocationDecision>,
+    decisions: VecDeque<AllocationDecision>,
     cumulative_regret: f64,
     ema_efficiency: f64,
     ema_waste: f64,
@@ -167,7 +170,7 @@ impl AppCounterfactualState {
     fn new(app_id: u64) -> Self {
         Self {
             app_id,
-            decisions: Vec::new(),
+            decisions: VecDeque::new(),
             cumulative_regret: 0.0,
             ema_efficiency: 0.5,
             ema_waste: 0.0,
@@ -192,9 +195,9 @@ impl AppCounterfactualState {
         *entry = ema_update(*entry, decision.observed_utility, EMA_ALPHA);
 
         if self.decisions.len() >= MAX_DECISIONS {
-            self.decisions.remove(0);
+            self.decisions.pop_front();
         }
-        self.decisions.push(decision);
+        self.decisions.push_back(decision);
     }
 
     fn estimate_utility(&self, alloc_type: AllocationType, amount: u64) -> f64 {
@@ -236,6 +239,7 @@ impl AppCounterfactualState {
 
 /// Engine-level statistics for counterfactual analysis.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualStats {
     pub total_analyses: u64,
     pub total_regret_computations: u64,
@@ -270,6 +274,7 @@ impl CounterfactualStats {
 ///
 /// Logs allocation decisions and their outcomes, then evaluates alternative
 /// scenarios to compute regret and identify policy improvements.
+#[repr(align(64))]
 pub struct AppsCounterfactual {
     app_states: BTreeMap<u64, AppCounterfactualState>,
     stats: CounterfactualStats,
@@ -557,21 +562,25 @@ impl AppsCounterfactual {
     }
 
     /// Return a snapshot of engine statistics.
+    #[inline(always)]
     pub fn stats(&self) -> &CounterfactualStats {
         &self.stats
     }
 
     /// Total tracked decisions across all apps.
+    #[inline(always)]
     pub fn total_decisions(&self) -> usize {
         self.app_states.values().map(|s| s.decisions.len()).sum()
     }
 
     /// Number of tracked apps.
+    #[inline(always)]
     pub fn tracked_apps(&self) -> usize {
         self.app_states.len()
     }
 
     /// Global EMA-smoothed efficiency.
+    #[inline(always)]
     pub fn global_efficiency(&self) -> f64 {
         self.ema_efficiency_global
     }

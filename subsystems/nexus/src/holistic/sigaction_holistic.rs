@@ -22,6 +22,7 @@ impl SigactionHolisticRecord {
 
 /// Sigaction holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SigactionHolisticStats { pub total_samples: u64, pub custom_handlers: u64, pub ignored: u64, pub chained: u64 }
 
 /// Main holistic sigaction
@@ -30,6 +31,7 @@ pub struct HolisticSigaction { pub stats: SigactionHolisticStats }
 
 impl HolisticSigaction {
     pub fn new() -> Self { Self { stats: SigactionHolisticStats { total_samples: 0, custom_handlers: 0, ignored: 0, chained: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &SigactionHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.pattern {

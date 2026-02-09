@@ -137,6 +137,7 @@ impl Binding {
     }
 
     /// Add binding
+    #[inline]
     pub fn bind(&mut self, var: &str, term: Term) -> bool {
         if let Some(existing) = self.mappings.get(var) {
             return *existing == term;
@@ -146,11 +147,13 @@ impl Binding {
     }
 
     /// Get binding
+    #[inline(always)]
     pub fn get(&self, var: &str) -> Option<&Term> {
         self.mappings.get(var)
     }
 
     /// Apply binding to term
+    #[inline]
     pub fn apply(&self, term: &Term) -> Term {
         match term {
             Term::Variable(v) => {
@@ -161,6 +164,7 @@ impl Binding {
     }
 
     /// Apply binding to pattern
+    #[inline]
     pub fn apply_pattern(&self, pattern: &Pattern) -> Pattern {
         Pattern {
             predicate: pattern.predicate.clone(),
@@ -170,6 +174,7 @@ impl Binding {
     }
 
     /// Merge bindings
+    #[inline]
     pub fn merge(&self, other: &Binding) -> Option<Binding> {
         let mut result = self.clone();
         for (var, term) in &other.mappings {
@@ -227,6 +232,7 @@ impl Default for InferenceConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct InferenceStats {
     /// Facts added
     pub facts_added: u64,
@@ -495,6 +501,7 @@ impl InferenceEngine {
     }
 
     /// Retract fact
+    #[inline]
     pub fn retract(&mut self, fact_id: u64) {
         if let Some(fact) = self.facts.remove(&fact_id) {
             if let Some(index) = self.predicate_index.get_mut(&fact.predicate) {
@@ -504,11 +511,13 @@ impl InferenceEngine {
     }
 
     /// Get fact
+    #[inline(always)]
     pub fn get_fact(&self, id: u64) -> Option<&Fact> {
         self.facts.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &InferenceStats {
         &self.stats
     }

@@ -57,6 +57,7 @@ impl CgroupLimits {
         }
     }
 
+    #[inline(always)]
     pub fn cpu_quota(&self) -> f64 {
         if self.cpu_max_us == 0 || self.cpu_period_us == 0 { return 1.0; }
         self.cpu_max_us as f64 / self.cpu_period_us as f64
@@ -88,11 +89,13 @@ impl CgroupUsage {
         }
     }
 
+    #[inline(always)]
     pub fn memory_utilization(&self, limit: u64) -> f64 {
         if limit == 0 || limit == u64::MAX { return 0.0; }
         self.memory_current as f64 / limit as f64
     }
 
+    #[inline(always)]
     pub fn throttle_rate(&self, cpu_total_ns: u64) -> f64 {
         if cpu_total_ns == 0 { return 0.0; }
         self.throttled_ns as f64 / cpu_total_ns as f64
@@ -130,30 +133,36 @@ impl CgroupNode {
         }
     }
 
+    #[inline]
     pub fn add_child(&mut self, child_id: u64) {
         if !self.children.contains(&child_id) {
             self.children.push(child_id);
         }
     }
 
+    #[inline(always)]
     pub fn is_leaf(&self) -> bool {
         self.children.is_empty()
     }
 
+    #[inline(always)]
     pub fn is_root(&self) -> bool {
         self.parent_id.is_none()
     }
 
+    #[inline]
     pub fn enable_controller(&mut self, ctrl: CgroupController) {
         if !self.controllers.contains(&ctrl) {
             self.controllers.push(ctrl);
         }
     }
 
+    #[inline(always)]
     pub fn memory_pressure(&self) -> f64 {
         self.usage.memory_utilization(self.limits.memory_max)
     }
 
+    #[inline(always)]
     pub fn is_throttled(&self) -> bool {
         self.usage.nr_throttled > 0
     }
@@ -172,6 +181,7 @@ pub enum OrchAction {
 
 /// Orchestrator stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupOrchStats {
     pub total_cgroups: u64,
     pub total_controllers: u64,
@@ -239,6 +249,7 @@ impl HolisticCgroupOrch {
         Some(id)
     }
 
+    #[inline]
     pub fn enable_controller(&mut self, cgroup_id: u64, ctrl: CgroupController) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             node.enable_controller(ctrl);
@@ -246,18 +257,21 @@ impl HolisticCgroupOrch {
         }
     }
 
+    #[inline]
     pub fn set_limits(&mut self, cgroup_id: u64, limits: CgroupLimits) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             node.limits = limits;
         }
     }
 
+    #[inline]
     pub fn update_usage(&mut self, cgroup_id: u64, usage: CgroupUsage) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             node.usage = usage;
         }
     }
 
+    #[inline]
     pub fn freeze(&mut self, cgroup_id: u64) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             node.frozen = true;
@@ -267,6 +281,7 @@ impl HolisticCgroupOrch {
         }
     }
 
+    #[inline]
     pub fn thaw(&mut self, cgroup_id: u64) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             if node.frozen {
@@ -278,6 +293,7 @@ impl HolisticCgroupOrch {
         }
     }
 
+    #[inline]
     pub fn high_pressure_groups(&self, threshold: f64) -> Vec<(u64, f64)> {
         self.nodes.iter()
             .filter_map(|(&id, n)| {
@@ -287,6 +303,7 @@ impl HolisticCgroupOrch {
             .collect()
     }
 
+    #[inline]
     pub fn throttled_groups(&self) -> Vec<u64> {
         self.nodes.iter()
             .filter(|(_, n)| n.is_throttled())
@@ -294,6 +311,7 @@ impl HolisticCgroupOrch {
             .collect()
     }
 
+    #[inline]
     pub fn subtree_process_count(&self, cgroup_id: u64) -> u32 {
         let mut total = 0u32;
         let mut stack = alloc::vec![cgroup_id];
@@ -306,10 +324,12 @@ impl HolisticCgroupOrch {
         total
     }
 
+    #[inline(always)]
     pub fn get_node(&self, id: u64) -> Option<&CgroupNode> {
         self.nodes.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CgroupOrchStats {
         &self.stats
     }

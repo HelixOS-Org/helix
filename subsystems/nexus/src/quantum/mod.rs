@@ -176,6 +176,7 @@ pub struct Qubit {
 
 impl Qubit {
     /// Create qubit in |0⟩ state
+    #[inline]
     pub fn zero() -> Self {
         Self {
             alpha: ComplexAmplitude::ONE,
@@ -184,6 +185,7 @@ impl Qubit {
     }
 
     /// Create qubit in |1⟩ state
+    #[inline]
     pub fn one() -> Self {
         Self {
             alpha: ComplexAmplitude::ZERO,
@@ -192,6 +194,7 @@ impl Qubit {
     }
 
     /// Create qubit in superposition |+⟩ = (|0⟩ + |1⟩) / √2
+    #[inline]
     pub fn plus() -> Self {
         let inv_sqrt2 = 1.0 / libm::sqrt(2.0);
         Self {
@@ -201,6 +204,7 @@ impl Qubit {
     }
 
     /// Create qubit in superposition |−⟩ = (|0⟩ − |1⟩) / √2
+    #[inline]
     pub fn minus() -> Self {
         let inv_sqrt2 = 1.0 / libm::sqrt(2.0);
         Self {
@@ -210,16 +214,19 @@ impl Qubit {
     }
 
     /// Get probability of measuring |0⟩
+    #[inline(always)]
     pub fn prob_zero(&self) -> f64 {
         self.alpha.magnitude_squared()
     }
 
     /// Get probability of measuring |1⟩
+    #[inline(always)]
     pub fn prob_one(&self) -> f64 {
         self.beta.magnitude_squared()
     }
 
     /// Normalize the qubit state
+    #[inline]
     pub fn normalize(&mut self) {
         let norm = libm::sqrt(self.prob_zero() + self.prob_one());
         if norm > 1e-10 {
@@ -254,6 +261,7 @@ impl QuantumRegister {
     }
 
     /// Create register in uniform superposition
+    #[inline]
     pub fn uniform_superposition(num_qubits: usize) -> Self {
         let size = 1 << num_qubits;
         let amplitude = 1.0 / libm::sqrt(size as f64);
@@ -267,6 +275,7 @@ impl QuantumRegister {
     }
 
     /// Get probability of measuring a specific state
+    #[inline]
     pub fn probability(&self, state: usize) -> f64 {
         if state < self.amplitudes.len() {
             self.amplitudes[state].magnitude_squared()
@@ -276,6 +285,7 @@ impl QuantumRegister {
     }
 
     /// Normalize the quantum state
+    #[inline]
     pub fn normalize(&mut self) {
         let norm: f64 = self.amplitudes.iter().map(|a| a.magnitude_squared()).sum();
         let norm = libm::sqrt(norm);
@@ -337,6 +347,7 @@ impl QuboMatrix {
     }
 
     /// Set linear coefficient
+    #[inline]
     pub fn set_linear(&mut self, i: usize, value: f64) {
         if i < self.size {
             self.linear[i] = value;
@@ -344,6 +355,7 @@ impl QuboMatrix {
     }
 
     /// Set quadratic coefficient
+    #[inline]
     pub fn set_quadratic(&mut self, i: usize, j: usize, value: f64) {
         if i < j && j < self.size {
             let idx = i * self.size - (i * (i + 1)) / 2 + j - i - 1;
@@ -354,6 +366,7 @@ impl QuboMatrix {
     }
 
     /// Get quadratic coefficient
+    #[inline]
     pub fn get_quadratic(&self, i: usize, j: usize) -> f64 {
         if i >= j || j >= self.size {
             return 0.0;
@@ -525,6 +538,7 @@ pub struct OptimizationResult {
 
 /// Optimization quality metrics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct OptimizationMetrics {
     /// Best energy found at each iteration sample
     pub energy_history: Vec<f64>,
@@ -560,12 +574,14 @@ impl QuantumOptimizer {
     }
 
     /// Optimize using quantum annealing simulation
+    #[inline(always)]
     pub fn optimize_annealing(&mut self, qubo: &QuboMatrix) -> NexusResult<OptimizationResult> {
         let ising = IsingModel::from_qubo(qubo);
         self.simulated_quantum_annealing(&ising)
     }
 
     /// Optimize using QAOA simulation
+    #[inline(always)]
     pub fn optimize_qaoa(&mut self, qubo: &QuboMatrix) -> NexusResult<OptimizationResult> {
         self.qaoa_optimize(qubo)
     }
@@ -894,6 +910,7 @@ impl QuantumSchedulerOptimizer {
     }
 
     /// Optimize task scheduling using quantum annealing
+    #[inline]
     pub fn optimize_schedule(
         &mut self,
         task_costs: &[u64],
@@ -1003,6 +1020,7 @@ impl QuantumMemoryOptimizer {
     }
 
     /// Optimize memory layout using quantum annealing
+    #[inline]
     pub fn optimize_layout(
         &mut self,
         block_sizes: &[usize],

@@ -1,6 +1,7 @@
 //! Micro-rollback engine.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -15,7 +16,7 @@ pub struct MicroRollbackEngine {
     /// Rollback points by component
     pub(crate) points: BTreeMap<u64, Vec<RollbackPoint>>,
     /// Rollback history
-    history: Vec<RollbackEntry>,
+    history: VecDeque<RollbackEntry>,
     /// Maximum history entries
     max_history: usize,
     /// Policy
@@ -31,7 +32,7 @@ impl MicroRollbackEngine {
     pub fn new(policy: RollbackPolicy) -> Self {
         Self {
             points: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
             policy,
             total_rollbacks: AtomicU64::new(0),
@@ -57,7 +58,7 @@ impl MicroRollbackEngine {
 
         // Enforce max points
         while points.len() > self.policy.max_points {
-            points.remove(0);
+            points.pop_front();
         }
 
         point_id
@@ -81,13 +82,14 @@ impl MicroRollbackEngine {
         points.push(point);
 
         while points.len() > self.policy.max_points {
-            points.remove(0);
+            points.pop_front();
         }
 
         point_id
     }
 
     /// Get latest rollback point for a component
+    #[inline]
     pub fn latest_point(&self, component: ComponentId) -> Option<&RollbackPoint> {
         self.points
             .get(&component.raw())
@@ -96,6 +98,7 @@ impl MicroRollbackEngine {
     }
 
     /// Get rollback point by ID
+    #[inline]
     pub fn get_point(&self, point_id: u64) -> Option<&RollbackPoint> {
         for points in self.points.values() {
             if let Some(point) = points.iter().find(|p| p.id == point_id) {
@@ -106,6 +109,7 @@ impl MicroRollbackEngine {
     }
 
     /// Get all rollback points for a component
+    #[inline]
     pub fn points_for(&self, component: ComponentId) -> &[RollbackPoint] {
         self.points
             .get(&component.raw())
@@ -168,9 +172,9 @@ impl MicroRollbackEngine {
 
         // Add to history
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(entry.clone());
+        self.history.push_back(entry.clone());
 
         // Cleanup points after this one
         if let Some(points) = self.points.get_mut(&component.raw()) {
@@ -234,6 +238,7 @@ impl MicroRollbackEngine {
     }
 
     /// Invalidate rollback point
+    #[inline]
     pub fn invalidate_point(&mut self, point_id: u64) {
         for points in self.points.values_mut() {
             if let Some(point) = points.iter_mut().find(|p| p.id == point_id) {
@@ -243,6 +248,7 @@ impl MicroRollbackEngine {
     }
 
     /// Cleanup old rollback points
+    #[inline]
     pub fn cleanup(&mut self) {
         let now = NexusTimestamp::now();
         let max_age = self.policy.max_age;
@@ -253,6 +259,7 @@ impl MicroRollbackEngine {
     }
 
     /// Get rollback history
+    #[inline(always)]
     pub fn history(&self) -> &[RollbackEntry] {
         &self.history
     }
@@ -272,11 +279,13 @@ impl MicroRollbackEngine {
     }
 
     /// Get policy
+    #[inline(always)]
     pub fn policy(&self) -> &RollbackPolicy {
         &self.policy
     }
 
     /// Set policy
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: RollbackPolicy) {
         self.policy = policy;
     }
@@ -290,6 +299,7 @@ impl Default for MicroRollbackEngine {
 
 /// Micro-rollback statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MicroRollbackStats {
     /// Total rollbacks attempted
     pub total_rollbacks: u64,

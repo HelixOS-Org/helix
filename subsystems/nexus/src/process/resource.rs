@@ -3,6 +3,7 @@
 //! Predicts process resource needs and optimizes priorities.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -53,7 +54,7 @@ impl ResourcePredictor {
         let history = self.history.entry(profile.pid).or_default();
         history.push(prediction.clone());
         if history.len() > self.max_history {
-            history.remove(0);
+            history.pop_front();
         }
 
         prediction
@@ -85,6 +86,7 @@ impl ResourcePredictor {
     }
 
     /// Get last prediction
+    #[inline(always)]
     pub fn last_prediction(&self, pid: ProcessId) -> Option<&ResourcePrediction> {
         self.history.get(&pid)?.last()
     }
@@ -114,7 +116,7 @@ pub struct PriorityOptimizer {
     /// Priority adjustments
     adjustments: BTreeMap<ProcessId, PriorityAdjustment>,
     /// Priority history
-    history: Vec<(ProcessId, i8, i8)>,
+    history: VecDeque<(ProcessId, i8, i8)>,
     /// Max history
     max_history: usize,
     /// Learning rate
@@ -126,7 +128,7 @@ impl PriorityOptimizer {
     pub fn new() -> Self {
         Self {
             adjustments: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 10000,
             learning_rate: 0.1,
         }
@@ -176,9 +178,9 @@ impl PriorityOptimizer {
         });
 
         if suggested != current_priority {
-            self.history.push((profile.pid, current_priority, suggested));
+            self.history.push_back((profile.pid, current_priority, suggested));
             if self.history.len() > self.max_history {
-                self.history.remove(0);
+                self.history.pop_front();
             }
         }
 
@@ -191,11 +193,13 @@ impl PriorityOptimizer {
     }
 
     /// Get adjustment for process
+    #[inline(always)]
     pub fn get_adjustment(&self, pid: ProcessId) -> Option<(i8, f64)> {
         self.adjustments.get(&pid).map(|a| (a.suggested, a.confidence))
     }
 
     /// Record feedback
+    #[inline]
     pub fn record_feedback(&mut self, _pid: ProcessId, was_beneficial: bool) {
         if was_beneficial {
             self.learning_rate = (self.learning_rate * 1.1).min(0.5);

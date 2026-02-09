@@ -121,6 +121,7 @@ impl KindTracker {
         self.total_opportunities += 1;
     }
 
+    #[inline]
     fn record_action(&mut self, outcome: ActionOutcome, savings: u64, cost: u64) {
         self.acted_on += 1;
         self.total_cost += cost;
@@ -163,6 +164,7 @@ impl KindTracker {
 
 /// Aggregate proactive optimization statistics
 #[derive(Debug, Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct ProactiveStats {
     pub total_opportunities: u64,
     pub acted_on: u64,
@@ -181,6 +183,7 @@ pub struct ProactiveStats {
 /// Proactive bridge optimization engine. Identifies opportunities and takes
 /// pre-emptive actions when confidence exceeds the action threshold.
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct BridgeProactive {
     opportunities: Vec<Opportunity>,
     opp_write_idx: usize,
@@ -257,6 +260,7 @@ impl BridgeProactive {
     }
 
     /// Pre-compute a syscall route before it's needed
+    #[inline]
     pub fn precompute_route(&mut self, opportunity_id: u64, route_data: String) -> bool {
         self.execute_action(
             opportunity_id,
@@ -266,11 +270,13 @@ impl BridgeProactive {
     }
 
     /// Pre-warm a cache entry based on predicted access
+    #[inline(always)]
     pub fn prewarm_cache(&mut self, opportunity_id: u64, cache_key: String) -> bool {
         self.execute_action(opportunity_id, OpportunityKind::CachePrewarm, &cache_key)
     }
 
     /// Pre-allocate a buffer for predicted demand
+    #[inline]
     pub fn preallocate_buffer(&mut self, opportunity_id: u64, buffer_desc: String) -> bool {
         self.execute_action(
             opportunity_id,
@@ -344,6 +350,7 @@ impl BridgeProactive {
     }
 
     /// Record the actual outcome of a proactive action
+    #[inline]
     pub fn record_outcome(
         &mut self,
         action_id: u64,

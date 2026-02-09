@@ -27,6 +27,7 @@ use alloc::format;
 use crate::math::F64Ext;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -100,17 +101,20 @@ impl FeatureAttribution {
     }
 
     /// Set the feature name
+    #[inline(always)]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
     }
 
     /// Check if this feature supports the prediction
+    #[inline(always)]
     pub fn supports_prediction(&self) -> bool {
         self.attribution > 0.0
     }
 
     /// Get absolute importance
+    #[inline(always)]
     pub fn importance(&self) -> f64 {
         libm::fabs(self.attribution)
     }
@@ -153,17 +157,20 @@ impl Explanation {
     }
 
     /// Add an attribution
+    #[inline(always)]
     pub fn add_attribution(&mut self, attr: FeatureAttribution) {
         self.attributions.push(attr);
     }
 
     /// Sort attributions by importance (descending)
+    #[inline(always)]
     pub fn sort_by_importance(&mut self) {
         self.attributions
             .sort_by(|a, b| b.importance().partial_cmp(&a.importance()).unwrap());
     }
 
     /// Get top K most important features
+    #[inline]
     pub fn top_k_features(&self, k: usize) -> Vec<&FeatureAttribution> {
         let mut sorted = self.attributions.clone();
         sorted.sort_by(|a, b| b.importance().partial_cmp(&a.importance()).unwrap());
@@ -171,6 +178,7 @@ impl Explanation {
     }
 
     /// Check if explanation is faithful (attributions sum to prediction - base)
+    #[inline]
     pub fn check_faithfulness(&self, tolerance: f64) -> bool {
         let sum: f64 = self.attributions.iter().map(|a| a.attribution).sum();
         let expected = self.prediction - self.base_value;
@@ -622,6 +630,7 @@ impl AttentionHead {
     }
 
     /// Set attention weight
+    #[inline]
     pub fn set_weight(&mut self, from: usize, to: usize, weight: f64) {
         if from < self.weights.len() && to < self.weights[from].len() {
             self.weights[from][to] = weight;
@@ -629,11 +638,13 @@ impl AttentionHead {
     }
 
     /// Get attention from a position
+    #[inline(always)]
     pub fn get_attention_from(&self, pos: usize) -> Option<&Vec<f64>> {
         self.weights.get(pos)
     }
 
     /// Get total attention received by a position
+    #[inline]
     pub fn attention_received(&self, pos: usize) -> f64 {
         self.weights
             .iter()
@@ -765,6 +776,7 @@ impl AttentionVisualizer {
 
 /// A counterfactual example
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Counterfactual {
     /// Original input
     pub original: Vec<f64>,
@@ -808,6 +820,7 @@ impl Counterfactual {
     }
 
     /// Get the most important change
+    #[inline]
     pub fn primary_change(&self) -> Option<(u32, f64, f64)> {
         self.changed_features
             .iter()
@@ -816,6 +829,7 @@ impl Counterfactual {
     }
 
     /// Get number of changes
+    #[inline(always)]
     pub fn num_changes(&self) -> usize {
         self.changed_features.len()
     }
@@ -823,6 +837,7 @@ impl Counterfactual {
 
 /// Configuration for counterfactual search
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CounterfactualConfig {
     /// Maximum number of features to change
     pub max_changes: usize,
@@ -849,6 +864,7 @@ impl Default for CounterfactualConfig {
 }
 
 /// Counterfactual explanation generator
+#[repr(align(64))]
 pub struct CounterfactualGenerator {
     /// Configuration
     config: CounterfactualConfig,
@@ -869,6 +885,7 @@ impl CounterfactualGenerator {
     }
 
     /// Set feature constraints
+    #[inline(always)]
     pub fn set_constraints(&mut self, constraints: Vec<(f64, f64)>) {
         self.constraints = constraints;
     }
@@ -1023,6 +1040,7 @@ impl RuleCondition {
     }
 
     /// Check if condition is satisfied
+    #[inline]
     pub fn evaluate(&self, value: f64) -> bool {
         match self.operator {
             ComparisonOp::LessThan => value < self.threshold,
@@ -1079,6 +1097,7 @@ impl Rule {
     }
 
     /// Check if rule fires on input
+    #[inline]
     pub fn fires(&self, input: &[f64]) -> bool {
         self.conditions.iter().all(|c| {
             input
@@ -1130,6 +1149,7 @@ impl RuleExtractor {
     }
 
     /// Extract rules from a decision tree
+    #[inline(always)]
     pub fn extract_from_tree(&mut self, tree: &DecisionTree, feature_names: &[String]) {
         self.rules.clear();
         self.extract_recursive(tree, 0, Vec::new(), feature_names);
@@ -1235,6 +1255,7 @@ impl RuleExtractor {
     }
 
     /// Get rules sorted by confidence
+    #[inline]
     pub fn get_rules_by_confidence(&self) -> Vec<&Rule> {
         let mut rules: Vec<&Rule> = self.rules.iter().collect();
         rules.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
@@ -1275,6 +1296,7 @@ impl DecisionTree {
     }
 
     /// Add a split node
+    #[inline]
     pub fn add_split(&mut self, node: usize, split: TreeSplit) {
         if node < self.splits.len() {
             self.splits[node] = Some(split);
@@ -1282,6 +1304,7 @@ impl DecisionTree {
     }
 
     /// Add a leaf node
+    #[inline]
     pub fn add_leaf(&mut self, node: usize, leaf: TreeLeaf) {
         if node < self.leaves.len() {
             self.leaves[node] = Some(leaf);
@@ -1289,11 +1312,13 @@ impl DecisionTree {
     }
 
     /// Get split node
+    #[inline(always)]
     pub fn get_split(&self, node: usize) -> Option<&TreeSplit> {
         self.splits.get(node).and_then(|s| s.as_ref())
     }
 
     /// Get leaf node
+    #[inline(always)]
     pub fn get_leaf(&self, node: usize) -> Option<&TreeLeaf> {
         self.leaves.get(node).and_then(|l| l.as_ref())
     }
@@ -1353,11 +1378,13 @@ impl Concept {
     }
 
     /// Add positive example
+    #[inline(always)]
     pub fn add_positive(&mut self, activation: Vec<f64>) {
         self.positive_examples.push(activation);
     }
 
     /// Add negative example
+    #[inline(always)]
     pub fn add_negative(&mut self, activation: Vec<f64>) {
         self.negative_examples.push(activation);
     }
@@ -1425,6 +1452,7 @@ impl Concept {
     }
 
     /// Score an activation (dot product with direction)
+    #[inline]
     pub fn score(&self, activation: &[f64]) -> f64 {
         self.direction
             .iter()
@@ -1452,6 +1480,7 @@ impl CavExplainer {
     }
 
     /// Add a concept
+    #[inline(always)]
     pub fn add_concept(&mut self, concept: Concept) {
         self.concepts.push(concept);
     }
@@ -1487,6 +1516,7 @@ impl CavExplainer {
     }
 
     /// Explain which concepts are activated
+    #[inline]
     pub fn explain_concepts(&self, activation: &[f64]) -> Vec<(String, f64)> {
         let mut scores: Vec<(String, f64)> = self
             .concepts
@@ -1551,11 +1581,13 @@ impl ExplainedDecision {
     }
 
     /// Get primary explanation
+    #[inline(always)]
     pub fn primary_explanation(&self) -> Option<&Explanation> {
         self.explanations.first()
     }
 
     /// Get top contributing features
+    #[inline]
     pub fn top_features(&self, k: usize) -> Vec<&FeatureAttribution> {
         self.explanations
             .first()
@@ -1564,6 +1596,7 @@ impl ExplainedDecision {
     }
 
     /// Get minimal counterfactual
+    #[inline(always)]
     pub fn minimal_counterfactual(&self) -> Option<&Counterfactual> {
         self.counterfactuals.first()
     }
@@ -1616,7 +1649,7 @@ pub struct KernelXaiManager {
     /// CAV explainer
     pub cav: Option<CavExplainer>,
     /// History of explained decisions
-    pub history: Vec<ExplainedDecision>,
+    pub history: VecDeque<ExplainedDecision>,
     /// Maximum history size
     pub max_history: usize,
     /// Feature names
@@ -1633,28 +1666,32 @@ impl KernelXaiManager {
             counterfactual: CounterfactualGenerator::new(CounterfactualConfig::default()),
             rule_extractor: RuleExtractor::new(10, 0.5, 0.01),
             cav: None,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
             feature_names: Vec::new(),
         }
     }
 
     /// Set feature names
+    #[inline(always)]
     pub fn set_feature_names(&mut self, names: Vec<String>) {
         self.feature_names = names;
     }
 
     /// Initialize SHAP with background data
+    #[inline(always)]
     pub fn init_shap(&mut self, background: Vec<Vec<f64>>) {
         self.shap = Some(ShapExplainer::new(ShapConfig::default(), background));
     }
 
     /// Initialize CAV explainer
+    #[inline(always)]
     pub fn init_cav(&mut self, layer: usize) {
         self.cav = Some(CavExplainer::new(layer));
     }
 
     /// Add a concept for CAV
+    #[inline]
     pub fn add_concept(&mut self, concept: Concept) {
         if let Some(ref mut cav) = self.cav {
             cav.add_concept(concept);
@@ -1699,15 +1736,16 @@ impl KernelXaiManager {
         explained.counterfactuals = cfs;
 
         // Store in history
-        self.history.push(explained.clone());
+        self.history.push_back(explained.clone());
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         explained
     }
 
     /// Get explanation statistics
+    #[inline]
     pub fn get_stats(&self) -> XaiStats {
         XaiStats {
             total_explanations: self.history.len(),
@@ -1773,6 +1811,7 @@ impl KernelXaiManager {
 
 /// XAI statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct XaiStats {
     pub total_explanations: usize,
     pub by_event_type: BTreeMap<u8, usize>,

@@ -22,6 +22,7 @@ impl MsgqueueCoopRecord {
 
 /// Msgqueue coop stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsgqueueCoopStats { pub total_events: u64, pub shares: u64, pub reorders: u64, pub batches: u64 }
 
 /// Main coop msgqueue
@@ -30,6 +31,7 @@ pub struct CoopMsgqueue { pub stats: MsgqueueCoopStats }
 
 impl CoopMsgqueue {
     pub fn new() -> Self { Self { stats: MsgqueueCoopStats { total_events: 0, shares: 0, reorders: 0, batches: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &MsgqueueCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {

@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -21,17 +21,17 @@ use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DeadlineUrgency {
     /// Plenty of time
-    Relaxed = 0,
+    Relaxed  = 0,
     /// Normal pace
-    Normal = 1,
+    Normal   = 1,
     /// Should hurry
-    Hurried = 2,
+    Hurried  = 2,
     /// Tight deadline
-    Tight = 3,
+    Tight    = 3,
     /// Imminent
     Imminent = 4,
     /// Overdue
-    Overdue = 5,
+    Overdue  = 5,
 }
 
 /// Deadline class
@@ -88,12 +88,14 @@ impl DeadlineTask {
     }
 
     /// Periodic task
+    #[inline(always)]
     pub fn periodic(mut self, period_ms: u64) -> Self {
         self.period_ms = period_ms;
         self
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.period_ms == 0 {
             return 0.0;
@@ -128,6 +130,7 @@ impl DeadlineTask {
     }
 
     /// Slack time (us) — how much spare time
+    #[inline]
     pub fn slack_us(&self, now: u64) -> i64 {
         if now >= self.deadline {
             return -(((now - self.deadline) * 1000) as i64);
@@ -137,6 +140,7 @@ impl DeadlineTask {
     }
 
     /// Consume execution time
+    #[inline]
     pub fn consume(&mut self, us: u64) {
         self.remaining_us = self.remaining_us.saturating_sub(us);
 
@@ -146,6 +150,7 @@ impl DeadlineTask {
     }
 
     /// Reset for next period
+    #[inline(always)]
     pub fn reset_period(&mut self, new_deadline: u64) {
         self.deadline = new_deadline;
         self.remaining_us = self.wcet_us;
@@ -245,6 +250,7 @@ pub struct ReclaimableSlack {
 
 /// Deadline manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct DeadlineManagerStats {
     /// Total tasks
     pub total_tasks: usize,
@@ -267,7 +273,7 @@ pub struct CoopDeadlineManager {
     /// EDF order (deadline → task ID)
     edf_order: Vec<(u64, u64)>,
     /// Miss history
-    misses: Vec<DeadlineMiss>,
+    misses: VecDeque<DeadlineMiss>,
     /// Stats
     stats: DeadlineManagerStats,
     /// Utilization bound (default ~69% for EDF)
@@ -285,7 +291,7 @@ impl CoopDeadlineManager {
         Self {
             tasks: BTreeMap::new(),
             edf_order: Vec::new(),
-            misses: Vec::new(),
+            misses: VecDeque::new(),
             stats: DeadlineManagerStats::default(),
             utilization_bound: 0.69, // ln(2) ≈ 0.693
             max_hard_tasks: 32,
@@ -295,6 +301,7 @@ impl CoopDeadlineManager {
     }
 
     /// Current total utilization
+    #[inline]
     pub fn total_utilization(&self) -> f64 {
         self.tasks
             .values()
@@ -384,6 +391,7 @@ impl CoopDeadlineManager {
     }
 
     /// Consume execution time
+    #[inline]
     pub fn consume(&mut self, task_id: u64, us: u64) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.consume(us);
@@ -407,9 +415,9 @@ impl CoopDeadlineManager {
                     cause: MissCause::Unknown,
                 };
 
-                self.misses.push(miss);
+                self.misses.push_back(miss);
                 if self.misses.len() > self.max_misses {
-                    self.misses.remove(0);
+                    self.misses.pop_front();
                 }
 
                 self.stats.total_misses += 1;
@@ -451,6 +459,7 @@ impl CoopDeadlineManager {
     }
 
     /// Period reset for periodic task
+    #[inline]
     pub fn period_reset(&mut self, task_id: u64, new_deadline: u64) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.reset_period(new_deadline);
@@ -476,16 +485,19 @@ impl CoopDeadlineManager {
     }
 
     /// Get task
+    #[inline(always)]
     pub fn task(&self, id: u64) -> Option<&DeadlineTask> {
         self.tasks.get(&id)
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &DeadlineManagerStats {
         &self.stats
     }
 
     /// Unregister task
+    #[inline]
     pub fn unregister(&mut self, task_id: u64) {
         self.tasks.remove(&task_id);
         self.rebuild_edf();

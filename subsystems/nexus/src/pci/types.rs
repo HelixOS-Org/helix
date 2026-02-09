@@ -19,6 +19,7 @@ pub struct PciDeviceId {
 
 impl PciDeviceId {
     /// Create new device ID
+    #[inline]
     pub const fn new(segment: u16, bus: u8, device: u8, function: u8) -> Self {
         Self {
             segment,
@@ -29,11 +30,13 @@ impl PciDeviceId {
     }
 
     /// Create from BDF
+    #[inline(always)]
     pub const fn from_bdf(bus: u8, device: u8, function: u8) -> Self {
         Self::new(0, bus, device, function)
     }
 
     /// Get BDF as u16
+    #[inline(always)]
     pub fn bdf(&self) -> u16 {
         ((self.bus as u16) << 8) | ((self.device as u16) << 3) | (self.function as u16)
     }
@@ -70,6 +73,7 @@ pub struct ClassCode {
 
 impl ClassCode {
     /// Create new class code
+    #[inline]
     pub const fn new(class: u8, subclass: u8, prog_if: u8) -> Self {
         Self {
             class,
@@ -79,6 +83,7 @@ impl ClassCode {
     }
 
     /// Get full class code as u32
+    #[inline(always)]
     pub fn as_u32(&self) -> u32 {
         ((self.class as u32) << 16) | ((self.subclass as u32) << 8) | (self.prog_if as u32)
     }
@@ -180,6 +185,7 @@ pub enum PciDeviceType {
 
 impl PciDeviceType {
     /// Get type name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Endpoint => "endpoint",
@@ -190,6 +196,7 @@ impl PciDeviceType {
     }
 
     /// From header type
+    #[inline]
     pub fn from_header_type(header_type: u8) -> Self {
         match header_type & 0x7f {
             0x00 => Self::Endpoint,
@@ -200,6 +207,7 @@ impl PciDeviceType {
     }
 
     /// Is bridge
+    #[inline(always)]
     pub fn is_bridge(&self) -> bool {
         matches!(self, Self::PciBridge | Self::CardBusBridge)
     }

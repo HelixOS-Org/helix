@@ -198,6 +198,7 @@ impl Default for SchemaConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SchemaStats {
     /// Schemas created
     pub schemas_created: u64,
@@ -493,6 +494,7 @@ impl SchemaManager {
     }
 
     /// Query by index
+    #[inline]
     pub fn query_by_index(&self, index_id: u64, key: &str) -> Vec<&MemoryRecord> {
         self.index_data
             .get(&index_id)
@@ -502,16 +504,19 @@ impl SchemaManager {
     }
 
     /// Get record
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&MemoryRecord> {
         self.records.get(&id)
     }
 
     /// Get schema
+    #[inline(always)]
     pub fn get_schema(&self, id: u64) -> Option<&MemorySchema> {
         self.schemas.get(&id)
     }
 
     /// Get schema by name
+    #[inline]
     pub fn get_schema_by_name(&self, name: &str) -> Option<&MemorySchema> {
         self.versions
             .get(name)
@@ -520,6 +525,7 @@ impl SchemaManager {
     }
 
     /// List records by schema
+    #[inline]
     pub fn list_by_schema(&self, schema_id: u64) -> Vec<&MemoryRecord> {
         self.records
             .values()
@@ -546,6 +552,7 @@ impl SchemaManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SchemaStats {
         &self.stats
     }
@@ -575,6 +582,7 @@ impl<'a> SchemaBuilder<'a> {
     }
 
     /// Add field
+    #[inline]
     pub fn field(self, name: &str, field_type: FieldType, required: bool) -> Self {
         self.manager
             .add_field(self.schema_id, name, field_type, required, None);
@@ -582,6 +590,7 @@ impl<'a> SchemaBuilder<'a> {
     }
 
     /// Add field with default
+    #[inline]
     pub fn field_default(self, name: &str, field_type: FieldType, default: FieldValue) -> Self {
         self.manager
             .add_field(self.schema_id, name, field_type, false, Some(default));
@@ -589,12 +598,14 @@ impl<'a> SchemaBuilder<'a> {
     }
 
     /// Add index
+    #[inline(always)]
     pub fn index(self, name: &str, fields: Vec<u64>, unique: bool) -> Self {
         self.manager.add_index(self.schema_id, name, fields, unique);
         self
     }
 
     /// Build and return schema ID
+    #[inline(always)]
     pub fn build(self) -> u64 {
         self.schema_id
     }

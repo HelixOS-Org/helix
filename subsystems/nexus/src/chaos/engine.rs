@@ -81,16 +81,19 @@ impl ChaosEngine {
     }
 
     /// Enable chaos engine
+    #[inline(always)]
     pub fn enable(&self) {
         self.enabled.store(true, Ordering::SeqCst);
     }
 
     /// Disable chaos engine
+    #[inline(always)]
     pub fn disable(&self) {
         self.enabled.store(false, Ordering::SeqCst);
     }
 
     /// Check if enabled
+    #[inline(always)]
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::SeqCst)
     }
@@ -120,6 +123,7 @@ impl ChaosEngine {
     }
 
     /// Stop a fault
+    #[inline]
     pub fn stop_fault(&mut self, fault_id: u64) -> bool {
         if let Some(fault) = self.faults.iter_mut().find(|f| f.id == fault_id) {
             fault.stop();
@@ -130,6 +134,7 @@ impl ChaosEngine {
     }
 
     /// Stop all faults
+    #[inline]
     pub fn stop_all_faults(&mut self) {
         for fault in &mut self.faults {
             fault.stop();
@@ -165,6 +170,7 @@ impl ChaosEngine {
     }
 
     /// Stop an experiment
+    #[inline]
     pub fn stop_experiment(&mut self, experiment_id: u64) -> Option<&ExperimentResults> {
         if let Some(exp) = self.experiments.iter_mut().find(|e| e.id == experiment_id) {
             exp.stop();
@@ -232,31 +238,37 @@ impl ChaosEngine {
     }
 
     /// Get active faults
+    #[inline(always)]
     pub fn active_faults(&self) -> Vec<&Fault> {
         self.faults.iter().filter(|f| f.active).collect()
     }
 
     /// Get running experiments
+    #[inline(always)]
     pub fn running_experiments(&self) -> Vec<&ChaosExperiment> {
         self.experiments.iter().filter(|e| e.running).collect()
     }
 
     /// Get total faults injected
+    #[inline(always)]
     pub fn total_injected(&self) -> u64 {
         self.total_injected.load(Ordering::Relaxed)
     }
 
     /// Get safety settings
+    #[inline(always)]
     pub fn safety(&self) -> &ChaosSafety {
         &self.safety
     }
 
     /// Get mutable safety settings
+    #[inline(always)]
     pub fn safety_mut(&mut self) -> &mut ChaosSafety {
         &mut self.safety
     }
 
     /// Cleanup inactive faults
+    #[inline(always)]
     pub fn cleanup(&mut self) {
         self.faults.retain(|f| f.active);
         self.experiments.retain(|e| e.running);

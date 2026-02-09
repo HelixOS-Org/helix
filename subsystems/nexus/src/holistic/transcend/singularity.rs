@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -128,6 +129,7 @@ pub struct SingularityEvent {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct SingularityStats {
     pub source_count: u64,
     pub unified_intelligence: u64,
@@ -162,7 +164,7 @@ impl SingularityStats {
 
 pub struct HolisticSingularity {
     sources: BTreeMap<u64, IntelligenceSource>,
-    events: Vec<SingularityEvent>,
+    events: VecDeque<SingularityEvent>,
     stats: SingularityStats,
     rng: Xorshift64,
     tick: u64,
@@ -172,7 +174,7 @@ impl HolisticSingularity {
     pub fn new(seed: u64) -> Self {
         Self {
             sources: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             stats: SingularityStats::new(),
             rng: Xorshift64::new(seed),
             tick: 0,
@@ -200,9 +202,9 @@ impl HolisticSingularity {
     fn log_event(&mut self, kind: &str, level: u64, delta: u64) {
         let eh = fnv1a(kind.as_bytes()) ^ fnv1a(&self.tick.to_le_bytes());
         if self.events.len() >= MAX_EVENTS {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push(SingularityEvent {
+        self.events.push_back(SingularityEvent {
             event_hash: eh,
             tick: self.tick,
             kind: String::from(kind),
@@ -228,6 +230,7 @@ impl HolisticSingularity {
 
     // -- source management --------------------------------------------------
 
+    #[inline]
     pub fn register_source(&mut self, name: String, weight: u64) -> u64 {
         let src = IntelligenceSource::new(name, weight);
         let h = src.source_hash;
@@ -238,6 +241,7 @@ impl HolisticSingularity {
         h
     }
 
+    #[inline]
     pub fn update_source(&mut self, source_hash: u64, score: u64) {
         self.advance_tick();
         if let Some(src) = self.sources.get_mut(&source_hash) {
@@ -251,6 +255,7 @@ impl HolisticSingularity {
     // -- 6 public methods ---------------------------------------------------
 
     /// Current intelligence level (0..10_000 bps).
+    #[inline]
     pub fn intelligence_level(&mut self) -> u64 {
         self.advance_tick();
         self.refresh_stats();
@@ -284,6 +289,7 @@ impl HolisticSingularity {
     }
 
     /// Check whether the kernel has surpassed human capability.
+    #[inline]
     pub fn beyond_human(&mut self) -> (bool, u64, u64) {
         self.advance_tick();
         self.refresh_stats();
@@ -296,6 +302,7 @@ impl HolisticSingularity {
     }
 
     /// Compute the unified intelligence score — the weighted EMA fusion.
+    #[inline]
     pub fn unified_intelligence(&mut self) -> u64 {
         self.advance_tick();
         self.refresh_stats();
@@ -303,6 +310,7 @@ impl HolisticSingularity {
     }
 
     /// The singularity metric — whether the threshold has been crossed.
+    #[inline]
     pub fn singularity_metric(&mut self) -> (u64, bool) {
         self.advance_tick();
         self.refresh_stats();
@@ -331,22 +339,27 @@ impl HolisticSingularity {
 
     // -- accessors ----------------------------------------------------------
 
+    #[inline(always)]
     pub fn stats(&self) -> &SingularityStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn source_count(&self) -> usize {
         self.sources.len()
     }
 
+    #[inline(always)]
     pub fn event_count(&self) -> usize {
         self.events.len()
     }
 
+    #[inline(always)]
     pub fn peak_intelligence(&self) -> u64 {
         self.stats.peak_intelligence
     }
 
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

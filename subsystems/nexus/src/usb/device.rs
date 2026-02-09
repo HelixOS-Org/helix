@@ -96,6 +96,7 @@ impl UsbDevice {
     }
 
     /// Get total endpoints
+    #[inline]
     pub fn total_endpoints(&self) -> usize {
         self.configurations
             .iter()
@@ -105,6 +106,7 @@ impl UsbDevice {
     }
 
     /// Get max power (mA)
+    #[inline]
     pub fn max_power(&self) -> u16 {
         self.active_config
             .and_then(|c| self.configurations.iter().find(|cfg| cfg.value == c))
@@ -113,6 +115,7 @@ impl UsbDevice {
     }
 
     /// Is high speed or above
+    #[inline]
     pub fn is_high_speed_plus(&self) -> bool {
         matches!(
             self.speed,
@@ -125,6 +128,7 @@ impl UsbDevice {
     }
 
     /// Is super speed
+    #[inline]
     pub fn is_super_speed(&self) -> bool {
         matches!(
             self.speed,

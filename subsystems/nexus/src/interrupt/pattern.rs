@@ -7,6 +7,7 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::Irq;
@@ -54,7 +55,7 @@ impl InterruptPatternDetector {
         history.push(timestamp);
 
         if history.len() > self.max_history {
-            history.remove(0);
+            history.pop_front();
         }
 
         if history.len() >= 10 {
@@ -153,16 +154,19 @@ impl InterruptPatternDetector {
     }
 
     /// Get detected pattern
+    #[inline(always)]
     pub fn get_pattern(&self, irq: Irq) -> Option<InterruptPattern> {
         self.patterns.get(&irq).copied()
     }
 
     /// Get pattern confidence
+    #[inline(always)]
     pub fn get_confidence(&self, irq: Irq) -> f64 {
         self.confidence.get(&irq).copied().unwrap_or(0.0)
     }
 
     /// Predict next interrupt time
+    #[inline]
     pub fn predict_next(&self, irq: Irq) -> Option<u64> {
         match self.patterns.get(&irq)? {
             InterruptPattern::Periodic { period_ns } => {

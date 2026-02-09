@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -166,17 +166,20 @@ impl Contract {
     }
 
     /// Add term
+    #[inline(always)]
     pub fn add_term(&mut self, term: ContractTerm) {
         self.terms.push(term);
     }
 
     /// Activate
+    #[inline(always)]
     pub fn activate(&mut self, now: u64) {
         self.state = ContractState::Active;
         self.created_at = now;
     }
 
     /// Record breach
+    #[inline]
     pub fn record_breach(&mut self) {
         self.breaches += 1;
         self.compliance_score = self.compliance_score.saturating_sub(5);
@@ -186,6 +189,7 @@ impl Contract {
     }
 
     /// Is expired
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         self.expires_at > 0 && now >= self.expires_at
     }
@@ -255,13 +259,13 @@ pub enum BreachParty {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BreachSeverity {
     /// Minor deviation
-    Minor = 0,
+    Minor       = 0,
     /// Notable breach
-    Notable = 1,
+    Notable     = 1,
     /// Significant breach
     Significant = 2,
     /// Critical breach
-    Critical = 3,
+    Critical    = 3,
 }
 
 // ============================================================================
@@ -287,6 +291,7 @@ pub struct TermMeasurement {
 
 /// Contract manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ContractManagerStats {
     /// Total contracts
     pub total: usize,
@@ -309,7 +314,7 @@ pub struct CoopContractManager {
     /// Process to contracts
     pid_contracts: BTreeMap<u64, Vec<u64>>,
     /// Breach history
-    breach_history: Vec<ContractBreach>,
+    breach_history: VecDeque<ContractBreach>,
     /// Pending negotiations
     negotiations: BTreeMap<u64, NegotiationOffer>,
     /// Next contract ID
@@ -327,7 +332,7 @@ impl CoopContractManager {
         Self {
             contracts: BTreeMap::new(),
             pid_contracts: BTreeMap::new(),
-            breach_history: Vec::new(),
+            breach_history: VecDeque::new(),
             negotiations: BTreeMap::new(),
             next_id: 1,
             committed_capacity: BTreeMap::new(),
@@ -337,6 +342,7 @@ impl CoopContractManager {
     }
 
     /// Submit negotiation offer
+    #[inline]
     pub fn negotiate(&mut self, pid: u64, offer: NegotiationOffer) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -380,13 +386,10 @@ impl CoopContractManager {
             } else {
                 Some(String::from("Insufficient capacity"))
             },
-            available_capacity_pct: 100u32.saturating_sub(
-                self.committed_capacity
-                    .values()
-                    .max()
-                    .copied()
-                    .unwrap_or(0) as u32,
-            ),
+            available_capacity_pct:
+                100u32.saturating_sub(
+                    self.committed_capacity.values().max().copied().unwrap_or(0) as u32
+                ),
         })
     }
 
@@ -413,7 +416,10 @@ impl CoopContractManager {
         }
 
         self.contracts.insert(id, contract);
-        self.pid_contracts.entry(pid).or_insert_with(Vec::new).push(id);
+        self.pid_contracts
+            .entry(pid)
+            .or_insert_with(Vec::new)
+            .push(id);
 
         self.update_stats();
         id
@@ -440,9 +446,9 @@ impl CoopContractManager {
                     severity: BreachSeverity::Minor,
                 };
 
-                self.breach_history.push(breach);
+                self.breach_history.push_back(breach);
                 if self.breach_history.len() > self.max_breaches {
-                    self.breach_history.remove(0);
+                    self.breach_history.pop_front();
                 }
 
                 self.stats.total_breaches += 1;
@@ -466,6 +472,7 @@ impl CoopContractManager {
     }
 
     /// Terminate contract
+    #[inline]
     pub fn terminate(&mut self, contract_id: u64) {
         if let Some(contract) = self.contracts.get_mut(&contract_id) {
             contract.state = ContractState::Terminated;
@@ -501,28 +508,28 @@ impl CoopContractManager {
     }
 
     /// Get contract
+    #[inline(always)]
     pub fn contract(&self, id: u64) -> Option<&Contract> {
         self.contracts.get(&id)
     }
 
     /// Get contracts for process
+    #[inline]
     pub fn contracts_for_pid(&self, pid: u64) -> Vec<&Contract> {
         self.pid_contracts
             .get(&pid)
-            .map(|ids| {
-                ids.iter()
-                    .filter_map(|id| self.contracts.get(id))
-                    .collect()
-            })
+            .map(|ids| ids.iter().filter_map(|id| self.contracts.get(id)).collect())
             .unwrap_or_default()
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &ContractManagerStats {
         &self.stats
     }
 
     /// Unregister process
+    #[inline]
     pub fn unregister(&mut self, pid: u64) {
         if let Some(ids) = self.pid_contracts.remove(&pid) {
             for id in ids {

@@ -44,6 +44,7 @@ pub struct KWorkFlags {
 }
 
 impl KWorkFlags {
+    #[inline(always)]
     pub fn default_flags() -> Self { Self { delayed: false, cpu_intensive: false, freezable: false, mem_reclaim: false, high_priority: false } }
 }
 
@@ -84,13 +85,21 @@ impl KWorkItem {
         }
     }
 
+    #[inline(always)]
     pub fn delayed(mut self, delay: u64) -> Self { self.delay_ns = delay; self.status = KWorkStatus::Delayed; self }
+    #[inline(always)]
     pub fn is_ready(&self, now: u64) -> bool { self.status == KWorkStatus::Queued || (self.status == KWorkStatus::Delayed && now.saturating_sub(self.queued_ts) >= self.delay_ns) }
+    #[inline(always)]
     pub fn start(&mut self, worker: u64, ts: u64) { self.status = KWorkStatus::Running; self.worker_id = Some(worker); self.start_ts = ts; }
+    #[inline(always)]
     pub fn complete(&mut self, ts: u64) { self.status = KWorkStatus::Complete; self.end_ts = ts; }
+    #[inline(always)]
     pub fn fail(&mut self, ts: u64) { self.status = KWorkStatus::Failed; self.end_ts = ts; self.retries += 1; }
+    #[inline(always)]
     pub fn cancel(&mut self) { self.status = KWorkStatus::Cancelled; }
+    #[inline(always)]
     pub fn latency(&self) -> u64 { self.end_ts.saturating_sub(self.queued_ts) }
+    #[inline(always)]
     pub fn exec_time(&self) -> u64 { self.end_ts.saturating_sub(self.start_ts) }
 }
 
@@ -114,8 +123,11 @@ impl KWorker {
         Self { id, state: KWorkerState::Idle, cpu, current_work: None, tasks_completed: 0, busy_ns: 0, idle_ns: 0, last_active_ts: 0, unbound: cpu.is_none(), rescuer: false }
     }
 
+    #[inline(always)]
     pub fn assign(&mut self, work_id: u64, ts: u64) { self.state = KWorkerState::Running; self.current_work = Some(work_id); self.last_active_ts = ts; }
+    #[inline(always)]
     pub fn finish(&mut self, ts: u64) { self.state = KWorkerState::Idle; self.current_work = None; self.tasks_completed += 1; self.busy_ns += ts.saturating_sub(self.last_active_ts); }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 { let total = self.busy_ns + self.idle_ns; if total == 0 { 0.0 } else { self.busy_ns as f64 / total as f64 } }
 }
 
@@ -140,6 +152,7 @@ impl KWorkqueue {
 
 /// Thread pool stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct KThreadPoolStats {
     pub total_workers: usize,
     pub idle_workers: usize,
@@ -152,6 +165,7 @@ pub struct KThreadPoolStats {
 }
 
 /// Holistic kernel thread pool
+#[repr(align(64))]
 pub struct HolisticKthreadPool {
     workers: BTreeMap<u64, KWorker>,
     work_items: BTreeMap<u64, KWorkItem>,
@@ -173,24 +187,28 @@ impl HolisticKthreadPool {
         }
     }
 
+    #[inline]
     pub fn create_workqueue(&mut self, name_hash: u64, per_cpu: bool, max_workers: u32) -> u64 {
         let id = self.next_wq_id; self.next_wq_id += 1;
         self.workqueues.insert(id, KWorkqueue::new(id, name_hash, per_cpu, max_workers));
         id
     }
 
+    #[inline]
     pub fn spawn_worker(&mut self, cpu: Option<u32>) -> u64 {
         let id = self.next_worker_id; self.next_worker_id += 1;
         self.workers.insert(id, KWorker::new(id, cpu));
         id
     }
 
+    #[inline]
     pub fn queue_work(&mut self, func_hash: u64, prio: KWorkPriority, flags: KWorkFlags, ts: u64) -> u64 {
         let id = self.next_work_id; self.next_work_id += 1;
         self.work_items.insert(id, KWorkItem::new(id, func_hash, prio, flags, ts));
         id
     }
 
+    #[inline]
     pub fn queue_delayed(&mut self, func_hash: u64, prio: KWorkPriority, flags: KWorkFlags, delay: u64, ts: u64) -> u64 {
         let id = self.next_work_id; self.next_work_id += 1;
         let item = KWorkItem::new(id, func_hash, prio, flags, ts).delayed(delay);
@@ -219,6 +237,7 @@ impl HolisticKthreadPool {
         assignments
     }
 
+    #[inline]
     pub fn complete_work(&mut self, work_id: u64, ts: u64) {
         if let Some(w) = self.work_items.get_mut(&work_id) {
             let wk = w.worker_id;
@@ -227,6 +246,7 @@ impl HolisticKthreadPool {
         }
     }
 
+    #[inline]
     pub fn detect_stalls(&self, now: u64) -> Vec<u64> {
         self.workers.values()
             .filter(|w| w.state == KWorkerState::Running && now.saturating_sub(w.last_active_ts) > self.stall_timeout_ns)
@@ -248,7 +268,10 @@ impl HolisticKthreadPool {
         self.stats.workqueues = self.workqueues.len();
     }
 
+    #[inline(always)]
     pub fn worker(&self, id: u64) -> Option<&KWorker> { self.workers.get(&id) }
+    #[inline(always)]
     pub fn work(&self, id: u64) -> Option<&KWorkItem> { self.work_items.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &KThreadPoolStats { &self.stats }
 }

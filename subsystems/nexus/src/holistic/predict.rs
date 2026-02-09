@@ -28,6 +28,7 @@ pub enum TrendDirection {
 }
 
 /// Tracks a metric over time
+#[repr(align(64))]
 pub struct MetricTrend {
     samples: VecDeque<TrendSample>,
     max_samples: usize,
@@ -46,6 +47,7 @@ impl MetricTrend {
     }
 
     /// Record a sample
+    #[inline]
     pub fn record(&mut self, value: f64, timestamp: u64) {
         if self.samples.is_empty() {
             self.ema = value;
@@ -59,6 +61,7 @@ impl MetricTrend {
     }
 
     /// Current EMA value
+    #[inline(always)]
     pub fn current(&self) -> f64 {
         self.ema
     }
@@ -171,6 +174,7 @@ impl MetricTrend {
     }
 
     /// Sample count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.samples.len()
     }
@@ -225,6 +229,7 @@ impl SystemPredictor {
     }
 
     /// Ingest a system snapshot
+    #[inline]
     pub fn ingest(&mut self, snapshot: &SystemSnapshot) {
         let ts = snapshot.timestamp;
         self.cpu_trend.record(snapshot.cpu.utilization, ts);
@@ -296,6 +301,7 @@ impl SystemPredictor {
     }
 
     /// Get current trend directions
+    #[inline]
     pub fn trends(
         &self,
     ) -> (

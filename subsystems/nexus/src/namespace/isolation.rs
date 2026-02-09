@@ -60,11 +60,13 @@ impl IsolationAnalyzer {
     }
 
     /// Set initial namespace
+    #[inline(always)]
     pub fn set_init_namespace(&mut self, ns_type: NamespaceType, ns_id: NamespaceId) {
         self.init_ns.insert(ns_type, ns_id);
     }
 
     /// Register process namespaces
+    #[inline(always)]
     pub fn register_process(
         &mut self,
         pid: ProcessId,
@@ -75,6 +77,7 @@ impl IsolationAnalyzer {
     }
 
     /// Unregister process
+    #[inline(always)]
     pub fn unregister_process(&mut self, pid: ProcessId) {
         self.process_ns.remove(&pid);
         self.cache.remove(&pid);
@@ -149,6 +152,7 @@ impl IsolationAnalyzer {
     }
 
     /// Clear cache
+    #[inline(always)]
     pub fn clear_cache(&mut self) {
         self.cache.clear();
     }

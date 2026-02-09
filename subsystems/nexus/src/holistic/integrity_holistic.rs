@@ -30,6 +30,7 @@ impl IntegrityHolisticFinding {
         Self { metric, score: 0, measured_files: 0, total_files: 0, stale_digests: 0, appraisal_failures: 0 }
     }
 
+    #[inline(always)]
     pub fn coverage(&self) -> f64 {
         if self.total_files == 0 { 0.0 } else { self.measured_files as f64 / self.total_files as f64 }
     }
@@ -37,6 +38,7 @@ impl IntegrityHolisticFinding {
 
 /// Integrity holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IntegrityHolisticStats {
     pub total_analyses: u64,
     pub coverage_gaps: u64,
@@ -55,6 +57,7 @@ impl HolisticIntegrity {
         Self { stats: IntegrityHolisticStats { total_analyses: 0, coverage_gaps: 0, stale_detections: 0, tamper_alerts: 0 } }
     }
 
+    #[inline]
     pub fn analyze(&mut self, finding: &IntegrityHolisticFinding) {
         self.stats.total_analyses += 1;
         if finding.coverage() < 0.8 { self.stats.coverage_gaps += 1; }

@@ -48,6 +48,7 @@ impl TlsModule {
         Self { id, size, align, init_size: size, offset: 0, model, generation: 0 }
     }
 
+    #[inline(always)]
     pub fn aligned_size(&self) -> u64 {
         if self.align == 0 { return self.size; }
         (self.size + self.align - 1) & !(self.align - 1)
@@ -69,9 +70,13 @@ impl TlsBlock {
         Self { thread_id, module_id, base_addr: base, state: TlsBlockState::Uninitialized, access_count: 0 }
     }
 
+    #[inline(always)]
     pub fn initialize(&mut self) { self.state = TlsBlockState::Initializing; }
+    #[inline(always)]
     pub fn ready(&mut self) { self.state = TlsBlockState::Ready; }
+    #[inline(always)]
     pub fn free(&mut self) { self.state = TlsBlockState::Freed; }
+    #[inline(always)]
     pub fn access(&mut self) { self.access_count += 1; }
 }
 
@@ -86,6 +91,7 @@ pub struct DtvEntry {
 
 /// Per-thread TLS state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ThreadTlsState {
     pub thread_id: u64,
     pub dtv: Vec<DtvEntry>,
@@ -103,12 +109,14 @@ impl ThreadTlsState {
         }
     }
 
+    #[inline]
     pub fn allocate_block(&mut self, module_id: u64, base: u64) {
         let block = TlsBlock::new(self.thread_id, module_id, base);
         self.blocks.insert(module_id, block);
         self.dtv.push(DtvEntry { module_id, block_addr: base, generation: 0, allocated: true });
     }
 
+    #[inline]
     pub fn access(&mut self, module_id: u64) -> Option<u64> {
         if let Some(block) = self.blocks.get_mut(&module_id) {
             block.access();
@@ -120,6 +128,7 @@ impl ThreadTlsState {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TlsV2Stats {
     pub total_modules: u32,
     pub total_threads: u32,
@@ -141,6 +150,7 @@ impl AppTlsV2 {
         Self { modules: BTreeMap::new(), threads: BTreeMap::new(), next_module_id: 1, next_offset: 0 }
     }
 
+    #[inline]
     pub fn register_module(&mut self, size: u64, align: u64, model: TlsModel) -> u64 {
         let id = self.next_module_id;
         self.next_module_id += 1;
@@ -151,10 +161,12 @@ impl AppTlsV2 {
         id
     }
 
+    #[inline(always)]
     pub fn create_thread(&mut self, thread_id: u64, tp_addr: u64, variant: TlsVariant) {
         self.threads.insert(thread_id, ThreadTlsState::new(thread_id, tp_addr, variant));
     }
 
+    #[inline]
     pub fn allocate_block(&mut self, thread_id: u64, module_id: u64) -> Option<u64> {
         let module = self.modules.get(&module_id)?;
         let base = module.offset; // simplified
@@ -162,6 +174,7 @@ impl AppTlsV2 {
         Some(base)
     }
 
+    #[inline]
     pub fn stats(&self) -> TlsV2Stats {
         let blocks: u32 = self.threads.values().map(|t| t.blocks.len() as u32).sum();
         let bytes: u64 = self.modules.values().map(|m| m.aligned_size()).sum();

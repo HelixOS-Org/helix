@@ -48,22 +48,27 @@ impl EpochCollector {
         Self { global_epoch: 0, threads: BTreeMap::new(), deferred: Vec::new(), reclaimed_bytes: 0, reclaimed_count: 0 }
     }
 
+    #[inline(always)]
     pub fn register_thread(&mut self, tid: u64) {
         self.threads.insert(tid, ThreadEpochRecord { thread_id: tid, observed_epoch: self.global_epoch, is_active: false, pin_count: 0 });
     }
 
+    #[inline(always)]
     pub fn pin(&mut self, tid: u64) {
         if let Some(t) = self.threads.get_mut(&tid) { t.is_active = true; t.observed_epoch = self.global_epoch; t.pin_count += 1; }
     }
 
+    #[inline(always)]
     pub fn unpin(&mut self, tid: u64) {
         if let Some(t) = self.threads.get_mut(&tid) { t.is_active = false; }
     }
 
+    #[inline(always)]
     pub fn retire(&mut self, id: u64, size: u64) {
         self.deferred.push(DeferredItem { id, retire_epoch: self.global_epoch, size_bytes: size, state: EpochState::Active });
     }
 
+    #[inline]
     pub fn try_advance(&mut self) -> bool {
         let min_epoch = self.threads.values().filter(|t| t.is_active).map(|t| t.observed_epoch).min();
         if let Some(min) = min_epoch {
@@ -92,6 +97,7 @@ impl EpochCollector {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EpochGcStats {
     pub global_epoch: u64,
     pub active_threads: u32,
@@ -107,12 +113,18 @@ pub struct CoopEpochGc {
 
 impl CoopEpochGc {
     pub fn new() -> Self { Self { collector: EpochCollector::new() } }
+    #[inline(always)]
     pub fn register(&mut self, tid: u64) { self.collector.register_thread(tid); }
+    #[inline(always)]
     pub fn pin(&mut self, tid: u64) { self.collector.pin(tid); }
+    #[inline(always)]
     pub fn unpin(&mut self, tid: u64) { self.collector.unpin(tid); }
+    #[inline(always)]
     pub fn retire(&mut self, id: u64, size: u64) { self.collector.retire(id, size); }
+    #[inline(always)]
     pub fn collect(&mut self) -> u64 { self.collector.try_advance(); self.collector.reclaim() }
 
+    #[inline]
     pub fn stats(&self) -> EpochGcStats {
         let active = self.collector.threads.values().filter(|t| t.is_active).count() as u32;
         let pending_bytes: u64 = self.collector.deferred.iter().map(|d| d.size_bytes).sum();

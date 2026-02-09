@@ -134,6 +134,7 @@ impl TracepointIntelligence {
     }
 
     /// Register tracepoint
+    #[inline(always)]
     pub fn register_tracepoint(
         &mut self,
         name: String,
@@ -144,16 +145,19 @@ impl TracepointIntelligence {
     }
 
     /// Enable tracepoint
+    #[inline(always)]
     pub fn enable_tracepoint(&mut self, id: TracepointId) -> bool {
         self.tracepoint_mgr.enable(id)
     }
 
     /// Disable tracepoint
+    #[inline(always)]
     pub fn disable_tracepoint(&mut self, id: TracepointId) -> bool {
         self.tracepoint_mgr.disable(id)
     }
 
     /// Register probe
+    #[inline(always)]
     pub fn register_probe(
         &mut self,
         probe_type: ProbeType,
@@ -164,6 +168,7 @@ impl TracepointIntelligence {
     }
 
     /// Attach probe to tracepoint
+    #[inline]
     pub fn attach_probe(&mut self, probe_id: ProbeId, tracepoint_id: TracepointId) -> bool {
         if self.probe_mgr.attach(probe_id, tracepoint_id) {
             if let Some(def) = self.tracepoint_mgr.get_mut(tracepoint_id) {
@@ -175,16 +180,19 @@ impl TracepointIntelligence {
     }
 
     /// Enable probe
+    #[inline(always)]
     pub fn enable_probe(&mut self, probe_id: ProbeId) -> bool {
         self.probe_mgr.enable(probe_id)
     }
 
     /// Disable probe
+    #[inline(always)]
     pub fn disable_probe(&mut self, probe_id: ProbeId) -> bool {
         self.probe_mgr.disable(probe_id)
     }
 
     /// Add filter
+    #[inline]
     pub fn add_filter(&mut self, tracepoint_id: TracepointId, expression: FilterExpr) -> u64 {
         let id = self.next_filter_id.fetch_add(1, Ordering::Relaxed);
         let filter = EventFilter::new(id, tracepoint_id, expression);
@@ -193,6 +201,7 @@ impl TracepointIntelligence {
     }
 
     /// Remove filter
+    #[inline(always)]
     pub fn remove_filter(&mut self, filter_id: u64) -> bool {
         self.filters.remove(&filter_id).is_some()
     }
@@ -288,31 +297,37 @@ impl TracepointIntelligence {
     }
 
     /// Get tracepoint manager
+    #[inline(always)]
     pub fn tracepoint_manager(&self) -> &TracepointManager {
         &self.tracepoint_mgr
     }
 
     /// Get tracepoint manager mutably
+    #[inline(always)]
     pub fn tracepoint_manager_mut(&mut self) -> &mut TracepointManager {
         &mut self.tracepoint_mgr
     }
 
     /// Get probe manager
+    #[inline(always)]
     pub fn probe_manager(&self) -> &ProbeManager {
         &self.probe_mgr
     }
 
     /// Get probe manager mutably
+    #[inline(always)]
     pub fn probe_manager_mut(&mut self) -> &mut ProbeManager {
         &mut self.probe_mgr
     }
 
     /// Get performance analyzer
+    #[inline(always)]
     pub fn performance_analyzer(&self) -> &PerformanceAnalyzer {
         &self.perf_analyzer
     }
 
     /// Get buffer statistics
+    #[inline]
     pub fn buffer_stats(&self) -> (u64, u64, usize) {
         (
             self.event_buffer.events_written(),
@@ -322,6 +337,7 @@ impl TracepointIntelligence {
     }
 
     /// Get filter by ID
+    #[inline(always)]
     pub fn get_filter(&self, id: u64) -> Option<&EventFilter> {
         self.filters.get(&id)
     }

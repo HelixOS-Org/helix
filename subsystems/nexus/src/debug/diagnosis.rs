@@ -64,18 +64,21 @@ impl Fix {
     }
 
     /// Set confidence
+    #[inline(always)]
     pub fn with_confidence(mut self, confidence: f64) -> Self {
         self.confidence = confidence.clamp(0.0, 1.0);
         self
     }
 
     /// Mark as automatic
+    #[inline(always)]
     pub fn automatic(mut self) -> Self {
         self.automatic = true;
         self
     }
 
     /// Add step
+    #[inline(always)]
     pub fn with_step(mut self, step: impl Into<String>) -> Self {
         self.steps.push(step.into());
         self
@@ -121,18 +124,21 @@ impl Diagnosis {
     }
 
     /// Set matched pattern
+    #[inline(always)]
     pub fn with_pattern(mut self, pattern: BugPattern) -> Self {
         self.pattern = Some(pattern);
         self
     }
 
     /// Add a fix
+    #[inline(always)]
     pub fn with_fix(mut self, fix: Fix) -> Self {
         self.fixes.push(fix);
         self
     }
 
     /// Add related issue
+    #[inline(always)]
     pub fn with_related(mut self, issue: impl Into<String>) -> Self {
         self.related.push(issue.into());
         self

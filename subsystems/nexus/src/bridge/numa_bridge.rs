@@ -60,11 +60,13 @@ impl NumaNode {
         }
     }
 
+    #[inline(always)]
     pub fn utilization_pct(&self) -> u64 {
         if self.total_pages == 0 { 0 }
         else { ((self.total_pages - self.free_pages) * 100) / self.total_pages }
     }
 
+    #[inline]
     pub fn distance_to_node(&self, other: u32) -> u32 {
         for &(nid, dist) in &self.distance_to {
             if nid == other { return dist; }
@@ -72,16 +74,19 @@ impl NumaNode {
         u32::MAX
     }
 
+    #[inline(always)]
     pub fn is_local(&self) -> bool {
         self.distance_to.iter().all(|&(_, d)| d >= 10)
     }
 
+    #[inline(always)]
     pub fn migration_balance(&self) -> i64 {
         self.migration_in as i64 - self.migration_out as i64
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NumaProcessState {
     pub pid: u64,
     pub policy: NumaPolicy,
@@ -109,11 +114,13 @@ impl NumaProcessState {
         }
     }
 
+    #[inline(always)]
     pub fn record_fault(&mut self, is_local: bool) {
         self.total_faults += 1;
         if is_local { self.local_faults += 1; } else { self.remote_faults += 1; }
     }
 
+    #[inline(always)]
     pub fn locality_pct(&self) -> u64 {
         if self.total_faults == 0 { 100 }
         else { (self.local_faults * 100) / self.total_faults }
@@ -121,6 +128,7 @@ impl NumaProcessState {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NumaBridgeStats {
     pub total_nodes: u64,
     pub total_processes: u64,
@@ -129,6 +137,7 @@ pub struct NumaBridgeStats {
     pub avg_locality_pct: u64,
 }
 
+#[repr(align(64))]
 pub struct BridgeNuma {
     nodes: BTreeMap<u32, NumaNode>,
     processes: BTreeMap<u64, NumaProcessState>,
@@ -150,16 +159,19 @@ impl BridgeNuma {
         }
     }
 
+    #[inline(always)]
     pub fn add_node(&mut self, node: NumaNode) {
         self.nodes.insert(node.node_id, node);
         self.stats.total_nodes += 1;
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.insert(pid, NumaProcessState::new(pid));
         self.stats.total_processes += 1;
     }
 
+    #[inline]
     pub fn set_policy(&mut self, pid: u64, policy: NumaPolicy, preferred: Option<u32>) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.policy = policy;
@@ -167,6 +179,7 @@ impl BridgeNuma {
         }
     }
 
+    #[inline]
     pub fn record_fault(&mut self, pid: u64, is_local: bool) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.record_fault(is_local);
@@ -189,6 +202,7 @@ impl BridgeNuma {
         self.stats.total_migrations += 1;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &NumaBridgeStats {
         &self.stats
     }

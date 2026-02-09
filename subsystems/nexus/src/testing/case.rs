@@ -38,18 +38,21 @@ impl TestCase {
     }
 
     /// Set timeout
+    #[inline(always)]
     pub fn with_timeout(mut self, cycles: u64) -> Self {
         self.timeout = Some(cycles);
         self
     }
 
     /// Mark as ignored
+    #[inline(always)]
     pub fn ignore(mut self) -> Self {
         self.ignore = true;
         self
     }
 
     /// Add a tag
+    #[inline(always)]
     pub fn with_tag(mut self, tag: impl Into<String>) -> Self {
         self.tags.push(tag.into());
         self

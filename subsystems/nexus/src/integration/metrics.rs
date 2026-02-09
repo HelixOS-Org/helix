@@ -39,6 +39,7 @@ pub enum MetricValue {
 
 /// A metric
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Metric {
     /// Metric name
     pub name: String,

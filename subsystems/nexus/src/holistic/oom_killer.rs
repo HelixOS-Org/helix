@@ -76,6 +76,7 @@ pub struct OomKillRecord {
 
 /// Cgroup OOM state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupOomState {
     pub cgroup_id: u64,
     pub limit_pages: u64,
@@ -90,7 +91,9 @@ impl CgroupOomState {
         Self { cgroup_id: id, limit_pages: limit, usage_pages: 0, oom_count: 0, last_oom_ts: 0, cooldown_ns: 5_000_000_000 }
     }
 
+    #[inline(always)]
     pub fn is_over_limit(&self) -> bool { self.usage_pages > self.limit_pages }
+    #[inline(always)]
     pub fn in_cooldown(&self, now: u64) -> bool { now.saturating_sub(self.last_oom_ts) < self.cooldown_ns }
 }
 
@@ -106,6 +109,7 @@ pub enum OomPolicy {
 
 /// OOM stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OomStats {
     pub total_kills: u64,
     pub pages_freed: u64,
@@ -137,10 +141,14 @@ impl HolisticOomKiller {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, c: OomCandidate) { self.candidates.insert(c.pid, c); }
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) { self.candidates.remove(&pid); }
 
+    #[inline(always)]
     pub fn add_cgroup(&mut self, id: u64, limit: u64) { self.cgroups.insert(id, CgroupOomState::new(id, limit)); }
+    #[inline(always)]
     pub fn update_cgroup_usage(&mut self, id: u64, usage: u64) { if let Some(c) = self.cgroups.get_mut(&id) { c.usage_pages = usage; } }
 
     pub fn select_victim(&self, trigger: OomTrigger) -> Option<u64> {
@@ -185,11 +193,13 @@ impl HolisticOomKiller {
         Some(freed)
     }
 
+    #[inline(always)]
     pub fn auto_kill(&mut self, trigger: OomTrigger, ts: u64) -> Option<u64> {
         let victim = self.select_victim(trigger)?;
         self.kill(victim, trigger, KillStage::SigKill, ts)
     }
 
+    #[inline]
     pub fn cgroup_oom(&mut self, cgroup_id: u64, ts: u64) -> Option<u64> {
         if let Some(cg) = self.cgroups.get(&cgroup_id) {
             if cg.in_cooldown(ts) { return None; }
@@ -201,6 +211,7 @@ impl HolisticOomKiller {
         self.kill(victim, OomTrigger::CgroupLimit, KillStage::SigKill, ts)
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         if !self.history.is_empty() {
             let total: u64 = self.history.iter().map(|r| r.latency_ns).sum();
@@ -209,8 +220,11 @@ impl HolisticOomKiller {
         self.stats.protected_saved = self.candidates.values().filter(|c| c.protected).count() as u64;
     }
 
+    #[inline(always)]
     pub fn candidate(&self, pid: u64) -> Option<&OomCandidate> { self.candidates.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &OomStats { &self.stats }
+    #[inline(always)]
     pub fn history(&self) -> &[OomKillRecord] { &self.history }
 }
 
@@ -242,6 +256,7 @@ pub struct OomCandidate {
 }
 
 impl OomCandidate {
+    #[inline]
     pub fn badness_score(&self) -> i64 {
         if self.is_unkillable { return -1000; }
         let points = self.rss_pages as i64 + self.swap_pages as i64;
@@ -274,6 +289,7 @@ pub enum MemPressure {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct OomKillerV2Stats {
     pub total_kills: u64,
     pub total_freed_pages: u64,
@@ -298,16 +314,22 @@ impl HolisticOomKillerV2 {
         Self { kills: Vec::new(), candidates: BTreeMap::new(), policy: OomPolicy::Global, pressure: MemPressure::Low, next_id: 1, max_events: 4096 }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, candidate: OomCandidate) { self.candidates.insert(candidate.pid, candidate); }
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) { self.candidates.remove(&pid); }
+    #[inline(always)]
     pub fn set_policy(&mut self, policy: OomPolicy) { self.policy = policy; }
+    #[inline(always)]
     pub fn set_pressure(&mut self, pressure: MemPressure) { self.pressure = pressure; }
 
+    #[inline(always)]
     pub fn select_victim(&self) -> Option<u64> {
         self.candidates.values().filter(|c| !c.is_unkillable)
             .max_by_key(|c| c.badness_score()).map(|c| c.pid)
     }
 
+    #[inline]
     pub fn kill(&mut self, pid: u64, freed: u64, duration: u64, now: u64) {
         let id = self.next_id; self.next_id += 1;
         let score = self.candidates.get(&pid).map(|c| c.badness_score()).unwrap_or(0);
@@ -317,6 +339,7 @@ impl HolisticOomKillerV2 {
         self.candidates.remove(&pid);
     }
 
+    #[inline]
     pub fn stats(&self) -> OomKillerV2Stats {
         let freed: u64 = self.kills.iter().map(|k| k.freed_pages).sum();
         let global = self.kills.iter().filter(|k| k.policy == OomPolicy::Global).count() as u64;

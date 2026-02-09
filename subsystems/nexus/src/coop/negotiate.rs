@@ -50,21 +50,25 @@ impl ResourceDemand {
         }
     }
 
+    #[inline(always)]
     pub fn with_cpu(mut self, share: f64) -> Self {
         self.cpu_share = share.clamp(0.0, 1.0);
         self
     }
 
+    #[inline(always)]
     pub fn with_memory(mut self, bytes: u64) -> Self {
         self.memory_bytes = bytes;
         self
     }
 
+    #[inline(always)]
     pub fn with_io(mut self, bps: u64) -> Self {
         self.io_bandwidth = bps;
         self
     }
 
+    #[inline(always)]
     pub fn with_latency(mut self, us: u64) -> Self {
         self.latency_us = us;
         self
@@ -90,6 +94,7 @@ pub struct ResourceOffer {
 
 impl ResourceOffer {
     /// Create an offer that fully satisfies the demand
+    #[inline]
     pub fn full(demand: &ResourceDemand) -> Self {
         Self {
             cpu_share: demand.cpu_share,
@@ -102,6 +107,7 @@ impl ResourceOffer {
     }
 
     /// Create a scaled offer (partial satisfaction)
+    #[inline]
     pub fn scaled(demand: &ResourceDemand, factor: f64) -> Self {
         let factor = factor.clamp(0.0, 1.0);
         Self {
@@ -182,6 +188,7 @@ impl Contract {
     }
 
     /// Accept the contract with a specific offer
+    #[inline]
     pub fn accept(&mut self, offer: ResourceOffer, timestamp: u64) {
         self.state = ContractState::Active;
         self.offer = Some(offer);
@@ -189,6 +196,7 @@ impl Contract {
     }
 
     /// Counter-offer
+    #[inline]
     pub fn counter_offer(&mut self, offer: ResourceOffer, timestamp: u64) {
         self.state = ContractState::CounterOffered;
         self.offer = Some(offer);
@@ -196,12 +204,14 @@ impl Contract {
     }
 
     /// Reject the contract
+    #[inline(always)]
     pub fn reject(&mut self, timestamp: u64) {
         self.state = ContractState::Rejected;
         self.updated_at = timestamp;
     }
 
     /// Record a violation
+    #[inline]
     pub fn record_violation(&mut self, timestamp: u64) -> bool {
         self.violations += 1;
         self.updated_at = timestamp;
@@ -215,6 +225,7 @@ impl Contract {
     }
 
     /// Check if contract has expired
+    #[inline]
     pub fn check_expiry(&mut self, current_time: u64) -> bool {
         if self.demand.duration_ms > 0
             && current_time.saturating_sub(self.created_at) > self.demand.duration_ms
@@ -227,6 +238,7 @@ impl Contract {
     }
 
     /// Whether the contract is active
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.state == ContractState::Active
     }
@@ -276,6 +288,7 @@ impl NegotiationEngine {
     }
 
     /// Update system capacity snapshot
+    #[inline(always)]
     pub fn update_capacity(&mut self, capacity: SystemCapacity) {
         self.capacity = capacity;
     }
@@ -324,6 +337,7 @@ impl NegotiationEngine {
     }
 
     /// Get all active contracts for a PID
+    #[inline]
     pub fn contracts_for(&self, pid: u64) -> Vec<&Contract> {
         self.contracts
             .iter()
@@ -332,6 +346,7 @@ impl NegotiationEngine {
     }
 
     /// Expire old contracts
+    #[inline]
     pub fn expire_contracts(&mut self, current_time: u64) -> usize {
         let mut expired = 0;
         for contract in &mut self.contracts {
@@ -343,6 +358,7 @@ impl NegotiationEngine {
     }
 
     /// Total active contracts
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.contracts.iter().filter(|c| c.is_active()).count()
     }

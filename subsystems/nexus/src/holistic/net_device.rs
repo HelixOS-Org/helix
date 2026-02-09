@@ -54,6 +54,7 @@ pub enum OffloadFeature {
 
 /// NIC queue
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetDevQueue {
     pub queue_id: u16,
     pub is_tx: bool,
@@ -83,6 +84,7 @@ impl NetDevQueue {
         }
     }
 
+    #[inline]
     pub fn process_packet(&mut self, pkt_bytes: u64) -> bool {
         if self.ring_used >= self.ring_size {
             self.drops += 1;
@@ -94,10 +96,12 @@ impl NetDevQueue {
         true
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, count: u32) {
         self.ring_used = self.ring_used.saturating_sub(count);
     }
 
+    #[inline]
     pub fn utilization_pct(&self) -> f64 {
         if self.ring_size == 0 {
             return 0.0;
@@ -105,10 +109,12 @@ impl NetDevQueue {
         (self.ring_used as f64 / self.ring_size as f64) * 100.0
     }
 
+    #[inline(always)]
     pub fn avg_pkt_size(&self) -> u64 {
         if self.packets == 0 { 0 } else { self.bytes / self.packets }
     }
 
+    #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         let total = self.packets + self.drops;
         if total == 0 { 0.0 } else { self.drops as f64 / total as f64 }
@@ -161,41 +167,50 @@ impl NetDevice {
         }
     }
 
+    #[inline(always)]
     pub fn bring_up(&mut self, ts_ns: u64) {
         self.state = NetDevState::Up;
         self.link_up_ns = ts_ns;
     }
 
+    #[inline(always)]
     pub fn bring_down(&mut self) {
         self.state = NetDevState::Down;
     }
 
+    #[inline(always)]
     pub fn add_tx_queue(&mut self, ring_size: u32) {
         let qid = self.tx_queues.len() as u16;
         self.tx_queues.push(NetDevQueue::new(qid, true, ring_size));
     }
 
+    #[inline(always)]
     pub fn add_rx_queue(&mut self, ring_size: u32) {
         let qid = self.rx_queues.len() as u16;
         self.rx_queues.push(NetDevQueue::new(qid, false, ring_size));
     }
 
+    #[inline(always)]
     pub fn enable_feature(&mut self, feature: OffloadFeature) {
         self.features |= 1u64 << (feature as u64);
     }
 
+    #[inline(always)]
     pub fn has_feature(&self, feature: OffloadFeature) -> bool {
         self.features & (1u64 << (feature as u64)) != 0
     }
 
+    #[inline(always)]
     pub fn total_tx_bytes(&self) -> u64 {
         self.tx_queues.iter().map(|q| q.bytes).sum()
     }
 
+    #[inline(always)]
     pub fn total_rx_bytes(&self) -> u64 {
         self.rx_queues.iter().map(|q| q.bytes).sum()
     }
 
+    #[inline(always)]
     pub fn total_drops(&self) -> u64 {
         self.tx_queues.iter().map(|q| q.drops).sum::<u64>()
             + self.rx_queues.iter().map(|q| q.drops).sum::<u64>()
@@ -204,6 +219,7 @@ impl NetDevice {
 
 /// Net device stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct NetDeviceStats {
     pub total_devices: u64,
     pub active_devices: u64,
@@ -248,6 +264,7 @@ impl HolisticNetDevice {
         id
     }
 
+    #[inline]
     pub fn bring_up(&mut self, dev_id: u32, ts_ns: u64) -> bool {
         if let Some(dev) = self.devices.get_mut(&dev_id) {
             dev.bring_up(ts_ns);
@@ -258,6 +275,7 @@ impl HolisticNetDevice {
         }
     }
 
+    #[inline]
     pub fn aggregate_throughput_bytes(&self) -> u64 {
         self.devices.values()
             .filter(|d| d.state == NetDevState::Up || d.state == NetDevState::Running)

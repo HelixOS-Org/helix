@@ -23,6 +23,7 @@ pub enum PolicyType {
 
 impl PolicyType {
     /// Get policy name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Performance => "performance",
@@ -55,6 +56,7 @@ pub struct SystemPolicy {
 
 impl SystemPolicy {
     /// Create performance policy
+    #[inline]
     pub fn performance() -> Self {
         Self {
             policy_type: PolicyType::Performance,
@@ -66,6 +68,7 @@ impl SystemPolicy {
     }
 
     /// Create power saving policy
+    #[inline]
     pub fn power_saving() -> Self {
         Self {
             policy_type: PolicyType::PowerSaving,
@@ -77,6 +80,7 @@ impl SystemPolicy {
     }
 
     /// Create balanced policy
+    #[inline]
     pub fn balanced() -> Self {
         Self {
             policy_type: PolicyType::Balanced,
@@ -88,6 +92,7 @@ impl SystemPolicy {
     }
 
     /// Create security policy
+    #[inline]
     pub fn security() -> Self {
         Self {
             policy_type: PolicyType::Security,
@@ -99,6 +104,7 @@ impl SystemPolicy {
     }
 
     /// Create reliability policy
+    #[inline]
     pub fn reliability() -> Self {
         Self {
             policy_type: PolicyType::Reliability,
@@ -110,6 +116,7 @@ impl SystemPolicy {
     }
 
     /// Get total weight
+    #[inline]
     pub fn total_weight(&self) -> u16 {
         self.performance_weight as u16
             + self.power_weight as u16

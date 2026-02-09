@@ -8,7 +8,9 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
@@ -81,7 +83,7 @@ pub struct Prediction {
     /// Confidence
     pub confidence: f64,
     /// Probabilities
-    pub probabilities: BTreeMap<u64, f64>,
+    pub probabilities: LinearMap<f64, 64>,
 }
 
 /// Update result
@@ -99,6 +101,7 @@ pub struct UpdateResult {
 
 /// Running statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RunningStats {
     /// Count
     pub count: u64,
@@ -207,6 +210,7 @@ impl Default for IncrementalConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IncrementalStats {
     /// Models created
     pub models_created: u64,
@@ -420,7 +424,7 @@ impl IncrementalEngine {
             buffer.push(example);
 
             if buffer.len() > self.config.buffer_size {
-                buffer.remove(0);
+                buffer.pop_front();
             }
         }
 
@@ -578,7 +582,7 @@ impl IncrementalEngine {
         Some(Prediction {
             label: Label::Class(class),
             confidence,
-            probabilities: BTreeMap::new(),
+            probabilities: LinearMap::new(),
         })
     }
 
@@ -606,7 +610,7 @@ impl IncrementalEngine {
 
         distances.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(core::cmp::Ordering::Equal));
 
-        let mut votes: BTreeMap<u64, u64> = BTreeMap::new();
+        let mut votes: LinearMap<u64, 64> = BTreeMap::new();
 
         for (_, label) in distances.iter().take(k) {
             if let Label::Class(c) = label {
@@ -619,7 +623,7 @@ impl IncrementalEngine {
         Some(Prediction {
             label: Label::Class(*best_class),
             confidence: *best_count as f64 / k as f64,
-            probabilities: BTreeMap::new(),
+            probabilities: LinearMap::new(),
         })
     }
 
@@ -646,11 +650,13 @@ impl IncrementalEngine {
     }
 
     /// Get model
+    #[inline(always)]
     pub fn get_model(&self, id: u64) -> Option<&IncrementalModel> {
         self.models.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &IncrementalStats {
         &self.stats
     }

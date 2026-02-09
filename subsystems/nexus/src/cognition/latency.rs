@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -193,6 +194,7 @@ impl LatencyHistogram {
     }
 
     /// Get mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.total == 0 {
             0.0
@@ -225,6 +227,7 @@ impl LatencyHistogram {
     }
 
     /// Get all percentiles
+    #[inline]
     pub fn percentiles(&self) -> LatencyPercentiles {
         LatencyPercentiles {
             p50: self.percentile(50.0),
@@ -237,21 +240,25 @@ impl LatencyHistogram {
     }
 
     /// Get count
+    #[inline(always)]
     pub fn count(&self) -> u64 {
         self.total
     }
 
     /// Get min
+    #[inline(always)]
     pub fn min(&self) -> u64 {
         if self.total == 0 { 0 } else { self.min }
     }
 
     /// Get max
+    #[inline(always)]
     pub fn max(&self) -> u64 {
         self.max
     }
 
     /// Reset
+    #[inline]
     pub fn reset(&mut self) {
         for count in &mut self.counts {
             *count = 0;
@@ -298,7 +305,7 @@ pub struct OperationTracker {
     /// Histogram
     histogram: LatencyHistogram,
     /// Recent samples (for percentile calculation)
-    samples: Vec<u64>,
+    samples: VecDeque<u64>,
     /// Maximum samples
     max_samples: usize,
     /// Success count
@@ -317,7 +324,7 @@ impl OperationTracker {
         Self {
             operation: operation.into(),
             histogram: LatencyHistogram::new(),
-            samples: Vec::new(),
+            samples: VecDeque::new(),
             max_samples,
             success_count: 0,
             failure_count: 0,
@@ -332,9 +339,9 @@ impl OperationTracker {
 
         // Store sample
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push(duration_ns);
+        self.samples.push_back(duration_ns);
 
         if success {
             self.success_count += 1;
@@ -351,6 +358,7 @@ impl OperationTracker {
     }
 
     /// Add SLO
+    #[inline(always)]
     pub fn add_slo(&mut self, slo: Slo) {
         self.slos.push(slo);
     }
@@ -392,11 +400,13 @@ impl OperationTracker {
     }
 
     /// Get percentiles
+    #[inline(always)]
     pub fn percentiles(&self) -> LatencyPercentiles {
         self.histogram.percentiles()
     }
 
     /// Get success rate
+    #[inline]
     pub fn success_rate(&self) -> f64 {
         let total = self.success_count + self.failure_count;
         if total == 0 {
@@ -453,6 +463,7 @@ impl Default for LatencyConfig {
 
 /// Latency statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct LatencyStats {
     /// Total measurements
     pub total_measurements: u64,
@@ -560,6 +571,7 @@ impl LatencyManager {
     }
 
     /// Add SLO for operation
+    #[inline]
     pub fn add_slo(&mut self, operation: &str, slo: Slo) {
         let tracker = self
             .trackers
@@ -569,11 +581,13 @@ impl LatencyManager {
     }
 
     /// Get tracker for operation
+    #[inline(always)]
     pub fn get_tracker(&self, operation: &str) -> Option<&OperationTracker> {
         self.trackers.get(operation)
     }
 
     /// Get all SLO statuses
+    #[inline]
     pub fn all_slo_status(&self) -> Vec<SloStatus> {
         self.trackers
             .values()
@@ -582,6 +596,7 @@ impl LatencyManager {
     }
 
     /// Get global percentiles
+    #[inline(always)]
     pub fn global_percentiles(&self) -> LatencyPercentiles {
         self.global.percentiles()
     }
@@ -607,11 +622,13 @@ impl LatencyManager {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &LatencyStats {
         &self.stats
     }
 
     /// Get operations
+    #[inline(always)]
     pub fn operations(&self) -> Vec<&str> {
         self.trackers.keys().map(|s| s.as_str()).collect()
     }
@@ -693,7 +710,7 @@ mod tests {
 
     #[test]
     fn test_percentiles_calculation() {
-        let samples: Vec<u64> = (0..100).map(|i| i * 1000).collect();
+        let samples: VecDeque<u64> = (0..100).map(|i| i * 1000).collect();
         let percentiles = LatencyPercentiles::from_samples(&samples).unwrap();
 
         assert!(percentiles.p50 > 0);

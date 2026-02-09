@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -21,21 +21,22 @@ use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EmergencyLevel {
     /// Normal operation
-    Normal = 0,
+    Normal   = 0,
     /// Elevated - increased monitoring
     Elevated = 1,
     /// Warning - proactive measures
-    Warning = 2,
+    Warning  = 2,
     /// Critical - active degradation
     Critical = 3,
     /// Severe - minimal services only
-    Severe = 4,
+    Severe   = 4,
     /// Panic - last resort before shutdown
-    Panic = 5,
+    Panic    = 5,
 }
 
 impl EmergencyLevel {
     /// Maximum number of non-essential services
+    #[inline]
     pub fn allowed_services(&self) -> u32 {
         match self {
             Self::Normal => u32::MAX,
@@ -48,6 +49,7 @@ impl EmergencyLevel {
     }
 
     /// CPU budget for non-essential work (percent)
+    #[inline]
     pub fn non_essential_cpu_budget(&self) -> u32 {
         match self {
             Self::Normal => 100,
@@ -60,6 +62,7 @@ impl EmergencyLevel {
     }
 
     /// Memory reservation for essential services (percent)
+    #[inline]
     pub fn essential_memory_reserve(&self) -> u32 {
         match self {
             Self::Normal => 10,
@@ -128,13 +131,11 @@ impl EmergencyTrigger {
     }
 
     /// Can this trigger be auto-resolved?
+    #[inline]
     pub fn auto_resolvable(&self) -> bool {
         matches!(
             self,
-            Self::MemoryExhaustion
-                | Self::CpuSaturation
-                | Self::ThermalThrottle
-                | Self::DiskFull
+            Self::MemoryExhaustion | Self::CpuSaturation | Self::ThermalThrottle | Self::DiskFull
         )
     }
 }
@@ -166,15 +167,15 @@ pub struct EmergencyEvent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ServicePriority {
     /// Kernel core (never degrade)
-    Kernel = 0,
+    Kernel     = 0,
     /// Essential system services
-    Essential = 1,
+    Essential  = 1,
     /// Important services
-    Important = 2,
+    Important  = 2,
     /// Standard services
-    Standard = 3,
+    Standard   = 3,
     /// Nice-to-have services
-    Optional = 4,
+    Optional   = 4,
     /// Background / best-effort
     Background = 5,
 }
@@ -314,6 +315,7 @@ impl WatchdogEntry {
     }
 
     /// Record heartbeat
+    #[inline]
     pub fn heartbeat(&mut self, timestamp: u64) {
         self.last_heartbeat = timestamp;
         self.missed_count = 0;
@@ -364,6 +366,7 @@ pub enum RecoveryProcedure {
 
 /// Recovery state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RecoveryState {
     /// Currently recovering
     pub in_recovery: bool,
@@ -386,7 +389,7 @@ pub struct EmergencyManager {
     /// Current emergency level
     pub current_level: EmergencyLevel,
     /// Active events
-    events: Vec<EmergencyEvent>,
+    events: VecDeque<EmergencyEvent>,
     /// Registered services
     services: BTreeMap<u64, ServiceRecord>,
     /// Watchdog entries
@@ -407,7 +410,7 @@ impl EmergencyManager {
     pub fn new() -> Self {
         Self {
             current_level: EmergencyLevel::Normal,
-            events: Vec::new(),
+            events: VecDeque::new(),
             services: BTreeMap::new(),
             watchdogs: BTreeMap::new(),
             recovery: RecoveryState {
@@ -426,31 +429,30 @@ impl EmergencyManager {
 
     /// Register service
     pub fn register_service(&mut self, pid: u64, priority: ServicePriority) {
-        self.services.insert(
+        self.services.insert(pid, ServiceRecord {
             pid,
-            ServiceRecord {
-                pid,
+            priority,
+            state: ServiceState::Running,
+            memory_usage: 0,
+            cpu_usage: 0,
+            is_essential: matches!(
                 priority,
-                state: ServiceState::Running,
-                memory_usage: 0,
-                cpu_usage: 0,
-                is_essential: matches!(
-                    priority,
-                    ServicePriority::Kernel | ServicePriority::Essential
-                ),
-                degradation_level: 0,
-            },
-        );
+                ServicePriority::Kernel | ServicePriority::Essential
+            ),
+            degradation_level: 0,
+        });
         self.rebuild_degradation_order();
     }
 
     /// Remove service
+    #[inline(always)]
     pub fn unregister_service(&mut self, pid: u64) {
         self.services.remove(&pid);
         self.rebuild_degradation_order();
     }
 
     /// Update service stats
+    #[inline]
     pub fn update_service(&mut self, pid: u64, memory: u64, cpu: u32) {
         if let Some(svc) = self.services.get_mut(&pid) {
             svc.memory_usage = memory;
@@ -459,12 +461,14 @@ impl EmergencyManager {
     }
 
     /// Register watchdog
+    #[inline(always)]
     pub fn register_watchdog(&mut self, id: u64, interval_ms: u64, max_missed: u32) {
         self.watchdogs
             .insert(id, WatchdogEntry::new(id, interval_ms, max_missed));
     }
 
     /// Watchdog heartbeat
+    #[inline]
     pub fn watchdog_heartbeat(&mut self, id: u64, timestamp: u64) {
         if let Some(wd) = self.watchdogs.get_mut(&id) {
             wd.heartbeat(timestamp);
@@ -472,6 +476,7 @@ impl EmergencyManager {
     }
 
     /// Check all watchdogs
+    #[inline]
     pub fn check_watchdogs(&mut self, current_time: u64) -> Vec<u64> {
         let mut timed_out = Vec::new();
         for wd in self.watchdogs.values_mut() {
@@ -499,7 +504,7 @@ impl EmergencyManager {
         let event_id = self.next_event_id;
         self.next_event_id += 1;
 
-        self.events.push(EmergencyEvent {
+        self.events.push_back(EmergencyEvent {
             id: event_id,
             trigger,
             level: effective_level,
@@ -510,7 +515,7 @@ impl EmergencyManager {
         });
 
         if self.events.len() > self.max_events {
-            self.events.remove(0);
+            self.events.pop_front();
         }
 
         event_id
@@ -542,7 +547,7 @@ impl EmergencyManager {
                         } else {
                             continue;
                         }
-                    }
+                    },
                     EmergencyLevel::Critical => {
                         if svc.priority >= ServicePriority::Standard {
                             svc.state = ServiceState::Suspended;
@@ -551,7 +556,7 @@ impl EmergencyManager {
                         } else {
                             continue;
                         }
-                    }
+                    },
                     EmergencyLevel::Severe => {
                         if svc.priority >= ServicePriority::Important {
                             svc.state = ServiceState::Killed;
@@ -560,7 +565,7 @@ impl EmergencyManager {
                         } else {
                             continue;
                         }
-                    }
+                    },
                     EmergencyLevel::Panic => {
                         if !svc.is_essential {
                             svc.state = ServiceState::Killed;
@@ -569,7 +574,7 @@ impl EmergencyManager {
                         } else {
                             continue;
                         }
-                    }
+                    },
                     _ => continue,
                 };
 
@@ -609,6 +614,7 @@ impl EmergencyManager {
     }
 
     /// Begin recovery
+    #[inline]
     pub fn begin_recovery(&mut self, procedure: RecoveryProcedure, timestamp: u64) {
         self.recovery.in_recovery = true;
         self.recovery.start_time = timestamp;
@@ -638,6 +644,7 @@ impl EmergencyManager {
     }
 
     /// End recovery
+    #[inline(always)]
     pub fn end_recovery(&mut self) {
         self.recovery.in_recovery = false;
         self.recovery.procedure = None;
@@ -655,11 +662,13 @@ impl EmergencyManager {
     }
 
     /// Active events
+    #[inline(always)]
     pub fn active_events(&self) -> Vec<&EmergencyEvent> {
         self.events.iter().filter(|e| !e.resolved).collect()
     }
 
     /// Service count by state
+    #[inline]
     pub fn service_counts(&self) -> BTreeMap<u8, u32> {
         let mut counts = BTreeMap::new();
         for svc in self.services.values() {
@@ -669,6 +678,7 @@ impl EmergencyManager {
     }
 
     /// Total registered services
+    #[inline(always)]
     pub fn total_services(&self) -> usize {
         self.services.len()
     }

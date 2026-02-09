@@ -22,6 +22,7 @@ impl SendRequest {
 
 /// Send app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SendAppStats { pub total_sends: u64, pub bytes_sent: u64, pub errors: u64, pub partial_sends: u64 }
 
 /// Main app send
@@ -30,6 +31,7 @@ pub struct AppSend { pub stats: SendAppStats }
 
 impl AppSend {
     pub fn new() -> Self { Self { stats: SendAppStats { total_sends: 0, bytes_sent: 0, errors: 0, partial_sends: 0 } } }
+    #[inline]
     pub fn send(&mut self, req: &SendRequest) -> i64 {
         self.stats.total_sends += 1;
         self.stats.bytes_sent += req.bytes;

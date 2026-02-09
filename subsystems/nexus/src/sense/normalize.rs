@@ -110,6 +110,7 @@ pub struct NormParams {
 
 /// Normalization statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NormStats {
     /// Minimum
     pub min: f64,
@@ -173,6 +174,7 @@ impl Default for NormConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NormalizerStats {
     /// Inputs processed
     pub inputs_processed: u64,
@@ -464,16 +466,19 @@ impl Normalizer {
     }
 
     /// Get parameters
+    #[inline(always)]
     pub fn params(&self, source: &str) -> Option<&NormParams> {
         self.params.get(source)
     }
 
     /// Get output
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&NormalizedOutput> {
         self.outputs.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &NormalizerStats {
         &self.stats
     }

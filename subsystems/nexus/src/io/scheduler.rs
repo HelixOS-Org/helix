@@ -36,6 +36,7 @@ pub enum SchedulingAlgorithm {
 
 /// Scheduler statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IoSchedulerStats {
     /// Total requests scheduled
     pub total_scheduled: u64,
@@ -238,26 +239,31 @@ impl IoScheduler {
     }
 
     /// Get queue depth
+    #[inline(always)]
     pub fn queue_depth(&self, device_id: u32) -> usize {
         self.queues.get(&device_id).map(|q| q.len()).unwrap_or(0)
     }
 
     /// Set algorithm
+    #[inline(always)]
     pub fn set_algorithm(&mut self, algorithm: SchedulingAlgorithm) {
         self.algorithm = algorithm;
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &IoSchedulerStats {
         &self.stats
     }
 
     /// Get latency predictor
+    #[inline(always)]
     pub fn latency_predictor(&self) -> &LatencyPredictor {
         &self.latency_predictor
     }
 
     /// Get mutable latency predictor
+    #[inline(always)]
     pub fn latency_predictor_mut(&mut self) -> &mut LatencyPredictor {
         &mut self.latency_predictor
     }

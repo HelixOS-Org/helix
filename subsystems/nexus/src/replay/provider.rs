@@ -21,6 +21,7 @@ impl DeterminismProvider {
     }
 
     /// Load session
+    #[inline(always)]
     pub fn load(&mut self, session: RecordingSession) {
         self.session = Some(session);
         self.position = 0;
@@ -64,6 +65,7 @@ impl DeterminismProvider {
     }
 
     /// Reset position
+    #[inline(always)]
     pub fn reset(&mut self) {
         self.position = 0;
     }

@@ -48,6 +48,7 @@ impl CausalRelationType {
     }
 
     /// Is causal (not just correlation)
+    #[inline(always)]
     pub fn is_causal(&self) -> bool {
         !matches!(self, Self::Correlation | Self::TemporalPrecedence)
     }
@@ -101,11 +102,13 @@ impl CausalNode {
     }
 
     /// Has causes
+    #[inline(always)]
     pub fn has_causes(&self) -> bool {
         !self.causes.is_empty()
     }
 
     /// Has effects
+    #[inline(always)]
     pub fn has_effects(&self) -> bool {
         !self.effects.is_empty()
     }
@@ -150,23 +153,27 @@ impl CausalEdge {
     }
 
     /// With confidence
+    #[inline(always)]
     pub fn with_confidence(mut self, confidence: f32) -> Self {
         self.confidence = confidence.clamp(0.0, 1.0);
         self
     }
 
     /// With time delta
+    #[inline(always)]
     pub fn with_time_delta(mut self, delta: u64) -> Self {
         self.time_delta = delta;
         self
     }
 
     /// Add evidence
+    #[inline(always)]
     pub fn add_evidence(&mut self, evidence: String) {
         self.evidence.push(evidence);
     }
 
     /// Combined strength (relation strength * confidence)
+    #[inline(always)]
     pub fn combined_strength(&self) -> f32 {
         self.relation.strength() * self.confidence
     }
@@ -200,6 +207,7 @@ impl CausalGraph {
     }
 
     /// Add event to graph
+    #[inline]
     pub fn add_event(&mut self, event: CausalEvent) -> CausalNodeId {
         let event_id = event.id;
         let node_id = CausalNodeId(self.node_counter.fetch_add(1, Ordering::Relaxed));
@@ -248,27 +256,32 @@ impl CausalGraph {
     }
 
     /// Get node
+    #[inline(always)]
     pub fn get_node(&self, id: CausalNodeId) -> Option<&CausalNode> {
         self.nodes.get(&id)
     }
 
     /// Get node mutably
+    #[inline(always)]
     pub fn get_node_mut(&mut self, id: CausalNodeId) -> Option<&mut CausalNode> {
         self.nodes.get_mut(&id)
     }
 
     /// Get edge
+    #[inline(always)]
     pub fn get_edge(&self, id: CausalEdgeId) -> Option<&CausalEdge> {
         self.edges.get(&id)
     }
 
     /// Get node by event
+    #[inline(always)]
     pub fn get_node_by_event(&self, event_id: CausalEventId) -> Option<&CausalNode> {
         let node_id = self.event_to_node.get(&event_id)?;
         self.nodes.get(node_id)
     }
 
     /// Find root causes for a node
+    #[inline]
     pub fn find_root_causes(&self, node_id: CausalNodeId) -> Vec<CausalNodeId> {
         let mut roots = Vec::new();
         let mut visited = Vec::new();
@@ -301,6 +314,7 @@ impl CausalGraph {
     }
 
     /// Find effects of a node
+    #[inline]
     pub fn find_effects(&self, node_id: CausalNodeId) -> Vec<CausalNodeId> {
         let mut effects = Vec::new();
         let mut visited = Vec::new();
@@ -386,31 +400,37 @@ impl CausalGraph {
     }
 
     /// Node count
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
 
     /// Edge count
+    #[inline(always)]
     pub fn edge_count(&self) -> usize {
         self.edges.len()
     }
 
     /// Get all root causes
+    #[inline(always)]
     pub fn root_causes(&self) -> Vec<&CausalNode> {
         self.nodes.values().filter(|n| n.is_root_cause).collect()
     }
 
     /// Get all terminal effects
+    #[inline(always)]
     pub fn terminal_effects(&self) -> Vec<&CausalNode> {
         self.nodes.values().filter(|n| n.is_terminal).collect()
     }
 
     /// Iterate all nodes
+    #[inline(always)]
     pub fn nodes(&self) -> impl Iterator<Item = &CausalNode> {
         self.nodes.values()
     }
 
     /// Iterate all edges
+    #[inline(always)]
     pub fn edges_iter(&self) -> impl Iterator<Item = &CausalEdge> {
         self.edges.values()
     }

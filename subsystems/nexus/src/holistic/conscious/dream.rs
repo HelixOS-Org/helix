@@ -96,6 +96,7 @@ pub enum DreamDepth {
 
 impl DreamDepth {
     /// Minimum idle level required to enter this depth
+    #[inline]
     pub fn required_idle(&self) -> f32 {
         match self {
             DreamDepth::Awake => 1.0,
@@ -107,6 +108,7 @@ impl DreamDepth {
     }
 
     /// Cognitive cost per tick at this depth
+    #[inline]
     pub fn cost_per_tick(&self) -> f32 {
         match self {
             DreamDepth::Awake => 0.0,
@@ -205,6 +207,7 @@ pub struct DreamSession {
 
 /// Dream engine statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticDreamStats {
     pub total_sessions: u64,
     pub total_events_replayed: u64,
@@ -435,6 +438,7 @@ impl HolisticDreamEngine {
     }
 
     /// Consolidate all dream findings — strengthen good patterns, weaken bad
+    #[inline]
     pub fn consolidate_all(&mut self) {
         for (_id, insight) in self.insights.iter_mut() {
             if !insight.applied {
@@ -445,11 +449,13 @@ impl HolisticDreamEngine {
     }
 
     /// Get current dream depth
+    #[inline(always)]
     pub fn dream_depth(&self) -> DreamDepth {
         self.current_depth
     }
 
     /// Evaluate insight quality across all discoveries
+    #[inline]
     pub fn insight_quality(&self) -> f32 {
         if self.insights.is_empty() {
             return 0.0;
@@ -459,6 +465,7 @@ impl HolisticDreamEngine {
     }
 
     /// Determine optimal dream schedule based on system state
+    #[inline]
     pub fn dream_schedule(&self, current_load: f32) -> u64 {
         if current_load < DREAM_IDLE_THRESHOLD {
             1 // Dream immediately
@@ -472,12 +479,14 @@ impl HolisticDreamEngine {
     }
 
     /// Record a new event in the replay buffer
+    #[inline(always)]
     pub fn record_event(&mut self, event: ReplayEvent) {
         self.replay_buffer[self.replay_write_idx] = event;
         self.replay_write_idx = (self.replay_write_idx + 1) % MAX_REPLAY_EVENTS;
     }
 
     /// Store a new insight
+    #[inline]
     pub fn store_insight(&mut self, insight: SystemInsight) {
         if self.insights.len() < MAX_INSIGHTS {
             let id = insight.id;
@@ -488,6 +497,7 @@ impl HolisticDreamEngine {
     }
 
     /// Mark an insight as applied
+    #[inline]
     pub fn apply_insight(&mut self, insight_id: u64) -> bool {
         if let Some(insight) = self.insights.get_mut(&insight_id) {
             insight.applied = true;
@@ -499,6 +509,7 @@ impl HolisticDreamEngine {
     }
 
     /// Get all unapplied insights above minimum confidence
+    #[inline]
     pub fn actionable_insights(&self) -> Vec<&SystemInsight> {
         self.insights
             .values()
@@ -507,16 +518,19 @@ impl HolisticDreamEngine {
     }
 
     /// Whether currently in a dream session
+    #[inline(always)]
     pub fn is_dreaming(&self) -> bool {
         self.dreaming
     }
 
     /// Get engine stats
+    #[inline(always)]
     pub fn stats(&self) -> &HolisticDreamStats {
         &self.stats
     }
 
     /// Synergy count
+    #[inline(always)]
     pub fn synergy_count(&self) -> usize {
         self.synergies.len()
     }
@@ -525,6 +539,7 @@ impl HolisticDreamEngine {
     // INTERNAL
     // ========================================================================
 
+    #[inline]
     fn end_session(&mut self) {
         let depth_val = self.current_depth as u8 as f32;
         let quality = if self.current_events_replayed > 0 {

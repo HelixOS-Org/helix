@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -111,6 +111,7 @@ impl CapToken {
     }
 
     /// Add right
+    #[inline]
     pub fn add_right(&mut self, right: CapRight) {
         if !self.rights.contains(&right) {
             self.rights.push(right);
@@ -118,31 +119,37 @@ impl CapToken {
     }
 
     /// Check if has right
+    #[inline(always)]
     pub fn has_right(&self, right: CapRight) -> bool {
         self.rights.contains(&right)
     }
 
     /// Check if expired
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         self.expires_ns > 0 && now >= self.expires_ns
     }
 
     /// Check if valid
+    #[inline(always)]
     pub fn is_valid(&self, now: u64) -> bool {
         self.state == CapExState::Active && !self.is_expired(now)
     }
 
     /// Use (record usage)
+    #[inline(always)]
     pub fn use_token(&mut self) {
         self.usage_count += 1;
     }
 
     /// Revoke
+    #[inline(always)]
     pub fn revoke(&mut self) {
         self.state = CapExState::Revoked;
     }
 
     /// Suspend
+    #[inline]
     pub fn suspend(&mut self) {
         if self.state == CapExState::Active {
             self.state = CapExState::Suspended;
@@ -150,6 +157,7 @@ impl CapToken {
     }
 
     /// Resume
+    #[inline]
     pub fn resume(&mut self) {
         if self.state == CapExState::Suspended {
             self.state = CapExState::Active;
@@ -157,12 +165,19 @@ impl CapToken {
     }
 
     /// Can delegate
+    #[inline(always)]
     pub fn can_delegate(&self) -> bool {
         self.has_right(CapRight::Delegate) && self.delegation_depth < self.max_depth
     }
 
     /// Create delegated token with attenuated rights
-    pub fn delegate(&self, new_id: u64, target_pid: u64, rights: &[CapRight], now: u64) -> Option<CapToken> {
+    pub fn delegate(
+        &self,
+        new_id: u64,
+        target_pid: u64,
+        rights: &[CapRight],
+        now: u64,
+    ) -> Option<CapToken> {
         if !self.can_delegate() {
             return None;
         }
@@ -225,6 +240,7 @@ pub struct CapTransfer {
 
 /// Capability exchange stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoopCapExchangeStats {
     /// Total tokens
     pub total_tokens: usize,
@@ -245,7 +261,7 @@ pub struct CoopCapExchange {
     /// Process -> token IDs
     process_tokens: BTreeMap<u64, Vec<u64>>,
     /// Transfer log
-    transfers: Vec<CapTransfer>,
+    transfers: VecDeque<CapTransfer>,
     /// Stats
     stats: CoopCapExchangeStats,
     /// Next token ID counter
@@ -257,7 +273,7 @@ impl CoopCapExchange {
         Self {
             tokens: BTreeMap::new(),
             process_tokens: BTreeMap::new(),
-            transfers: Vec::new(),
+            transfers: VecDeque::new(),
             stats: CoopCapExchangeStats::default(),
             next_token_id: 1,
         }
@@ -283,20 +299,38 @@ impl CoopCapExchange {
     }
 
     /// Grant capability to process
-    pub fn grant(&mut self, owner_pid: u64, resource_id: u64, rights: &[CapRight], now: u64) -> u64 {
+    #[inline]
+    pub fn grant(
+        &mut self,
+        owner_pid: u64,
+        resource_id: u64,
+        rights: &[CapRight],
+        now: u64,
+    ) -> u64 {
         let token_id = self.gen_token_id(owner_pid, resource_id);
         let mut token = CapToken::new(token_id, owner_pid, resource_id, now);
         for r in rights {
             token.add_right(*r);
         }
         self.tokens.insert(token_id, token);
-        self.process_tokens.entry(owner_pid).or_insert_with(Vec::new).push(token_id);
+        self.process_tokens
+            .entry(owner_pid)
+            .or_insert_with(Vec::new)
+            .push(token_id);
         self.update_stats();
         token_id
     }
 
     /// Grant with expiry
-    pub fn grant_timed(&mut self, owner_pid: u64, resource_id: u64, rights: &[CapRight], expires_ns: u64, now: u64) -> u64 {
+    #[inline]
+    pub fn grant_timed(
+        &mut self,
+        owner_pid: u64,
+        resource_id: u64,
+        rights: &[CapRight],
+        expires_ns: u64,
+        now: u64,
+    ) -> u64 {
         let token_id = self.grant(owner_pid, resource_id, rights, now);
         if let Some(t) = self.tokens.get_mut(&token_id) {
             t.expires_ns = expires_ns;
@@ -320,7 +354,13 @@ impl CoopCapExchange {
     }
 
     /// Delegate capability
-    pub fn delegate(&mut self, token_id: u64, target_pid: u64, rights: &[CapRight], now: u64) -> Option<u64> {
+    pub fn delegate(
+        &mut self,
+        token_id: u64,
+        target_pid: u64,
+        rights: &[CapRight],
+        now: u64,
+    ) -> Option<u64> {
         let new_id = self.gen_token_id(target_pid, token_id);
         let child = if let Some(parent) = self.tokens.get(&token_id) {
             parent.delegate(new_id, target_pid, rights, now)
@@ -334,13 +374,16 @@ impl CoopCapExchange {
                 self.stats.max_depth_seen = child_token.delegation_depth;
             }
             self.tokens.insert(child_id, child_token);
-            self.process_tokens.entry(target_pid).or_insert_with(Vec::new).push(child_id);
+            self.process_tokens
+                .entry(target_pid)
+                .or_insert_with(Vec::new)
+                .push(child_id);
 
             // Record transfer
             if self.transfers.len() >= 4096 {
-                self.transfers.remove(0);
+                self.transfers.pop_front();
             }
-            self.transfers.push(CapTransfer {
+            self.transfers.push_back(CapTransfer {
                 transfer_id: self.stats.total_transfers,
                 from_pid: self.tokens.get(&token_id).map(|t| t.owner_pid).unwrap_or(0),
                 to_pid: target_pid,
@@ -381,6 +424,7 @@ impl CoopCapExchange {
     }
 
     /// Remove process
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
         if let Some(token_ids) = self.process_tokens.remove(&pid) {
             for id in token_ids {
@@ -392,12 +436,15 @@ impl CoopCapExchange {
 
     fn update_stats(&mut self) {
         self.stats.total_tokens = self.tokens.len();
-        self.stats.active_tokens = self.tokens.values()
+        self.stats.active_tokens = self
+            .tokens
+            .values()
             .filter(|t| t.state == CapExState::Active)
             .count();
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &CoopCapExchangeStats {
         &self.stats
     }

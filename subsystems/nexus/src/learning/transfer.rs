@@ -182,6 +182,7 @@ impl FeatureTransformer {
     }
 
     /// Transform features from source to target domain
+    #[inline]
     pub fn transform(&self, features: &[f64]) -> Vec<f64> {
         self.transform
             .iter()
@@ -222,11 +223,13 @@ impl FeatureTransformer {
     }
 
     /// Get source domain
+    #[inline(always)]
     pub fn source(&self) -> DomainId {
         self.source
     }
 
     /// Get target domain
+    #[inline(always)]
     pub fn target(&self) -> DomainId {
         self.target
     }
@@ -310,6 +313,7 @@ impl DomainAdapter {
     }
 
     /// Get adaptation statistics
+    #[inline]
     pub fn stats(&self) -> AdaptationStats {
         AdaptationStats {
             source_samples: self.source.sample_count,
@@ -321,6 +325,7 @@ impl DomainAdapter {
 
 /// Adaptation statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AdaptationStats {
     /// Source samples seen
     pub source_samples: u64,
@@ -348,6 +353,7 @@ pub struct KnowledgeTransfer {
 
 impl KnowledgeTransfer {
     /// Create new knowledge transfer with default settings
+    #[inline(always)]
     pub fn default_new() -> Self {
         Self::new(Vec::new(), 0.5)
     }
@@ -365,6 +371,7 @@ impl KnowledgeTransfer {
     }
 
     /// Initialize target from source (transfer)
+    #[inline]
     pub fn transfer(&mut self) {
         for (t, &s) in self
             .target_weights
@@ -376,6 +383,7 @@ impl KnowledgeTransfer {
     }
 
     /// Fine-tune target with gradient
+    #[inline]
     pub fn finetune(&mut self, gradient: &[f64]) {
         for (w, g) in self.target_weights.iter_mut().zip(gradient.iter()) {
             *w -= self.finetune_lr * g;
@@ -383,16 +391,19 @@ impl KnowledgeTransfer {
     }
 
     /// Get target weights
+    #[inline(always)]
     pub fn target_weights(&self) -> &[f64] {
         &self.target_weights
     }
 
     /// Set fine-tune learning rate
+    #[inline(always)]
     pub fn set_finetune_lr(&mut self, lr: f64) {
         self.finetune_lr = lr;
     }
 
     /// Count the number of weights (for knowledge_items)
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.target_weights.len()
     }
@@ -432,6 +443,7 @@ impl TransferLearner {
     }
 
     /// Register a domain
+    #[inline]
     pub fn register_domain(&mut self, name: String) -> DomainId {
         let id = DomainId(self.next_domain_id);
         self.next_domain_id += 1;
@@ -443,6 +455,7 @@ impl TransferLearner {
     }
 
     /// Get domain
+    #[inline(always)]
     pub fn get_domain(&self, id: DomainId) -> Option<&Domain> {
         self.domains.get(&id)
     }
@@ -469,6 +482,7 @@ impl TransferLearner {
     }
 
     /// Adapt features from source to target domain
+    #[inline]
     pub fn adapt_features(
         &self,
         source: DomainId,
@@ -498,6 +512,7 @@ impl TransferLearner {
     }
 
     /// Transfer knowledge to target
+    #[inline]
     pub fn transfer_to_target(&mut self, ratio: f64) {
         for (t, &s) in self.target_model.iter_mut().zip(self.source_model.iter()) {
             *t = ratio * s + (1.0 - ratio) * *t;
@@ -521,6 +536,7 @@ impl TransferLearner {
     }
 
     /// Predict using target model
+    #[inline]
     pub fn predict(&self, features: &[f64]) -> f64 {
         self.target_model
             .iter()
@@ -530,6 +546,7 @@ impl TransferLearner {
     }
 
     /// Get domain count
+    #[inline(always)]
     pub fn domain_count(&self) -> usize {
         self.domains.len()
     }

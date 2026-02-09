@@ -58,6 +58,7 @@ impl SeccompAppRecord {
 
 /// Seccomp app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SeccompAppStats {
     pub total_ops: u64,
     pub filters_set: u64,
@@ -83,6 +84,7 @@ impl AppSeccomp {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &SeccompAppRecord) {
         self.stats.total_ops += 1;
         match rec.op {

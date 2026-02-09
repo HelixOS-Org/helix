@@ -48,18 +48,24 @@ impl FileLockRequest {
         }
     }
 
+    #[inline(always)]
     pub fn grant(&mut self) { self.state = FileLockState::Granted; }
+    #[inline(always)]
     pub fn block(&mut self, blocker: u64) { self.state = FileLockState::Blocked; self.blocking_lock = Some(blocker); }
+    #[inline(always)]
     pub fn release(&mut self) { self.state = FileLockState::Released; }
 
+    #[inline(always)]
     pub fn overlaps(&self, start: u64, end: u64) -> bool {
         self.start < end && start < self.end
     }
 
+    #[inline(always)]
     pub fn is_write(&self) -> bool {
         matches!(self.lock_type, FileLockType::WriteLock | FileLockType::FlockExclusive)
     }
 
+    #[inline]
     pub fn is_compatible(&self, other: &Self) -> bool {
         if self.inode != other.inode { return true; }
         if !self.overlaps(other.start, other.end) { return true; }
@@ -80,10 +86,12 @@ impl DeadlockDetector {
         Self { wait_graph: BTreeMap::new(), deadlocks_found: 0, checks: 0 }
     }
 
+    #[inline(always)]
     pub fn add_edge(&mut self, waiter: u32, holder: u32) {
         self.wait_graph.entry(waiter).or_insert_with(Vec::new).push(holder);
     }
 
+    #[inline(always)]
     pub fn remove_edges(&mut self, pid: u32) {
         self.wait_graph.remove(&pid);
     }
@@ -108,6 +116,7 @@ impl DeadlockDetector {
 
 /// File lock holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct HolisticFileLockStats {
     pub total_locks: u64,
     pub granted: u64,
@@ -152,6 +161,7 @@ impl HolisticFileLock {
         self.locks.insert(req.lock_id, req);
     }
 
+    #[inline]
     pub fn release_lock(&mut self, lock_id: u64) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.release();

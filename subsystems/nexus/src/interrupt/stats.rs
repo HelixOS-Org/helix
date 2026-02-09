@@ -14,6 +14,7 @@ use crate::math::F64Ext;
 
 /// Statistics for an IRQ
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IrqStats {
     /// Total count
     pub total: u64,
@@ -49,6 +50,7 @@ impl IrqStats {
     }
 
     /// Record interrupt
+    #[inline]
     pub fn record(&mut self, record: &InterruptRecord) {
         self.total += 1;
         *self.per_cpu.entry(record.cpu).or_insert(0) += 1;

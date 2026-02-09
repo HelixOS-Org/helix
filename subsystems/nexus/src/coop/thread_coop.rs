@@ -2,6 +2,7 @@
 //! NEXUS Coop — Thread (cooperative thread management)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -26,6 +27,7 @@ pub struct CoopThreadGroup {
 
 /// Thread cooperation stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoopThreadStats {
     pub total_groups: u64,
     pub total_threads: u64,
@@ -38,7 +40,7 @@ pub struct CoopThreadStats {
 /// Manager for cooperative thread operations
 pub struct CoopThreadManager {
     groups: BTreeMap<u64, CoopThreadGroup>,
-    tid_to_group: BTreeMap<u64, u64>,
+    tid_to_group: LinearMap<u64, 64>,
     stats: CoopThreadStats,
 }
 
@@ -46,7 +48,7 @@ impl CoopThreadManager {
     pub fn new() -> Self {
         Self {
             groups: BTreeMap::new(),
-            tid_to_group: BTreeMap::new(),
+            tid_to_group: LinearMap::new(),
             stats: CoopThreadStats {
                 total_groups: 0,
                 total_threads: 0,
@@ -77,6 +79,7 @@ impl CoopThreadManager {
         }
     }
 
+    #[inline]
     pub fn add_thread(&mut self, tgid: u64, tid: u64) -> bool {
         if let Some(group) = self.groups.get_mut(&tgid) {
             group.members.push(tid);
@@ -88,12 +91,13 @@ impl CoopThreadManager {
         }
     }
 
+    #[inline]
     pub fn remove_thread(&mut self, tid: u64) -> bool {
-        if let Some(&tgid) = self.tid_to_group.get(&tid) {
+        if let Some(&tgid) = self.tid_to_group.get(tid) {
             if let Some(group) = self.groups.get_mut(&tgid) {
                 group.members.retain(|&t| t != tid);
             }
-            self.tid_to_group.remove(&tid);
+            self.tid_to_group.remove(tid);
             true
         } else {
             false
@@ -101,7 +105,7 @@ impl CoopThreadManager {
     }
 
     pub fn migrate_thread(&mut self, tid: u64, new_tgid: u64) -> bool {
-        if let Some(&old_tgid) = self.tid_to_group.get(&tid) {
+        if let Some(&old_tgid) = self.tid_to_group.get(tid) {
             if let Some(old) = self.groups.get_mut(&old_tgid) {
                 old.members.retain(|&t| t != tid);
             }
@@ -115,6 +119,7 @@ impl CoopThreadManager {
         false
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoopThreadStats {
         &self.stats
     }

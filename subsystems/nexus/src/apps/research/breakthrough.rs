@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -145,6 +146,7 @@ pub enum FrequencyTrend {
 
 /// Engine-level stats.
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct BreakthroughStats {
     pub candidates_evaluated: u64,
     pub breakthroughs_confirmed: u64,
@@ -163,8 +165,8 @@ pub struct BreakthroughStats {
 pub struct AppsBreakthroughDetector {
     candidates: BTreeMap<u64, BreakthroughCandidate>,
     catalog: BTreeMap<u64, BreakthroughEntry>,
-    frequency_ticks: Vec<u64>,
-    baseline_scores: Vec<f32>,
+    frequency_ticks: VecDeque<u64>,
+    baseline_scores: VecDeque<f32>,
     stats: BreakthroughStats,
     rng_state: u64,
     tick: u64,
@@ -176,8 +178,8 @@ impl AppsBreakthroughDetector {
         Self {
             candidates: BTreeMap::new(),
             catalog: BTreeMap::new(),
-            frequency_ticks: Vec::new(),
-            baseline_scores: Vec::new(),
+            frequency_ticks: VecDeque::new(),
+            baseline_scores: VecDeque::new(),
             stats: BreakthroughStats {
                 candidates_evaluated: 0,
                 breakthroughs_confirmed: 0,
@@ -195,6 +197,7 @@ impl AppsBreakthroughDetector {
     // ── Primary API ────────────────────────────────────────────────────
 
     /// Evaluate a finding for potential breakthrough status.
+    #[inline]
     pub fn detect_breakthrough(
         &mut self,
         title: &str,
@@ -214,9 +217,9 @@ impl AppsBreakthroughDetector {
         let is_bt = composite >= BREAKTHROUGH_THRESHOLD;
 
         // Track baseline for relative comparisons
-        self.baseline_scores.push(composite);
+        self.baseline_scores.push_back(composite);
         if self.baseline_scores.len() > MAX_CANDIDATES {
-            self.baseline_scores.remove(0);
+            self.baseline_scores.pop_front();
         }
 
         let candidate = BreakthroughCandidate {
@@ -353,6 +356,7 @@ impl AppsBreakthroughDetector {
     }
 
     /// Get the full breakthrough catalog.
+    #[inline(always)]
     pub fn breakthrough_catalog(&self) -> Vec<BreakthroughEntry> {
         self.catalog.values().cloned().collect()
     }
@@ -405,6 +409,7 @@ impl AppsBreakthroughDetector {
     }
 
     /// Return engine stats.
+    #[inline(always)]
     pub fn stats(&self) -> &BreakthroughStats {
         &self.stats
     }
@@ -437,9 +442,9 @@ impl AppsBreakthroughDetector {
             citations: 0,
         };
 
-        self.frequency_ticks.push(self.tick);
+        self.frequency_ticks.push_back(self.tick);
         if self.frequency_ticks.len() > MAX_FREQUENCY_HISTORY {
-            self.frequency_ticks.remove(0);
+            self.frequency_ticks.pop_front();
         }
 
         if self.catalog.len() >= MAX_CATALOG {

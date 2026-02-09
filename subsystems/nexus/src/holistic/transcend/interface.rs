@@ -13,6 +13,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -153,6 +154,7 @@ pub struct KnowledgePacket {
 // ---------------------------------------------------------------------------
 
 #[derive(Clone)]
+#[repr(align(64))]
 pub struct InterfaceStats {
     pub explanations_given: u64,
     pub lessons_taught: u64,
@@ -184,9 +186,9 @@ impl InterfaceStats {
 // ---------------------------------------------------------------------------
 
 pub struct HolisticInterface {
-    explanations: Vec<Explanation>,
+    explanations: VecDeque<Explanation>,
     lessons: BTreeMap<u64, Lesson>,
-    recommendations: Vec<Recommendation>,
+    recommendations: VecDeque<Recommendation>,
     stats: InterfaceStats,
     rng: Xorshift64,
     tick: u64,
@@ -195,9 +197,9 @@ pub struct HolisticInterface {
 impl HolisticInterface {
     pub fn new(seed: u64) -> Self {
         Self {
-            explanations: Vec::new(),
+            explanations: VecDeque::new(),
             lessons: BTreeMap::new(),
-            recommendations: Vec::new(),
+            recommendations: VecDeque::new(),
             stats: InterfaceStats::new(),
             rng: Xorshift64::new(seed),
             tick: 0,
@@ -236,9 +238,9 @@ impl HolisticInterface {
             chain_hash: chain_h,
         };
         if self.explanations.len() >= MAX_EXPLANATIONS {
-            self.explanations.remove(0);
+            self.explanations.pop_front();
         }
-        self.explanations.push(expl.clone());
+        self.explanations.push_back(expl.clone());
         self.stats.explanations_given = self.stats.explanations_given.wrapping_add(1);
         self.stats.ema_confidence_bps = ema_update(self.stats.ema_confidence_bps, confidence);
         expl
@@ -314,9 +316,9 @@ impl HolisticInterface {
             confidence_bps: confidence.min(10_000),
         };
         if self.recommendations.len() >= MAX_RECOMMENDATIONS {
-            self.recommendations.remove(0);
+            self.recommendations.pop_front();
         }
-        self.recommendations.push(rec.clone());
+        self.recommendations.push_back(rec.clone());
         self.stats.recommendations_issued = self.stats.recommendations_issued.wrapping_add(1);
         self.stats.ema_confidence_bps = ema_update(self.stats.ema_confidence_bps, confidence);
         rec
@@ -455,18 +457,22 @@ impl HolisticInterface {
 
     // -- accessors ----------------------------------------------------------
 
+    #[inline(always)]
     pub fn stats(&self) -> &InterfaceStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn explanation_count(&self) -> usize {
         self.explanations.len()
     }
 
+    #[inline(always)]
     pub fn lesson_count(&self) -> usize {
         self.lessons.len()
     }
 
+    #[inline(always)]
     pub fn tick(&self) -> u64 {
         self.tick
     }

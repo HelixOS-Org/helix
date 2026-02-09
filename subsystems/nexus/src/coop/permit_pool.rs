@@ -47,18 +47,23 @@ impl Permit {
         }
     }
 
+    #[inline(always)]
     pub fn is_valid(&self, now: u64) -> bool {
         self.state == PermitState::Acquired && self.expires_at.map(|e| now < e).unwrap_or(true)
     }
 
+    #[inline(always)]
     pub fn revoke(&mut self) { self.state = PermitState::Revoked; }
+    #[inline(always)]
     pub fn expire(&mut self) { self.state = PermitState::Expired; }
 
+    #[inline(always)]
     pub fn hold_time(&self, now: u64) -> u64 { now.saturating_sub(self.acquired_at) }
 }
 
 /// Pool waiter
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PoolWaiter {
     pub tid: u64,
     pub requested_type: PermitType,
@@ -68,6 +73,7 @@ pub struct PoolWaiter {
 
 /// Permit pool
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct PermitPool {
     pub id: u64,
     pub capacity: u32,
@@ -88,6 +94,7 @@ impl PermitPool {
         }
     }
 
+    #[inline]
     pub fn try_acquire(&mut self, tid: u64, ptype: PermitType, now: u64) -> Option<u64> {
         let weight = match ptype { PermitType::Weighted(w) => w, PermitType::Exclusive => self.capacity, _ => 1 };
         if self.available < weight { return None; }
@@ -100,6 +107,7 @@ impl PermitPool {
         Some(permit_id)
     }
 
+    #[inline]
     pub fn release(&mut self, permit_id: u64) -> bool {
         if let Some(pos) = self.permits.iter().position(|p| p.id == permit_id && p.state == PermitState::Acquired) {
             let weight = self.permits[pos].weight;
@@ -110,11 +118,13 @@ impl PermitPool {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.capacity == 0 { return 0.0; }
         (self.capacity - self.available) as f64 / self.capacity as f64
     }
 
+    #[inline(always)]
     pub fn enqueue_waiter(&mut self, tid: u64, ptype: PermitType, now: u64) {
         let weight = match ptype { PermitType::Weighted(w) => w, _ => 1 };
         self.waiters.push(PoolWaiter { tid, requested_type: ptype, weight_needed: weight, enqueued_at: now });
@@ -123,6 +133,7 @@ impl PermitPool {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PermitPoolStats {
     pub total_pools: u32,
     pub total_active_permits: u32,
@@ -133,6 +144,7 @@ pub struct PermitPoolStats {
 }
 
 /// Main permit pool manager
+#[repr(align(64))]
 pub struct CoopPermitPool {
     pools: BTreeMap<u64, PermitPool>,
     next_id: u64,
@@ -141,6 +153,7 @@ pub struct CoopPermitPool {
 impl CoopPermitPool {
     pub fn new() -> Self { Self { pools: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create_pool(&mut self, capacity: u32) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -148,10 +161,12 @@ impl CoopPermitPool {
         id
     }
 
+    #[inline(always)]
     pub fn acquire(&mut self, pool_id: u64, tid: u64, ptype: PermitType, now: u64) -> Option<u64> {
         self.pools.get_mut(&pool_id)?.try_acquire(tid, ptype, now)
     }
 
+    #[inline(always)]
     pub fn release(&mut self, pool_id: u64, permit_id: u64) -> bool {
         self.pools.get_mut(&pool_id).map(|p| p.release(permit_id)).unwrap_or(false)
     }

@@ -23,6 +23,7 @@ impl UdpHolisticRecord {
 
 /// UDP holistic stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct UdpHolisticStats { pub total_samples: u64, pub total_loss: u64, pub high_loss_events: u64, pub peak_jitter: u32 }
 
 /// Main holistic UDP
@@ -31,6 +32,7 @@ pub struct HolisticUdp { pub stats: UdpHolisticStats }
 
 impl HolisticUdp {
     pub fn new() -> Self { Self { stats: UdpHolisticStats { total_samples: 0, total_loss: 0, high_loss_events: 0, peak_jitter: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &UdpHolisticRecord) {
         self.stats.total_samples += 1;
         self.stats.total_loss += rec.dropped;

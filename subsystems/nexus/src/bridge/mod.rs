@@ -323,8 +323,6 @@ pub mod research;
 // Year 5 TRANSCEND — Bridge Superintelligent Transcendence Layer
 pub mod transcend;
 
-// Re-exports from Round 4 modules
-// Re-exports from Round 8 modules
 pub use abi_translator::{
     AbiArgType, AbiVersion as AbiTranslatorVersion, BridgeAbiTranslator, BridgeAbiTranslatorStats,
     FieldDescriptor, RegisterMapping, StructTranslation, SyscallTranslation,
@@ -333,14 +331,11 @@ pub use accounting::{
     AccountingResource, BridgeAccountingEngine, BridgeAccountingStats, CostModel, CostUnit,
     ProcessAccount, ResourceCounter, SyscallCost,
 };
-// Re-exports from Round 17 bridge modules
 pub use acct_bridge::{AcctBridgeStats, AcctEntry, AcctRecordType, BridgeAcct};
-// Re-exports from Round 13 bridge modules
 pub use acpi_bridge::{
     AcpiBridgeStats, AcpiDevice, AcpiDeviceState, AcpiEvent, AcpiEventType, AcpiTable,
     AcpiTableType, BridgeAcpi, GpeInfo, SleepState as AcpiSleepState,
 };
-// Re-exports from Round 12 modules
 pub use addr_space::{
     AddrProt, AddrSpaceStats, AddrTranslation, AslrPolicy, BridgeAddrSpace, ProcessAddrSpace,
     RegionType, VmaRegion,
@@ -349,35 +344,18 @@ pub use admission::{
     AdmissionConfig, AdmissionDecision, AdmissionPriority, BridgeAdmissionController,
     BridgeAdmissionStats, LoadLevel, ProcessCredit, QueuedRequest,
 };
-// Re-exports from Round 7 modules
 pub use affinity::{
     AffinityChangeReason, AffinityClass, BridgeAffinityStats, BridgeAffinityTracker,
     ProcessAffinityProfile, SyscallCpuAffinity,
 };
-// Re-exports from Round 11 modules
 pub use aio_bridge::{
     AioBridgeStats, AioContext, AioEvent, AioIocb, AioOp, AioState, BridgeAioBridge,
-};
-// Re-exports from Round 15 bridge modules
-    AioContext, AioCtxState, AioV2BridgeStats, AioV2CompletionMode, AioV2Op, BridgeAioV2, Iocb,
-};
-// Re-exports from Round 18 bridge modules
-    AioV3BridgeStats, AioV3Completion, AioV3OpType, AioV3Ring, AioV3Submission, BridgeAioV3,
-};
-// Re-exports from Round 21 bridge modules
-    AioV4BridgeStats, AioV4Cqe, AioV4CqeState, AioV4FixedBuf, AioV4Op, AioV4Ring, AioV4Sqe,
-    BridgeAioV4,
-};
-// Round 23 re-exports
-    AioV5BridgeStats, AioV5Cb, AioV5Context, AioV5OpType, AioV5Priority, AioV5Ring, AioV5State,
-    BridgeAioV5,
 };
 pub use async_io::{AsyncCompletion, AsyncIoEngine, AsyncIoRequest, AsyncPriority, AsyncStatus};
 pub use async_syscall::{
     AsyncContext, AsyncSyscallFlag, AsyncSyscallState, BridgeAsyncSyscall, BridgeAsyncSyscallStats,
     CqEntry, InFlightSyscall, Ring as AsyncRing, SqEntry,
 };
-// Re-exports from Round 3 modules
 pub use audit::{
     AlertCondition, AuditEvent, AuditEventType, AuditManagerStats, AuditRule, AuditSeverity,
     BridgeAuditManager,
@@ -386,7 +364,6 @@ pub use audit_bridge::{
     AuditBridgeStats, AuditField, AuditMsgType, AuditRecord, AuditRule as AuditBridgeRule,
     BridgeAudit,
 };
-// Re-exports from Round 6 modules
 pub use backoff::{
     BackoffConfig, BackoffState, BackoffStrategy, BackoffTracker, BridgeBackoffManager,
     BridgeBackoffStats, ErrorClass, ProcessBackoff,
@@ -396,14 +373,11 @@ pub use binfmt_bridge::{
     BinaryImage, BinfmtBridgeStats, BinfmtLoadState, BinfmtMiscRule, BinfmtType, BridgeBinfmt,
     ElfInfo, ProgHeader,
 };
-// Re-exports from Round 19 bridge modules
     BinfmtV2BridgeStats, BinfmtV2Entry, BinfmtV2Type, BridgeBinfmtV2, LoadInfoV2,
-};
 pub use bio_bridge::{BioBridgeOp, BioBridgeRecord, BioBridgeResult, BioBridgeStats, BridgeBio};
 pub use blkdev_bridge::{
     BlkdevBridgeOp, BlkdevBridgeRecord, BlkdevBridgeResult, BlkdevBridgeStats, BridgeBlkdev,
 };
-// Re-exports from Round 10 modules
 pub use block_bridge::{
     BioOp, BioState, BlockBridgeStats, BlockDevice, BlockReq, BridgeBlockBridge,
     IoSched as BridgeIoSched, Partition,
@@ -413,8 +387,6 @@ pub use bpf_bridge::{
     VerifyResult,
 };
     BpfV2BridgeStats, BpfV2Map, BpfV2MapType, BpfV2ProgType, BpfV2Program, BridgeBpfV2,
-};
-// Re-exports from Round 5 modules
 pub use bulkhead::{
     BridgeBulkheadManager, BridgeBulkheadStats, Bulkhead, BulkheadClass, BulkheadState,
     OverflowPolicy,
@@ -425,7 +397,6 @@ pub use canary::{
     ComparisonResult, MetricSamples as CanaryMetricSamples,
 };
 pub use cap_bridge::{BridgeCap, CapBitmask, CapBridgeStats, CapSetType, Capability, ProcessCaps};
-// Re-exports from Round 9 modules
 pub use cap_mgr::{
     BridgeCapMgr, BridgeCapType, CapAuditAction, CapAuditEntry, CapScope, CapSet, CapState,
     CapToken,
@@ -438,14 +409,10 @@ pub use cgroup_bridge::{
     BridgeCgroupBridge, CgroupBridgeStats, CgroupController, CgroupEvent, CgroupMigration,
     CgroupNode, CgroupOp, CgroupVersion, ControllerLimit,
 };
-// Re-exports from Round 14 bridge modules
     BridgeCgroupV2, CgroupV2BridgeStats, CgroupV2Controller, CgroupV2Event, CgroupV2EventType,
     CgroupV2Node, CpuWeightConfig, DistributionModel, IoConfig, MemoryLimits, MemoryProtection,
-};
-// Re-exports from Round 22 bridge modules
     BridgeCgroupV4, CgroupV4BridgeStats, CgroupV4Controller, CgroupV4ControllerState,
     CgroupV4DelegateScope, CgroupV4Group, CgroupV4Pressure, CgroupV4PressureKind,
-};
 pub use checkpoint::{
     BridgeCheckpointManager, BridgeCheckpointStats, Checkpoint, CheckpointState, CheckpointTrigger,
     RestorePlan, StateComponent, StateFragment,
@@ -497,7 +464,6 @@ pub use cpuset_bridge::{
     BridgeCpuset, CpusetBridgeStats, CpusetDistribution, CpusetGroup, CpusetMask, CpusetMemPolicy,
     CpusetPartition,
 };
-// Re-exports from Round 16 bridge modules
 pub use cred_bridge::{
     BridgeCred, CapSet as CredCapSet, CredBridgeStats, CredChangeEvent, CredType, ProcessCred,
 };
@@ -505,7 +471,6 @@ pub use cred_mgr::{
     BridgeCredMgr, BridgeCredMgrStats, CredChangeEvent, CredChangeType, CredentialSet, ProcessCreds,
 };
     BridgeCredV2, CapabilitySetV2, CredV2BridgeStats, CredV2Type, ProcessCredV2,
-};
 pub use credential::{
     AuthzDecision, BridgeCredentialProxy, BridgeCredentialStats, CredCacheEntry, CredentialSet,
     CredentialType, EscalationEvent, PrivilegeLevel,
@@ -570,13 +535,9 @@ pub use epoll_bridge::{
     WakeupSource, WakeupSourceType,
 };
     BridgeEpollV2, EpollV2BridgeStats, EpollV2Flags, EpollV2Instance, EpollV2Item, EpollV2Op,
-};
-// Re-exports from Round 20 bridge modules
     BridgeEpollV3, EpollV3BridgeStats, EpollV3Event, EpollV3Instance, EpollV3Interest,
     EpollV3Trigger,
-};
     BridgeEpollV4, EpollV4BridgeStats, EpollV4Event, EpollV4Instance, EpollV4Interest, EpollV4Mode,
-};
 pub use error_recovery::{
     BridgeErrorRecovery, BridgeErrorRecoveryStats, ErrorPattern, RecoveryStrategy, SyscallError,
     SyscallErrorCategory,
@@ -593,7 +554,6 @@ pub use eventfd_bridge::{
     BridgeEventfd, EventfdBridgeStats, EventfdFlags, EventfdInstance, EventfdOp,
 };
     BridgeEventfdV2, EventfdV2BridgeStats, EventfdV2Flag, EventfdV2Instance, EventfdV2State,
-};
 pub use fallback::{
     EmulationEntry, EmulationRegistry, ErrorCategory, FallbackAlertType, FallbackEngine,
     FallbackResult, FallbackStrategy, RetryConfig, SyscallFallbackChain,
@@ -608,9 +568,7 @@ pub use fanotify_bridge::{
 };
     BridgeFanotifyV2, FanMarkType as FanV2MarkType, FanotifyV2BridgeStats, FanotifyV2Event,
     FanotifyV2Group, FanotifyV2Mark, FanotifyV2Mask,
-};
     BridgeFanotifyV3, FanEventV3, FanGroupV3, FanResponseV3, FanotifyV3BridgeStats, FanotifyV3Mask,
-};
 pub use fd_table::{
     BridgeFdTableProxy, BridgeFdTableStats, FdEntry, FdFlags, FdType, ProcessFdTable,
 };
@@ -623,11 +581,8 @@ pub use flock_bridge::{
     LockOpResult, LockOpType, LockState,
 };
     BridgeFlockV2, DeadlockEdge, FlockV2BridgeStats, FlockV2State, FlockV2Type, PosixLock,
-};
     BridgeFlockV3, DeadlockDetector, FileLockV3, FlockV3BridgeStats, FlockV3Type, LockScopeV3,
-};
     BridgeFlockV4, FlockV4BridgeRecord, FlockV4BridgeStats, FlockV4Op, FlockV4Result,
-};
 pub use flow::{
     AdmissionWindow, BridgeFlowController, BridgeFlowStats, CongestionSignal, CreditBucket,
     FlowPriority, FlowState, ProcessFlow,
@@ -637,10 +592,8 @@ pub use futex::{
 };
     BridgeFutexV2, FutexBucket, FutexOp, FutexV2Stats, FutexWaiter, PiChainEntry, WaiterPriority,
     WaitvEntry,
-};
     BridgeFutexV3, FutexV3Instance, FutexV3Key, FutexV3Op, FutexV3Stats, FutexV3Waiter,
     FutexV3WaiterState,
-};
 pub use gateway::{
     ApiVersion as GatewayApiVersion, BridgeGatewayManager, BridgeGatewayStats, CallerProfile,
     FeatureFlag, GatewayRateLimiter, GatewayState,
@@ -663,10 +616,8 @@ pub use inotify_bridge::{
 };
     BridgeInotifyV2, InotifyV2BridgeStats, InotifyV2Event, InotifyV2Instance, InotifyV2Mask,
     InotifyV2Watch,
-};
     BridgeInotifyV3, InotifyV3BridgeStats, InotifyV3Event, InotifyV3Instance, InotifyV3Mask,
     InotifyV3Watch,
-};
 pub use instrument::{
     BridgeInstrumentationEngine, EventFilter, FilterField, FilterOp, InstrumentationEvent,
     InstrumentationProbe, InstrumentationStats, PerfCounter, PerfCounterType, ProbeState,
@@ -686,10 +637,8 @@ pub use io_uring_bridge::{
 };
     BridgeIoUringV2, IoUringV2BridgeStats, IoUringV2BufGroup, IoUringV2CqeFlag, IoUringV2Op,
     IoUringV2RegisteredFd, IoUringV2Ring,
-};
     BridgeIoUringV3, CqeEntry, IoUringV3BridgeStats, IoUringV3Feature, IoUringV3Op, IoUringV3Ring,
     RegisteredBufPool, SqeEntry,
-};
 pub use ioprio_bridge::{BridgeIoprio, IoprioBridgeStats, IoprioClass, IoprioEntry, IoprioWho};
 pub use iosched_bridge::{
     BridgeIoSched as BridgeIoSchedV2, IoSchedBridgeOp, IoSchedBridgePrio, IoSchedBridgeRecord,
@@ -713,7 +662,6 @@ pub use kcmp_bridge::{
     ResourceIdentity,
 };
     BridgeKcmpV2, KcmpV2BridgeStats, KcmpV2Record, KcmpV2Result, KcmpV2Type, ResourceId,
-};
 pub use kcov_bridge::{
     BridgeKcovBridge, CmpRecord, CmpType, CovEntry, CoverageDatabase, KcovBridgeStats, KcovMode,
     TaskCovBuffer,
@@ -730,7 +678,6 @@ pub use keyring_bridge::{
     BridgeKeyring, KernelKey, KeyOp, KeyPerm, KeyState, KeyType, Keyring, KeyringBridgeStats,
 };
     BridgeKeyringV2, KeyEntryV2, KeyPermV2, KeyStateV2, KeyTypeV2, KeyringV2, KeyringV2BridgeStats,
-};
 pub use kqueue_bridge::{
     BridgeKqueue, Kevent, KqueueBridgeStats, KqueueFilter, KqueueFlag, KqueueInstance, VnodeEvent,
 };
@@ -740,13 +687,10 @@ pub use landlock_bridge::{
 };
     BridgeLandlockV2, LandlockFsFlags, LandlockV2BridgeStats, LandlockV2Rule, LandlockV2RuleType,
     LandlockV2Ruleset,
-};
     BridgeLandlockV3, LandlockV3BridgeStats, LandlockV3FsAccess, LandlockV3NetAccess,
     LandlockV3Rule, LandlockV3RuleType, LandlockV3Ruleset,
-};
     BridgeLandlockV4, LandlockV4BridgeStats, LandlockV4FsAccess, LandlockV4FsRule,
     LandlockV4NetAccess, LandlockV4NetRule, LandlockV4RuleType, LandlockV4Ruleset,
-};
 pub use marshal::{
     ArgDescriptor, ArgType as MarshalArgType, BridgeMarshalEngine, MarshalStats, MarshalledValue,
     PointerValidator, SyscallSignature as MarshalSignature,
@@ -764,9 +708,7 @@ pub use memfd_bridge::{
     BridgeMemfd, MemfdBridgeStats, MemfdFlags, MemfdInstance, MemfdOp, SealFlags,
 };
     BridgeMemfdV2, MemfdSeals, MemfdV2BridgeStats, MemfdV2Flags, MemfdV2Instance,
-};
     BridgeMemfdV3, MemfdV3Backing, MemfdV3BridgeStats, MemfdV3Flag, MemfdV3Instance, MemfdV3Seal,
-};
 pub use metrics::{
     ErrorTracker, LatencyHistogram, MetricsRegistry, ProcessSyscallMetrics, SyscallTypeMetrics,
     ThroughputTracker,
@@ -776,7 +718,6 @@ pub use mmap_mgr::{
     VmaType,
 };
     BridgeMmapV2, MmapV2Flag, MmapV2Prot, MmapV2Region, MmapV2Space, MmapV2Stats, MmapV2Type,
-};
 pub use mnt_ns_bridge::{
     BridgeMntNs, FsType as MntNsFsType, MntNsBridgeStats, MountEventType as MntNsEventType,
     MountFlags as MntNsFlags, MountNamespace as MntNsNamespace, MountPoint as MntNsPoint,
@@ -792,9 +733,7 @@ pub use mount_bridge::{
 };
     BridgeMountV2, MountV2BridgeStats, MountV2Entry, MountV2Flag, MountV2FsContext, MountV2FsType,
     MountV2IdMap, MountV2Propagation,
-};
     BridgeMountV3, MountV3BridgeOp, MountV3BridgeRecord, MountV3BridgeStats, MountV3Result,
-};
 pub use mq_bridge::{
     BridgeMq, MqBridgeStats, MqDescriptor, MqMessage as MqBridgeMessage, MqPriority,
 };
@@ -811,7 +750,6 @@ pub use namespace_bridge::{
 };
     BridgeNamespaceV2, NsV2BridgeStats, NsV2IdMapping, NsV2Instance, NsV2Ownership, NsV2State,
     NsV2Type,
-};
 pub use net_proxy::{
     BridgeNetProxy, BridgeNetProxyStats, BridgeSocketState, BridgeSocketType, CoalesceOpportunity,
     NetSyscallType, SocketEntry,
@@ -825,9 +763,7 @@ pub use netlink_proxy::{
     NlMsgType, NlSocket,
 };
     BridgeNetlinkV2, NetlinkV2BridgeStats, NlV2Message, NlV2MsgType, NlV2Protocol, NlV2Socket,
-};
     BridgeNetlinkV3, NetlinkV3BridgeStats, NetlinkV3Proto, NetlinkV3Socket, NlMsgTypeV3,
-};
 pub use ns_proxy::{
     BridgeNsProxy, IdMapping, NamespaceDesc, NsRefType, NsReference, NsType, PidMapping,
     ProcessNsSet,
@@ -850,24 +786,19 @@ pub use perf_hw_bridge::{
     PerfEventGroup, PerfHwBridgeStats, PerfSample, PmuEventType, SamplingMode,
 };
     BridgePerfV2, PerfV2Attr, PerfV2BridgeStats, PerfV2Event, PerfV2EventType, PerfV2SampleType,
-};
     BridgePerfV3, PerfV3BridgeStats, PerfV3Counter, PerfV3EventType, PerfV3HwEvent,
-};
 pub use pidfd_bridge::{
     BridgePidfd, PidfdBridgeStats, PidfdFlags, PidfdInstance, PidfdOp, ProcessPidfdState,
 };
     BridgePidfdV2, PidfdSignalV2, PidfdV2BridgeStats, PidfdV2Entry, PidfdV2Flag, PidfdV2State,
-};
     BridgePidfdV3, PidfdV3BridgeStats, PidfdV3Flag, PidfdV3Instance, PidfdV3ProcState,
     PidfdV3WaitResult,
-};
 pub use pipe_bridge::{
     BridgePipeBridge, PipeBridgeStats, PipeBuffer, PipeInstance, PipeState, SpliceRecord,
 };
 pub use pipeline::{PipelineConfig, PipelineStage, StageDecision, SyscallPipeline};
 pub use pkey_bridge::{BridgePkey, Pkey, PkeyAccess, PkeyBridgeStats, PkruState, ProcessPkeys};
     BridgePkeyV2, PkeyV2Access, PkeyV2BridgeStats, PkeyV2Entry, PkruState as PkruStateV2,
-};
 pub use poll_bridge::{
     BridgePollBridge, FdPollStats, PollBridgeStats, PollEvents, PollFdEntry, PollRequest,
     PollVariant,
@@ -882,7 +813,6 @@ pub use power_bridge::{
 pub use prctl_bridge::{BridgePrctl, PrctlBridgeStats, PrctlOption, ProcessPrctlState};
     BridgePrctlV2, PrctlV2BridgeStats, PrctlV2Op, PrctlV2ProcessState, PrctlV2Securebits,
     PrctlV2SpecCtrl,
-};
 pub use predict::{
     PredictedSyscall, SyscallConfidence, SyscallPattern, SyscallPredictor, SyscallSequence,
 };
@@ -908,15 +838,11 @@ pub use ptrace_bridge::{
     BridgePtraceV2, PtraceEvent as PtraceV2Event, PtraceRequest as PtraceV2Request, PtraceStop,
     PtraceV2BridgeStats, RegisterSet as PtraceRegisterSet, Tracee as PtraceV2Tracee,
     TraceeState as PtraceV2TraceeState,
-};
     BridgePtraceV3, PtraceV3BridgeStats, PtraceV3Event, PtraceV3Request, PtraceV3Session,
-};
     BridgePtraceV4, PtraceV4BridgeStats, PtraceV4Regs, PtraceV4Request, PtraceV4Stop,
     PtraceV4Tracee,
-};
     BridgePtraceV5, PtraceV5BridgeStats, PtraceV5HwBreakpoint, PtraceV5HwType, PtraceV5Request,
     PtraceV5StopKind, PtraceV5TraceeState,
-};
 pub use queue::{
     BackpressureConfig, BackpressureState, DrainagePolicy, QueueEntry, QueueManager, QueuePriority,
     SyscallQueue,
@@ -930,7 +856,6 @@ pub use quota_bridge::{
     QuotaResource as DiskQuotaResource, QuotaState as DiskQuotaState, QuotaType, QuotaViolation,
 };
     BridgeQuotaV2, QuotaV2BridgeStats, QuotaV2Limits, QuotaV2Type, QuotaV2Usage,
-};
 pub use raid_bridge::{
     BridgeRaid, RaidBridgeOp, RaidBridgeRecord, RaidBridgeResult, RaidBridgeStats,
 };
@@ -956,10 +881,8 @@ pub use rlimit_bridge::{
 };
     BridgeRlimitV2, ProcessRlimitsV2, RlimitV2BridgeStats, RlimitV2Check, RlimitV2Pair,
     RlimitV2Resource,
-};
     BridgeRlimitV3, RlimitV3BridgeStats, RlimitV3Enforcement, RlimitV3ProcessLimits,
     RlimitV3Resource, RlimitV3Value,
-};
 pub use routing::{
     CachedRoute, FallbackChain, FallbackHandler, RouteCache, RouteConditions, RouteEntry,
     RoutePath, RouteReason, RouteStats, RoutingEngine,
@@ -969,7 +892,6 @@ pub use rseq_bridge::{
     RseqBridgeStats, RseqFlags, RseqRegistration,
 };
     BridgeRseqV2, RseqV2BridgeStats, RseqV2CriticalSection, RseqV2Flags, RseqV2ThreadState,
-};
 pub use sandbox::{
     ArgFilter, ArgOp, BridgeSandboxManager, FilterAction, SandboxInstance, SandboxManagerStats,
     SandboxProfile, SandboxRule, SandboxStrictness, SandboxViolation,
@@ -983,10 +905,8 @@ pub use sched_ext::{
     ScxSchedulerInfo, ScxTaskState,
 };
     BridgeSchedV2, ProcessSchedV2, SchedV2Attr, SchedV2BridgeStats, SchedV2Policy,
-};
     BridgeSchedV3, SchedV3BridgeStats, SchedV3DeadlineParams, SchedV3EevdfState, SchedV3ExtOps,
     SchedV3Flag, SchedV3Policy, SchedV3TaskState,
-};
 pub use seccomp::{
     ArgCmp, ArgCondition, BridgeSeccompEngine, BridgeSeccompStats, SeccompAction,
     SeccompAuditEntry, SeccompFilter, SeccompRule,
@@ -997,10 +917,8 @@ pub use seccomp_bridge::{
 };
     BridgeSeccompV2, ProcessSeccompV2, SeccompV2Action, SeccompV2BridgeStats, SeccompV2Cmp,
     SeccompV2Filter, SeccompV2Rule,
-};
     BridgeSeccompV3, SeccompV3Action, SeccompV3Arch, SeccompV3ArgCheck, SeccompV3BridgeStats,
     SeccompV3CacheResult, SeccompV3CmpOp, SeccompV3Filter, SeccompV3Rule,
-};
 pub use security::{SecurityAction, SecurityEngine, SecurityRule};
 pub use select_bridge::{BridgeSelect, SelectBridgeStats, SelectCall, SelectFdSet, SelectMask};
 pub use sem_bridge::{
@@ -1011,7 +929,6 @@ pub use sendfile_bridge::{
     SendfileState, SendfileTransfer,
 };
     BridgeSendfileV2, SendfileV2BridgeStats, SendfileV2Mode, SendfileV2Op, SendfileV2State,
-};
 pub use shm_bridge::{
     BridgeShmBridge, ShmAttach, ShmBridgeStats, ShmOp, ShmPerm, ShmSegment, ShmState,
 };
@@ -1024,7 +941,6 @@ pub use signalfd_bridge::{
     SignalfdInstance, SignalfdOp,
 };
     BridgeSignalfdV2, SignalfdV2BridgeStats, SignalfdV2Info, SignalfdV2Instance, SignalfdV2Signal,
-};
 pub use snapshot::{
     BridgeSnapshot, BridgeSnapshotManager, BridgeSnapshotStats, FdSnapshot, MemoryRegionSnapshot,
     ProcessSnapshot, RegisterState, SnapshotDiff, SnapshotScope, SnapshotState,
@@ -1035,21 +951,16 @@ pub use socket_bridge::{
 };
     BridgeSocketV2, SocketV2BridgeStats, SocketV2Family, SocketV2Instance, SocketV2Options,
     SocketV2State, SocketV2Type,
-};
 pub use splice_bridge::{
     BridgeSplice, EndpointType, PipeBuffer as SplicePipeBuffer, SpliceBridgeStats, SpliceFlags,
     SpliceOp, SpliceTransfer,
 };
     BridgeSpliceV2, PipeV2Buffer, SpliceV2BridgeStats, SpliceV2Flags, SpliceV2Op, SpliceV2Transfer,
-};
     BridgeSpliceV3, PipeV3Buffer, SpliceV3BridgeStats, SpliceV3Flag, SpliceV3Op, SpliceV3Transfer,
-};
     BridgeSpliceV4, SpliceV4BridgeStats, SpliceV4Flag, SpliceV4Op, SpliceV4PageRef, SpliceV4Pipe,
     SpliceV4Transfer,
-};
     BridgeSpliceV5, SpliceV5BridgeStats, SpliceV5Flag, SpliceV5Op, SpliceV5Page, SpliceV5Pipe,
     SpliceV5PipeState,
-};
 pub use superblock_bridge::{
     BridgeSuperblock, SbBridgeOp, SbBridgeRecord, SbBridgeResult, SbBridgeStats,
 };
@@ -1083,7 +994,6 @@ pub use syslog_bridge::{
 };
     BridgeSyslogV2, SyslogV2BridgeStats, SyslogV2Entry, SyslogV2Facility, SyslogV2Level,
     SyslogV2Ring,
-};
 pub use taskstats_bridge::{
     BridgeTaskstats, TaskstatsBridgeStats, TaskstatsCmd, TaskstatsCpuAccounting, TaskstatsEntry,
     TaskstatsIoAccounting, TaskstatsMemAccounting, TaskstatsVersion,
@@ -1106,12 +1016,9 @@ pub use timerfd_bridge::{
 };
     BridgeTimerfdV2, TimerfdV2BridgeStats, TimerfdV2Clock, TimerfdV2Flags, TimerfdV2Instance,
     TimerfdV2Spec,
-};
     BridgeTimerfdV3, TimerV3Clock, TimerV3Entry, TimerV3State, TimerfdV3BridgeStats,
-};
     BridgeTimerfdV4, TimerfdV4BridgeStats, TimerfdV4Clock, TimerfdV4Flag, TimerfdV4Instance,
     TimerfdV4State,
-};
 pub use tls_bridge::{
     BridgeTls, TlsBridgeStats, TlsCipher, TlsConnection, TlsDirection, TlsVersion,
 };
@@ -1136,13 +1043,11 @@ pub use userfault_bridge::{
     BridgeUserfaultV2, UffdV2BridgeStats as UserfaultV2BridgeStats,
     UffdV2Event as UserfaultV2Event, UffdV2FaultType, UffdV2Feature as UserfaultV2Feature,
     UffdV2Instance as UserfaultV2Instance, UffdV2Registration,
-};
 pub use userfaultfd_bridge::{
     BridgeUserfaultfd, UffdBridgeStats, UffdEvent, UffdFaultType, UffdFeatures, UffdInstance,
     UffdRange, UffdRegMode,
 };
     BridgeUserfaultfdV2, UffdV2BridgeStats, UffdV2Event, UffdV2Feature, UffdV2Instance, UffdV2Type,
-};
 pub use validate::{
     ArgRule, ArgType, SyscallValidationSpec, ValidationContext, ValidationEngine, ValidationError,
     ValidationFinding, ValidationReport, ValidationResult, ValidationStats,
@@ -1169,31 +1074,24 @@ pub use xattr_bridge::{
 };
     BridgeXattrV2, InodeXattrs as InodeXattrsV2, XattrEntry as XattrV2Entry, XattrFlags,
     XattrNamespace as XattrV2Namespace, XattrOp as XattrV2Op, XattrV2BridgeStats,
-};
     BridgeXattrV3, InodeXattrsV3, XattrV3BridgeStats, XattrV3Entry, XattrV3Namespace,
-};
-// Re-exports from Round 25 — Security/crypto bridge
 pub use apparmor_bridge::{
     AppArmorBridgeStats, AppArmorMode, AppArmorOp, AppArmorRecord, AppArmorResult,
     BridgeAppArmor,
 };
     AuditV2BridgeStats, AuditV2MsgType, AuditV2Op, AuditV2Record, AuditV2Result, BridgeAuditV2,
-};
 pub use capability_bridge::{
     BridgeCap as BridgeCapPosix, BridgeCapability, CapBridgeStats as CapBridgeStatsV3, CapOp,
     CapRecord, CapResult,
 };
     BridgeCryptoV2, CryptoV2AlgType, CryptoV2BridgeStats, CryptoV2Op, CryptoV2Record,
     CryptoV2Result,
-};
 pub use integrity_bridge::{
     BridgeIntegrity, IntegrityBridgeStats, IntegrityOp, IntegrityRecord, IntegrityResult,
 };
     BridgeKeyringV3, KeyV3BridgeStats, KeyV3Op, KeyV3Record, KeyV3Result, KeyV3Type,
-};
     BridgeLandlockV5, LandlockV5Access, LandlockV5BridgeStats, LandlockV5Op, LandlockV5Record,
     LandlockV5Result,
-};
 pub use lsm_bridge::{
     BridgeLsm, LsmBridgeStats, LsmDecision, LsmHookCategory, LsmHookRecord,
 };
@@ -1201,26 +1099,20 @@ pub use random_bridge::{
     BridgeRandom, RandomBridgeStats, RandomOp, RandomRecord, RandomResult, RandomSource,
 };
     BridgeSeccompV4, SeccompV4Action, SeccompV4BridgeStats, SeccompV4Op, SeccompV4Record,
-};
 pub use selinux_bridge::{
     AvcEntry, BridgeSelinux, SelinuxBridgeStats, SelinuxOp, SelinuxRecord, SelinuxResult,
 };
-// Re-exports from Round 26 — IPC/signals bridge
     BridgeEventfdV3, EventfdV3BridgeStats, EventfdV3Flag, EventfdV3Op, EventfdV3Record,
-};
     BridgeMqueueV2, MqueueV2BridgeStats, MqueueV2Op, MqueueV2Record, MqueueV2Result,
-};
 pub use msgqueue_bridge::{
     BridgeMsgqueue, MsgctlCmd, MsgqueueBridgeStats, MsgqueueOp, MsgqueueRecord, MsgqueueResult,
 };
     BridgePipeV2, PipeV2BridgeStats, PipeV2Flag, PipeV2Op, PipeV2Record,
-};
 pub use semaphore_bridge::{
     BridgeSemaphore, SemaphoreBridgeStats, SemaphoreOp, SemaphoreRecord, SemaphoreResult,
     SemctlCmd,
 };
     BridgeShmV2, ShmV2BridgeStats, ShmV2Flag, ShmV2Op, ShmV2Record, ShmV2Result,
-};
 pub use sigaction_bridge::{
     BridgeSigaction, SigactionBridgeStats, SigactionFlag, SigactionHandler, SigactionOp,
     SigactionRecord,
@@ -1230,7 +1122,6 @@ pub use signal_bridge::{
     SignalResult,
 };
     BridgeSignalfdV3, SignalfdV3BridgeStats, SignalfdV3Op, SignalfdV3Record,
-};
 pub use sigprocmask_bridge::{
     BridgeSigprocmask, SigprocmaskBridgeStats, SigprocmaskHow, SigprocmaskRecord,
 };
@@ -1260,7 +1151,6 @@ pub use pthread_bridge::{BridgePthreadEntry, BridgePthreadManager, BridgePthread
 pub use tid_bridge::{BridgeTidEntry, BridgeTidManager, BridgeTidPolicy, BridgeTidStats};
 pub use wait_bridge::{BridgeExitStatus, BridgeWaitManager, BridgeWaitStats, BridgeWaitTarget};
 
-// Re-exports from Round 30 — Memory management
 pub use brk_bridge::{BridgeBrkManager, BridgeBrkOp, BridgeBrkState, BridgeBrkStats};
 pub use hugepage_bridge::{BridgeHugepageAlloc, BridgeHugepageManager, BridgeHugepageSize, BridgeHugepageStats};
 pub use madvise_bridge::{BridgeMadviseAdvice, BridgeMadviseManager, BridgeMadviseRecord, BridgeMadviseStats};
