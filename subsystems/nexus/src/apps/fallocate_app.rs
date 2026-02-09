@@ -37,6 +37,7 @@ impl FallocateOp {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FallocateAppStats {
     pub total_ops: u32,
     pub successful: u32,
@@ -54,16 +55,19 @@ pub struct AppFallocate {
 impl AppFallocate {
     pub fn new() -> Self { Self { ops: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn fallocate(&mut self, fd: u64, mode: FallocateMode, offset: u64, length: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.ops.insert(id, FallocateOp::new(id, fd, mode, offset, length, now));
         id
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, id: u64) {
         if let Some(op) = self.ops.get_mut(&id) { op.success = true; }
     }
 
+    #[inline]
     pub fn stats(&self) -> FallocateAppStats {
         let ok = self.ops.values().filter(|o| o.success).count() as u32;
         let fail = self.ops.len() as u32 - ok;
@@ -117,10 +121,12 @@ impl FallocateV2Record {
         Self { fd, mode, result: FallocateV2Result::Success, offset, length, latency_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn is_deallocating(&self) -> bool {
         matches!(self.mode, FallocateV2Mode::PunchHole | FallocateV2Mode::CollapseRange)
     }
 
+    #[inline(always)]
     pub fn is_allocating(&self) -> bool {
         matches!(self.mode, FallocateV2Mode::Default | FallocateV2Mode::InsertRange)
     }
@@ -128,6 +134,7 @@ impl FallocateV2Record {
 
 /// Fallocate v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FallocateV2AppStats {
     pub total_calls: u64,
     pub allocated_bytes: u64,
@@ -147,6 +154,7 @@ impl AppFallocateV2 {
         Self { stats: FallocateV2AppStats { total_calls: 0, allocated_bytes: 0, deallocated_bytes: 0, punch_holes: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &FallocateV2Record) {
         self.stats.total_calls += 1;
         if rec.result != FallocateV2Result::Success { self.stats.errors += 1; return; }
@@ -155,6 +163,7 @@ impl AppFallocateV2 {
         if rec.mode == FallocateV2Mode::PunchHole { self.stats.punch_holes += 1; }
     }
 
+    #[inline(always)]
     pub fn net_allocation(&self) -> i64 {
         self.stats.allocated_bytes as i64 - self.stats.deallocated_bytes as i64
     }
