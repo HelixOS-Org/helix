@@ -302,8 +302,8 @@ impl BridgeSynthesis {
         strategy.applied_tick = Some(tick);
 
         self.stats.total_applied += 1;
-        self.stats.avg_improvement_ema = EMA_ALPHA * strategy.improvement
-            + (1.0 - EMA_ALPHA) * self.stats.avg_improvement_ema;
+        self.stats.avg_improvement_ema =
+            EMA_ALPHA * strategy.improvement + (1.0 - EMA_ALPHA) * self.stats.avg_improvement_ema;
 
         // Count active strategies
         self.stats.active_strategies = self
@@ -443,9 +443,8 @@ impl BridgeSynthesis {
             1.0
         };
 
-        let passed = mean_improvement > MIN_IMPROVEMENT_FOR_COMMIT
-            && consistency >= 0.6
-            && cv < 2.0;
+        let passed =
+            mean_improvement > MIN_IMPROVEMENT_FOR_COMMIT && consistency >= 0.6 && cv < 2.0;
 
         if passed {
             strategy.status = StrategyStatus::Active;
@@ -457,8 +456,8 @@ impl BridgeSynthesis {
 
         self.stats.total_integration_tests += 1;
         let pass_indicator = if passed { 1.0_f32 } else { 0.0 };
-        self.stats.integration_pass_rate_ema = EMA_ALPHA * pass_indicator
-            + (1.0 - EMA_ALPHA) * self.stats.integration_pass_rate_ema;
+        self.stats.integration_pass_rate_ema =
+            EMA_ALPHA * pass_indicator + (1.0 - EMA_ALPHA) * self.stats.integration_pass_rate_ema;
         self.stats.avg_stability_ema =
             EMA_ALPHA * consistency + (1.0 - EMA_ALPHA) * self.stats.avg_stability_ema;
 
