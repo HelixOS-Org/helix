@@ -52,6 +52,7 @@ impl AcceptedConnection {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ListenerAcceptState {
     pub fd: u64,
     pub total_accepted: u64,
@@ -73,6 +74,7 @@ impl ListenerAcceptState {
         }
     }
 
+    #[inline]
     pub fn record_accept(&mut self, conn: AcceptedConnection) {
         let lat = conn.accept_latency_ns;
         self.total_latency_ns += lat;
@@ -84,10 +86,12 @@ impl ListenerAcceptState {
         }
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.total_accepted == 0 { 0 } else { self.total_latency_ns / self.total_accepted }
     }
 
+    #[inline(always)]
     pub fn success_rate(&self) -> u64 {
         let total = self.total_accepted + self.total_failed;
         if total == 0 { 100 } else { (self.total_accepted * 100) / total }
@@ -95,6 +99,7 @@ impl ListenerAcceptState {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AcceptAppStats {
     pub total_accepts: u64,
     pub total_failures: u64,
@@ -118,10 +123,12 @@ impl AppAccept {
         }
     }
 
+    #[inline(always)]
     pub fn register_listener(&mut self, fd: u64, max_tracked: usize) {
         self.listeners.insert(fd, ListenerAcceptState::new(fd, max_tracked));
     }
 
+    #[inline]
     pub fn record_accept(&mut self, fd: u64, conn: AcceptedConnection) {
         if let Some(l) = self.listeners.get_mut(&fd) {
             l.record_accept(conn);
@@ -130,6 +137,7 @@ impl AppAccept {
         }
     }
 
+    #[inline]
     pub fn record_failure(&mut self, fd: u64) {
         if let Some(l) = self.listeners.get_mut(&fd) {
             l.total_failed += 1;
@@ -137,6 +145,7 @@ impl AppAccept {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AcceptAppStats { &self.stats }
 }
 
@@ -169,6 +178,7 @@ impl AcceptV2Request {
 
 /// Accept v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AcceptV2AppStats {
     pub total_accepts: u64,
     pub successful: u64,
@@ -193,6 +203,7 @@ impl AppAcceptV2 {
             },
         }
     }
+    #[inline]
     pub fn accept(&mut self, req: &AcceptV2Request) -> i32 {
         self.stats.total_accepts += 1;
         self.stats.successful += 1;
