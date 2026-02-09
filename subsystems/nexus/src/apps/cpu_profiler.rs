@@ -81,11 +81,16 @@ impl ThreadCpuProfile {
         }
     }
 
+    #[inline(always)]
     pub fn ipc(&self) -> f64 { if self.cycles == 0 { 0.0 } else { self.instructions as f64 / self.cycles as f64 } }
+    #[inline(always)]
     pub fn cache_miss_rate(&self) -> f64 { if self.cache_refs == 0 { 0.0 } else { self.cache_misses as f64 / self.cache_refs as f64 * 100.0 } }
+    #[inline(always)]
     pub fn branch_miss_rate(&self) -> f64 { if self.branch_refs == 0 { 0.0 } else { self.branch_misses as f64 / self.branch_refs as f64 * 100.0 } }
+    #[inline(always)]
     pub fn on_cpu_pct(&self) -> f64 { if self.total_samples == 0 { 0.0 } else { self.on_cpu_samples as f64 / self.total_samples as f64 * 100.0 } }
 
+    #[inline]
     pub fn record_sample(&mut self, addr: u64, on_cpu: bool) {
         self.total_samples += 1;
         if on_cpu { self.on_cpu_samples += 1; } else { self.off_cpu_samples += 1; }
@@ -94,6 +99,7 @@ impl ThreadCpuProfile {
         else { self.hotspots.push(Hotspot { addr, samples: 1, pct: 0.0, ipc: 0.0, cache_miss_rate: 0.0, branch_miss_rate: 0.0 }); }
     }
 
+    #[inline]
     pub fn recompute_hotspots(&mut self) {
         let total = self.total_samples.max(1) as f64;
         for h in &mut self.hotspots { h.pct = h.samples as f64 / total * 100.0; }
@@ -117,8 +123,10 @@ impl ProcessCpuProfile {
         Self { pid, threads: BTreeMap::new(), total_instructions: 0, total_cycles: 0, total_samples: 0 }
     }
 
+    #[inline(always)]
     pub fn ipc(&self) -> f64 { if self.total_cycles == 0 { 0.0 } else { self.total_instructions as f64 / self.total_cycles as f64 } }
 
+    #[inline]
     pub fn aggregate(&mut self) {
         self.total_instructions = self.threads.values().map(|t| t.instructions).sum();
         self.total_cycles = self.threads.values().map(|t| t.cycles).sum();
@@ -128,6 +136,7 @@ impl ProcessCpuProfile {
 
 /// CPU profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CpuProfilerStats {
     pub tracked_processes: usize,
     pub tracked_threads: usize,
@@ -151,14 +160,17 @@ impl AppsCpuProfiler {
         Self { processes: BTreeMap::new(), stacks: Vec::new(), sample_period_ns: period_ns, stats: CpuProfilerStats::default() }
     }
 
+    #[inline(always)]
     pub fn track(&mut self, pid: u64) { self.processes.entry(pid).or_insert_with(|| ProcessCpuProfile::new(pid)); }
 
+    #[inline]
     pub fn record_sample(&mut self, pid: u64, tid: u64, addr: u64, on_cpu: bool) {
         let proc_profile = self.processes.entry(pid).or_insert_with(|| ProcessCpuProfile::new(pid));
         let thread = proc_profile.threads.entry(tid).or_insert_with(|| ThreadCpuProfile::new(tid, pid));
         thread.record_sample(addr, on_cpu);
     }
 
+    #[inline]
     pub fn record_hw_counters(&mut self, pid: u64, tid: u64, instr: u64, cycles: u64, cache_ref: u64, cache_miss: u64, br_ref: u64, br_miss: u64) {
         if let Some(p) = self.processes.get_mut(&pid) {
             let t = p.threads.entry(tid).or_insert_with(|| ThreadCpuProfile::new(tid, pid));
@@ -168,6 +180,7 @@ impl AppsCpuProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn record_stack(&mut self, sample: CallStackSample) { self.stacks.push(sample); }
 
     pub fn recompute(&mut self) {
@@ -187,6 +200,8 @@ impl AppsCpuProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcessCpuProfile> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &CpuProfilerStats { &self.stats }
 }
