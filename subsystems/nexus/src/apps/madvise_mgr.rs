@@ -3,7 +3,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Madvise advice types
@@ -32,14 +34,17 @@ pub enum MadviseAdvice {
 }
 
 impl MadviseAdvice {
+    #[inline(always)]
     pub fn is_destructive(&self) -> bool {
         matches!(self, Self::DontNeed | Self::Free | Self::Remove | Self::PageOut)
     }
 
+    #[inline(always)]
     pub fn affects_thp(&self) -> bool {
         matches!(self, Self::HugePage | Self::NoHugePage | Self::Collapse)
     }
 
+    #[inline(always)]
     pub fn affects_ksm(&self) -> bool {
         matches!(self, Self::Mergeable | Self::Unmergeable)
     }
@@ -55,7 +60,9 @@ pub struct MadviseRegion {
 }
 
 impl MadviseRegion {
+    #[inline(always)]
     pub fn end(&self) -> u64 { self.start + self.len }
+    #[inline(always)]
     pub fn pages(&self, page_size: u64) -> u64 {
         (self.len + page_size - 1) / page_size
     }
@@ -63,32 +70,35 @@ impl MadviseRegion {
 
 /// Process madvise state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessMadviseState {
     pub pid: u32,
     pub active_hints: Vec<MadviseRegion>,
     pub total_calls: u64,
     pub total_bytes_affected: u64,
-    pub advice_counts: BTreeMap<u32, u64>,
+    pub advice_counts: ArrayMap<u64, 32>,
 }
 
 impl ProcessMadviseState {
     pub fn new(pid: u32) -> Self {
         Self {
             pid, active_hints: Vec::new(), total_calls: 0,
-            total_bytes_affected: 0, advice_counts: BTreeMap::new(),
+            total_bytes_affected: 0, advice_counts: ArrayMap::new(0),
         }
     }
 
+    #[inline]
     pub fn apply_hint(&mut self, start: u64, len: u64, advice: MadviseAdvice, now: u64) {
         self.total_calls += 1;
         self.total_bytes_affected += len;
-        *self.advice_counts.entry(advice as u32).or_insert(0) += 1;
+        self.advice_counts.add(advice as usize, 1);
 
         // Remove conflicting hints for same range
         self.active_hints.retain(|h| !(h.start == start && h.len == len));
         self.active_hints.push(MadviseRegion { start, len, advice, applied_at: now });
     }
 
+    #[inline]
     pub fn hints_in_range(&self, start: u64, end: u64) -> Vec<&MadviseRegion> {
         self.active_hints.iter()
             .filter(|h| h.start < end && h.end() > start)
@@ -145,6 +155,7 @@ pub struct ProcessMadviseRequest {
 
 /// Madvise manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MadviseMgrStats {
     pub tracked_processes: u32,
     pub total_calls: u64,
@@ -158,7 +169,7 @@ pub struct MadviseMgrStats {
 /// Main madvise manager
 pub struct AppMadviseMgr {
     processes: BTreeMap<u32, ProcessMadviseState>,
-    events: Vec<MadviseEvent>,
+    events: VecDeque<MadviseEvent>,
     max_events: usize,
     success_count: u64,
     failure_count: u64,
@@ -170,12 +181,13 @@ pub struct AppMadviseMgr {
 impl AppMadviseMgr {
     pub fn new(page_size: u64) -> Self {
         Self {
-            processes: BTreeMap::new(), events: Vec::new(),
+            processes: BTreeMap::new(), events: VecDeque::new(),
             max_events: 4096, success_count: 0, failure_count: 0,
             destructive_calls: 0, thp_calls: 0, page_size,
         }
     }
 
+    #[inline]
     pub fn ensure_process(&mut self, pid: u32) {
         if !self.processes.contains_key(&pid) {
             self.processes.insert(pid, ProcessMadviseState::new(pid));
@@ -199,6 +211,7 @@ impl AppMadviseMgr {
         MadviseResult::Success
     }
 
+    #[inline]
     pub fn process_madvise(&mut self, req: ProcessMadviseRequest, now: u64) -> MadviseResult {
         if req.requester_pid == req.target_pid {
             return self.apply(req.target_pid, req.start, req.len, req.advice, now);
@@ -212,14 +225,16 @@ impl AppMadviseMgr {
     }
 
     fn record_event(&mut self, event: MadviseEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
-        self.events.push(event);
+        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        self.events.push_back(event);
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u32) -> bool {
         self.processes.remove(&pid).is_some()
     }
 
+    #[inline]
     pub fn hints_for_range(&self, pid: u32, start: u64, end: u64) -> Vec<MadviseRegion> {
         self.processes.get(&pid)
             .map(|s| s.hints_in_range(start, end).into_iter().cloned().collect())
