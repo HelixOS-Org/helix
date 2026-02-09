@@ -172,6 +172,7 @@ impl FileIoPattern {
     }
 
     /// Read/write ratio
+    #[inline]
     pub fn rw_ratio(&self) -> f64 {
         if self.writes == 0 {
             return f64::INFINITY;
@@ -180,6 +181,7 @@ impl FileIoPattern {
     }
 
     /// Dominant IO size
+    #[inline]
     pub fn dominant_size(&self) -> u32 {
         self.size_buckets.iter()
             .max_by_key(|(_, v)| v.count)
@@ -188,6 +190,7 @@ impl FileIoPattern {
     }
 
     /// Prefetch recommendation (bytes ahead)
+    #[inline]
     pub fn prefetch_bytes(&self) -> u64 {
         match self.pattern {
             IoPatternType::Sequential => 256 * 1024,     // 256KB
@@ -200,6 +203,7 @@ impl FileIoPattern {
 
 /// IO pattern analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppIoPatternStats {
     pub tracked_files: usize,
     pub sequential_files: usize,
@@ -226,6 +230,7 @@ impl AppIoPatternAnalyzer {
     }
 
     /// Record IO access
+    #[inline]
     pub fn record(&mut self, file_hash: u64, record: &IoAccessRecord) {
         let pattern = self.files.entry(file_hash)
             .or_insert_with(|| FileIoPattern::new(file_hash));
@@ -234,6 +239,7 @@ impl AppIoPatternAnalyzer {
     }
 
     /// Get pattern for file
+    #[inline(always)]
     pub fn get_pattern(&self, file_hash: u64) -> Option<IoPatternType> {
         self.files.get(&file_hash).map(|f| f.pattern)
     }
@@ -255,6 +261,7 @@ impl AppIoPatternAnalyzer {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppIoPatternStats {
         &self.stats
     }
