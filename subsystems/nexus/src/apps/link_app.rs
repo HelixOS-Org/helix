@@ -3,6 +3,7 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Link type
@@ -61,6 +62,7 @@ pub struct UnlinkRecord {
 
 /// Statistics for link app
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LinkAppStats {
     pub hard_links_created: u64,
     pub symlinks_created: u64,
@@ -74,8 +76,8 @@ pub struct LinkAppStats {
 /// Main link app manager
 #[derive(Debug)]
 pub struct AppLink {
-    link_history: Vec<LinkRecord>,
-    unlink_history: Vec<UnlinkRecord>,
+    link_history: VecDeque<LinkRecord>,
+    unlink_history: VecDeque<UnlinkRecord>,
     max_history: usize,
     stats: LinkAppStats,
 }
@@ -83,8 +85,8 @@ pub struct AppLink {
 impl AppLink {
     pub fn new(max_history: usize) -> Self {
         Self {
-            link_history: Vec::new(),
-            unlink_history: Vec::new(),
+            link_history: VecDeque::new(),
+            unlink_history: VecDeque::new(),
             max_history,
             stats: LinkAppStats {
                 hard_links_created: 0, symlinks_created: 0,
@@ -115,9 +117,9 @@ impl AppLink {
             link_type, pid, result: LinkResult::Success, tick,
         };
         if self.link_history.len() >= self.max_history {
-            self.link_history.remove(0);
+            self.link_history.pop_front();
         }
-        self.link_history.push(record);
+        self.link_history.push_back(record);
         LinkResult::Success
     }
 
@@ -129,16 +131,18 @@ impl AppLink {
             pid, result: UnlinkResult::Success, was_last_link: was_last, tick,
         };
         if self.unlink_history.len() >= self.max_history {
-            self.unlink_history.remove(0);
+            self.unlink_history.pop_front().unwrap();
         }
-        self.unlink_history.push(record);
+        self.unlink_history.push_back(record);
         UnlinkResult::Success
     }
 
+    #[inline(always)]
     pub fn readlink(&mut self) {
         self.stats.readlink_calls += 1;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &LinkAppStats {
         &self.stats
     }
@@ -211,6 +215,7 @@ impl LinkV2Record {
         }
     }
 
+    #[inline(always)]
     pub fn link_count_changed(&self) -> bool {
         self.nlink_after != self.nlink_before
     }
@@ -231,6 +236,7 @@ impl InodeLinkTracker {
         Self { inode, current_nlink: 1, max_nlink: 1, link_ops: 0, unlink_ops: 0 }
     }
 
+    #[inline]
     pub fn link(&mut self) {
         self.current_nlink += 1;
         if self.current_nlink > self.max_nlink {
@@ -239,6 +245,7 @@ impl InodeLinkTracker {
         self.link_ops += 1;
     }
 
+    #[inline(always)]
     pub fn unlink(&mut self) {
         self.current_nlink = self.current_nlink.saturating_sub(1);
         self.unlink_ops += 1;
@@ -247,6 +254,7 @@ impl InodeLinkTracker {
 
 /// Link v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LinkV2AppStats {
     pub total_ops: u64,
     pub hard_links_created: u64,
@@ -291,6 +299,7 @@ impl AppLinkV2 {
         }
     }
 
+    #[inline(always)]
     pub fn success_rate(&self) -> f64 {
         if self.stats.total_ops == 0 { 0.0 }
         else { self.stats.hard_links_created as f64 / self.stats.total_ops as f64 }
