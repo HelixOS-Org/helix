@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Clone variant
@@ -167,7 +168,7 @@ pub struct CloneTrackerStats {
 pub struct AppsCloneTracker {
     tree: BTreeMap<u64, ProcessTreeNode>,
     patterns: BTreeMap<u64, ClonePattern>,
-    events: Vec<CloneEvent>,
+    events: VecDeque<CloneEvent>,
     max_events: usize,
     stats: CloneTrackerStats,
 }
@@ -176,7 +177,7 @@ impl AppsCloneTracker {
     pub fn new() -> Self {
         Self {
             tree: BTreeMap::new(), patterns: BTreeMap::new(),
-            events: Vec::new(), max_events: 1024,
+            events: VecDeque::new(), max_events: 1024,
             stats: CloneTrackerStats::default(),
         }
     }
@@ -199,8 +200,8 @@ impl AppsCloneTracker {
         // Record event
         let mut event = CloneEvent::new(parent, child, variant, flags, ts);
         event.latency_ns = latency_ns;
-        self.events.push(event);
-        if self.events.len() > self.max_events { self.events.remove(0); }
+        self.events.push_back(event);
+        if self.events.len() > self.max_events { self.events.pop_front(); }
     }
 
     pub fn record_exit(&mut self, pid: u64) {
