@@ -8,6 +8,7 @@
 //! - Graceful degradation management
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -99,17 +100,17 @@ pub struct ProcessLifecycle {
     /// Creation time
     pub created_at: u64,
     /// Phase history
-    pub transitions: Vec<PhaseTransition>,
+    pub transitions: VecDeque<PhaseTransition>,
     /// Event history
-    pub events: Vec<(u64, LifecycleEvent)>,
+    pub events: VecDeque<(u64, LifecycleEvent)>,
     /// Time spent in each phase (ns)
     pub phase_durations: BTreeMap<u8, u64>,
     /// Syscall rate (recent, for phase detection)
-    recent_syscall_rates: Vec<f64>,
+    recent_syscall_rates: VecDeque<f64>,
     /// CPU usage (recent, for phase detection)
-    recent_cpu_usage: Vec<f64>,
+    recent_cpu_usage: VecDeque<f64>,
     /// Memory usage (recent, for phase detection)
-    recent_memory_usage: Vec<u64>,
+    recent_memory_usage: VecDeque<u64>,
     /// Is the first N seconds after creation
     is_young: bool,
     /// Number of phase changes
@@ -123,12 +124,12 @@ impl ProcessLifecycle {
             phase: LifecyclePhase::Startup,
             phase_start: timestamp,
             created_at: timestamp,
-            transitions: Vec::new(),
-            events: Vec::new(),
+            transitions: VecDeque::new(),
+            events: VecDeque::new(),
             phase_durations: BTreeMap::new(),
-            recent_syscall_rates: Vec::new(),
-            recent_cpu_usage: Vec::new(),
-            recent_memory_usage: Vec::new(),
+            recent_syscall_rates: VecDeque::new(),
+            recent_cpu_usage: VecDeque::new(),
+            recent_memory_usage: VecDeque::new(),
             is_young: true,
             phase_changes: 0,
         }
@@ -137,9 +138,9 @@ impl ProcessLifecycle {
     /// Record a lifecycle event
     pub fn record_event(&mut self, event: LifecycleEvent, timestamp: u64) {
         if self.events.len() >= 256 {
-            self.events.remove(0);
+            self.events.pop_front();
         }
-        self.events.push((timestamp, event));
+        self.events.push_back((timestamp, event));
     }
 
     /// Update metrics for phase detection
@@ -152,19 +153,19 @@ impl ProcessLifecycle {
     ) {
         // Track recent metrics (keep last 30 samples)
         if self.recent_syscall_rates.len() >= 30 {
-            self.recent_syscall_rates.remove(0);
+            self.recent_syscall_rates.pop_front();
         }
-        self.recent_syscall_rates.push(syscall_rate);
+        self.recent_syscall_rates.push_back(syscall_rate);
 
         if self.recent_cpu_usage.len() >= 30 {
-            self.recent_cpu_usage.remove(0);
+            self.recent_cpu_usage.pop_front();
         }
-        self.recent_cpu_usage.push(cpu_usage);
+        self.recent_cpu_usage.push_back(cpu_usage);
 
         if self.recent_memory_usage.len() >= 30 {
-            self.recent_memory_usage.remove(0);
+            self.recent_memory_usage.pop_front();
         }
-        self.recent_memory_usage.push(memory_bytes);
+        self.recent_memory_usage.push_back(memory_bytes);
 
         // After 5 seconds, no longer "young"
         if timestamp.saturating_sub(self.created_at) > 5_000 {
@@ -190,8 +191,9 @@ impl ProcessLifecycle {
         let avg_rate: f64 =
             self.recent_syscall_rates.iter().sum::<f64>() / self.recent_syscall_rates.len() as f64;
         let recent_rate: f64 = self.recent_syscall_rates
-            [self.recent_syscall_rates.len().saturating_sub(3)..]
             .iter()
+            .rev()
+            .take(3)
             .sum::<f64>()
             / 3.0;
 
@@ -227,9 +229,9 @@ impl ProcessLifecycle {
         }
         let n = self.recent_syscall_rates.len();
         let first_half: f64 =
-            self.recent_syscall_rates[..n / 2].iter().sum::<f64>() / (n / 2) as f64;
+            self.recent_syscall_rates.iter().take(n / 2).sum::<f64>() / (n / 2) as f64;
         let second_half: f64 =
-            self.recent_syscall_rates[n / 2..].iter().sum::<f64>() / (n - n / 2) as f64;
+            self.recent_syscall_rates.iter().skip(n / 2).sum::<f64>() / (n - n / 2) as f64;
         second_half > first_half * 1.2
     }
 
@@ -245,9 +247,9 @@ impl ProcessLifecycle {
         };
 
         if self.transitions.len() >= 128 {
-            self.transitions.remove(0);
+            self.transitions.pop_front();
         }
-        self.transitions.push(transition);
+        self.transitions.push_back(transition);
 
         self.phase = new_phase;
         self.phase_start = timestamp;
@@ -276,7 +278,7 @@ pub struct LifecycleManager {
     /// Max processes to track
     max_processes: usize,
     /// Global event log
-    global_events: Vec<(u64, u64, LifecycleEvent)>, // (timestamp, pid, event)
+    global_events: VecDeque<(u64, u64, LifecycleEvent)>, // (timestamp, pid, event)
     /// Max global events
     max_global_events: usize,
     /// Phase-change callbacks (stored as counters per phase transition type)
@@ -288,7 +290,7 @@ impl LifecycleManager {
         Self {
             processes: BTreeMap::new(),
             max_processes,
-            global_events: Vec::new(),
+            global_events: VecDeque::new(),
             max_global_events: 10000,
             transition_counts: BTreeMap::new(),
         }
@@ -362,9 +364,9 @@ impl LifecycleManager {
 
     fn log_global_event(&mut self, timestamp: u64, pid: u64, event: LifecycleEvent) {
         if self.global_events.len() >= self.max_global_events {
-            self.global_events.remove(0);
+            self.global_events.pop_front();
         }
-        self.global_events.push((timestamp, pid, event));
+        self.global_events.push_back((timestamp, pid, event));
     }
 
     /// Count of processes in each phase
