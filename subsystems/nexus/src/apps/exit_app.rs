@@ -2,6 +2,7 @@
 //! NEXUS Apps — Exit (process exit application interface)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -29,6 +30,7 @@ pub struct AppExitRecord {
 
 /// Stats for exit operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppExitStats {
     pub total_exits: u64,
     pub normal_exits: u64,
@@ -41,7 +43,7 @@ pub struct AppExitStats {
 /// Manager for exit application operations
 pub struct AppExitManager {
     exit_log: Vec<AppExitRecord>,
-    pending_cleanup: BTreeMap<u64, u32>,
+    pending_cleanup: LinearMap<u32, 64>,
     stats: AppExitStats,
 }
 
@@ -49,7 +51,7 @@ impl AppExitManager {
     pub fn new() -> Self {
         Self {
             exit_log: Vec::new(),
-            pending_cleanup: BTreeMap::new(),
+            pending_cleanup: LinearMap::new(),
             stats: AppExitStats {
                 total_exits: 0,
                 normal_exits: 0,
@@ -90,14 +92,17 @@ impl AppExitManager {
         }
     }
 
+    #[inline(always)]
     pub fn schedule_cleanup(&mut self, pid: u64, steps: u32) {
         self.pending_cleanup.insert(pid, steps);
     }
 
+    #[inline(always)]
     pub fn process_cleanup(&mut self, pid: u64) -> u32 {
-        self.pending_cleanup.remove(&pid).unwrap_or(0)
+        self.pending_cleanup.remove(pid).unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppExitStats {
         &self.stats
     }
