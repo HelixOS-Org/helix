@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
@@ -41,6 +42,7 @@ pub enum AllocPattern {
 pub struct AllocSiteId(pub u64);
 
 impl AllocSiteId {
+    #[inline]
     pub fn from_caller_chain(callers: &[u64]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
         for &addr in callers {
@@ -63,6 +65,7 @@ pub struct AllocRecord {
 
 /// Per-site aggregate statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SiteStats {
     pub site: AllocSiteId,
     pub total_allocs: u64,
@@ -105,6 +108,7 @@ impl SiteStats {
         }
     }
 
+    #[inline]
     pub fn record_free(&mut self, lifetime_ticks: u64) {
         self.total_frees += 1;
         // Exponential moving average of lifetime
@@ -113,6 +117,7 @@ impl SiteStats {
             self.avg_lifetime_ticks - (self.avg_lifetime_ticks / alpha) + (lifetime_ticks / alpha);
     }
 
+    #[inline]
     pub fn avg_size(&self) -> usize {
         if self.total_allocs == 0 {
             0
@@ -216,6 +221,7 @@ pub struct HeapEpoch {
 
 /// Application heap profiling stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HeapAppStats {
     pub apps_tracked: u64,
     pub total_sites: u64,
@@ -231,7 +237,7 @@ pub struct HeapAppManager {
     /// Per-app epoch history
     epochs: BTreeMap<u64, Vec<HeapEpoch>>,
     /// Current epoch per app
-    current_epoch: BTreeMap<u64, u64>,
+    current_epoch: LinearMap<u64, 64>,
     /// Pre-allocation hints generated
     hints: BTreeMap<u64, Vec<PreAllocHint>>,
     /// Global stats
@@ -256,7 +262,7 @@ impl HeapAppManager {
         Self {
             app_sites: BTreeMap::new(),
             epochs: BTreeMap::new(),
-            current_epoch: BTreeMap::new(),
+            current_epoch: LinearMap::new(),
             hints: BTreeMap::new(),
             stats: HeapAppStats::default(),
             epoch_duration,
@@ -286,6 +292,7 @@ impl HeapAppManager {
     }
 
     /// Record a free event
+    #[inline]
     pub fn record_free(&mut self, app_id: u64, site: AllocSiteId, lifetime_ticks: u64) {
         if let Some(sites) = self.app_sites.get_mut(&app_id) {
             if let Some(site_stats) = sites.get_mut(&site) {
@@ -295,6 +302,7 @@ impl HeapAppManager {
     }
 
     /// Classify all allocation patterns for an application
+    #[inline]
     pub fn classify_app(&mut self, app_id: u64) {
         if let Some(sites) = self.app_sites.get_mut(&app_id) {
             for (_, site_stats) in sites.iter_mut() {
@@ -407,6 +415,7 @@ impl HeapAppManager {
     }
 
     /// Get top allocation sites for an app (by total bytes)
+    #[inline]
     pub fn top_sites(&self, app_id: u64, n: usize) -> Vec<&SiteStats> {
         match self.app_sites.get(&app_id) {
             Some(sites) => {
@@ -419,10 +428,12 @@ impl HeapAppManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HeapAppStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn app_count(&self) -> usize {
         self.app_sites.len()
     }
