@@ -263,15 +263,9 @@ impl HolisticReflection {
                 continue;
             }
 
-            let avg_confidence = cat_reflections
-                .iter()
-                .map(|r| r.confidence)
-                .sum::<f32>()
+            let avg_confidence = cat_reflections.iter().map(|r| r.confidence).sum::<f32>()
                 / cat_reflections.len() as f32;
-            let avg_insight = cat_reflections
-                .iter()
-                .map(|r| r.insight_score)
-                .sum::<f32>()
+            let avg_insight = cat_reflections.iter().map(|r| r.insight_score).sum::<f32>()
                 / cat_reflections.len() as f32;
 
             let id = fnv1a_hash(&cat_key.to_le_bytes()) ^ xorshift64(&mut self.rng_state);
@@ -329,12 +323,7 @@ impl HolisticReflection {
             for j in (i + 1)..high_insight.len() {
                 let a = high_insight[i].category as u8;
                 let b = high_insight[j].category as u8;
-                if a != b
-                    && high_insight[i]
-                        .tick
-                        .abs_diff(high_insight[j].tick)
-                        < 20
-                {
+                if a != b && high_insight[i].tick.abs_diff(high_insight[j].tick) < 20 {
                     let key = if a < b { (a, b) } else { (b, a) };
                     *co_occurrence.entry(key).or_insert(0) += 1;
                 }
@@ -448,8 +437,7 @@ impl HolisticReflection {
         let wisdom_conf = if self.wisdoms.is_empty() {
             0.0
         } else {
-            self.wisdoms.values().map(|w| w.confidence).sum::<f32>()
-                / self.wisdoms.len() as f32
+            self.wisdoms.values().map(|w| w.confidence).sum::<f32>() / self.wisdoms.len() as f32
         };
 
         ReflectionStats {
