@@ -244,6 +244,7 @@ impl Classifier {
     }
 
     /// Report ground truth for accuracy tracking
+    #[inline]
     pub fn report_ground_truth(&mut self, predicted: WorkloadCategory, actual: WorkloadCategory) {
         if predicted == actual {
             self.correct_classifications += 1;
@@ -251,6 +252,7 @@ impl Classifier {
     }
 
     /// Current accuracy
+    #[inline]
     pub fn accuracy(&self) -> f64 {
         if self.total_classifications == 0 {
             return 0.0;
