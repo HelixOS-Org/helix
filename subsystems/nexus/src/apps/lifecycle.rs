@@ -7,8 +7,7 @@
 //! - Resource pre-allocation based on lifecycle phase
 //! - Graceful degradation management
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -136,6 +135,7 @@ impl ProcessLifecycle {
     }
 
     /// Record a lifecycle event
+    #[inline]
     pub fn record_event(&mut self, event: LifecycleEvent, timestamp: u64) {
         if self.events.len() >= 256 {
             self.events.pop_front();
@@ -190,12 +190,7 @@ impl ProcessLifecycle {
 
         let avg_rate: f64 =
             self.recent_syscall_rates.iter().sum::<f64>() / self.recent_syscall_rates.len() as f64;
-        let recent_rate: f64 = self.recent_syscall_rates
-            .iter()
-            .rev()
-            .take(3)
-            .sum::<f64>()
-            / 3.0;
+        let recent_rate: f64 = self.recent_syscall_rates.iter().rev().take(3).sum::<f64>() / 3.0;
 
         let avg_cpu: f64 =
             self.recent_cpu_usage.iter().sum::<f64>() / self.recent_cpu_usage.len() as f64;
@@ -257,11 +252,13 @@ impl ProcessLifecycle {
     }
 
     /// Get time in current phase
+    #[inline(always)]
     pub fn time_in_phase(&self, current_time: u64) -> u64 {
         current_time.saturating_sub(self.phase_start)
     }
 
     /// Total process uptime
+    #[inline(always)]
     pub fn uptime(&self, current_time: u64) -> u64 {
         current_time.saturating_sub(self.created_at)
     }
@@ -318,16 +315,19 @@ impl LifecycleManager {
     }
 
     /// Get process lifecycle
+    #[inline(always)]
     pub fn get(&self, pid: u64) -> Option<&ProcessLifecycle> {
         self.processes.get(&pid)
     }
 
     /// Get mutable process lifecycle
+    #[inline(always)]
     pub fn get_mut(&mut self, pid: u64) -> Option<&mut ProcessLifecycle> {
         self.processes.get_mut(&pid)
     }
 
     /// Record a lifecycle event
+    #[inline]
     pub fn record_event(&mut self, pid: u64, event: LifecycleEvent, timestamp: u64) {
         self.log_global_event(timestamp, pid, event);
         if let Some(lifecycle) = self.processes.get_mut(&pid) {
@@ -357,6 +357,7 @@ impl LifecycleManager {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64, exit_code: i32, timestamp: u64) {
         self.log_global_event(timestamp, pid, LifecycleEvent::Exited(exit_code));
         self.processes.remove(&pid);
@@ -370,6 +371,7 @@ impl LifecycleManager {
     }
 
     /// Count of processes in each phase
+    #[inline]
     pub fn phase_distribution(&self) -> BTreeMap<u8, usize> {
         let mut dist = BTreeMap::new();
         for lifecycle in self.processes.values() {
@@ -379,11 +381,13 @@ impl LifecycleManager {
     }
 
     /// Number of tracked processes
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }
 
     /// Processes in burst phase
+    #[inline]
     pub fn burst_processes(&self) -> Vec<u64> {
         self.processes
             .iter()
@@ -393,6 +397,7 @@ impl LifecycleManager {
     }
 
     /// Processes in dormant phase
+    #[inline]
     pub fn dormant_processes(&self) -> Vec<u64> {
         self.processes
             .iter()
