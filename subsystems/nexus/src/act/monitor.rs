@@ -60,6 +60,7 @@ pub enum ExecutionStatus {
 
 /// Execution metrics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ExecutionMetrics {
     /// Duration (ns)
     pub duration_ns: u64,
@@ -228,6 +229,7 @@ impl Default for MonitorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MonitorStats {
     /// Total executions
     pub total_executions: u64,
@@ -299,6 +301,7 @@ impl ExecutionMonitor {
     }
 
     /// Update metrics
+    #[inline]
     pub fn update_metrics(&mut self, execution_id: u64, metrics: ExecutionMetrics) {
         if let Some(execution) = self.executions.get_mut(&execution_id) {
             execution.metrics = metrics;
@@ -498,6 +501,7 @@ impl ExecutionMonitor {
     }
 
     /// Resolve anomaly
+    #[inline]
     pub fn resolve_anomaly(&mut self, anomaly_id: u64) {
         if let Some(anomaly) = self.anomalies.get_mut(&anomaly_id) {
             anomaly.resolved = true;
@@ -505,11 +509,13 @@ impl ExecutionMonitor {
     }
 
     /// Get execution
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Execution> {
         self.executions.get(&id)
     }
 
     /// Get active executions
+    #[inline]
     pub fn active(&self) -> Vec<&Execution> {
         self.executions
             .values()
@@ -518,16 +524,19 @@ impl ExecutionMonitor {
     }
 
     /// Get anomalies
+    #[inline(always)]
     pub fn unresolved_anomalies(&self) -> Vec<&Anomaly> {
         self.anomalies.values().filter(|a| !a.resolved).collect()
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[Execution] {
         &self.history
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &MonitorStats {
         &self.stats
     }
