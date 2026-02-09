@@ -46,6 +46,7 @@ impl DirentEntry {
         }
     }
 
+    #[inline(always)]
     pub fn record_size(&self) -> usize {
         // d_ino(8) + d_off(8) + d_reclen(2) + d_type(1) + name + padding
         24 + self.name_len as usize
@@ -54,6 +55,7 @@ impl DirentEntry {
 
 /// Per-directory readdir state.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReaddirState {
     pub dir_fd: i32,
     pub pid: u64,
@@ -81,6 +83,7 @@ impl ReaddirState {
         }
     }
 
+    #[inline]
     pub fn read_entries(&mut self, count: u64, bytes: u64) {
         self.entries_read += count;
         self.bytes_returned += bytes;
@@ -90,11 +93,13 @@ impl ReaddirState {
         }
     }
 
+    #[inline(always)]
     pub fn seekdir(&mut self, offset: u64) {
         self.position = offset;
         self.is_complete = false;
     }
 
+    #[inline]
     pub fn avg_entries_per_call(&self) -> f64 {
         if self.calls_made == 0 {
             return 0.0;
@@ -105,6 +110,7 @@ impl ReaddirState {
 
 /// Statistics for readdir app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReaddirAppStats {
     pub total_calls: u64,
     pub total_entries: u64,
@@ -137,6 +143,7 @@ impl AppReaddir {
         }
     }
 
+    #[inline]
     pub fn open_dir(&mut self, pid: u64, dir_fd: i32) -> u64 {
         let key = (pid << 32) | (dir_fd as u64 & 0xFFFFFFFF);
         let state = ReaddirState::new(dir_fd, pid);
@@ -160,12 +167,14 @@ impl AppReaddir {
         }
     }
 
+    #[inline]
     pub fn close_dir(&mut self, key: u64) {
         if self.states.remove(&key).is_some() {
             self.stats.active_dirs = self.stats.active_dirs.saturating_sub(1);
         }
     }
 
+    #[inline(always)]
     pub fn state_count(&self) -> usize {
         self.states.len()
     }
@@ -226,10 +235,12 @@ impl DirentV2Entry {
         }
     }
 
+    #[inline(always)]
     pub fn is_directory(&self) -> bool {
         self.entry_type == DirentV2Type::Directory
     }
 
+    #[inline(always)]
     pub fn is_special(&self) -> bool {
         matches!(self.entry_type, DirentV2Type::CharDevice | DirentV2Type::BlockDevice | DirentV2Type::Socket | DirentV2Type::Fifo)
     }
@@ -264,6 +275,7 @@ impl ReaddirV2Stream {
         }
     }
 
+    #[inline]
     pub fn read_entries(&mut self, count: u32, avg_entry_size: u32) {
         self.calls += 1;
         self.entries_read += count as u64;
@@ -271,19 +283,23 @@ impl ReaddirV2Stream {
         self.position += count as u64;
     }
 
+    #[inline(always)]
     pub fn seek(&mut self, position: u64) {
         self.position = position;
         self.eof = false;
     }
 
+    #[inline(always)]
     pub fn tell(&self) -> u64 {
         self.position
     }
 
+    #[inline(always)]
     pub fn mark_eof(&mut self) {
         self.eof = true;
     }
 
+    #[inline(always)]
     pub fn avg_entry_size(&self) -> u64 {
         if self.entries_read == 0 { 0 } else { self.total_bytes / self.entries_read }
     }
@@ -291,6 +307,7 @@ impl ReaddirV2Stream {
 
 /// Readdir v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReaddirV2AppStats {
     pub total_streams: u64,
     pub total_entries_read: u64,
@@ -318,15 +335,18 @@ impl AppReaddirV2 {
         }
     }
 
+    #[inline(always)]
     pub fn open_dir(&mut self, fd: i32, buffer_size: u32) {
         self.streams.insert(fd, ReaddirV2Stream::new(fd, buffer_size));
         self.stats.total_streams += 1;
     }
 
+    #[inline(always)]
     pub fn close_dir(&mut self, fd: i32) -> bool {
         self.streams.remove(&fd).is_some()
     }
 
+    #[inline]
     pub fn read(&mut self, fd: i32, count: u32) -> bool {
         if let Some(stream) = self.streams.get_mut(&fd) {
             stream.read_entries(count, 32);
@@ -377,6 +397,7 @@ pub struct AppDirStreamV3 {
 
 /// Stats for readdir operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppReaddirV3Stats {
     pub total_readdirs: u64,
     pub entries_returned: u64,
@@ -460,10 +481,12 @@ impl AppReaddirV3Manager {
         }
     }
 
+    #[inline(always)]
     pub fn closedir(&mut self, fd: u64) -> bool {
         self.streams.remove(&fd).is_some()
     }
 
+    #[inline]
     pub fn rewinddir(&mut self, fd: u64) {
         if let Some(stream) = self.streams.get_mut(&fd) {
             stream.position = 0;
@@ -471,6 +494,7 @@ impl AppReaddirV3Manager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppReaddirV3Stats {
         &self.stats
     }
