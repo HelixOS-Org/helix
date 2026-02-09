@@ -49,6 +49,7 @@ impl RateLimit {
     }
 
     /// Create strict limit
+    #[inline]
     pub fn strict() -> Self {
         Self {
             max_actions: 3,
@@ -58,6 +59,7 @@ impl RateLimit {
     }
 
     /// Create lenient limit
+    #[inline]
     pub fn lenient() -> Self {
         Self {
             max_actions: 100,
@@ -84,6 +86,7 @@ pub struct RateLimitResult {
 
 impl RateLimitResult {
     /// Create allowed result
+    #[inline]
     pub fn allowed() -> Self {
         Self {
             allowed: true,
@@ -93,6 +96,7 @@ impl RateLimitResult {
     }
 
     /// Create denied result
+    #[inline]
     pub fn denied(reason: RateLimitReason, retry_after: Duration) -> Self {
         Self {
             allowed: false,
@@ -115,6 +119,7 @@ pub enum RateLimitReason {
 
 impl RateLimitReason {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::RateExceeded => "Rate Exceeded",
@@ -185,6 +190,7 @@ impl RateLimiter {
     }
 
     /// Create with custom history size
+    #[inline]
     pub fn with_history_size(max_history: usize) -> Self {
         let mut limiter = Self::new();
         limiter.max_history = max_history;
@@ -192,11 +198,13 @@ impl RateLimiter {
     }
 
     /// Set rate limit for action type
+    #[inline(always)]
     pub fn set_limit(&mut self, action_type: ActionType, limit: RateLimit) {
         self.limits.insert(action_type, limit);
     }
 
     /// Remove rate limit for action type
+    #[inline(always)]
     pub fn remove_limit(&mut self, action_type: ActionType) -> Option<RateLimit> {
         self.limits.remove(&action_type)
     }
@@ -272,16 +280,19 @@ impl RateLimiter {
     }
 
     /// Clear history
+    #[inline(always)]
     pub fn clear_history(&mut self) {
         self.history.clear();
     }
 
     /// Get history size
+    #[inline(always)]
     pub fn history_size(&self) -> usize {
         self.history.len()
     }
 
     /// Get actions in last N seconds
+    #[inline]
     pub fn recent_actions(&self, seconds: u64, now: Timestamp) -> usize {
         let window_start = Timestamp::new(
             now.as_nanos()
@@ -294,6 +305,7 @@ impl RateLimiter {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> RateLimiterStats {
         RateLimiterStats {
             history_size: self.history.len(),
@@ -311,6 +323,7 @@ impl Default for RateLimiter {
 
 /// Rate limiter statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RateLimiterStats {
     /// Current history size
     pub history_size: usize,
