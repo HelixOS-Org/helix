@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -94,36 +95,36 @@ pub struct ExeCrashHistory {
     pub exe_name: String,
     pub crash_count: u64,
     pub last_crash_ts: u64,
-    pub recent_crashes: Vec<u64>,
+    pub recent_crashes: VecDeque<u64>,
     pub dominant_signal: CrashSignal,
-    pub unique_fault_addrs: Vec<u64>,
+    pub unique_fault_addrs: VecDeque<u64>,
 }
 
 impl ExeCrashHistory {
     pub fn new(name: String) -> Self {
         Self {
             exe_name: name, crash_count: 0, last_crash_ts: 0,
-            recent_crashes: Vec::new(), dominant_signal: CrashSignal::Segfault,
-            unique_fault_addrs: Vec::new(),
+            recent_crashes: VecDeque::new(), dominant_signal: CrashSignal::Segfault,
+            unique_fault_addrs: VecDeque::new(),
         }
     }
 
     pub fn record_crash(&mut self, ts: u64, signal: CrashSignal, fault_addr: u64) {
         self.crash_count += 1;
         self.last_crash_ts = ts;
-        self.recent_crashes.push(ts);
-        if self.recent_crashes.len() > 32 { self.recent_crashes.remove(0); }
+        self.recent_crashes.push_back(ts);
+        if self.recent_crashes.len() > 32 { self.recent_crashes.pop_front(); }
         self.dominant_signal = signal;
         if fault_addr != 0 && !self.unique_fault_addrs.contains(&fault_addr) {
-            self.unique_fault_addrs.push(fault_addr);
-            if self.unique_fault_addrs.len() > 64 { self.unique_fault_addrs.remove(0); }
+            self.unique_fault_addrs.push_back(fault_addr);
+            if self.unique_fault_addrs.len() > 64 { self.unique_fault_addrs.pop_front(); }
         }
     }
 
     pub fn crash_rate(&self, window_ns: u64) -> f64 {
         if self.recent_crashes.len() < 2 { return 0.0; }
         let first = self.recent_crashes[0];
-        let last = *self.recent_crashes.last().unwrap();
+        let last = *self.recent_crashes.back().unwrap();
         let span = last.saturating_sub(first);
         if span == 0 { return 0.0; }
         (self.recent_crashes.len() as f64 / span as f64) * window_ns as f64
@@ -170,7 +171,7 @@ pub struct CoredumpStats {
 /// Apps coredump manager
 pub struct AppsCoredump {
     config: CoredumpConfig,
-    records: Vec<CoredumpRecord>,
+    records: VecDeque<CoredumpRecord>,
     exe_history: BTreeMap<String, ExeCrashHistory>,
     max_records: usize,
     stats: CoredumpStats,
@@ -180,7 +181,7 @@ impl AppsCoredump {
     pub fn new() -> Self {
         Self {
             config: CoredumpConfig::default_config(),
-            records: Vec::new(), exe_history: BTreeMap::new(),
+            records: VecDeque::new(), exe_history: BTreeMap::new(),
             max_records: 256, stats: CoredumpStats::default(),
         }
     }
@@ -193,8 +194,8 @@ impl AppsCoredump {
 
         let mut record = CoredumpRecord::new(pid, exe.clone(), signal, ts);
         record.fault_addr = fault_addr;
-        self.records.push(record);
-        if self.records.len() > self.max_records { self.records.remove(0); }
+        self.records.push_back(record);
+        if self.records.len() > self.max_records { self.records.pop_front(); }
 
         let history = self.exe_history.entry(exe).or_insert_with_key(|k| ExeCrashHistory::new(k.clone()));
         history.record_crash(ts, signal, fault_addr);
