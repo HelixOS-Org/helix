@@ -46,6 +46,7 @@ pub struct PageFaultEvent {
 }
 
 impl PageFaultEvent {
+    #[inline(always)]
     pub fn is_expensive(&self) -> bool {
         matches!(self.fault_type, PageFaultType::Major | PageFaultType::SwapIn)
             || self.resolution_ns > 100_000
@@ -75,6 +76,7 @@ impl FaultHotspot {
         }
     }
 
+    #[inline(always)]
     pub fn avg_resolution_ns(&self) -> u64 {
         if self.fault_count == 0 { return 0; }
         self.total_resolution_ns / self.fault_count
@@ -83,6 +85,7 @@ impl FaultHotspot {
 
 /// Per-type fault counter
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct FaultTypeCounter {
     pub minor: u64,
     pub major: u64,
@@ -94,11 +97,13 @@ pub struct FaultTypeCounter {
 }
 
 impl FaultTypeCounter {
+    #[inline(always)]
     pub fn total(&self) -> u64 {
         self.minor + self.major + self.cow + self.demand_zero
             + self.swap_in + self.huge_split + self.protection
     }
 
+    #[inline]
     pub fn record(&mut self, ft: PageFaultType) {
         match ft {
             PageFaultType::Minor => self.minor += 1,
@@ -111,6 +116,7 @@ impl FaultTypeCounter {
         }
     }
 
+    #[inline]
     pub fn major_ratio(&self) -> f64 {
         let total = self.total();
         if total == 0 { return 0.0; }
@@ -168,6 +174,7 @@ impl ProcessFaultProfile {
         self.last_window_faults += 1;
     }
 
+    #[inline]
     pub fn update_rate(&mut self, now: u64) {
         let elapsed = now.saturating_sub(self.window_start_ts);
         if elapsed > 1_000_000_000 { // 1 second window
@@ -178,12 +185,14 @@ impl ProcessFaultProfile {
         }
     }
 
+    #[inline]
     pub fn avg_resolution_ns(&self) -> u64 {
         let total = self.counters.total();
         if total == 0 { return 0; }
         self.total_resolution_ns / total
     }
 
+    #[inline]
     pub fn top_hotspots(&self, n: usize) -> Vec<&FaultHotspot> {
         let mut spots: Vec<_> = self.hotspots.values().collect();
         spots.sort_by(|a, b| b.fault_count.cmp(&a.fault_count));
@@ -194,6 +203,7 @@ impl ProcessFaultProfile {
 
 /// App page fault profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppPageFaultProfilerStats {
     pub total_processes: usize,
     pub total_faults: u64,
@@ -218,16 +228,19 @@ impl AppPageFaultProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessFaultProfile::new(pid));
     }
 
+    #[inline]
     pub fn record_fault(&mut self, pid: u64, event: &PageFaultEvent) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_fault(event);
         }
     }
 
+    #[inline]
     pub fn tick(&mut self, now: u64) {
         for profile in self.profiles.values_mut() {
             profile.update_rate(now);
@@ -235,6 +248,7 @@ impl AppPageFaultProfiler {
         self.recompute();
     }
 
+    #[inline]
     pub fn high_fault_processes(&self, threshold: f64) -> Vec<u64> {
         self.profiles.values()
             .filter(|p| p.fault_rate_per_sec > threshold)
@@ -256,14 +270,17 @@ impl AppPageFaultProfiler {
         } else { 0.0 };
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessFaultProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppPageFaultProfilerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.recompute();
