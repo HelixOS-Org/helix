@@ -316,18 +316,15 @@ impl CoopIntrospector {
                     "under_served_participant"
                 };
                 let bias_id = fnv1a_hash(bias_name.as_bytes()) ^ tracker.participant_id;
-                self.biases.insert(
-                    bias_id,
-                    CoopBias {
-                        name: String::from(bias_name),
-                        id: bias_id,
-                        category: NegotiationCategory::ResourceAllocation,
-                        magnitude: deviation.abs(),
-                        direction: deviation,
-                        affected_participants: Vec::from([tracker.participant_id]),
-                        sample_count: tracker.total_negotiations,
-                    },
-                );
+                self.biases.insert(bias_id, CoopBias {
+                    name: String::from(bias_name),
+                    id: bias_id,
+                    category: NegotiationCategory::ResourceAllocation,
+                    magnitude: deviation.abs(),
+                    direction: deviation,
+                    affected_participants: Vec::from([tracker.participant_id]),
+                    sample_count: tracker.total_negotiations,
+                });
             }
         }
         self.biases.len()
@@ -366,7 +363,9 @@ impl CoopIntrospector {
             0.5
         };
 
-        fairness * 0.35 + calibration * 0.30 + agreement_rate * 0.20
+        fairness * 0.35
+            + calibration * 0.30
+            + agreement_rate * 0.20
             + self.global_satisfaction_ema * 0.15
     }
 
@@ -379,7 +378,10 @@ impl CoopIntrospector {
             .collect();
         let fairness_var = if fairness_values.len() > 1 {
             let mean = fairness_values.iter().sum::<f32>() / fairness_values.len() as f32;
-            fairness_values.iter().map(|v| (v - mean) * (v - mean)).sum::<f32>()
+            fairness_values
+                .iter()
+                .map(|v| (v - mean) * (v - mean))
+                .sum::<f32>()
                 / fairness_values.len() as f32
         } else {
             0.0
