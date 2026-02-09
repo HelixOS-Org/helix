@@ -43,20 +43,25 @@ pub struct VmRegion {
 }
 
 impl VmRegion {
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
 
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool {
         addr >= self.start && addr < self.end
     }
 
+    #[inline(always)]
     pub fn overlaps(&self, other: &VmRegion) -> bool {
         self.start < other.end && other.start < self.end
     }
 
+    #[inline(always)]
     pub fn is_adjacent(&self, other: &VmRegion) -> bool {
         self.end == other.start || other.end == self.start
     }
 
+    #[inline]
     pub fn can_merge_with(&self, other: &VmRegion) -> bool {
         self.is_adjacent(other)
             && self.prot == other.prot
@@ -64,6 +69,7 @@ impl VmRegion {
             && self.region_type == other.region_type
     }
 
+    #[inline(always)]
     pub fn pages(&self) -> u64 { (self.size() + 4095) / 4096 }
 }
 
@@ -77,11 +83,13 @@ pub struct RegionGap {
 }
 
 impl RegionGap {
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
 }
 
 /// Region manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RegionAppStats {
     pub total_regions: u64,
     pub total_mapped_bytes: u64,
@@ -107,6 +115,7 @@ impl RegionAppManager {
     }
 
     /// Add a region for an application, maintaining sorted order
+    #[inline]
     pub fn add_region(&mut self, app_id: u64, region: VmRegion) {
         let regions = self.app_regions.entry(app_id).or_insert_with(Vec::new);
 
@@ -230,9 +239,11 @@ impl RegionAppManager {
         1.0 - (mapped as f64 / span as f64)
     }
 
+    #[inline(always)]
     pub fn region_count(&self, app_id: u64) -> usize {
         self.app_regions.get(&app_id).map(|r| r.len()).unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &RegionAppStats { &self.stats }
 }
