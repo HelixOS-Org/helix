@@ -66,6 +66,7 @@ pub struct EnergySample {
 
 impl EnergySample {
     /// Average power (milliwatts)
+    #[inline]
     pub fn avg_power_mw(&self) -> MilliWatts {
         if self.period_ms == 0 {
             return 0;
@@ -115,6 +116,7 @@ pub struct WakeupEvent {
 
 /// Wakeup statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct WakeupStats {
     /// Total wakeups
     pub total: u64,
@@ -277,6 +279,7 @@ impl AppEnergyAnalyzer {
     }
 
     /// Record wakeup event
+    #[inline]
     pub fn record_wakeup(&mut self, event: WakeupEvent) {
         let pid = event.pid;
         let events = self.wakeups.entry(pid).or_insert_with(Vec::new);
@@ -403,6 +406,7 @@ impl AppEnergyAnalyzer {
     }
 
     /// Set energy budget
+    #[inline]
     pub fn set_budget(&mut self, pid: u64, budget_mw: MilliWatts) {
         self.budgets.insert(pid, EnergyBudget {
             pid,
@@ -452,11 +456,13 @@ impl AppEnergyAnalyzer {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessEnergyProfile> {
         self.profiles.get(&pid)
     }
 
     /// Unregister
+    #[inline]
     pub fn unregister(&mut self, pid: u64) {
         self.samples.remove(&pid);
         self.wakeups.remove(&pid);
