@@ -1248,3 +1248,9 @@ pub mod mlock_app2;
 
 // Consciousness Framework — Application Understanding Self-Awareness
 pub mod conscious;
+
+// Future Prediction Engine — Application Behavior Long-Horizon Prediction
+pub mod future;
+
+// Autonomous Research Engine — Application Understanding Research
+pub mod research;
