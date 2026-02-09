@@ -3,7 +3,7 @@
 //! Predicts future resource needs and behavior phases for applications,
 //! enabling proactive resource allocation.
 
-use alloc::vec::Vec;
+use alloc::collections::VecDeque;
 
 // ============================================================================
 // FORECAST TYPES
@@ -24,6 +24,7 @@ pub enum ForecastHorizon {
 
 impl ForecastHorizon {
     /// Number of seconds this horizon represents
+    #[inline]
     pub fn seconds(&self) -> u64 {
         match self {
             Self::Short => 5,
@@ -85,13 +86,13 @@ pub struct BehaviorForecast {
 /// analysis to forecast application behavior.
 pub struct WorkloadPredictor {
     /// CPU usage history
-    cpu_history: Vec<f64>,
+    cpu_history: VecDeque<f64>,
     /// Memory usage history
-    memory_history: Vec<f64>,
+    memory_history: VecDeque<f64>,
     /// I/O throughput history
-    io_history: Vec<f64>,
+    io_history: VecDeque<f64>,
     /// Network throughput history
-    network_history: Vec<f64>,
+    network_history: VecDeque<f64>,
     /// Maximum history length
     max_history: usize,
     /// EMA smoothing factor
@@ -101,65 +102,82 @@ pub struct WorkloadPredictor {
 impl WorkloadPredictor {
     pub fn new(max_history: usize) -> Self {
         Self {
-            cpu_history: Vec::with_capacity(max_history),
-            memory_history: Vec::with_capacity(max_history),
-            io_history: Vec::with_capacity(max_history),
-            network_history: Vec::with_capacity(max_history),
+            cpu_history: VecDeque::with_capacity(max_history),
+            memory_history: VecDeque::with_capacity(max_history),
+            io_history: VecDeque::with_capacity(max_history),
+            network_history: VecDeque::with_capacity(max_history),
             max_history,
             alpha: 0.3,
         }
     }
 
     /// Observe CPU usage
+    #[inline(always)]
     pub fn observe_cpu(&mut self, usage: f64) {
         Self::push_bounded(&mut self.cpu_history, usage, self.max_history);
     }
 
     /// Observe memory usage
+    #[inline(always)]
     pub fn observe_memory(&mut self, usage: f64) {
         Self::push_bounded(&mut self.memory_history, usage, self.max_history);
     }
 
     /// Observe I/O throughput
+    #[inline(always)]
     pub fn observe_io(&mut self, throughput: f64) {
         Self::push_bounded(&mut self.io_history, throughput, self.max_history);
     }
 
     /// Observe network throughput
+    #[inline(always)]
     pub fn observe_network(&mut self, throughput: f64) {
         Self::push_bounded(&mut self.network_history, throughput, self.max_history);
     }
 
     /// Predict CPU usage at the given horizon
-    pub fn predict_cpu(&self, horizon: ForecastHorizon) -> ResourceForecast {
-        self.forecast(&self.cpu_history, horizon)
+    #[inline(always)]
+    pub fn predict_cpu(&mut self, horizon: ForecastHorizon) -> ResourceForecast {
+        self.cpu_history.make_contiguous();
+        self.forecast(self.cpu_history.as_slices().0, horizon)
     }
 
     /// Predict memory usage at the given horizon
-    pub fn predict_memory(&self, horizon: ForecastHorizon) -> ResourceForecast {
-        self.forecast(&self.memory_history, horizon)
+    #[inline(always)]
+    pub fn predict_memory(&mut self, horizon: ForecastHorizon) -> ResourceForecast {
+        self.memory_history.make_contiguous();
+        self.forecast(self.memory_history.as_slices().0, horizon)
     }
 
     /// Predict I/O throughput at the given horizon
-    pub fn predict_io(&self, horizon: ForecastHorizon) -> ResourceForecast {
-        self.forecast(&self.io_history, horizon)
+    #[inline(always)]
+    pub fn predict_io(&mut self, horizon: ForecastHorizon) -> ResourceForecast {
+        self.io_history.make_contiguous();
+        self.forecast(self.io_history.as_slices().0, horizon)
     }
 
     /// Predict network throughput at the given horizon
-    pub fn predict_network(&self, horizon: ForecastHorizon) -> ResourceForecast {
-        self.forecast(&self.network_history, horizon)
+    #[inline(always)]
+    pub fn predict_network(&mut self, horizon: ForecastHorizon) -> ResourceForecast {
+        self.network_history.make_contiguous();
+        self.forecast(self.network_history.as_slices().0, horizon)
     }
 
     /// Complete behavior forecast
-    pub fn forecast_all(&self, horizon: ForecastHorizon) -> BehaviorForecast {
-        let cpu = self.predict_cpu(horizon);
-        let memory = self.predict_memory(horizon);
-        let io = self.predict_io(horizon);
-        let network = self.predict_network(horizon);
+    pub fn forecast_all(&mut self, horizon: ForecastHorizon) -> BehaviorForecast {
+        self.cpu_history.make_contiguous();
+        self.memory_history.make_contiguous();
+        self.io_history.make_contiguous();
+        self.network_history.make_contiguous();
+
+        let cpu = self.forecast(self.cpu_history.as_slices().0, horizon);
+        let memory = self.forecast(self.memory_history.as_slices().0, horizon);
+        let io = self.forecast(self.io_history.as_slices().0, horizon);
+        let network = self.forecast(self.network_history.as_slices().0, horizon);
 
         // Compute anomaly risk based on trend acceleration
-        let cpu_accel = self.trend_acceleration(&self.cpu_history);
-        let mem_accel = self.trend_acceleration(&self.memory_history);
+        let cpu_accel = self.trend_acceleration(self.cpu_history.as_slices().0);
+        let mem_accel = self.trend_acceleration(self.memory_history.as_slices().0);
         let anomaly_risk = ((cpu_accel.abs() + mem_accel.abs()) / 2.0).min(1.0);
 
         BehaviorForecast {
@@ -277,10 +295,10 @@ impl WorkloadPredictor {
         trend2 - trend1
     }
 
-    fn push_bounded(vec: &mut Vec<f64>, value: f64, max: usize) {
-        if vec.len() >= max {
-            vec.remove(0);
+    fn push_bounded(deque: &mut VecDeque<f64>, value: f64, max: usize) {
+        if deque.len() >= max {
+            deque.pop_front();
         }
-        vec.push(value);
+        deque.push_back(value);
     }
 }
