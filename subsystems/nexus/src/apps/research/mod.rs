@@ -67,6 +67,30 @@ pub mod literature;
 /// Classifier/predictor synthesis from validated research discoveries
 pub mod synthesis;
 
+/// Statistical analysis of app research results
+pub mod analysis;
+
+/// Proactive exploration of app behavior space via UCB1 curiosity
+pub mod curiosity;
+
+/// Cross-validation of app research findings via peer review
+pub mod peer_review;
+
+/// Persistent knowledge store for app research findings
+pub mod knowledge_base;
+
+/// Detects genuine breakthroughs in app understanding
+pub mod breakthrough;
+
+/// Research methodology validation for app experiments
+pub mod methodology;
+
+/// Replication of app research findings for robustness
+pub mod replication;
+
+/// Paradigm shift detection in app understanding
+pub mod paradigm;
+
 // ============================================================================
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
@@ -78,3 +102,12 @@ pub use self::journal::AppsJournal;
 pub use self::literature::AppsLiterature;
 pub use self::synthesis::AppsSynthesis;
 pub use self::validator::AppsDiscoveryValidator;
+
+pub use self::analysis::AppsAnalysisEngine;
+pub use self::curiosity::AppsCuriosityEngine;
+pub use self::peer_review::AppsPeerReview;
+pub use self::knowledge_base::AppsKnowledgeBase;
+pub use self::breakthrough::AppsBreakthroughDetector;
+pub use self::methodology::AppsMethodology;
+pub use self::replication::AppsReplication;
+pub use self::paradigm::AppsParadigm;
