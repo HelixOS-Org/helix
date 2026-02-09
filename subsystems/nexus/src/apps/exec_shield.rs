@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -94,7 +95,7 @@ pub struct ProcessShieldState {
     pub mitigations: MitigationFlags,
     pub aslr_entropy_bits: u32,
     pub stack_canary_value: u64,
-    pub violations: Vec<ViolationRecord>,
+    pub violations: VecDeque<ViolationRecord>,
     pub max_violations: usize,
     pub kill_on_violation: bool,
     pub code_regions: Vec<(u64, u64)>,
@@ -110,7 +111,7 @@ impl ProcessShieldState {
             mitigations,
             aslr_entropy_bits: 28,
             stack_canary_value: 0,
-            violations: Vec::new(),
+            violations: VecDeque::new(),
             max_violations: 64,
             kill_on_violation: true,
             code_regions: Vec::new(),
@@ -139,9 +140,9 @@ impl ProcessShieldState {
     pub fn record_violation(&mut self, violation: ViolationRecord) {
         self.violation_count += 1;
         if self.violations.len() >= self.max_violations {
-            self.violations.remove(0);
+            self.violations.pop_front();
         }
-        self.violations.push(violation);
+        self.violations.push_back(violation);
     }
 
     pub fn security_score(&self) -> f64 {
