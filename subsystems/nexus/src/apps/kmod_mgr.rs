@@ -94,14 +94,17 @@ impl KmodInfo {
         }
     }
 
+    #[inline(always)]
     pub fn add_dependency(&mut self, dep: KmodDep) {
         self.deps.push(dep);
     }
 
+    #[inline(always)]
     pub fn dep_count(&self) -> usize {
         self.deps.len()
     }
 
+    #[inline(always)]
     pub fn hard_dep_count(&self) -> usize {
         self.deps.iter().filter(|d| !d.soft).count()
     }
@@ -133,14 +136,17 @@ impl KmodInfo {
         }
     }
 
+    #[inline(always)]
     pub fn can_unload(&self) -> bool {
         self.refcount == 0 && self.state == KmodState::Live
     }
 
+    #[inline(always)]
     pub fn is_tainted(&self) -> bool {
         self.taints != 0
     }
 
+    #[inline]
     pub fn memory_total(&self) -> u64 {
         if self.size_bytes > 0 {
             self.size_bytes
@@ -149,6 +155,7 @@ impl KmodInfo {
         }
     }
 
+    #[inline(always)]
     pub fn fault_rate_per_load(&self) -> f64 {
         if self.load_count == 0 { return 0.0; }
         self.fault_count as f64 / self.load_count as f64
@@ -174,6 +181,7 @@ impl AppKmodUsage {
         }
     }
 
+    #[inline]
     pub fn request_module(&mut self, mod_id: u64, granted: bool) {
         if granted {
             if !self.requested_modules.contains(&mod_id) {
@@ -186,6 +194,7 @@ impl AppKmodUsage {
         }
     }
 
+    #[inline]
     pub fn denial_rate(&self) -> f64 {
         let total = self.requested_modules.len() + self.denied_modules.len();
         if total == 0 { return 0.0; }
@@ -195,6 +204,7 @@ impl AppKmodUsage {
 
 /// Kmod manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KmodMgrStats {
     pub total_modules: u64,
     pub live_modules: u64,
@@ -235,6 +245,7 @@ impl AppKmodMgr {
         }
     }
 
+    #[inline]
     pub fn register_module(&mut self, name: String, mod_type: KmodType) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -316,6 +327,7 @@ impl AppKmodMgr {
         }
     }
 
+    #[inline]
     pub fn request_module_for_app(&mut self, pid: u64, mod_name: &str, granted: bool) {
         let usage = self.app_usage.entry(pid).or_insert_with(|| AppKmodUsage::new(pid));
         if let Some(&id) = self.name_to_id.get(mod_name) {
@@ -323,12 +335,14 @@ impl AppKmodMgr {
         }
     }
 
+    #[inline]
     pub fn record_fault(&mut self, id: u64) {
         if let Some(m) = self.modules.get_mut(&id) {
             m.fault_count += 1;
         }
     }
 
+    #[inline]
     pub fn modules_by_memory(&self) -> Vec<(u64, u64)> {
         let mut v: Vec<(u64, u64)> = self.modules.iter()
             .filter(|(_, m)| m.state == KmodState::Live)
@@ -338,6 +352,7 @@ impl AppKmodMgr {
         v
     }
 
+    #[inline]
     pub fn faultiest_modules(&self, top: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<(u64, f64)> = self.modules.iter()
             .filter(|(_, m)| m.load_count > 0)
@@ -348,10 +363,12 @@ impl AppKmodMgr {
         v
     }
 
+    #[inline(always)]
     pub fn get_module(&self, id: u64) -> Option<&KmodInfo> {
         self.modules.get(&id)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &KmodMgrStats {
         &self.stats
     }
