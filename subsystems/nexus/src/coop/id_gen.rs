@@ -193,9 +193,9 @@ impl CoopIdGen {
 
     #[inline]
     pub fn generate(&mut self, ns: u32, current_ms: u64) -> Option<u64> {
-        let gen = self.namespaces.get_mut(&ns)?;
-        let node_id = gen.node_id;
-        let id = gen.next_id(current_ms)?;
+        let generator = self.namespaces.get_mut(&ns)?;
+        let node_id = generator.node_id;
+        let id = generator.next_id(current_ms)?;
         if let Some(n) = self.nodes.get_mut(&node_id) {
             n.ids_generated += 1;
             n.last_seen_ts = current_ms;
@@ -205,8 +205,8 @@ impl CoopIdGen {
 
     #[inline]
     pub fn generate_batch(&mut self, ns: u32, count: usize, current_ms: u64) -> Vec<u64> {
-        if let Some(gen) = self.namespaces.get_mut(&ns) {
-            gen.next_batch(count, current_ms)
+        if let Some(generator) = self.namespaces.get_mut(&ns) {
+            generator.next_batch(count, current_ms)
         } else {
             Vec::new()
         }
