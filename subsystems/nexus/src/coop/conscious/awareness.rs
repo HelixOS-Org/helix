@@ -177,22 +177,25 @@ impl CoopAwareness {
         let id = fnv1a_hash(name.as_bytes());
         let tick = self.tick;
 
-        let profile = self.participants.entry(id).or_insert_with(|| ParticipantProfile {
-            name: String::from(name),
-            id,
-            level: ParticipantAwarenessLevel::Unknown,
-            awareness_score: 0.0,
-            predictability: 0.5,
-            cooperation_tendency: 0.5,
-            trust: 0.5,
-            interaction_frequency: 0.0,
-            total_interactions: 0,
-            prediction_accuracy: 0.5,
-            first_seen_tick: tick,
-            last_seen_tick: tick,
-            awareness_history: Vec::new(),
-            write_idx: 0,
-        });
+        let profile = self
+            .participants
+            .entry(id)
+            .or_insert_with(|| ParticipantProfile {
+                name: String::from(name),
+                id,
+                level: ParticipantAwarenessLevel::Unknown,
+                awareness_score: 0.0,
+                predictability: 0.5,
+                cooperation_tendency: 0.5,
+                trust: 0.5,
+                interaction_frequency: 0.0,
+                total_interactions: 0,
+                prediction_accuracy: 0.5,
+                first_seen_tick: tick,
+                last_seen_tick: tick,
+                awareness_history: Vec::new(),
+                write_idx: 0,
+            });
 
         profile.total_interactions += 1;
         profile.last_seen_tick = tick;
@@ -211,15 +214,15 @@ impl CoopAwareness {
             EMA_ALPHA * accuracy + (1.0 - EMA_ALPHA) * profile.prediction_accuracy;
 
         // Update predictability based on behavioral consistency
-        profile.predictability =
-            EMA_ALPHA * accuracy + (1.0 - EMA_ALPHA) * profile.predictability;
+        profile.predictability = EMA_ALPHA * accuracy + (1.0 - EMA_ALPHA) * profile.predictability;
 
         // Compute awareness score
         let freq_score = profile.interaction_frequency.min(1.0);
         let pred_score = profile.prediction_accuracy;
         let coop_knowledge = (profile.total_interactions as f32 / 50.0).min(1.0);
-        profile.awareness_score =
-            freq_score * 0.25 + pred_score * 0.35 + coop_knowledge * 0.25
+        profile.awareness_score = freq_score * 0.25
+            + pred_score * 0.35
+            + coop_knowledge * 0.25
             + profile.predictability * 0.15;
 
         // State transition
@@ -260,14 +263,17 @@ impl CoopAwareness {
         let id_b = fnv1a_hash(name_b.as_bytes());
         let rel_key = id_a.wrapping_mul(FNV_PRIME) ^ id_b;
 
-        let rel = self.relationships.entry(rel_key).or_insert_with(|| Relationship {
-            participant_a: id_a,
-            participant_b: id_b,
-            strength: 0.0,
-            interactions: 0,
-            cooperation_quality: 0.5,
-            direction_balance: 0.0,
-        });
+        let rel = self
+            .relationships
+            .entry(rel_key)
+            .or_insert_with(|| Relationship {
+                participant_a: id_a,
+                participant_b: id_b,
+                strength: 0.0,
+                interactions: 0,
+                cooperation_quality: 0.5,
+                direction_balance: 0.0,
+            });
 
         rel.interactions += 1;
         rel.cooperation_quality = EMA_ALPHA * cooperation_quality.max(0.0).min(1.0)
@@ -317,8 +323,7 @@ impl CoopAwareness {
             }
             total += 1;
             let mid = len / 2;
-            let first_avg =
-                profile.awareness_history[..mid].iter().sum::<f32>() / mid as f32;
+            let first_avg = profile.awareness_history[..mid].iter().sum::<f32>() / mid as f32;
             let second_avg =
                 profile.awareness_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
             if second_avg > first_avg {
@@ -385,7 +390,10 @@ impl CoopAwareness {
         let avg_awareness = if self.participants.is_empty() {
             0.0
         } else {
-            self.participants.values().map(|p| p.awareness_score).sum::<f32>()
+            self.participants
+                .values()
+                .map(|p| p.awareness_score)
+                .sum::<f32>()
                 / self.participants.len() as f32
         };
 
