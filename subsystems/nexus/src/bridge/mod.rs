@@ -311,6 +311,9 @@ pub mod munmap_bridge;
 pub mod shmem_bridge;
 pub mod vma_bridge;
 
+// Year 5 TRANSCEND — Bridge Consciousness Framework
+pub mod conscious;
+
 // Re-exports from Round 4 modules
 // Re-exports from Round 8 modules
 pub use abi_translator::{
