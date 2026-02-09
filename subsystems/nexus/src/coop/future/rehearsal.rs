@@ -168,7 +168,13 @@ impl CoopRehearsal {
     }
 
     /// Register a negotiation agent for rehearsal.
-    pub fn register_agent(&mut self, agent_id: u64, demand: u64, flexibility: u64, trust_bias: u64) {
+    pub fn register_agent(
+        &mut self,
+        agent_id: u64,
+        demand: u64,
+        flexibility: u64,
+        trust_bias: u64,
+    ) {
         if self.agents.len() >= self.max_agents {
             return;
         }
@@ -182,7 +188,13 @@ impl CoopRehearsal {
     }
 
     /// Register a protocol model for testing.
-    pub fn register_protocol(&mut self, name: &str, overhead: u64, threshold: u64, max_rounds: u64) {
+    pub fn register_protocol(
+        &mut self,
+        name: &str,
+        overhead: u64,
+        threshold: u64,
+        max_rounds: u64,
+    ) {
         let hash = fnv1a_hash(name.as_bytes());
         self.protocols.insert(hash, ProtocolModel {
             protocol_hash: hash,
@@ -279,13 +291,20 @@ impl CoopRehearsal {
     }
 
     /// Test a protocol by simulating message exchange and convergence.
-    pub fn test_protocol(&mut self, protocol_name: &str, num_participants: u64) -> ProtocolTestResult {
+    pub fn test_protocol(
+        &mut self,
+        protocol_name: &str,
+        num_participants: u64,
+    ) -> ProtocolTestResult {
         self.stats.protocols_tested = self.stats.protocols_tested.saturating_add(1);
         let hash = fnv1a_hash(protocol_name.as_bytes());
-        let test_id = fnv1a_hash(&[
-            hash.to_le_bytes(),
-            self.stats.protocols_tested.to_le_bytes(),
-        ].concat());
+        let test_id = fnv1a_hash(
+            &[
+                hash.to_le_bytes(),
+                self.stats.protocols_tested.to_le_bytes(),
+            ]
+            .concat(),
+        );
 
         let model = self.protocols.get(&hash).cloned().unwrap_or(ProtocolModel {
             protocol_hash: hash,
@@ -302,8 +321,10 @@ impl CoopRehearsal {
             .collect();
 
         for round in 0..model.max_rounds {
-            let msg_this_round = num_participants.saturating_mul(num_participants.saturating_sub(1));
-            messages = messages.saturating_add(msg_this_round.saturating_add(model.message_overhead));
+            let msg_this_round =
+                num_participants.saturating_mul(num_participants.saturating_sub(1));
+            messages =
+                messages.saturating_add(msg_this_round.saturating_add(model.message_overhead));
 
             let avg: u64 = state_values.iter().sum::<u64>() / state_values.len().max(1) as u64;
             for val in state_values.iter_mut() {
@@ -331,15 +352,21 @@ impl CoopRehearsal {
         }
 
         let overhead = if messages > 0 {
-            model.message_overhead.saturating_mul(model.max_rounds).saturating_mul(1000) / messages
+            model
+                .message_overhead
+                .saturating_mul(model.max_rounds)
+                .saturating_mul(1000)
+                / messages
         } else {
             0
         };
 
         let noise_factor = xorshift64(&mut self.rng_state) % 50;
-        let correctness = model.correctness_baseline.saturating_sub(
-            convergence_round.saturating_mul(2)
-        ).saturating_add(noise_factor).min(1000);
+        let correctness = model
+            .correctness_baseline
+            .saturating_sub(convergence_round.saturating_mul(2))
+            .saturating_add(noise_factor)
+            .min(1000);
 
         let regression = correctness < model.correctness_baseline.saturating_mul(8) / 10;
         if regression {
@@ -358,7 +385,11 @@ impl CoopRehearsal {
     }
 
     /// Evaluate fairness of a proposed resource distribution policy.
-    pub fn fairness_rehearsal(&mut self, shares: &BTreeMap<u64, u64>, total_resource: u64) -> FairnessResult {
+    pub fn fairness_rehearsal(
+        &mut self,
+        shares: &BTreeMap<u64, u64>,
+        total_resource: u64,
+    ) -> FairnessResult {
         self.stats.fairness_evaluations = self.stats.fairness_evaluations.saturating_add(1);
 
         let policy_hash = {
@@ -378,7 +409,11 @@ impl CoopRehearsal {
         let n = values.len() as u64;
         let fair_share = if n > 0 { total_resource / n } else { 0 };
         let proportional = values.iter().all(|&v| {
-            let diff = if v > fair_share { v - fair_share } else { fair_share - v };
+            let diff = if v > fair_share {
+                v - fair_share
+            } else {
+                fair_share - v
+            };
             diff <= fair_share / 4
         });
 
@@ -417,7 +452,11 @@ impl CoopRehearsal {
     }
 
     /// Predict the outcome of a cooperation scenario based on rehearsal data.
-    pub fn outcome_prediction(&mut self, participant_ids: &[u64], resource_pressure: u64) -> OutcomePrediction {
+    pub fn outcome_prediction(
+        &mut self,
+        participant_ids: &[u64],
+        resource_pressure: u64,
+    ) -> OutcomePrediction {
         self.stats.outcomes_predicted = self.stats.outcomes_predicted.saturating_add(1);
 
         let mut hash_input: Vec<u8> = Vec::new();
@@ -470,8 +509,7 @@ impl CoopRehearsal {
         if self.quality_history.is_empty() {
             return self.stats.avg_quality;
         }
-        let recent: Vec<&QualityRecord> = self.quality_history.iter()
-            .rev().take(16).collect();
+        let recent: Vec<&QualityRecord> = self.quality_history.iter().rev().take(16).collect();
         let sum: u64 = recent.iter().map(|r| r.quality_score).sum();
         sum / recent.len().max(1) as u64
     }
@@ -511,13 +549,11 @@ impl CoopRehearsal {
         let mut abs_diff_sum: u64 = 0;
         for i in 0..n {
             for j in 0..n {
-                abs_diff_sum = abs_diff_sum.saturating_add(
-                    if values[i] > values[j] {
-                        values[i] - values[j]
-                    } else {
-                        values[j] - values[i]
-                    },
-                );
+                abs_diff_sum = abs_diff_sum.saturating_add(if values[i] > values[j] {
+                    values[i] - values[j]
+                } else {
+                    values[j] - values[i]
+                });
             }
         }
         abs_diff_sum.saturating_mul(500) / (n as u64 * sum).max(1)
