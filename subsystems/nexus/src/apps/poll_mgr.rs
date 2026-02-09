@@ -19,6 +19,7 @@ pub enum PollMechanism {
 }
 
 impl PollMechanism {
+    #[inline]
     pub fn scalability_score(&self) -> u32 {
         match self {
             Self::Select => 1,
@@ -47,18 +48,22 @@ impl PollEvents {
     pub const ET: u32 = 1 << 8;
     pub const ONESHOT: u32 = 1 << 9;
 
+    #[inline(always)]
     pub fn has(&self, ev: u32) -> bool {
         self.0 & ev != 0
     }
 
+    #[inline(always)]
     pub fn interest_count(&self) -> u32 {
         (self.0 & 0x3FF).count_ones()
     }
 
+    #[inline(always)]
     pub fn is_read_only(&self) -> bool {
         self.has(Self::IN) && !self.has(Self::OUT)
     }
 
+    #[inline(always)]
     pub fn is_write_only(&self) -> bool {
         !self.has(Self::IN) && self.has(Self::OUT)
     }
@@ -98,11 +103,13 @@ impl EpollFdEntry {
         }
     }
 
+    #[inline(always)]
     pub fn fire(&mut self, now_ns: u64) {
         self.fired_count += 1;
         self.last_fired_ns = now_ns;
     }
 
+    #[inline(always)]
     pub fn activity_ratio(&self, total_waits: u64) -> f64 {
         if total_waits == 0 { return 0.0; }
         self.fired_count as f64 / total_waits as f64
@@ -123,28 +130,33 @@ impl EpollInstance {
         }
     }
 
+    #[inline]
     pub fn add_fd(&mut self, fd: u64, events: PollEvents) {
         if !self.fds.iter().any(|e| e.fd == fd) {
             self.fds.push(EpollFdEntry::new(fd, events));
         }
     }
 
+    #[inline]
     pub fn modify_fd(&mut self, fd: u64, events: PollEvents) {
         if let Some(entry) = self.fds.iter_mut().find(|e| e.fd == fd) {
             entry.events = events;
         }
     }
 
+    #[inline]
     pub fn remove_fd(&mut self, fd: u64) {
         if let Some(pos) = self.fds.iter().position(|e| e.fd == fd) {
             self.fds.swap_remove(pos);
         }
     }
 
+    #[inline(always)]
     pub fn fd_count(&self) -> usize {
         self.fds.len()
     }
 
+    #[inline]
     pub fn record_wait(&mut self, events_returned: u32) {
         self.wait_count += 1;
         self.event_count += events_returned as u64;
@@ -153,22 +165,26 @@ impl EpollInstance {
         }
     }
 
+    #[inline]
     pub fn fire_fd(&mut self, fd: u64, now_ns: u64) {
         if let Some(entry) = self.fds.iter_mut().find(|e| e.fd == fd) {
             entry.fire(now_ns);
         }
     }
 
+    #[inline(always)]
     pub fn avg_events_per_wait(&self) -> f64 {
         if self.wait_count == 0 { return 0.0; }
         self.event_count as f64 / self.wait_count as f64
     }
 
+    #[inline(always)]
     pub fn timeout_rate(&self) -> f64 {
         if self.wait_count == 0 { return 0.0; }
         self.timeout_count as f64 / self.wait_count as f64
     }
 
+    #[inline]
     pub fn stale_fds(&self) -> Vec<u64> {
         self.fds.iter()
             .filter(|e| e.fired_count == 0 && self.wait_count > 10)
@@ -176,6 +192,7 @@ impl EpollInstance {
             .collect()
     }
 
+    #[inline]
     pub fn hottest_fds(&self, top: usize) -> Vec<(u64, u64)> {
         let mut v: Vec<(u64, u64)> = self.fds.iter().map(|e| (e.fd, e.fired_count)).collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
@@ -209,16 +226,19 @@ impl AppPollProfile {
         }
     }
 
+    #[inline(always)]
     pub fn record_poll_call(&mut self, fd_count: u32) {
         self.total_poll_calls += 1;
         self.total_fds_watched += fd_count as u64;
     }
 
+    #[inline(always)]
     pub fn avg_fds_per_call(&self) -> f64 {
         if self.total_poll_calls == 0 { return 0.0; }
         self.total_fds_watched as f64 / self.total_poll_calls as f64
     }
 
+    #[inline(always)]
     pub fn should_upgrade_mechanism(&self) -> bool {
         self.avg_fds_per_call() > 100.0 && self.preferred_mechanism.scalability_score() < 4
     }
@@ -226,6 +246,7 @@ impl AppPollProfile {
 
 /// Poll manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PollMgrStats {
     pub total_epoll_instances: u64,
     pub total_poll_calls: u64,
@@ -260,10 +281,12 @@ impl AppPollMgr {
         }
     }
 
+    #[inline(always)]
     pub fn register_app(&mut self, pid: u64) {
         self.app_profiles.insert(pid, AppPollProfile::new(pid));
     }
 
+    #[inline]
     pub fn create_epoll(&mut self, pid: u64, timestamp_ns: u64) -> u64 {
         let epfd = self.next_epfd;
         self.next_epfd += 1;
@@ -275,18 +298,21 @@ impl AppPollMgr {
         epfd
     }
 
+    #[inline]
     pub fn epoll_ctl_add(&mut self, epfd: u64, fd: u64, events: PollEvents) {
         if let Some(inst) = self.epoll_instances.get_mut(&epfd) {
             inst.add_fd(fd, events);
         }
     }
 
+    #[inline]
     pub fn epoll_ctl_mod(&mut self, epfd: u64, fd: u64, events: PollEvents) {
         if let Some(inst) = self.epoll_instances.get_mut(&epfd) {
             inst.modify_fd(fd, events);
         }
     }
 
+    #[inline]
     pub fn epoll_ctl_del(&mut self, epfd: u64, fd: u64) {
         if let Some(inst) = self.epoll_instances.get_mut(&epfd) {
             inst.remove_fd(fd);
@@ -307,6 +333,7 @@ impl AppPollMgr {
         }
     }
 
+    #[inline]
     pub fn record_poll_syscall(&mut self, pid: u64, mechanism: PollMechanism, fd_count: u32) {
         self.stats.total_poll_calls += 1;
         if let Some(prof) = self.app_profiles.get_mut(&pid) {
@@ -318,6 +345,7 @@ impl AppPollMgr {
         }
     }
 
+    #[inline]
     pub fn detect_busy_wait(&mut self, pid: u64, calls_per_second: u64) {
         if calls_per_second > 10_000 {
             self.stats.busy_wait_detections += 1;
@@ -327,6 +355,7 @@ impl AppPollMgr {
         }
     }
 
+    #[inline]
     pub fn worst_timeout_rates(&self, top: usize) -> Vec<(u64, f64)> {
         let mut v: Vec<(u64, f64)> = self.epoll_instances.iter()
             .filter(|(_, inst)| inst.wait_count > 5)
@@ -337,14 +366,17 @@ impl AppPollMgr {
         v
     }
 
+    #[inline(always)]
     pub fn get_epoll(&self, epfd: u64) -> Option<&EpollInstance> {
         self.epoll_instances.get(&epfd)
     }
 
+    #[inline(always)]
     pub fn get_profile(&self, pid: u64) -> Option<&AppPollProfile> {
         self.app_profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PollMgrStats {
         &self.stats
     }
@@ -405,6 +437,7 @@ impl PollV2Call {
         }
     }
 
+    #[inline]
     pub fn add_fd(&mut self, fd: u64, events: u16) {
         self.fds.push(PollV2Fd {
             fd, events, revents: 0,
@@ -412,6 +445,7 @@ impl PollV2Call {
         });
     }
 
+    #[inline]
     pub fn mark_ready(&mut self, fd: u64, revents: u16) -> bool {
         for entry in self.fds.iter_mut() {
             if entry.fd == fd {
@@ -427,6 +461,7 @@ impl PollV2Call {
 
 /// Statistics for poll V2 manager
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PollV2MgrStats {
     pub total_poll_calls: u64,
     pub total_ppoll_calls: u64,
@@ -459,6 +494,7 @@ impl AppPollV2Mgr {
         }
     }
 
+    #[inline]
     pub fn begin_poll(&mut self, timeout_ms: i64, is_ppoll: bool, tick: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -468,6 +504,7 @@ impl AppPollV2Mgr {
         id
     }
 
+    #[inline]
     pub fn add_fd(&mut self, call_id: u64, fd: u64, events: u16) -> bool {
         if let Some(call) = self.active_calls.get_mut(&call_id) {
             call.add_fd(fd, events);
@@ -480,6 +517,7 @@ impl AppPollV2Mgr {
         } else { false }
     }
 
+    #[inline]
     pub fn complete_poll(&mut self, call_id: u64) -> Option<u32> {
         if let Some(call) = self.active_calls.get_mut(&call_id) {
             call.completed = true;
@@ -490,6 +528,7 @@ impl AppPollV2Mgr {
         } else { None }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PollV2MgrStats {
         &self.stats
     }
