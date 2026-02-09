@@ -43,6 +43,7 @@ impl GroupsRecord {
 
 /// Groups app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GroupsAppStats {
     pub total_ops: u64,
     pub getgroups: u64,
@@ -68,6 +69,7 @@ impl AppGroups {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &GroupsRecord) {
         self.stats.total_ops += 1;
         match rec.op {
