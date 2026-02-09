@@ -212,7 +212,11 @@ impl BridgeExplorer {
     }
 
     /// Explore a new strategy in the given domain — initializes a random individual
-    pub fn explore_strategy(&mut self, domain: ExplorationDomain, param_count: usize) -> Individual {
+    pub fn explore_strategy(
+        &mut self,
+        domain: ExplorationDomain,
+        param_count: usize,
+    ) -> Individual {
         let count = param_count.min(MAX_PARAMS);
         let mut params = Vec::with_capacity(count);
         for i in 0..count {
@@ -249,8 +253,7 @@ impl BridgeExplorer {
     pub fn mutate_params(&mut self, individual: &mut Individual) {
         for param in individual.params.iter_mut() {
             if xorshift_f32(&mut self.rng_state) < self.mutation_rate {
-                let delta =
-                    (xorshift_f32(&mut self.rng_state) - 0.5) * 2.0 * param.mutation_sigma;
+                let delta = (xorshift_f32(&mut self.rng_state) - 0.5) * 2.0 * param.mutation_sigma;
                 param.value = (param.value + delta).clamp(param.min_value, param.max_value);
                 self.stats.mutations_performed += 1;
             }
@@ -270,8 +273,8 @@ impl BridgeExplorer {
             };
             // Blend crossover: average with some randomness
             let alpha = xorshift_f32(&mut self.rng_state);
-            let blended_value = alpha * parent_a.params[i].value
-                + (1.0 - alpha) * parent_b.params[i].value;
+            let blended_value =
+                alpha * parent_a.params[i].value + (1.0 - alpha) * parent_b.params[i].value;
             child_params.push(StrategyParam {
                 name: base.name.clone(),
                 value: blended_value.clamp(base.min_value, base.max_value),
@@ -339,8 +342,11 @@ impl BridgeExplorer {
             return;
         }
         // Sort by fitness descending
-        self.population
-            .sort_by(|a, b| b.fitness.partial_cmp(&a.fitness).unwrap_or(core::cmp::Ordering::Equal));
+        self.population.sort_by(|a, b| {
+            b.fitness
+                .partial_cmp(&a.fitness)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
 
         let elite_count = ((self.population.len() as f32 * ELITISM_FRACTION) as usize).max(1);
         let prev_best = self.stats.current_best_fitness;
@@ -364,8 +370,7 @@ impl BridgeExplorer {
         let mean = if self.population.is_empty() {
             0.0
         } else {
-            self.population.iter().map(|i| i.fitness).sum::<f32>()
-                / self.population.len() as f32
+            self.population.iter().map(|i| i.fitness).sum::<f32>() / self.population.len() as f32
         };
         self.fitness_curve
             .record(self.generation, self.stats.current_best_fitness, mean);
