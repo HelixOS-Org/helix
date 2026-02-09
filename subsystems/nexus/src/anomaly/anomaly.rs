@@ -72,24 +72,28 @@ impl Anomaly {
     }
 
     /// Set component
+    #[inline(always)]
     pub fn with_component(mut self, component: ComponentId) -> Self {
         self.component = Some(component);
         self
     }
 
     /// Add context
+    #[inline(always)]
     pub fn with_context(mut self, key: impl Into<String>, value: f64) -> Self {
         self.context.push((key.into(), value));
         self
     }
 
     /// Set severity
+    #[inline(always)]
     pub fn with_severity(mut self, severity: AnomalySeverity) -> Self {
         self.severity = severity;
         self
     }
 
     /// Is this anomaly critical?
+    #[inline(always)]
     pub fn is_critical(&self) -> bool {
         self.severity >= AnomalySeverity::Critical
     }
