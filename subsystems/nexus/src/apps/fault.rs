@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -148,7 +149,7 @@ pub struct ProcessFaultProfile {
     /// Fault counts by type
     counts: BTreeMap<u8, u64>,
     /// Recent faults
-    recent: Vec<FaultEvent>,
+    recent: VecDeque<FaultEvent>,
     /// Max recent
     max_recent: usize,
     /// Total faults
@@ -166,7 +167,7 @@ impl ProcessFaultProfile {
         Self {
             pid,
             counts: BTreeMap::new(),
-            recent: Vec::new(),
+            recent: VecDeque::new(),
             max_recent: 64,
             total_faults: 0,
             fatal_faults: 0,
@@ -196,9 +197,9 @@ impl ProcessFaultProfile {
         }
         self.last_update = event.timestamp;
 
-        self.recent.push(event.clone());
+        self.recent.push_back(event.clone());
         if self.recent.len() > self.max_recent {
-            self.recent.remove(0);
+            self.recent.pop_front();
         }
     }
 
