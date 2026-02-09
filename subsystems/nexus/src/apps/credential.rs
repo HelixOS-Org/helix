@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -327,7 +328,7 @@ pub struct AppCredentialManager {
     /// Sessions
     sessions: BTreeMap<u64, SecuritySession>,
     /// Change history
-    events: Vec<CredentialEvent>,
+    events: VecDeque<CredentialEvent>,
     /// Stats
     stats: AppCredentialStats,
     /// Max events
@@ -339,7 +340,7 @@ impl AppCredentialManager {
         Self {
             profiles: BTreeMap::new(),
             sessions: BTreeMap::new(),
-            events: Vec::new(),
+            events: VecDeque::new(),
             stats: AppCredentialStats::default(),
             max_events: 4096,
         }
@@ -398,9 +399,9 @@ impl AppCredentialManager {
                 timestamp: now,
                 is_escalation: escalation,
             };
-            self.events.push(event);
+            self.events.push_back(event);
             if self.events.len() > self.max_events {
-                self.events.remove(0);
+                self.events.pop_front();
             }
 
             if escalation {
