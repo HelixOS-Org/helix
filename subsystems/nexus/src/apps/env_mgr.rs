@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -145,7 +146,7 @@ pub struct EnvMgrStats {
 /// Main environment manager
 pub struct AppEnvMgr {
     blocks: BTreeMap<u32, ProcessEnvBlock>,
-    events: Vec<EnvChangeEvent>,
+    events: VecDeque<EnvChangeEvent>,
     max_events: usize,
     default_max_vars: usize,
     total_accesses: u64,
@@ -156,7 +157,7 @@ pub struct AppEnvMgr {
 impl AppEnvMgr {
     pub fn new() -> Self {
         Self {
-            blocks: BTreeMap::new(), events: Vec::new(),
+            blocks: BTreeMap::new(), events: VecDeque::new(),
             max_events: 4096, default_max_vars: 1024,
             total_accesses: 0, total_modifications: 0,
             blocked_vars: Vec::new(),
@@ -213,8 +214,8 @@ impl AppEnvMgr {
     }
 
     fn record_event(&mut self, event: EnvChangeEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
-        self.events.push(event);
+        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        self.events.push_back(event);
     }
 
     pub fn stats(&self) -> EnvMgrStats {
