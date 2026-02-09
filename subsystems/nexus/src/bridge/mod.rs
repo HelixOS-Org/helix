@@ -314,6 +314,15 @@ pub mod vma_bridge;
 // Year 5 TRANSCEND — Bridge Consciousness Framework
 pub mod conscious;
 
+// Year 5 TRANSCEND — Bridge Future Prediction Engine
+pub mod future;
+
+// Year 5 TRANSCEND — Bridge Autonomous Research Engine
+pub mod research;
+
+// Year 5 TRANSCEND — Bridge Superintelligent Transcendence Layer
+pub mod transcend;
+
 // Re-exports from Round 4 modules
 // Re-exports from Round 8 modules
 pub use abi_translator::{
