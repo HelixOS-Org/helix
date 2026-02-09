@@ -102,11 +102,13 @@ impl OptimizationEngine {
     }
 
     /// Enable experimental optimizations
+    #[inline(always)]
     pub fn enable_experimental(&mut self) {
         self.experimental = true;
     }
 
     /// Set default strategy
+    #[inline(always)]
     pub fn set_strategy(&mut self, strategy: OptimizationStrategy) {
         self.default_strategy = strategy;
     }
