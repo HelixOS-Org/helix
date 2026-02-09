@@ -163,7 +163,11 @@ impl CoopSimulator {
     }
 
     /// Simulate a full cooperation scenario and return the result.
-    pub fn simulate_cooperation(&mut self, duration_steps: u64, contention_rate: u64) -> SimulationResult {
+    pub fn simulate_cooperation(
+        &mut self,
+        duration_steps: u64,
+        contention_rate: u64,
+    ) -> SimulationResult {
         self.stats.total_simulations = self.stats.total_simulations.saturating_add(1);
         let scenario_id = fnv1a_hash(&self.stats.total_simulations.to_le_bytes());
 
@@ -182,8 +186,11 @@ impl CoopSimulator {
                 if contention_event {
                     total_contention = total_contention.saturating_add(1);
                     if let Some(node) = self.nodes.get_mut(&nid) {
-                        let load_increase = xorshift64(&mut self.rng_state) % (node.resource_capacity / 4).max(1);
-                        node.resource_used = node.resource_used.saturating_add(load_increase)
+                        let load_increase =
+                            xorshift64(&mut self.rng_state) % (node.resource_capacity / 4).max(1);
+                        node.resource_used = node
+                            .resource_used
+                            .saturating_add(load_increase)
                             .min(node.resource_capacity);
                     }
                 } else {
@@ -193,7 +200,8 @@ impl CoopSimulator {
                     }
                 }
 
-                let partner_idx = (xorshift64(&mut self.rng_state) as usize) % node_ids.len().max(1);
+                let partner_idx =
+                    (xorshift64(&mut self.rng_state) as usize) % node_ids.len().max(1);
                 let partner_id = node_ids[partner_idx];
                 if partner_id != nid {
                     self.evolve_trust_pair(nid, partner_id, step);
@@ -219,7 +227,11 @@ impl CoopSimulator {
         }
 
         self.stats.total_steps = self.stats.total_steps.saturating_add(duration_steps);
-        let final_trust_avg = if step_count > 0 { step_trust_sum / step_count } else { 500 };
+        let final_trust_avg = if step_count > 0 {
+            step_trust_sum / step_count
+        } else {
+            500
+        };
         let resource_util = self.compute_avg_utilization();
         let protocol_tp = if duration_steps > 0 {
             throughput_acc / (duration_steps.saturating_mul(node_ids.len() as u64).max(1))
@@ -230,7 +242,8 @@ impl CoopSimulator {
             + protocol_tp.saturating_mul(2) / 10
             + (1000u64.saturating_sub(total_contention.min(1000))) / 10;
 
-        self.stats.avg_cooperation_score = ema_update(self.stats.avg_cooperation_score, coop_score, 3, 10);
+        self.stats.avg_cooperation_score =
+            ema_update(self.stats.avg_cooperation_score, coop_score, 3, 10);
         self.stats.avg_trust_final = ema_update(self.stats.avg_trust_final, final_trust_avg, 3, 10);
 
         SimulationResult {
@@ -258,7 +271,12 @@ impl CoopSimulator {
                     if step % 10 == 0 {
                         if let Some(node) = self.nodes.get(&a) {
                             if let Some(&trust) = node.trust_levels.get(&b) {
-                                let snap = TrustSnapshot { step, partner_id: b, trust_level: trust, delta };
+                                let snap = TrustSnapshot {
+                                    step,
+                                    partner_id: b,
+                                    trust_level: trust,
+                                    delta,
+                                };
                                 snapshots.push(snap);
                                 if snapshots.len() >= self.max_snapshots {
                                     return snapshots;
@@ -273,7 +291,12 @@ impl CoopSimulator {
     }
 
     /// Run a contention scenario with a specified burst pattern.
-    pub fn contention_scenario(&mut self, burst_size: u64, burst_interval: u64, total_steps: u64) -> u64 {
+    pub fn contention_scenario(
+        &mut self,
+        burst_size: u64,
+        burst_interval: u64,
+        total_steps: u64,
+    ) -> u64 {
         let node_ids: Vec<u64> = self.nodes.keys().copied().collect();
         let mut total_contention_cost: u64 = 0;
 
@@ -283,7 +306,9 @@ impl CoopSimulator {
                 if let Some(node) = self.nodes.get_mut(&nid) {
                     if is_burst {
                         let load = burst_size.min(node.resource_capacity);
-                        node.resource_used = node.resource_used.saturating_add(load)
+                        node.resource_used = node
+                            .resource_used
+                            .saturating_add(load)
                             .min(node.resource_capacity);
                         total_contention_cost = total_contention_cost.saturating_add(load);
                     } else {
@@ -297,7 +322,12 @@ impl CoopSimulator {
     }
 
     /// Stress test a protocol by ramping load and measuring throughput collapse.
-    pub fn protocol_stress(&mut self, protocol_name: &str, max_load: u64, ramp_steps: u64) -> StressResult {
+    pub fn protocol_stress(
+        &mut self,
+        protocol_name: &str,
+        max_load: u64,
+        ramp_steps: u64,
+    ) -> StressResult {
         self.stats.stress_tests_run = self.stats.stress_tests_run.saturating_add(1);
         let protocol_hash = fnv1a_hash(protocol_name.as_bytes());
 
@@ -351,7 +381,11 @@ impl CoopSimulator {
     }
 
     /// Compute the divergence between the last two simulation results.
-    pub fn simulation_divergence(&mut self, result_a: &SimulationResult, result_b: &SimulationResult) -> u64 {
+    pub fn simulation_divergence(
+        &mut self,
+        result_a: &SimulationResult,
+        result_b: &SimulationResult,
+    ) -> u64 {
         let trust_diff = if result_a.final_trust_avg > result_b.final_trust_avg {
             result_a.final_trust_avg - result_b.final_trust_avg
         } else {
@@ -387,8 +421,16 @@ impl CoopSimulator {
 
     /// Evolve trust between two nodes for a single step, returning the delta.
     fn evolve_trust_pair(&mut self, a: u64, b: u64, _step: u64) -> i64 {
-        let bias_a = self.nodes.get(&a).map(|n| n.cooperation_bias).unwrap_or(500);
-        let bias_b = self.nodes.get(&b).map(|n| n.cooperation_bias).unwrap_or(500);
+        let bias_a = self
+            .nodes
+            .get(&a)
+            .map(|n| n.cooperation_bias)
+            .unwrap_or(500);
+        let bias_b = self
+            .nodes
+            .get(&b)
+            .map(|n| n.cooperation_bias)
+            .unwrap_or(500);
 
         let combined_bias = (bias_a.saturating_add(bias_b)) / 2;
         let noise = (xorshift64(&mut self.rng_state) % 200) as i64 - 100;
