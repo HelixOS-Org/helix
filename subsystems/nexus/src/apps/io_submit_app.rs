@@ -45,6 +45,7 @@ impl IoCb {
         Self { id, fd, op, offset, nbytes, state: IoSubmitState::Pending, result: 0, submit_time: now, complete_time: 0 }
     }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
         if self.complete_time > self.submit_time { self.complete_time - self.submit_time } else { 0 }
     }
@@ -52,6 +53,7 @@ impl IoCb {
 
 /// AIO context
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct AioContext {
     pub ctx_id: u64,
     pub max_events: u32,
@@ -69,6 +71,7 @@ impl AioContext {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoSubmitAppStats {
     pub contexts: u32,
     pub total_submitted: u64,
@@ -86,12 +89,14 @@ pub struct AppIoSubmit {
 impl AppIoSubmit {
     pub fn new() -> Self { Self { contexts: BTreeMap::new(), iocbs: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn setup(&mut self, max: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.contexts.insert(id, AioContext::new(id, max));
         id
     }
 
+    #[inline]
     pub fn submit(&mut self, ctx: u64, fd: u64, op: IoSubmitOp, offset: u64, nbytes: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         if let Some(c) = self.contexts.get_mut(&ctx) {
@@ -101,6 +106,7 @@ impl AppIoSubmit {
         id
     }
 
+    #[inline]
     pub fn complete(&mut self, iocb_id: u64, result: i64, now: u64) {
         if let Some(cb) = self.iocbs.get_mut(&iocb_id) {
             cb.state = IoSubmitState::Completed;
@@ -109,8 +115,10 @@ impl AppIoSubmit {
         }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, ctx: u64) { self.contexts.remove(&ctx); }
 
+    #[inline]
     pub fn stats(&self) -> IoSubmitAppStats {
         let sub: u64 = self.contexts.values().map(|c| c.total_submitted).sum();
         let comp: u64 = self.contexts.values().map(|c| c.total_completed).sum();
