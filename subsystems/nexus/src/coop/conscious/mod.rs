@@ -95,20 +95,19 @@ pub mod qualia;
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
 
+pub use self::attention::CoopAttentionEngine;
 pub use self::awareness::CoopAwareness;
+pub use self::conscience::CoopConscience;
+pub use self::dream::CoopDreamEngine;
+pub use self::emotion::CoopEmotionEngine;
+pub use self::empathy::CoopEmpathyEngine;
 pub use self::goal_tracker::CoopGoalTracker;
 pub use self::identity::CoopIdentity;
 pub use self::introspect::CoopIntrospector;
+pub use self::intuition::CoopIntuitionEngine;
+pub use self::memory_palace::CoopMemoryPalace;
 pub use self::meta_coop::CoopMetaCognition;
+pub use self::qualia::CoopQualiaEngine;
 pub use self::reflection::CoopReflection;
 pub use self::self_model::CoopSelfModel;
 pub use self::world_model::CoopWorldModel;
-
-pub use self::emotion::CoopEmotionEngine;
-pub use self::attention::CoopAttentionEngine;
-pub use self::dream::CoopDreamEngine;
-pub use self::empathy::CoopEmpathyEngine;
-pub use self::intuition::CoopIntuitionEngine;
-pub use self::memory_palace::CoopMemoryPalace;
-pub use self::conscience::CoopConscience;
-pub use self::qualia::CoopQualiaEngine;
