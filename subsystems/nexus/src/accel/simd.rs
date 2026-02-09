@@ -15,6 +15,7 @@ pub enum SimdType {
 
 impl SimdType {
     /// Get width in bytes
+    #[inline]
     pub fn width(&self) -> usize {
         match self {
             Self::None => 1,
@@ -25,11 +26,13 @@ impl SimdType {
     }
 
     /// Get width in f64 elements
+    #[inline(always)]
     pub fn f64_lanes(&self) -> usize {
         self.width() / 8
     }
 
     /// Get width in u64 elements
+    #[inline(always)]
     pub fn u64_lanes(&self) -> usize {
         self.width() / 8
     }
