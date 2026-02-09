@@ -55,13 +55,16 @@ impl EpollInstance {
         Self { id, entries: BTreeMap::new(), ready_list: Vec::new(), max_events: max, total_waits: 0, total_events: 0 }
     }
 
+    #[inline(always)]
     pub fn add(&mut self, entry: EpollEntry) {
         let fd = entry.fd;
         self.entries.insert(fd, entry);
     }
 
+    #[inline(always)]
     pub fn remove(&mut self, fd: u64) { self.entries.remove(&fd); self.ready_list.retain(|&f| f != fd); }
 
+    #[inline]
     pub fn signal(&mut self, fd: u64) {
         if self.entries.contains_key(&fd) {
             if let Some(e) = self.entries.get_mut(&fd) { e.triggered_count += 1; }
@@ -70,6 +73,7 @@ impl EpollInstance {
         }
     }
 
+    #[inline]
     pub fn wait(&mut self) -> Vec<u64> {
         self.total_waits += 1;
         let ready = self.ready_list.clone();
@@ -80,6 +84,7 @@ impl EpollInstance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EpollAppStats {
     pub total_instances: u32,
     pub total_fds_monitored: u32,
@@ -96,25 +101,30 @@ pub struct AppEpoll {
 impl AppEpoll {
     pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, max: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.instances.insert(id, EpollInstance::new(id, max));
         id
     }
 
+    #[inline(always)]
     pub fn ctl_add(&mut self, epid: u64, entry: EpollEntry) {
         if let Some(inst) = self.instances.get_mut(&epid) { inst.add(entry); }
     }
 
+    #[inline(always)]
     pub fn ctl_del(&mut self, epid: u64, fd: u64) {
         if let Some(inst) = self.instances.get_mut(&epid) { inst.remove(fd); }
     }
 
+    #[inline(always)]
     pub fn wait(&mut self, epid: u64) -> Vec<u64> {
         if let Some(inst) = self.instances.get_mut(&epid) { inst.wait() }
         else { Vec::new() }
     }
 
+    #[inline]
     pub fn stats(&self) -> EpollAppStats {
         let fds: u32 = self.instances.values().map(|i| i.entries.len() as u32).sum();
         let waits: u64 = self.instances.values().map(|i| i.total_waits).sum();
@@ -147,6 +157,7 @@ impl EpollV2Request {
 
 /// Epoll v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EpollV2AppStats { pub total_ops: u64, pub creates: u64, pub waits: u64, pub ctl_ops: u64 }
 
 /// Main app epoll v2
@@ -155,6 +166,7 @@ pub struct AppEpollV2 { pub stats: EpollV2AppStats }
 
 impl AppEpollV2 {
     pub fn new() -> Self { Self { stats: EpollV2AppStats { total_ops: 0, creates: 0, waits: 0, ctl_ops: 0 } } }
+    #[inline]
     pub fn execute(&mut self, req: &EpollV2Request) -> i32 {
         self.stats.total_ops += 1;
         match req.op {
