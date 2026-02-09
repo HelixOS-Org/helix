@@ -175,7 +175,10 @@ impl AppsSynthesis {
         self.current_tick = tick;
         let id = fnv1a_hash(name.as_bytes()) ^ xorshift64(&mut self.rng_state);
 
-        let count = feature_names.len().min(feature_weights.len()).min(MAX_FEATURES);
+        let count = feature_names
+            .len()
+            .min(feature_weights.len())
+            .min(MAX_FEATURES);
         let mut features = Vec::with_capacity(count);
         for i in 0..count {
             features.push(SynthesizedFeature {
@@ -325,11 +328,7 @@ impl AppsSynthesis {
     }
 
     /// Validate a synthesized classifier against accuracy thresholds
-    pub fn synthesis_validation(
-        &mut self,
-        rule_id: u64,
-        test_accuracy: f32,
-    ) -> bool {
+    pub fn synthesis_validation(&mut self, rule_id: u64, test_accuracy: f32) -> bool {
         let rule = match self.classifiers.get_mut(&rule_id) {
             Some(r) => r,
             None => return false,
@@ -352,10 +351,7 @@ impl AppsSynthesis {
         self.current_tick = tick;
 
         // Find the most recent snapshot for this rule
-        let snapshot_idx = self
-            .history
-            .iter()
-            .rposition(|s| s.rule_id == rule_id);
+        let snapshot_idx = self.history.iter().rposition(|s| s.rule_id == rule_id);
         let snapshot = match snapshot_idx {
             Some(idx) => self.history.remove(idx),
             None => return false,
