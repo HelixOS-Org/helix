@@ -16,6 +16,7 @@ use alloc::vec::Vec;
 pub enum OomAdjust { Disabled, Low, Normal, High, Critical }
 
 impl OomAdjust {
+    #[inline]
     pub fn multiplier(&self) -> f64 {
         match self {
             Self::Disabled => 0.0,
@@ -58,6 +59,7 @@ impl AppOomProfile {
         self.badness_score = (base as f64 * self.oom_adjust.multiplier()) as u64;
     }
 
+    #[inline(always)]
     pub fn reclaimable_pages(&self) -> u64 {
         self.rss_pages.saturating_sub(self.shared_pages)
     }
@@ -67,6 +69,7 @@ impl AppOomProfile {
 pub enum WatermarkLevel { High, Low, Min, Critical }
 
 impl WatermarkLevel {
+    #[inline]
     pub fn from_free_ratio(ratio: f64) -> Self {
         if ratio > 0.15 { Self::High }
         else if ratio > 0.08 { Self::Low }
@@ -76,6 +79,7 @@ impl WatermarkLevel {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct OomAppStats {
     pub total_kills: u64,
     pub total_reclaimed_pages: u64,
@@ -102,10 +106,12 @@ impl OomAppManager {
         }
     }
 
+    #[inline(always)]
     pub fn register_app(&mut self, profile: AppOomProfile) {
         self.profiles.insert(profile.app_id, profile);
     }
 
+    #[inline]
     pub fn update_rss(&mut self, app_id: u64, rss: u64, swap: u64, shared: u64) {
         if let Some(p) = self.profiles.get_mut(&app_id) {
             p.rss_pages = rss;
@@ -116,6 +122,7 @@ impl OomAppManager {
     }
 
     /// Select victim for OOM kill
+    #[inline]
     pub fn select_victim(&self) -> Option<u64> {
         self.profiles.iter()
             .filter(|(_, p)| p.badness_score > 0)
@@ -166,12 +173,14 @@ impl OomAppManager {
     }
 
     /// Check current memory pressure level
+    #[inline(always)]
     pub fn watermark_level(&self, free_pages: u64) -> WatermarkLevel {
         let ratio = free_pages as f64 / self.total_ram_pages.max(1) as f64;
         WatermarkLevel::from_free_ratio(ratio)
     }
 
     /// Should we trigger OOM? Returns needed pages
+    #[inline]
     pub fn should_trigger_oom(&self, free_pages: u64, min_free_pages: u64) -> Option<u64> {
         if free_pages < min_free_pages {
             Some(min_free_pages - free_pages)
@@ -180,6 +189,8 @@ impl OomAppManager {
         }
     }
 
+    #[inline(always)]
     pub fn profile(&self, app_id: u64) -> Option<&AppOomProfile> { self.profiles.get(&app_id) }
+    #[inline(always)]
     pub fn stats(&self) -> &OomAppStats { &self.stats }
 }
