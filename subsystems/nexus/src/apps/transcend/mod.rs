@@ -18,20 +18,20 @@
 //! - [`synthesis_engine`] — Self-evolving app understanding framework
 //! - [`genesis`] — Dynamic creation of new optimization capabilities
 
+pub mod beyond;
+pub mod genesis;
+pub mod interface;
 pub mod omniscient;
 pub mod optimal;
-pub mod beyond;
-pub mod interface;
-pub mod singularity;
 pub mod oracle;
+pub mod singularity;
 pub mod synthesis_engine;
-pub mod genesis;
 
+pub use beyond::AppsBeyond;
+pub use genesis::AppsGenesis;
+pub use interface::AppsInterface;
 pub use omniscient::AppsOmniscient;
 pub use optimal::AppsOptimal;
-pub use beyond::AppsBeyond;
-pub use interface::AppsInterface;
-pub use singularity::AppsSingularity;
 pub use oracle::AppsOracle;
+pub use singularity::AppsSingularity;
 pub use synthesis_engine::AppsSynthesisEngine;
-pub use genesis::AppsGenesis;
