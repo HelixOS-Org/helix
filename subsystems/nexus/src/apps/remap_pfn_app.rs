@@ -29,13 +29,17 @@ pub struct PfnMapping {
 }
 
 impl PfnMapping {
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.page_count * 4096 }
+    #[inline(always)]
     pub fn phys_addr(&self) -> u64 { self.pfn_start * 4096 }
+    #[inline(always)]
     pub fn contains_virt(&self, addr: u64) -> bool { addr >= self.virt_addr && addr < self.virt_addr + self.size() }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RemapPfnAppStats {
     pub total_mappings: u32,
     pub total_pages: u64,
@@ -53,18 +57,22 @@ pub struct AppRemapPfn {
 impl AppRemapPfn {
     pub fn new() -> Self { Self { mappings: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn remap(&mut self, virt_addr: u64, pfn: u64, pages: u64, remap_type: RemapPfnType, pid: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.mappings.insert(id, PfnMapping { id, virt_addr, pfn_start: pfn, page_count: pages, remap_type, write_combine: false, uncacheable: true, owner_pid: pid });
         id
     }
 
+    #[inline(always)]
     pub fn unmap(&mut self, id: u64) { self.mappings.remove(&id); }
 
+    #[inline(always)]
     pub fn find_by_virt(&self, addr: u64) -> Option<&PfnMapping> {
         self.mappings.values().find(|m| m.contains_virt(addr))
     }
 
+    #[inline]
     pub fn stats(&self) -> RemapPfnAppStats {
         let pages: u64 = self.mappings.values().map(|m| m.page_count).sum();
         let dev = self.mappings.values().filter(|m| m.remap_type == RemapPfnType::DeviceMemory).count() as u32;
