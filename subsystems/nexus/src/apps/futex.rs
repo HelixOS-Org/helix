@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -117,6 +118,7 @@ impl LockDescriptor {
     }
 
     /// Release lock
+    #[inline]
     pub fn release(&mut self, hold_ns: u64) {
         self.owner = None;
         self.state = LockState::Free;
@@ -127,6 +129,7 @@ impl LockDescriptor {
     }
 
     /// Add waiter
+    #[inline]
     pub fn add_waiter(&mut self, thread: u64) {
         if !self.waiters.contains(&thread) {
             self.waiters.push(thread);
@@ -134,6 +137,7 @@ impl LockDescriptor {
     }
 
     /// Average hold time
+    #[inline]
     pub fn avg_hold_ns(&self) -> f64 {
         if self.acquisition_count == 0 {
             return 0.0;
@@ -142,6 +146,7 @@ impl LockDescriptor {
     }
 
     /// Average wait time
+    #[inline]
     pub fn avg_wait_ns(&self) -> f64 {
         if self.contention_count == 0 {
             return 0.0;
@@ -150,6 +155,7 @@ impl LockDescriptor {
     }
 
     /// Contention rate
+    #[inline]
     pub fn contention_rate(&self) -> f64 {
         if self.acquisition_count == 0 {
             return 0.0;
@@ -196,12 +202,14 @@ impl WaitChain {
     }
 
     /// Add entry
+    #[inline(always)]
     pub fn push(&mut self, entry: WaitChainEntry) {
         self.entries.push(entry);
         self.length = self.entries.len();
     }
 
     /// Check if this chain forms a deadlock
+    #[inline]
     pub fn check_cycle(&mut self) -> bool {
         if self.entries.len() < 2 {
             self.is_deadlock = false;
@@ -251,7 +259,7 @@ pub struct ProcessSyncProfile {
     /// Thread to lock held mapping
     pub thread_locks: BTreeMap<u64, Vec<u64>>,
     /// Thread to lock waiting mapping
-    pub thread_waiting: BTreeMap<u64, u64>,
+    pub thread_waiting: LinearMap<u64, 64>,
     /// Priority inversions detected
     pub inversions: Vec<PriorityInversion>,
     /// Total lock time (ns)
@@ -266,7 +274,7 @@ impl ProcessSyncProfile {
             pid,
             locks: BTreeMap::new(),
             thread_locks: BTreeMap::new(),
-            thread_waiting: BTreeMap::new(),
+            thread_waiting: LinearMap::new(),
             inversions: Vec::new(),
             total_lock_time_ns: 0,
             total_wait_time_ns: 0,
@@ -274,6 +282,7 @@ impl ProcessSyncProfile {
     }
 
     /// Register lock
+    #[inline]
     pub fn register_lock(&mut self, address: u64, prim_type: SyncPrimitiveType) {
         self.locks
             .entry(address)
@@ -281,6 +290,7 @@ impl ProcessSyncProfile {
     }
 
     /// Acquire lock
+    #[inline]
     pub fn acquire(&mut self, thread: u64, address: u64, wait_ns: u64) {
         if let Some(lock) = self.locks.get_mut(&address) {
             lock.acquire(thread, wait_ns);
@@ -289,11 +299,12 @@ impl ProcessSyncProfile {
             .entry(thread)
             .or_insert_with(Vec::new)
             .push(address);
-        self.thread_waiting.remove(&thread);
+        self.thread_waiting.remove(thread);
         self.total_wait_time_ns += wait_ns;
     }
 
     /// Release lock
+    #[inline]
     pub fn release(&mut self, thread: u64, address: u64, hold_ns: u64) {
         if let Some(lock) = self.locks.get_mut(&address) {
             lock.release(hold_ns);
@@ -305,6 +316,7 @@ impl ProcessSyncProfile {
     }
 
     /// Thread starts waiting
+    #[inline]
     pub fn start_wait(&mut self, thread: u64, address: u64) {
         self.thread_waiting.insert(thread, address);
         if let Some(lock) = self.locks.get_mut(&address) {
@@ -340,7 +352,7 @@ impl ProcessSyncProfile {
 
                 match owner {
                     Some(o) => {
-                        if let Some(&next_lock) = self.thread_waiting.get(&o) {
+                        if let Some(&next_lock) = self.thread_waiting.get(o) {
                             current_thread = o;
                             current_lock = next_lock;
                         } else {
@@ -360,6 +372,7 @@ impl ProcessSyncProfile {
     }
 
     /// Most contended locks
+    #[inline]
     pub fn most_contended(&self, limit: usize) -> Vec<&LockDescriptor> {
         let mut locks: Vec<_> = self.locks.values().collect();
         locks.sort_by(|a, b| b.contention_count.cmp(&a.contention_count));
@@ -374,6 +387,7 @@ impl ProcessSyncProfile {
 
 /// Futex analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppFutexStats {
     /// Tracked processes
     pub process_count: usize,
@@ -404,12 +418,14 @@ impl AppFutexAnalyzer {
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.insert(pid, ProcessSyncProfile::new(pid));
         self.stats.process_count = self.profiles.len();
     }
 
     /// Register lock
+    #[inline]
     pub fn register_lock(&mut self, pid: u64, address: u64, prim_type: SyncPrimitiveType) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.register_lock(address, prim_type);
@@ -418,6 +434,7 @@ impl AppFutexAnalyzer {
     }
 
     /// Record acquire
+    #[inline]
     pub fn record_acquire(&mut self, pid: u64, thread: u64, address: u64, wait_ns: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.acquire(thread, address, wait_ns);
@@ -428,6 +445,7 @@ impl AppFutexAnalyzer {
     }
 
     /// Record release
+    #[inline]
     pub fn record_release(&mut self, pid: u64, thread: u64, address: u64, hold_ns: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.release(thread, address, hold_ns);
@@ -435,6 +453,7 @@ impl AppFutexAnalyzer {
     }
 
     /// Record wait start
+    #[inline]
     pub fn record_wait(&mut self, pid: u64, thread: u64, address: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.start_wait(thread, address);
@@ -442,6 +461,7 @@ impl AppFutexAnalyzer {
     }
 
     /// Detect deadlocks for a process
+    #[inline]
     pub fn detect_deadlocks(&mut self, pid: u64) -> Vec<WaitChain> {
         let chains = match self.profiles.get(&pid) {
             Some(profile) => profile.build_wait_chains(),
@@ -453,11 +473,13 @@ impl AppFutexAnalyzer {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessSyncProfile> {
         self.profiles.get(&pid)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppFutexStats {
         &self.stats
     }
@@ -561,6 +583,7 @@ impl FutexAddress {
     }
 
     /// Record wait start
+    #[inline]
     pub fn record_wait(&mut self) {
         self.wait_count += 1;
         self.current_waiters += 1;
@@ -584,6 +607,7 @@ impl FutexAddress {
     }
 
     /// Average wait time (ns)
+    #[inline]
     pub fn avg_wait_ns(&self) -> u64 {
         if self.wake_count == 0 {
             return 0;
@@ -592,6 +616,7 @@ impl FutexAddress {
     }
 
     /// Contention level
+    #[inline]
     pub fn contention(&self) -> ContentionLevel {
         match self.current_waiters {
             0 => ContentionLevel::None,
@@ -602,6 +627,7 @@ impl FutexAddress {
     }
 
     /// Timeout rate
+    #[inline]
     pub fn timeout_rate(&self) -> f64 {
         if self.wait_count == 0 {
             return 0.0;
@@ -650,11 +676,13 @@ impl WaitChainDetector {
     }
 
     /// Record wait
+    #[inline(always)]
     pub fn record_wait(&mut self, entry: WaitChainEntry) {
         self.active_waits.insert(entry.waiter_tid, entry);
     }
 
     /// Record wake
+    #[inline(always)]
     pub fn record_wake(&mut self, tid: u64) {
         self.active_waits.remove(&tid);
     }
@@ -683,11 +711,13 @@ impl WaitChainDetector {
     }
 
     /// Check for priority inversion
+    #[inline(always)]
     pub fn check_pi(&self, waiter_priority: u8, owner_priority: u8) -> bool {
         waiter_priority > owner_priority
     }
 
     /// Active wait count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.active_waits.len()
     }
@@ -699,6 +729,7 @@ impl WaitChainDetector {
 
 /// Futex hash bucket stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct BucketStats {
     /// Bucket index
     pub index: u32,
@@ -728,6 +759,7 @@ impl FutexHashProfiler {
     }
 
     /// Record bucket access
+    #[inline]
     pub fn record_access(&mut self, bucket: u32, had_collision: bool) {
         let stats = self.buckets.entry(bucket).or_insert_with(|| BucketStats {
             index: bucket,
@@ -740,6 +772,7 @@ impl FutexHashProfiler {
     }
 
     /// Collision rate
+    #[inline]
     pub fn collision_rate(&self) -> f64 {
         let total_lookups: u64 = self.buckets.values().map(|b| b.lookups).sum();
         let total_collisions: u64 = self.buckets.values().map(|b| b.collisions).sum();
@@ -770,6 +803,7 @@ impl FutexHashProfiler {
 
 /// Futex profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppFutexV2Stats {
     /// Tracked futex addresses
     pub tracked_addresses: usize,
@@ -825,6 +859,7 @@ impl AppFutexV2Profiler {
     }
 
     /// Record futex wake
+    #[inline]
     pub fn record_wake(&mut self, addr: u64, tid: u64, result: WaitResult, wait_ns: u64) {
         if let Some(futex) = self.addresses.get_mut(&addr) {
             futex.record_wake(result, wait_ns);
@@ -834,6 +869,7 @@ impl AppFutexV2Profiler {
     }
 
     /// Get contention level
+    #[inline]
     pub fn contention(&self, addr: u64) -> ContentionLevel {
         self.addresses
             .get(&addr)
@@ -842,6 +878,7 @@ impl AppFutexV2Profiler {
     }
 
     /// Check deadlocks for TID
+    #[inline]
     pub fn check_deadlock(&mut self, tid: u64) -> Option<Vec<u64>> {
         let cycle = self.wait_chains.detect_cycle(tid);
         if cycle.is_some() {
@@ -867,6 +904,7 @@ impl AppFutexV2Profiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppFutexV2Stats {
         &self.stats
     }
@@ -922,7 +960,9 @@ impl Futex2Waiter {
         }
     }
 
+    #[inline(always)]
     pub fn wait_time(&self, now: u64) -> u64 { now.saturating_sub(self.enqueued_at) }
+    #[inline(always)]
     pub fn matches_bitset(&self, mask: u32) -> bool { self.bitset & mask != 0 }
 }
 
@@ -942,12 +982,14 @@ impl Futex2Bucket {
         Self { key, waiters: Vec::new(), pi_owner: None, total_waits: 0, total_wakes: 0, total_contended: 0 }
     }
 
+    #[inline]
     pub fn enqueue(&mut self, waiter: Futex2Waiter) {
         self.total_waits += 1;
         if !self.waiters.is_empty() { self.total_contended += 1; }
         self.waiters.push(waiter);
     }
 
+    #[inline]
     pub fn wake_one(&mut self, bitset: u32) -> Option<u64> {
         let pos = self.waiters.iter().position(|w| w.matches_bitset(bitset));
         if let Some(idx) = pos {
@@ -957,6 +999,7 @@ impl Futex2Bucket {
         } else { None }
     }
 
+    #[inline]
     pub fn wake_n(&mut self, n: u32, bitset: u32) -> Vec<u64> {
         let mut woken = Vec::new();
         for _ in 0..n {
@@ -966,6 +1009,7 @@ impl Futex2Bucket {
         woken
     }
 
+    #[inline]
     pub fn requeue_to(&mut self, dst: &mut Futex2Bucket, n: u32) -> u32 {
         let take = (n as usize).min(self.waiters.len());
         let moved: Vec<Futex2Waiter> = self.waiters.drain(..take).collect();
@@ -974,6 +1018,7 @@ impl Futex2Bucket {
         count
     }
 
+    #[inline(always)]
     pub fn contention_rate(&self) -> f64 {
         if self.total_waits == 0 { return 0.0; }
         self.total_contended as f64 / self.total_waits as f64
@@ -988,6 +1033,7 @@ pub struct Futex2WaitV {
 
 impl Futex2WaitV {
     pub fn new() -> Self { Self { entries: Vec::new() } }
+    #[inline(always)]
     pub fn add(&mut self, uaddr: u64, val: u64, size: Futex2Size, flags: u32) {
         self.entries.push((uaddr, val, size, flags));
     }
@@ -995,6 +1041,7 @@ impl Futex2WaitV {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Futex3Stats {
     pub total_buckets: u32,
     pub total_waiters: u32,
@@ -1020,12 +1067,14 @@ impl AppFutexV3 {
         h
     }
 
+    #[inline]
     pub fn wait(&mut self, uaddr: u64, tid: u64, val: u64, size: Futex2Size, now: u64) {
         let key = Self::hash_key(uaddr);
         let bucket = self.buckets.entry(key).or_insert_with(|| Futex2Bucket::new(key));
         bucket.enqueue(Futex2Waiter::new(tid, uaddr, val, size, now));
     }
 
+    #[inline(always)]
     pub fn wake(&mut self, uaddr: u64, n: u32, bitset: u32) -> Vec<u64> {
         let key = Self::hash_key(uaddr);
         self.buckets.get_mut(&key).map(|b| b.wake_n(n, bitset)).unwrap_or_default()
