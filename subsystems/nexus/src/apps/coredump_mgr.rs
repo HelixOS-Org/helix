@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -162,7 +163,7 @@ pub struct CoredumpMgrStats {
 /// Main coredump manager
 pub struct AppCoredumpMgr {
     active_dumps: BTreeMap<u64, CoreDumpEntry>,
-    completed: Vec<CoreDumpEntry>,
+    completed: VecDeque<CoreDumpEntry>,
     max_completed_history: usize,
     next_id: u64,
     default_filter: CoreFilter,
@@ -176,7 +177,7 @@ impl AppCoredumpMgr {
     pub fn new(max_history: usize) -> Self {
         Self {
             active_dumps: BTreeMap::new(),
-            completed: Vec::new(),
+            completed: VecDeque::new(),
             max_completed_history: max_history,
             next_id: 1, default_filter: CoreFilter::default_filter(),
             default_format: CoreFormat::Elf,
@@ -229,9 +230,9 @@ impl AppCoredumpMgr {
             self.stats.completed += 1;
             self.stats.total_bytes_written += bytes_written;
             if self.completed.len() >= self.max_completed_history {
-                self.completed.remove(0);
+                self.completed.pop_front();
             }
-            self.completed.push(entry);
+            self.completed.push_back(entry);
         }
     }
 
@@ -241,9 +242,9 @@ impl AppCoredumpMgr {
             entry.end_time = now;
             self.stats.failed += 1;
             if self.completed.len() >= self.max_completed_history {
-                self.completed.remove(0);
+                self.completed.pop_front();
             }
-            self.completed.push(entry);
+            self.completed.push_back(entry);
         }
     }
 
