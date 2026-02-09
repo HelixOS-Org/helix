@@ -111,6 +111,7 @@ impl FdEntry {
     }
 
     /// Record I/O
+    #[inline]
     pub fn record_io(&mut self, read: u64, write: u64) {
         self.read_bytes += read;
         self.write_bytes += write;
@@ -118,16 +119,19 @@ impl FdEntry {
     }
 
     /// Total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.read_bytes + self.write_bytes
     }
 
     /// Is active? (had I/O)
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.op_count > 0
     }
 
     /// Age (ns)
+    #[inline(always)]
     pub fn age_ns(&self, now: u64) -> u64 {
         now.saturating_sub(self.opened_at)
     }
@@ -161,6 +165,7 @@ impl FdTable {
     }
 
     /// Open FD
+    #[inline]
     pub fn open(&mut self, fd: i32, fd_type: FdType, now: u64) {
         let entry = FdEntry::new(fd, fd_type, now);
         self.entries.insert(fd, entry);
@@ -171,27 +176,32 @@ impl FdTable {
     }
 
     /// Close FD
+    #[inline(always)]
     pub fn close(&mut self, fd: i32) -> Option<FdEntry> {
         self.total_closed += 1;
         self.entries.remove(&fd)
     }
 
     /// Get entry
+    #[inline(always)]
     pub fn get(&self, fd: i32) -> Option<&FdEntry> {
         self.entries.get(&fd)
     }
 
     /// Get mutable entry
+    #[inline(always)]
     pub fn get_mut(&mut self, fd: i32) -> Option<&mut FdEntry> {
         self.entries.get_mut(&fd)
     }
 
     /// Current count
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.entries.len()
     }
 
     /// FDs by type
+    #[inline]
     pub fn by_type(&self, fd_type: FdType) -> Vec<i32> {
         self.entries
             .iter()
@@ -201,6 +211,7 @@ impl FdTable {
     }
 
     /// Inactive FDs (potential leaks, older than threshold)
+    #[inline]
     pub fn potential_leaks(&self, now: u64, min_age_ns: u64) -> Vec<i32> {
         self.entries
             .iter()
@@ -210,6 +221,7 @@ impl FdTable {
     }
 
     /// FDs without cloexec
+    #[inline]
     pub fn missing_cloexec(&self) -> Vec<i32> {
         self.entries
             .iter()
@@ -219,6 +231,7 @@ impl FdTable {
     }
 
     /// Socket count
+    #[inline]
     pub fn socket_count(&self) -> usize {
         self.entries
             .values()
@@ -238,6 +251,7 @@ impl FdTable {
 
 /// FD stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppFdStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -266,12 +280,14 @@ impl AppFdTracker {
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) {
         self.tables.insert(pid, FdTable::new());
         self.update_stats();
     }
 
     /// Open FD
+    #[inline]
     pub fn open(&mut self, pid: u64, fd: i32, fd_type: FdType, now: u64) {
         if let Some(table) = self.tables.get_mut(&pid) {
             table.open(fd, fd_type, now);
@@ -280,6 +296,7 @@ impl AppFdTracker {
     }
 
     /// Close FD
+    #[inline]
     pub fn close(&mut self, pid: u64, fd: i32) {
         if let Some(table) = self.tables.get_mut(&pid) {
             table.close(fd);
@@ -288,6 +305,7 @@ impl AppFdTracker {
     }
 
     /// Record I/O on FD
+    #[inline]
     pub fn record_io(&mut self, pid: u64, fd: i32, read: u64, write: u64) {
         if let Some(table) = self.tables.get_mut(&pid) {
             if let Some(entry) = table.get_mut(fd) {
@@ -297,17 +315,20 @@ impl AppFdTracker {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove(&mut self, pid: u64) {
         self.tables.remove(&pid);
         self.update_stats();
     }
 
     /// Get FD table
+    #[inline(always)]
     pub fn table(&self, pid: u64) -> Option<&FdTable> {
         self.tables.get(&pid)
     }
 
     /// Check for leaks across all processes
+    #[inline]
     pub fn check_leaks(&self, now: u64, min_age_ns: u64) -> Vec<(u64, Vec<i32>)> {
         self.tables
             .iter()
@@ -323,6 +344,7 @@ impl AppFdTracker {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppFdStats {
         &self.stats
     }
