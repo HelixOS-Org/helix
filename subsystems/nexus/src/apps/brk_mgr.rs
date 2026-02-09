@@ -42,6 +42,7 @@ pub struct BrkChange {
 }
 
 impl BrkChange {
+    #[inline(always)]
     pub fn size_delta(&self) -> i64 {
         self.new_brk as i64 - self.old_brk as i64
     }
@@ -49,6 +50,7 @@ impl BrkChange {
 
 /// Per-process brk state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessBrkState {
     pub pid: u64,
     pub initial_brk: u64,
@@ -86,24 +88,29 @@ impl ProcessBrkState {
         }
     }
 
+    #[inline(always)]
     pub fn heap_size(&self) -> u64 {
         self.current_brk.saturating_sub(self.initial_brk)
     }
 
+    #[inline(always)]
     pub fn heap_pages(&self) -> u64 {
         (self.heap_size() + 4095) / 4096
     }
 
+    #[inline]
     pub fn watermark_ratio(&self) -> f64 {
         if self.max_brk == self.initial_brk { return 0.0; }
         let max_heap = self.max_brk - self.initial_brk;
         self.heap_size() as f64 / max_heap as f64
     }
 
+    #[inline(always)]
     pub fn remaining_capacity(&self) -> u64 {
         self.brk_limit.saturating_sub(self.current_brk)
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.brk_limit == 0 { return 0.0; }
         self.current_brk as f64 / self.brk_limit as f64
@@ -184,6 +191,7 @@ impl ProcessBrkState {
         op
     }
 
+    #[inline]
     pub fn avg_expand_size(&self) -> u64 {
         let expand_changes: VecDeque<&BrkChange> = self.changes.iter()
             .filter(|c| c.op == BrkOp::Expand)
@@ -210,6 +218,7 @@ impl ProcessBrkState {
 
 /// Brk manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BrkMgrStats {
     pub processes_tracked: u64,
     pub total_brk_calls: u64,
@@ -244,12 +253,14 @@ impl AppBrkMgr {
         }
     }
 
+    #[inline]
     pub fn register_process(&mut self, pid: u64, initial_brk: u64, limit: Option<u64>) {
         let lim = limit.unwrap_or(initial_brk.saturating_add(self.default_limit));
         self.processes.insert(pid, ProcessBrkState::new(pid, initial_brk, lim));
         self.stats.processes_tracked += 1;
     }
 
+    #[inline(always)]
     pub fn unregister_process(&mut self, pid: u64) -> Option<(u64, u64)> {
         self.processes.remove(&pid).map(|p| (p.heap_size(), p.total_pages_allocated))
     }
@@ -275,10 +286,12 @@ impl AppBrkMgr {
         Some(proc_state.current_brk)
     }
 
+    #[inline(always)]
     pub fn process_heap_size(&self, pid: u64) -> Option<u64> {
         self.processes.get(&pid).map(|p| p.heap_size())
     }
 
+    #[inline]
     pub fn largest_heaps(&self, top_n: usize) -> Vec<(u64, u64)> {
         let mut heaps: Vec<(u64, u64)> = self.processes.iter()
             .map(|(pid, p)| (*pid, p.heap_size()))
@@ -288,14 +301,17 @@ impl AppBrkMgr {
         heaps
     }
 
+    #[inline(always)]
     pub fn total_heap_bytes(&self) -> u64 {
         self.processes.values().map(|p| p.heap_size()).sum()
     }
 
+    #[inline(always)]
     pub fn set_default_limit(&mut self, limit: u64) {
         self.default_limit = limit;
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BrkMgrStats {
         &self.stats
     }
