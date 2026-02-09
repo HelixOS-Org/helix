@@ -83,3 +83,40 @@ pub use self::meta_holistic::HolisticMetaCognition;
 pub use self::reflection::HolisticReflection;
 pub use self::self_model::HolisticSelfModel;
 pub use self::world_model::HolisticWorldModel;
+
+// ============================================================================
+// DEEP EXPANSION — Holistic Crown Consciousness Modules
+// ============================================================================
+
+/// System-wide emotional state — unified emotional landscape influencing all decisions
+pub mod emotion;
+
+/// System-wide attention allocation — cognitive resource distribution across subsystems
+pub mod attention;
+
+/// System-wide offline consolidation — cross-subsystem replay and insight generation
+pub mod dream;
+
+/// Holistic empathy — understanding the entire system's state and pain points
+pub mod empathy;
+
+/// System-wide fast pattern matching — instant recognition of system-level patterns
+pub mod intuition;
+
+/// The grand palace of all system knowledge — hierarchical long-term memory
+pub mod memory_palace;
+
+/// System-wide ethical framework — principle hierarchy and fairness enforcement
+pub mod conscience;
+
+/// Unified subjective experience — how the system "feels" right now
+pub mod qualia;
+
+pub use self::attention::HolisticAttentionEngine;
+pub use self::conscience::HolisticConscience;
+pub use self::dream::HolisticDreamEngine;
+pub use self::emotion::HolisticEmotionEngine;
+pub use self::empathy::HolisticEmpathyEngine;
+pub use self::intuition::HolisticIntuitionEngine;
+pub use self::memory_palace::HolisticMemoryPalace;
+pub use self::qualia::HolisticQualiaEngine;
