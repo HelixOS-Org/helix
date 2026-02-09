@@ -3,7 +3,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Page fault type
@@ -21,10 +23,12 @@ pub enum PageFaultType {
 }
 
 impl PageFaultType {
+    #[inline(always)]
     pub fn is_major(&self) -> bool {
         matches!(self, Self::Major | Self::SwapIn | Self::FileBacked)
     }
 
+    #[inline(always)]
     pub fn requires_io(&self) -> bool {
         matches!(self, Self::Major | Self::SwapIn | Self::FileBacked)
     }
@@ -61,6 +65,7 @@ pub struct PageFaultRecord {
 
 /// Per-process fault statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessFaultStats {
     pub pid: u32,
     pub minor_faults: u64,
@@ -69,7 +74,7 @@ pub struct ProcessFaultStats {
     pub total_fault_time_ns: u64,
     pub recent_fault_rate: f64,
     pub last_fault_time: u64,
-    pub fault_type_counts: BTreeMap<u32, u64>,
+    pub fault_type_counts: ArrayMap<u64, 32>,
 }
 
 impl ProcessFaultStats {
@@ -77,19 +82,22 @@ impl ProcessFaultStats {
         Self {
             pid, minor_faults: 0, major_faults: 0, cow_faults: 0,
             total_fault_time_ns: 0, recent_fault_rate: 0.0,
-            last_fault_time: 0, fault_type_counts: BTreeMap::new(),
+            last_fault_time: 0, fault_type_counts: ArrayMap::new(0),
         }
     }
 
+    #[inline(always)]
     pub fn total_faults(&self) -> u64 {
         self.minor_faults + self.major_faults + self.cow_faults
     }
 
+    #[inline(always)]
     pub fn avg_fault_time_ns(&self) -> u64 {
         let total = self.total_faults();
         if total == 0 { 0 } else { self.total_fault_time_ns / total }
     }
 
+    #[inline]
     pub fn major_ratio(&self) -> f64 {
         let total = self.total_faults();
         if total == 0 { return 0.0; }
@@ -109,7 +117,7 @@ impl ProcessFaultStats {
         }
         self.total_fault_time_ns += duration_ns;
         self.last_fault_time = now;
-        *self.fault_type_counts.entry(fault_type as u32).or_insert(0) += 1;
+        self.fault_type_counts.add(fault_type as usize, 1);
 
         // Update recent rate (exponential moving average)
         if self.last_fault_time > 0 {
@@ -133,6 +141,7 @@ pub struct FaultHotspot {
 
 /// Pagefault manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PagefaultMgrStats {
     pub tracked_processes: u32,
     pub total_minor: u64,
@@ -148,7 +157,7 @@ pub struct PagefaultMgrStats {
 pub struct AppPagefaultMgr {
     process_stats: BTreeMap<u32, ProcessFaultStats>,
     hotspots: BTreeMap<u64, FaultHotspot>,
-    recent_faults: Vec<PageFaultRecord>,
+    recent_faults: VecDeque<PageFaultRecord>,
     max_recent: usize,
     max_hotspots: usize,
     total_minor: u64,
@@ -165,7 +174,7 @@ impl AppPagefaultMgr {
         Self {
             process_stats: BTreeMap::new(),
             hotspots: BTreeMap::new(),
-            recent_faults: Vec::new(),
+            recent_faults: VecDeque::new(),
             max_recent: 4096, max_hotspots: 1024,
             total_minor: 0, total_major: 0, total_cow: 0,
             total_fault_time_ns: 0, sigsegv_sent: 0, sigbus_sent: 0,
@@ -218,10 +227,11 @@ impl AppPagefaultMgr {
             }
         }
 
-        if self.recent_faults.len() >= self.max_recent { self.recent_faults.remove(0); }
-        self.recent_faults.push(record);
+        if self.recent_faults.len() >= self.max_recent { self.recent_faults.pop_front(); }
+        self.recent_faults.push_back(record);
     }
 
+    #[inline]
     pub fn top_hotspots(&self, n: usize) -> Vec<&FaultHotspot> {
         let mut v: Vec<_> = self.hotspots.values().collect();
         v.sort_by(|a, b| b.count.cmp(&a.count));
@@ -229,14 +239,17 @@ impl AppPagefaultMgr {
         v
     }
 
+    #[inline(always)]
     pub fn process_stats(&self, pid: u32) -> Option<&ProcessFaultStats> {
         self.process_stats.get(&pid)
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u32) -> bool {
         self.process_stats.remove(&pid).is_some()
     }
 
+    #[inline]
     pub fn high_fault_rate_processes(&self, threshold: f64) -> Vec<(u32, f64)> {
         self.process_stats.iter()
             .filter(|(_, s)| s.recent_fault_rate > threshold)
