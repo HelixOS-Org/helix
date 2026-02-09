@@ -205,10 +205,13 @@ impl CoopTimeline {
         value: u64,
     ) -> u64 {
         self.stats.contracts_tracked = self.stats.contracts_tracked.saturating_add(1);
-        let contract_id = fnv1a_hash(&[
-            self.stats.contracts_tracked.to_le_bytes(),
-            start_tick.to_le_bytes(),
-        ].concat());
+        let contract_id = fnv1a_hash(
+            &[
+                self.stats.contracts_tracked.to_le_bytes(),
+                start_tick.to_le_bytes(),
+            ]
+            .concat(),
+        );
 
         if self.contracts.len() < self.max_entries {
             self.contracts.insert(contract_id, ContractRecord {
@@ -253,11 +256,14 @@ impl CoopTimeline {
     ) -> u64 {
         self.stats.leases_tracked = self.stats.leases_tracked.saturating_add(1);
         let resource_hash = fnv1a_hash(resource_name.as_bytes());
-        let lease_id = fnv1a_hash(&[
-            resource_hash.to_le_bytes(),
-            holder_id.to_le_bytes(),
-            start_tick.to_le_bytes(),
-        ].concat());
+        let lease_id = fnv1a_hash(
+            &[
+                resource_hash.to_le_bytes(),
+                holder_id.to_le_bytes(),
+                start_tick.to_le_bytes(),
+            ]
+            .concat(),
+        );
 
         if self.leases.len() < self.max_entries {
             self.leases.insert(lease_id, LeaseRecord {
@@ -300,8 +306,11 @@ impl CoopTimeline {
                 });
             }
             if record.renegotiation_interval > 0 {
-                let mut re_tick = record.start_tick.saturating_add(record.renegotiation_interval);
-                while re_tick < record.end_tick && re_tick >= window_start && re_tick <= window_end {
+                let mut re_tick = record
+                    .start_tick
+                    .saturating_add(record.renegotiation_interval);
+                while re_tick < record.end_tick && re_tick >= window_start && re_tick <= window_end
+                {
                     events.push(ContractEvent {
                         contract_id: record.contract_id,
                         event_type: ContractEventType::Renegotiation,
@@ -318,7 +327,12 @@ impl CoopTimeline {
     }
 
     /// Project trust decay curve for a partner over a horizon.
-    pub fn trust_decay_curve(&mut self, partner_id: u64, horizon_ticks: u64, sample_points: u64) -> Vec<TrustDecayPoint> {
+    pub fn trust_decay_curve(
+        &mut self,
+        partner_id: u64,
+        horizon_ticks: u64,
+        sample_points: u64,
+    ) -> Vec<TrustDecayPoint> {
         self.stats.trust_curves_projected = self.stats.trust_curves_projected.saturating_add(1);
         let key = fnv1a_hash(&partner_id.to_le_bytes());
 
@@ -328,12 +342,17 @@ impl CoopTimeline {
         };
 
         let mut points = Vec::new();
-        let step = if sample_points > 0 { horizon_ticks / sample_points } else { horizon_ticks };
+        let step = if sample_points > 0 {
+            horizon_ticks / sample_points
+        } else {
+            horizon_ticks
+        };
 
         for i in 0..=sample_points.min(64) {
             let tick_offset = i.saturating_mul(step);
             let elapsed = tick_offset.saturating_add(
-                self.current_tick.saturating_sub(model.last_interaction_tick),
+                self.current_tick
+                    .saturating_sub(model.last_interaction_tick),
             );
             let half_lives = elapsed / model.half_life_ticks.max(1);
             let decay_factor = 1u64 << half_lives.min(10);
@@ -342,7 +361,11 @@ impl CoopTimeline {
             let projected = model.floor_trust.saturating_add(decayed);
             let critical = projected < model.current_trust / 3;
             let rate = if elapsed > 0 {
-                model.current_trust.saturating_sub(projected).saturating_mul(1000) / elapsed
+                model
+                    .current_trust
+                    .saturating_sub(projected)
+                    .saturating_mul(1000)
+                    / elapsed
             } else {
                 0
             };
@@ -390,11 +413,14 @@ impl CoopTimeline {
     ) -> u64 {
         self.stats.negotiations_scheduled = self.stats.negotiations_scheduled.saturating_add(1);
         let topic_hash = fnv1a_hash(topic.as_bytes());
-        let neg_id = fnv1a_hash(&[
-            topic_hash.to_le_bytes(),
-            scheduled_tick.to_le_bytes(),
-            self.stats.negotiations_scheduled.to_le_bytes(),
-        ].concat());
+        let neg_id = fnv1a_hash(
+            &[
+                topic_hash.to_le_bytes(),
+                scheduled_tick.to_le_bytes(),
+                self.stats.negotiations_scheduled.to_le_bytes(),
+            ]
+            .concat(),
+        );
 
         if self.negotiations.len() < self.max_entries {
             self.negotiations.insert(neg_id, NegotiationEntry {
@@ -428,7 +454,9 @@ impl CoopTimeline {
                 let half_lives = elapsed / model.half_life_ticks.max(1);
                 let decay_factor = 1u64 << half_lives.min(10);
                 let decayed_range = model.current_trust.saturating_sub(model.floor_trust);
-                let projected = model.floor_trust.saturating_add(decayed_range / decay_factor.max(1));
+                let projected = model
+                    .floor_trust
+                    .saturating_add(decayed_range / decay_factor.max(1));
                 if projected < model.current_trust / 3 {
                     trust_critical = trust_critical.saturating_add(1);
                 }
@@ -443,7 +471,8 @@ impl CoopTimeline {
             }
         }
 
-        let overall_risk = expiration_count.saturating_mul(200)
+        let overall_risk = expiration_count
+            .saturating_mul(200)
             .saturating_add(trust_critical.saturating_mul(300))
             .saturating_add(lease_gaps.saturating_mul(150))
             .min(1000);
