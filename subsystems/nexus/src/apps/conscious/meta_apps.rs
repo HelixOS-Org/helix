@@ -109,10 +109,8 @@ impl BehavioralFeature {
             return 0.0;
         }
         let mid = len / 2;
-        let early_avg: f32 =
-            self.accuracy_history[..mid].iter().sum::<f32>() / mid as f32;
-        let recent_avg: f32 =
-            self.accuracy_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
+        let early_avg: f32 = self.accuracy_history[..mid].iter().sum::<f32>() / mid as f32;
+        let recent_avg: f32 = self.accuracy_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
         (early_avg - recent_avg).abs()
     }
 }
@@ -149,8 +147,8 @@ impl MetaLearningState {
     fn record_episode(&mut self, quality_improvement: f32) {
         self.episodes += 1;
         self.prev_learning_rate = self.learning_rate;
-        self.learning_rate = EMA_ALPHA * quality_improvement.abs()
-            + (1.0 - EMA_ALPHA) * self.learning_rate;
+        self.learning_rate =
+            EMA_ALPHA * quality_improvement.abs() + (1.0 - EMA_ALPHA) * self.learning_rate;
         self.meta_rate = self.learning_rate - self.prev_learning_rate;
 
         if self.rate_history.len() < self.max_history {
@@ -253,11 +251,12 @@ impl AppsMetaCognition {
         self.tick += 1;
         let id = fnv1a_hash(feature_name.as_bytes());
 
-        let feature = self.features.entry(id).or_insert_with(|| {
-            BehavioralFeature::new(String::from(feature_name))
-        });
-        feature.importance = EMA_ALPHA * importance.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * feature.importance;
+        let feature = self
+            .features
+            .entry(id)
+            .or_insert_with(|| BehavioralFeature::new(String::from(feature_name)));
+        feature.importance =
+            EMA_ALPHA * importance.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * feature.importance;
         feature.evaluate(accuracy, cost_us);
     }
 
@@ -293,7 +292,9 @@ impl AppsMetaCognition {
 
     /// Get feature importance ranking (sorted by importance descending)
     pub fn feature_importance(&self) -> Vec<(String, f32, f32)> {
-        let mut ranked: Vec<(String, f32, f32)> = self.features.values()
+        let mut ranked: Vec<(String, f32, f32)> = self
+            .features
+            .values()
             .map(|f| (f.name.clone(), f.importance, f.predictive_accuracy))
             .collect();
         ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
@@ -305,7 +306,9 @@ impl AppsMetaCognition {
         self.total_cycles += cycles_spent;
 
         // Load from drift events + feature complexity
-        let drift_pressure: f32 = self.drift_events.iter()
+        let drift_pressure: f32 = self
+            .drift_events
+            .iter()
             .filter(|d| self.tick.saturating_sub(d.detected_tick) < 100)
             .map(|d| d.drift_magnitude * 0.1)
             .sum();
@@ -346,16 +349,18 @@ impl AppsMetaCognition {
         let n = self.features.len().max(1) as f32;
         MetaCognitionStats {
             features_tracked: self.features.len(),
-            avg_feature_importance: self.features.values()
-                .map(|f| f.importance).sum::<f32>() / n,
-            avg_predictive_accuracy: self.features.values()
-                .map(|f| f.predictive_accuracy).sum::<f32>() / n,
+            avg_feature_importance: self.features.values().map(|f| f.importance).sum::<f32>() / n,
+            avg_predictive_accuracy: self
+                .features
+                .values()
+                .map(|f| f.predictive_accuracy)
+                .sum::<f32>()
+                / n,
             drift_events_detected: self.drift_events.len(),
             meta_learning_rate: self.meta_learning.learning_rate,
             meta_learning_trend: self.meta_learning.trend(),
             cognitive_load: load,
-            feature_efficiency: self.features.values()
-                .map(|f| f.efficiency).sum::<f32>() / n,
+            feature_efficiency: self.features.values().map(|f| f.efficiency).sum::<f32>() / n,
         }
     }
 }
