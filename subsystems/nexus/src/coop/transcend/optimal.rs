@@ -52,7 +52,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(v: u64, lo: u64, hi: u64) -> u64 {
-    if v < lo { lo } else if v > hi { hi } else { v }
+    if v < lo {
+        lo
+    } else if v > hi {
+        hi
+    } else {
+        v
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -191,7 +197,11 @@ impl CoopOptimal {
                     }
                     if let Some(a) = self.agents.get_mut(&aid) {
                         a.allocation = new_alloc;
-                        a.utility = if a.demand > 0 { new_alloc * 100 / a.demand } else { 100 };
+                        a.utility = if a.demand > 0 {
+                            new_alloc * 100 / a.demand
+                        } else {
+                            100
+                        };
                         a.ema_utility = ema_update(a.ema_utility, a.utility);
                     }
                 }
@@ -247,18 +257,34 @@ impl CoopOptimal {
                         None => continue,
                     };
                     // Check if transferring from over-served to under-served helps
-                    let sat_i = if demand_i > 0 { alloc_i * 100 / demand_i } else { 100 };
-                    let sat_j = if demand_j > 0 { alloc_j * 100 / demand_j } else { 100 };
+                    let sat_i = if demand_i > 0 {
+                        alloc_i * 100 / demand_i
+                    } else {
+                        100
+                    };
+                    let sat_j = if demand_j > 0 {
+                        alloc_j * 100 / demand_j
+                    } else {
+                        100
+                    };
                     if sat_i > sat_j + 10 && alloc_i > 1 {
                         let transfer = (alloc_i - alloc_j) / 4;
                         let transfer = transfer.max(1);
                         if let Some(ai) = self.agents.get_mut(&aid_i) {
                             ai.allocation = ai.allocation.saturating_sub(transfer);
-                            ai.utility = if ai.demand > 0 { ai.allocation * 100 / ai.demand } else { 100 };
+                            ai.utility = if ai.demand > 0 {
+                                ai.allocation * 100 / ai.demand
+                            } else {
+                                100
+                            };
                         }
                         if let Some(aj) = self.agents.get_mut(&aid_j) {
                             aj.allocation = aj.allocation.saturating_add(transfer).min(aj.demand);
-                            aj.utility = if aj.demand > 0 { aj.allocation * 100 / aj.demand } else { 100 };
+                            aj.utility = if aj.demand > 0 {
+                                aj.allocation * 100 / aj.demand
+                            } else {
+                                100
+                            };
                         }
                         improved = true;
                     }
