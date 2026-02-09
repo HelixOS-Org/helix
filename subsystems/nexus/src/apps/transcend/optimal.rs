@@ -160,7 +160,11 @@ impl AppsOptimal {
     pub fn optimal_allocation(&mut self) -> Vec<Allocation> {
         self.allocations.clear();
 
-        let total_weight: u64 = self.demands.values().map(|d| d.priority_weight.max(1)).sum();
+        let total_weight: u64 = self
+            .demands
+            .values()
+            .map(|d| d.priority_weight.max(1))
+            .sum();
         if total_weight == 0 {
             return Vec::new();
         }
@@ -211,10 +215,8 @@ impl AppsOptimal {
         self.stats.total_allocations += self.allocations.len() as u64;
         self.stats.total_proofs += proof_count;
         if proof_count > 0 {
-            self.stats.avg_residual_ema = ema_update(
-                self.stats.avg_residual_ema,
-                residual_sum / proof_count,
-            );
+            self.stats.avg_residual_ema =
+                ema_update(self.stats.avg_residual_ema, residual_sum / proof_count);
         }
 
         self.allocations.values().cloned().collect()
@@ -244,14 +246,20 @@ impl AppsOptimal {
             waste += cpu_waste + mem_waste + io_waste;
         }
 
-        let unallocated_cpu = self.total_cpu.saturating_sub(
-            self.allocations.values().map(|a| a.cpu_shares).sum::<u64>(),
-        );
+        let unallocated_cpu = self
+            .total_cpu
+            .saturating_sub(self.allocations.values().map(|a| a.cpu_shares).sum::<u64>());
         let unallocated_mem = self.total_mem.saturating_sub(
-            self.allocations.values().map(|a| a.memory_pages).sum::<u64>(),
+            self.allocations
+                .values()
+                .map(|a| a.memory_pages)
+                .sum::<u64>(),
         );
         let unallocated_io = self.total_io.saturating_sub(
-            self.allocations.values().map(|a| a.io_bandwidth).sum::<u64>(),
+            self.allocations
+                .values()
+                .map(|a| a.io_bandwidth)
+                .sum::<u64>(),
         );
         let redistributable = unallocated_cpu + unallocated_mem + unallocated_io;
 
@@ -264,7 +272,9 @@ impl AppsOptimal {
         self.schedule.clear();
         self.stats.schedule_rounds += 1;
 
-        let mut sorted: Vec<(u64, u64)> = self.allocations.values()
+        let mut sorted: Vec<(u64, u64)> = self
+            .allocations
+            .values()
             .map(|a| (a.app_id, a.schedule_priority))
             .collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
@@ -304,7 +314,7 @@ impl AppsOptimal {
                     gap_sum += 100;
                     count += 1;
                     continue;
-                }
+                },
             };
             let cpu_gap = if demand.cpu_demand_ema > 0 {
                 alloc.cpu_shares * 100 / demand.cpu_demand_ema.max(1)
