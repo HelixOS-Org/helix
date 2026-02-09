@@ -49,16 +49,19 @@ impl Transaction {
     }
 
     /// Get transaction age
+    #[inline(always)]
     pub fn age(&self, now: Timestamp) -> Duration {
         now.elapsed_since(self.started_at)
     }
 
     /// Is active?
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.status == TransactionStatus::Active
     }
 
     /// Is completed?
+    #[inline]
     pub fn is_completed(&self) -> bool {
         matches!(
             self.status,
@@ -69,6 +72,7 @@ impl Transaction {
     }
 
     /// Get change count
+    #[inline(always)]
     pub fn change_count(&self) -> usize {
         self.changes.len()
     }
@@ -93,6 +97,7 @@ pub enum TransactionStatus {
 
 impl TransactionStatus {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Active => "Active",
@@ -111,6 +116,7 @@ impl TransactionStatus {
 
 /// Rollback state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RollbackState {
     /// Captured values
     pub captured: Vec<CapturedValue>,
@@ -128,6 +134,7 @@ impl RollbackState {
     }
 
     /// Add captured value
+    #[inline]
     pub fn capture(&mut self, key: impl Into<String>, value: ChangeValue) {
         self.captured.push(CapturedValue {
             key: key.into(),
@@ -136,6 +143,7 @@ impl RollbackState {
     }
 
     /// Get captured value
+    #[inline]
     pub fn get(&self, key: &str) -> Option<&ChangeValue> {
         self.captured
             .iter()
@@ -144,11 +152,13 @@ impl RollbackState {
     }
 
     /// Capture count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.captured.len()
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.captured.is_empty()
     }
@@ -194,6 +204,7 @@ impl TransactionManager {
     }
 
     /// Create with custom history size
+    #[inline]
     pub fn with_history_size(max_completed: usize) -> Self {
         let mut manager = Self::new();
         manager.max_completed = max_completed;
@@ -222,16 +233,19 @@ impl TransactionManager {
     }
 
     /// Get active transaction
+    #[inline(always)]
     pub fn get(&self, tx_id: TransactionId) -> Option<&Transaction> {
         self.active.get(&tx_id)
     }
 
     /// Get mutable active transaction
+    #[inline(always)]
     pub fn get_mut(&mut self, tx_id: TransactionId) -> Option<&mut Transaction> {
         self.active.get_mut(&tx_id)
     }
 
     /// Capture rollback state
+    #[inline]
     pub fn capture_state(&mut self, tx_id: TransactionId, key: String, value: ChangeValue) -> bool {
         if let Some(tx) = self.active.get_mut(&tx_id) {
             tx.rollback_state
@@ -244,6 +258,7 @@ impl TransactionManager {
     }
 
     /// Record a change
+    #[inline]
     pub fn record_change(&mut self, tx_id: TransactionId, change: Change) -> bool {
         if let Some(tx) = self.active.get_mut(&tx_id) {
             tx.changes.push(change);
@@ -254,6 +269,7 @@ impl TransactionManager {
     }
 
     /// Commit a transaction
+    #[inline]
     pub fn commit(&mut self, tx_id: TransactionId) -> Result<(), TransactionError> {
         if let Some(mut tx) = self.active.remove(&tx_id) {
             tx.status = TransactionStatus::Committed;
@@ -265,6 +281,7 @@ impl TransactionManager {
     }
 
     /// Rollback a transaction
+    #[inline]
     pub fn rollback(&mut self, tx_id: TransactionId) -> Result<RollbackState, TransactionError> {
         if let Some(mut tx) = self.active.remove(&tx_id) {
             tx.status = TransactionStatus::RolledBack;
@@ -277,6 +294,7 @@ impl TransactionManager {
     }
 
     /// Fail a transaction
+    #[inline]
     pub fn fail(&mut self, tx_id: TransactionId) -> Result<(), TransactionError> {
         if let Some(mut tx) = self.active.remove(&tx_id) {
             tx.status = TransactionStatus::Failed;
@@ -296,11 +314,13 @@ impl TransactionManager {
     }
 
     /// Get active transaction count
+    #[inline(always)]
     pub fn active_count(&self) -> usize {
         self.active.len()
     }
 
     /// Get completed count
+    #[inline(always)]
     pub fn completed_count(&self) -> usize {
         self.completed.len()
     }
@@ -322,6 +342,7 @@ impl TransactionManager {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> TransactionStats {
         TransactionStats {
             total: self.total.load(Ordering::Relaxed),
@@ -351,6 +372,7 @@ pub enum TransactionError {
 
 impl TransactionError {
     /// Get error message
+    #[inline]
     pub fn message(&self) -> &'static str {
         match self {
             Self::NotFound => "Transaction not found",
@@ -362,6 +384,7 @@ impl TransactionError {
 
 /// Transaction statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct TransactionStats {
     /// Total transactions created
     pub total: u64,
