@@ -79,20 +79,24 @@ impl Dentry {
         hash
     }
 
+    #[inline(always)]
     pub fn is_active(&self) -> bool {
         self.state == DentryState::Active
     }
 
+    #[inline(always)]
     pub fn is_negative(&self) -> bool {
         self.state == DentryState::Negative
     }
 
+    #[inline]
     pub fn acquire(&mut self) {
         self.ref_count = self.ref_count.saturating_add(1);
         self.state = DentryState::Active;
         self.lookup_count += 1;
     }
 
+    #[inline]
     pub fn release(&mut self) {
         self.ref_count = self.ref_count.saturating_sub(1);
         if self.ref_count == 0 && self.state == DentryState::Active {
@@ -127,12 +131,14 @@ impl PathLookup {
         }
     }
 
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.cache_hits + self.cache_misses;
         if total == 0 { return 0.0; }
         self.cache_hits as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn remaining_components(&self) -> usize {
         self.components.len() - self.resolved_inodes.len()
     }
@@ -153,11 +159,13 @@ impl DcacheLru {
         }
     }
 
+    #[inline(always)]
     pub fn touch(&mut self, hash: u64) {
         self.entries.retain(|&h| h != hash);
         self.entries.push_back(hash);
     }
 
+    #[inline]
     pub fn evict_oldest(&mut self) -> Option<u64> {
         if self.entries.is_empty() {
             None
@@ -166,10 +174,12 @@ impl DcacheLru {
         }
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
+    #[inline(always)]
     pub fn is_full(&self) -> bool {
         self.entries.len() >= self.max_size
     }
@@ -177,6 +187,7 @@ impl DcacheLru {
 
 /// Dentry cache stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DentryCacheStats {
     pub total_entries: u64,
     pub active_entries: u64,
@@ -189,6 +200,7 @@ pub struct DentryCacheStats {
 }
 
 impl DentryCacheStats {
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
         if total == 0 { return 0.0; }
@@ -197,6 +209,7 @@ impl DentryCacheStats {
 }
 
 /// Main apps dentry cache
+#[repr(align(64))]
 pub struct AppDentryCache {
     cache: BTreeMap<u64, Dentry>,
     lru: DcacheLru,
@@ -349,6 +362,7 @@ impl AppDentryCache {
         evicted
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &DentryCacheStats {
         &self.stats
     }
