@@ -175,6 +175,7 @@ type ActionHandler = fn(&Action, &mut ExecutionContext) -> ActionResult;
 
 /// Execution context
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ExecutionContext {
     /// Variables
     pub variables: BTreeMap<String, ActionValue>,
@@ -205,6 +206,7 @@ impl Default for ExecutorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ExecutorStats {
     /// Actions executed
     pub actions_executed: u64,
@@ -321,6 +323,7 @@ impl ActionExecutor {
     }
 
     /// Register custom handler
+    #[inline(always)]
     pub fn register_handler(&mut self, action_type: ExecutableActionType, handler: ActionHandler) {
         self.handlers.insert(action_type, handler);
     }
@@ -351,6 +354,7 @@ impl ActionExecutor {
     }
 
     /// Add dependency
+    #[inline]
     pub fn add_dependency(&mut self, action_id: u64, depends_on: u64) {
         if let Some(action) = self.actions.get_mut(&action_id) {
             action.dependencies.push(depends_on);
@@ -358,6 +362,7 @@ impl ActionExecutor {
     }
 
     /// Queue action
+    #[inline]
     pub fn queue(&mut self, action_id: u64) {
         if !self.queue.contains(&action_id) {
             self.queue.push(action_id);
@@ -545,21 +550,25 @@ impl ActionExecutor {
     }
 
     /// Set context variable
+    #[inline(always)]
     pub fn set_variable(&mut self, name: &str, value: ActionValue) {
         self.context.variables.insert(name.into(), value);
     }
 
     /// Get context variable
+    #[inline(always)]
     pub fn get_variable(&self, name: &str) -> Option<&ActionValue> {
         self.context.variables.get(name)
     }
 
     /// Get action
+    #[inline(always)]
     pub fn get_action(&self, id: u64) -> Option<&Action> {
         self.actions.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ExecutorStats {
         &self.stats
     }
