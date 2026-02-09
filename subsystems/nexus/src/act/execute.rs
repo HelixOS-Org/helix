@@ -96,6 +96,7 @@ pub struct ExecutionResult {
 
 /// Execution context
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExecutionContext {
     /// Context ID
     pub id: u64,
@@ -107,6 +108,7 @@ pub struct ExecutionContext {
 
 /// Resource state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ResourceState {
     /// Name
     pub name: String,
@@ -203,6 +205,7 @@ impl Default for ExecutorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ExecutorStats {
     /// Actions created
     pub actions_created: u64,
@@ -261,6 +264,7 @@ impl ActionExecutor {
     }
 
     /// Set action priority
+    #[inline]
     pub fn set_priority(&mut self, action_id: u64, priority: u32) {
         if let Some(action) = self.actions.get_mut(&action_id) {
             action.priority = priority;
@@ -291,6 +295,7 @@ impl ActionExecutor {
     }
 
     /// Execute next action
+    #[inline]
     pub fn execute_next(&mut self) -> Option<ExecutionResult> {
         let action_id = self.queue.pop()?;
 
@@ -403,6 +408,7 @@ impl ActionExecutor {
     }
 
     /// Add plan step
+    #[inline]
     pub fn add_step(&mut self, plan_id: u64, actions: Vec<u64>, parallel: bool) {
         if let Some(plan) = self.plans.get_mut(&plan_id) {
             let step = PlanStep {
@@ -467,11 +473,13 @@ impl ActionExecutor {
     }
 
     /// Set variable
+    #[inline(always)]
     pub fn set_variable(&mut self, name: &str, value: ParamValue) {
         self.context.variables.insert(name.into(), value);
     }
 
     /// Add resource
+    #[inline]
     pub fn add_resource(&mut self, name: &str, capacity: u64) {
         self.context.resources.insert(name.into(), ResourceState {
             name: name.into(),
@@ -482,21 +490,25 @@ impl ActionExecutor {
     }
 
     /// Get action
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&Action> {
         self.actions.get(&id)
     }
 
     /// Get result
+    #[inline(always)]
     pub fn get_result(&self, id: u64) -> Option<&ExecutionResult> {
         self.results.get(&id)
     }
 
     /// Get queue length
+    #[inline(always)]
     pub fn queue_len(&self) -> usize {
         self.queue.len()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ExecutorStats {
         &self.stats
     }
