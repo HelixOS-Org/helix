@@ -183,17 +183,14 @@ impl HolisticOptimal {
     pub fn register_resource(&mut self, name: String, capacity: u64, cost: u64, prio: u64) -> u64 {
         let hash = fnv1a(name.as_bytes());
         if self.resources.len() < MAX_RESOURCES {
-            self.resources.insert(
-                hash,
-                ResourceDescriptor {
-                    id_hash: hash,
-                    name,
-                    capacity,
-                    allocated: 0,
-                    cost_per_unit: cost,
-                    priority: prio,
-                },
-            );
+            self.resources.insert(hash, ResourceDescriptor {
+                id_hash: hash,
+                name,
+                capacity,
+                allocated: 0,
+                cost_per_unit: cost,
+                priority: prio,
+            });
         }
         hash
     }
@@ -323,7 +320,8 @@ impl HolisticOptimal {
                 }
             }
         }
-        self.stats.pareto_front_size = self.pareto_front.iter().filter(|p| !p.dominated).count() as u64;
+        self.stats.pareto_front_size =
+            self.pareto_front.iter().filter(|p| !p.dominated).count() as u64;
         self.pareto_front.clone()
     }
 
@@ -378,8 +376,9 @@ impl HolisticOptimal {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::string::ToString;
+
+    use super::*;
 
     #[test]
     fn test_global_optimum() {
