@@ -27,6 +27,7 @@ pub struct AppNiceEntry {
 
 /// Stats for nice operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppNiceStats {
     pub total_ops: u64,
     pub nice_increases: u64,
@@ -55,6 +56,7 @@ impl AppNiceManager {
         }
     }
 
+    #[inline]
     pub fn register(&mut self, pid: u64, nice: i32, policy: AppSchedPolicy) {
         let entry = AppNiceEntry {
             pid,
@@ -82,6 +84,7 @@ impl AppNiceManager {
         }
     }
 
+    #[inline]
     pub fn set_scheduler(&mut self, pid: u64, policy: AppSchedPolicy, priority: u32) -> bool {
         self.stats.total_ops += 1;
         if let Some(entry) = self.entries.get_mut(&pid) {
@@ -94,14 +97,17 @@ impl AppNiceManager {
         }
     }
 
+    #[inline(always)]
     pub fn get_nice(&self, pid: u64) -> Option<i32> {
         self.entries.get(&pid).map(|e| e.nice)
     }
 
+    #[inline(always)]
     pub fn get_policy(&self, pid: u64) -> Option<AppSchedPolicy> {
         self.entries.get(&pid).map(|e| e.policy)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppNiceStats {
         &self.stats
     }
