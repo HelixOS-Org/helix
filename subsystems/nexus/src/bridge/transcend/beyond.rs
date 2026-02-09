@@ -208,7 +208,11 @@ impl FusionTracker {
 
     fn best_fusions(&self, top_n: usize) -> Vec<&FusionPair> {
         let mut all: Vec<&FusionPair> = self.pairs.values().collect();
-        all.sort_by(|a, b| b.fusion_saving.partial_cmp(&a.fusion_saving).unwrap_or(core::cmp::Ordering::Equal));
+        all.sort_by(|a, b| {
+            b.fusion_saving
+                .partial_cmp(&a.fusion_saving)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         all.truncate(top_n);
         all
     }
@@ -304,9 +308,11 @@ impl BridgeBeyond {
 
         // Evict the least-confident path if capacity is reached.
         if self.novel_paths.len() >= MAX_NOVEL_PATHS && !self.novel_paths.contains_key(&pid) {
-            if let Some((&evict, _)) = self.novel_paths.iter()
-                .min_by(|a, b| a.1.confidence.partial_cmp(&b.1.confidence).unwrap_or(core::cmp::Ordering::Equal))
-            {
+            if let Some((&evict, _)) = self.novel_paths.iter().min_by(|a, b| {
+                a.1.confidence
+                    .partial_cmp(&b.1.confidence)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            }) {
                 self.novel_paths.remove(&evict);
             }
         }
@@ -437,7 +443,8 @@ impl BridgeBeyond {
     /// conventional OS design the bridge has progressed.
     pub fn transcendence_level(&self) -> f32 {
         let path_score = if self.stats.novel_paths_discovered > 0 {
-            (self.stats.novel_paths_active as f32 / self.stats.novel_paths_discovered as f32).min(1.0)
+            (self.stats.novel_paths_active as f32 / self.stats.novel_paths_discovered as f32)
+                .min(1.0)
         } else {
             0.0
         };
@@ -445,10 +452,8 @@ impl BridgeBeyond {
         let preemptive_score = self.stats.preemptive_accuracy_ema;
         let limit_score = (self.stats.limits_transcended as f32 / 100.0).min(1.0);
 
-        let level = path_score * 0.30
-            + fusion_score * 0.25
-            + preemptive_score * 0.25
-            + limit_score * 0.20;
+        let level =
+            path_score * 0.30 + fusion_score * 0.25 + preemptive_score * 0.25 + limit_score * 0.20;
         self.stats.transcendence_level.max(level)
     }
 
