@@ -83,6 +83,14 @@
 extern crate alloc;
 
 // ============================================================================
+// FAST PRIMITIVES — O(1) data structures for nanosecond hot paths
+// ============================================================================
+
+/// Ultra-high-performance primitives: RingBuffer, FastEma, FlatMap, FastHasher.
+/// All operations target nanosecond latency with zero heap allocation.
+pub mod fast;
+
+// ============================================================================
 // Q1 2026: HARDENING & TESTING
 // ============================================================================
 
