@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -346,7 +347,7 @@ pub struct AppContainerAnalyzer {
     /// Process to container mapping
     pid_to_container: BTreeMap<u64, u64>,
     /// Cross-container events
-    cross_comms: Vec<CrossContainerComm>,
+    cross_comms: VecDeque<CrossContainerComm>,
     /// Init namespace set (host)
     init_namespaces: NamespaceSet,
     /// Stats
@@ -360,7 +361,7 @@ impl AppContainerAnalyzer {
         Self {
             containers: BTreeMap::new(),
             pid_to_container: BTreeMap::new(),
-            cross_comms: Vec::new(),
+            cross_comms: VecDeque::new(),
             init_namespaces,
             stats: ContainerStats::default(),
             max_cross_comms: 1024,
@@ -422,9 +423,9 @@ impl AppContainerAnalyzer {
             dst.cross_comms += 1;
         }
 
-        self.cross_comms.push(comm);
+        self.cross_comms.push_back(comm);
         if self.cross_comms.len() > self.max_cross_comms {
-            self.cross_comms.remove(0);
+            self.cross_comms.pop_front();
         }
 
         self.stats.cross_comms += 1;
