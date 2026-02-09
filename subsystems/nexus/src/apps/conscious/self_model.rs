@@ -173,7 +173,11 @@ struct CalibrationBin {
 
 impl CalibrationBin {
     fn new() -> Self {
-        Self { confidence_sum: 0.0, accuracy_sum: 0.0, count: 0 }
+        Self {
+            confidence_sum: 0.0,
+            accuracy_sum: 0.0,
+            count: 0,
+        }
     }
 
     fn record(&mut self, confidence: f32, correct: bool) {
@@ -183,12 +187,16 @@ impl CalibrationBin {
     }
 
     fn expected_confidence(&self) -> f32 {
-        if self.count == 0 { return 0.0; }
+        if self.count == 0 {
+            return 0.0;
+        }
         self.confidence_sum / self.count as f32
     }
 
     fn actual_accuracy(&self) -> f32 {
-        if self.count == 0 { return 0.0; }
+        if self.count == 0 {
+            return 0.0;
+        }
         self.accuracy_sum / self.count as f32
     }
 }
@@ -250,30 +258,24 @@ impl AppsSelfModel {
     }
 
     /// Update classification accuracy for a workload type
-    pub fn update_accuracy(
-        &mut self,
-        workload_name: &str,
-        was_correct: bool,
-        confidence: f32,
-    ) {
+    pub fn update_accuracy(&mut self, workload_name: &str, was_correct: bool, confidence: f32) {
         self.tick += 1;
         let id = fnv1a_hash(workload_name.as_bytes());
         let tick = self.tick;
-        let tracker = self.workloads.entry(id).or_insert_with(|| {
-            WorkloadAccuracy::new(String::from(workload_name))
-        });
+        let tracker = self
+            .workloads
+            .entry(id)
+            .or_insert_with(|| WorkloadAccuracy::new(String::from(workload_name)));
         let clamped_conf = confidence.max(0.0).min(1.0);
         tracker.record(was_correct, clamped_conf, tick);
 
         // Update calibration bins
-        let bin_idx = ((clamped_conf * CALIBRATION_BINS as f32) as usize)
-            .min(CALIBRATION_BINS - 1);
+        let bin_idx = ((clamped_conf * CALIBRATION_BINS as f32) as usize).min(CALIBRATION_BINS - 1);
         self.calibration_bins[bin_idx].record(clamped_conf, was_correct);
 
         // Update global EMA
         let raw = if was_correct { 1.0 } else { 0.0 };
-        self.global_accuracy_ema =
-            EMA_ALPHA * raw + (1.0 - EMA_ALPHA) * self.global_accuracy_ema;
+        self.global_accuracy_ema = EMA_ALPHA * raw + (1.0 - EMA_ALPHA) * self.global_accuracy_ema;
     }
 
     /// Assess classification quality for a specific workload
@@ -281,7 +283,11 @@ impl AppsSelfModel {
         let id = fnv1a_hash(workload_name.as_bytes());
         self.workloads.get(&id).map(|w| {
             let hw = w.confidence_half_width();
-            (w.accuracy, (w.accuracy - hw).max(0.0), (w.accuracy + hw).min(1.0))
+            (
+                w.accuracy,
+                (w.accuracy - hw).max(0.0),
+                (w.accuracy + hw).min(1.0),
+            )
         })
     }
 
@@ -291,7 +297,9 @@ impl AppsSelfModel {
             return 0.0;
         }
         // Inverse of average confidence interval width
-        let total_width: f32 = self.workloads.values()
+        let total_width: f32 = self
+            .workloads
+            .values()
             .map(|w| w.confidence_half_width() * 2.0)
             .sum();
         let avg_width = total_width / self.workloads.len() as f32;
@@ -321,7 +329,9 @@ impl AppsSelfModel {
         if self.workloads.is_empty() {
             return 0.0;
         }
-        let sum: f32 = self.workloads.values()
+        let sum: f32 = self
+            .workloads
+            .values()
             .map(|w| w.improvement_trajectory())
             .sum();
         sum / self.workloads.len() as f32
@@ -351,9 +361,24 @@ impl AppsSelfModel {
         let n = self.workloads.len();
         let (avg_acc, avg_pred, avg_adapt, avg_ci, total_att) = if n > 0 {
             let acc: f32 = self.workloads.values().map(|w| w.accuracy).sum::<f32>() / n as f32;
-            let pred: f32 = self.workloads.values().map(|w| w.prediction_hit_rate).sum::<f32>() / n as f32;
-            let adapt: f32 = self.workloads.values().map(|w| w.adaptation_success).sum::<f32>() / n as f32;
-            let ci: f32 = self.workloads.values().map(|w| w.confidence_half_width() * 2.0).sum::<f32>() / n as f32;
+            let pred: f32 = self
+                .workloads
+                .values()
+                .map(|w| w.prediction_hit_rate)
+                .sum::<f32>()
+                / n as f32;
+            let adapt: f32 = self
+                .workloads
+                .values()
+                .map(|w| w.adaptation_success)
+                .sum::<f32>()
+                / n as f32;
+            let ci: f32 = self
+                .workloads
+                .values()
+                .map(|w| w.confidence_half_width() * 2.0)
+                .sum::<f32>()
+                / n as f32;
             let att: u64 = self.workloads.values().map(|w| w.attempts).sum();
             (acc, pred, adapt, ci, att)
         } else {
@@ -376,9 +401,17 @@ impl AppsSelfModel {
 
     /// Report per-workload accuracy with confidence intervals
     pub fn workload_report(&self) -> Vec<(String, f32, f32, f32)> {
-        self.workloads.values().map(|w| {
-            let hw = w.confidence_half_width();
-            (w.name.clone(), w.accuracy, (w.accuracy - hw).max(0.0), (w.accuracy + hw).min(1.0))
-        }).collect()
+        self.workloads
+            .values()
+            .map(|w| {
+                let hw = w.confidence_half_width();
+                (
+                    w.name.clone(),
+                    w.accuracy,
+                    (w.accuracy - hw).max(0.0),
+                    (w.accuracy + hw).min(1.0),
+                )
+            })
+            .collect()
     }
 }
