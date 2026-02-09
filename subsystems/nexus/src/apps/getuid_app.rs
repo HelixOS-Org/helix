@@ -43,6 +43,7 @@ impl GetuidRecord {
 
 /// Getuid app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct GetuidAppStats {
     pub total_ops: u64,
     pub getuid_calls: u64,
@@ -68,6 +69,7 @@ impl AppGetuid {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &GetuidRecord) {
         self.stats.total_ops += 1;
         match rec.variant {
