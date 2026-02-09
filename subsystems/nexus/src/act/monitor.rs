@@ -12,6 +12,7 @@ use alloc::format;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -187,7 +188,7 @@ pub struct ExecutionMonitor {
     /// Active executions
     executions: BTreeMap<u64, Execution>,
     /// Completed executions
-    history: Vec<Execution>,
+    history: VecDeque<Execution>,
     /// Detected anomalies
     anomalies: BTreeMap<u64, Anomaly>,
     /// Next ID
@@ -245,7 +246,7 @@ impl ExecutionMonitor {
     pub fn new(config: MonitorConfig) -> Self {
         Self {
             executions: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             anomalies: BTreeMap::new(),
             next_id: AtomicU64::new(1),
             config,
@@ -394,11 +395,11 @@ impl ExecutionMonitor {
 
         // Move to history
         if let Some(execution) = self.executions.remove(&execution_id) {
-            self.history.push(execution);
+            self.history.push_back(execution);
 
             // Trim history
             while self.history.len() > self.config.history_size {
-                self.history.remove(0);
+                self.history.pop_front();
             }
         }
     }
