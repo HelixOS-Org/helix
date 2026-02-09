@@ -49,6 +49,7 @@ pub struct ContainerResources {
 }
 
 impl ContainerResources {
+    #[inline]
     pub fn default_limits() -> Self {
         Self {
             cpu_shares: 1024, cpu_quota_us: -1, cpu_period_us: 100_000,
@@ -84,7 +85,9 @@ impl HealthCheck {
         Self { interval_ms: interval, timeout_ms: timeout, retries, consecutive_failures: 0, last_check_ts: 0, healthy: true }
     }
 
+    #[inline(always)]
     pub fn pass(&mut self, ts: u64) { self.consecutive_failures = 0; self.healthy = true; self.last_check_ts = ts; }
+    #[inline(always)]
     pub fn fail(&mut self, ts: u64) { self.consecutive_failures += 1; self.last_check_ts = ts; if self.consecutive_failures >= self.retries { self.healthy = false; } }
 }
 
@@ -125,15 +128,24 @@ impl Container {
         }
     }
 
+    #[inline(always)]
     pub fn create(&mut self, ts: u64) { self.state = ContainerState::Created; self.created_at = ts; }
+    #[inline(always)]
     pub fn start(&mut self, pid: u64, ts: u64) { self.state = ContainerState::Running; self.pid = Some(pid); self.started_at = ts; }
+    #[inline(always)]
     pub fn pause(&mut self) { self.state = ContainerState::Paused; }
+    #[inline(always)]
     pub fn unpause(&mut self) { self.state = ContainerState::Running; }
+    #[inline(always)]
     pub fn stop(&mut self, code: i32, ts: u64) { self.state = ContainerState::Stopped; self.exit_code = code; self.finished_at = ts; self.pid = None; }
+    #[inline(always)]
     pub fn remove(&mut self) { self.state = ContainerState::Removing; }
+    #[inline(always)]
     pub fn is_running(&self) -> bool { self.state == ContainerState::Running }
+    #[inline(always)]
     pub fn uptime_us(&self, now: u64) -> u64 { if self.is_running() { now.saturating_sub(self.started_at) } else { self.finished_at.saturating_sub(self.started_at) } }
 
+    #[inline]
     pub fn should_restart(&self) -> bool {
         match self.restart_policy {
             RestartPolicy::Never => false,
@@ -146,6 +158,7 @@ impl Container {
 
 /// Container runtime stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ContainerRuntimeStats {
     pub total_containers: usize,
     pub running_containers: usize,
@@ -166,6 +179,7 @@ pub struct AppsContainerRuntime {
 impl AppsContainerRuntime {
     pub fn new() -> Self { Self { containers: BTreeMap::new(), stats: ContainerRuntimeStats::default(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, name: String, image: String, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut c = Container::new(id, name, image);
@@ -174,27 +188,37 @@ impl AppsContainerRuntime {
         id
     }
 
+    #[inline(always)]
     pub fn start(&mut self, id: u64, pid: u64, ts: u64) { if let Some(c) = self.containers.get_mut(&id) { c.start(pid, ts); } }
+    #[inline(always)]
     pub fn stop(&mut self, id: u64, code: i32, ts: u64) { if let Some(c) = self.containers.get_mut(&id) { c.stop(code, ts); } }
+    #[inline(always)]
     pub fn pause(&mut self, id: u64) { if let Some(c) = self.containers.get_mut(&id) { c.pause(); } }
+    #[inline(always)]
     pub fn unpause(&mut self, id: u64) { if let Some(c) = self.containers.get_mut(&id) { c.unpause(); } }
+    #[inline(always)]
     pub fn remove(&mut self, id: u64) { if let Some(c) = self.containers.get_mut(&id) { c.remove(); } self.containers.remove(&id); }
 
+    #[inline(always)]
     pub fn set_resources(&mut self, id: u64, res: ContainerResources) { if let Some(c) = self.containers.get_mut(&id) { c.resources = res; } }
+    #[inline(always)]
     pub fn set_restart_policy(&mut self, id: u64, policy: RestartPolicy) { if let Some(c) = self.containers.get_mut(&id) { c.restart_policy = policy; } }
 
+    #[inline]
     pub fn health_check(&mut self, id: u64, passed: bool, ts: u64) {
         if let Some(c) = self.containers.get_mut(&id) {
             if let Some(h) = c.health.as_mut() { if passed { h.pass(ts); } else { h.fail(ts); } }
         }
     }
 
+    #[inline]
     pub fn check_restarts(&mut self, ts: u64) -> Vec<u64> {
         let need_restart: Vec<u64> = self.containers.values().filter(|c| c.state == ContainerState::Stopped && c.should_restart()).map(|c| c.id).collect();
         for &id in &need_restart { if let Some(c) = self.containers.get_mut(&id) { c.restart_count += 1; c.state = ContainerState::Created; } }
         need_restart
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_containers = self.containers.len();
         self.stats.running_containers = self.containers.values().filter(|c| c.is_running()).count();
@@ -205,6 +229,8 @@ impl AppsContainerRuntime {
         self.stats.unhealthy = self.containers.values().filter(|c| c.health.as_ref().map(|h| !h.healthy).unwrap_or(false)).count();
     }
 
+    #[inline(always)]
     pub fn container(&self, id: u64) -> Option<&Container> { self.containers.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &ContainerRuntimeStats { &self.stats }
 }
