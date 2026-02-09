@@ -24,9 +24,9 @@ const FNV_OFFSET: u64 = 0xcbf29ce484222325;
 const FNV_PRIME: u64 = 0x100000001b3;
 const EMA_ALPHA_NUM: u64 = 3;
 const EMA_ALPHA_DEN: u64 = 14;
-const HUMAN_PARITY_THRESHOLD: u64 = 8_000;   // bps
-const SINGULARITY_THRESHOLD: u64 = 9_500;     // bps
-const TRANSCENDENCE_THRESHOLD: u64 = 9_900;   // bps
+const HUMAN_PARITY_THRESHOLD: u64 = 8_000; // bps
+const SINGULARITY_THRESHOLD: u64 = 9_500; // bps
+const TRANSCENDENCE_THRESHOLD: u64 = 9_900; // bps
 const MAX_INTELLIGENCE_SOURCES: usize = 64;
 const MAX_EVENTS: usize = 512;
 
@@ -187,8 +187,7 @@ impl HolisticSingularity {
         let mut weighted_sum: u64 = 0;
         let mut weight_total: u64 = 0;
         for src in self.sources.values() {
-            weighted_sum = weighted_sum
-                .wrapping_add(src.ema_score.wrapping_mul(src.weight_bps));
+            weighted_sum = weighted_sum.wrapping_add(src.ema_score.wrapping_mul(src.weight_bps));
             weight_total = weight_total.wrapping_add(src.weight_bps);
         }
         if weight_total > 0 {
@@ -359,8 +358,9 @@ impl HolisticSingularity {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::string::ToString;
+
+    use super::*;
 
     #[test]
     fn test_register_and_update() {
