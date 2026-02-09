@@ -9,6 +9,7 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,6 +34,7 @@ pub struct LeakCandidate {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MunmapAppStats {
     pub total_unmaps: u64,
     pub total_bytes_unmapped: u64,
@@ -69,7 +71,7 @@ impl MunmapAppManager {
         let event = UnmapEvent { start, size, timestamp: now, latency_ns };
         let events = self.app_events.entry(app_id).or_insert_with(Vec::new);
         events.push(event);
-        if events.len() > self.max_events { events.remove(0); }
+        if events.len() > self.max_events { events.pop_front().unwrap(); }
 
         // Add to free ranges for potential recycling
         let ranges = self.free_ranges.entry(app_id).or_insert_with(Vec::new);
@@ -142,6 +144,7 @@ impl MunmapAppManager {
     }
 
     /// Find a recycled address range for a new allocation
+    #[inline]
     pub fn recycle_address(&mut self, app_id: u64, needed_size: u64) -> Option<u64> {
         let ranges = self.free_ranges.get_mut(&app_id)?;
         let idx = ranges.iter().position(|&(_, size)| size >= needed_size)?;
@@ -150,9 +153,11 @@ impl MunmapAppManager {
         Some(addr)
     }
 
+    #[inline(always)]
     pub fn leak_candidates(&self, app_id: u64) -> &[LeakCandidate] {
         self.leak_candidates.get(&app_id).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MunmapAppStats { &self.stats }
 }
