@@ -129,19 +129,23 @@ impl KindTracker {
                 self.hits += 1;
                 self.total_savings += savings;
                 self.hit_rate_ema = EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * self.hit_rate_ema;
-            }
+            },
             ActionOutcome::PartialHit => {
                 self.hits += 1;
                 self.total_savings += savings / 2;
                 self.hit_rate_ema = EMA_ALPHA * 0.5 + (1.0 - EMA_ALPHA) * self.hit_rate_ema;
-            }
+            },
             ActionOutcome::Miss | ActionOutcome::Expired => {
                 self.misses += 1;
                 self.hit_rate_ema = EMA_ALPHA * 0.0 + (1.0 - EMA_ALPHA) * self.hit_rate_ema;
-            }
-            ActionOutcome::Pending => {}
+            },
+            ActionOutcome::Pending => {},
         }
-        let net = if savings > cost { (savings - cost) as f32 } else { 0.0 };
+        let net = if savings > cost {
+            (savings - cost) as f32
+        } else {
+            0.0
+        };
         self.savings_ema = EMA_ALPHA * net + (1.0 - EMA_ALPHA) * self.savings_ema;
     }
 
@@ -236,7 +240,8 @@ impl BridgeProactive {
             acted_on: false,
         };
 
-        let tracker = self.kind_trackers
+        let tracker = self
+            .kind_trackers
             .entry(kind as u8)
             .or_insert_with(KindTracker::new);
         tracker.record_opportunity();
@@ -253,7 +258,11 @@ impl BridgeProactive {
 
     /// Pre-compute a syscall route before it's needed
     pub fn precompute_route(&mut self, opportunity_id: u64, route_data: String) -> bool {
-        self.execute_action(opportunity_id, OpportunityKind::RoutePrecompute, &route_data)
+        self.execute_action(
+            opportunity_id,
+            OpportunityKind::RoutePrecompute,
+            &route_data,
+        )
     }
 
     /// Pre-warm a cache entry based on predicted access
@@ -263,7 +272,11 @@ impl BridgeProactive {
 
     /// Pre-allocate a buffer for predicted demand
     pub fn preallocate_buffer(&mut self, opportunity_id: u64, buffer_desc: String) -> bool {
-        self.execute_action(opportunity_id, OpportunityKind::BufferPreallocate, &buffer_desc)
+        self.execute_action(
+            opportunity_id,
+            OpportunityKind::BufferPreallocate,
+            &buffer_desc,
+        )
     }
 
     fn execute_action(
@@ -272,7 +285,10 @@ impl BridgeProactive {
         expected_kind: OpportunityKind,
         _context: &str,
     ) -> bool {
-        let opp = self.opportunities.iter_mut().find(|o| o.id == opportunity_id);
+        let opp = self
+            .opportunities
+            .iter_mut()
+            .find(|o| o.id == opportunity_id);
         let opp = match opp {
             Some(o) => o,
             None => return false,
@@ -284,7 +300,9 @@ impl BridgeProactive {
 
         // Check confidence threshold, adjusted by historical hit rate
         let kind_key = expected_kind as u8;
-        let kind_hit_rate = self.kind_trackers.get(&kind_key)
+        let kind_hit_rate = self
+            .kind_trackers
+            .get(&kind_key)
             .map(|t| t.hit_rate_ema)
             .unwrap_or(0.5);
         let adjusted_threshold = MIN_CONFIDENCE_TO_ACT * (1.0 - kind_hit_rate * 0.3);
@@ -294,7 +312,9 @@ impl BridgeProactive {
 
         if self.active_actions.len() >= MAX_ACTIVE_ACTIONS {
             // Evict oldest pending action
-            let oldest = self.active_actions.iter()
+            let oldest = self
+                .active_actions
+                .iter()
                 .filter(|(_, a)| a.outcome == ActionOutcome::Pending)
                 .min_by_key(|(_, a)| a.start_tick)
                 .map(|(&k, _)| k);
@@ -336,7 +356,8 @@ impl BridgeProactive {
 
             let kind_key = action.kind as u8;
             let cost = action.cost_ns;
-            let tracker = self.kind_trackers
+            let tracker = self
+                .kind_trackers
                 .entry(kind_key)
                 .or_insert_with(KindTracker::new);
             tracker.record_action(outcome, actual_savings_ns, cost);
@@ -375,9 +396,11 @@ impl BridgeProactive {
         let hit_rate: f32 = if self.kind_trackers.is_empty() {
             0.0
         } else {
-            self.kind_trackers.values()
+            self.kind_trackers
+                .values()
                 .map(|t| t.hit_rate_ema)
-                .sum::<f32>() / self.kind_trackers.len() as f32
+                .sum::<f32>()
+                / self.kind_trackers.len() as f32
         };
 
         let avg_savings = if self.total_actions > 0 {
