@@ -63,6 +63,30 @@ pub mod monte_carlo;
 /// Prediction validation: Brier score, calibration curve, sharpness
 pub mod validator;
 
+/// Branching scenario trees for syscall futures with minimax evaluation
+pub mod scenario_tree;
+
+/// Causal prediction and causal DAG of syscall relationships
+pub mod causal_forecast;
+
+/// "What if" counterfactual analysis for bridge routing decisions
+pub mod counterfactual;
+
+/// Uncertainty quantification with bootstrap confidence intervals
+pub mod confidence_interval;
+
+/// Multi-model ensemble for robust bridge prediction
+pub mod ensemble;
+
+/// Multi-horizon temporal fusion (1ms → 10s) into coherent future views
+pub mod temporal_fusion;
+
+/// Anomaly forecasting: precursor detection and early warnings
+pub mod anomaly_forecast;
+
+/// Pre-cognitive subtle shift detection in syscall distributions
+pub mod precognition;
+
 // ============================================================================
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
@@ -74,3 +98,11 @@ pub use self::rehearsal::BridgeRehearsal;
 pub use self::simulator::BridgeSimulator;
 pub use self::timeline::BridgeTimeline;
 pub use self::validator::BridgePredictionValidator;
+pub use self::scenario_tree::BridgeScenarioTree;
+pub use self::causal_forecast::BridgeCausalForecast;
+pub use self::counterfactual::BridgeCounterfactual;
+pub use self::confidence_interval::BridgeConfidenceInterval;
+pub use self::ensemble::BridgeEnsemble;
+pub use self::temporal_fusion::BridgeTemporalFusion;
+pub use self::anomaly_forecast::BridgeAnomalyForecast;
+pub use self::precognition::BridgePrecognition;
