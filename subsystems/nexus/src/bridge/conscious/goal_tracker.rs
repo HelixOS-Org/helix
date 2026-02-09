@@ -45,11 +45,11 @@ pub enum GoalPriority {
     /// Must be achieved — system correctness
     Critical = 4,
     /// Should be achieved — performance
-    High = 3,
+    High     = 3,
     /// Nice to have — optimization
-    Medium = 2,
+    Medium   = 2,
     /// Aspirational — long-term improvement
-    Low = 1,
+    Low      = 1,
 }
 
 /// Current status of a goal
@@ -175,7 +175,9 @@ impl BridgeGoalTracker {
             ((initial) / target).max(0.0).min(1.0)
         } else {
             // Target is lower than initial (e.g., minimize latency)
-            (1.0 - (initial - target) / initial.max(0.001)).max(0.0).min(1.0)
+            (1.0 - (initial - target) / initial.max(0.001))
+                .max(0.0)
+                .min(1.0)
         };
 
         let goal = Goal {
@@ -189,7 +191,11 @@ impl BridgeGoalTracker {
             progress_rate: 0.0,
             parent_id,
             set_tick: self.tick,
-            deadline_tick: if deadline_ticks > 0 { self.tick + deadline_ticks } else { 0 },
+            deadline_tick: if deadline_ticks > 0 {
+                self.tick + deadline_ticks
+            } else {
+                0
+            },
             progress_history: Vec::new(),
             write_idx: 0,
             weight: weight.max(0.1),
@@ -250,7 +256,9 @@ impl BridgeGoalTracker {
 
     /// Return goals sorted by effective priority (priority × weight × urgency)
     pub fn prioritize_goals(&self) -> Vec<(u64, String, f32)> {
-        let mut scored: Vec<(u64, String, f32)> = self.goals.values()
+        let mut scored: Vec<(u64, String, f32)> = self
+            .goals
+            .values()
             .filter(|g| g.status == GoalStatus::Active || g.status == GoalStatus::Stalled)
             .map(|g| {
                 let base = g.priority as u8 as f32;
@@ -340,10 +348,26 @@ impl BridgeGoalTracker {
 
     /// Compute aggregate statistics
     pub fn stats(&self) -> GoalTrackerStats {
-        let active = self.goals.values().filter(|g| g.status == GoalStatus::Active).count();
-        let achieved = self.goals.values().filter(|g| g.status == GoalStatus::Achieved).count();
-        let stalled = self.goals.values().filter(|g| g.status == GoalStatus::Stalled).count();
-        let conflicted = self.goals.values().filter(|g| g.status == GoalStatus::Conflicted).count();
+        let active = self
+            .goals
+            .values()
+            .filter(|g| g.status == GoalStatus::Active)
+            .count();
+        let achieved = self
+            .goals
+            .values()
+            .filter(|g| g.status == GoalStatus::Achieved)
+            .count();
+        let stalled = self
+            .goals
+            .values()
+            .filter(|g| g.status == GoalStatus::Stalled)
+            .count();
+        let conflicted = self
+            .goals
+            .values()
+            .filter(|g| g.status == GoalStatus::Conflicted)
+            .count();
 
         let avg_progress = if self.goals.is_empty() {
             0.0
