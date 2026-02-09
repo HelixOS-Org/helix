@@ -70,6 +70,7 @@ impl ProcessSwitchProfile {
     }
 
     /// Record switch
+    #[inline]
     pub fn record_switch(&mut self, record: &SwitchRecord) {
         self.total_switches += 1;
         self.total_runtime_ns += record.runtime_ns;
