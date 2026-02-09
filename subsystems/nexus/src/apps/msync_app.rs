@@ -42,6 +42,7 @@ impl MappingSyncTracker {
         Self { addr, length: len, total_syncs: 0, total_pages_synced: 0, total_bytes: 0, last_sync: 0, dirty_pages: 0 }
     }
 
+    #[inline]
     pub fn record_sync(&mut self, pages: u32, ts: u64) {
         self.total_syncs += 1;
         self.total_pages_synced += pages as u64;
@@ -51,11 +52,13 @@ impl MappingSyncTracker {
         else { self.dirty_pages = 0; }
     }
 
+    #[inline(always)]
     pub fn mark_dirty(&mut self, pages: u32) { self.dirty_pages += pages; }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsyncAppStats {
     pub tracked_mappings: u32,
     pub total_syncs: u64,
@@ -75,19 +78,24 @@ pub struct AppMsync {
 impl AppMsync {
     pub fn new() -> Self { Self { mappings: BTreeMap::new(), sync_ops: 0, async_ops: 0 } }
 
+    #[inline(always)]
     pub fn track_mapping(&mut self, addr: u64, len: u64) { self.mappings.insert(addr, MappingSyncTracker::new(addr, len)); }
 
+    #[inline(always)]
     pub fn sync(&mut self, addr: u64, pages: u32, flag: MsyncFlag, ts: u64) {
         match flag { MsyncFlag::Sync => self.sync_ops += 1, MsyncFlag::Async => self.async_ops += 1, _ => {} }
         if let Some(m) = self.mappings.get_mut(&addr) { m.record_sync(pages, ts); }
     }
 
+    #[inline(always)]
     pub fn mark_dirty(&mut self, addr: u64, pages: u32) {
         if let Some(m) = self.mappings.get_mut(&addr) { m.mark_dirty(pages); }
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, addr: u64) { self.mappings.remove(&addr); }
 
+    #[inline]
     pub fn stats(&self) -> MsyncAppStats {
         let syncs: u64 = self.mappings.values().map(|m| m.total_syncs).sum();
         let pages: u64 = self.mappings.values().map(|m| m.total_pages_synced).sum();
