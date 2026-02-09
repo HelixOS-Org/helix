@@ -34,6 +34,7 @@ impl SqeFlags {
     pub const CQE_SKIP_SUCCESS: u32 = 1 << 6;
 
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
 }
 
@@ -77,8 +78,10 @@ impl IoUringInstance {
         Self { id, sq_entries: sq, cq_entries: cq, pending: Vec::new(), completions: Vec::new(), total_submitted: 0, total_completed: 0, total_bytes: 0, sq_polling: false }
     }
 
+    #[inline(always)]
     pub fn submit(&mut self, sqe: Sqe) { self.total_submitted += 1; self.pending.push(sqe); }
 
+    #[inline]
     pub fn complete(&mut self, user_data: u64, res: i32, now: u64) {
         self.pending.retain(|s| s.user_data != user_data);
         self.total_completed += 1;
@@ -86,6 +89,7 @@ impl IoUringInstance {
         self.completions.push(Cqe { user_data, res, flags: 0, completed_at: now });
     }
 
+    #[inline(always)]
     pub fn reap(&mut self, max: u32) -> Vec<Cqe> {
         let n = (max as usize).min(self.completions.len());
         self.completions.drain(..n).collect()
@@ -94,6 +98,7 @@ impl IoUringInstance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoUringAppStats {
     pub total_rings: u32,
     pub total_submitted: u64,
@@ -111,16 +116,19 @@ pub struct AppIoUring {
 impl AppIoUring {
     pub fn new() -> Self { Self { rings: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn setup(&mut self, sq: u32, cq: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.rings.insert(id, IoUringInstance::new(id, sq, cq));
         id
     }
 
+    #[inline(always)]
     pub fn submit(&mut self, ring: u64, sqe: Sqe) {
         if let Some(r) = self.rings.get_mut(&ring) { r.submit(sqe); }
     }
 
+    #[inline]
     pub fn stats(&self) -> IoUringAppStats {
         let sub: u64 = self.rings.values().map(|r| r.total_submitted).sum();
         let comp: u64 = self.rings.values().map(|r| r.total_completed).sum();
