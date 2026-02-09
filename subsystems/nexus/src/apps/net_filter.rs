@@ -55,12 +55,14 @@ pub struct IpAddr {
 }
 
 impl IpAddr {
+    #[inline]
     pub fn v4(a: u8, b: u8, c: u8, d: u8, prefix: u8) -> Self {
         let mut octets = [0u8; 16];
         octets[0] = a; octets[1] = b; octets[2] = c; octets[3] = d;
         Self { octets, is_v6: false, prefix_len: prefix }
     }
 
+    #[inline(always)]
     pub fn any_v4() -> Self { Self::v4(0, 0, 0, 0, 0) }
 
     pub fn matches(&self, other: &IpAddr) -> bool {
@@ -88,9 +90,13 @@ pub struct PortRange {
 }
 
 impl PortRange {
+    #[inline(always)]
     pub fn single(port: u16) -> Self { Self { start: port, end: port } }
+    #[inline(always)]
     pub fn range(start: u16, end: u16) -> Self { Self { start, end } }
+    #[inline(always)]
     pub fn any() -> Self { Self { start: 0, end: 65535 } }
+    #[inline(always)]
     pub fn contains(&self, port: u16) -> bool { port >= self.start && port <= self.end }
 }
 
@@ -125,6 +131,7 @@ impl FilterRule {
         }
     }
 
+    #[inline]
     pub fn matches_packet(&self, proto: NetProtocol, src: &IpAddr, dst: &IpAddr, src_port: u16, dst_port: u16) -> bool {
         if !self.enabled { return false; }
         if self.protocol != NetProtocol::Any && self.protocol != proto { return false; }
@@ -178,10 +185,12 @@ impl ConnTrackEntry {
         }
     }
 
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         now.saturating_sub(self.last_seen_ts) > self.timeout_ns
     }
 
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 { self.bytes_in + self.bytes_out }
 }
 
@@ -203,6 +212,7 @@ impl RateLimiter {
         Self { pid, max_pps, max_bps, tokens_pps: max_pps, tokens_bps: max_bps, last_refill_ts: 0, dropped_packets: 0, dropped_bytes: 0 }
     }
 
+    #[inline]
     pub fn refill(&mut self, now: u64) {
         let elapsed_ns = now.saturating_sub(self.last_refill_ts);
         let elapsed_s_frac = elapsed_ns as f64 / 1_000_000_000.0;
@@ -213,6 +223,7 @@ impl RateLimiter {
         self.last_refill_ts = now;
     }
 
+    #[inline]
     pub fn try_consume(&mut self, bytes: u64) -> bool {
         if self.tokens_pps == 0 || self.tokens_bps < bytes {
             self.dropped_packets += 1;
@@ -227,6 +238,7 @@ impl RateLimiter {
 
 /// Net filter stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NetFilterStats {
     pub total_rules: usize,
     pub active_rules: usize,
@@ -254,17 +266,22 @@ impl AppsNetFilter {
         Self { rules: BTreeMap::new(), connections: BTreeMap::new(), rate_limiters: BTreeMap::new(), stats: NetFilterStats::default(), next_id: 1, default_action }
     }
 
+    #[inline]
     pub fn add_rule(&mut self, name: String, action: FilterAction) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.rules.insert(id, FilterRule::new(id, name, action));
         id
     }
 
+    #[inline(always)]
     pub fn remove_rule(&mut self, id: u64) -> bool { self.rules.remove(&id).is_some() }
 
+    #[inline(always)]
     pub fn enable_rule(&mut self, id: u64) { if let Some(r) = self.rules.get_mut(&id) { r.enabled = true; } }
+    #[inline(always)]
     pub fn disable_rule(&mut self, id: u64) { if let Some(r) = self.rules.get_mut(&id) { r.enabled = false; } }
 
+    #[inline]
     pub fn evaluate(&mut self, proto: NetProtocol, src: &IpAddr, dst: &IpAddr, src_port: u16, dst_port: u16) -> FilterAction {
         let mut sorted: Vec<&mut FilterRule> = self.rules.values_mut().collect();
         sorted.sort_by_key(|r| r.priority);
@@ -277,16 +294,19 @@ impl AppsNetFilter {
         self.default_action
     }
 
+    #[inline]
     pub fn track_connection(&mut self, pid: u64, proto: NetProtocol) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.connections.insert(id, ConnTrackEntry::new(id, pid, proto));
         id
     }
 
+    #[inline(always)]
     pub fn add_rate_limiter(&mut self, pid: u64, max_pps: u32, max_bps: u64) {
         self.rate_limiters.insert(pid, RateLimiter::new(pid, max_pps, max_bps));
     }
 
+    #[inline]
     pub fn check_rate_limit(&mut self, pid: u64, bytes: u64, now: u64) -> bool {
         if let Some(rl) = self.rate_limiters.get_mut(&pid) {
             rl.refill(now);
@@ -296,6 +316,7 @@ impl AppsNetFilter {
         }
     }
 
+    #[inline]
     pub fn expire_connections(&mut self, now: u64) {
         let expired: Vec<u64> = self.connections.iter()
             .filter(|(_, c)| c.is_expired(now))
@@ -303,6 +324,7 @@ impl AppsNetFilter {
         for id in expired { self.connections.remove(&id); }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_rules = self.rules.len();
         self.stats.active_rules = self.rules.values().filter(|r| r.enabled).count();
@@ -313,7 +335,10 @@ impl AppsNetFilter {
         self.stats.rate_limited_pids = self.rate_limiters.len();
     }
 
+    #[inline(always)]
     pub fn rule(&self, id: u64) -> Option<&FilterRule> { self.rules.get(&id) }
+    #[inline(always)]
     pub fn connection(&self, id: u64) -> Option<&ConnTrackEntry> { self.connections.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &NetFilterStats { &self.stats }
 }
