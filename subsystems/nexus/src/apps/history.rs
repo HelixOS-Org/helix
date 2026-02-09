@@ -164,11 +164,13 @@ impl TimeSeries {
     }
 
     /// Get latest raw value
+    #[inline(always)]
     pub fn latest(&self) -> Option<f64> {
         self.raw.back().map(|(_, v)| *v)
     }
 
     /// Average of recent raw values
+    #[inline]
     pub fn recent_avg(&self, n: usize) -> f64 {
         let start = self.raw.len().saturating_sub(n);
         let slice = &self.raw[start..];
@@ -195,16 +197,19 @@ impl TimeSeries {
     }
 
     /// Get minute-level aggregates
+    #[inline(always)]
     pub fn minutes(&self) -> &[TimeAggregate] {
         &self.minute_agg
     }
 
     /// Get hour-level aggregates
+    #[inline(always)]
     pub fn hours(&self) -> &[TimeAggregate] {
         &self.hour_agg
     }
 
     /// Total samples ever added
+    #[inline(always)]
     pub fn raw_count(&self) -> usize {
         self.raw.len()
     }
@@ -277,6 +282,7 @@ impl WorkloadHistory {
     }
 
     /// Record a fingerprint
+    #[inline]
     pub fn add_fingerprint(&mut self, fp: WorkloadFingerprint) {
         if self.fingerprints.len() >= self.max_fingerprints {
             self.fingerprints.pop_front();
@@ -307,14 +313,17 @@ impl WorkloadHistory {
     }
 
     /// Get current workload trend
+    #[inline(always)]
     pub fn cpu_trend(&self) -> f64 {
         self.cpu_usage.trend()
     }
 
+    #[inline(always)]
     pub fn memory_trend(&self) -> f64 {
         self.memory_usage.trend()
     }
 
+    #[inline(always)]
     pub fn io_trend(&self) -> f64 {
         self.io_rate.trend()
     }
@@ -401,6 +410,7 @@ impl BinaryHistory {
     }
 
     /// Crash rate
+    #[inline]
     pub fn crash_rate(&self) -> f64 {
         if self.execution_count == 0 {
             0.0
@@ -421,6 +431,7 @@ impl WorkloadHistoryManager {
     }
 
     /// Get or create process history
+    #[inline]
     pub fn get_or_create(&mut self, pid: u64, binary_id: u64) -> &mut WorkloadHistory {
         if !self.histories.contains_key(&pid) && self.histories.len() < self.max_processes {
             self.histories
@@ -432,16 +443,19 @@ impl WorkloadHistoryManager {
     }
 
     /// Get process history
+    #[inline(always)]
     pub fn get(&self, pid: u64) -> Option<&WorkloadHistory> {
         self.histories.get(&pid)
     }
 
     /// Get binary history
+    #[inline(always)]
     pub fn get_binary(&self, binary_id: u64) -> Option<&BinaryHistory> {
         self.binary_histories.get(&binary_id)
     }
 
     /// Get or create binary history
+    #[inline]
     pub fn get_or_create_binary(&mut self, binary_id: u64) -> &mut BinaryHistory {
         if !self.binary_histories.contains_key(&binary_id)
             && self.binary_histories.len() < self.max_binaries
@@ -455,16 +469,19 @@ impl WorkloadHistoryManager {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.histories.remove(&pid);
     }
 
     /// Number of tracked processes
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.histories.len()
     }
 
     /// Number of tracked binaries
+    #[inline(always)]
     pub fn binary_count(&self) -> usize {
         self.binary_histories.len()
     }
