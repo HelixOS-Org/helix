@@ -204,12 +204,10 @@ impl HolisticMetaCognition {
         self.tick += 1;
         if let Some(comp) = self.components.get_mut(&component_id) {
             comp.processing_quality =
-                EMA_ALPHA * quality.clamp(0.0, 1.0)
-                    + (1.0 - EMA_ALPHA) * comp.processing_quality;
+                EMA_ALPHA * quality.clamp(0.0, 1.0) + (1.0 - EMA_ALPHA) * comp.processing_quality;
             comp.decision_throughput = throughput;
             comp.error_rate =
-                EMA_ALPHA * error_rate.clamp(0.0, 1.0)
-                    + (1.0 - EMA_ALPHA) * comp.error_rate;
+                EMA_ALPHA * error_rate.clamp(0.0, 1.0) + (1.0 - EMA_ALPHA) * comp.error_rate;
             comp.last_update_tick = self.tick;
         }
     }
@@ -225,11 +223,7 @@ impl HolisticMetaCognition {
             .values()
             .map(|c| c.processing_quality * c.importance_weight)
             .sum();
-        let total_weight: f32 = self
-            .components
-            .values()
-            .map(|c| c.importance_weight)
-            .sum();
+        let total_weight: f32 = self.components.values().map(|c| c.importance_weight).sum();
         let weighted_quality = if total_weight > 0.0 {
             total_quality / total_weight
         } else {
@@ -301,7 +295,12 @@ impl HolisticMetaCognition {
             for comp in self.components.values() {
                 let share = comp.attention_share / total_attention;
                 let expected = comp.importance_weight
-                    / self.components.values().map(|c| c.importance_weight).sum::<f32>().max(0.01);
+                    / self
+                        .components
+                        .values()
+                        .map(|c| c.importance_weight)
+                        .sum::<f32>()
+                        .max(0.01);
                 let deviation = share - expected;
                 if deviation.abs() > ATTENTION_IMBALANCE_THRESHOLD {
                     let id = fnv1a_hash(comp.name.as_bytes()) ^ self.tick;
@@ -351,8 +350,7 @@ impl HolisticMetaCognition {
         } else {
             found.iter().map(|b| b.magnitude).sum::<f32>() / found.len() as f32
         };
-        self.bias_severity_ema =
-            EMA_ALPHA * severity + (1.0 - EMA_ALPHA) * self.bias_severity_ema;
+        self.bias_severity_ema = EMA_ALPHA * severity + (1.0 - EMA_ALPHA) * self.bias_severity_ema;
 
         found
     }
@@ -399,7 +397,11 @@ impl HolisticMetaCognition {
             }
         }
 
-        proposals.sort_by(|a, b| b.priority.partial_cmp(&a.priority).unwrap_or(core::cmp::Ordering::Equal));
+        proposals.sort_by(|a, b| {
+            b.priority
+                .partial_cmp(&a.priority)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         proposals
     }
 
