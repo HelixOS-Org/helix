@@ -139,6 +139,7 @@ impl AdaptationEngine {
     }
 
     /// Apply an adaptation action
+    #[inline]
     pub fn apply(&mut self, action: AdaptationAction) {
         let pid = action.pid;
         self.active.push((pid, action));
@@ -146,6 +147,7 @@ impl AdaptationEngine {
     }
 
     /// Revert adaptations for a process
+    #[inline]
     pub fn revert(&mut self, pid: u64) {
         let count_before = self.active.len();
         self.active.retain(|(p, _)| *p != pid);
@@ -153,6 +155,7 @@ impl AdaptationEngine {
     }
 
     /// Get active adaptations for a process
+    #[inline]
     pub fn active_for(&self, pid: u64) -> Vec<&AdaptationAction> {
         self.active
             .iter()
