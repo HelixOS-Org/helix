@@ -48,8 +48,11 @@ impl KthreadFlags {
     pub const NOFREEZE: u32 = 32;
 
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn should_stop(&self) -> bool { self.has(Self::SHOULD_STOP) }
+    #[inline(always)]
     pub fn should_park(&self) -> bool { self.has(Self::SHOULD_PARK) }
 }
 
@@ -82,21 +85,27 @@ impl KthreadInfo {
         }
     }
 
+    #[inline]
     pub fn run(&mut self, now: u64) {
         self.state = KthreadState::Running;
         self.wakeups += 1;
         self.last_run = now;
     }
 
+    #[inline(always)]
     pub fn sleep(&mut self, duration: u64) {
         self.state = KthreadState::Sleeping;
         self.sleeptime_ns += duration;
     }
 
+    #[inline(always)]
     pub fn park(&mut self) { self.state = KthreadState::Parked; }
+    #[inline(always)]
     pub fn stop(&mut self) { self.state = KthreadState::Stopped; }
+    #[inline(always)]
     pub fn exit(&mut self) { self.state = KthreadState::Exited; }
 
+    #[inline]
     pub fn utilization(&self, now: u64) -> f64 {
         let total = now.saturating_sub(self.created_at);
         if total == 0 { return 0.0; }
@@ -106,6 +115,7 @@ impl KthreadInfo {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KthreadMgrStats {
     pub total_kthreads: u32,
     pub running: u32,
@@ -125,6 +135,7 @@ pub struct AppKthreadMgr {
 impl AppKthreadMgr {
     pub fn new() -> Self { Self { threads: BTreeMap::new(), next_tid: 1 } }
 
+    #[inline]
     pub fn create(&mut self, name: String, ktype: KthreadType, now: u64) -> u64 {
         let tid = self.next_tid;
         self.next_tid += 1;
@@ -132,14 +143,17 @@ impl AppKthreadMgr {
         tid
     }
 
+    #[inline(always)]
     pub fn wake(&mut self, tid: u64, now: u64) {
         if let Some(t) = self.threads.get_mut(&tid) { t.run(now); }
     }
 
+    #[inline(always)]
     pub fn park(&mut self, tid: u64) {
         if let Some(t) = self.threads.get_mut(&tid) { t.park(); }
     }
 
+    #[inline(always)]
     pub fn stop(&mut self, tid: u64) {
         if let Some(t) = self.threads.get_mut(&tid) { t.stop(); }
     }
