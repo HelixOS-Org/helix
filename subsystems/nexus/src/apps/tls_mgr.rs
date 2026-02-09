@@ -35,12 +35,22 @@ pub struct TlsModule {
 
 impl TlsModule {
     pub fn new(id: u32, variant: TlsVariant, addr: u64, size: usize, align: usize) -> Self {
-        Self { module_id: id, variant, base_addr: addr, size, align, init_size: size, is_static: variant != TlsVariant::Dynamic }
+        Self {
+            module_id: id,
+            variant,
+            base_addr: addr,
+            size,
+            align,
+            init_size: size,
+            is_static: variant != TlsVariant::Dynamic,
+        }
     }
 
     #[inline(always)]
     pub fn aligned_size(&self) -> usize {
-        if self.align == 0 { return self.size; }
+        if self.align == 0 {
+            return self.size;
+        }
         (self.size + self.align - 1) & !(self.align - 1)
     }
 }
@@ -63,18 +73,31 @@ pub struct ThreadTlsState {
 impl ThreadTlsState {
     pub fn new(tid: u64, base: u64, ts: u64) -> Self {
         Self {
-            tid, tls_base: base, dtv_addr: 0, dtv_generation: 0,
-            dtv_slots: 0, static_area_size: 0, dynamic_allocs: 0,
-            init_time_ns: 0, cleanup_pending: false,
+            tid,
+            tls_base: base,
+            dtv_addr: 0,
+            dtv_generation: 0,
+            dtv_slots: 0,
+            static_area_size: 0,
+            dynamic_allocs: 0,
+            init_time_ns: 0,
+            cleanup_pending: false,
         }
     }
 
     #[inline(always)]
-    pub fn record_dynamic_alloc(&mut self) { self.dynamic_allocs += 1; }
+    pub fn record_dynamic_alloc(&mut self) {
+        self.dynamic_allocs += 1;
+    }
     #[inline(always)]
-    pub fn update_dtv(&mut self, generation: u32, slots: u32) { self.dtv_generation = generation; self.dtv_slots = slots; }
+    pub fn update_dtv(&mut self, generation: u32, slots: u32) {
+        self.dtv_generation = generation;
+        self.dtv_slots = slots;
+    }
     #[inline(always)]
-    pub fn total_overhead(&self) -> usize { self.static_area_size + (self.dtv_slots as usize * 16) }
+    pub fn total_overhead(&self) -> usize {
+        self.static_area_size + (self.dtv_slots as usize * 16)
+    }
 }
 
 /// TLS image info (per module loaded)
@@ -89,10 +112,18 @@ pub struct TlsImage {
 
 impl TlsImage {
     pub fn new(id: u32, init: usize, bss: usize, align: usize) -> Self {
-        Self { module_id: id, init_data_size: init, bss_size: bss, alignment: align, ref_count: 0 }
+        Self {
+            module_id: id,
+            init_data_size: init,
+            bss_size: bss,
+            alignment: align,
+            ref_count: 0,
+        }
     }
     #[inline(always)]
-    pub fn total_size(&self) -> usize { self.init_data_size + self.bss_size }
+    pub fn total_size(&self) -> usize {
+        self.init_data_size + self.bss_size
+    }
 }
 
 /// TLS manager stats
@@ -121,17 +152,26 @@ pub struct AppsTlsMgr {
 impl AppsTlsMgr {
     pub fn new() -> Self {
         Self {
-            threads: BTreeMap::new(), modules: BTreeMap::new(),
-            images: BTreeMap::new(), next_module_id: 1,
+            threads: BTreeMap::new(),
+            modules: BTreeMap::new(),
+            images: BTreeMap::new(),
+            next_module_id: 1,
             stats: TlsMgrStats::default(),
         }
     }
 
     #[inline]
-    pub fn register_module(&mut self, variant: TlsVariant, addr: u64, size: usize, align: usize) -> u32 {
+    pub fn register_module(
+        &mut self,
+        variant: TlsVariant,
+        addr: u64,
+        size: usize,
+        align: usize,
+    ) -> u32 {
         let id = self.next_module_id;
         self.next_module_id += 1;
-        self.modules.insert(id, TlsModule::new(id, variant, addr, size, align));
+        self.modules
+            .insert(id, TlsModule::new(id, variant, addr, size, align));
         id
     }
 
@@ -150,24 +190,34 @@ impl AppsTlsMgr {
 
     #[inline(always)]
     pub fn update_dtv(&mut self, tid: u64, generation: u32, slots: u32) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.update_dtv(generation, slots); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.update_dtv(generation, slots);
+        }
     }
 
     #[inline(always)]
     pub fn record_dynamic_alloc(&mut self, tid: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.record_dynamic_alloc(); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.record_dynamic_alloc();
+        }
     }
 
     #[inline(always)]
     pub fn thread_exit(&mut self, tid: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.cleanup_pending = true; }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.cleanup_pending = true;
+        }
     }
 
     #[inline(always)]
-    pub fn cleanup_thread(&mut self, tid: u64) { self.threads.remove(&tid); }
+    pub fn cleanup_thread(&mut self, tid: u64) {
+        self.threads.remove(&tid);
+    }
 
     #[inline(always)]
-    pub fn gc_exited(&mut self) { self.threads.retain(|_, t| !t.cleanup_pending); }
+    pub fn gc_exited(&mut self) {
+        self.threads.retain(|_, t| !t.cleanup_pending);
+    }
 
     pub fn recompute(&mut self) {
         self.stats.tracked_threads = self.threads.len();
@@ -176,16 +226,29 @@ impl AppsTlsMgr {
         self.stats.dynamic_modules = self.modules.values().filter(|m| !m.is_static).count();
         self.stats.total_tls_memory = self.threads.values().map(|t| t.total_overhead()).sum();
         if self.stats.tracked_threads > 0 {
-            self.stats.avg_per_thread_size = self.stats.total_tls_memory as f64 / self.stats.tracked_threads as f64;
+            self.stats.avg_per_thread_size =
+                self.stats.total_tls_memory as f64 / self.stats.tracked_threads as f64;
         }
-        self.stats.total_dynamic_allocs = self.threads.values().map(|t| t.dynamic_allocs as u64).sum();
-        self.stats.max_dtv_slots = self.threads.values().map(|t| t.dtv_slots).max().unwrap_or(0);
+        self.stats.total_dynamic_allocs =
+            self.threads.values().map(|t| t.dynamic_allocs as u64).sum();
+        self.stats.max_dtv_slots = self
+            .threads
+            .values()
+            .map(|t| t.dtv_slots)
+            .max()
+            .unwrap_or(0);
     }
 
     #[inline(always)]
-    pub fn thread(&self, tid: u64) -> Option<&ThreadTlsState> { self.threads.get(&tid) }
+    pub fn thread(&self, tid: u64) -> Option<&ThreadTlsState> {
+        self.threads.get(&tid)
+    }
     #[inline(always)]
-    pub fn module(&self, id: u32) -> Option<&TlsModule> { self.modules.get(&id) }
+    pub fn module(&self, id: u32) -> Option<&TlsModule> {
+        self.modules.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &TlsMgrStats { &self.stats }
+    pub fn stats(&self) -> &TlsMgrStats {
+        &self.stats
+    }
 }
