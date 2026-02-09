@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
@@ -36,6 +37,7 @@ pub enum CacheLevel {
 
 impl CacheLevel {
     /// Typical latency (ns)
+    #[inline]
     pub fn typical_latency_ns(&self) -> u64 {
         match self {
             Self::L1I | Self::L1D => 1,
@@ -47,6 +49,7 @@ impl CacheLevel {
     }
 
     /// Main memory latency for miss
+    #[inline]
     pub fn miss_penalty_ns(&self) -> u64 {
         match self {
             Self::L1I | Self::L1D => 4, // hits L2
@@ -77,6 +80,7 @@ pub enum CacheAccessType {
 
 /// Per-level cache counters
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CacheLevelCounters {
     /// Total accesses
     pub accesses: u64,
@@ -94,6 +98,7 @@ pub struct CacheLevelCounters {
 
 impl CacheLevelCounters {
     /// Hit rate
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         if self.accesses == 0 {
             return 0.0;
@@ -102,6 +107,7 @@ impl CacheLevelCounters {
     }
 
     /// Miss rate
+    #[inline]
     pub fn miss_rate(&self) -> f64 {
         if self.accesses == 0 {
             return 0.0;
@@ -110,12 +116,14 @@ impl CacheLevelCounters {
     }
 
     /// Record hit
+    #[inline(always)]
     pub fn record_hit(&mut self) {
         self.accesses += 1;
         self.hits += 1;
     }
 
     /// Record miss
+    #[inline(always)]
     pub fn record_miss(&mut self) {
         self.accesses += 1;
         self.misses += 1;
@@ -156,7 +164,7 @@ pub enum WorkingSetTrend {
 #[derive(Debug, Clone)]
 pub struct WorkingSetTracker {
     /// Page access counts (page_id -> count)
-    page_counts: BTreeMap<u64, u32>,
+    page_counts: LinearMap<u32, 64>,
     /// Sampling window
     window_ns: u64,
     /// Last reset
@@ -172,7 +180,7 @@ pub struct WorkingSetTracker {
 impl WorkingSetTracker {
     pub fn new(window_ns: u64) -> Self {
         Self {
-            page_counts: BTreeMap::new(),
+            page_counts: LinearMap::new(),
             window_ns,
             last_reset: 0,
             prev_size: 0,
@@ -182,8 +190,9 @@ impl WorkingSetTracker {
     }
 
     /// Record page access
+    #[inline(always)]
     pub fn record_access(&mut self, page_id: u64) {
-        *self.page_counts.entry(page_id).or_insert(0) += 1;
+        self.page_counts.add(page_id, 1);
     }
 
     /// Estimate working set
@@ -229,6 +238,7 @@ impl WorkingSetTracker {
     }
 
     /// Average working set size (pages)
+    #[inline]
     pub fn average_size(&self) -> f64 {
         if self.history.is_empty() {
             return 0.0;
@@ -256,6 +266,7 @@ pub enum CachePartitionMode {
 
 /// Cache partition
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CachePartition {
     /// Partition ID
     pub id: u32,
@@ -287,6 +298,7 @@ impl CachePartition {
     }
 
     /// Usage fraction
+    #[inline]
     pub fn usage_fraction(&self) -> f64 {
         if self.capacity_limit == 0 {
             return 0.0;
@@ -335,6 +347,7 @@ impl PollutionDetector {
     }
 
     /// Record eviction rate
+    #[inline]
     pub fn record_evictions(&mut self, pid: u64, level: CacheLevel, evictions: u64) {
         let key = (pid, level as u8);
         let history = self.eviction_rates.entry(key).or_insert_with(Vec::new);
@@ -368,6 +381,7 @@ impl PollutionDetector {
 
 /// App cache stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppCacheStats {
     /// Tracked processes
     pub process_count: usize,
@@ -382,6 +396,7 @@ pub struct AppCacheStats {
 }
 
 /// Application cache analyzer
+#[repr(align(64))]
 pub struct AppCacheAnalyzer {
     /// Per-process cache counters
     counters: BTreeMap<(u64, u8), CacheLevelCounters>,
@@ -426,6 +441,7 @@ impl AppCacheAnalyzer {
     }
 
     /// Record page access for working set
+    #[inline]
     pub fn record_page_access(&mut self, pid: u64, page_id: u64) {
         let tracker = self
             .working_sets
@@ -436,11 +452,13 @@ impl AppCacheAnalyzer {
     }
 
     /// Get working set estimate
+    #[inline(always)]
     pub fn working_set(&mut self, pid: u64, now: u64) -> Option<WorkingSetEstimate> {
         self.working_sets.get_mut(&pid).map(|t| t.estimate(now))
     }
 
     /// Create partition
+    #[inline]
     pub fn create_partition(
         &mut self,
         pid: u64,
@@ -456,16 +474,19 @@ impl AppCacheAnalyzer {
     }
 
     /// Get counters for process/level
+    #[inline(always)]
     pub fn counters(&self, pid: u64, level: CacheLevel) -> Option<&CacheLevelCounters> {
         self.counters.get(&(pid, level as u8))
     }
 
     /// Detect polluters at a cache level
+    #[inline(always)]
     pub fn detect_polluters(&self, level: CacheLevel) -> Vec<u64> {
         self.pollution_detector.detect_polluters(level)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppCacheStats {
         &self.stats
     }
