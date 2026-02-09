@@ -159,13 +159,16 @@ impl CoopHorizonPredictor {
     /// Record observed contention pressure for a resource.
     pub fn record_contention(&mut self, resource_id: u64, pressure: u64) {
         let key = fnv1a_hash(&resource_id.to_le_bytes());
-        let record = self.contention_map.entry(key).or_insert_with(|| ContentionRecord {
-            resource_id,
-            pressure_history: Vec::new(),
-            ema_pressure: pressure,
-            peak_pressure: pressure,
-            last_tick: self.current_tick,
-        });
+        let record = self
+            .contention_map
+            .entry(key)
+            .or_insert_with(|| ContentionRecord {
+                resource_id,
+                pressure_history: Vec::new(),
+                ema_pressure: pressure,
+                peak_pressure: pressure,
+                last_tick: self.current_tick,
+            });
         record.ema_pressure = ema_update(record.ema_pressure, pressure, 3, 10);
         if pressure > record.peak_pressure {
             record.peak_pressure = pressure;
@@ -222,7 +225,11 @@ impl CoopHorizonPredictor {
     }
 
     /// Predict future resource contention for a given horizon.
-    pub fn predict_contention(&mut self, resource_id: u64, horizon_ticks: u64) -> ContentionForecast {
+    pub fn predict_contention(
+        &mut self,
+        resource_id: u64,
+        horizon_ticks: u64,
+    ) -> ContentionForecast {
         self.stats.total_predictions = self.stats.total_predictions.saturating_add(1);
         self.stats.contention_forecasts = self.stats.contention_forecasts.saturating_add(1);
 
@@ -230,13 +237,17 @@ impl CoopHorizonPredictor {
         let (predicted, confidence, trend) = if let Some(record) = self.contention_map.get(&key) {
             let trend = self.compute_trend(&record.pressure_history);
             let extrapolated = if trend >= 0 {
-                record.ema_pressure.saturating_add((trend as u64).saturating_mul(horizon_ticks) / 100)
+                record
+                    .ema_pressure
+                    .saturating_add((trend as u64).saturating_mul(horizon_ticks) / 100)
             } else {
                 let decrease = ((-trend) as u64).saturating_mul(horizon_ticks) / 100;
                 record.ema_pressure.saturating_sub(decrease)
             };
             let noise = xorshift64(&mut self.rng_state) % 50;
-            let predicted = extrapolated.saturating_add(noise).min(record.peak_pressure.saturating_mul(2));
+            let predicted = extrapolated
+                .saturating_add(noise)
+                .min(record.peak_pressure.saturating_mul(2));
             let conf = self.compute_confidence(record.pressure_history.len(), horizon_ticks);
             (predicted, conf, trend)
         } else {
@@ -265,7 +276,9 @@ impl CoopHorizonPredictor {
             let decay_amount = record.decay_factor.saturating_mul(horizon_ticks) / 1000;
             let trend = self.compute_trend(&record.trust_history);
             let base_prediction = if trend >= 0 {
-                record.ema_trust.saturating_add((trend as u64).saturating_mul(horizon_ticks) / 100)
+                record
+                    .ema_trust
+                    .saturating_add((trend as u64).saturating_mul(horizon_ticks) / 100)
             } else {
                 let dec = ((-trend) as u64).saturating_mul(horizon_ticks) / 100;
                 record.ema_trust.saturating_sub(dec)
@@ -291,15 +304,19 @@ impl CoopHorizonPredictor {
     }
 
     /// Project future cooperation demand for a named service.
-    pub fn demand_projection(&mut self, service_name: &str, horizon_ticks: u64) -> DemandProjection {
+    pub fn demand_projection(
+        &mut self,
+        service_name: &str,
+        horizon_ticks: u64,
+    ) -> DemandProjection {
         self.stats.total_predictions = self.stats.total_predictions.saturating_add(1);
         self.stats.demand_projections = self.stats.demand_projections.saturating_add(1);
 
         let key = fnv1a_hash(service_name.as_bytes());
         if let Some(record) = self.demand_map.get(&key) {
-            let projected = record.ema_demand.saturating_add(
-                record.growth_ema.saturating_mul(horizon_ticks) / 100,
-            );
+            let projected = record
+                .ema_demand
+                .saturating_add(record.growth_ema.saturating_mul(horizon_ticks) / 100);
             let saturation = record.peak_demand.saturating_mul(3);
             let clamped = projected.min(saturation);
             DemandProjection {
@@ -326,7 +343,9 @@ impl CoopHorizonPredictor {
         for record in self.contention_map.values() {
             let trend = self.compute_trend(&record.pressure_history);
             let projected = if trend >= 0 {
-                record.ema_pressure.saturating_add((trend as u64).saturating_mul(horizon_ticks) / 200)
+                record
+                    .ema_pressure
+                    .saturating_add((trend as u64).saturating_mul(horizon_ticks) / 200)
             } else {
                 let dec = ((-trend) as u64).saturating_mul(horizon_ticks) / 200;
                 record.ema_pressure.saturating_sub(dec)
@@ -334,9 +353,9 @@ impl CoopHorizonPredictor {
             total_load = total_load.saturating_add(projected);
         }
         for record in self.demand_map.values() {
-            let projected_demand = record.ema_demand.saturating_add(
-                record.growth_ema.saturating_mul(horizon_ticks) / 200,
-            );
+            let projected_demand = record
+                .ema_demand
+                .saturating_add(record.growth_ema.saturating_mul(horizon_ticks) / 200);
             total_load = total_load.saturating_add(projected_demand / 10);
         }
         total_load
@@ -400,9 +419,10 @@ impl CoopHorizonPredictor {
         }
         let sum: u64 = history.iter().sum();
         let mean = sum / history.len() as u64;
-        let dev_sum: u64 = history.iter().map(|&v| {
-            if v > mean { v - mean } else { mean - v }
-        }).sum();
+        let dev_sum: u64 = history
+            .iter()
+            .map(|&v| if v > mean { v - mean } else { mean - v })
+            .sum();
         dev_sum / history.len() as u64
     }
 }
