@@ -182,24 +182,39 @@ impl GateChecker {
         match gate {
             ValidationGate::Regression => {
                 self.regression_results.insert(discovery_id, passed);
-            }
+            },
             ValidationGate::Safety => {
                 self.safety_results.insert(discovery_id, passed);
-            }
+            },
             ValidationGate::Significance => {
                 self.significance_results.insert(discovery_id, passed);
-            }
+            },
             ValidationGate::Reproducibility => {
                 self.reproducibility_results.insert(discovery_id, passed);
-            }
+            },
         }
     }
 
     fn all_passed(&self, discovery_id: u64) -> bool {
-        self.regression_results.get(&discovery_id).copied().unwrap_or(false)
-            && self.safety_results.get(&discovery_id).copied().unwrap_or(false)
-            && self.significance_results.get(&discovery_id).copied().unwrap_or(false)
-            && self.reproducibility_results.get(&discovery_id).copied().unwrap_or(false)
+        self.regression_results
+            .get(&discovery_id)
+            .copied()
+            .unwrap_or(false)
+            && self
+                .safety_results
+                .get(&discovery_id)
+                .copied()
+                .unwrap_or(false)
+            && self
+                .significance_results
+                .get(&discovery_id)
+                .copied()
+                .unwrap_or(false)
+            && self
+                .reproducibility_results
+                .get(&discovery_id)
+                .copied()
+                .unwrap_or(false)
     }
 }
 
@@ -327,20 +342,15 @@ impl BridgeDiscoveryValidator {
     }
 
     /// Safety verification: check all invariants hold
-    pub fn safety_verify(
-        &mut self,
-        discovery_id: u64,
-        invariants: Vec<SafetyInvariant>,
-    ) -> bool {
+    pub fn safety_verify(&mut self, discovery_id: u64, invariants: Vec<SafetyInvariant>) -> bool {
         let disc = match self.discoveries.get_mut(&discovery_id) {
             Some(d) => d,
             None => return false,
         };
         let mut all_safe = true;
         for mut inv in invariants {
-            inv.satisfied =
-                inv.current_value >= inv.min_threshold * SAFETY_MARGIN
-                    && inv.current_value <= inv.max_threshold * (2.0 - SAFETY_MARGIN);
+            inv.satisfied = inv.current_value >= inv.min_threshold * SAFETY_MARGIN
+                && inv.current_value <= inv.max_threshold * (2.0 - SAFETY_MARGIN);
             if !inv.satisfied {
                 all_safe = false;
             }
@@ -467,9 +477,21 @@ impl BridgeDiscoveryValidator {
             EMA_ALPHA * avg_improvement + (1.0 - EMA_ALPHA) * self.stats.avg_improvement_ema;
 
         let mut details = String::from("Gates: ");
-        details.push_str(if regression_ok { "REG=OK " } else { "REG=FAIL " });
-        details.push_str(if safety_passed { "SAFE=OK " } else { "SAFE=FAIL " });
-        details.push_str(if significance_ok { "SIG=OK " } else { "SIG=FAIL " });
+        details.push_str(if regression_ok {
+            "REG=OK "
+        } else {
+            "REG=FAIL "
+        });
+        details.push_str(if safety_passed {
+            "SAFE=OK "
+        } else {
+            "SAFE=FAIL "
+        });
+        details.push_str(if significance_ok {
+            "SIG=OK "
+        } else {
+            "SIG=FAIL "
+        });
         details.push_str(if repro_ok { "REPRO=OK" } else { "REPRO=FAIL" });
 
         Some(ValidationReport {
@@ -503,10 +525,30 @@ impl BridgeDiscoveryValidator {
         Some(ValidationReport {
             discovery_id,
             verdict: disc.verdict,
-            regression_passed: self.gate_checker.regression_results.get(&discovery_id).copied().unwrap_or(false),
-            safety_passed: self.gate_checker.safety_results.get(&discovery_id).copied().unwrap_or(false),
-            significance_passed: self.gate_checker.significance_results.get(&discovery_id).copied().unwrap_or(false),
-            reproducibility_passed: self.gate_checker.reproducibility_results.get(&discovery_id).copied().unwrap_or(false),
+            regression_passed: self
+                .gate_checker
+                .regression_results
+                .get(&discovery_id)
+                .copied()
+                .unwrap_or(false),
+            safety_passed: self
+                .gate_checker
+                .safety_results
+                .get(&discovery_id)
+                .copied()
+                .unwrap_or(false),
+            significance_passed: self
+                .gate_checker
+                .significance_results
+                .get(&discovery_id)
+                .copied()
+                .unwrap_or(false),
+            reproducibility_passed: self
+                .gate_checker
+                .reproducibility_results
+                .get(&discovery_id)
+                .copied()
+                .unwrap_or(false),
             observed_improvement: avg_improvement,
             reproducibility_rate: repro_rate,
             trial_count: disc.trials.len(),
