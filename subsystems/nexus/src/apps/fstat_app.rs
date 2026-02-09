@@ -46,6 +46,7 @@ impl FstatRecord {
 
 /// Fstat cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FstatCacheEntry {
     pub inode: u64,
     pub size: u64,
@@ -65,10 +66,12 @@ impl FstatCacheEntry {
         }
     }
 
+    #[inline(always)]
     pub fn hit(&mut self) {
         self.hits += 1;
     }
 
+    #[inline]
     pub fn refresh(&mut self, size: u64, mode: u32, now_ns: u64) {
         self.size = size;
         self.mode = mode;
@@ -78,6 +81,7 @@ impl FstatCacheEntry {
 
 /// Fstat app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FstatAppStats {
     pub total_calls: u64,
     pub cache_hits: u64,
@@ -121,6 +125,7 @@ impl AppFstat {
         }
     }
 
+    #[inline]
     pub fn cache_hit_rate(&self) -> f64 {
         let total = self.stats.cache_hits + self.stats.cache_misses;
         if total == 0 {
