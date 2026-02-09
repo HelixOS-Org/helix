@@ -55,6 +55,7 @@ pub enum FaultSeverity {
 
 impl FaultType {
     /// Default severity
+    #[inline]
     pub fn severity(&self) -> FaultSeverity {
         match self {
             Self::MinorPageFault => FaultSeverity::Info,
@@ -68,6 +69,7 @@ impl FaultType {
     }
 
     /// Is fatal?
+    #[inline(always)]
     pub fn is_fatal(&self) -> bool {
         matches!(self.severity(), FaultSeverity::Fatal)
     }
@@ -123,11 +125,13 @@ pub struct FaultPattern {
 
 impl FaultPattern {
     /// Duration
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.last_seen.saturating_sub(self.first_seen)
     }
 
     /// Rate (per second)
+    #[inline]
     pub fn rate(&self) -> f64 {
         let dur = self.duration_ns();
         if dur == 0 {
@@ -204,11 +208,13 @@ impl ProcessFaultProfile {
     }
 
     /// Count for type
+    #[inline(always)]
     pub fn count_for(&self, fault_type: FaultType) -> u64 {
         self.counts.get(&(fault_type as u8)).copied().unwrap_or(0)
     }
 
     /// Major/minor ratio
+    #[inline]
     pub fn major_minor_ratio(&self) -> f64 {
         let major = self.count_for(FaultType::MajorPageFault);
         let minor = self.count_for(FaultType::MinorPageFault);
@@ -226,6 +232,7 @@ impl ProcessFaultProfile {
 
 /// Fault analysis stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppFaultStats {
     /// Processes tracked
     pub processes: usize,
@@ -320,11 +327,13 @@ impl AppFaultAnalyzer {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessFaultProfile> {
         self.profiles.get(&pid)
     }
 
     /// High fault rate processes
+    #[inline]
     pub fn high_fault_rate(&self, threshold: f64) -> Vec<(u64, f64)> {
         self.profiles
             .values()
@@ -334,6 +343,7 @@ impl AppFaultAnalyzer {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppFaultStats {
         &self.stats
     }
