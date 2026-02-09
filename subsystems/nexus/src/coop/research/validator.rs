@@ -196,11 +196,7 @@ impl CoopDiscoveryValidator {
     }
 
     /// Start a full validation suite for a protocol
-    pub fn validate_protocol(
-        &mut self,
-        protocol_id: u64,
-        protocol_name: String,
-    ) -> u64 {
+    pub fn validate_protocol(&mut self, protocol_id: u64, protocol_name: String) -> u64 {
         self.tick += 1;
         let id = fnv1a_hash(protocol_name.as_bytes()) ^ fnv1a_hash(&self.tick.to_le_bytes());
         let record = ValidationRecord {
@@ -261,10 +257,7 @@ impl CoopDiscoveryValidator {
             .iter()
             .copied()
             .fold(f32::NEG_INFINITY, f32::max);
-        let min_alloc = allocations
-            .iter()
-            .copied()
-            .fold(f32::INFINITY, f32::min);
+        let min_alloc = allocations.iter().copied().fold(f32::INFINITY, f32::min);
         let max_min_ratio = if min_alloc > 0.0 {
             max_alloc / min_alloc
         } else {
@@ -435,11 +428,8 @@ impl CoopDiscoveryValidator {
         // Check tail window for convergence
         let tail = &trace[trace.len() - CONVERGENCE_WINDOW..];
         let tail_mean: f32 = tail.iter().sum::<f32>() / tail.len() as f32;
-        let residual: f32 = tail
-            .iter()
-            .map(|v| (v - tail_mean).abs())
-            .sum::<f32>()
-            / tail.len() as f32;
+        let residual: f32 =
+            tail.iter().map(|v| (v - tail_mean).abs()).sum::<f32>() / tail.len() as f32;
 
         // Count oscillations (sign changes in derivative)
         let mut oscillations: u32 = 0;
@@ -516,7 +506,7 @@ impl CoopDiscoveryValidator {
                 match v {
                     Verdict::Passed => pass_count += 1,
                     Verdict::Failed => fail_count += 1,
-                    _ => {}
+                    _ => {},
                 }
             }
         }
@@ -535,7 +525,7 @@ impl CoopDiscoveryValidator {
             Verdict::Passed => self.stats.total_passed += 1,
             Verdict::Failed => self.stats.total_failed += 1,
             Verdict::Inconclusive => self.stats.total_inconclusive += 1,
-            _ => {}
+            _ => {},
         }
     }
 
