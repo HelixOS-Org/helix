@@ -315,17 +315,6 @@ impl AppsSchedPolicy {
 // Merged from sched_policy_v2
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SchedPolicyType {
-    Normal,
-    Fifo,
-    RoundRobin,
-    Batch,
-    Idle,
-    Deadline,
-    Ext,
-}
-
 /// Scheduling priority range
 #[derive(Debug, Clone, Copy)]
 pub struct SchedPriority {
@@ -347,15 +336,6 @@ impl SchedPriority {
             _ => 120 + self.nice,
         }
     }
-}
-
-/// Deadline scheduling parameters
-#[derive(Debug, Clone)]
-pub struct DeadlineParams {
-    pub runtime_ns: u64,
-    pub deadline_ns: u64,
-    pub period_ns: u64,
-    pub flags: u32,
 }
 
 impl DeadlineParams {
