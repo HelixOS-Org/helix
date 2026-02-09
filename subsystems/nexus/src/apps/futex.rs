@@ -640,21 +640,6 @@ impl FutexAddress {
 // WAIT CHAIN
 // ============================================================================
 
-/// Wait chain entry
-#[derive(Debug, Clone)]
-pub struct WaitChainEntry {
-    /// Waiter PID
-    pub waiter_pid: u64,
-    /// Waiter TID
-    pub waiter_tid: u64,
-    /// Blocked on futex address
-    pub blocked_on: u64,
-    /// Owner PID (of the lock)
-    pub owner_pid: u64,
-    /// Wait start
-    pub wait_start_ns: u64,
-}
-
 /// Wait chain detector
 #[derive(Debug)]
 pub struct WaitChainDetector {
