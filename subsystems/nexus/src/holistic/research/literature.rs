@@ -203,9 +203,14 @@ impl HolisticLiterature {
             domain_item_count: BTreeMap::new(),
             rng_state: seed | 1,
             stats: LiteratureStats {
-                total_items: 0, domains_covered: 0, proven_count: 0,
-                open_questions: 0, wisdom_rules: 0, gaps_identified: 0,
-                avg_completeness_ema: 0.0, avg_relevance_ema: 0.0,
+                total_items: 0,
+                domains_covered: 0,
+                proven_count: 0,
+                open_questions: 0,
+                wisdom_rules: 0,
+                gaps_identified: 0,
+                avg_completeness_ema: 0.0,
+                avg_relevance_ema: 0.0,
                 queries_served: 0,
             },
         }
@@ -213,9 +218,13 @@ impl HolisticLiterature {
 
     /// Add or update a knowledge item in the unified base
     pub fn unified_knowledge(
-        &mut self, domain: KnowledgeDomain, kind: KnowledgeKind,
-        statement: String, confidence: ConfidenceLevel,
-        evidence: usize, tick: u64,
+        &mut self,
+        domain: KnowledgeDomain,
+        kind: KnowledgeKind,
+        statement: String,
+        confidence: ConfidenceLevel,
+        evidence: usize,
+        tick: u64,
     ) -> u64 {
         let id = fnv1a_hash(statement.as_bytes()) ^ fnv1a_hash(&tick.to_le_bytes());
         if self.items.len() >= MAX_KNOWLEDGE_ITEMS {
@@ -229,9 +238,15 @@ impl HolisticLiterature {
             ConfidenceLevel::Speculative => 0.20,
         };
         let item = KnowledgeItem {
-            id, domain, kind, statement, confidence,
-            evidence_count: evidence, relevance_score: relevance,
-            created_tick: tick, last_verified: tick,
+            id,
+            domain,
+            kind,
+            statement,
+            confidence,
+            evidence_count: evidence,
+            relevance_score: relevance,
+            created_tick: tick,
+            last_verified: tick,
             cross_domains: Vec::new(),
         };
         self.items.insert(id, item);
@@ -242,7 +257,9 @@ impl HolisticLiterature {
 
     /// Query knowledge across multiple domains
     pub fn cross_domain_query(
-        &mut self, domains: &[KnowledgeDomain], kind_filter: Option<KnowledgeKind>,
+        &mut self,
+        domains: &[KnowledgeDomain],
+        kind_filter: Option<KnowledgeKind>,
     ) -> QueryResult {
         self.stats.queries_served += 1;
         let mut matching_ids = Vec::new();
@@ -256,8 +273,11 @@ impl HolisticLiterature {
                 conf_sum += item.relevance_score;
             }
         }
-        let avg = if matching_ids.is_empty() { 0.0 }
-            else { conf_sum / matching_ids.len() as f32 };
+        let avg = if matching_ids.is_empty() {
+            0.0
+        } else {
+            conf_sum / matching_ids.len() as f32
+        };
         QueryResult {
             total_matches: matching_ids.len(),
             items: matching_ids,
@@ -269,41 +289,59 @@ impl HolisticLiterature {
     /// Assess knowledge completeness per domain
     pub fn knowledge_completeness(&mut self, tick: u64) -> Vec<CompletenessReport> {
         let all_domains = [
-            KnowledgeDomain::Scheduling, KnowledgeDomain::Memory,
-            KnowledgeDomain::Ipc, KnowledgeDomain::FileSystem,
-            KnowledgeDomain::Networking, KnowledgeDomain::Trust,
-            KnowledgeDomain::Energy, KnowledgeDomain::Cooperation,
-            KnowledgeDomain::Bridge, KnowledgeDomain::Application,
+            KnowledgeDomain::Scheduling,
+            KnowledgeDomain::Memory,
+            KnowledgeDomain::Ipc,
+            KnowledgeDomain::FileSystem,
+            KnowledgeDomain::Networking,
+            KnowledgeDomain::Trust,
+            KnowledgeDomain::Energy,
+            KnowledgeDomain::Cooperation,
+            KnowledgeDomain::Bridge,
+            KnowledgeDomain::Application,
             KnowledgeDomain::SystemWide,
         ];
         let mut reports = Vec::new();
         for &domain in &all_domains {
-            let domain_items: Vec<&KnowledgeItem> = self.items.values()
-                .filter(|i| i.domain == domain).collect();
+            let domain_items: Vec<&KnowledgeItem> =
+                self.items.values().filter(|i| i.domain == domain).collect();
             let total = domain_items.len();
-            let proven = domain_items.iter()
-                .filter(|i| i.confidence == ConfidenceLevel::Proven
-                    || i.confidence == ConfidenceLevel::WellEstablished)
+            let proven = domain_items
+                .iter()
+                .filter(|i| {
+                    i.confidence == ConfidenceLevel::Proven
+                        || i.confidence == ConfidenceLevel::WellEstablished
+                })
                 .count();
-            let open = domain_items.iter()
-                .filter(|i| i.kind == KnowledgeKind::OpenQuestion).count();
-            let stale = domain_items.iter()
+            let open = domain_items
+                .iter()
+                .filter(|i| i.kind == KnowledgeKind::OpenQuestion)
+                .count();
+            let stale = domain_items
+                .iter()
                 .filter(|i| tick.saturating_sub(i.last_verified) > STALENESS_TICKS)
                 .count();
             let completeness = if total > 0 {
                 proven as f32 / total as f32
-            } else { 0.0 };
+            } else {
+                0.0
+            };
             let staleness_frac = if total > 0 {
                 stale as f32 / total as f32
-            } else { 0.0 };
+            } else {
+                0.0
+            };
             reports.push(CompletenessReport {
-                domain, total_items: total, proven_items: proven,
-                open_questions: open, completeness_score: completeness,
+                domain,
+                total_items: total,
+                proven_items: proven,
+                open_questions: open,
+                completeness_score: completeness,
                 staleness_fraction: staleness_frac,
             });
         }
-        let avg_comp: f32 = reports.iter().map(|r| r.completeness_score).sum::<f32>()
-            / reports.len().max(1) as f32;
+        let avg_comp: f32 =
+            reports.iter().map(|r| r.completeness_score).sum::<f32>() / reports.len().max(1) as f32;
         self.stats.avg_completeness_ema =
             EMA_ALPHA * avg_comp + (1.0 - EMA_ALPHA) * self.stats.avg_completeness_ema;
         reports
@@ -319,9 +357,11 @@ impl HolisticLiterature {
                     let priority = 1.0 - report.completeness_score;
                     let diff = 0.5 + report.open_questions as f32 * 0.05;
                     self.gaps.insert(gap_id, KnowledgeGap {
-                        id: gap_id, domain: report.domain,
+                        id: gap_id,
+                        domain: report.domain,
                         description: String::from("low_coverage"),
-                        priority, estimated_difficulty: diff.min(1.0),
+                        priority,
+                        estimated_difficulty: diff.min(1.0),
                         related_items: Vec::new(),
                     });
                 }
@@ -329,8 +369,11 @@ impl HolisticLiterature {
         }
         self.stats.gaps_identified = self.gaps.len() as u64;
         let mut sorted: Vec<&KnowledgeGap> = self.gaps.values().collect();
-        sorted.sort_by(|a, b|
-            b.priority.partial_cmp(&a.priority).unwrap_or(core::cmp::Ordering::Equal));
+        sorted.sort_by(|a, b| {
+            b.priority
+                .partial_cmp(&a.priority)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         sorted
     }
 
@@ -342,16 +385,25 @@ impl HolisticLiterature {
                 && (item.confidence == ConfidenceLevel::Proven
                     || item.confidence == ConfidenceLevel::WellEstablished)
             {
-                domain_groups.entry(item.domain).or_insert_with(Vec::new).push(id);
+                domain_groups
+                    .entry(item.domain)
+                    .or_insert_with(Vec::new)
+                    .push(id);
             }
         }
         for (domain, ids) in &domain_groups {
-            if ids.len() < 2 { continue; }
-            if self.wisdom.len() >= MAX_WISDOM_RULES { break; }
+            if ids.len() < 2 {
+                continue;
+            }
+            if self.wisdom.len() >= MAX_WISDOM_RULES {
+                break;
+            }
             let w_id = fnv1a_hash(&(*domain as u64).to_le_bytes())
                 ^ fnv1a_hash(&(ids.len() as u64).to_le_bytes());
             let already = self.wisdom.iter().any(|w| w.id == w_id);
-            if already { continue; }
+            if already {
+                continue;
+            }
             let strength = ids.len() as f32 / MAX_KNOWLEDGE_ITEMS as f32;
             self.wisdom.push(WisdomRule {
                 id: w_id,
@@ -369,14 +421,14 @@ impl HolisticLiterature {
     /// Generate a complete state-of-knowledge report
     pub fn state_of_knowledge(&mut self, tick: u64) -> StateOfKnowledge {
         let completeness_reports = self.knowledge_completeness(tick);
-        let domain_coverage: Vec<(KnowledgeDomain, f32)> = completeness_reports.iter()
-            .map(|r| (r.domain, r.completeness_score)).collect();
+        let domain_coverage: Vec<(KnowledgeDomain, f32)> = completeness_reports
+            .iter()
+            .map(|r| (r.domain, r.completeness_score))
+            .collect();
         let overall = domain_coverage.iter().map(|(_, c)| c).sum::<f32>()
             / domain_coverage.len().max(1) as f32;
-        let top_gaps: Vec<KnowledgeGap> = self.gaps.values()
-            .take(5).cloned().collect();
-        let avg_conf: f32 = self.items.values()
-            .map(|i| i.relevance_score).sum::<f32>()
+        let top_gaps: Vec<KnowledgeGap> = self.gaps.values().take(5).cloned().collect();
+        let avg_conf: f32 = self.items.values().map(|i| i.relevance_score).sum::<f32>()
             / self.items.len().max(1) as f32;
         StateOfKnowledge {
             total_items: self.items.len(),
@@ -389,14 +441,20 @@ impl HolisticLiterature {
     }
 
     /// Current statistics snapshot
-    pub fn stats(&self) -> &LiteratureStats { &self.stats }
+    pub fn stats(&self) -> &LiteratureStats {
+        &self.stats
+    }
 
     // ── private helpers ─────────────────────────────────────────────────
 
     fn evict_stale(&mut self, tick: u64) {
-        let stale: Vec<u64> = self.items.iter()
+        let stale: Vec<u64> = self
+            .items
+            .iter()
             .filter(|(_, i)| tick.saturating_sub(i.last_verified) > STALENESS_TICKS)
-            .map(|(&id, _)| id).take(64).collect();
+            .map(|(&id, _)| id)
+            .take(64)
+            .collect();
         for id in stale {
             self.items.remove(&id);
         }
@@ -405,12 +463,17 @@ impl HolisticLiterature {
     fn refresh_stats(&mut self, _tick: u64) {
         self.stats.total_items = self.items.len() as u64;
         self.stats.domains_covered = self.domain_item_count.len() as u64;
-        self.stats.proven_count = self.items.values()
-            .filter(|i| i.confidence == ConfidenceLevel::Proven).count() as u64;
-        self.stats.open_questions = self.items.values()
-            .filter(|i| i.kind == KnowledgeKind::OpenQuestion).count() as u64;
-        let avg_rel: f32 = self.items.values()
-            .map(|i| i.relevance_score).sum::<f32>()
+        self.stats.proven_count = self
+            .items
+            .values()
+            .filter(|i| i.confidence == ConfidenceLevel::Proven)
+            .count() as u64;
+        self.stats.open_questions = self
+            .items
+            .values()
+            .filter(|i| i.kind == KnowledgeKind::OpenQuestion)
+            .count() as u64;
+        let avg_rel: f32 = self.items.values().map(|i| i.relevance_score).sum::<f32>()
             / self.items.len().max(1) as f32;
         self.stats.avg_relevance_ema =
             EMA_ALPHA * avg_rel + (1.0 - EMA_ALPHA) * self.stats.avg_relevance_ema;
