@@ -200,14 +200,17 @@ impl SampleAccumulator {
                 }
                 let c = self.control_categories.entry(sample.category).or_insert(0);
                 *c += 1;
-            }
+            },
             GroupAssignment::Treatment => {
                 if self.treatment.len() < MAX_SAMPLES_PER_GROUP {
                     self.treatment.push(sample.value);
                 }
-                let c = self.treatment_categories.entry(sample.category).or_insert(0);
+                let c = self
+                    .treatment_categories
+                    .entry(sample.category)
+                    .or_insert(0);
                 *c += 1;
-            }
+            },
         }
     }
 
@@ -321,9 +324,7 @@ impl BridgeExperiment {
         let exp = self.experiments.get(&experiment_id)?;
         let ctrl = &exp.samples.control;
         let treat = &exp.samples.treatment;
-        if ctrl.len() < MIN_SAMPLES_FOR_SIGNIFICANCE
-            || treat.len() < MIN_SAMPLES_FOR_SIGNIFICANCE
-        {
+        if ctrl.len() < MIN_SAMPLES_FOR_SIGNIFICANCE || treat.len() < MIN_SAMPLES_FOR_SIGNIFICANCE {
             return None;
         }
         let m1 = SampleAccumulator::mean(ctrl);
@@ -500,15 +501,17 @@ impl BridgeExperiment {
 
         if exp.phase == ExperimentPhase::Running || exp.phase == ExperimentPhase::Analysis {
             exp.phase = ExperimentPhase::Analysis;
-            if t_test.as_ref().map_or(false, |t| t.significant) || chi_sq.as_ref().map_or(false, |c| c.significant) {
+            if t_test.as_ref().map_or(false, |t| t.significant)
+                || chi_sq.as_ref().map_or(false, |c| c.significant)
+            {
                 self.stats.total_significant += 1;
             }
         }
 
         // Update EMA stats
         if let Some(ref t) = t_test {
-            self.stats.avg_effect_size_ema =
-                EMA_ALPHA * abs_f32(t.effect_size) + (1.0 - EMA_ALPHA) * self.stats.avg_effect_size_ema;
+            self.stats.avg_effect_size_ema = EMA_ALPHA * abs_f32(t.effect_size)
+                + (1.0 - EMA_ALPHA) * self.stats.avg_effect_size_ema;
             self.stats.avg_p_value_ema =
                 EMA_ALPHA * t.p_value + (1.0 - EMA_ALPHA) * self.stats.avg_p_value_ema;
         }
