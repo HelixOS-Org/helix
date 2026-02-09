@@ -232,16 +232,27 @@ impl AppsIntrospector {
     pub fn analyze_alternatives(&self, record_id: u64) -> Option<AlternativeAnalysis> {
         self.records.iter().find(|r| r.id == record_id).map(|r| {
             let depth = r.reasoning_chain.len().min(MAX_REASONING_DEPTH);
-            let total_alts: u32 = r.reasoning_chain.iter()
-                .map(|s| s.alternatives_considered as u32).sum();
+            let total_alts: u32 = r
+                .reasoning_chain
+                .iter()
+                .map(|s| s.alternatives_considered as u32)
+                .sum();
             let avg_feature_weight: f32 = if depth > 0 {
-                r.reasoning_chain.iter().map(|s| s.feature_weight).sum::<f32>() / depth as f32
+                r.reasoning_chain
+                    .iter()
+                    .map(|s| s.feature_weight)
+                    .sum::<f32>()
+                    / depth as f32
             } else {
                 0.0
             };
-            let confidence_path: Vec<f32> = r.reasoning_chain.iter()
-                .map(|s| s.confidence_at_step).collect();
-            let monotonic = confidence_path.windows(2)
+            let confidence_path: Vec<f32> = r
+                .reasoning_chain
+                .iter()
+                .map(|s| s.confidence_at_step)
+                .collect();
+            let monotonic = confidence_path
+                .windows(2)
                 .all(|w| w[1] >= w[0] || (w[0] - w[1]).abs() < 0.05);
 
             AlternativeAnalysis {
@@ -257,7 +268,12 @@ impl AppsIntrospector {
     }
 
     /// Assess quality of a classification after outcome is known
-    pub fn quality_assessment(&mut self, record_id: u64, outcome: ClassificationOutcome, score: f32) {
+    pub fn quality_assessment(
+        &mut self,
+        record_id: u64,
+        outcome: ClassificationOutcome,
+        score: f32,
+    ) {
         let clamped = score.max(0.0).min(1.0);
         for r in self.records.iter_mut() {
             if r.id == record_id {
@@ -268,7 +284,8 @@ impl AppsIntrospector {
                     outcome,
                     ClassificationOutcome::Correct | ClassificationOutcome::PartiallyCorrect
                 );
-                let tracker = self.category_trackers
+                let tracker = self
+                    .category_trackers
                     .entry(r.category as u8)
                     .or_insert_with(CategoryTracker::new);
                 tracker.record(r.final_confidence, clamped, success);
@@ -283,16 +300,24 @@ impl AppsIntrospector {
     /// Audit resource recommendations: how often did the classification
     /// lead to the right resource allocation?
     pub fn recommendation_audit(&self) -> RecommendationAudit {
-        let resolved: Vec<&ClassificationRecord> = self.records.iter()
+        let resolved: Vec<&ClassificationRecord> = self
+            .records
+            .iter()
             .filter(|r| r.outcome != ClassificationOutcome::Pending)
             .collect();
         let n = resolved.len().max(1) as f32;
-        let correct = resolved.iter()
-            .filter(|r| r.outcome == ClassificationOutcome::Correct).count();
-        let partial = resolved.iter()
-            .filter(|r| r.outcome == ClassificationOutcome::PartiallyCorrect).count();
-        let incorrect = resolved.iter()
-            .filter(|r| r.outcome == ClassificationOutcome::Incorrect).count();
+        let correct = resolved
+            .iter()
+            .filter(|r| r.outcome == ClassificationOutcome::Correct)
+            .count();
+        let partial = resolved
+            .iter()
+            .filter(|r| r.outcome == ClassificationOutcome::PartiallyCorrect)
+            .count();
+        let incorrect = resolved
+            .iter()
+            .filter(|r| r.outcome == ClassificationOutcome::Incorrect)
+            .count();
 
         let avg_conf: f32 = resolved.iter().map(|r| r.final_confidence).sum::<f32>() / n;
         let avg_score: f32 = resolved.iter().map(|r| r.outcome_score).sum::<f32>() / n;
@@ -315,14 +340,19 @@ impl AppsIntrospector {
             for (i, step) in r.reasoning_chain.iter().enumerate() {
                 let line = alloc::format!(
                     "Step {}: feature={} weight={:.3} alts={} conf={:.3}",
-                    i, step.feature_name, step.feature_weight,
-                    step.alternatives_considered, step.confidence_at_step
+                    i,
+                    step.feature_name,
+                    step.feature_weight,
+                    step.alternatives_considered,
+                    step.confidence_at_step
                 );
                 trace.push(line);
             }
             trace.push(alloc::format!(
                 "Final: class={} conf={:.3} outcome_score={:.3}",
-                r.chosen_class, r.final_confidence, r.outcome_score
+                r.chosen_class,
+                r.final_confidence,
+                r.outcome_score
             ));
             trace
         })
@@ -331,28 +361,44 @@ impl AppsIntrospector {
     /// Compute full introspection statistics
     pub fn stats(&self) -> IntrospectionStats {
         let n = self.records.len();
-        let resolved: Vec<&ClassificationRecord> = self.records.iter()
-            .filter(|r| r.outcome != ClassificationOutcome::Pending).collect();
-        let overconf = resolved.iter()
-            .filter(|r| r.final_confidence > r.outcome_score + 0.1).count();
-        let underconf = resolved.iter()
-            .filter(|r| r.final_confidence < r.outcome_score - 0.1).count();
+        let resolved: Vec<&ClassificationRecord> = self
+            .records
+            .iter()
+            .filter(|r| r.outcome != ClassificationOutcome::Pending)
+            .collect();
+        let overconf = resolved
+            .iter()
+            .filter(|r| r.final_confidence > r.outcome_score + 0.1)
+            .count();
+        let underconf = resolved
+            .iter()
+            .filter(|r| r.final_confidence < r.outcome_score - 0.1)
+            .count();
         let resolved_n = resolved.len().max(1) as f32;
 
         let avg_depth = if n > 0 {
-            self.records.iter()
-                .map(|r| r.reasoning_chain.len() as f32).sum::<f32>() / n as f32
+            self.records
+                .iter()
+                .map(|r| r.reasoning_chain.len() as f32)
+                .sum::<f32>()
+                / n as f32
         } else {
             0.0
         };
         let avg_alts = if n > 0 {
-            self.records.iter()
-                .map(|r| r.alternatives.len() as f32).sum::<f32>() / n as f32
+            self.records
+                .iter()
+                .map(|r| r.alternatives.len() as f32)
+                .sum::<f32>()
+                / n as f32
         } else {
             0.0
         };
-        let avg_cal: f32 = self.category_trackers.values()
-            .map(|t| t.calibration_gap()).sum::<f32>()
+        let avg_cal: f32 = self
+            .category_trackers
+            .values()
+            .map(|t| t.calibration_gap())
+            .sum::<f32>()
             / self.category_trackers.len().max(1) as f32;
 
         IntrospectionStats {
