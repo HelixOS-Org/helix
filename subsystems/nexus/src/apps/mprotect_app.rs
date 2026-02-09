@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Memory protection flags
@@ -26,8 +27,11 @@ impl ProtFlags {
     pub const RX: Self = Self(5);
     pub const RWX: Self = Self(7);
 
+    #[inline(always)]
     pub fn is_writable(self) -> bool { self.0 & 2 != 0 }
+    #[inline(always)]
     pub fn is_executable(self) -> bool { self.0 & 4 != 0 }
+    #[inline(always)]
     pub fn is_wx(self) -> bool { self.is_writable() && self.is_executable() }
 }
 
@@ -111,7 +115,7 @@ impl AslrEntropy {
 #[derive(Debug, Clone)]
 pub struct AppProtProfile {
     pub app_id: u64,
-    pub prot_changes: Vec<ProtChange>,
+    pub prot_changes: VecDeque<ProtChange>,
     pub wx_violations: Vec<WxViolation>,
     pub guard_config: GuardPageConfig,
     pub aslr: Option<AslrEntropy>,
@@ -120,6 +124,7 @@ pub struct AppProtProfile {
 
 /// Protection manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MprotectAppStats {
     pub total_prot_changes: u64,
     pub wx_violations_detected: u64,
@@ -158,7 +163,7 @@ impl MprotectAppManager {
     ) -> Result<(), WxViolation> {
         let profile = self.apps.entry(app_id).or_insert_with(|| AppProtProfile {
             app_id,
-            prot_changes: Vec::new(),
+            prot_changes: VecDeque::new(),
             wx_violations: Vec::new(),
             guard_config: GuardPageConfig::default(),
             aslr: None,
@@ -190,29 +195,33 @@ impl MprotectAppManager {
         let change = ProtChange { vma_start, vma_end, old_prot, new_prot, timestamp: now };
         profile.prot_changes.push(change);
         if profile.prot_changes.len() > self.max_history {
-            profile.prot_changes.remove(0);
+            profile.prot_changes.pop_front().unwrap();
         }
         self.stats.total_prot_changes += 1;
 
         Ok(())
     }
 
+    #[inline]
     pub fn set_guard_config(&mut self, app_id: u64, config: GuardPageConfig) {
         if let Some(profile) = self.apps.get_mut(&app_id) {
             profile.guard_config = config;
         }
     }
 
+    #[inline]
     pub fn update_aslr_entropy(&mut self, app_id: u64, entropy: AslrEntropy) {
         if let Some(profile) = self.apps.get_mut(&app_id) {
             profile.aslr = Some(entropy);
         }
     }
 
+    #[inline(always)]
     pub fn wx_violations(&self, app_id: u64) -> &[WxViolation] {
         self.apps.get(&app_id).map(|p| p.wx_violations.as_slice()).unwrap_or(&[])
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MprotectAppStats {
         &self.stats
     }
