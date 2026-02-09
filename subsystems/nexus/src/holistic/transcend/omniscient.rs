@@ -253,7 +253,8 @@ impl HolisticOmniscient {
                 .avg_completeness_bps
                 .saturating_sub(sum_blind.saturating_mul(10))
         };
-        self.stats.proof_valid = sum_blind == 0 && self.stats.avg_completeness_bps >= COMPLETENESS_FULL;
+        self.stats.proof_valid =
+            sum_blind == 0 && self.stats.avg_completeness_bps >= COMPLETENESS_FULL;
     }
 
     // -- public: register & observe -----------------------------------------
@@ -277,10 +278,14 @@ impl HolisticOmniscient {
             if completeness_bps >= COMPLETENESS_FULL {
                 obs.blind_spots = 0;
             } else {
-                obs.blind_spots = obs
-                    .blind_spots
-                    .saturating_sub(1)
-                    .max(if completeness_bps < 9000 { BLIND_SPOT_THRESHOLD } else { 1 });
+                obs.blind_spots =
+                    obs.blind_spots
+                        .saturating_sub(1)
+                        .max(if completeness_bps < 9000 {
+                            BLIND_SPOT_THRESHOLD
+                        } else {
+                            1
+                        });
             }
             let sig = fnv1a(&obs.sample_count.to_le_bytes()) ^ obs.domain_hash;
             obs.state_signature = sig;
@@ -387,8 +392,9 @@ impl HolisticOmniscient {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::string::ToString;
+
+    use super::*;
 
     #[test]
     fn test_register_and_observe() {
