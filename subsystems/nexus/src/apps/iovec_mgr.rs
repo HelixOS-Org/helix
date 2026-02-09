@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::vec::Vec;
 use alloc::collections::BTreeMap;
 
@@ -15,9 +16,12 @@ pub struct IoVec {
 
 impl IoVec {
     pub fn new(base: u64, len: usize) -> Self { Self { base, len } }
+    #[inline(always)]
     pub fn end(&self) -> u64 { self.base + self.len as u64 }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.len == 0 }
 
+    #[inline(always)]
     pub fn overlaps(&self, other: &IoVec) -> bool {
         self.base < other.end() && other.base < self.end()
     }
@@ -35,18 +39,22 @@ impl IoVecArray {
         Self { vecs: Vec::new(), max_segs }
     }
 
+    #[inline]
     pub fn push(&mut self, iov: IoVec) -> bool {
         if self.vecs.len() >= self.max_segs { return false; }
         self.vecs.push(iov);
         true
     }
 
+    #[inline(always)]
     pub fn total_bytes(&self) -> usize {
         self.vecs.iter().map(|v| v.len).sum()
     }
 
+    #[inline(always)]
     pub fn segment_count(&self) -> usize { self.vecs.len() }
 
+    #[inline]
     pub fn is_contiguous(&self) -> bool {
         for i in 1..self.vecs.len() {
             if self.vecs[i].base != self.vecs[i - 1].end() { return false; }
@@ -54,6 +62,7 @@ impl IoVecArray {
         true
     }
 
+    #[inline]
     pub fn has_overlaps(&self) -> bool {
         for i in 0..self.vecs.len() {
             for j in (i + 1)..self.vecs.len() {
@@ -96,6 +105,7 @@ impl IoVecArray {
         self.vecs.truncate(keep);
     }
 
+    #[inline]
     pub fn largest_segment(&self) -> Option<(usize, usize)> {
         self.vecs.iter().enumerate()
             .max_by_key(|(_, v)| v.len)
@@ -133,12 +143,13 @@ pub struct IoVecOp {
 
 /// Iovec manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoVecMgrStats {
     pub total_ops: u64,
     pub total_bytes_transferred: u64,
     pub total_segments: u64,
     pub coalesced_segments: u64,
-    pub ops_by_type: BTreeMap<u32, u64>,
+    pub ops_by_type: ArrayMap<u64, 32>,
     pub avg_segments_per_op: f64,
 }
 
@@ -151,7 +162,7 @@ pub struct AppIoVecMgr {
     total_bytes: u64,
     total_segments: u64,
     coalesced: u64,
-    ops_by_type: BTreeMap<u32, u64>,
+    ops_by_type: ArrayMap<u64, 32>,
 }
 
 impl AppIoVecMgr {
@@ -160,7 +171,7 @@ impl AppIoVecMgr {
             pending_ops: BTreeMap::new(), next_id: 1,
             max_iov_segs: max_segs, total_ops: 0,
             total_bytes: 0, total_segments: 0, coalesced: 0,
-            ops_by_type: BTreeMap::new(),
+            ops_by_type: ArrayMap::new(0),
         }
     }
 
@@ -170,7 +181,7 @@ impl AppIoVecMgr {
         self.next_id += 1;
         self.total_ops += 1;
         self.total_segments += array.segment_count() as u64;
-        *self.ops_by_type.entry(op_type as u32).or_insert(0) += 1;
+        self.ops_by_type.add(op_type as usize, 1);
 
         let merged = array.coalesce();
         self.coalesced += merged as u64;
@@ -183,6 +194,7 @@ impl AppIoVecMgr {
         id
     }
 
+    #[inline]
     pub fn complete(&mut self, id: u64, bytes: usize) -> bool {
         if let Some(op) = self.pending_ops.get_mut(&id) {
             op.completed_bytes = bytes;
@@ -206,6 +218,7 @@ impl AppIoVecMgr {
         result
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> usize { self.pending_ops.len() }
 
     pub fn stats(&self) -> IoVecMgrStats {
