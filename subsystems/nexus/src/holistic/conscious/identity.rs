@@ -213,19 +213,14 @@ impl HolisticIdentity {
             evolution_count: 0,
         };
 
-        self.strength_ema =
-            EMA_ALPHA * cap.strength + (1.0 - EMA_ALPHA) * self.strength_ema;
+        self.strength_ema = EMA_ALPHA * cap.strength + (1.0 - EMA_ALPHA) * self.strength_ema;
         self.update_fingerprint(cap.id);
         self.capabilities.insert(id, cap);
         id
     }
 
     /// Establish a philosophical principle
-    pub fn establish_principle(
-        &mut self,
-        statement: String,
-        priority: f32,
-    ) -> u64 {
+    pub fn establish_principle(&mut self, statement: String, priority: f32) -> u64 {
         self.tick += 1;
         let id = fnv1a_hash(statement.as_bytes()) ^ xorshift64(&mut self.rng_state);
 
@@ -265,8 +260,7 @@ impl HolisticIdentity {
     pub fn update_adherence(&mut self, principle_id: u64, adherence: f32) {
         if let Some(p) = self.principles.get_mut(&principle_id) {
             p.adherence_score =
-                EMA_ALPHA * adherence.clamp(0.0, 1.0)
-                    + (1.0 - EMA_ALPHA) * p.adherence_score;
+                EMA_ALPHA * adherence.clamp(0.0, 1.0) + (1.0 - EMA_ALPHA) * p.adherence_score;
             self.adherence_ema =
                 EMA_ALPHA * p.adherence_score + (1.0 - EMA_ALPHA) * self.adherence_ema;
         }
@@ -331,9 +325,8 @@ impl HolisticIdentity {
         let base_match = self.identity_fingerprint ^ expected_fp;
         let version_ok = VERSION_MAJOR == 5 && VERSION_MINOR == 0;
 
-        let integrity = self.coherence_ema * 0.4
-            + self.adherence_ema * 0.3
-            + self.strength_ema * 0.3;
+        let integrity =
+            self.coherence_ema * 0.4 + self.adherence_ema * 0.3 + self.strength_ema * 0.3;
 
         VerificationResult {
             fingerprint: self.identity_fingerprint,
@@ -361,8 +354,7 @@ impl HolisticIdentity {
             + adherence * 0.25
             + purpose_clarity * 0.25
             + purpose_alignment * 0.25;
-        self.coherence_ema =
-            EMA_ALPHA * coherence + (1.0 - EMA_ALPHA) * self.coherence_ema;
+        self.coherence_ema = EMA_ALPHA * coherence + (1.0 - EMA_ALPHA) * self.coherence_ema;
         self.coherence_ema
     }
 
