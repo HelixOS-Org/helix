@@ -39,6 +39,7 @@ pub struct Checkpoint {
 
 /// State snapshot
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct StateSnapshot {
     /// State values
     pub values: BTreeMap<String, StateValue>,
@@ -158,6 +159,7 @@ impl Default for RollbackConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RollbackStats {
     /// Checkpoints created
     pub checkpoints_created: u64,
@@ -283,6 +285,7 @@ impl RollbackManager {
     }
 
     /// Redo last undone action
+    #[inline]
     pub fn redo(&mut self) -> Option<u64> {
         let undo_op = self.redo_stack.pop()?;
 
@@ -354,11 +357,13 @@ impl RollbackManager {
     }
 
     /// Get current state
+    #[inline(always)]
     pub fn current_state(&self) -> &StateSnapshot {
         &self.current_state
     }
 
     /// Set state value
+    #[inline]
     pub fn set(&mut self, key: &str, value: StateValue) {
         let before = self.current_state.values.get(key).cloned().unwrap_or(StateValue::Null);
 
@@ -372,36 +377,43 @@ impl RollbackManager {
     }
 
     /// Get state value
+    #[inline(always)]
     pub fn get(&self, key: &str) -> Option<&StateValue> {
         self.current_state.values.get(key)
     }
 
     /// Get checkpoint
+    #[inline(always)]
     pub fn get_checkpoint(&self, id: u64) -> Option<&Checkpoint> {
         self.checkpoints.get(&id)
     }
 
     /// List checkpoints
+    #[inline(always)]
     pub fn list_checkpoints(&self) -> Vec<&Checkpoint> {
         self.checkpoints.values().collect()
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[ActionRecord] {
         &self.history
     }
 
     /// Can undo
+    #[inline(always)]
     pub fn can_undo(&self) -> bool {
         self.history.iter().any(|r| r.reversible)
     }
 
     /// Can redo
+    #[inline(always)]
     pub fn can_redo(&self) -> bool {
         !self.redo_stack.is_empty()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &RollbackStats {
         &self.stats
     }
