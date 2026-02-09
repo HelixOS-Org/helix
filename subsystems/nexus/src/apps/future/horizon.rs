@@ -53,10 +53,10 @@ fn xorshift64(state: &mut u64) -> u64 {
 /// Time scale for multi-horizon predictions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HorizonScale {
-    Seconds = 0,
-    Minutes = 1,
+    Seconds    = 0,
+    Minutes    = 1,
     TenMinutes = 2,
-    Hours = 3,
+    Hours      = 3,
 }
 
 impl HorizonScale {
@@ -303,7 +303,8 @@ impl AppsHorizonPredictor {
         if self.processes.len() >= MAX_PROCESSES && !self.processes.contains_key(&obs.process_id) {
             return;
         }
-        let proc = self.processes
+        let proc = self
+            .processes
             .entry(obs.process_id)
             .or_insert_with(ProcessHorizon::new);
         proc.record(&obs);
@@ -328,8 +329,8 @@ impl AppsHorizonPredictor {
         let (predicted_phase, confidence, resource_forecasts) =
             if let Some(proc) = self.processes.get(&process_id) {
                 let phase = self.extrapolate_phase(proc, ticks_ahead);
-                let base_conf = proc.phase_confidence
-                    * (1.0 - CONFIDENCE_DECAY_PER_SCALE * scale_idx as f32);
+                let base_conf =
+                    proc.phase_confidence * (1.0 - CONFIDENCE_DECAY_PER_SCALE * scale_idx as f32);
                 let conf = base_conf.max(0.05).min(0.99);
                 let mut forecasts = Vec::new();
                 let resources = [
@@ -465,8 +466,7 @@ impl AppsHorizonPredictor {
     /// Validate a phase prediction against actual phase
     pub fn validate_phase(&mut self, predicted: AppPhase, actual: AppPhase) {
         let correct = if predicted == actual { 1.0 } else { 0.0 };
-        self.phase_accuracy_ema =
-            EMA_ALPHA * correct + (1.0 - EMA_ALPHA) * self.phase_accuracy_ema;
+        self.phase_accuracy_ema = EMA_ALPHA * correct + (1.0 - EMA_ALPHA) * self.phase_accuracy_ema;
     }
 
     /// Get aggregate statistics
@@ -478,7 +478,10 @@ impl AppsHorizonPredictor {
             avg_confidence: self.global_confidence_ema,
             avg_forecast_error: self.error_by_scale.iter().sum::<f32>() / NUM_SCALES as f32,
             phase_accuracy: self.phase_accuracy_ema,
-            best_scale_accuracy: self.error_by_scale.iter().copied()
+            best_scale_accuracy: self
+                .error_by_scale
+                .iter()
+                .copied()
                 .map(|e| 1.0 - e)
                 .fold(0.0_f32, f32::max),
         }
