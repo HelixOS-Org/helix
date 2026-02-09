@@ -70,6 +70,7 @@ impl FdFlagsTracker {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FcntlAppStats {
     pub total_fds_tracked: u32,
     pub total_operations: u64,
@@ -87,6 +88,7 @@ pub struct AppFcntl {
 impl AppFcntl {
     pub fn new() -> Self { Self { trackers: BTreeMap::new(), ops: Vec::new() } }
 
+    #[inline(always)]
     pub fn track_fd(&mut self, fd: u64) { self.trackers.insert(fd, FdFlagsTracker::new(fd)); }
 
     pub fn record_op(&mut self, op: FcntlOp) {
@@ -103,8 +105,10 @@ impl AppFcntl {
         self.ops.push(op);
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, fd: u64) { self.trackers.remove(&fd); }
 
+    #[inline]
     pub fn stats(&self) -> FcntlAppStats {
         let dups = self.ops.iter().filter(|o| matches!(o.cmd, FcntlCmd::DupFd | FcntlCmd::DupFdCloseOnExec)).count() as u64;
         let seals = self.ops.iter().filter(|o| matches!(o.cmd, FcntlCmd::AddSeals | FcntlCmd::GetSeals)).count() as u64;
@@ -232,6 +236,7 @@ impl FcntlV2Lease {
 
 /// Per-process fcntl state.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessFcntlV2State {
     pub pid: u64,
     pub locks: Vec<FcntlV2Lock>,
@@ -254,6 +259,7 @@ impl ProcessFcntlV2State {
 
 /// Statistics for fcntl V2 app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FcntlV2AppStats {
     pub total_calls: u64,
     pub lock_operations: u64,
@@ -314,6 +320,7 @@ impl AppFcntlV2 {
         id
     }
 
+    #[inline]
     pub fn record_lease(
         &mut self,
         pid: u64,
@@ -328,6 +335,7 @@ impl AppFcntlV2 {
         self.stats.lease_operations += 1;
     }
 
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }
