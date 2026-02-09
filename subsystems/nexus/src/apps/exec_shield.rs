@@ -26,14 +26,17 @@ impl MitigationFlags {
     pub const CET: Self = Self(1 << 10);
     pub const KASLR: Self = Self(1 << 11);
 
+    #[inline(always)]
     pub fn has(&self, flag: Self) -> bool {
         (self.0 & flag.0) != 0
     }
 
+    #[inline(always)]
     pub fn combine(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
+    #[inline]
     pub fn count_enabled(&self) -> u32 {
         let mut n = self.0;
         let mut count = 0u32;
@@ -44,6 +47,7 @@ impl MitigationFlags {
         count
     }
 
+    #[inline]
     pub fn security_score(&self) -> f64 {
         // Each mitigation contributes to overall security score
         let max_mitigations = 12.0;
@@ -89,6 +93,7 @@ pub struct ViolationRecord {
 
 /// Per-process exec shield state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessShieldState {
     pub pid: u64,
     pub binary_name: String,
@@ -120,14 +125,17 @@ impl ProcessShieldState {
         }
     }
 
+    #[inline(always)]
     pub fn is_code_addr(&self, addr: u64) -> bool {
         self.code_regions.iter().any(|(s, e)| addr >= *s && addr < *e)
     }
 
+    #[inline(always)]
     pub fn is_nx_addr(&self, addr: u64) -> bool {
         self.nx_regions.iter().any(|(s, e)| addr >= *s && addr < *e)
     }
 
+    #[inline]
     pub fn check_execute(&self, addr: u64) -> bool {
         if !self.mitigations.has(MitigationFlags::NX_STACK)
             && !self.mitigations.has(MitigationFlags::NX_HEAP)
@@ -137,6 +145,7 @@ impl ProcessShieldState {
         self.is_code_addr(addr)
     }
 
+    #[inline]
     pub fn record_violation(&mut self, violation: ViolationRecord) {
         self.violation_count += 1;
         if self.violations.len() >= self.max_violations {
@@ -145,6 +154,7 @@ impl ProcessShieldState {
         self.violations.push_back(violation);
     }
 
+    #[inline]
     pub fn security_score(&self) -> f64 {
         let base = self.mitigations.security_score();
         // Penalize for violations
@@ -173,6 +183,7 @@ pub struct AslrLayout {
 }
 
 impl AslrLayout {
+    #[inline]
     pub fn spread(&self) -> u64 {
         let bases = [self.text_base, self.stack_base, self.mmap_base, self.heap_base];
         let min = bases.iter().copied().min().unwrap_or(0);
@@ -183,6 +194,7 @@ impl AslrLayout {
 
 /// Exec shield stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExecShieldStats {
     pub processes_protected: u64,
     pub violations_total: u64,
@@ -226,6 +238,7 @@ impl AppExecShield {
         }
     }
 
+    #[inline]
     pub fn register_process(
         &mut self,
         pid: u64,
@@ -239,10 +252,12 @@ impl AppExecShield {
         self.stats.processes_protected += 1;
     }
 
+    #[inline(always)]
     pub fn unregister_process(&mut self, pid: u64) -> bool {
         self.processes.remove(&pid).is_some()
     }
 
+    #[inline]
     pub fn add_code_region(&mut self, pid: u64, start: u64, end: u64) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.code_regions.push((start, end));
@@ -252,6 +267,7 @@ impl AppExecShield {
         }
     }
 
+    #[inline]
     pub fn add_nx_region(&mut self, pid: u64, start: u64, end: u64) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.nx_regions.push((start, end));
@@ -261,6 +277,7 @@ impl AppExecShield {
         }
     }
 
+    #[inline]
     pub fn check_execute(&self, pid: u64, addr: u64) -> bool {
         if let Some(proc) = self.processes.get(&pid) {
             proc.check_execute(addr)
@@ -311,6 +328,7 @@ impl AppExecShield {
         kill
     }
 
+    #[inline]
     pub fn set_aslr_layout(&mut self, pid: u64, layout: AslrLayout) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.aslr_entropy_bits = layout.entropy_bits;
@@ -320,6 +338,7 @@ impl AppExecShield {
         }
     }
 
+    #[inline]
     pub fn update_avg_score(&mut self) {
         if self.processes.is_empty() {
             self.stats.avg_security_score = 0.0;
@@ -329,6 +348,7 @@ impl AppExecShield {
         self.stats.avg_security_score = sum / self.processes.len() as f64;
     }
 
+    #[inline]
     pub fn weakest_processes(&self, top_n: usize) -> Vec<(u64, f64)> {
         let mut scores: Vec<(u64, f64)> = self.processes.iter()
             .map(|(pid, p)| (*pid, p.security_score()))
@@ -338,6 +358,7 @@ impl AppExecShield {
         scores
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ExecShieldStats {
         &self.stats
     }
