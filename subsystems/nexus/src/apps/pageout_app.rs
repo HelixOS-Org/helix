@@ -24,6 +24,7 @@ pub enum PageAgeBucket {
 }
 
 impl PageAgeBucket {
+    #[inline]
     pub fn from_age_ticks(ticks: u64, ticks_per_sec: u64) -> Self {
         let ms = ticks * 1000 / ticks_per_sec.max(1);
         match ms {
@@ -57,6 +58,7 @@ impl PageAgeHistogram {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, bucket: PageAgeBucket) {
         match bucket {
             PageAgeBucket::Hot => self.hot += 1,
@@ -67,21 +69,25 @@ impl PageAgeHistogram {
         }
     }
 
+    #[inline(always)]
     pub fn total(&self) -> u64 {
         self.hot + self.warm + self.cool + self.cold + self.frozen
     }
 
     /// Estimated working set: hot + warm pages
+    #[inline(always)]
     pub fn working_set(&self) -> u64 {
         self.hot + self.warm
     }
 
     /// Pages safe to evict without impact
+    #[inline(always)]
     pub fn evictable(&self) -> u64 {
         self.cold + self.frozen
     }
 
     /// Ratio of actively-used pages
+    #[inline]
     pub fn active_ratio(&self) -> f64 {
         let total = self.total();
         if total == 0 {
@@ -90,6 +96,7 @@ impl PageAgeHistogram {
         (self.hot + self.warm) as f64 / total as f64
     }
 
+    #[inline]
     pub fn reset(&mut self) {
         self.hot = 0;
         self.warm = 0;
@@ -166,6 +173,7 @@ impl AppPagePolicy {
     }
 
     /// How many pages should we try to reclaim from this app?
+    #[inline]
     pub fn reclaim_target(&self) -> u64 {
         match self.pressure {
             MemPressure::None | MemPressure::Low => 0,
@@ -175,6 +183,7 @@ impl AppPagePolicy {
         }
     }
 
+    #[inline]
     pub fn refault_rate(&self) -> f64 {
         if self.pageouts == 0 {
             return 0.0;
@@ -185,6 +194,7 @@ impl AppPagePolicy {
 
 /// Pageout manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PageoutAppStats {
     pub apps_tracked: u64,
     pub total_pageouts: u64,
@@ -212,6 +222,7 @@ impl PageoutAppManager {
         }
     }
 
+    #[inline]
     pub fn register_app(&mut self, app_id: u64) {
         self.apps.entry(app_id).or_insert_with(|| {
             self.stats.apps_tracked += 1;
@@ -219,6 +230,7 @@ impl PageoutAppManager {
         });
     }
 
+    #[inline]
     pub fn update_histogram(&mut self, app_id: u64, histogram: PageAgeHistogram) {
         if let Some(policy) = self.apps.get_mut(&app_id) {
             policy.working_set_pages = histogram.working_set();
@@ -227,6 +239,7 @@ impl PageoutAppManager {
         }
     }
 
+    #[inline]
     pub fn record_pageout(&mut self, app_id: u64, pages: u64) {
         if let Some(policy) = self.apps.get_mut(&app_id) {
             policy.pageouts += pages;
@@ -236,6 +249,7 @@ impl PageoutAppManager {
         }
     }
 
+    #[inline]
     pub fn record_refault(&mut self, app_id: u64) {
         if let Some(policy) = self.apps.get_mut(&app_id) {
             policy.refaults += 1;
@@ -261,6 +275,7 @@ impl PageoutAppManager {
     }
 
     /// Get apps sorted by pressure (highest first)
+    #[inline]
     pub fn pressure_ranking(&self) -> Vec<(u64, MemPressure, u64)> {
         let mut ranking: Vec<(u64, MemPressure, u64)> = self
             .apps
@@ -272,6 +287,7 @@ impl PageoutAppManager {
         ranking
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &PageoutAppStats {
         &self.stats
     }
