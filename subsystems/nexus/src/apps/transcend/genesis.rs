@@ -160,24 +160,20 @@ impl AppsGenesis {
     // -- observation --------------------------------------------------------
 
     /// Observe a workload sample and detect novelty.
-    pub fn observe_workload(
-        &mut self,
-        workload_id: u64,
-        cpu: u64,
-        mem: u64,
-        io: u64,
-        ipc: u64,
-    ) {
+    pub fn observe_workload(&mut self, workload_id: u64, cpu: u64, mem: u64, io: u64, ipc: u64) {
         let fp = self.compute_fingerprint(cpu, mem, io, ipc);
-        let obs = self.observations.entry(workload_id).or_insert(WorkloadObservation {
-            workload_id,
-            cpu_ema: cpu,
-            mem_ema: mem,
-            io_ema: io,
-            ipc_ema: ipc,
-            sample_count: 0,
-            fingerprint: fp,
-        });
+        let obs = self
+            .observations
+            .entry(workload_id)
+            .or_insert(WorkloadObservation {
+                workload_id,
+                cpu_ema: cpu,
+                mem_ema: mem,
+                io_ema: io,
+                ipc_ema: ipc,
+                sample_count: 0,
+                fingerprint: fp,
+            });
         obs.cpu_ema = ema_update(obs.cpu_ema, cpu);
         obs.mem_ema = ema_update(obs.mem_ema, mem);
         obs.io_ema = ema_update(obs.io_ema, io);
@@ -267,7 +263,13 @@ impl AppsGenesis {
     }
 
     /// Apply a classifier to a workload sample and return the result.
-    pub fn classify_with(&mut self, classifier_id: u64, cpu: u64, mem: u64, io: u64) -> Option<bool> {
+    pub fn classify_with(
+        &mut self,
+        classifier_id: u64,
+        cpu: u64,
+        mem: u64,
+        io: u64,
+    ) -> Option<bool> {
         let classifier = self.classifiers.get_mut(&classifier_id)?;
         let fp = self.compute_fingerprint(cpu, mem, io, 0);
         let score = self.evaluate_classifier_score(&classifier.feature_hashes, fp);
@@ -364,7 +366,13 @@ impl AppsGenesis {
 
     fn estimate_strategy_gain(&mut self, obs: &WorkloadObservation) -> u64 {
         let pressure = obs.cpu_ema + obs.mem_ema + obs.io_ema;
-        let base_gain = if pressure > 200 { 30 } else if pressure > 100 { 20 } else { 10 };
+        let base_gain = if pressure > 200 {
+            30
+        } else if pressure > 100 {
+            20
+        } else {
+            10
+        };
         let noise = xorshift64(&mut self.rng) % 15;
         (base_gain + noise).min(100)
     }
