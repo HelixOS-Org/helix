@@ -13,7 +13,13 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FaultType { Minor, Major, CoW, Protection, Invalid }
+pub enum FaultType {
+    Minor,
+    Major,
+    CoW,
+    Protection,
+    Invalid,
+}
 
 #[derive(Debug, Clone)]
 pub struct FaultRecord {
@@ -112,8 +118,10 @@ impl PageFaultCoopManager {
 
     fn update_pattern(&mut self, pid: u64, addr: u64) {
         let pattern = self.patterns.entry(pid).or_insert(FaultPattern {
-            access_stride: 4096, sequential_score: 0.0,
-            spatial_locality: 0.0, temporal_period: 0,
+            access_stride: 4096,
+            sequential_score: 0.0,
+            spatial_locality: 0.0,
+            temporal_period: 0,
             sample_count: 0,
         });
         pattern.sample_count += 1;
@@ -123,7 +131,11 @@ impl PageFaultCoopManager {
             let old_stride = pattern.access_stride;
             let _ = addr; // Would compute from recent addresses
             pattern.sequential_score = pattern.sequential_score * 0.9
-                + if old_stride == pattern.access_stride { 0.1 } else { 0.0 };
+                + if old_stride == pattern.access_stride {
+                    0.1
+                } else {
+                    0.0
+                };
         }
     }
 
@@ -134,7 +146,9 @@ impl PageFaultCoopManager {
         };
 
         // Get siblings
-        let siblings: Vec<u64> = self.pid_groups.iter()
+        let siblings: Vec<u64> = self
+            .pid_groups
+            .iter()
             .filter(|(_, &g)| g == group_id)
             .filter(|(&p, _)| p != pid)
             .map(|(&p, _)| p)
@@ -143,7 +157,9 @@ impl PageFaultCoopManager {
         // If this pid has a predictable pattern, share with siblings
         if let Some(pattern) = self.patterns.get(&pid) {
             if pattern.is_predictable() {
-                let last = self.group_faults.get(&group_id)
+                let last = self
+                    .group_faults
+                    .get(&group_id)
                     .and_then(|f| f.last())
                     .map(|f| f.addr)
                     .unwrap_or(0);
@@ -162,7 +178,12 @@ impl PageFaultCoopManager {
     pub fn drain_prefetch(&mut self, pid: u64) -> Vec<u64> {
         let mut hints = Vec::new();
         self.prefetch_queue.retain(|&(p, addr)| {
-            if p == pid { hints.push(addr); false } else { true }
+            if p == pid {
+                hints.push(addr);
+                false
+            } else {
+                true
+            }
         });
         hints
     }
@@ -172,11 +193,17 @@ impl PageFaultCoopManager {
         self.stats.prefetch_hits += 1;
     }
 
-    pub fn pattern(&self, pid: u64) -> Option<&FaultPattern> { self.patterns.get(&pid) }
-    pub fn stats(&self) -> &FaultCoopStats { &self.stats }
+    pub fn pattern(&self, pid: u64) -> Option<&FaultPattern> {
+        self.patterns.get(&pid)
+    }
+    pub fn stats(&self) -> &FaultCoopStats {
+        &self.stats
+    }
 
     pub fn prefetch_hit_rate(&self) -> f64 {
-        if self.stats.prefetch_hints == 0 { return 0.0; }
+        if self.stats.prefetch_hints == 0 {
+            return 0.0;
+        }
         self.stats.prefetch_hits as f64 / self.stats.prefetch_hints as f64
     }
 }
