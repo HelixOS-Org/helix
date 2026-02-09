@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
@@ -77,6 +78,7 @@ impl AuditRule {
         Self { id, field, value, action, category, enabled: true, hit_count: 0 }
     }
 
+    #[inline]
     pub fn matches_value(&mut self, field: AuditField, val: u64) -> bool {
         if !self.enabled || self.field != field { return false; }
         if self.value == val {
@@ -102,6 +104,7 @@ pub struct AuditEntry {
 
 /// Audit buffer status
 #[derive(Debug, Clone, Copy)]
+#[repr(align(64))]
 pub struct AuditBufferStatus {
     pub entries: u32,
     pub capacity: u32,
@@ -111,11 +114,12 @@ pub struct AuditBufferStatus {
 
 /// Audit log stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AuditLogStats {
     pub total_events: u64,
     pub total_lost: u64,
     pub rules_count: u32,
-    pub events_per_category: BTreeMap<u32, u64>,
+    pub events_per_category: ArrayMap<u64, 32>,
     pub severity_counts: [u64; 8],
 }
 
@@ -132,7 +136,7 @@ pub struct AppAuditLog {
     rate_window_start: u64,
     rate_window_count: u32,
     severity_counts: [u64; 8],
-    category_counts: BTreeMap<u32, u64>,
+    category_counts: ArrayMap<u64, 32>,
 }
 
 impl AppAuditLog {
@@ -143,14 +147,16 @@ impl AppAuditLog {
             lost_count: 0, backlog_limit: 8192,
             rate_limit_per_sec: 0, rate_window_start: 0,
             rate_window_count: 0, severity_counts: [0u64; 8],
-            category_counts: BTreeMap::new(),
+            category_counts: ArrayMap::new(0),
         }
     }
 
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: AuditRule) {
         self.rules.push(rule);
     }
 
+    #[inline]
     pub fn remove_rule(&mut self, id: u32) -> bool {
         let before = self.rules.len();
         self.rules.retain(|r| r.id != id);
@@ -183,7 +189,7 @@ impl AppAuditLog {
         self.sequence += 1;
         let idx = severity as usize;
         if idx < 8 { self.severity_counts[idx] += 1; }
-        *self.category_counts.entry(category as u32).or_insert(0) += 1;
+        self.category_counts.add(category as usize, 1);
 
         self.entries.push_back(AuditEntry {
             seq: self.sequence, timestamp: now, category, severity,
@@ -191,23 +197,28 @@ impl AppAuditLog {
         });
     }
 
+    #[inline(always)]
     pub fn search_by_pid(&self, pid: u32) -> Vec<&AuditEntry> {
         self.entries.iter().filter(|e| e.pid == pid).collect()
     }
 
+    #[inline(always)]
     pub fn search_by_severity(&self, min_sev: AuditSeverity) -> Vec<&AuditEntry> {
         self.entries.iter().filter(|e| e.severity >= min_sev).collect()
     }
 
+    #[inline(always)]
     pub fn search_by_category(&self, cat: AuditCategory) -> Vec<&AuditEntry> {
         self.entries.iter().filter(|e| e.category == cat).collect()
     }
 
+    #[inline(always)]
     pub fn recent_entries(&self, n: usize) -> &[AuditEntry] {
         let start = self.entries.len().saturating_sub(n);
         &self.entries[start..]
     }
 
+    #[inline]
     pub fn buffer_status(&self) -> AuditBufferStatus {
         AuditBufferStatus {
             entries: self.entries.len() as u32,
@@ -217,9 +228,12 @@ impl AppAuditLog {
         }
     }
 
+    #[inline(always)]
     pub fn set_rate_limit(&mut self, per_sec: u32) { self.rate_limit_per_sec = per_sec; }
+    #[inline(always)]
     pub fn set_enabled(&mut self, en: bool) { self.enabled = en; }
 
+    #[inline]
     pub fn stats(&self) -> AuditLogStats {
         AuditLogStats {
             total_events: self.sequence,
@@ -230,6 +244,7 @@ impl AppAuditLog {
         }
     }
 
+    #[inline]
     pub fn check_rules(&mut self, field: AuditField, value: u64) -> Option<AuditAction> {
         for rule in self.rules.iter_mut() {
             if rule.matches_value(field, value) {
@@ -239,6 +254,7 @@ impl AppAuditLog {
         None
     }
 
+    #[inline(always)]
     pub fn flush(&mut self) -> Vec<AuditEntry> {
         let v = core::mem::take(&mut self.entries);
         v
