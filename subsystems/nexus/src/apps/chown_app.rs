@@ -43,6 +43,7 @@ pub struct ChownRecord {
 
 /// Statistics for chown app
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ChownAppStats {
     pub total_calls: u64,
     pub chown_calls: u64,
@@ -107,6 +108,7 @@ impl AppChown {
         ChownResult::Success
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ChownAppStats {
         &self.stats
     }
@@ -169,12 +171,15 @@ impl ChownV2Record {
         }
     }
 
+    #[inline(always)]
     pub fn uid_changed(&self) -> bool {
         self.old_uid != self.new_uid
     }
+    #[inline(always)]
     pub fn gid_changed(&self) -> bool {
         self.old_gid != self.new_gid
     }
+    #[inline(always)]
     pub fn is_root_transfer(&self) -> bool {
         self.new_uid == 0 || self.old_uid == 0
     }
@@ -182,6 +187,7 @@ impl ChownV2Record {
 
 /// Chown v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ChownV2AppStats {
     pub total_calls: u64,
     pub uid_changes: u64,
