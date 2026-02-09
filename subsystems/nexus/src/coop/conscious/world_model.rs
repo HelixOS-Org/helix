@@ -185,8 +185,7 @@ impl CoopWorldModel {
         src.total_interactions += 1;
         src.last_interaction_tick = self.tick;
         src.resource_contribution += resource_flow.max(0.0);
-        src.cooperation_frequency =
-            EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * src.cooperation_frequency;
+        src.cooperation_frequency = EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * src.cooperation_frequency;
         src.trust = (src.trust + trust_delta * 0.1).max(0.0).min(1.0);
 
         // Update target node
@@ -204,8 +203,7 @@ impl CoopWorldModel {
         tgt.total_interactions += 1;
         tgt.last_interaction_tick = self.tick;
         tgt.resource_consumption += resource_flow.max(0.0);
-        tgt.cooperation_frequency =
-            EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * tgt.cooperation_frequency;
+        tgt.cooperation_frequency = EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * tgt.cooperation_frequency;
         tgt.trust = (tgt.trust + trust_delta * 0.1).max(0.0).min(1.0);
 
         // Update edge
@@ -247,8 +245,7 @@ impl CoopWorldModel {
             return 0.0;
         }
 
-        let avg_trust =
-            self.nodes.values().map(|n| n.trust).sum::<f32>() / self.nodes.len() as f32;
+        let avg_trust = self.nodes.values().map(|n| n.trust).sum::<f32>() / self.nodes.len() as f32;
 
         let max_edges = self.nodes.len() * (self.nodes.len().saturating_sub(1)) / 2;
         let density = if max_edges > 0 {
@@ -324,7 +321,8 @@ impl CoopWorldModel {
         let max_entropy = libm::log2f(self.nodes.len() as f32).max(1.0);
         let normalized = (entropy / max_entropy).max(0.0).min(1.0);
 
-        self.entropy_ema = ENTROPY_SMOOTHING * normalized + (1.0 - ENTROPY_SMOOTHING) * self.entropy_ema;
+        self.entropy_ema =
+            ENTROPY_SMOOTHING * normalized + (1.0 - ENTROPY_SMOOTHING) * self.entropy_ema;
         self.entropy_ema
     }
 
