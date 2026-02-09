@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -87,11 +88,16 @@ pub enum SegmentType {
 }
 
 impl ProgramSegment {
+    #[inline(always)]
     pub fn is_readable(&self) -> bool { self.flags & 0x4 != 0 }
+    #[inline(always)]
     pub fn is_writable(&self) -> bool { self.flags & 0x2 != 0 }
+    #[inline(always)]
     pub fn is_executable(&self) -> bool { self.flags & 0x1 != 0 }
 
+    #[inline(always)]
     pub fn end_vaddr(&self) -> u64 { self.vaddr + self.mem_size }
+    #[inline(always)]
     pub fn bss_size(&self) -> u64 { self.mem_size.saturating_sub(self.file_size) }
 }
 
@@ -108,6 +114,7 @@ pub struct BinfmtMiscEntry {
 }
 
 impl BinfmtMiscEntry {
+    #[inline]
     pub fn matches(&self, header: &[u8]) -> bool {
         if !self.enabled { return false; }
         let off = self.offset as usize;
@@ -134,9 +141,10 @@ pub enum ExecValidation {
 
 /// Binfmt manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BinfmtMgrStats {
     pub total_execs: u64,
-    pub format_counts: BTreeMap<u32, u64>,
+    pub format_counts: ArrayMap<u64, 32>,
     pub validation_failures: u64,
     pub misc_registrations: u32,
     pub interpreter_lookups: u64,
@@ -145,7 +153,7 @@ pub struct BinfmtMgrStats {
 /// Main binary format manager
 pub struct AppBinfmtMgr {
     misc_entries: Vec<BinfmtMiscEntry>,
-    format_counts: BTreeMap<u32, u64>,
+    format_counts: ArrayMap<u64, 32>,
     total_execs: u64,
     validation_failures: u64,
     interpreter_lookups: u64,
@@ -156,17 +164,19 @@ pub struct AppBinfmtMgr {
 impl AppBinfmtMgr {
     pub fn new() -> Self {
         Self {
-            misc_entries: Vec::new(), format_counts: BTreeMap::new(),
+            misc_entries: Vec::new(), format_counts: ArrayMap::new(0),
             total_execs: 0, validation_failures: 0,
             interpreter_lookups: 0, max_binary_size: 256 * 1024 * 1024,
             stack_executable: false,
         }
     }
 
+    #[inline(always)]
     pub fn register_misc(&mut self, entry: BinfmtMiscEntry) {
         self.misc_entries.push(entry);
     }
 
+    #[inline]
     pub fn unregister_misc(&mut self, name: &str) -> bool {
         let before = self.misc_entries.len();
         self.misc_entries.retain(|e| e.name != name);
@@ -190,6 +200,7 @@ impl AppBinfmtMgr {
         None
     }
 
+    #[inline]
     pub fn validate_exec(&self, header: &BinaryHeader, file_size: u64) -> ExecValidation {
         if file_size > self.max_binary_size { return ExecValidation::TooLarge; }
         if header.entry_point == 0 && header.format != BinaryFormat::Script {
@@ -198,13 +209,16 @@ impl AppBinfmtMgr {
         ExecValidation::Valid
     }
 
+    #[inline(always)]
     pub fn record_exec(&mut self, format: BinaryFormat) {
         self.total_execs += 1;
-        *self.format_counts.entry(format as u32).or_insert(0) += 1;
+        self.format_counts.add(format as usize, 1);
     }
 
+    #[inline(always)]
     pub fn record_failure(&mut self) { self.validation_failures += 1; }
 
+    #[inline]
     pub fn lookup_interpreter(&mut self, header: &BinaryHeader) -> Option<InterpreterInfo> {
         self.interpreter_lookups += 1;
         if header.has_interp {
@@ -216,6 +230,7 @@ impl AppBinfmtMgr {
         } else { None }
     }
 
+    #[inline]
     pub fn stats(&self) -> BinfmtMgrStats {
         BinfmtMgrStats {
             total_execs: self.total_execs,
