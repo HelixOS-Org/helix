@@ -48,6 +48,7 @@ impl Default for ActConfig {
 
 impl ActConfig {
     /// Create minimal configuration
+    #[inline]
     pub fn minimal() -> Self {
         Self {
             enable_transactions: false,
@@ -58,6 +59,7 @@ impl ActConfig {
     }
 
     /// Create safe configuration
+    #[inline]
     pub fn safe() -> Self {
         Self {
             enable_transactions: true,
@@ -117,46 +119,55 @@ impl ActDomain {
     }
 
     /// Get domain ID
+    #[inline(always)]
     pub fn id(&self) -> DomainId {
         self.id
     }
 
     /// Is running?
+    #[inline(always)]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Acquire)
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &ActConfig {
         &self.config
     }
 
     /// Get validator
+    #[inline(always)]
     pub fn validator(&self) -> &PreValidator {
         &self.validator
     }
 
     /// Get mutable validator
+    #[inline(always)]
     pub fn validator_mut(&mut self) -> &mut PreValidator {
         &mut self.validator
     }
 
     /// Get audit logger
+    #[inline(always)]
     pub fn audit(&self) -> &AuditLogger {
         &self.audit
     }
 
     /// Get effector registry
+    #[inline(always)]
     pub fn effectors(&self) -> &EffectorRegistry {
         &self.effectors
     }
 
     /// Get mutable effector registry
+    #[inline(always)]
     pub fn effectors_mut(&mut self) -> &mut EffectorRegistry {
         &mut self.effectors
     }
 
     /// Start the domain
+    #[inline]
     pub fn start(&mut self) -> Result<(), ActError> {
         if self.running.load(Ordering::Acquire) {
             return Err(ActError::AlreadyRunning);
@@ -166,6 +177,7 @@ impl ActDomain {
     }
 
     /// Stop the domain
+    #[inline]
     pub fn stop(&mut self) -> Result<(), ActError> {
         if !self.running.load(Ordering::Acquire) {
             return Err(ActError::NotRunning);
@@ -175,16 +187,19 @@ impl ActDomain {
     }
 
     /// Submit an intent for execution
+    #[inline(always)]
     pub fn submit(&mut self, intent: Intent) {
         self.pending.push(intent);
     }
 
     /// Submit multiple intents
+    #[inline(always)]
     pub fn submit_batch(&mut self, intents: Vec<Intent>) {
         self.pending.extend(intents);
     }
 
     /// Get pending count
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending.len()
     }
@@ -315,6 +330,7 @@ impl ActDomain {
     }
 
     /// Execute intent immediately
+    #[inline(always)]
     pub fn execute(&mut self, intent: &Intent, now: Timestamp) -> Option<Effect> {
         self.execute_intent(intent, now)
     }
@@ -348,6 +364,7 @@ impl Default for ActDomain {
 
 /// Act domain statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ActStats {
     /// Domain ID
     pub domain_id: DomainId,
@@ -396,6 +413,7 @@ pub enum ActError {
 
 impl ActError {
     /// Get error message
+    #[inline]
     pub fn message(&self) -> &str {
         match self {
             Self::AlreadyRunning => "Domain already running",
