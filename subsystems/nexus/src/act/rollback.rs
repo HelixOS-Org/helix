@@ -11,6 +11,7 @@ extern crate alloc;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -121,7 +122,7 @@ pub struct RollbackManager {
     /// Checkpoints
     checkpoints: BTreeMap<u64, Checkpoint>,
     /// Action history
-    history: Vec<ActionRecord>,
+    history: VecDeque<ActionRecord>,
     /// Undo stack
     undo_stack: Vec<UndoOperation>,
     /// Redo stack
@@ -177,7 +178,7 @@ impl RollbackManager {
                 metadata: BTreeMap::new(),
             },
             checkpoints: BTreeMap::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             next_id: AtomicU64::new(1),
@@ -226,7 +227,7 @@ impl RollbackManager {
             reversible: true,
         };
 
-        self.history.push(record);
+        self.history.push_back(record);
         self.stats.actions_recorded += 1;
 
         // Apply to current state
@@ -239,7 +240,7 @@ impl RollbackManager {
 
         // Cleanup old history
         while self.history.len() > self.config.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
 
         // Auto checkpoint
@@ -256,7 +257,7 @@ impl RollbackManager {
 
         if !record.reversible {
             // Put it back
-            self.history.push(record);
+            self.history.push_back(record);
             return None;
         }
 
