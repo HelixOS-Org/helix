@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -163,7 +164,7 @@ pub struct WorkingSetTracker {
     /// Previous size
     prev_size: u64,
     /// History
-    history: Vec<u64>,
+    history: VecDeque<u64>,
     /// Max history
     max_history: usize,
 }
@@ -175,7 +176,7 @@ impl WorkingSetTracker {
             window_ns,
             last_reset: 0,
             prev_size: 0,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 64,
         }
     }
@@ -209,9 +210,9 @@ impl WorkingSetTracker {
 
         let elapsed = now.saturating_sub(self.last_reset);
         if elapsed >= self.window_ns {
-            self.history.push(pages);
+            self.history.push_back(pages);
             if self.history.len() > self.max_history {
-                self.history.remove(0);
+                self.history.pop_front();
             }
             self.prev_size = pages;
             self.page_counts.clear();
@@ -339,7 +340,7 @@ impl PollutionDetector {
         let history = self.eviction_rates.entry(key).or_insert_with(Vec::new);
         history.push(evictions);
         if history.len() > self.max_history {
-            history.remove(0);
+            history.pop_front();
         }
     }
 
