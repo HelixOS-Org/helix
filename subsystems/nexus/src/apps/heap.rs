@@ -32,6 +32,7 @@ pub enum AllocSizeClass {
 }
 
 impl AllocSizeClass {
+    #[inline]
     pub fn from_size(size: usize) -> Self {
         match size {
             0..=64 => Self::Tiny,
@@ -112,6 +113,7 @@ impl AllocHistogram {
     }
 
     /// Peak bucket (most common size range)
+    #[inline]
     pub fn peak_bucket(&self) -> usize {
         let mut max_idx = 0;
         let mut max_val = 0;
@@ -125,6 +127,7 @@ impl AllocHistogram {
     }
 
     /// Percentage in bucket
+    #[inline]
     pub fn bucket_pct(&self, bucket: usize) -> f64 {
         if self.total == 0 || bucket >= 24 {
             return 0.0;
@@ -183,6 +186,7 @@ impl FragmentationInfo {
     }
 
     /// Overall fragmentation score (0-1)
+    #[inline(always)]
     pub fn score(&self) -> f64 {
         (self.internal_frag + self.external_frag) / 2.0
     }
@@ -240,6 +244,7 @@ impl CallsiteProfile {
     }
 
     /// Record allocation
+    #[inline]
     pub fn record_alloc(&mut self, size: usize, now: u64) {
         self.total_allocs += 1;
         self.outstanding_bytes += size as u64;
@@ -250,17 +255,20 @@ impl CallsiteProfile {
     }
 
     /// Record free
+    #[inline(always)]
     pub fn record_free(&mut self, size: usize) {
         self.total_frees += 1;
         self.outstanding_bytes = self.outstanding_bytes.saturating_sub(size as u64);
     }
 
     /// Outstanding allocation count
+    #[inline(always)]
     pub fn outstanding_count(&self) -> u64 {
         self.total_allocs.saturating_sub(self.total_frees)
     }
 
     /// Growth rate
+    #[inline]
     pub fn growth_rate(&self, now: u64) -> f64 {
         let elapsed_ns = now.saturating_sub(self.first_seen);
         if elapsed_ns == 0 {
@@ -271,6 +279,7 @@ impl CallsiteProfile {
     }
 
     /// Is likely leak?
+    #[inline]
     pub fn is_likely_leak(&self, now: u64) -> bool {
         let outstanding = self.outstanding_count();
         let elapsed = now.saturating_sub(self.first_seen);
@@ -335,6 +344,7 @@ impl ProcessHeapProfile {
     }
 
     /// Record free
+    #[inline]
     pub fn record_free(&mut self, size: usize, callsite: u64) {
         self.live_allocs = self.live_allocs.saturating_sub(1);
         self.live_bytes = self.live_bytes.saturating_sub(size as u64);
@@ -382,6 +392,7 @@ impl ProcessHeapProfile {
     }
 
     /// Top allocation callsites
+    #[inline]
     pub fn top_callsites(&self, limit: usize) -> Vec<(u64, u64)> {
         let mut sites: Vec<_> = self
             .callsites
@@ -400,6 +411,7 @@ impl ProcessHeapProfile {
 
 /// Heap stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppHeapStats {
     /// Processes tracked
     pub processes: usize,
@@ -426,6 +438,7 @@ impl AppHeapAnalyzer {
     }
 
     /// Record allocation
+    #[inline]
     pub fn record_alloc(&mut self, pid: u64, size: usize, callsite: u64, now: u64) {
         let profile = self
             .profiles
@@ -437,6 +450,7 @@ impl AppHeapAnalyzer {
     }
 
     /// Record free
+    #[inline]
     pub fn record_free(&mut self, pid: u64, size: usize, callsite: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_free(size, callsite);
@@ -445,11 +459,13 @@ impl AppHeapAnalyzer {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessHeapProfile> {
         self.profiles.get(&pid)
     }
 
     /// Detect all leaks
+    #[inline]
     pub fn detect_leaks(&self, now: u64) -> Vec<(u64, Vec<PotentialLeak>)> {
         let mut result = Vec::new();
         for profile in self.profiles.values() {
@@ -462,6 +478,7 @@ impl AppHeapAnalyzer {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppHeapStats {
         &self.stats
     }
