@@ -10,6 +10,8 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -29,7 +31,7 @@ pub struct NumaNode {
     /// CPU cores on this node
     pub cores: Vec<u32>,
     /// Distance to other nodes (node_id -> distance)
-    pub distances: BTreeMap<u32, u32>,
+    pub distances: ArrayMap<u32, 32>,
 }
 
 impl NumaNode {
@@ -39,11 +41,12 @@ impl NumaNode {
             total_memory,
             free_memory: total_memory,
             cores: Vec::new(),
-            distances: BTreeMap::new(),
+            distances: ArrayMap::new(0),
         }
     }
 
     /// Memory utilization
+    #[inline]
     pub fn memory_utilization(&self) -> f64 {
         if self.total_memory == 0 {
             return 0.0;
@@ -52,14 +55,16 @@ impl NumaNode {
     }
 
     /// Distance to another node
+    #[inline]
     pub fn distance_to(&self, other: u32) -> u32 {
         if other == self.id {
             return 10; // local
         }
-        *self.distances.get(&other).unwrap_or(&20)
+        *self.distances.try_get(other as usize).unwrap_or(&20)
     }
 
     /// Number of cores
+    #[inline(always)]
     pub fn core_count(&self) -> usize {
         self.cores.len()
     }
@@ -71,18 +76,19 @@ pub struct NumaTopology {
     /// Nodes
     pub nodes: BTreeMap<u32, NumaNode>,
     /// Core to node mapping
-    core_to_node: BTreeMap<u32, u32>,
+    core_to_node: ArrayMap<u32, 32>,
 }
 
 impl NumaTopology {
     pub fn new() -> Self {
         Self {
             nodes: BTreeMap::new(),
-            core_to_node: BTreeMap::new(),
+            core_to_node: ArrayMap::new(0),
         }
     }
 
     /// Add a node
+    #[inline]
     pub fn add_node(&mut self, node: NumaNode) {
         for &core in &node.cores {
             self.core_to_node.insert(core, node.id);
@@ -91,16 +97,19 @@ impl NumaTopology {
     }
 
     /// Get node for a core
+    #[inline(always)]
     pub fn node_for_core(&self, core: u32) -> Option<u32> {
-        self.core_to_node.get(&core).copied()
+        self.core_to_node.try_get(core as usize).copied()
     }
 
     /// Total nodes
+    #[inline(always)]
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
 
     /// Distance between two nodes
+    #[inline]
     pub fn distance(&self, from: u32, to: u32) -> u32 {
         if from == to {
             return 10;
@@ -129,13 +138,14 @@ pub enum NumaAccessType {
 
 /// NUMA access counters per process
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NumaAccessCounters {
     /// Local accesses
     pub local_accesses: u64,
     /// Remote accesses
     pub remote_accesses: u64,
     /// Remote access breakdown by node
-    pub remote_by_node: BTreeMap<u32, u64>,
+    pub remote_by_node: ArrayMap<u64, 32>,
     /// Page migrations
     pub page_migrations: u64,
     /// Migration cost (ns)
@@ -144,6 +154,7 @@ pub struct NumaAccessCounters {
 
 impl NumaAccessCounters {
     /// Locality ratio (local / total)
+    #[inline]
     pub fn locality_ratio(&self) -> f64 {
         let total = self.local_accesses + self.remote_accesses;
         if total == 0 {
@@ -153,6 +164,7 @@ impl NumaAccessCounters {
     }
 
     /// Remote ratio
+    #[inline(always)]
     pub fn remote_ratio(&self) -> f64 {
         1.0 - self.locality_ratio()
     }
@@ -166,13 +178,14 @@ impl NumaAccessCounters {
             NumaAccessType::Remote1Hop | NumaAccessType::RemoteMultiHop => {
                 self.remote_accesses += 1;
                 if let Some(node) = remote_node {
-                    *self.remote_by_node.entry(node).or_insert(0) += 1;
+                    self.remote_by_node.add(node as usize, 1);
                 }
             }
         }
     }
 
     /// Most accessed remote node
+    #[inline]
     pub fn most_accessed_remote_node(&self) -> Option<u32> {
         self.remote_by_node
             .iter()
@@ -195,9 +208,9 @@ pub struct ProcessNumaProfile {
     /// Access counters per node
     pub access_counters: BTreeMap<u32, NumaAccessCounters>,
     /// Memory pages per node
-    pub memory_per_node: BTreeMap<u32, u64>,
+    pub memory_per_node: ArrayMap<u64, 32>,
     /// Thread placement (thread_id -> node)
-    pub thread_nodes: BTreeMap<u64, u32>,
+    pub thread_nodes: LinearMap<u32, 64>,
     /// Locality score (0.0-1.0)
     pub locality_score: f64,
 }
@@ -208,13 +221,14 @@ impl ProcessNumaProfile {
             pid,
             home_node,
             access_counters: BTreeMap::new(),
-            memory_per_node: BTreeMap::new(),
-            thread_nodes: BTreeMap::new(),
+            memory_per_node: ArrayMap::new(0),
+            thread_nodes: LinearMap::new(),
             locality_score: 1.0,
         }
     }
 
     /// Record access from a node
+    #[inline]
     pub fn record_access(
         &mut self,
         from_node: u32,
@@ -229,16 +243,19 @@ impl ProcessNumaProfile {
     }
 
     /// Allocate memory on node
+    #[inline(always)]
     pub fn allocate_on_node(&mut self, node: u32, pages: u64) {
-        *self.memory_per_node.entry(node).or_insert(0) += pages;
+        self.memory_per_node.add(node as usize, pages);
     }
 
     /// Total memory (pages)
+    #[inline(always)]
     pub fn total_pages(&self) -> u64 {
         self.memory_per_node.values().sum()
     }
 
     /// Memory fraction on home node
+    #[inline]
     pub fn home_node_fraction(&self) -> f64 {
         let total = self.total_pages();
         if total == 0 {
@@ -266,6 +283,7 @@ impl ProcessNumaProfile {
     }
 
     /// Place thread on node
+    #[inline(always)]
     pub fn place_thread(&mut self, thread_id: u64, node: u32) {
         self.thread_nodes.insert(thread_id, node);
     }
@@ -309,6 +327,7 @@ pub enum PlacementReason {
 
 /// NUMA analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppNumaStats {
     /// Tracked processes
     pub process_count: usize,
@@ -345,6 +364,7 @@ impl AppNumaAnalyzer {
     }
 
     /// Register process
+    #[inline]
     pub fn register_process(&mut self, pid: u64, home_node: u32) {
         self.profiles
             .insert(pid, ProcessNumaProfile::new(pid, home_node));
@@ -438,21 +458,25 @@ impl AppNumaAnalyzer {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessNumaProfile> {
         self.profiles.get(&pid)
     }
 
     /// Get recommendations
+    #[inline(always)]
     pub fn recommendations(&self) -> &[PlacementRecommendation] {
         &self.recommendations
     }
 
     /// Topology
+    #[inline(always)]
     pub fn topology(&self) -> &NumaTopology {
         &self.topology
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppNumaStats {
         &self.stats
     }
