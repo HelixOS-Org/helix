@@ -85,16 +85,19 @@ impl AuditRecord {
         }
     }
 
+    #[inline(always)]
     pub fn with_object(mut self, object: String) -> Self {
         self.object = object;
         self
     }
 
+    #[inline(always)]
     pub fn with_details(mut self, details: String) -> Self {
         self.details = details;
         self
     }
 
+    #[inline]
     pub fn with_creds(mut self, uid: u32, gid: u32) -> Self {
         self.uid = uid;
         self.gid = gid;
@@ -193,6 +196,7 @@ impl AuditFilter {
 
 /// Per-process audit state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessAuditState {
     pub pid: u64,
     pub audit_enabled: bool,
@@ -214,12 +218,14 @@ impl ProcessAuditState {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, category: AuditCategory, timestamp_ns: u64) {
         self.record_count += 1;
         self.last_record_ns = timestamp_ns;
         *self.per_category.entry(category as u8).or_insert(0) += 1;
     }
 
+    #[inline(always)]
     pub fn rate_per_second(&self, elapsed_ns: u64) -> f64 {
         if elapsed_ns == 0 { return 0.0; }
         self.record_count as f64 / (elapsed_ns as f64 / 1_000_000_000.0)
@@ -228,6 +234,7 @@ impl ProcessAuditState {
 
 /// Audit trail stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AuditTrailStats {
     pub total_records: u64,
     pub total_alerts: u64,
@@ -268,6 +275,7 @@ impl AppAuditTrail {
         }
     }
 
+    #[inline]
     pub fn register_process(&mut self, pid: u64) {
         if !self.processes.contains_key(&pid) {
             self.processes.insert(pid, ProcessAuditState::new(pid));
@@ -275,6 +283,7 @@ impl AppAuditTrail {
         }
     }
 
+    #[inline(always)]
     pub fn add_filter(&mut self, filter: AuditFilter) {
         self.filters.push(filter);
     }
@@ -321,18 +330,22 @@ impl AppAuditTrail {
         Some(seq)
     }
 
+    #[inline(always)]
     pub fn query_by_pid(&self, pid: u64, max: usize) -> Vec<&AuditRecord> {
         self.records.iter().filter(|r| r.pid == pid).rev().take(max).collect()
     }
 
+    #[inline(always)]
     pub fn query_by_category(&self, cat: AuditCategory, max: usize) -> Vec<&AuditRecord> {
         self.records.iter().filter(|r| r.category == cat).rev().take(max).collect()
     }
 
+    #[inline(always)]
     pub fn query_by_severity(&self, min_sev: AuditSeverity, max: usize) -> Vec<&AuditRecord> {
         self.records.iter().filter(|r| r.severity >= min_sev).rev().take(max).collect()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AuditTrailStats {
         &self.stats
     }
