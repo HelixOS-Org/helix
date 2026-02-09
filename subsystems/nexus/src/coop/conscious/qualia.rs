@@ -109,7 +109,13 @@ impl QualiaState {
         let positive = self.harmony * HARMONY_WEIGHT + self.solidarity * SOLIDARITY_WEIGHT;
         let negative = self.friction * FRICTION_WEIGHT + self.tension * TENSION_WEIGHT;
         let raw = positive - negative;
-        self.quality = if raw < -1.0 { -1.0 } else if raw > 1.0 { 1.0 } else { raw };
+        self.quality = if raw < -1.0 {
+            -1.0
+        } else if raw > 1.0 {
+            1.0
+        } else {
+            raw
+        };
     }
 }
 
@@ -157,7 +163,15 @@ impl ProcessQualia {
         tension: f32,
         tick: u64,
     ) {
-        let clamp = |v: f32| if v < 0.0 { 0.0 } else if v > 1.0 { 1.0 } else { v };
+        let clamp = |v: f32| {
+            if v < 0.0 {
+                0.0
+            } else if v > 1.0 {
+                1.0
+            } else {
+                v
+            }
+        };
         self.harmony_contribution += EMA_ALPHA * (clamp(harmony) - self.harmony_contribution);
         self.friction_contribution += EMA_ALPHA * (clamp(friction) - self.friction_contribution);
         self.solidarity_score += EMA_ALPHA * (clamp(solidarity) - self.solidarity_score);
@@ -291,7 +305,8 @@ impl CoopQualiaEngine {
             if self.process_qualia.len() >= MAX_PROCESS_QUALIA {
                 self.evict_stale_process();
             }
-            self.process_qualia.insert(process_id, ProcessQualia::new(process_id));
+            self.process_qualia
+                .insert(process_id, ProcessQualia::new(process_id));
         }
 
         let tick = self.tick;
@@ -420,7 +435,9 @@ impl CoopQualiaEngine {
 
     /// Processes contributing most to friction
     pub fn friction_sources(&self) -> Vec<(u64, f32)> {
-        let mut sources: Vec<(u64, f32)> = self.process_qualia.iter()
+        let mut sources: Vec<(u64, f32)> = self
+            .process_qualia
+            .iter()
             .map(|(pid, pq)| (*pid, pq.friction_contribution))
             .collect();
         sources.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
@@ -534,8 +551,14 @@ impl CoopQualiaEngine {
 
     /// Prune stale process qualia
     pub fn prune_stale(&mut self, max_age: u64) {
-        let cutoff = if self.tick > max_age { self.tick - max_age } else { 0 };
-        let stale: Vec<u64> = self.process_qualia.iter()
+        let cutoff = if self.tick > max_age {
+            self.tick - max_age
+        } else {
+            0
+        };
+        let stale: Vec<u64> = self
+            .process_qualia
+            .iter()
             .filter(|(_, pq)| pq.last_update_tick < cutoff)
             .map(|(k, _)| *k)
             .collect();
