@@ -316,9 +316,6 @@ pub mod wait_coop;
 // Re-export new module types
 pub use advisory::{Advisory, AdvisoryCategory, AdvisoryEngine, AdvisoryType, AdvisoryUrgency};
 // Round 9 re-exports
-    AntiEntropyV2Stats, ConvergenceMetric, CoopAntiEntropyV2, Divergence, MerkleNode,
-    PeerEntropyState, RepairMode, RepairTask, RepairTaskState,
-};
 // Round 3 re-exports
 pub use arbitrate::{
     CoopArbitrationManager, CoopArbitrationStats, Dispute, DisputeCategory, DisputeEvidence,
@@ -390,12 +387,6 @@ pub use conflict_resolver::{
 pub use consensus::{
     ConsensusAlgorithm, CoopConsensusManager, CoopConsensusStats, Proposal, ProposalState,
     ProposalType, VoteRecord, VoteType,
-};
-    ConsensusProto, CoopConsensusV2, CoopConsensusV2Stats, LogEntry, RaftNode, RaftState,
-    TwoPhaseState, TwoPhaseTransaction,
-};
-    AppendRequest, ConsensusNode, ConsensusRole, CoopConsensusV3, CoopConsensusV3Stats,
-    LogEntry as ConsensusV3LogEntry, VoteRequest, VoteResponse,
 };
 pub use contract::{
     BreachParty, BreachSeverity, Contract as CoopContract, ContractBreach, ContractManagerStats,
@@ -578,8 +569,6 @@ pub use reservation::{
     Reservation, ReservationPriority, ReservationState as CoopReservationState, ResourceCapacity,
     ResourceRequest,
 };
-    CoopResourcePoolV2, CoopResourcePoolV2Stats, PoolObject, PoolObjectState, PoolSlab, PoolTier,
-};
 pub use rewards::{
     CoopLevel, PenaltyReason, RewardConfig, RewardEngine, RewardReason, ScoreEvent, ScoreSnapshot,
 };
@@ -617,9 +606,6 @@ pub use state_transfer::{
 pub use task_graph::{
     CoopTaskGraph, CriticalPathSegment, ExecLevel, FailurePolicy, GraphStats, GraphTask,
     GraphTaskPriority, GraphTaskStatus,
-};
-    AdaptiveSampler, CoopTelemetryV2, CoopTelemetryV2Stats, MetricAggregation, MetricKind,
-    MetricPoint, SpanStatus, TraceContext, TraceSpan,
 };
 pub use throttle_coop::{
     BackpressureSignal, CoopThrottleManager, CoopThrottleStats, CoopTokenBucket,
@@ -679,12 +665,6 @@ pub use flow_control::{
     CongestionSignal, CongestionWindow, CoopFlowControl, CreditCounter,
     FlowChannel, FlowControlStats, FlowState,
 };
-    CoopGossipV2, DigestEntry, GossipMsgType, GossipPeer, GossipV2Stats,
-    LivenessState, Rumor,
-};
-    CoopLeaseMgrV2, LeaseEvent, LeaseEventType, LeaseMgrStats,
-    LeaseRecord, LeaseRequest, LeaseState as LeaseMgrState, LeaseType as LeaseMgrType,
-};
 pub use merkle_tree::{
     CoopMerkleTree, DiffType as MerkleDiffType, MerkleDiff, MerkleNode as MerkleTreeNode,
     MerkleProof, MerkleTreeStats, ProofStep,
@@ -719,9 +699,6 @@ pub use epoch_mgr::{
     AdvanceResult, CleanupType, CoopEpochMgr, DeferredCleanup, EpochMgrStats,
     EpochParticipant, ParticipantState as EpochParticipantState,
 };
-    ArrivalWindow, CoopHeartbeatV2, HeartbeatStatus, HeartbeatV2Stats,
-    PeerHeartbeat,
-};
 pub use id_gen::{
     CoopIdGen, IdFormat, IdGenStats, NamespaceGenerator, NodeRegistration as IdNodeRegistration,
     SnowflakeId,
@@ -754,16 +731,9 @@ pub use write_ahead_log::{
 };
 
 // Round 12 re-exports
-    ArrivalState, BarrierInstance as BarrierV2Instance, BarrierParticipant,
-    BarrierType as BarrierV2Type, BarrierV2Stats, CoopBarrierV2,
-};
 pub use broadcast::{
     BroadcastMsg, BroadcastPriority, BroadcastStats, BroadcastTopic,
     CoopBroadcast, DeliveryGuarantee, Subscriber as BroadcastSubscriber,
-};
-    ChannelInstance, ChannelMsg, ChannelReceiver, ChannelSender,
-    ChannelState as ChannelV2State, ChannelType as ChannelV2Type,
-    ChannelV2Stats, CoopChannelV2,
 };
 pub use coop_alloc::{
     AllocClass, ClassBucket, CoopAlloc, CoopAllocRecord, CoopAllocStats,
@@ -786,9 +756,6 @@ pub use mpsc_queue::{
     Consumer as MpscConsumer, CoopMpscQueue, MpscInstance,
     MpscStats, MsgPriority, OverflowAction, Producer as MpscProducer,
     QueueMsg,
-};
-    CoopRcuV2, CpuRcuState, GracePeriod as RcuGracePeriod,
-    GracePeriodState, RcuCallback, RcuFlavor, RcuV2Stats, SrcuDomain,
 };
 pub use seqlock::{
     CoopSeqlock, ReadOutcome, Seqcount, Seqlock,
@@ -851,9 +818,6 @@ pub use throttle_gate::{
 };
 
 // Round 14 re-exports
-    BackpressureV2Stats, BpEvent, BpLevel, BpSource, BpStrategy,
-    CoopBackpressureV2, FlowState as BpFlowState,
-};
 pub use credit_flow::{
     CoopCreditFlow, CreditEndpoint, CreditFlowState, CreditFlowStats,
     CreditGrant, CreditType,
@@ -874,9 +838,6 @@ pub use heartbeat_mgr::{
 pub use join_handle::{
     CoopJoinHandle, JoinGroup, JoinHandle, JoinHandleStats,
     JoinResult, JoinState,
-};
-    CoopLoadShedV2, LoadLevel, LoadShedV2Stats, LoadShedder,
-    ShedDecision as ShedV2Decision, ShedPolicy, ShedRequest, ShedTier,
 };
 pub use merge_sort::{
     CoopMergeSort, MergeSortStats, MergeTask, SortOrder, SortSession,
@@ -913,19 +874,9 @@ pub use dependency_graph::{
     CoopDependencyGraph, CycleInfo, DepEdge, DepEdgeType, DepGraphStats,
     DepNode, DepNodeType,
 };
-    CoopEpochMgrV2, EpochV2, EpochV2MgrStats, EpochV2Thread, GarbageEntry,
-};
-    CoopHazardPtrV2, HazardPointerV2, HazardPtrV2Stats, HpState,
-    HpThreadV2, RetiredNodeV2,
-};
 pub use quorum_mgr::{
     CoopQuorumMgr, QuorumMember, QuorumMgrStats, QuorumProposal,
     QuorumType, VoteResult,
-};
-    CoopRingBufferV2, RingBufferV2Instance, RingBufferV2Stats,
-    RingEntry, RingStateV2,
-};
-    CoopSemaphoreV2, SemTypeV2, SemWaiter, SemaphoreV2, SemaphoreV2Stats,
 };
 pub use work_stealing::{
     CoopWorkStealing, WorkStealingStats, WorkerQueue, WsTask,
@@ -938,11 +889,6 @@ pub use broadcast_chan::{
     BroadcastMsg as BroadcastChanMsg,
     BroadcastState as BroadcastChanState,
     BroadcastSubscriber as BroadcastChanSubscriber,
-};
-    CoopFairLockV2, FairLockV2, FairLockV2Stats, McsNode, McsNodeState,
-};
-    CoopJoinHandleV2, JoinHandleV2, JoinHandleV2Stats,
-    JoinResultV2, JoinStateV2,
 };
 pub use latch_mgr::{
     CoopLatchMgr, CountdownLatch, LatchMgrStats, LatchState,
@@ -974,18 +920,12 @@ pub use async_barrier::{
     AsyncBarrier, AsyncBarrierPhase, AsyncBarrierStats,
     AsyncWaiter, CoopAsyncBarrier,
 };
-    ConsensusV2State, ConsensusV2Stats, CoopConsensusMgrV2,
-    ProposalV2, VoteV2,
-};
 pub use epoch_gc::{
     CoopEpochGc, DeferredItem, EpochCollector, EpochGcStats,
     EpochState as EpochGcState, ThreadEpochRecord,
 };
 pub use fair_sched::{
     CoopFairSched, FairSchedClass, FairSchedStats, FairTask,
-};
-    CoopHazardPtrV3, HazardDomainV3, HazardPtrV3Stats,
-    HazardSlot as HazardSlotV3, HazardSlotState, RetiredObjV3,
 };
 pub use lock_free_list::{
     CoopLockFreeList, LfNode, LfNodeState, LockFreeList,
@@ -995,24 +935,11 @@ pub use phase_barrier::{
     CoopPhaseBarrier, PhaseBarrier, PhaseBarrierStats,
     PhaseParticipant, PhaseState,
 };
-    CoopQuorumMgrV2, MemberStatusV2, QuorumConfigV2,
-    QuorumMemberV2, QuorumMgrV2Stats, QuorumTypeV2,
-};
 pub use rcu_sync::{
     CoopRcuSync, GracePeriodTracker, RcuReader, RcuReaderState,
     RcuSyncCallback as RcuSyncCb, RcuSyncStats,
 };
-    CoopRendezvousV2, RendezvousChannelV2, RendezvousEndpointV2,
-    RendezvousStateV2, RendezvousV2Stats,
-};
-    CoopWorkStealingV2, StealPriority as StealPriorityV2,
-    StealTask as StealTaskV2, WorkStealingV2Stats,
-    WorkerDeque as WorkerDequeV2,
-};
 // Round 18 re-exports
-    AdaptiveLockEntryV2, AdaptiveLockV2Stats, ContentionLevelV2,
-    CoopAdaptiveLockV2, LockStrategyV2,
-};
 pub use backoff::{
     BackoffState, BackoffStats, BackoffStrategy as CoopBackoffStrategy,
     CoopBackoff,
@@ -1025,9 +952,6 @@ pub use countdown::{
     CoopCountdown, CountdownLatch as CoopCountdownLatch,
     CountdownState, CountdownStats,
 };
-    BusEventV2, BusSubscriberV2, CoopEventBusV2,
-    EventBusPriority as EventBusV2Priority, EventBusV2Stats,
-};
 pub use futex::{
     CoopFutex, CoopFutexBucket, CoopFutexOp, CoopFutexStats,
     CoopFutexWaiter,
@@ -1035,17 +959,6 @@ pub use futex::{
 pub use latch::{
     CoopLatch, Latch, LatchState as CoopLatchState,
     LatchStats,
-};
-    CoopPriorityQueueV2, PriorityItemV2, PriorityLevelV2,
-    PriorityQueueV2, PriorityQueueV2Stats,
-};
-    CoopRingBufferV3, RingBufferV3, RingBufferV3Stats,
-    RingEntryV3, RingSlotStateV3,
-};
-    CoopSeqlockV2, SeqlockV2, SeqlockV2State, SeqlockV2Stats,
-};
-    CoopTicketLockV2, TicketLockV2, TicketLockV2State,
-    TicketLockV2Stats,
 };
 // Round 19 re-exports
 pub use async_oneshot::{
@@ -1075,39 +988,11 @@ pub use park::{
     CoopPark, ParkState as CoopParkState, ParkStats,
     ParkedThread as CoopParkedThread,
 };
-    CoopRendezvousV3, RendezvousV3Participant,
-    RendezvousV3Point, RendezvousV3State, RendezvousV3Stats,
-};
-    CoopSemaphoreV3, SemV3Waiter, SemaphoreV3,
-    SemaphoreV3State, SemaphoreV3Stats,
-};
 pub use spin_barrier::{
     BarrierPhase, CoopSpinBarrier, SpinBarrier,
     SpinBarrierStats,
 };
-    CoopWaitQueueV2, WaitQueueV2, WaitQueueV2Stats,
-    WqV2Entry, WqV2EntryState,
-};
 // Round 20 re-exports
-    CondvarV2Instance, CondvarV2Result, CondvarV2Stats,
-    CondvarV2Waiter, CoopCondvarV2,
-};
-    CoopEventBusV3, EventBusV3Stats, EventV3Delivery,
-    EventV3Message, EventV3Priority, EventV3Subscriber,
-    EventV3Topic,
-};
-    CoopFutexOp, CoopFutexV2, CoopFutexV2Instance,
-    CoopFutexV2Stats, CoopFutexWaiter,
-};
-    CoopLatchV2, LatchV2Instance, LatchV2State,
-    LatchV2Stats,
-};
-    CoopPhaseBarrierV2, PhaseBarrierV2Instance,
-    PhaseBarrierV2Stats, PhaseV2Participant, PhaseV2State,
-};
-    CoopPriorityLevel, CoopPriorityV2, PriorityBoostReason,
-    PriorityV2CoopStats, PriorityV2Task,
-};
 pub use read_indicator::{
     CoopReadIndicator, ReadIndicatorInstance,
     ReadIndicatorSlot, ReadIndicatorState, ReadIndicatorStats,
@@ -1120,23 +1005,10 @@ pub use sequence_lock::{
     CoopSeqlock, SeqlockInstance, SeqlockState,
     SeqlockStats,
 };
-    CoopTicketLockV3, TicketLockV3Instance,
-    TicketLockV3Stats, TicketV3State,
-};
-    CoopTokenRingV2, TokenRingV2Instance,
-    TokenRingV2Stats, TokenV2Participant, TokenV2State,
-};
 // Round 21 re-exports
 pub use clh_lock::{
     ClhLockInstance, ClhLockStats, ClhNode,
     ClhNodeState, CoopClhLock,
-};
-    CondvarV3Instance, CondvarV3MorphTarget,
-    CondvarV3Stats, CondvarV3WaitResult,
-    CondvarV3Waiter, CoopCondvarV3,
-};
-    CoopFutexV3, FutexV3Instance, FutexV3Op,
-    FutexV3Result, FutexV3Stats, FutexV3Waiter,
 };
 pub use lockdep::{
     CoopLockdep, LockdepClass, LockdepHoldStack,
@@ -1152,22 +1024,9 @@ pub use rcu_reader::{
     RcuCpuState, RcuFlavor as RcuReaderFlavor,
     RcuReaderState as RcuReaderCpuState, RcuReaderStats,
 };
-    CoopRwLockV2, RwLockV2Fairness, RwLockV2Instance,
-    RwLockV2State, RwLockV2Stats,
-};
-    CoopSemaphoreV4, SemaphoreV4Instance,
-    SemaphoreV4Priority, SemaphoreV4Result,
-    SemaphoreV4Stats, SemaphoreV4Waiter,
-};
-    CoopSeqlockV3, SeqlockV3Instance, SeqlockV3ReaderStats,
-    SeqlockV3State, SeqlockV3Stats, SeqlockV3Variant,
-};
 pub use spinlock::{
     CoopSpinlock, SpinBackoff, SpinlockInstance,
     SpinlockState, SpinlockStats,
-};
-    CoopTicketLockV4, TicketV4BackoffMode,
-    TicketV4Instance, TicketV4State, TicketV4Stats,
 };
 // Round 22 re-exports
 pub use dual_queue::{
@@ -1178,9 +1037,6 @@ pub use elim_stack::{
     CoopElimStack, ElimArrayConfig, ElimOpType,
     ElimSlot, ElimSlotState, ElimStackStats,
 };
-    CoopEpochMgrV3, EpochV3Garbage, EpochV3GcPolicy,
-    EpochV3State, EpochV3Stats, EpochV3ThreadState,
-};
 pub use exchanger::{
     CoopExchanger, ExchangeResult, ExchangeSlot,
     ExchangeSlotState, ExchangerArena, ExchangerStats,
@@ -1189,10 +1045,6 @@ pub use flat_combine::{
     CoopFlatCombine, FlatCombineOpType, FlatCombineRequest,
     FlatCombineRound, FlatCombineSlot, FlatCombineState,
     FlatCombineStats,
-};
-    CoopHazardPtrV4, HazardV4Domain, HazardV4Pointer,
-    HazardV4RetiredNode, HazardV4State, HazardV4Stats,
-    HazardV4ThreadState,
 };
 pub use michael_scott_queue::{
     CoopMichaelScottQueue, MsQueueNode, MsQueueOpResult,
@@ -1210,9 +1062,6 @@ pub use wait_free::{
     CoopWaitFree, WaitFreeAnnouncement, WaitFreeOpType,
     WaitFreeProgress, WaitFreeRegister, WaitFreeStats,
     WaitFreeThreadState,
-};
-    CoopWorkStealV2, WorkStealV2Deque, WorkStealV2Policy,
-    WorkStealV2Stats, WorkStealV2Task, WorkStealV2TaskState,
 };
 // Round 23 re-exports
 pub use tcp_coop::{
