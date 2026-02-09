@@ -231,11 +231,7 @@ impl CoopSynthesis {
         }
 
         // Compute initial composite score estimate
-        let fairness_est = params
-            .iter()
-            .map(|p| p.value)
-            .sum::<f32>()
-            / params.len().max(1) as f32;
+        let fairness_est = params.iter().map(|p| p.value).sum::<f32>() / params.len().max(1) as f32;
         let throughput_est = xorshift_f32(&mut self.rng_state) * 0.3 + 0.5;
         let latency_est = xorshift_f32(&mut self.rng_state) * 0.2 + 0.3;
         let composite = fairness_est * 0.45 + throughput_est * 0.35 + (1.0 - latency_est) * 0.20;
@@ -299,7 +295,8 @@ impl CoopSynthesis {
 
                 let fair_est = proto.params.iter().map(|p| p.value).sum::<f32>()
                     / proto.params.len().max(1) as f32;
-                let score = wf * fair_est + wt * proto.throughput_estimate
+                let score = wf * fair_est
+                    + wt * proto.throughput_estimate
                     + wl * (1.0 - proto.latency_estimate);
 
                 if score > best_score {
@@ -317,15 +314,14 @@ impl CoopSynthesis {
             let idx = (xorshift64(&mut self.rng_state) as usize) % proto.params.len().max(1);
             let delta = (xorshift_f32(&mut self.rng_state) - 0.5) * 2.0 * OPTIMIZATION_STEP_SIZE;
             let old_val = proto.params[idx].value;
-            let new_val = (old_val + delta).clamp(
-                proto.params[idx].min_bound,
-                proto.params[idx].max_bound,
-            );
+            let new_val =
+                (old_val + delta).clamp(proto.params[idx].min_bound, proto.params[idx].max_bound);
             proto.params[idx].value = new_val;
 
             let fair_est = proto.params.iter().map(|p| p.value).sum::<f32>()
                 / proto.params.len().max(1) as f32;
-            let score = wf * fair_est + wt * proto.throughput_estimate
+            let score = wf * fair_est
+                + wt * proto.throughput_estimate
                 + wl * (1.0 - proto.latency_estimate);
 
             if score > best_score + MIN_IMPROVEMENT {
@@ -375,7 +371,9 @@ impl CoopSynthesis {
         let fairness_ok = proto.fairness_estimate >= SAFE_DEPLOYMENT_THRESHOLD;
         let throughput_ok = proto.throughput_estimate >= 0.5;
         let latency_ok = proto.latency_estimate <= 0.5;
-        let safe = fairness_ok && throughput_ok && latency_ok
+        let safe = fairness_ok
+            && throughput_ok
+            && latency_ok
             && proto.composite_score >= SAFE_DEPLOYMENT_THRESHOLD;
 
         let recommendation = if safe {
@@ -406,8 +404,8 @@ impl CoopSynthesis {
                 proto.phase = SynthesisPhase::Deployed;
                 proto.deployed_tick = self.tick;
                 self.stats.total_deployed += 1;
-                let rate = self.stats.total_deployed as f32
-                    / self.stats.total_synthesized.max(1) as f32;
+                let rate =
+                    self.stats.total_deployed as f32 / self.stats.total_synthesized.max(1) as f32;
                 self.stats.deployment_success_rate_ema =
                     EMA_ALPHA * rate + (1.0 - EMA_ALPHA) * self.stats.deployment_success_rate_ema;
                 return true;
@@ -421,12 +419,24 @@ impl CoopSynthesis {
         let proto = self.protocols.get(&protocol_id)?;
         let optimized_count = proto.params.iter().filter(|p| p.optimized).count();
         let summary = match proto.phase {
-            SynthesisPhase::Deployed => String::from("Protocol synthesized, optimized, and deployed successfully."),
-            SynthesisPhase::ReadyForDeploy => String::from("Protocol optimized and ready for deployment."),
-            SynthesisPhase::Optimizing => String::from("Protocol undergoing parameter optimization."),
-            SynthesisPhase::RolledBack => String::from("Protocol was deployed but rolled back due to degradation."),
-            SynthesisPhase::Archived => String::from("Protocol archived — superseded by newer synthesis."),
-            SynthesisPhase::Drafting => String::from("Protocol in draft stage, pending optimization."),
+            SynthesisPhase::Deployed => {
+                String::from("Protocol synthesized, optimized, and deployed successfully.")
+            },
+            SynthesisPhase::ReadyForDeploy => {
+                String::from("Protocol optimized and ready for deployment.")
+            },
+            SynthesisPhase::Optimizing => {
+                String::from("Protocol undergoing parameter optimization.")
+            },
+            SynthesisPhase::RolledBack => {
+                String::from("Protocol was deployed but rolled back due to degradation.")
+            },
+            SynthesisPhase::Archived => {
+                String::from("Protocol archived — superseded by newer synthesis.")
+            },
+            SynthesisPhase::Drafting => {
+                String::from("Protocol in draft stage, pending optimization.")
+            },
         };
         Some(SynthesisReport {
             protocol_id,
