@@ -39,6 +39,7 @@ impl MembarrierReg {
         Self { pid, global_expedited: false, private_expedited: false, sync_core: false, rseq: false, total_barriers: 0, total_ipi_sent: 0 }
     }
 
+    #[inline]
     pub fn register(&mut self, cmd: MembarrierCmd) {
         match cmd {
             MembarrierCmd::RegisterGlobalExpedited => self.global_expedited = true,
@@ -49,6 +50,7 @@ impl MembarrierReg {
         }
     }
 
+    #[inline]
     pub fn supported(&self) -> u32 {
         let mut s = 0u32;
         if self.global_expedited { s |= 1; }
@@ -71,6 +73,7 @@ pub struct BarrierEvent {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MembarrierAppStats {
     pub total_processes: u32,
     pub total_barriers: u64,
@@ -90,11 +93,13 @@ pub struct AppMembarrier {
 impl AppMembarrier {
     pub fn new() -> Self { Self { registrations: BTreeMap::new(), events: Vec::new(), max_events: 4096 } }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, cmd: MembarrierCmd) {
         let reg = self.registrations.entry(pid).or_insert_with(|| MembarrierReg::new(pid));
         reg.register(cmd);
     }
 
+    #[inline]
     pub fn barrier(&mut self, pid: u64, cmd: MembarrierCmd, cpus: u32, duration: u64, now: u64) {
         if let Some(reg) = self.registrations.get_mut(&pid) {
             reg.total_barriers += 1;
@@ -104,6 +109,7 @@ impl AppMembarrier {
         self.events.push(BarrierEvent { pid, cmd, cpus_targeted: cpus, duration_ns: duration, timestamp: now });
     }
 
+    #[inline]
     pub fn stats(&self) -> MembarrierAppStats {
         let barriers: u64 = self.registrations.values().map(|r| r.total_barriers).sum();
         let ipis: u64 = self.registrations.values().map(|r| r.total_ipi_sent).sum();
