@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -38,6 +39,7 @@ pub enum PriorityClass {
 
 impl PriorityClass {
     /// Base nice value for class
+    #[inline]
     pub fn base_nice(&self) -> i32 {
         match self {
             Self::RealTime => -20,
@@ -51,6 +53,7 @@ impl PriorityClass {
     }
 
     /// Timeslice multiplier
+    #[inline]
     pub fn timeslice_multiplier(&self) -> u32 {
         match self {
             Self::RealTime => 8,
@@ -64,6 +67,7 @@ impl PriorityClass {
     }
 
     /// Whether preemption is allowed
+    #[inline(always)]
     pub fn preemptible(&self) -> bool {
         !matches!(self, Self::RealTime)
     }
@@ -140,6 +144,7 @@ pub struct InversionEvent {
 
 /// Priority inheritance state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InheritanceState {
     /// Process that received boosted priority
     pub boosted_pid: u64,
@@ -178,6 +183,7 @@ pub struct DeadlineInfo {
 
 impl DeadlineInfo {
     /// Utilization (WCET / period)
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.period_ms == 0 {
             return 0.0;
@@ -186,6 +192,7 @@ impl DeadlineInfo {
     }
 
     /// Miss rate
+    #[inline]
     pub fn miss_rate(&self) -> f64 {
         let total = self.deadlines_met + self.deadlines_missed;
         if total == 0 {
@@ -195,6 +202,7 @@ impl DeadlineInfo {
     }
 
     /// Is urgent (deadline approaching)
+    #[inline(always)]
     pub fn is_urgent(&self, now: u64) -> bool {
         now + self.wcet_ms as u64 >= self.deadline
     }
@@ -206,6 +214,7 @@ impl DeadlineInfo {
 
 /// Complete priority state for a process
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessPriorityState {
     /// Process ID
     pub pid: u64,
@@ -228,7 +237,7 @@ pub struct ProcessPriorityState {
     /// Wait time since last adjustment (ms)
     pub wait_since_adjust: u64,
     /// Recent adjustments
-    pub adjustment_history: Vec<PriorityAdjustment>,
+    pub adjustment_history: VecDeque<PriorityAdjustment>,
     /// Max history
     max_history: usize,
 }
@@ -246,7 +255,7 @@ impl ProcessPriorityState {
             deadline: None,
             cpu_since_adjust: 0,
             wait_since_adjust: 0,
-            adjustment_history: Vec::new(),
+            adjustment_history: VecDeque::new(),
             max_history: 32,
         }
     }
@@ -279,9 +288,9 @@ impl ProcessPriorityState {
             self.boost_expires = now + duration_ms;
         }
 
-        self.adjustment_history.push(adj);
+        self.adjustment_history.push_back(adj);
         if self.adjustment_history.len() > self.max_history {
-            self.adjustment_history.remove(0);
+            self.adjustment_history.pop_front();
         }
 
         self.cpu_since_adjust = 0;
@@ -289,6 +298,7 @@ impl ProcessPriorityState {
     }
 
     /// Check if boost expired
+    #[inline]
     pub fn check_expiry(&mut self, now: u64) {
         if self.boosted && now >= self.boost_expires {
             self.boosted = false;
@@ -297,6 +307,7 @@ impl ProcessPriorityState {
     }
 
     /// CPU/wait ratio
+    #[inline]
     pub fn cpu_wait_ratio(&self) -> f64 {
         let total = self.cpu_since_adjust + self.wait_since_adjust;
         if total == 0 {
@@ -312,6 +323,7 @@ impl ProcessPriorityState {
 
 /// Priority analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PriorityStats {
     /// Total processes managed
     pub total_processes: usize,
@@ -359,6 +371,7 @@ impl AppPriorityAnalyzer {
     }
 
     /// Register process
+    #[inline]
     pub fn register(&mut self, pid: u64, class: PriorityClass) {
         self.states
             .insert(pid, ProcessPriorityState::new(pid, class));
@@ -366,6 +379,7 @@ impl AppPriorityAnalyzer {
     }
 
     /// Set nice value
+    #[inline]
     pub fn set_nice(&mut self, pid: u64, nice: i32, now: u64) {
         if let Some(state) = self.states.get_mut(&pid) {
             state.nice = nice.clamp(-20, 19);
@@ -376,6 +390,7 @@ impl AppPriorityAnalyzer {
     }
 
     /// Update cpu/wait times
+    #[inline]
     pub fn update_times(&mut self, pid: u64, cpu_ms: u64, wait_ms: u64) {
         if let Some(state) = self.states.get_mut(&pid) {
             state.cpu_since_adjust += cpu_ms;
@@ -494,6 +509,7 @@ impl AppPriorityAnalyzer {
     }
 
     /// Expire old boosts
+    #[inline]
     pub fn tick(&mut self, now: u64) {
         for state in self.states.values_mut() {
             if state.boosted && now >= state.boost_expires {
@@ -507,16 +523,19 @@ impl AppPriorityAnalyzer {
     }
 
     /// Get state
+    #[inline(always)]
     pub fn state(&self, pid: u64) -> Option<&ProcessPriorityState> {
         self.states.get(&pid)
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &PriorityStats {
         &self.stats
     }
 
     /// Unregister
+    #[inline]
     pub fn unregister(&mut self, pid: u64) {
         self.states.remove(&pid);
         self.inversions
