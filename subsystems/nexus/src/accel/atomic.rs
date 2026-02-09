@@ -29,21 +29,25 @@ impl AtomicOps {
     }
 
     /// Has 128-bit CAS?
+    #[inline(always)]
     pub fn has_cmpxchg16b(&self) -> bool {
         self.has_cmpxchg16b
     }
 
     /// Has wait/wake?
+    #[inline(always)]
     pub fn has_wait(&self) -> bool {
         self.has_wait
     }
 
     /// Fetch-and-add
+    #[inline(always)]
     pub fn fetch_add(val: &AtomicU64, add: u64, order: Ordering) -> u64 {
         val.fetch_add(add, order)
     }
 
     /// Compare-and-swap
+    #[inline(always)]
     pub fn compare_exchange(
         val: &AtomicU64,
         current: u64,
