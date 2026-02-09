@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -84,6 +85,7 @@ pub struct AllocationRecord {
 
 /// Callsite aggregation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CallsiteStats {
     /// Callsite hash
     pub callsite_hash: u64,
@@ -100,7 +102,7 @@ pub struct CallsiteStats {
     /// Peak live bytes
     pub peak_bytes: u64,
     /// Growth history (sampled live_bytes)
-    growth_samples: Vec<u64>,
+    growth_samples: VecDeque<u64>,
     /// Max samples
     max_samples: usize,
 }
@@ -115,12 +117,13 @@ impl CallsiteStats {
             total_bytes: 0,
             live_bytes: 0,
             peak_bytes: 0,
-            growth_samples: Vec::new(),
+            growth_samples: VecDeque::new(),
             max_samples: 100,
         }
     }
 
     /// Record allocation
+    #[inline]
     pub fn record_alloc(&mut self, size: usize) {
         self.total_allocs += 1;
         self.live_allocs += 1;
@@ -132,6 +135,7 @@ impl CallsiteStats {
     }
 
     /// Record free
+    #[inline]
     pub fn record_free(&mut self, size: usize) {
         self.total_frees += 1;
         if self.live_allocs > 0 {
@@ -141,11 +145,12 @@ impl CallsiteStats {
     }
 
     /// Sample for growth tracking
+    #[inline]
     pub fn sample(&mut self) {
         if self.growth_samples.len() >= self.max_samples {
-            self.growth_samples.remove(0);
+            self.growth_samples.pop_front();
         }
-        self.growth_samples.push(self.live_bytes);
+        self.growth_samples.push_back(self.live_bytes);
     }
 
     /// Detect leak severity
@@ -241,6 +246,7 @@ pub struct LeakReport {
 
 /// Leak detector stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppLeakDetectorStats {
     /// Tracked callsites
     pub tracked_callsites: usize,
@@ -273,6 +279,7 @@ impl ProcessLeakDetector {
     }
 
     /// Record allocation
+    #[inline]
     pub fn record_alloc(&mut self, addr: u64, size: usize, callsite_hash: u64) {
         let cs = self
             .callsites
@@ -283,6 +290,7 @@ impl ProcessLeakDetector {
     }
 
     /// Record free
+    #[inline]
     pub fn record_free(&mut self, addr: u64) {
         if let Some((size, callsite_hash)) = self.active.remove(&addr) {
             if let Some(cs) = self.callsites.get_mut(&callsite_hash) {
@@ -292,6 +300,7 @@ impl ProcessLeakDetector {
     }
 
     /// Sample all callsites
+    #[inline]
     pub fn sample_all(&mut self) {
         for cs in self.callsites.values_mut() {
             cs.sample();
@@ -331,6 +340,7 @@ impl AppLeakDetector {
     }
 
     /// Record allocation
+    #[inline]
     pub fn record_alloc(&mut self, pid: u64, addr: u64, size: usize, callsite_hash: u64) {
         let detector = self
             .processes
@@ -340,6 +350,7 @@ impl AppLeakDetector {
     }
 
     /// Record free
+    #[inline]
     pub fn record_free(&mut self, pid: u64, addr: u64) {
         if let Some(detector) = self.processes.get_mut(&pid) {
             detector.record_free(addr);
@@ -347,6 +358,7 @@ impl AppLeakDetector {
     }
 
     /// Periodic scan
+    #[inline]
     pub fn scan(&mut self) {
         for detector in self.processes.values_mut() {
             detector.sample_all();
@@ -355,6 +367,7 @@ impl AppLeakDetector {
     }
 
     /// Get leaks for process
+    #[inline]
     pub fn process_leaks(&self, pid: u64) -> Vec<LeakReport> {
         self.processes
             .get(&pid)
@@ -388,6 +401,7 @@ impl AppLeakDetector {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppLeakDetectorStats {
         &self.stats
     }
@@ -426,6 +440,7 @@ impl AllocRecordV2 {
         }
     }
 
+    #[inline(always)]
     pub fn lifetime_ns(&self) -> u64 {
         if self.freed { self.free_timestamp.saturating_sub(self.timestamp) } else { 0 }
     }
@@ -443,7 +458,7 @@ pub struct CallsiteLeakProfile {
     pub live_bytes: u64,
     pub peak_live_count: u64,
     pub peak_live_bytes: u64,
-    pub growth_samples: Vec<(u64, u64)>,
+    pub growth_samples: VecDeque<(u64, u64)>,
 }
 
 impl CallsiteLeakProfile {
@@ -454,7 +469,7 @@ impl CallsiteLeakProfile {
             total_bytes_allocated: 0, total_bytes_freed: 0,
             live_count: 0, live_bytes: 0,
             peak_live_count: 0, peak_live_bytes: 0,
-            growth_samples: Vec::new(),
+            growth_samples: VecDeque::new(),
         }
     }
 
@@ -466,7 +481,7 @@ impl CallsiteLeakProfile {
         if self.live_count > self.peak_live_count { self.peak_live_count = self.live_count; }
         if self.live_bytes > self.peak_live_bytes { self.peak_live_bytes = self.live_bytes; }
 
-        self.growth_samples.push((ts, self.live_bytes));
+        self.growth_samples.push_back((ts, self.live_bytes));
         if self.growth_samples.len() > 128 {
             let mut new_s = Vec::new();
             for (i, s) in self.growth_samples.iter().enumerate() {
@@ -478,6 +493,7 @@ impl CallsiteLeakProfile {
         }
     }
 
+    #[inline]
     pub fn record_free(&mut self, size: u64) {
         self.total_frees += 1;
         self.total_bytes_freed += size;
@@ -485,6 +501,7 @@ impl CallsiteLeakProfile {
         self.live_bytes = self.live_bytes.saturating_sub(size);
     }
 
+    #[inline(always)]
     pub fn leak_ratio(&self) -> f64 {
         if self.total_allocs == 0 { return 0.0; }
         (self.total_allocs - self.total_frees) as f64 / self.total_allocs as f64
@@ -503,6 +520,7 @@ impl CallsiteLeakProfile {
         slope * 1_000_000_000.0
     }
 
+    #[inline]
     pub fn severity(&self) -> LeakSeverityV2 {
         let ratio = self.leak_ratio();
         let growth = self.growth_rate_bps();
@@ -539,6 +557,7 @@ impl ProcessLeakProfileV2 {
         }
     }
 
+    #[inline]
     pub fn record_alloc(&mut self, addr: u64, size: u64, callsite: u64, tid: u64, ts: u64) {
         let record = AllocRecordV2::new(addr, size, callsite, tid, ts);
         self.live_allocs.insert(addr, record);
@@ -550,6 +569,7 @@ impl ProcessLeakProfileV2 {
             .record_alloc(size, ts);
     }
 
+    #[inline]
     pub fn record_free(&mut self, addr: u64, ts: u64) {
         if let Some(mut rec) = self.live_allocs.remove(&addr) {
             rec.freed = true;
@@ -575,6 +595,7 @@ impl ProcessLeakProfileV2 {
             .unwrap_or(LeakSeverityV2::None)
     }
 
+    #[inline]
     pub fn leak_sites(&self) -> Vec<&CallsiteLeakProfile> {
         let mut sites: Vec<_> = self.callsites.values()
             .filter(|cs| cs.severity() != LeakSeverityV2::None)
@@ -586,6 +607,7 @@ impl ProcessLeakProfileV2 {
 
 /// App leak detector v2 stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppLeakDetectorV2Stats {
     pub total_processes: usize,
     pub total_live_allocs: usize,
@@ -609,16 +631,19 @@ impl AppLeakDetectorV2 {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessLeakProfileV2::new(pid));
     }
 
+    #[inline]
     pub fn record_alloc(&mut self, pid: u64, addr: u64, size: u64, callsite: u64, tid: u64, ts: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_alloc(addr, size, callsite, tid, ts);
         }
     }
 
+    #[inline]
     pub fn record_free(&mut self, pid: u64, addr: u64, ts: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_free(addr, ts);
@@ -647,14 +672,17 @@ impl AppLeakDetectorV2 {
         self.stats.critical_leaks = critical;
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessLeakProfileV2> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppLeakDetectorV2Stats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
     }
