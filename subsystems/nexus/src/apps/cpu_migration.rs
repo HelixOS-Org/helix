@@ -130,6 +130,7 @@ impl ThreadCpuMigrationHistory {
         }
     }
 
+    #[inline]
     pub fn migration_rate(&self, window_ns: u64, now: u64) -> f64 {
         if window_ns == 0 { return 0.0; }
         let cutoff = now.saturating_sub(window_ns);
@@ -137,14 +138,17 @@ impl ThreadCpuMigrationHistory {
         recent as f64 / (window_ns as f64 / 1_000_000_000.0)
     }
 
+    #[inline(always)]
     pub fn is_bouncing(&self) -> bool {
         self.bounce_count > 5
     }
 
+    #[inline(always)]
     pub fn is_away_from_home(&self) -> bool {
         self.current_cpu != self.home_cpu
     }
 
+    #[inline(always)]
     pub fn cross_numa_ratio(&self) -> f64 {
         if self.total_migrations == 0 { return 0.0; }
         self.cross_numa_count as f64 / self.total_migrations as f64
@@ -172,6 +176,7 @@ impl ProcessCpuMigrationProfile {
         }
     }
 
+    #[inline(always)]
     pub fn register_thread(&mut self, thread_id: u64, cpu: u32) {
         self.threads.entry(thread_id)
             .or_insert_with(|| ThreadCpuMigrationHistory::new(thread_id, cpu, 32));
@@ -191,12 +196,14 @@ impl ProcessCpuMigrationProfile {
         if is_cross { self.total_cross_numa += 1; }
     }
 
+    #[inline]
     pub fn most_migrated_thread(&self) -> Option<u64> {
         self.threads.values()
             .max_by_key(|h| h.total_migrations)
             .map(|h| h.thread_id)
     }
 
+    #[inline]
     pub fn bouncing_threads(&self) -> Vec<u64> {
         self.threads.values()
             .filter(|h| h.is_bouncing())
@@ -207,6 +214,7 @@ impl ProcessCpuMigrationProfile {
 
 /// App migration tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppCpuMigrationTrackerStats {
     pub total_processes: usize,
     pub total_threads: usize,
@@ -230,11 +238,13 @@ impl AppCpuMigrationTracker {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.entry(pid).or_insert_with(|| ProcessCpuMigrationProfile::new(pid));
         self.recompute();
     }
 
+    #[inline]
     pub fn register_thread(&mut self, pid: u64, thread_id: u64, cpu: u32) {
         if let Some(proc_prof) = self.processes.get_mut(&pid) {
             proc_prof.register_thread(thread_id, cpu);
@@ -242,6 +252,7 @@ impl AppCpuMigrationTracker {
         self.recompute();
     }
 
+    #[inline]
     pub fn record(&mut self, pid: u64, event: CpuMigrationEvent) {
         if let Some(proc_prof) = self.processes.get_mut(&pid) {
             proc_prof.record(event);
@@ -249,6 +260,7 @@ impl AppCpuMigrationTracker {
         self.recompute();
     }
 
+    #[inline]
     pub fn bouncing_threads(&self) -> Vec<(u64, u64)> {
         let mut result = Vec::new();
         for proc_prof in self.processes.values() {
@@ -259,6 +271,7 @@ impl AppCpuMigrationTracker {
         result
     }
 
+    #[inline]
     pub fn high_migration_processes(&self, threshold: u64) -> Vec<u64> {
         self.processes.values()
             .filter(|p| p.total_migrations > threshold)
@@ -278,14 +291,17 @@ impl AppCpuMigrationTracker {
             .count();
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessCpuMigrationProfile> {
         self.processes.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppCpuMigrationTrackerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.recompute();
