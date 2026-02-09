@@ -67,11 +67,16 @@ impl NsDescriptor {
         }
     }
 
+    #[inline(always)]
     pub fn activate(&mut self) { self.state = NsState::Active; }
+    #[inline(always)]
     pub fn add_ref(&mut self) { self.refcount += 1; }
+    #[inline(always)]
     pub fn release(&mut self) -> bool { self.refcount = self.refcount.saturating_sub(1); self.refcount == 0 }
+    #[inline(always)]
     pub fn add_mapping(&mut self, inner: u32, outer: u32, count: u32) { self.id_mappings.push(IdMapping { inner_start: inner, outer_start: outer, count }); }
 
+    #[inline]
     pub fn map_id(&self, inner: u32) -> Option<u32> {
         for m in &self.id_mappings {
             if inner >= m.inner_start && inner < m.inner_start + m.count {
@@ -101,6 +106,7 @@ impl ProcessNsSet {
         Self { pid, pid_ns: 0, mnt_ns: 0, net_ns: 0, user_ns: 0, ipc_ns: 0, uts_ns: 0, cgroup_ns: 0, time_ns: 0 }
     }
 
+    #[inline]
     pub fn get(&self, ns_type: NsType) -> u64 {
         match ns_type {
             NsType::Pid => self.pid_ns, NsType::Mount => self.mnt_ns,
@@ -110,6 +116,7 @@ impl ProcessNsSet {
         }
     }
 
+    #[inline]
     pub fn set(&mut self, ns_type: NsType, id: u64) {
         match ns_type {
             NsType::Pid => self.pid_ns = id, NsType::Mount => self.mnt_ns = id,
@@ -141,6 +148,7 @@ pub enum NsEventKind {
 
 /// Namespace manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct NsMgrStats {
     pub total_namespaces: usize,
     pub active_namespaces: usize,
@@ -173,6 +181,7 @@ impl AppsNsMgr {
         mgr
     }
 
+    #[inline]
     pub fn create_ns(&mut self, ns_type: NsType, owner: u64, parent: Option<u64>, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut ns = NsDescriptor::new(id, ns_type, owner, parent);
@@ -184,6 +193,7 @@ impl AppsNsMgr {
         id
     }
 
+    #[inline]
     pub fn enter_ns(&mut self, pid: u64, ns_id: u64, ts: u64) {
         if let Some(ns) = self.namespaces.get_mut(&ns_id) {
             ns.add_ref();
@@ -194,6 +204,7 @@ impl AppsNsMgr {
         }
     }
 
+    #[inline]
     pub fn exit_ns(&mut self, pid: u64, ns_type: NsType, ts: u64) {
         if let Some(proc_ns) = self.processes.get(&pid) {
             let ns_id = proc_ns.get(ns_type);
@@ -205,19 +216,24 @@ impl AppsNsMgr {
         }
     }
 
+    #[inline(always)]
     pub fn add_id_mapping(&mut self, ns_id: u64, inner: u32, outer: u32, count: u32) {
         if let Some(ns) = self.namespaces.get_mut(&ns_id) { ns.add_mapping(inner, outer, count); }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) { self.processes.entry(pid).or_insert_with(|| ProcessNsSet::new(pid)); }
+    #[inline(always)]
     pub fn unregister_process(&mut self, pid: u64) { self.processes.remove(&pid); }
 
+    #[inline]
     pub fn same_ns(&self, pid1: u64, pid2: u64, ns_type: NsType) -> bool {
         let a = self.processes.get(&pid1).map(|p| p.get(ns_type));
         let b = self.processes.get(&pid2).map(|p| p.get(ns_type));
         a.is_some() && a == b
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_namespaces = self.namespaces.len();
         self.stats.active_namespaces = self.namespaces.values().filter(|n| n.state == NsState::Active).count();
@@ -228,7 +244,10 @@ impl AppsNsMgr {
         self.stats.total_events = self.events.len();
     }
 
+    #[inline(always)]
     pub fn namespace(&self, id: u64) -> Option<&NsDescriptor> { self.namespaces.get(&id) }
+    #[inline(always)]
     pub fn process_ns(&self, pid: u64) -> Option<&ProcessNsSet> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &NsMgrStats { &self.stats }
 }
