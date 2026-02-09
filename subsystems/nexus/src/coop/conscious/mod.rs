@@ -67,6 +67,30 @@ pub mod reflection;
 /// Cooperation identity declaration and philosophy evolution
 pub mod identity;
 
+/// Emotional signals for cooperation — trust anxiety, fairness anger, cooperation joy
+pub mod emotion;
+
+/// Selective attention for cooperation monitoring and mediation focus
+pub mod attention;
+
+/// Offline dream consolidation for cooperation patterns and optimal strategy discovery
+pub mod dream;
+
+/// Empathy engine modeling each process's cooperation needs and satisfaction
+pub mod empathy;
+
+/// Fast intuition-based cooperation decisions via cached templates
+pub mod intuition;
+
+/// Structured cooperation knowledge palace organized by pattern type
+pub mod memory_palace;
+
+/// Ethical conscience framework ensuring fairness axioms hold
+pub mod conscience;
+
+/// Subjective qualia of cooperation — harmony, friction, solidarity, tension
+pub mod qualia;
+
 // ============================================================================
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
@@ -79,3 +103,12 @@ pub use self::meta_coop::CoopMetaCognition;
 pub use self::reflection::CoopReflection;
 pub use self::self_model::CoopSelfModel;
 pub use self::world_model::CoopWorldModel;
+
+pub use self::emotion::CoopEmotionEngine;
+pub use self::attention::CoopAttentionEngine;
+pub use self::dream::CoopDreamEngine;
+pub use self::empathy::CoopEmpathyEngine;
+pub use self::intuition::CoopIntuitionEngine;
+pub use self::memory_palace::CoopMemoryPalace;
+pub use self::conscience::CoopConscience;
+pub use self::qualia::CoopQualiaEngine;
