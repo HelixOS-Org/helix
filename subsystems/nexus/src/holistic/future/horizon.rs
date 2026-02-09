@@ -251,9 +251,8 @@ impl HolisticHorizonPredictor {
             0.0
         };
 
-        let id = fnv1a_hash(
-            format!("{:?}-{}", horizon, self.tick).as_bytes(),
-        ) ^ xorshift64(&mut self.rng_state);
+        let id = fnv1a_hash(format!("{:?}-{}", horizon, self.tick).as_bytes())
+            ^ xorshift64(&mut self.rng_state);
 
         let prediction = SystemStatePrediction {
             id,
@@ -310,7 +309,10 @@ impl HolisticHorizonPredictor {
             .collect();
 
         let n = predictions_at_horizon.len().max(1) as f32;
-        let cpu_vals: Vec<f32> = predictions_at_horizon.iter().map(|p| p.fused_cpu_util).collect();
+        let cpu_vals: Vec<f32> = predictions_at_horizon
+            .iter()
+            .map(|p| p.fused_cpu_util)
+            .collect();
 
         let mean = cpu_vals.iter().sum::<f32>() / n;
         let trend = if cpu_vals.len() >= 2 {
@@ -324,7 +326,8 @@ impl HolisticHorizonPredictor {
         let cyclic = if cpu_vals.len() >= 4 {
             let mid = cpu_vals.len() / 2;
             let first_half: f32 = cpu_vals[..mid].iter().sum::<f32>() / mid as f32;
-            let second_half: f32 = cpu_vals[mid..].iter().sum::<f32>() / (cpu_vals.len() - mid) as f32;
+            let second_half: f32 =
+                cpu_vals[mid..].iter().sum::<f32>() / (cpu_vals.len() - mid) as f32;
             (first_half - second_half).abs() / mean.max(1.0)
         } else {
             0.0
@@ -503,10 +506,11 @@ impl HolisticHorizonPredictor {
             let cpu_err = (last.fused_cpu_util - actual_cpu).abs() / 100.0;
             let mem_err = (last.fused_memory_pressure - actual_mem).abs();
             let accuracy = 1.0 - (cpu_err + mem_err) / 2.0;
-            self.accuracy_ema = EMA_ALPHA * accuracy.clamp(0.0, 1.0)
-                + (1.0 - EMA_ALPHA) * self.accuracy_ema;
+            self.accuracy_ema =
+                EMA_ALPHA * accuracy.clamp(0.0, 1.0) + (1.0 - EMA_ALPHA) * self.accuracy_ema;
 
-            self.accuracy_by_horizon.insert(horizon as u8, self.accuracy_ema);
+            self.accuracy_by_horizon
+                .insert(horizon as u8, self.accuracy_ema);
         }
     }
 
