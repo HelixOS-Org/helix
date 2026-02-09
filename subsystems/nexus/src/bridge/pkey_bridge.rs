@@ -145,15 +145,6 @@ impl PkeyV2Entry {
     }
 }
 
-/// PKRU register state
-#[derive(Debug)]
-#[repr(align(64))]
-pub struct PkruState {
-    pub pid: u64,
-    pub pkru_value: u32,
-    pub last_modified: u64,
-}
-
 impl PkruState {
     pub fn new(pid: u64) -> Self { Self { pid, pkru_value: 0, last_modified: 0 } }
 
