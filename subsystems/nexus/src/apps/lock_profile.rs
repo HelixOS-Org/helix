@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Lock type classification
@@ -82,21 +83,25 @@ impl LockProfile {
         }
     }
 
+    #[inline(always)]
     pub fn contention_rate(&self) -> f64 {
         if self.acquisitions == 0 { return 0.0; }
         self.contentions as f64 / self.acquisitions as f64
     }
 
+    #[inline(always)]
     pub fn avg_hold_ns(&self) -> u64 {
         if self.acquisitions == 0 { return 0; }
         self.total_hold_ns / self.acquisitions
     }
 
+    #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
         if self.contentions == 0 { return 0; }
         self.total_wait_ns / self.contentions
     }
 
+    #[inline]
     pub fn severity(&self) -> ContentionSeverity {
         let rate = self.contention_rate();
         if rate < 0.01 { ContentionSeverity::None }
@@ -106,6 +111,7 @@ impl LockProfile {
         else { ContentionSeverity::Critical }
     }
 
+    #[inline]
     pub fn acquire(&mut self, thread_id: u64, wait_ns: u64) {
         self.acquisitions += 1;
         if wait_ns > 0 {
@@ -117,12 +123,14 @@ impl LockProfile {
         self.waiters.retain(|&t| t != thread_id);
     }
 
+    #[inline]
     pub fn release(&mut self, hold_ns: u64) {
         self.total_hold_ns += hold_ns;
         if hold_ns > self.max_hold_ns { self.max_hold_ns = hold_ns; }
         self.current_holder = None;
     }
 
+    #[inline]
     pub fn add_waiter(&mut self, thread_id: u64) {
         if !self.waiters.contains(&thread_id) {
             self.waiters.push(thread_id);
@@ -167,7 +175,7 @@ pub struct ProcessLockProfile {
     pub pid: u64,
     pub locks: BTreeMap<u64, LockProfile>,
     pub order_edges: Vec<LockOrderEdge>,
-    pub inversions: Vec<PriorityInversion>,
+    pub inversions: VecDeque<PriorityInversion>,
     pub convoys: Vec<LockConvoy>,
     pub total_contention_ns: u64,
     pub deadlock_risk: bool,
@@ -179,23 +187,26 @@ impl ProcessLockProfile {
             pid,
             locks: BTreeMap::new(),
             order_edges: Vec::new(),
-            inversions: Vec::new(),
+            inversions: VecDeque::new(),
             convoys: Vec::new(),
             total_contention_ns: 0,
             deadlock_risk: false,
         }
     }
 
+    #[inline(always)]
     pub fn register_lock(&mut self, lock_id: u64, lock_type: LockType, addr: u64) {
         self.locks.entry(lock_id).or_insert_with(|| LockProfile::new(lock_id, lock_type, addr));
     }
 
+    #[inline]
     pub fn hottest_lock(&self) -> Option<u64> {
         self.locks.values()
             .max_by_key(|l| l.contentions)
             .map(|l| l.lock_id)
     }
 
+    #[inline]
     pub fn critical_locks(&self) -> Vec<u64> {
         self.locks.values()
             .filter(|l| l.severity() == ContentionSeverity::High || l.severity() == ContentionSeverity::Critical)
@@ -239,6 +250,7 @@ impl ProcessLockProfile {
 
 /// App lock contention profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppLockProfilerStats {
     pub total_processes: usize,
     pub total_locks_tracked: usize,
@@ -262,10 +274,12 @@ impl AppLockProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessLockProfile::new(pid));
     }
 
+    #[inline]
     pub fn register_lock(&mut self, pid: u64, lock_id: u64, lock_type: LockType, addr: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.register_lock(lock_id, lock_type, addr);
@@ -273,6 +287,7 @@ impl AppLockProfiler {
         self.recompute();
     }
 
+    #[inline]
     pub fn record_acquire(&mut self, pid: u64, lock_id: u64, thread_id: u64, wait_ns: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             if let Some(lock) = profile.locks.get_mut(&lock_id) {
@@ -282,6 +297,7 @@ impl AppLockProfiler {
         }
     }
 
+    #[inline]
     pub fn record_release(&mut self, pid: u64, lock_id: u64, hold_ns: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             if let Some(lock) = profile.locks.get_mut(&lock_id) {
@@ -305,11 +321,12 @@ impl AppLockProfiler {
         self.recompute();
     }
 
+    #[inline]
     pub fn record_inversion(&mut self, pid: u64, inversion: PriorityInversion) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.inversions.push(inversion);
             if profile.inversions.len() > 128 {
-                profile.inversions.remove(0);
+                profile.inversions.pop_front().unwrap();
             }
         }
         self.recompute();
@@ -330,14 +347,17 @@ impl AppLockProfiler {
             .count();
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessLockProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppLockProfilerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.recompute();
