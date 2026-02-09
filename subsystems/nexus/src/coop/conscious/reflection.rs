@@ -241,8 +241,14 @@ impl CoopReflection {
             ctx_hash = ctx_hash.wrapping_mul(FNV_PRIME);
         }
 
-        let strengths: Vec<u64> = strength_tags.iter().map(|t| fnv1a_hash(t.as_bytes())).collect();
-        let weaknesses: Vec<u64> = weakness_tags.iter().map(|t| fnv1a_hash(t.as_bytes())).collect();
+        let strengths: Vec<u64> = strength_tags
+            .iter()
+            .map(|t| fnv1a_hash(t.as_bytes()))
+            .collect();
+        let weaknesses: Vec<u64> = weakness_tags
+            .iter()
+            .map(|t| fnv1a_hash(t.as_bytes()))
+            .collect();
 
         let reflection = NegotiationReflection {
             id: self.total_reflections,
@@ -266,7 +272,10 @@ impl CoopReflection {
         self.refl_write_idx = (self.refl_write_idx + 1) % MAX_REFLECTIONS;
 
         // Track context-to-outcome for pattern detection
-        let outcomes = self.context_outcomes.entry(ctx_hash).or_insert_with(Vec::new);
+        let outcomes = self
+            .context_outcomes
+            .entry(ctx_hash)
+            .or_insert_with(Vec::new);
         outcomes.push(clamped_quality);
         if outcomes.len() > MAX_PATTERNS {
             outcomes.remove(0);
@@ -287,19 +296,22 @@ impl CoopReflection {
             let positive = avg >= 0.6;
             let confidence = (outcomes.len() as f32 / 20.0).min(1.0);
 
-            let pattern = self.patterns.entry(ctx_hash).or_insert_with(|| CoopPattern {
-                id: ctx_hash,
-                description: String::from(if positive {
-                    "Positive cooperation pattern"
-                } else {
-                    "Negative cooperation pattern"
-                }),
-                context_hash: ctx_hash,
-                occurrences: 0,
-                avg_outcome: 0.5,
-                positive,
-                confidence: 0.0,
-            });
+            let pattern = self
+                .patterns
+                .entry(ctx_hash)
+                .or_insert_with(|| CoopPattern {
+                    id: ctx_hash,
+                    description: String::from(if positive {
+                        "Positive cooperation pattern"
+                    } else {
+                        "Negative cooperation pattern"
+                    }),
+                    context_hash: ctx_hash,
+                    occurrences: 0,
+                    avg_outcome: 0.5,
+                    positive,
+                    confidence: 0.0,
+                });
             pattern.occurrences = outcomes.len() as u64;
             pattern.avg_outcome = avg;
             pattern.positive = positive;
@@ -315,12 +327,20 @@ impl CoopReflection {
 
         let len = self.reflections.len();
         if len < 4 {
-            return self.reflections.iter().map(|r| r.avg_satisfaction).sum::<f32>() / len as f32;
+            return self
+                .reflections
+                .iter()
+                .map(|r| r.avg_satisfaction)
+                .sum::<f32>()
+                / len as f32;
         }
 
         let mid = len / 2;
-        let first_avg: f32 =
-            self.reflections[..mid].iter().map(|r| r.avg_satisfaction).sum::<f32>() / mid as f32;
+        let first_avg: f32 = self.reflections[..mid]
+            .iter()
+            .map(|r| r.avg_satisfaction)
+            .sum::<f32>()
+            / mid as f32;
         let second_avg: f32 = self.reflections[mid..]
             .iter()
             .map(|r| r.avg_satisfaction)
@@ -338,10 +358,16 @@ impl CoopReflection {
 
         let len = self.reflections.len();
         let mid = len / 2;
-        let first: f32 =
-            self.reflections[..mid].iter().map(|r| r.efficiency).sum::<f32>() / mid as f32;
-        let second: f32 =
-            self.reflections[mid..].iter().map(|r| r.efficiency).sum::<f32>() / (len - mid) as f32;
+        let first: f32 = self.reflections[..mid]
+            .iter()
+            .map(|r| r.efficiency)
+            .sum::<f32>()
+            / mid as f32;
+        let second: f32 = self.reflections[mid..]
+            .iter()
+            .map(|r| r.efficiency)
+            .sum::<f32>()
+            / (len - mid) as f32;
         second - first
     }
 
