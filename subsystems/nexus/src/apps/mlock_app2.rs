@@ -16,6 +16,7 @@ use alloc::vec::Vec;
 pub enum LockPriority { Realtime, High, Normal, Low, Background }
 
 impl LockPriority {
+    #[inline]
     pub fn budget_multiplier(&self) -> f64 {
         match self {
             Self::Realtime => 4.0,
@@ -38,8 +39,11 @@ pub struct LockedRegion {
 }
 
 impl LockedRegion {
+    #[inline(always)]
     pub fn pages(&self) -> u64 { self.size / 4096 }
+    #[inline(always)]
     pub fn idle_ticks(&self, now: u64) -> u64 { now.saturating_sub(self.last_access) }
+    #[inline(always)]
     pub fn worth_locking(&self, now: u64, threshold: u64) -> bool {
         self.idle_ticks(now) < threshold && self.fault_saved > 0
     }
@@ -57,7 +61,9 @@ pub struct AppLockProfile {
 }
 
 impl AppLockProfile {
+    #[inline(always)]
     pub fn budget_remaining(&self) -> u64 { self.budget_pages.saturating_sub(self.locked_pages) }
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.budget_pages == 0 { return 0.0; }
         self.locked_pages as f64 / self.budget_pages as f64
@@ -65,6 +71,7 @@ impl AppLockProfile {
 }
 
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MlockAppStats {
     pub total_locked_pages: u64,
     pub total_budget_pages: u64,
@@ -90,6 +97,7 @@ impl MlockAppManager {
         }
     }
 
+    #[inline]
     pub fn register_app(&mut self, app_id: u64, priority: LockPriority, base_budget: u64) {
         let budget = (base_budget as f64 * priority.budget_multiplier()) as u64;
         self.profiles.insert(app_id, AppLockProfile {
@@ -158,6 +166,7 @@ impl MlockAppManager {
     }
 
     /// Find locked regions that are idle and could be unlocked
+    #[inline]
     pub fn suggest_auto_unlock(&self, now: u64) -> Vec<(u64, u64)> {
         let mut suggestions = Vec::new();
         for (app_id, profile) in &self.profiles {
@@ -184,6 +193,8 @@ impl MlockAppManager {
         }
     }
 
+    #[inline(always)]
     pub fn profile(&self, app_id: u64) -> Option<&AppLockProfile> { self.profiles.get(&app_id) }
+    #[inline(always)]
     pub fn stats(&self) -> &MlockAppStats { &self.stats }
 }
