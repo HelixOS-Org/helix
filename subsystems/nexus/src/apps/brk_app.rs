@@ -34,9 +34,12 @@ impl ProcessHeap {
         Self { pid, start, current: start, max_ever: start, state: BrkState::Active, expand_count: 0, shrink_count: 0, total_expanded: 0, total_shrunk: 0, page_faults: 0 }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.current - self.start }
+    #[inline(always)]
     pub fn pages(&self) -> u64 { (self.size() + 4095) / 4096 }
 
+    #[inline]
     pub fn brk(&mut self, new_brk: u64) -> bool {
         if new_brk < self.start { return false; }
         if new_brk > self.current { let delta = new_brk - self.current; self.total_expanded += delta; self.expand_count += 1; self.state = BrkState::Expanding; }
@@ -50,6 +53,7 @@ impl ProcessHeap {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BrkAppStats {
     pub tracked_processes: u32,
     pub total_heap_bytes: u64,
@@ -65,13 +69,17 @@ pub struct AppBrk {
 
 impl AppBrk {
     pub fn new() -> Self { Self { heaps: BTreeMap::new() } }
+    #[inline(always)]
     pub fn init_heap(&mut self, pid: u64, start: u64) { self.heaps.insert(pid, ProcessHeap::new(pid, start)); }
+    #[inline(always)]
     pub fn remove(&mut self, pid: u64) { self.heaps.remove(&pid); }
 
+    #[inline(always)]
     pub fn brk(&mut self, pid: u64, new_brk: u64) -> bool {
         if let Some(h) = self.heaps.get_mut(&pid) { h.brk(new_brk) } else { false }
     }
 
+    #[inline]
     pub fn stats(&self) -> BrkAppStats {
         let bytes: u64 = self.heaps.values().map(|h| h.size()).sum();
         let pages: u64 = self.heaps.values().map(|h| h.pages()).sum();
