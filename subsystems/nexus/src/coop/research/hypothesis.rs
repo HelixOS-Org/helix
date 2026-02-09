@@ -239,8 +239,8 @@ impl CoopHypothesisEngine {
         } else {
             0.5 + xorshift64(&mut self.rng_state) as f32 % 50.0 / 100.0
         };
-        let expected_impact = severity.clamp(0.0, 1.0) * 0.7
-            + self.anomaly_tracker.severity_ema * 0.3;
+        let expected_impact =
+            severity.clamp(0.0, 1.0) * 0.7 + self.anomaly_tracker.severity_ema * 0.3;
         let priority = expected_impact * testability;
 
         let hyp = CoopHypothesis {
@@ -325,11 +325,7 @@ impl CoopHypothesisEngine {
             .map(|e| e.weight)
             .sum();
         let total: f32 = hyp.evidence.iter().map(|e| e.weight).sum();
-        let ratio = if total > 0.0 {
-            supporting / total
-        } else {
-            0.5
-        };
+        let ratio = if total > 0.0 { supporting / total } else { 0.5 };
         hyp.confidence = EVIDENCE_WEIGHT_EMA * ratio + (1.0 - EVIDENCE_WEIGHT_EMA) * hyp.confidence;
         hyp.last_updated_tick = self.tick;
 
@@ -372,8 +368,7 @@ impl CoopHypothesisEngine {
         let hyp = self.hypotheses.get_mut(&hypothesis_id)?;
 
         // Auto-transition based on evidence count and confidence
-        if hyp.phase == HypothesisPhase::UnderTest
-            && hyp.evidence.len() >= MIN_EVIDENCE_FOR_RANKING
+        if hyp.phase == HypothesisPhase::UnderTest && hyp.evidence.len() >= MIN_EVIDENCE_FOR_RANKING
         {
             if hyp.confidence >= HIGH_CONFIDENCE {
                 hyp.phase = HypothesisPhase::Confirmed;
@@ -393,8 +388,7 @@ impl CoopHypothesisEngine {
             && hyp.phase != HypothesisPhase::Confirmed
             && hyp.phase != HypothesisPhase::Rejected
         {
-            hyp.confidence =
-                (hyp.confidence - CONFIDENCE_DECAY_RATE).max(0.0);
+            hyp.confidence = (hyp.confidence - CONFIDENCE_DECAY_RATE).max(0.0);
             if hyp.confidence < PRUNE_CONFIDENCE_MIN {
                 hyp.phase = HypothesisPhase::Archived;
                 self.stats.total_archived += 1;
