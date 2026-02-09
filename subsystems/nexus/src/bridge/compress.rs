@@ -110,7 +110,7 @@ impl RleCompressor {
         while i < data.len() {
             let byte = data[i];
             let mut count: u8 = 1;
-            while i + count as usize < data.len()
+            while i + (count as usize) < data.len()
                 && data[i + count as usize] == byte
                 && count < 255
             {
