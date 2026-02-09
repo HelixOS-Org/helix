@@ -68,11 +68,11 @@ pub enum SubsystemDomain {
 /// Maturity level across the entire kernel
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum UnifiedMaturity {
-    Nascent = 0,
+    Nascent    = 0,
     Developing = 1,
     Functional = 2,
-    Mature = 3,
-    Mastered = 4,
+    Mature     = 3,
+    Mastered   = 4,
 }
 
 // ============================================================================
@@ -286,8 +286,7 @@ impl HolisticSelfModel {
         let headroom_avg = if self.envelope.is_empty() {
             0.5
         } else {
-            self.envelope.values().map(|e| e.headroom).sum::<f32>()
-                / self.envelope.len() as f32
+            self.envelope.values().map(|e| e.headroom).sum::<f32>() / self.envelope.len() as f32
         };
 
         let velocity = if self.trajectory.len() >= 2 {
@@ -346,9 +345,11 @@ impl HolisticSelfModel {
     pub fn limitation_map(&self) -> BTreeMap<u8, Vec<(u64, f32, bool)>> {
         let mut map: BTreeMap<u8, Vec<(u64, f32, bool)>> = BTreeMap::new();
         for lim in self.limitations.values() {
-            map.entry(lim.domain as u8)
-                .or_insert_with(Vec::new)
-                .push((lim.id, lim.severity, lim.workaround_available));
+            map.entry(lim.domain as u8).or_insert_with(Vec::new).push((
+                lim.id,
+                lim.severity,
+                lim.workaround_available,
+            ));
         }
         map
     }
@@ -371,8 +372,7 @@ impl HolisticSelfModel {
         } else {
             0.0
         };
-        let magnitude = recent.iter().map(|p| p.overall_score).sum::<f32>()
-            / recent.len() as f32;
+        let magnitude = recent.iter().map(|p| p.overall_score).sum::<f32>() / recent.len() as f32;
         (direction, magnitude)
     }
 
@@ -385,8 +385,7 @@ impl HolisticSelfModel {
 
         let scores: Vec<f32> = self.subsystem_scores.values().copied().collect();
         let mean = scores.iter().sum::<f32>() / scores.len() as f32;
-        let variance = scores.iter().map(|s| (s - mean).powi(2)).sum::<f32>()
-            / scores.len() as f32;
+        let variance = scores.iter().map(|s| (s - mean).powi(2)).sum::<f32>() / scores.len() as f32;
         let std_dev = if variance > 0.0 {
             f32_sqrt(variance)
         } else {
@@ -399,8 +398,7 @@ impl HolisticSelfModel {
             (1.0 - (std_dev - CONSISTENCY_THRESHOLD) * 2.0).clamp(0.0, 1.0)
         };
 
-        self.consistency_ema =
-            EMA_ALPHA * consistency + (1.0 - EMA_ALPHA) * self.consistency_ema;
+        self.consistency_ema = EMA_ALPHA * consistency + (1.0 - EMA_ALPHA) * self.consistency_ema;
         self.consistency_ema
     }
 
