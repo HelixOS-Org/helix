@@ -21,6 +21,7 @@ impl RecvRequest {
 
 /// Recv app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RecvAppStats { pub total_recvs: u64, pub bytes_received: u64, pub errors: u64, pub truncated: u64 }
 
 /// Main app recv
@@ -29,6 +30,7 @@ pub struct AppRecv { pub stats: RecvAppStats }
 
 impl AppRecv {
     pub fn new() -> Self { Self { stats: RecvAppStats { total_recvs: 0, bytes_received: 0, errors: 0, truncated: 0 } } }
+    #[inline]
     pub fn recv(&mut self, req: &RecvRequest) -> i64 {
         self.stats.total_recvs += 1;
         self.stats.bytes_received += req.max_bytes;
