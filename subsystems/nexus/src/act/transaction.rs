@@ -4,6 +4,7 @@
 //! actions, allowing rollback on failure and atomic state changes.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -171,7 +172,7 @@ pub struct TransactionManager {
     /// Active transactions
     active: BTreeMap<TransactionId, Transaction>,
     /// Completed transactions
-    completed: Vec<TransactionId>,
+    completed: VecDeque<TransactionId>,
     /// Maximum completed history
     max_completed: usize,
     /// Total transactions
@@ -185,7 +186,7 @@ impl TransactionManager {
     pub fn new() -> Self {
         Self {
             active: BTreeMap::new(),
-            completed: Vec::new(),
+            completed: VecDeque::new(),
             max_completed: 1000,
             total: AtomicU64::new(0),
             rollbacks: AtomicU64::new(0),
@@ -288,9 +289,9 @@ impl TransactionManager {
 
     /// Add to completed list
     fn add_completed(&mut self, tx_id: TransactionId) {
-        self.completed.push(tx_id);
+        self.completed.push_back(tx_id);
         if self.completed.len() > self.max_completed {
-            self.completed.remove(0);
+            self.completed.pop_front();
         }
     }
 
