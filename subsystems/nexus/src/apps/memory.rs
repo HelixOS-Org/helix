@@ -8,7 +8,9 @@
 //! - Cache behavior prediction
 //! - NUMA affinity detection
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -19,9 +21,9 @@ use alloc::vec::Vec;
 #[derive(Debug)]
 pub struct WorkingSetEstimator {
     /// Page access counts (page_number → access_count)
-    page_accesses: BTreeMap<u64, u32>,
+    page_accesses: LinearMap<u32, 64>,
     /// Window samples (timestamp → working_set_pages)
-    samples: Vec<(u64, u64)>,
+    samples: VecDeque<(u64, u64)>,
     /// Max samples
     max_samples: usize,
     /// Current working set estimate (pages)
@@ -39,8 +41,8 @@ pub struct WorkingSetEstimator {
 impl WorkingSetEstimator {
     pub fn new(page_size: u64) -> Self {
         Self {
-            page_accesses: BTreeMap::new(),
-            samples: Vec::new(),
+            page_accesses: LinearMap::new(),
+            samples: VecDeque::new(),
             max_samples: 300,
             current_wss: 0,
             peak_wss: 0,
@@ -51,8 +53,9 @@ impl WorkingSetEstimator {
     }
 
     /// Record a page access
+    #[inline]
     pub fn record_access(&mut self, page_number: u64) {
-        *self.page_accesses.entry(page_number).or_insert(0) += 1;
+        self.page_accesses.add(page_number, 1);
 
         self.decay_counter += 1;
         if self.decay_counter >= self.decay_interval {
@@ -71,7 +74,7 @@ impl WorkingSetEstimator {
             }
         }
         for page in to_remove {
-            self.page_accesses.remove(&page);
+            self.page_accesses.remove(page);
         }
     }
 
@@ -84,14 +87,15 @@ impl WorkingSetEstimator {
         }
 
         if self.samples.len() >= self.max_samples {
-            self.samples.remove(0);
+            self.samples.pop_front();
         }
-        self.samples.push((timestamp, self.current_wss));
+        self.samples.push_back((timestamp, self.current_wss));
 
         self.current_wss
     }
 
     /// Working set in bytes
+    #[inline(always)]
     pub fn wss_bytes(&self) -> u64 {
         self.current_wss * self.page_size
     }
@@ -120,6 +124,7 @@ impl WorkingSetEstimator {
     }
 
     /// Hot pages (most accessed)
+    #[inline]
     pub fn hot_pages(&self, n: usize) -> Vec<(u64, u32)> {
         let mut pages: Vec<(u64, u32)> = self.page_accesses.iter().map(|(&p, &c)| (p, c)).collect();
         pages.sort_by(|a, b| b.1.cmp(&a.1));
@@ -155,7 +160,7 @@ pub enum AccessPattern {
 #[derive(Debug)]
 pub struct AccessPatternDetector {
     /// Recent access addresses
-    recent_addresses: Vec<u64>,
+    recent_addresses: VecDeque<u64>,
     /// Max addresses to track
     max_addresses: usize,
     /// Detected pattern
@@ -169,7 +174,7 @@ pub struct AccessPatternDetector {
 impl AccessPatternDetector {
     pub fn new(window_size: usize) -> Self {
         Self {
-            recent_addresses: Vec::new(),
+            recent_addresses: VecDeque::new(),
             max_addresses: window_size,
             pattern: AccessPattern::Unknown,
             confidence: 0.0,
@@ -178,11 +183,12 @@ impl AccessPatternDetector {
     }
 
     /// Record an access
+    #[inline]
     pub fn record(&mut self, address: u64) {
         if self.recent_addresses.len() >= self.max_addresses {
-            self.recent_addresses.remove(0);
+            self.recent_addresses.pop_front();
         }
-        self.recent_addresses.push(address);
+        self.recent_addresses.push_back(address);
 
         if self.recent_addresses.len() >= 10 {
             self.classify();
@@ -258,7 +264,7 @@ impl AccessPatternDetector {
 
     fn is_clustered(&self, addrs: &[u64]) -> bool {
         // Check if accesses cluster in a few page ranges
-        let mut page_set: BTreeMap<u64, u32> = BTreeMap::new();
+        let mut page_set: LinearMap<u32, 64> = BTreeMap::new();
         for &addr in addrs {
             *page_set.entry(addr / 4096).or_insert(0) += 1;
         }
@@ -295,6 +301,7 @@ pub enum AllocSizeClass {
 }
 
 impl AllocSizeClass {
+    #[inline]
     pub fn from_size(size: u64) -> Self {
         match size {
             0..=64 => AllocSizeClass::Tiny,
@@ -326,7 +333,7 @@ pub struct AllocationAnalyzer {
     /// Total bytes allocated
     pub total_bytes: u64,
     /// Allocation rate (per second)
-    alloc_rate_samples: Vec<f64>,
+    alloc_rate_samples: VecDeque<f64>,
 }
 
 impl AllocationAnalyzer {
@@ -340,11 +347,12 @@ impl AllocationAnalyzer {
             total_allocs: 0,
             total_frees: 0,
             total_bytes: 0,
-            alloc_rate_samples: Vec::new(),
+            alloc_rate_samples: VecDeque::new(),
         }
     }
 
     /// Record an allocation
+    #[inline]
     pub fn record_alloc(&mut self, size: u64) {
         let class = AllocSizeClass::from_size(size);
         *self.alloc_counts.entry(class as u8).or_insert(0) += 1;
@@ -358,6 +366,7 @@ impl AllocationAnalyzer {
     }
 
     /// Record a free
+    #[inline]
     pub fn record_free(&mut self, size: u64) {
         let class = AllocSizeClass::from_size(size);
         *self.free_counts.entry(class as u8).or_insert(0) += 1;
@@ -366,11 +375,13 @@ impl AllocationAnalyzer {
     }
 
     /// Outstanding allocation count
+    #[inline(always)]
     pub fn outstanding(&self) -> u64 {
         self.outstanding
     }
 
     /// Possible memory leak (allocations >> frees)
+    #[inline]
     pub fn possible_leak(&self) -> bool {
         if self.total_allocs < 100 {
             return false;
@@ -425,6 +436,7 @@ impl MemoryAnalyzer {
     }
 
     /// Get or create working set estimator
+    #[inline]
     pub fn working_set(&mut self, pid: u64) -> &mut WorkingSetEstimator {
         let ps = self.page_size;
         if !self.working_sets.contains_key(&pid) && self.working_sets.len() < self.max_processes {
@@ -436,6 +448,7 @@ impl MemoryAnalyzer {
     }
 
     /// Get or create access pattern detector
+    #[inline]
     pub fn access_pattern(&mut self, pid: u64) -> &mut AccessPatternDetector {
         if !self.patterns.contains_key(&pid) && self.patterns.len() < self.max_processes {
             self.patterns.insert(pid, AccessPatternDetector::new(256));
@@ -446,6 +459,7 @@ impl MemoryAnalyzer {
     }
 
     /// Get or create allocation analyzer
+    #[inline]
     pub fn allocations(&mut self, pid: u64) -> &mut AllocationAnalyzer {
         if !self.allocations.contains_key(&pid) && self.allocations.len() < self.max_processes {
             self.allocations.insert(pid, AllocationAnalyzer::new());
@@ -456,6 +470,7 @@ impl MemoryAnalyzer {
     }
 
     /// Remove process
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
         self.working_sets.remove(&pid);
         self.patterns.remove(&pid);
@@ -463,6 +478,7 @@ impl MemoryAnalyzer {
     }
 
     /// Processes with possible memory leaks
+    #[inline]
     pub fn leaking_processes(&self) -> Vec<u64> {
         self.allocations
             .iter()
