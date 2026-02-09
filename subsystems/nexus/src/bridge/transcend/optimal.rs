@@ -201,7 +201,11 @@ impl BridgeOptimal {
         let problem_id = fnv1a_hash(name.as_bytes()) ^ xorshift64(&mut self.rng_state);
 
         let dim = variables.len().min(MAX_DIMENSIONS);
-        let mut best_values: Vec<f32> = variables.iter().take(dim).map(|v| v.current_value).collect();
+        let mut best_values: Vec<f32> = variables
+            .iter()
+            .take(dim)
+            .map(|v| v.current_value)
+            .collect();
         let mut best_obj: f32 = self.evaluate_proxy(&best_values);
         let mut dual_bound: f32 = f32::MAX;
         let mut iterations: u32 = 0;
@@ -287,7 +291,11 @@ impl BridgeOptimal {
             gap,
             iterations_used: iterations,
             is_proven_optimal: proven,
-            proof_method: String::from(if proven { "golden-section+exhaustive" } else { "heuristic-bounded" }),
+            proof_method: String::from(if proven {
+                "golden-section+exhaustive"
+            } else {
+                "heuristic-bounded"
+            }),
         };
 
         (best_values, proof)
@@ -302,7 +310,11 @@ impl BridgeOptimal {
             gap: abs_f32(r.best_objective - r.dual_bound) / abs_f32(r.best_objective).max(1e-12),
             iterations_used: r.iterations,
             is_proven_optimal: r.proven,
-            proof_method: String::from(if r.proven { "golden-section+exhaustive" } else { "heuristic-bounded" }),
+            proof_method: String::from(if r.proven {
+                "golden-section+exhaustive"
+            } else {
+                "heuristic-bounded"
+            }),
         })
     }
 
@@ -376,11 +388,17 @@ impl BridgeOptimal {
         let n = points.len();
         for i in 0..n {
             for j in 0..n {
-                if i == j { continue; }
-                let dominates = points[j].objectives.iter()
+                if i == j {
+                    continue;
+                }
+                let dominates = points[j]
+                    .objectives
+                    .iter()
                     .zip(points[i].objectives.iter())
                     .all(|(oj, oi)| oj <= oi)
-                    && points[j].objectives.iter()
+                    && points[j]
+                        .objectives
+                        .iter()
                         .zip(points[i].objectives.iter())
                         .any(|(oj, oi)| oj < oi);
                 if dominates {
@@ -389,7 +407,8 @@ impl BridgeOptimal {
             }
         }
 
-        let mut front: Vec<ParetoPoint> = points.into_iter().filter(|p| p.dominated_by == 0).collect();
+        let mut front: Vec<ParetoPoint> =
+            points.into_iter().filter(|p| p.dominated_by == 0).collect();
         front.truncate(MAX_PARETO_FRONT);
         self.pareto_cache.insert(problem_id, front.clone());
         front
@@ -407,7 +426,11 @@ impl BridgeOptimal {
         let problem_id = fnv1a_hash(name.as_bytes()) ^ xorshift64(&mut self.rng_state);
         let dim = variables.len().min(MAX_DIMENSIONS);
 
-        let nominal: Vec<f32> = variables.iter().take(dim).map(|v| (v.lower_bound + v.upper_bound) / 2.0).collect();
+        let nominal: Vec<f32> = variables
+            .iter()
+            .take(dim)
+            .map(|v| (v.lower_bound + v.upper_bound) / 2.0)
+            .collect();
         let nominal_obj = self.evaluate_proxy(&nominal);
         let mut worst_obj = nominal_obj;
 
@@ -459,6 +482,9 @@ impl BridgeOptimal {
     /// Proxy multi-objective: weighted sums shifted by objective index.
     fn evaluate_objective_proxy(&self, values: &[f32], obj_index: usize) -> f32 {
         let shift = obj_index as f32 * 0.5;
-        values.iter().map(|v| (v - shift) * (v - shift)).sum::<f32>()
+        values
+            .iter()
+            .map(|v| (v - shift) * (v - shift))
+            .sum::<f32>()
     }
 }
