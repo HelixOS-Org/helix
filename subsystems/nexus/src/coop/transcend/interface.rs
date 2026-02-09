@@ -52,7 +52,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(v: u64, lo: u64, hi: u64) -> u64 {
-    if v < lo { lo } else if v > hi { hi } else { v }
+    if v < lo {
+        lo
+    } else if v > hi {
+        hi
+    } else {
+        v
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -203,14 +209,15 @@ impl CoopInterface {
         priority: u64,
         contention_level: u64,
     ) -> AllocationExplanation {
-        let satisfaction = if demanded > 0 { allocated * 100 / demanded } else { 100 };
+        let satisfaction = if demanded > 0 {
+            allocated * 100 / demanded
+        } else {
+            100
+        };
         let reason = self.infer_reason(satisfaction, priority, contention_level);
         let fairness_contrib = self.compute_fairness_contribution(agent_id, satisfaction);
 
-        let eid = fnv1a(&[
-            agent_id.to_le_bytes(),
-            self.tick.to_le_bytes(),
-        ].concat());
+        let eid = fnv1a(&[agent_id.to_le_bytes(), self.tick.to_le_bytes()].concat());
 
         let expl = AllocationExplanation {
             explanation_id: eid,
@@ -339,12 +346,21 @@ impl CoopInterface {
     // -- negotiation insight ------------------------------------------------
 
     pub fn negotiation_insight(&mut self, parties: &[u64], severity: u64) -> NegotiationInsight {
-        let iid = fnv1a(&parties.iter().flat_map(|p| p.to_le_bytes()).collect::<Vec<u8>>());
+        let iid = fnv1a(
+            &parties
+                .iter()
+                .flat_map(|p| p.to_le_bytes())
+                .collect::<Vec<u8>>(),
+        );
 
         let concession = self.suggest_concession(severity, parties.len() as u64);
         let rounds = self.predict_rounds(severity, parties.len() as u64);
 
-        let existing_speed = self.insights.get(&iid).map(|i| i.ema_resolution_speed).unwrap_or(50);
+        let existing_speed = self
+            .insights
+            .get(&iid)
+            .map(|i| i.ema_resolution_speed)
+            .unwrap_or(50);
         let resolution_speed = ema_update(existing_speed, 100u64.saturating_sub(rounds));
 
         let insight = NegotiationInsight {
@@ -386,17 +402,25 @@ impl CoopInterface {
 
     // -- recommendation -----------------------------------------------------
 
-    pub fn recommendation(&mut self, agent_id: u64, satisfaction: u64, contention: u64) -> Recommendation {
+    pub fn recommendation(
+        &mut self,
+        agent_id: u64,
+        satisfaction: u64,
+        contention: u64,
+    ) -> Recommendation {
         let action = self.decide_action(satisfaction, contention);
         let improvement = self.estimate_improvement(&action, satisfaction);
         let confidence = self.compute_rec_confidence(satisfaction, contention);
         let priority = self.compute_priority(satisfaction, contention);
 
-        let rid = fnv1a(&[
-            agent_id.to_le_bytes(),
-            self.tick.to_le_bytes(),
-            satisfaction.to_le_bytes(),
-        ].concat());
+        let rid = fnv1a(
+            &[
+                agent_id.to_le_bytes(),
+                self.tick.to_le_bytes(),
+                satisfaction.to_le_bytes(),
+            ]
+            .concat(),
+        );
 
         let rec = Recommendation {
             rec_id: rid,
@@ -466,7 +490,10 @@ impl CoopInterface {
         let avg_conf = if self.recommendations.is_empty() {
             50
         } else {
-            self.recommendations.values().map(|r| r.confidence).sum::<u64>()
+            self.recommendations
+                .values()
+                .map(|r| r.confidence)
+                .sum::<u64>()
                 / self.recommendations.len() as u64
         };
 
