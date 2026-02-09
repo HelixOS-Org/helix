@@ -39,16 +39,25 @@ pub struct CapBitmask {
 }
 
 impl CapBitmask {
+    #[inline(always)]
     pub fn empty() -> Self { Self { bits: 0 } }
+    #[inline(always)]
     pub fn full() -> Self { Self { bits: u64::MAX } }
 
+    #[inline(always)]
     pub fn set(&mut self, cap: u32) { if cap < 64 { self.bits |= 1u64 << cap; } }
+    #[inline(always)]
     pub fn clear(&mut self, cap: u32) { if cap < 64 { self.bits &= !(1u64 << cap); } }
+    #[inline(always)]
     pub fn has(&self, cap: u32) -> bool { if cap < 64 { (self.bits & (1u64 << cap)) != 0 } else { false } }
+    #[inline(always)]
     pub fn count(&self) -> u32 { self.bits.count_ones() }
 
+    #[inline(always)]
     pub fn intersect(&self, other: &CapBitmask) -> CapBitmask { CapBitmask { bits: self.bits & other.bits } }
+    #[inline(always)]
     pub fn union(&self, other: &CapBitmask) -> CapBitmask { CapBitmask { bits: self.bits | other.bits } }
+    #[inline(always)]
     pub fn subtract(&self, other: &CapBitmask) -> CapBitmask { CapBitmask { bits: self.bits & !other.bits } }
 }
 
@@ -67,6 +76,7 @@ pub struct Securebits {
 
 /// Per-app credential state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppCredState {
     pub process_id: u64,
     pub uid: u32,
@@ -104,8 +114,10 @@ impl AppCredState {
         }
     }
 
+    #[inline(always)]
     pub fn is_privileged(&self) -> bool { self.euid == 0 || self.cap_effective.count() > 0 }
 
+    #[inline]
     pub fn record_change(&mut self, change: CredentialChange) {
         // Detect privilege escalation
         if change.gained_privilege { self.escalation_count += 1; }
@@ -113,6 +125,7 @@ impl AppCredState {
         while self.change_history.len() > self.max_history { self.change_history.pop_front(); }
     }
 
+    #[inline]
     pub fn drop_privileges(&mut self) {
         self.cap_effective = CapBitmask::empty();
         self.cap_permitted = CapBitmask::empty();
@@ -163,6 +176,7 @@ pub enum EscalationType {
 
 /// Apps credential tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsCredTrackerStats {
     pub total_processes: usize,
     pub privileged_count: usize,
@@ -189,6 +203,7 @@ impl AppsCredTracker {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, uid: u32, gid: u32, max_hist: usize) {
         self.states.entry(pid).or_insert_with(|| AppCredState::new(pid, uid, gid, max_hist));
     }
@@ -231,6 +246,7 @@ impl AppsCredTracker {
         }
     }
 
+    #[inline]
     pub fn set_no_new_privs(&mut self, pid: u64, ts: u64) {
         if let Some(state) = self.states.get_mut(&pid) {
             state.no_new_privs = true;
@@ -243,8 +259,10 @@ impl AppsCredTracker {
         }
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.states.len();
         self.stats.privileged_count = self.states.values().filter(|s| s.is_privileged()).count();
@@ -253,7 +271,10 @@ impl AppsCredTracker {
         self.stats.no_new_privs_count = self.states.values().filter(|s| s.no_new_privs).count();
     }
 
+    #[inline(always)]
     pub fn app_creds(&self, pid: u64) -> Option<&AppCredState> { self.states.get(&pid) }
+    #[inline(always)]
     pub fn alerts(&self) -> &[EscalationAlert] { &self.alerts }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsCredTrackerStats { &self.stats }
 }
