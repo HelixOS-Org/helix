@@ -145,7 +145,13 @@ impl CoopNeed {
 
     /// Observe a new need intensity signal
     pub fn observe_intensity(&mut self, raw: f32) {
-        let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
+        let clamped = if raw < 0.0 {
+            0.0
+        } else if raw > 1.0 {
+            1.0
+        } else {
+            raw
+        };
         self.intensity = clamped;
         self.smoothed_intensity += EMA_ALPHA * (clamped - self.smoothed_intensity);
         self.history[self.write_idx] = clamped;
@@ -159,7 +165,13 @@ impl CoopNeed {
 
     /// Update satisfaction level
     pub fn update_satisfaction(&mut self, sat: f32) {
-        let clamped = if sat < 0.0 { 0.0 } else if sat > 1.0 { 1.0 } else { sat };
+        let clamped = if sat < 0.0 {
+            0.0
+        } else if sat > 1.0 {
+            1.0
+        } else {
+            sat
+        };
         self.satisfaction += EMA_ALPHA * (clamped - self.satisfaction);
         self.update_gap();
     }
@@ -360,27 +372,46 @@ impl CoopEmpathyEngine {
             if self.profiles.len() >= MAX_PROCESSES {
                 return;
             }
-            self.profiles.insert(process_id, EmpathyProfile::new(process_id));
+            self.profiles
+                .insert(process_id, EmpathyProfile::new(process_id));
         }
 
         let tick = self.tick;
         if let Some(profile) = self.profiles.get_mut(&process_id) {
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::LatencyGuarantee as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::LatencyGuarantee as u8))
+            {
                 n.observe_intensity(latency_need);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::FairShare as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::FairShare as u8))
+            {
                 n.observe_intensity(fairness_need);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::BurstCapacity as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::BurstCapacity as u8))
+            {
                 n.observe_intensity(burst_need);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::PredictableAllocation as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::PredictableAllocation as u8))
+            {
                 n.observe_intensity(predictability_need);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::NoiseIsolation as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::NoiseIsolation as u8))
+            {
                 n.observe_intensity(isolation_need);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::CriticalPriority as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::CriticalPriority as u8))
+            {
                 n.observe_intensity(priority_need);
             }
             profile.recompute_aggregates();
@@ -461,22 +492,40 @@ impl CoopEmpathyEngine {
         priority_met: f32,
     ) -> f32 {
         if let Some(profile) = self.profiles.get_mut(&process_id) {
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::LatencyGuarantee as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::LatencyGuarantee as u8))
+            {
                 n.update_satisfaction(latency_met);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::FairShare as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::FairShare as u8))
+            {
                 n.update_satisfaction(fairness_met);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::BurstCapacity as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::BurstCapacity as u8))
+            {
                 n.update_satisfaction(burst_met);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::PredictableAllocation as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::PredictableAllocation as u8))
+            {
                 n.update_satisfaction(predictability_met);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::NoiseIsolation as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::NoiseIsolation as u8))
+            {
                 n.update_satisfaction(isolation_met);
             }
-            if let Some(n) = profile.cooperation_needs.get_mut(&(CoopNeedKind::CriticalPriority as u8)) {
+            if let Some(n) = profile
+                .cooperation_needs
+                .get_mut(&(CoopNeedKind::CriticalPriority as u8))
+            {
                 n.update_satisfaction(priority_met);
             }
             profile.recompute_aggregates();
@@ -529,7 +578,9 @@ impl CoopEmpathyEngine {
             let need_b = profile_b.cooperation_needs.get(&key);
             if let (Some(a), Some(b)) = (need_a, need_b) {
                 // Conflict when both have high intensity for the same scarce resource
-                if a.smoothed_intensity > CONFLICT_THRESHOLD && b.smoothed_intensity > CONFLICT_THRESHOLD {
+                if a.smoothed_intensity > CONFLICT_THRESHOLD
+                    && b.smoothed_intensity > CONFLICT_THRESHOLD
+                {
                     let severity = (a.smoothed_intensity + b.smoothed_intensity) / 2.0;
                     let mut id_buf = [0u8; 17];
                     let a_bytes = pid_a.to_le_bytes();
@@ -619,7 +670,13 @@ impl CoopEmpathyEngine {
         };
 
         let raw = avg_sat * 0.4 + avg_acc * 0.4 + (1.0 - conflict_penalty) * 0.2;
-        let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
+        let clamped = if raw < 0.0 {
+            0.0
+        } else if raw > 1.0 {
+            1.0
+        } else {
+            raw
+        };
 
         self.cross_understanding_ema += EMA_ALPHA * (clamped - self.cross_understanding_ema);
         self.stats.cross_understanding_score = self.cross_understanding_ema;
@@ -641,8 +698,14 @@ impl CoopEmpathyEngine {
 
     /// Prune stale profiles
     pub fn prune_stale(&mut self, max_age: u64) {
-        let cutoff = if self.tick > max_age { self.tick - max_age } else { 0 };
-        let stale: Vec<u64> = self.profiles.iter()
+        let cutoff = if self.tick > max_age {
+            self.tick - max_age
+        } else {
+            0
+        };
+        let stale: Vec<u64> = self
+            .profiles
+            .iter()
             .filter(|(_, p)| p.last_evaluation_tick < cutoff)
             .map(|(k, _)| *k)
             .collect();
