@@ -188,11 +188,7 @@ impl AppsAbstraction {
     // -- public API ---------------------------------------------------------
 
     /// Create a higher-level abstraction from a set of categories.
-    pub fn create_app_abstraction(
-        &mut self,
-        label: &str,
-        category_ids: &[u64],
-    ) -> Option<u64> {
+    pub fn create_app_abstraction(&mut self, label: &str, category_ids: &[u64]) -> Option<u64> {
         if self.abstractions.len() >= MAX_ABSTRACTIONS || category_ids.is_empty() {
             return None;
         }
