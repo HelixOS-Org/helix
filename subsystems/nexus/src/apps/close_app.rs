@@ -27,6 +27,7 @@ pub struct AppCloseEntry {
 
 /// Statistics for close operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppCloseStats {
     pub total_closes: u64,
     pub successful_closes: u64,
@@ -88,6 +89,7 @@ impl AppCloseManager {
         }
     }
 
+    #[inline]
     pub fn process_deferred(&mut self) -> usize {
         let fds: Vec<u64> = self.deferred_closes.keys().cloned().collect();
         let count = fds.len();
@@ -99,10 +101,12 @@ impl AppCloseManager {
         count
     }
 
+    #[inline(always)]
     pub fn deferred_count(&self) -> usize {
         self.deferred_closes.len()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppCloseStats {
         &self.stats
     }
