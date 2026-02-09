@@ -65,6 +65,7 @@ impl DupRecord {
 
 /// Per-process FD chain for leak detection.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessDupState {
     pub pid: u64,
     pub dup_chains: BTreeMap<i32, Vec<i32>>, // original fd → [dup'd fds]
@@ -86,6 +87,7 @@ impl ProcessDupState {
         }
     }
 
+    #[inline]
     pub fn record_dup(&mut self, old_fd: i32, new_fd: i32) {
         let chain = self.dup_chains.entry(old_fd).or_insert_with(Vec::new);
         chain.push(new_fd);
@@ -95,6 +97,7 @@ impl ProcessDupState {
         }
     }
 
+    #[inline]
     pub fn record_close(&mut self, fd: i32) {
         self.total_closes += 1;
         // Remove from chains
@@ -104,6 +107,7 @@ impl ProcessDupState {
         self.dup_chains.remove(&fd);
     }
 
+    #[inline]
     pub fn leak_score(&self) -> f64 {
         if self.total_dups == 0 {
             return 0.0;
@@ -115,6 +119,7 @@ impl ProcessDupState {
 
 /// Statistics for the dup app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DupAppStats {
     pub total_dups: u64,
     pub total_dup2s: u64,
@@ -176,6 +181,7 @@ impl AppDup {
         id
     }
 
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }
