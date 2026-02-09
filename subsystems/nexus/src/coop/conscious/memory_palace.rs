@@ -214,14 +214,16 @@ impl PalaceRoom {
 
     /// Find patterns matching a context hash
     pub fn find_by_context(&self, context_hash: u64) -> Vec<&CoopPattern> {
-        self.patterns.values()
+        self.patterns
+            .values()
             .filter(|p| p.context_hash == context_hash)
             .collect()
     }
 
     /// Find patterns involving a specific process
     pub fn find_by_process(&self, process_id: u64) -> Vec<&CoopPattern> {
-        self.patterns.values()
+        self.patterns
+            .values()
             .filter(|p| p.process_ids.contains(&process_id))
             .collect()
     }
@@ -230,7 +232,8 @@ impl PalaceRoom {
     pub fn top_patterns(&self, n: usize) -> Vec<&CoopPattern> {
         let mut sorted: Vec<&CoopPattern> = self.patterns.values().collect();
         sorted.sort_by(|a, b| {
-            b.composite_score().partial_cmp(&a.composite_score())
+            b.composite_score()
+                .partial_cmp(&a.composite_score())
                 .unwrap_or(core::cmp::Ordering::Equal)
         });
         sorted.truncate(n);
@@ -351,7 +354,13 @@ impl CoopMemoryPalace {
 
         let mut pattern = CoopPattern::new(name, room, description, self.tick);
         pattern.process_ids = process_ids;
-        pattern.outcome_quality = if outcome_quality < 0.0 { 0.0 } else if outcome_quality > 1.0 { 1.0 } else { outcome_quality };
+        pattern.outcome_quality = if outcome_quality < 0.0 {
+            0.0
+        } else if outcome_quality > 1.0 {
+            1.0
+        } else {
+            outcome_quality
+        };
         pattern.tags = tags;
         let id = pattern.pattern_id;
 
@@ -369,7 +378,11 @@ impl CoopMemoryPalace {
     // ========================================================================
 
     /// Recall relevant mediation patterns for a given context
-    pub fn recall_mediation(&mut self, context_description: &str, max_results: usize) -> Vec<CoopPattern> {
+    pub fn recall_mediation(
+        &mut self,
+        context_description: &str,
+        max_results: usize,
+    ) -> Vec<CoopPattern> {
         self.tick += 1;
         let context_hash = fnv1a_hash(context_description.as_bytes());
 
@@ -455,7 +468,9 @@ impl CoopMemoryPalace {
             }
 
             // Remove below threshold
-            let to_forget: Vec<u64> = room.patterns.iter()
+            let to_forget: Vec<u64> = room
+                .patterns
+                .iter()
                 .filter(|(_, p)| p.relevance < FORGET_THRESHOLD)
                 .map(|(k, _)| *k)
                 .collect();
@@ -491,9 +506,15 @@ impl CoopMemoryPalace {
         for (_, room) in self.rooms.iter() {
             room_counts.push(room.patterns.len() as f32);
         }
-        let max_count = room_counts.iter().cloned().fold(0.0f32, |a, b| if b > a { b } else { a });
+        let max_count = room_counts
+            .iter()
+            .cloned()
+            .fold(0.0f32, |a, b| if b > a { b } else { a });
         let diversity = if max_count > 0.0 {
-            let min_count = room_counts.iter().cloned().fold(f32::MAX, |a, b| if b < a { b } else { a });
+            let min_count = room_counts
+                .iter()
+                .cloned()
+                .fold(f32::MAX, |a, b| if b < a { b } else { a });
             min_count / max_count
         } else {
             0.0
@@ -511,10 +532,20 @@ impl CoopMemoryPalace {
                 room_count += 1;
             }
         }
-        let avg_quality = if room_count > 0 { total_quality / room_count as f32 } else { 0.0 };
+        let avg_quality = if room_count > 0 {
+            total_quality / room_count as f32
+        } else {
+            0.0
+        };
 
         let raw = volume * 0.3 + diversity * 0.3 + avg_quality * 0.4;
-        let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
+        let clamped = if raw < 0.0 {
+            0.0
+        } else if raw > 1.0 {
+            1.0
+        } else {
+            raw
+        };
 
         self.richness_ema += EMA_ALPHA * (clamped - self.richness_ema);
         self.stats.knowledge_richness = self.richness_ema;
@@ -550,7 +581,10 @@ impl CoopMemoryPalace {
     }
 
     pub fn room_pattern_count(&self, room: PatternRoom) -> usize {
-        self.rooms.get(&(room as u8)).map(|r| r.patterns.len()).unwrap_or(0)
+        self.rooms
+            .get(&(room as u8))
+            .map(|r| r.patterns.len())
+            .unwrap_or(0)
     }
 
     pub fn snapshot_stats(&self) -> CoopPalaceStats {
@@ -572,6 +606,10 @@ impl CoopMemoryPalace {
                 count += 1;
             }
         }
-        self.stats.avg_relevance = if count > 0 { total_rel / count as f32 } else { 0.0 };
+        self.stats.avg_relevance = if count > 0 {
+            total_rel / count as f32
+        } else {
+            0.0
+        };
     }
 }
