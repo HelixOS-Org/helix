@@ -1451,3 +1451,5 @@ pub mod page_fault_coop;
 pub mod oom_coop;
 pub mod swap_coop;
 pub mod mlock_coop;
+// Consciousness — Cooperation Self-Awareness
+pub mod conscious;
