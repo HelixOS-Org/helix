@@ -3,6 +3,7 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Chown result codes
@@ -56,7 +57,7 @@ pub struct ChownAppStats {
 /// Main chown app manager
 #[derive(Debug)]
 pub struct AppChown {
-    history: Vec<ChownRecord>,
+    history: VecDeque<ChownRecord>,
     max_history: usize,
     stats: ChownAppStats,
 }
@@ -64,7 +65,7 @@ pub struct AppChown {
 impl AppChown {
     pub fn new(max_history: usize) -> Self {
         Self {
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history,
             stats: ChownAppStats {
                 total_calls: 0, chown_calls: 0, fchown_calls: 0,
@@ -100,9 +101,9 @@ impl AppChown {
             pid, variant, result: ChownResult::Success, tick,
         };
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(record);
+        self.history.push_back(record);
         ChownResult::Success
     }
 
