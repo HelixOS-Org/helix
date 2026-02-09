@@ -97,16 +97,19 @@ impl EnvironmentSnapshot {
     }
 
     /// Add variable
+    #[inline(always)]
     pub fn add_variable(&mut self, entry: EnvEntry) {
         self.variables.insert(entry.key_hash, entry);
     }
 
     /// Variable count
+    #[inline(always)]
     pub fn variable_count(&self) -> usize {
         self.variables.len()
     }
 
     /// Sensitive variable count
+    #[inline(always)]
     pub fn sensitive_count(&self) -> usize {
         self.variables.values().filter(|e| e.is_sensitive).count()
     }
@@ -153,11 +156,13 @@ pub struct EnvDiff {
 
 impl EnvDiff {
     /// Is empty (no changes)?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.added.is_empty() && self.removed.is_empty() && self.changed.is_empty()
     }
 
     /// Total changes
+    #[inline(always)]
     pub fn total_changes(&self) -> usize {
         self.added.len() + self.removed.len() + self.changed.len()
     }
@@ -193,21 +198,25 @@ impl NamespaceSet {
     }
 
     /// Set namespace
+    #[inline(always)]
     pub fn set(&mut self, info: NamespaceInfo) {
         self.namespaces.insert(info.ns_type as u8, info);
     }
 
     /// Get namespace
+    #[inline(always)]
     pub fn get(&self, ns_type: NamespaceType) -> Option<&NamespaceInfo> {
         self.namespaces.get(&(ns_type as u8))
     }
 
     /// Custom namespace count
+    #[inline(always)]
     pub fn custom_count(&self) -> usize {
         self.namespaces.values().filter(|n| n.is_custom).count()
     }
 
     /// Is containerized? (multiple custom namespaces)
+    #[inline(always)]
     pub fn is_containerized(&self) -> bool {
         self.custom_count() >= 3
     }
@@ -244,6 +253,7 @@ impl ProcessEnvironment {
     }
 
     /// Update snapshot
+    #[inline]
     pub fn update(&mut self, new_snapshot: EnvironmentSnapshot) {
         let old = core::mem::replace(&mut self.current, new_snapshot);
         let diff = self.current.diff(&old);
@@ -254,6 +264,7 @@ impl ProcessEnvironment {
     }
 
     /// Has drifted?
+    #[inline]
     pub fn has_drifted(&self) -> bool {
         if let Some(ref prev) = self.previous {
             !self.current.diff(prev).is_empty()
@@ -265,6 +276,7 @@ impl ProcessEnvironment {
 
 /// Environment stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppEnvironmentStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -291,12 +303,14 @@ impl AppEnvironmentTracker {
     }
 
     /// Register process
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, now: u64) {
         self.processes.insert(pid, ProcessEnvironment::new(pid, now));
         self.update_stats();
     }
 
     /// Update environment
+    #[inline]
     pub fn update(&mut self, pid: u64, snapshot: EnvironmentSnapshot) {
         if let Some(proc_env) = self.processes.get_mut(&pid) {
             proc_env.update(snapshot);
@@ -305,12 +319,14 @@ impl AppEnvironmentTracker {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.update_stats();
     }
 
     /// Get process env
+    #[inline(always)]
     pub fn environment(&self, pid: u64) -> Option<&ProcessEnvironment> {
         self.processes.get(&pid)
     }
@@ -324,6 +340,7 @@ impl AppEnvironmentTracker {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppEnvironmentStats {
         &self.stats
     }
