@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -49,7 +50,7 @@ pub struct ProcessSwitchProfile {
     pub last_cpu: u32,
     pub last_switch_ns: u64,
     /// Co-run partners (pid -> shared count)
-    corun_partners: BTreeMap<u64, u64>,
+    corun_partners: LinearMap<u64, 64>,
 }
 
 impl ProcessSwitchProfile {
@@ -65,7 +66,7 @@ impl ProcessSwitchProfile {
             cross_cpu_switches: 0,
             last_cpu: 0,
             last_switch_ns: 0,
-            corun_partners: BTreeMap::new(),
+            corun_partners: LinearMap::new(),
         }
     }
 
@@ -102,33 +103,39 @@ impl ProcessSwitchProfile {
     }
 
     /// Record co-run (was on same CPU or core as another process)
+    #[inline(always)]
     pub fn record_corun(&mut self, partner_pid: u64) {
-        *self.corun_partners.entry(partner_pid).or_insert(0) += 1;
+        self.corun_partners.add(partner_pid, 1);
     }
 
     /// Voluntary ratio
+    #[inline(always)]
     pub fn voluntary_ratio(&self) -> f64 {
         if self.total_switches == 0 { return 0.0; }
         self.voluntary as f64 / self.total_switches as f64
     }
 
     /// CPU migration ratio
+    #[inline(always)]
     pub fn migration_ratio(&self) -> f64 {
         if self.total_switches == 0 { return 0.0; }
         self.cross_cpu_switches as f64 / self.total_switches as f64
     }
 
     /// Is CPU-bound? (high involuntary switches)
+    #[inline(always)]
     pub fn is_cpu_bound(&self) -> bool {
         self.voluntary_ratio() < 0.3 && self.switch_rate_ema > 100.0
     }
 
     /// Is IO-bound? (high voluntary switches)
+    #[inline(always)]
     pub fn is_io_bound(&self) -> bool {
         self.voluntary_ratio() > 0.8
     }
 
     /// Top co-run partners
+    #[inline]
     pub fn top_corun_partners(&self, n: usize) -> Vec<(u64, u64)> {
         let mut partners: Vec<(u64, u64)> = self.corun_partners.iter()
             .map(|(&pid, &count)| (pid, count))
@@ -141,6 +148,7 @@ impl ProcessSwitchProfile {
 
 /// Context switch profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppCtxSwitchStats {
     pub tracked_processes: usize,
     pub total_switches: u64,
@@ -165,6 +173,7 @@ impl AppCtxSwitchProfiler {
     }
 
     /// Record switch
+    #[inline]
     pub fn record(&mut self, record: &SwitchRecord) {
         self.processes.entry(record.pid)
             .or_insert_with(|| ProcessSwitchProfile::new(record.pid))
@@ -187,6 +196,7 @@ impl AppCtxSwitchProfiler {
         self.stats.io_bound_count = self.processes.values().filter(|p| p.is_io_bound()).count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppCtxSwitchStats {
         &self.stats
     }
