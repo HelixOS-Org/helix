@@ -4,6 +4,7 @@
 //! periods to prevent flip-flop behavior and system oscillation.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -144,7 +145,7 @@ pub struct RateLimiter {
     /// Rate limits per action type
     limits: BTreeMap<ActionType, RateLimit>,
     /// Action history
-    history: Vec<ActionHistoryEntry>,
+    history: VecDeque<ActionHistoryEntry>,
     /// Maximum history size
     max_history: usize,
     /// Actions throttled
@@ -177,7 +178,7 @@ impl RateLimiter {
 
         Self {
             limits,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
             throttled: AtomicU64::new(0),
         }
@@ -258,7 +259,7 @@ impl RateLimiter {
 
     /// Record an action
     pub fn record(&mut self, action_type: ActionType, target: &ActionTarget, timestamp: Timestamp) {
-        self.history.push(ActionHistoryEntry {
+        self.history.push_back(ActionHistoryEntry {
             action_type,
             target: target_to_string(target),
             timestamp,
@@ -266,7 +267,7 @@ impl RateLimiter {
 
         // Trim history if too large
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
