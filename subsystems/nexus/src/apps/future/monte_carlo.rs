@@ -91,8 +91,8 @@ impl WorkloadDistribution {
         } else {
             0.0
         };
-        self.skew = EMA_ALPHA * norm_delta * norm_delta * norm_delta
-            + (1.0 - EMA_ALPHA) * self.skew;
+        self.skew =
+            EMA_ALPHA * norm_delta * norm_delta * norm_delta + (1.0 - EMA_ALPHA) * self.skew;
     }
 
     fn sample(&self, rng: &mut u64) -> f32 {
@@ -206,13 +206,18 @@ impl AppsMonteCarlo {
     /// Ingest a workload sample to update the distribution model
     pub fn sample_workload(&mut self, sample: WorkloadSample) {
         self.total_samples += 1;
-        let key = fnv1a_hash(&[
-            &sample.process_id.to_le_bytes()[..],
-            &sample.resource_key.to_le_bytes()[..],
-        ].concat());
+        let key = fnv1a_hash(
+            &[
+                &sample.process_id.to_le_bytes()[..],
+                &sample.resource_key.to_le_bytes()[..],
+            ]
+            .concat(),
+        );
 
-        let dist = self.distributions.entry(key).or_insert_with(|| {
-            WorkloadDistribution {
+        let dist = self
+            .distributions
+            .entry(key)
+            .or_insert_with(|| WorkloadDistribution {
                 id: key,
                 name: String::new(),
                 mean: sample.value,
@@ -221,8 +226,7 @@ impl AppsMonteCarlo {
                 min_val: sample.value,
                 max_val: sample.value,
                 sample_count: 0,
-            }
-        });
+            });
         dist.update(sample.value);
     }
 
@@ -354,7 +358,11 @@ impl AppsMonteCarlo {
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
         let p95_idx = ((0.95 * (sorted.len() as f32 - 1.0)).round() as usize)
             .min(sorted.len().saturating_sub(1));
-        let p95_val = if sorted.is_empty() { 0.0 } else { sorted[p95_idx] };
+        let p95_val = if sorted.is_empty() {
+            0.0
+        } else {
+            sorted[p95_idx]
+        };
         let tail_vals: Vec<f32> = sorted.iter().copied().filter(|&v| v >= p95_val).collect();
         let cvar_95 = if tail_vals.is_empty() {
             0.0
@@ -385,7 +393,11 @@ impl AppsMonteCarlo {
                 })
                 .sum::<f32>()
                 / n;
-            let stddev = if variance > 0.0 { variance.sqrt() } else { 0.01 };
+            let stddev = if variance > 0.0 {
+                variance.sqrt()
+            } else {
+                0.01
+            };
             let se = stddev / n.sqrt();
             ExpectedValue {
                 distribution_id,
