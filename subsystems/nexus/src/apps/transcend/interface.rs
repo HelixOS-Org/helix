@@ -290,7 +290,9 @@ impl AppsInterface {
         let mut parts: Vec<String> = Vec::new();
         parts.push(alloc::format!(
             "Application '{}' (id={}) has been observed {} times.",
-            m.name, m.app_id, m.observation_count
+            m.name,
+            m.app_id,
+            m.observation_count
         ));
 
         if m.cpu_util_ema > 70 {
@@ -410,7 +412,8 @@ impl AppsInterface {
         alloc::format!(
             "'{}' is CPU-bound at ~{}% utilisation. \
              The process spends most cycles in compute rather than waiting.",
-            m.name, m.cpu_util_ema
+            m.name,
+            m.cpu_util_ema
         )
     }
 
@@ -418,7 +421,8 @@ impl AppsInterface {
         alloc::format!(
             "'{}' has high memory pressure at ~{}%. \
              Allocation latency may increase if usage continues to grow.",
-            m.name, m.mem_util_ema
+            m.name,
+            m.mem_util_ema
         )
     }
 
@@ -426,7 +430,8 @@ impl AppsInterface {
         alloc::format!(
             "'{}' is IO-bound with ~{}% wait time. \
              Consider batching IO or using async operations.",
-            m.name, m.io_wait_ema
+            m.name,
+            m.io_wait_ema
         )
     }
 
@@ -434,7 +439,8 @@ impl AppsInterface {
         alloc::format!(
             "'{}' experiences lock contention at ~{}%. \
              Reducing critical section granularity would help.",
-            m.name, m.lock_wait_ema
+            m.name,
+            m.lock_wait_ema
         )
     }
 
@@ -442,7 +448,8 @@ impl AppsInterface {
         alloc::format!(
             "'{}' suffers IPC latency at ~{}%. \
              Consider shared-memory or batched message passing.",
-            m.name, m.ipc_latency_ema
+            m.name,
+            m.ipc_latency_ema
         )
     }
 
@@ -450,7 +457,8 @@ impl AppsInterface {
         alloc::format!(
             "'{}' has scheduling delays of ~{}%. \
              Raising priority or reducing competing load would help.",
-            m.name, m.sched_delay_ema
+            m.name,
+            m.sched_delay_ema
         )
     }
 
@@ -458,32 +466,44 @@ impl AppsInterface {
         match bn.kind {
             BottleneckKind::CpuBound => (
                 String::from("Reduce CPU hotspots"),
-                String::from("Profile the application to find tight loops or redundant computation. Consider algorithmic improvements or caching."),
+                String::from(
+                    "Profile the application to find tight loops or redundant computation. Consider algorithmic improvements or caching.",
+                ),
                 15 + xorshift64(&mut self.rng) % 10,
             ),
             BottleneckKind::MemoryPressure => (
                 String::from("Optimise memory allocation"),
-                String::from("Audit allocation patterns. Use arenas or pools for short-lived objects. Reduce peak working set."),
+                String::from(
+                    "Audit allocation patterns. Use arenas or pools for short-lived objects. Reduce peak working set.",
+                ),
                 10 + xorshift64(&mut self.rng) % 12,
             ),
             BottleneckKind::IoBound => (
                 String::from("Batch or async IO"),
-                String::from("Aggregate small IO operations into larger batches. Use asynchronous IO where possible to overlap with computation."),
+                String::from(
+                    "Aggregate small IO operations into larger batches. Use asynchronous IO where possible to overlap with computation.",
+                ),
                 20 + xorshift64(&mut self.rng) % 10,
             ),
             BottleneckKind::LockContention => (
                 String::from("Reduce lock granularity"),
-                String::from("Break coarse-grained locks into finer-grained ones. Consider lock-free data structures for hot paths."),
+                String::from(
+                    "Break coarse-grained locks into finer-grained ones. Consider lock-free data structures for hot paths.",
+                ),
                 12 + xorshift64(&mut self.rng) % 8,
             ),
             BottleneckKind::IpcLatency => (
                 String::from("Improve IPC strategy"),
-                String::from("Migrate to shared-memory IPC for high-throughput channels. Batch small messages into fewer, larger transfers."),
+                String::from(
+                    "Migrate to shared-memory IPC for high-throughput channels. Batch small messages into fewer, larger transfers.",
+                ),
                 18 + xorshift64(&mut self.rng) % 7,
             ),
             BottleneckKind::SchedulingDelay => (
                 String::from("Adjust scheduling priority"),
-                String::from("Increase the process priority or reduce the runnable set on the target CPU. Consider CPU affinity pinning."),
+                String::from(
+                    "Increase the process priority or reduce the runnable set on the target CPU. Consider CPU affinity pinning.",
+                ),
                 8 + xorshift64(&mut self.rng) % 10,
             ),
         }
