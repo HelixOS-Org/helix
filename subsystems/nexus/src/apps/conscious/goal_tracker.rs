@@ -47,11 +47,11 @@ pub enum GoalPriority {
     /// Must be achieved — system correctness
     Critical = 4,
     /// Should be achieved — performance
-    High = 3,
+    High     = 3,
     /// Nice to have — optimization
-    Medium = 2,
+    Medium   = 2,
     /// Aspirational — long-term improvement
-    Low = 1,
+    Low      = 1,
 }
 
 /// Current status of a goal
@@ -214,8 +214,7 @@ impl AppsGoalTracker {
 
             // EMA-smoothed progress rate
             let delta = goal.progress - prev_progress;
-            goal.progress_rate =
-                EMA_ALPHA * delta + (1.0 - EMA_ALPHA) * goal.progress_rate;
+            goal.progress_rate = EMA_ALPHA * delta + (1.0 - EMA_ALPHA) * goal.progress_rate;
 
             // Ring buffer history
             if goal.progress_history.len() < MAX_PROGRESS_HISTORY {
@@ -240,7 +239,9 @@ impl AppsGoalTracker {
 
     /// Get the priority ordering of all active goals
     pub fn goal_priority(&self) -> Vec<(String, GoalPriority, f32)> {
-        let mut active: Vec<(String, GoalPriority, f32)> = self.goals.values()
+        let mut active: Vec<(String, GoalPriority, f32)> = self
+            .goals
+            .values()
             .filter(|g| g.status == GoalStatus::Active)
             .map(|g| (g.name.clone(), g.priority, g.progress))
             .collect();
@@ -312,10 +313,26 @@ impl AppsGoalTracker {
     /// Generate an achievement report for all goals
     pub fn achievement_report(&self) -> AchievementReport {
         let total = self.goals.len();
-        let active = self.goals.values().filter(|g| g.status == GoalStatus::Active).count();
-        let achieved = self.goals.values().filter(|g| g.status == GoalStatus::Achieved).count();
-        let stalled = self.goals.values().filter(|g| g.status == GoalStatus::Stalled).count();
-        let conflicted = self.goals.values().filter(|g| g.status == GoalStatus::Conflicted).count();
+        let active = self
+            .goals
+            .values()
+            .filter(|g| g.status == GoalStatus::Active)
+            .count();
+        let achieved = self
+            .goals
+            .values()
+            .filter(|g| g.status == GoalStatus::Achieved)
+            .count();
+        let stalled = self
+            .goals
+            .values()
+            .filter(|g| g.status == GoalStatus::Stalled)
+            .count();
+        let conflicted = self
+            .goals
+            .values()
+            .filter(|g| g.status == GoalStatus::Conflicted)
+            .count();
 
         let avg_progress = if total > 0 {
             self.goals.values().map(|g| g.progress).sum::<f32>() / total as f32
