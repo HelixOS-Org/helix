@@ -343,23 +343,22 @@ impl AppsRehearsal {
             return cached.clone();
         }
 
-        let (pid, cpu_d, mem_d, io_d) =
-            if let Some(scenario) = self.scenarios.get(&scenario_id) {
-                let mut cpu: f32 = 0.0;
-                let mut mem: f32 = 0.0;
-                let mut io: f32 = 0.0;
-                for (key, val) in &scenario.parameters {
-                    let k_hash = fnv1a_hash(key.as_bytes());
-                    match k_hash % 3 {
-                        0 => cpu += val,
-                        1 => mem += val,
-                        _ => io += val,
-                    }
+        let (pid, cpu_d, mem_d, io_d) = if let Some(scenario) = self.scenarios.get(&scenario_id) {
+            let mut cpu: f32 = 0.0;
+            let mut mem: f32 = 0.0;
+            let mut io: f32 = 0.0;
+            for (key, val) in &scenario.parameters {
+                let k_hash = fnv1a_hash(key.as_bytes());
+                match k_hash % 3 {
+                    0 => cpu += val,
+                    1 => mem += val,
+                    _ => io += val,
                 }
-                (scenario.process_id, cpu, mem, io)
-            } else {
-                (0, 0.0, 0.0, 0.0)
-            };
+            }
+            (scenario.process_id, cpu, mem, io)
+        } else {
+            (0, 0.0, 0.0, 0.0)
+        };
 
         let total_cost = cpu_d.abs() + mem_d.abs() * 0.5 + io_d.abs() * 0.3;
         let feasible = total_cost < 5.0;
@@ -403,19 +402,14 @@ impl AppsRehearsal {
                 rec.actual_mem_impact = actual_mem;
                 rec.validated = true;
                 let acc = rec.accuracy();
-                self.accuracy_ema =
-                    EMA_ALPHA * acc + (1.0 - EMA_ALPHA) * self.accuracy_ema;
+                self.accuracy_ema = EMA_ALPHA * acc + (1.0 - EMA_ALPHA) * self.accuracy_ema;
                 break;
             }
         }
     }
 
     /// Compare two scenarios side by side
-    pub fn scenario_comparison(
-        &mut self,
-        scenario_a: u64,
-        scenario_b: u64,
-    ) -> ScenarioComparison {
+    pub fn scenario_comparison(&mut self, scenario_a: u64, scenario_b: u64) -> ScenarioComparison {
         let impact_a = self.resource_impact(scenario_a);
         let impact_b = self.resource_impact(scenario_b);
 
