@@ -49,6 +49,7 @@ impl AnomalyDetector {
     }
 
     /// Register a metric to monitor
+    #[inline]
     pub fn register_metric(&mut self, name: impl Into<String>) {
         let name = name.into();
         if !self.metrics.contains_key(&name) {
@@ -154,16 +155,19 @@ impl AnomalyDetector {
     }
 
     /// Get metric stats
+    #[inline(always)]
     pub fn get_metric(&self, name: &str) -> Option<&MetricStats> {
         self.metrics.get(name)
     }
 
     /// Get recent anomalies
+    #[inline(always)]
     pub fn recent_anomalies(&self) -> &[Anomaly] {
         &self.anomalies
     }
 
     /// Get anomalies for a specific component
+    #[inline]
     pub fn anomalies_for(&self, component: ComponentId) -> Vec<&Anomaly> {
         self.anomalies
             .iter()
@@ -172,6 +176,7 @@ impl AnomalyDetector {
     }
 
     /// Get anomalies above severity
+    #[inline]
     pub fn anomalies_above(&self, severity: AnomalySeverity) -> Vec<&Anomaly> {
         self.anomalies
             .iter()
@@ -180,21 +185,25 @@ impl AnomalyDetector {
     }
 
     /// Get total anomalies detected
+    #[inline(always)]
     pub fn total_detected(&self) -> u64 {
         self.total_detected.load(Ordering::Relaxed)
     }
 
     /// Clear anomaly history
+    #[inline(always)]
     pub fn clear_history(&mut self) {
         self.anomalies.clear();
     }
 
     /// Enable/disable detector
+    #[inline(always)]
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
 
     /// Get configuration
+    #[inline(always)]
     pub fn config(&self) -> &DetectorConfig {
         &self.config
     }
