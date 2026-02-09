@@ -44,6 +44,7 @@ pub enum FdIoPattern {
 
 /// Per-FD statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FdStats {
     pub fd_num: i32,
     pub fd_type: FdTypeApps,
@@ -83,19 +84,23 @@ impl FdStats {
         }
     }
 
+    #[inline(always)]
     pub fn lifetime_ns(&self, now: u64) -> u64 {
         if self.is_open { now.saturating_sub(self.opened_at) }
         else { self.closed_at.saturating_sub(self.opened_at) }
     }
 
+    #[inline(always)]
     pub fn total_io_bytes(&self) -> u64 {
         self.read_bytes + self.write_bytes
     }
 
+    #[inline(always)]
     pub fn total_io_ops(&self) -> u64 {
         self.read_ops + self.write_ops
     }
 
+    #[inline(always)]
     pub fn idle_ns(&self, now: u64) -> u64 {
         now.saturating_sub(self.last_activity)
     }
@@ -114,6 +119,7 @@ impl FdStats {
         }
     }
 
+    #[inline]
     pub fn record_read(&mut self, bytes: u64, ts: u64) {
         self.read_bytes += bytes;
         self.read_ops += 1;
@@ -121,6 +127,7 @@ impl FdStats {
         self.update_pattern();
     }
 
+    #[inline]
     pub fn record_write(&mut self, bytes: u64, ts: u64) {
         self.write_bytes += bytes;
         self.write_ops += 1;
@@ -128,6 +135,7 @@ impl FdStats {
         self.update_pattern();
     }
 
+    #[inline]
     pub fn record_seek(&mut self, ts: u64) {
         self.seek_ops += 1;
         self.last_activity = ts;
@@ -150,6 +158,7 @@ pub struct FdTypeDistribution {
 }
 
 impl FdTypeDistribution {
+    #[inline(always)]
     pub fn total(&self) -> u32 {
         self.regular_files + self.directories + self.pipes + self.sockets
             + self.epolls + self.eventfds + self.timerfds + self.devices + self.other
@@ -213,6 +222,7 @@ impl ProcessFdProfile {
         }
     }
 
+    #[inline]
     pub fn close_fd(&mut self, fd_num: i32, ts: u64) {
         if let Some(fd) = self.fds.get_mut(&fd_num) {
             fd.is_open = false;
@@ -222,18 +232,21 @@ impl ProcessFdProfile {
         }
     }
 
+    #[inline(always)]
     pub fn utilization(&self) -> f64 {
         if self.fd_limit == 0 { return 0.0; }
         self.current_open as f64 / self.fd_limit as f64
     }
 
     /// Detect potential FD leak: monotonically growing with low close rate
+    #[inline]
     pub fn leak_risk(&self) -> bool {
         if self.total_opened < 100 { return false; }
         let close_ratio = self.total_closed as f64 / self.total_opened as f64;
         close_ratio < 0.5 && self.current_open > self.fd_limit / 2
     }
 
+    #[inline]
     pub fn idle_fds(&self, now: u64, idle_threshold_ns: u64) -> Vec<i32> {
         self.fds.values()
             .filter(|fd| fd.is_open && fd.idle_ns(now) > idle_threshold_ns)
@@ -241,6 +254,7 @@ impl ProcessFdProfile {
             .collect()
     }
 
+    #[inline]
     pub fn top_io_fds(&self, n: usize) -> Vec<(i32, u64)> {
         let mut sorted: Vec<_> = self.fds.values()
             .filter(|fd| fd.is_open)
@@ -254,6 +268,7 @@ impl ProcessFdProfile {
 
 /// App FD profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppFdProfilerStats {
     pub total_processes: usize,
     pub total_open_fds: u64,
@@ -277,22 +292,26 @@ impl AppFdProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64, fd_limit: u32) {
         self.profiles.entry(pid).or_insert_with(|| ProcessFdProfile::new(pid, fd_limit));
     }
 
+    #[inline]
     pub fn record_open(&mut self, pid: u64, fd_num: i32, fd_type: FdTypeApps, ts: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.open_fd(fd_num, fd_type, ts);
         }
     }
 
+    #[inline]
     pub fn record_close(&mut self, pid: u64, fd_num: i32, ts: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.close_fd(fd_num, ts);
         }
     }
 
+    #[inline]
     pub fn record_read(&mut self, pid: u64, fd_num: i32, bytes: u64, ts: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             if let Some(fd) = profile.fds.get_mut(&fd_num) {
@@ -301,6 +320,7 @@ impl AppFdProfiler {
         }
     }
 
+    #[inline]
     pub fn record_write(&mut self, pid: u64, fd_num: i32, bytes: u64, ts: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             if let Some(fd) = profile.fds.get_mut(&fd_num) {
@@ -309,6 +329,7 @@ impl AppFdProfiler {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.profiles.len();
         self.stats.total_open_fds = self.profiles.values().map(|p| p.current_open as u64).sum();
@@ -320,14 +341,17 @@ impl AppFdProfiler {
             .count();
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessFdProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppFdProfilerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.recompute();
