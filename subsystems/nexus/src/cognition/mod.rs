@@ -298,19 +298,19 @@ pub struct DomainMessage {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MessageKind {
     /// Data transfer
-    Data,
+    DataTransfer,
     /// Query requesting data
-    Query,
+    QueryRequestingData,
     /// Response to a query
-    Response,
+    ResponseToA,
     /// Command to perform action
-    Command,
+    CommandToPerform,
     /// Status update
-    Status,
+    StatusUpdate,
     /// Error notification
-    Error,
+    ErrorNotification,
     /// Insight/observation
-    Insight,
+    Insightobservation,
 }
 
 /// Priority of inter-domain message
@@ -331,7 +331,7 @@ pub enum MessagePriority {
 #[derive(Debug, Clone)]
 pub enum MessagePayload {
     /// No payload
-    Empty,
+    NoPayload,
     /// Raw bytes
     Bytes(Vec<u8>),
     /// Signals from SENSE
@@ -572,13 +572,13 @@ pub struct DomainMetrics {
 #[derive(Debug, Clone)]
 pub enum CognitionError {
     /// Domain not initialized
-    NotInitialized,
+    DomainNotInitialized,
     /// Domain already initialized
-    AlreadyInitialized,
+    DomainAlreadyInitialized,
     /// Domain is stopped
-    Stopped,
+    DomainIsStopped,
     /// Timeout exceeded
-    Timeout,
+    TimeoutExceeded,
     /// Resource exhausted
     ResourceExhausted,
     /// Invalid state transition
