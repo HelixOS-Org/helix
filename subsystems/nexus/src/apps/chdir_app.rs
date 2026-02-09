@@ -7,6 +7,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -61,7 +62,7 @@ impl ChdirRecord {
 pub struct ProcessCwdState {
     pub pid: u64,
     pub current_cwd: String,
-    pub cwd_history: Vec<String>,
+    pub cwd_history: VecDeque<String>,
     pub max_history: usize,
     pub chdir_count: u64,
     pub fchdir_count: u64,
@@ -73,7 +74,7 @@ impl ProcessCwdState {
         Self {
             pid,
             current_cwd: String::from("/"),
-            cwd_history: Vec::new(),
+            cwd_history: VecDeque::new(),
             max_history: 32,
             chdir_count: 0,
             fchdir_count: 0,
@@ -83,9 +84,9 @@ impl ProcessCwdState {
 
     pub fn change_dir(&mut self, new_cwd: String, variant: ChdirVariant) {
         if self.cwd_history.len() >= self.max_history {
-            self.cwd_history.remove(0);
+            self.cwd_history.pop_front();
         }
-        self.cwd_history.push(self.current_cwd.clone());
+        self.cwd_history.push_back(self.current_cwd.clone());
         self.current_cwd = new_cwd;
         match variant {
             ChdirVariant::Chdir => self.chdir_count += 1,
