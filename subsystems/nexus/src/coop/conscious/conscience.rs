@@ -120,9 +120,20 @@ pub struct ConscienceAxiom {
 }
 
 impl ConscienceAxiom {
-    pub fn new(name: String, weight: f32, enforcement: EnforcementLevel, description: String) -> Self {
+    pub fn new(
+        name: String,
+        weight: f32,
+        enforcement: EnforcementLevel,
+        description: String,
+    ) -> Self {
         let axiom_id = fnv1a_hash(name.as_bytes());
-        let w = if weight < 0.0 { 0.0 } else if weight > 1.0 { 1.0 } else { weight };
+        let w = if weight < 0.0 {
+            0.0
+        } else if weight > 1.0 {
+            1.0
+        } else {
+            weight
+        };
         Self {
             axiom_id,
             name,
@@ -368,7 +379,11 @@ impl CoopConscience {
                             violation_id: viol_id,
                             axiom_id: *aid,
                             axiom_name: axiom.name.clone(),
-                            involved_processes: { let mut v = Vec::new(); v.push(*pid); v },
+                            involved_processes: {
+                                let mut v = Vec::new();
+                                v.push(*pid);
+                                v
+                            },
                             severity: (FAIRNESS_FLOOR - *fairness) / FAIRNESS_FLOOR,
                             detected_tick: self.tick,
                             description: String::from("fairness_floor_breach"),
@@ -407,7 +422,8 @@ impl CoopConscience {
                     exploiters.push(*pid);
 
                     // Find victims (those below fair share)
-                    let victims: Vec<u64> = usage_ratios.iter()
+                    let victims: Vec<u64> = usage_ratios
+                        .iter()
                         .filter(|(vid, r)| **vid != *pid && **r < fair_share - EQUITY_TOLERANCE)
                         .map(|(vid, _)| *vid)
                         .collect();
@@ -415,7 +431,8 @@ impl CoopConscience {
                     let record_id = fnv1a_hash(&pid.to_le_bytes());
                     if let Some(existing) = self.exploitations.get_mut(&record_id) {
                         existing.detection_count += 1;
-                        existing.intensity_ema += EMA_ALPHA * (exploitation_score - existing.intensity_ema);
+                        existing.intensity_ema +=
+                            EMA_ALPHA * (exploitation_score - existing.intensity_ema);
                         existing.last_detected_tick = self.tick;
                     } else if self.exploitations.len() < MAX_EXPLOITATION_RECORDS {
                         self.exploitations.insert(record_id, ExploitationRecord {
@@ -445,10 +462,7 @@ impl CoopConscience {
     ///
     /// Takes current shares and returns adjusted shares that satisfy equity
     /// constraints. Redistributes excess from over-allocated processes.
-    pub fn enforce_equity(
-        &mut self,
-        current_shares: &BTreeMap<u64, f32>,
-    ) -> BTreeMap<u64, f32> {
+    pub fn enforce_equity(&mut self, current_shares: &BTreeMap<u64, f32>) -> BTreeMap<u64, f32> {
         self.tick += 1;
         let count = current_shares.len();
         if count == 0 {
@@ -520,11 +534,8 @@ impl CoopConscience {
             });
         }
 
-        let recent_violations: Vec<ViolationRecord> = self.violations.iter()
-            .rev()
-            .take(10)
-            .cloned()
-            .collect();
+        let recent_violations: Vec<ViolationRecord> =
+            self.violations.iter().rev().take(10).cloned().collect();
 
         CoopConscienceReport {
             axiom_summaries,
@@ -557,7 +568,13 @@ impl CoopConscience {
         };
 
         let raw = compliance * 0.4 + equity * 0.35 + (1.0 - exploitation_penalty) * 0.25;
-        let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
+        let clamped = if raw < 0.0 {
+            0.0
+        } else if raw > 1.0 {
+            1.0
+        } else {
+            raw
+        };
 
         self.moral_health_ema += EMA_ALPHA * (clamped - self.moral_health_ema);
         self.stats.moral_health = self.moral_health_ema;
