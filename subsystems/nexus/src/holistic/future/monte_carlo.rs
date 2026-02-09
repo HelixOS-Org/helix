@@ -289,8 +289,7 @@ impl HolisticMonteCarlo {
                 .map(|r| 1.0 - r.final_cpu / 100.0)
                 .sum::<f32>()
                 / non_failed.len() as f32;
-            self.performance_ema =
-                EMA_ALPHA * avg_perf + (1.0 - EMA_ALPHA) * self.performance_ema;
+            self.performance_ema = EMA_ALPHA * avg_perf + (1.0 - EMA_ALPHA) * self.performance_ema;
         }
 
         // Store results (keeping bounded)
@@ -322,11 +321,7 @@ impl HolisticMonteCarlo {
         }
 
         // Total failure probability
-        let total_failures = self
-            .trial_results
-            .iter()
-            .filter(|t| t.failed)
-            .count() as f32;
+        let total_failures = self.trial_results.iter().filter(|t| t.failed).count() as f32;
         probabilities.insert(255, total_failures / total);
 
         probabilities
@@ -336,7 +331,11 @@ impl HolisticMonteCarlo {
     pub fn performance_distribution(&mut self, dimension: &str) -> PerformanceDistribution {
         let values: Vec<f32> = match dimension {
             "cpu" => self.trial_results.iter().map(|t| t.final_cpu).collect(),
-            "memory" => self.trial_results.iter().map(|t| t.final_mem * 100.0).collect(),
+            "memory" => self
+                .trial_results
+                .iter()
+                .map(|t| t.final_mem * 100.0)
+                .collect(),
             "io" => self.trial_results.iter().map(|t| t.final_io).collect(),
             _ => self.trial_results.iter().map(|t| t.final_cpu).collect(),
         };
@@ -347,9 +346,21 @@ impl HolisticMonteCarlo {
         let mut sorted = values.clone();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
 
-        let median = if sorted.is_empty() { 0.0 } else { sorted[n / 2] };
-        let p5 = if sorted.is_empty() { 0.0 } else { sorted[n * 5 / 100] };
-        let p95 = if sorted.is_empty() { 0.0 } else { sorted[n * 95 / 100] };
+        let median = if sorted.is_empty() {
+            0.0
+        } else {
+            sorted[n / 2]
+        };
+        let p5 = if sorted.is_empty() {
+            0.0
+        } else {
+            sorted[n * 5 / 100]
+        };
+        let p95 = if sorted.is_empty() {
+            0.0
+        } else {
+            sorted[n * 95 / 100]
+        };
 
         let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f32>() / n as f32;
         let std_dev = variance.sqrt();
@@ -415,7 +426,7 @@ impl HolisticMonteCarlo {
             .map(|t| match resource {
                 ResourceKind::PhysicalMemory | ResourceKind::SwapSpace => {
                     (t.final_mem - t.peak_mem * 0.8).abs()
-                }
+                },
                 ResourceKind::CpuBudget => (t.final_cpu - t.peak_cpu * 0.8).abs() / 100.0,
                 _ => 0.01,
             })
@@ -449,7 +460,8 @@ impl HolisticMonteCarlo {
             depletion_rate: rate,
         };
 
-        self.exhaustion_estimates.insert(resource as u8, estimate.clone());
+        self.exhaustion_estimates
+            .insert(resource as u8, estimate.clone());
         estimate
     }
 
@@ -502,11 +514,7 @@ impl HolisticMonteCarlo {
         let early = self
             .trial_results
             .iter()
-            .filter(|t| {
-                t.failure_step
-                    .map(|s| s < t.steps / 10)
-                    .unwrap_or(false)
-            })
+            .filter(|t| t.failure_step.map(|s| s < t.steps / 10).unwrap_or(false))
             .count() as u64;
         let early_prob = early as f32 / total;
         if early_prob < RARE_EVENT_THRESHOLD && early > 0 {
@@ -543,7 +551,7 @@ impl HolisticMonteCarlo {
                 let rate = self.trial_results.iter().filter(|t| t.failed).count() as f32
                     / self.trial_results.len().max(1) as f32;
                 alloc::vec![rate]
-            }
+            },
             _ => self.trial_results.iter().map(|t| t.final_cpu).collect(),
         };
 
