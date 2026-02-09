@@ -2,7 +2,9 @@
 //! NEXUS Apps — Mkdir App (directory creation tracking)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -35,6 +37,7 @@ pub struct MkdirRecord {
 
 /// Statistics for mkdir app
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MkdirAppStats {
     pub total_calls: u64,
     pub successful: u64,
@@ -48,7 +51,7 @@ pub struct MkdirAppStats {
 /// Main mkdir app manager
 #[derive(Debug)]
 pub struct AppMkdir {
-    history: Vec<MkdirRecord>,
+    history: VecDeque<MkdirRecord>,
     max_history: usize,
     stats: MkdirAppStats,
 }
@@ -56,7 +59,7 @@ pub struct AppMkdir {
 impl AppMkdir {
     pub fn new(max_history: usize) -> Self {
         Self {
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history,
             stats: MkdirAppStats {
                 total_calls: 0, successful: 0, failed: 0,
@@ -94,16 +97,18 @@ impl AppMkdir {
             tick,
         };
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(record);
+        self.history.push_back(record);
         result
     }
 
+    #[inline(always)]
     pub fn history_count(&self) -> usize {
         self.history.len()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MkdirAppStats {
         &self.stats
     }
@@ -169,6 +174,7 @@ impl MkdirV2Record {
         }
     }
 
+    #[inline(always)]
     pub fn is_deep(&self) -> bool {
         self.depth > 10
     }
@@ -176,6 +182,7 @@ impl MkdirV2Record {
 
 /// Mkdir v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MkdirV2AppStats {
     pub total_ops: u64,
     pub total_dirs_created: u64,
@@ -188,7 +195,7 @@ pub struct MkdirV2AppStats {
 #[derive(Debug)]
 pub struct AppMkdirV2 {
     pub stats: MkdirV2AppStats,
-    pub recent_paths: BTreeMap<u64, u64>,
+    pub recent_paths: LinearMap<u64, 64>,
 }
 
 impl AppMkdirV2 {
@@ -201,7 +208,7 @@ impl AppMkdirV2 {
                 failures: 0,
                 max_depth: 0,
             },
-            recent_paths: BTreeMap::new(),
+            recent_paths: LinearMap::new(),
         }
     }
 
@@ -220,6 +227,7 @@ impl AppMkdirV2 {
         *self.recent_paths.entry(record.path_hash).or_insert(0) += 1;
     }
 
+    #[inline(always)]
     pub fn success_rate(&self) -> f64 {
         if self.stats.total_ops == 0 { 0.0 }
         else { (self.stats.total_ops - self.stats.failures) as f64 / self.stats.total_ops as f64 }
@@ -252,6 +260,7 @@ pub struct AppDirRecord {
 
 /// Stats for mkdir operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppMkdirV3Stats {
     pub total_mkdirs: u64,
     pub recursive_mkdirs: u64,
@@ -263,7 +272,7 @@ pub struct AppMkdirV3Stats {
 /// Manager for mkdir app operations
 pub struct AppMkdirV3Manager {
     directories: BTreeMap<u64, AppDirRecord>,
-    path_index: BTreeMap<u64, u64>,
+    path_index: LinearMap<u64, 64>,
     next_inode: u64,
     stats: AppMkdirV3Stats,
 }
@@ -272,7 +281,7 @@ impl AppMkdirV3Manager {
     pub fn new() -> Self {
         Self {
             directories: BTreeMap::new(),
-            path_index: BTreeMap::new(),
+            path_index: LinearMap::new(),
             next_inode: 1000,
             stats: AppMkdirV3Stats {
                 total_mkdirs: 0,
@@ -296,7 +305,7 @@ impl AppMkdirV3Manager {
     pub fn mkdir(&mut self, path: &str, permissions: u32, mode: AppMkdirMode) -> Option<u64> {
         self.stats.total_mkdirs += 1;
         let hash = Self::hash_path(path);
-        if self.path_index.contains_key(&hash) {
+        if self.path_index.contains_key(hash) {
             self.stats.mkdir_errors += 1;
             return None;
         }
@@ -319,9 +328,10 @@ impl AppMkdirV3Manager {
         Some(inode)
     }
 
+    #[inline]
     pub fn rmdir(&mut self, path: &str) -> bool {
         let hash = Self::hash_path(path);
-        if let Some(inode) = self.path_index.remove(&hash) {
+        if let Some(inode) = self.path_index.remove(hash) {
             self.directories.remove(&inode);
             true
         } else {
@@ -329,11 +339,13 @@ impl AppMkdirV3Manager {
         }
     }
 
+    #[inline(always)]
     pub fn exists(&self, path: &str) -> bool {
         let hash = Self::hash_path(path);
-        self.path_index.contains_key(&hash)
+        self.path_index.contains_key(hash)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppMkdirV3Stats {
         &self.stats
     }
