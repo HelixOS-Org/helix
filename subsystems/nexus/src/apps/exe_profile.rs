@@ -93,16 +93,19 @@ pub struct SectionInfo {
 
 impl SectionInfo {
     /// Is executable
+    #[inline(always)]
     pub fn is_executable(&self) -> bool {
         self.flags & 0x1 != 0
     }
 
     /// Is writable
+    #[inline(always)]
     pub fn is_writable(&self) -> bool {
         self.flags & 0x2 != 0
     }
 
     /// Is readable
+    #[inline(always)]
     pub fn is_readable(&self) -> bool {
         self.flags & 0x4 != 0
     }
@@ -182,6 +185,7 @@ impl ExecutableProfile {
     }
 
     /// Add section
+    #[inline]
     pub fn add_section(&mut self, section: SectionInfo) {
         match section.section_type {
             SectionType::Text => self.code_size += section.file_size,
@@ -193,11 +197,13 @@ impl ExecutableProfile {
     }
 
     /// Add library dependency
+    #[inline(always)]
     pub fn add_library(&mut self, lib: LibraryDep) {
         self.libraries.push(lib);
     }
 
     /// Code density (code / total)
+    #[inline]
     pub fn code_density(&self) -> f64 {
         let total = self.code_size + self.data_size + self.bss_size;
         if total == 0 {
@@ -207,6 +213,7 @@ impl ExecutableProfile {
     }
 
     /// Library count
+    #[inline(always)]
     pub fn library_count(&self) -> usize {
         self.libraries.len()
     }
@@ -236,6 +243,7 @@ impl ExecutableProfile {
 
 /// Executable profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppExeProfilerStats {
     /// Profiled executables
     pub profiled: usize,
@@ -264,6 +272,7 @@ impl AppExeProfiler {
     }
 
     /// Create profile
+    #[inline]
     pub fn create_profile(&mut self, pid: u64) -> &mut ExecutableProfile {
         self.profiles
             .entry(pid)
@@ -271,17 +280,20 @@ impl AppExeProfiler {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn get(&self, pid: u64) -> Option<&ExecutableProfile> {
         self.profiles.get(&pid)
     }
 
     /// Remove profile
+    #[inline(always)]
     pub fn remove(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.update_stats();
     }
 
     /// Find processes using library
+    #[inline]
     pub fn processes_using_library(&self, lib_hash: u64) -> Vec<u64> {
         self.profiles
             .iter()
@@ -305,6 +317,7 @@ impl AppExeProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppExeProfilerStats {
         &self.stats
     }
