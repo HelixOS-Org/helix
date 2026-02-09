@@ -63,6 +63,7 @@ impl FdVectoredTracker {
         Self { fd, read_ops: 0, write_ops: 0, read_bytes: 0, write_bytes: 0, max_iov_count: 0, avg_iov_size: 0.0, total_iovecs: 0 }
     }
 
+    #[inline]
     pub fn record(&mut self, op: &VectoredIoOp) {
         match op.direction {
             VectoredIoDir::Read => { self.read_ops += 1; self.read_bytes += op.bytes_transferred; }
@@ -77,6 +78,7 @@ impl FdVectoredTracker {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PreadvAppStats {
     pub tracked_fds: u32,
     pub total_read_ops: u64,
@@ -94,16 +96,20 @@ pub struct AppPreadv {
 impl AppPreadv {
     pub fn new() -> Self { Self { trackers: BTreeMap::new(), ops: Vec::new() } }
 
+    #[inline(always)]
     pub fn track(&mut self, fd: u64) { self.trackers.insert(fd, FdVectoredTracker::new(fd)); }
 
+    #[inline]
     pub fn record_op(&mut self, op: VectoredIoOp) {
         let fd = op.fd;
         if let Some(t) = self.trackers.get_mut(&fd) { t.record(&op); }
         self.ops.push(op);
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, fd: u64) { self.trackers.remove(&fd); }
 
+    #[inline]
     pub fn stats(&self) -> PreadvAppStats {
         let reads: u64 = self.trackers.values().map(|t| t.read_ops).sum();
         let writes: u64 = self.trackers.values().map(|t| t.write_ops).sum();
