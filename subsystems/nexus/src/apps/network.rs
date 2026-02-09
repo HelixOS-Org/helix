@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -101,7 +102,7 @@ pub struct TrackedConnection {
     /// Last activity
     pub last_activity: u64,
     /// Latency samples (RTT microseconds)
-    rtt_samples: Vec<u32>,
+    rtt_samples: VecDeque<u32>,
 }
 
 impl TrackedConnection {
@@ -127,19 +128,21 @@ impl TrackedConnection {
             packets_received: 0,
             created_at: timestamp,
             last_activity: timestamp,
-            rtt_samples: Vec::new(),
+            rtt_samples: VecDeque::new(),
         }
     }
 
     /// Record RTT sample
+    #[inline]
     pub fn record_rtt(&mut self, rtt_us: u32) {
-        self.rtt_samples.push(rtt_us);
+        self.rtt_samples.push_back(rtt_us);
         if self.rtt_samples.len() > 100 {
-            self.rtt_samples.remove(0);
+            self.rtt_samples.pop_front();
         }
     }
 
     /// Average RTT
+    #[inline]
     pub fn avg_rtt_us(&self) -> u32 {
         if self.rtt_samples.is_empty() {
             return 0;
@@ -149,11 +152,13 @@ impl TrackedConnection {
     }
 
     /// Duration (ms)
+    #[inline(always)]
     pub fn duration_ms(&self) -> u64 {
         self.last_activity.saturating_sub(self.created_at)
     }
 
     /// Throughput (bytes/sec)
+    #[inline]
     pub fn throughput(&self) -> u64 {
         let dur_ms = self.duration_ms();
         if dur_ms == 0 {
@@ -215,6 +220,7 @@ pub enum NetworkQosClass {
 
 /// Socket pooling recommendation
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PoolRecommendation {
     /// Process ID
     pub pid: u64,
@@ -295,6 +301,7 @@ impl AppNetworkAnalyzer {
     }
 
     /// Update connection
+    #[inline]
     pub fn update_connection(
         &mut self,
         pid: u64,
@@ -315,6 +322,7 @@ impl AppNetworkAnalyzer {
     }
 
     /// Close connection
+    #[inline]
     pub fn close_connection(&mut self, pid: u64, conn_id: u64) {
         if let Some(conns) = self.connections.get_mut(&pid) {
             if let Some(conn) = conns.iter_mut().find(|c| c.id == conn_id) {
@@ -402,11 +410,13 @@ impl AppNetworkAnalyzer {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessNetworkProfile> {
         self.profiles.get(&pid)
     }
 
     /// Cleanup closed connections
+    #[inline]
     pub fn cleanup(&mut self, max_age_ms: u64, current_time: u64) {
         for conns in self.connections.values_mut() {
             conns.retain(|c| {
