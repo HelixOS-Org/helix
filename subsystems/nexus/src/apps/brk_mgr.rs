@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Heap growth direction
@@ -56,7 +57,7 @@ pub struct ProcessBrkState {
     pub min_brk: u64,
     pub brk_limit: u64,
     pub growth: HeapGrowth,
-    pub changes: Vec<BrkChange>,
+    pub changes: VecDeque<BrkChange>,
     max_changes: usize,
     expand_count: u64,
     contract_count: u64,
@@ -75,7 +76,7 @@ impl ProcessBrkState {
             min_brk: initial_brk,
             brk_limit: limit,
             growth: HeapGrowth::Stable,
-            changes: Vec::new(),
+            changes: VecDeque::new(),
             max_changes: 256,
             expand_count: 0,
             contract_count: 0,
@@ -110,9 +111,9 @@ impl ProcessBrkState {
 
     fn record_change(&mut self, change: BrkChange) {
         if self.changes.len() >= self.max_changes {
-            self.changes.remove(0);
+            self.changes.pop_front();
         }
-        self.changes.push(change);
+        self.changes.push_back(change);
     }
 
     pub fn apply_brk(&mut self, new_brk: u64, timestamp_ns: u64) -> BrkOp {
@@ -184,7 +185,7 @@ impl ProcessBrkState {
     }
 
     pub fn avg_expand_size(&self) -> u64 {
-        let expand_changes: Vec<&BrkChange> = self.changes.iter()
+        let expand_changes: VecDeque<&BrkChange> = self.changes.iter()
             .filter(|c| c.op == BrkOp::Expand)
             .collect();
         if expand_changes.is_empty() { return 0; }
