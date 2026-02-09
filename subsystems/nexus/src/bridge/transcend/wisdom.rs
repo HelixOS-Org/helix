@@ -214,7 +214,7 @@ impl BridgeWisdom {
             consultations: 0,
             successful_advice: 0,
             tick: 0,
-            rng_state: seed ^ 0xW15D_0000_SAGE,
+            rng_state: seed ^ 0x0015_D000_05A6_E000,
             depth_ema: 0.0,
             confidence_ema: 0.5,
         }
