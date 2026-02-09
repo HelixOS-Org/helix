@@ -51,15 +51,15 @@ fn fnv1a_hash(data: &[u8]) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ConsciousnessState {
     /// No self-awareness — pure reactive operation
-    Dormant = 0,
+    Dormant      = 0,
     /// Beginning to sense own operations
-    Awakening = 1,
+    Awakening    = 1,
     /// Basic awareness of own state and environment
-    Aware = 2,
+    Aware        = 2,
     /// Can reflect on own decisions and learn
-    Reflective = 3,
+    Reflective   = 3,
     /// Deep self-model with predictive capability
-    Enlightened = 4,
+    Enlightened  = 4,
     /// Full unified consciousness with meta-cognitive optimization
     Transcendent = 5,
 }
@@ -187,8 +187,7 @@ impl HolisticAwareness {
             let clamped_noise = noise.clamp(0.0, 1.0);
             ch.signal_strength =
                 EMA_ALPHA * clamped_signal + (1.0 - EMA_ALPHA) * ch.signal_strength;
-            ch.noise_level =
-                EMA_ALPHA * clamped_noise + (1.0 - EMA_ALPHA) * ch.noise_level;
+            ch.noise_level = EMA_ALPHA * clamped_noise + (1.0 - EMA_ALPHA) * ch.noise_level;
             ch.fidelity = if ch.noise_level > 0.0 {
                 (ch.signal_strength / (ch.signal_strength + ch.noise_level)).clamp(0.0, 1.0)
             } else {
@@ -197,10 +196,9 @@ impl HolisticAwareness {
             ch.last_update_tick = self.tick;
             ch.observation_count += 1;
 
-            self.signal_strength_ema = EMA_ALPHA * ch.signal_strength
-                + (1.0 - EMA_ALPHA) * self.signal_strength_ema;
-            self.fidelity_ema =
-                EMA_ALPHA * ch.fidelity + (1.0 - EMA_ALPHA) * self.fidelity_ema;
+            self.signal_strength_ema =
+                EMA_ALPHA * ch.signal_strength + (1.0 - EMA_ALPHA) * self.signal_strength_ema;
+            self.fidelity_ema = EMA_ALPHA * ch.fidelity + (1.0 - EMA_ALPHA) * self.fidelity_ema;
         }
     }
 
@@ -292,8 +290,7 @@ impl HolisticAwareness {
         let diversity = (n / MAX_QUALIA_DIMENSIONS as f32).min(1.0);
 
         let score = avg_intensity * 0.4 + avg_richness * 0.4 + diversity * 0.2;
-        self.qualia_score_ema =
-            EMA_ALPHA * score + (1.0 - EMA_ALPHA) * self.qualia_score_ema;
+        self.qualia_score_ema = EMA_ALPHA * score + (1.0 - EMA_ALPHA) * self.qualia_score_ema;
         self.qualia_score_ema
     }
 
@@ -306,11 +303,8 @@ impl HolisticAwareness {
 
         let fidelities: Vec<f32> = self.channels.values().map(|c| c.fidelity).collect();
         let mean = fidelities.iter().sum::<f32>() / fidelities.len() as f32;
-        let variance = fidelities
-            .iter()
-            .map(|f| (f - mean).powi(2))
-            .sum::<f32>()
-            / fidelities.len() as f32;
+        let variance =
+            fidelities.iter().map(|f| (f - mean).powi(2)).sum::<f32>() / fidelities.len() as f32;
         let std_dev = f32_sqrt(variance);
 
         let coherence = (1.0 - std_dev * 2.0).clamp(0.0, 1.0);
@@ -341,8 +335,8 @@ impl HolisticAwareness {
             0.0
         };
 
-        let readiness = (score / TRANSCENDENT_THRESHOLD) * 0.7
-            + (velocity * 10.0).clamp(0.0, 1.0) * 0.3;
+        let readiness =
+            (score / TRANSCENDENT_THRESHOLD) * 0.7 + (velocity * 10.0).clamp(0.0, 1.0) * 0.3;
         readiness.clamp(0.0, 1.0)
     }
 
