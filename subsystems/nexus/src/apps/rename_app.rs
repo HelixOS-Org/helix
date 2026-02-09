@@ -2,7 +2,9 @@
 //! NEXUS Apps — Rename App (file rename/move tracking)
 
 extern crate alloc;
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Rename flags
@@ -41,6 +43,7 @@ pub struct RenameRecord {
 
 /// Statistics for rename app
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RenameAppStats {
     pub total_calls: u64,
     pub successful: u64,
@@ -54,7 +57,7 @@ pub struct RenameAppStats {
 /// Main rename app manager
 #[derive(Debug)]
 pub struct AppRename {
-    history: Vec<RenameRecord>,
+    history: VecDeque<RenameRecord>,
     max_history: usize,
     stats: RenameAppStats,
 }
@@ -62,7 +65,7 @@ pub struct AppRename {
 impl AppRename {
     pub fn new(max_history: usize) -> Self {
         Self {
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history,
             stats: RenameAppStats {
                 total_calls: 0, successful: 0, failed: 0,
@@ -98,12 +101,13 @@ impl AppRename {
             flags, pid, result, is_directory: is_dir, tick,
         };
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(record);
+        self.history.push_back(record);
         result
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &RenameAppStats {
         &self.stats
     }
@@ -171,10 +175,12 @@ impl RenameV2Record {
         }
     }
 
+    #[inline(always)]
     pub fn was_exchange(&self) -> bool {
         self.flag == RenameV2Flag::Exchange
     }
 
+    #[inline(always)]
     pub fn overwrote_target(&self) -> bool {
         self.overwritten_inode != 0
     }
@@ -182,6 +188,7 @@ impl RenameV2Record {
 
 /// Rename v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RenameV2AppStats {
     pub total_ops: u64,
     pub same_dir_renames: u64,
@@ -224,6 +231,7 @@ impl AppRenameV2 {
         }
     }
 
+    #[inline(always)]
     pub fn success_rate(&self) -> f64 {
         if self.stats.total_ops == 0 { 0.0 }
         else { (self.stats.total_ops - self.stats.failures) as f64 / self.stats.total_ops as f64 }
@@ -266,6 +274,7 @@ pub struct AppRenameRecord {
 
 /// Stats for rename operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppRenameV3Stats {
     pub total_renames: u64,
     pub successful_renames: u64,
@@ -276,16 +285,16 @@ pub struct AppRenameV3Stats {
 
 /// Manager for rename app operations
 pub struct AppRenameV3Manager {
-    history: Vec<AppRenameRecord>,
-    name_map: BTreeMap<u64, u64>,
+    history: VecDeque<AppRenameRecord>,
+    name_map: LinearMap<u64, 64>,
     stats: AppRenameV3Stats,
 }
 
 impl AppRenameV3Manager {
     pub fn new() -> Self {
         Self {
-            history: Vec::new(),
-            name_map: BTreeMap::new(),
+            history: VecDeque::new(),
+            name_map: LinearMap::new(),
             stats: AppRenameV3Stats {
                 total_renames: 0,
                 successful_renames: 0,
@@ -309,7 +318,7 @@ impl AppRenameV3Manager {
         self.stats.total_renames += 1;
         let old_hash = Self::hash_path(old_path);
         let new_hash = Self::hash_path(new_path);
-        if flags == AppRenameFlags::NoReplace && self.name_map.contains_key(&new_hash) {
+        if flags == AppRenameFlags::NoReplace && self.name_map.contains_key(new_hash) {
             self.stats.failed_renames += 1;
             let record = AppRenameRecord {
                 old_path: String::from(old_path),
@@ -319,13 +328,13 @@ impl AppRenameV3Manager {
                 result: AppRenameResult::DestExists,
                 timestamp: self.stats.total_renames.wrapping_mul(53),
             };
-            self.history.push(record);
+            self.history.push_back(record);
             return AppRenameResult::DestExists;
         }
         if flags == AppRenameFlags::Exchange {
             self.stats.exchange_renames += 1;
         }
-        self.name_map.remove(&old_hash);
+        self.name_map.remove(old_hash);
         self.name_map.insert(new_hash, inode);
         self.stats.successful_renames += 1;
         let record = AppRenameRecord {
@@ -336,14 +345,16 @@ impl AppRenameV3Manager {
             result: AppRenameResult::Success,
             timestamp: self.stats.total_renames.wrapping_mul(53),
         };
-        self.history.push(record);
+        self.history.push_back(record);
         AppRenameResult::Success
     }
 
+    #[inline(always)]
     pub fn history_count(&self) -> usize {
         self.history.len()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppRenameV3Stats {
         &self.stats
     }
