@@ -138,7 +138,13 @@ impl IntuitionTemplate {
         }
         let outcome = if success { 1.0 } else { 0.0 };
         self.success_rate += EMA_ALPHA * (outcome - self.success_rate);
-        let quality_clamped = if quality < 0.0 { 0.0 } else if quality > 1.0 { 1.0 } else { quality };
+        let quality_clamped = if quality < 0.0 {
+            0.0
+        } else if quality > 1.0 {
+            1.0
+        } else {
+            quality
+        };
         let delta = quality_clamped - self.avg_outcome;
         self.avg_outcome += EMA_ALPHA * delta;
         self.outcome_variance += EMA_ALPHA * (delta * delta - self.outcome_variance);
@@ -446,7 +452,9 @@ impl CoopIntuitionEngine {
         }
 
         // Evict templates below threshold
-        let to_evict: Vec<u64> = self.templates.iter()
+        let to_evict: Vec<u64> = self
+            .templates
+            .iter()
             .filter(|(_, t)| t.use_count > 5 && t.success_rate < EVICTION_THRESHOLD)
             .map(|(k, _)| *k)
             .collect();
@@ -468,7 +476,8 @@ impl CoopIntuitionEngine {
         let mut worst_id: Option<u64> = None;
         let mut worst_score = f32::MAX;
         for (id, t) in self.templates.iter() {
-            let score = t.success_rate * 0.5 + t.confidence * 0.3 + (t.use_count as f32 / 100.0).min(0.2);
+            let score =
+                t.success_rate * 0.5 + t.confidence * 0.3 + (t.use_count as f32 / 100.0).min(0.2);
             if score < worst_score {
                 worst_score = score;
                 worst_id = Some(*id);
