@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
@@ -64,16 +65,19 @@ impl NamespaceSet {
     }
 
     /// Set namespace
+    #[inline(always)]
     pub fn set(&mut self, ns_type: NamespaceType, inode: u64) {
         self.namespaces.insert(ns_type as u8, inode);
     }
 
     /// Get namespace inode
+    #[inline(always)]
     pub fn get(&self, ns_type: NamespaceType) -> Option<u64> {
         self.namespaces.get(&(ns_type as u8)).copied()
     }
 
     /// Check if in same namespace
+    #[inline]
     pub fn same_ns(&self, other: &NamespaceSet, ns_type: NamespaceType) -> bool {
         match (self.get(ns_type), other.get(ns_type)) {
             (Some(a), Some(b)) => a == b,
@@ -133,6 +137,7 @@ pub struct CgroupLimit {
 
 impl CgroupLimit {
     /// Usage percent
+    #[inline]
     pub fn usage_pct(&self) -> u32 {
         if self.limit == 0 {
             return 0;
@@ -141,11 +146,13 @@ impl CgroupLimit {
     }
 
     /// Is near limit
+    #[inline(always)]
     pub fn is_near_limit(&self, threshold_pct: u32) -> bool {
         self.usage_pct() >= threshold_pct
     }
 
     /// Remaining capacity
+    #[inline(always)]
     pub fn remaining(&self) -> u64 {
         self.limit.saturating_sub(self.usage)
     }
@@ -153,6 +160,7 @@ impl CgroupLimit {
 
 /// Cgroup state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupState {
     /// Cgroup path
     pub path: String,
@@ -175,11 +183,13 @@ impl CgroupState {
     }
 
     /// Get limit for resource
+    #[inline(always)]
     pub fn limit(&self, resource: CgroupResource) -> Option<&CgroupLimit> {
         self.limits.iter().find(|l| l.resource == resource)
     }
 
     /// Most constrained resource
+    #[inline(always)]
     pub fn most_constrained(&self) -> Option<&CgroupLimit> {
         self.limits.iter().max_by_key(|l| l.usage_pct())
     }
@@ -306,6 +316,7 @@ impl ContainerProfile {
     }
 
     /// Compute isolation score (0-100)
+    #[inline]
     pub fn isolation_score(&self, init_ns: &NamespaceSet) -> u32 {
         let ns_depth = self.namespaces.isolation_depth(init_ns);
         let base = ns_depth * 12; // 8 namespace types × 12 = 96 max
@@ -316,6 +327,7 @@ impl ContainerProfile {
     }
 
     /// Is resource constrained
+    #[inline(always)]
     pub fn is_constrained(&self) -> bool {
         self.cgroup.limits.iter().any(|l| l.usage_pct() > 80)
     }
@@ -327,6 +339,7 @@ impl ContainerProfile {
 
 /// Container analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ContainerStats {
     /// Total containers
     pub total: usize,
@@ -345,7 +358,7 @@ pub struct AppContainerAnalyzer {
     /// Containers by ID
     containers: BTreeMap<u64, ContainerProfile>,
     /// Process to container mapping
-    pid_to_container: BTreeMap<u64, u64>,
+    pid_to_container: LinearMap<u64, 64>,
     /// Cross-container events
     cross_comms: VecDeque<CrossContainerComm>,
     /// Init namespace set (host)
@@ -360,7 +373,7 @@ impl AppContainerAnalyzer {
     pub fn new(init_namespaces: NamespaceSet) -> Self {
         Self {
             containers: BTreeMap::new(),
-            pid_to_container: BTreeMap::new(),
+            pid_to_container: LinearMap::new(),
             cross_comms: VecDeque::new(),
             init_namespaces,
             stats: ContainerStats::default(),
@@ -369,6 +382,7 @@ impl AppContainerAnalyzer {
     }
 
     /// Register container
+    #[inline]
     pub fn register_container(&mut self, profile: ContainerProfile) {
         let id = profile.id;
         for &pid in &profile.pids {
@@ -379,6 +393,7 @@ impl AppContainerAnalyzer {
     }
 
     /// Add process to container
+    #[inline]
     pub fn add_process(&mut self, container_id: u64, pid: u64) {
         if let Some(container) = self.containers.get_mut(&container_id) {
             if !container.pids.contains(&pid) {
@@ -389,8 +404,9 @@ impl AppContainerAnalyzer {
     }
 
     /// Remove process from container
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
-        if let Some(container_id) = self.pid_to_container.remove(&pid) {
+        if let Some(container_id) = self.pid_to_container.remove(pid) {
             if let Some(container) = self.containers.get_mut(&container_id) {
                 container.pids.retain(|&p| p != pid);
             }
@@ -398,6 +414,7 @@ impl AppContainerAnalyzer {
     }
 
     /// Update container resource usage
+    #[inline]
     pub fn update_resources(
         &mut self,
         container_id: u64,
@@ -432,9 +449,10 @@ impl AppContainerAnalyzer {
     }
 
     /// Detect cross-container communication
+    #[inline]
     pub fn detect_cross_comm(&self, source_pid: u64, target_pid: u64) -> Option<(u64, u64)> {
-        let src_container = self.pid_to_container.get(&source_pid)?;
-        let dst_container = self.pid_to_container.get(&target_pid)?;
+        let src_container = self.pid_to_container.get(source_pid)?;
+        let dst_container = self.pid_to_container.get(target_pid)?;
 
         if src_container != dst_container {
             Some((*src_container, *dst_container))
@@ -444,11 +462,13 @@ impl AppContainerAnalyzer {
     }
 
     /// Get container for process
+    #[inline(always)]
     pub fn container_for_pid(&self, pid: u64) -> Option<u64> {
-        self.pid_to_container.get(&pid).copied()
+        self.pid_to_container.get(pid).copied()
     }
 
     /// Set container state
+    #[inline]
     pub fn set_state(&mut self, container_id: u64, state: ContainerState) {
         if let Some(container) = self.containers.get_mut(&container_id) {
             container.state = state;
@@ -457,6 +477,7 @@ impl AppContainerAnalyzer {
     }
 
     /// Get constrained containers
+    #[inline]
     pub fn constrained_containers(&self) -> Vec<u64> {
         self.containers
             .iter()
@@ -466,6 +487,7 @@ impl AppContainerAnalyzer {
     }
 
     /// Compute isolation score for container
+    #[inline]
     pub fn isolation_score(&self, container_id: u64) -> Option<u32> {
         self.containers
             .get(&container_id)
@@ -488,16 +510,19 @@ impl AppContainerAnalyzer {
     }
 
     /// Get container
+    #[inline(always)]
     pub fn container(&self, id: u64) -> Option<&ContainerProfile> {
         self.containers.get(&id)
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &ContainerStats {
         &self.stats
     }
 
     /// Remove container
+    #[inline]
     pub fn remove_container(&mut self, id: u64) {
         if let Some(container) = self.containers.remove(&id) {
             for pid in &container.pids {
