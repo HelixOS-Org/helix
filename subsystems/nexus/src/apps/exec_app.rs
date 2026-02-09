@@ -48,6 +48,7 @@ pub struct BinfmtHandler {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExecAppStats {
     pub total_execs: u32,
     pub successful: u32,
@@ -67,16 +68,19 @@ pub struct AppExec {
 impl AppExec {
     pub fn new() -> Self { Self { requests: BTreeMap::new(), handlers: Vec::new(), next_id: 1 } }
 
+    #[inline]
     pub fn exec(&mut self, pid: u64, et: ExecType, path_hash: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.requests.insert(id, ExecRequest::new(id, pid, et, path_hash, now));
         id
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, id: u64, dur: u64) {
         if let Some(r) = self.requests.get_mut(&id) { r.duration_ns = dur; r.success = true; }
     }
 
+    #[inline]
     pub fn stats(&self) -> ExecAppStats {
         let ok = self.requests.values().filter(|r| r.success).count() as u32;
         let fail = self.requests.len() as u32 - ok;
@@ -125,6 +129,7 @@ pub struct AppExecV2Request {
 
 /// Stats for exec operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppExecV2Stats {
     pub total_execs: u64,
     pub successful: u64,
@@ -188,6 +193,7 @@ impl AppExecV2Manager {
         AppExecV2Result::Success
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppExecV2Stats {
         &self.stats
     }
