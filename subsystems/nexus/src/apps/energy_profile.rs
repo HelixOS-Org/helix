@@ -55,6 +55,7 @@ pub struct EnergySample {
 }
 
 impl EnergySample {
+    #[inline(always)]
     pub fn power_watts(&self) -> f64 {
         if self.duration_ns == 0 { return 0.0; }
         (self.energy_uj as f64 / 1_000_000.0) / (self.duration_ns as f64 / 1_000_000_000.0)
@@ -63,6 +64,7 @@ impl EnergySample {
 
 /// C-state residency record
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CStateResidency {
     pub state: CState,
     pub total_ns: u64,
@@ -75,12 +77,14 @@ impl CStateResidency {
         Self { state, total_ns: 0, entry_count: 0, avg_duration_ns: 0 }
     }
 
+    #[inline]
     pub fn record(&mut self, duration_ns: u64) {
         self.total_ns += duration_ns;
         self.entry_count += 1;
         self.avg_duration_ns = if self.entry_count > 0 { self.total_ns / self.entry_count } else { 0 };
     }
 
+    #[inline(always)]
     pub fn ratio(&self, total_ns: u64) -> f64 {
         if total_ns == 0 { return 0.0; }
         self.total_ns as f64 / total_ns as f64
@@ -126,21 +130,25 @@ impl ProcessEnergyProfile {
         }
     }
 
+    #[inline(always)]
     pub fn total_energy_uj(&self) -> u64 {
         self.domain_energy.values().sum()
     }
 
+    #[inline(always)]
     pub fn energy_per_instruction(&self) -> f64 {
         if self.instructions_retired == 0 { return 0.0; }
         self.total_energy_uj() as f64 / self.instructions_retired as f64
     }
 
+    #[inline(always)]
     pub fn ipc(&self) -> f64 {
         if self.cycles == 0 { return 0.0; }
         self.instructions_retired as f64 / self.cycles as f64
     }
 
     /// Energy efficiency score: higher = more efficient
+    #[inline]
     pub fn efficiency_score(&self) -> f64 {
         let epi = self.energy_per_instruction();
         if epi <= 0.0 { return 0.0; }
@@ -148,33 +156,39 @@ impl ProcessEnergyProfile {
         1.0 / (1.0 + epi * 100.0)
     }
 
+    #[inline]
     pub fn avg_power_watts(&self) -> f64 {
         let total_time = self.active_time_ns + self.idle_time_ns;
         if total_time == 0 { return 0.0; }
         (self.total_energy_uj() as f64 / 1_000_000.0) / (total_time as f64 / 1_000_000_000.0)
     }
 
+    #[inline]
     pub fn active_ratio(&self) -> f64 {
         let total = self.active_time_ns + self.idle_time_ns;
         if total == 0 { return 0.0; }
         self.active_time_ns as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn budget_remaining_uj(&self) -> u64 {
         if self.energy_budget_uj == 0 { return u64::MAX; }
         self.energy_budget_uj.saturating_sub(self.budget_consumed_uj)
     }
 
+    #[inline(always)]
     pub fn is_over_budget(&self) -> bool {
         self.energy_budget_uj > 0 && self.budget_consumed_uj > self.energy_budget_uj
     }
 
+    #[inline]
     pub fn record_energy(&mut self, domain_id: u8, energy_uj: u64) {
         *self.domain_energy.entry(domain_id).or_insert(0) += energy_uj;
         self.budget_consumed_uj += energy_uj;
         self.sample_count += 1;
     }
 
+    #[inline]
     pub fn update_phase(&mut self) {
         let ratio = self.active_ratio();
         self.power_phase = if ratio < 0.05 { PowerPhase::Idle }
@@ -187,6 +201,7 @@ impl ProcessEnergyProfile {
 
 /// App energy profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppEnergyProfilerStats {
     pub total_processes: usize,
     pub total_energy_uj: u64,
@@ -210,16 +225,19 @@ impl AppEnergyProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessEnergyProfile::new(pid));
     }
 
+    #[inline]
     pub fn set_budget(&mut self, pid: u64, budget_uj: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.energy_budget_uj = budget_uj;
         }
     }
 
+    #[inline]
     pub fn record_energy(&mut self, pid: u64, domain_id: u8, energy_uj: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_energy(domain_id, energy_uj);
@@ -227,6 +245,7 @@ impl AppEnergyProfiler {
         self.recompute();
     }
 
+    #[inline]
     pub fn record_activity(&mut self, pid: u64, active_ns: u64, idle_ns: u64,
                            instructions: u64, cycles: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
@@ -238,6 +257,7 @@ impl AppEnergyProfiler {
         }
     }
 
+    #[inline]
     pub fn record_cstate(&mut self, pid: u64, state_idx: usize, duration_ns: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             if state_idx < profile.cstate_residency.len() {
@@ -246,6 +266,7 @@ impl AppEnergyProfiler {
         }
     }
 
+    #[inline]
     pub fn over_budget_processes(&self) -> Vec<u64> {
         self.profiles.values()
             .filter(|p| p.is_over_budget())
@@ -253,6 +274,7 @@ impl AppEnergyProfiler {
             .collect()
     }
 
+    #[inline]
     pub fn top_consumers(&self, n: usize) -> Vec<(u64, u64)> {
         let mut sorted: Vec<_> = self.profiles.values()
             .map(|p| (p.pid, p.total_energy_uj()))
@@ -275,14 +297,17 @@ impl AppEnergyProfiler {
         } else { 0.0 };
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessEnergyProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppEnergyProfilerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.recompute();
