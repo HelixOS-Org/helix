@@ -257,7 +257,12 @@ impl HolisticInterface {
             s.push(ch);
             s
         };
-        let prereq = self.lessons.values().last().map(|l| l.lesson_hash).unwrap_or(0);
+        let prereq = self
+            .lessons
+            .values()
+            .last()
+            .map(|l| l.lesson_hash)
+            .unwrap_or(0);
         let mastery = self.rng.next() % 10_001;
         let lh = self.make_hash(topic);
         let lesson = Lesson {
@@ -354,8 +359,7 @@ impl HolisticInterface {
         let ch = fnv1a(question.as_bytes()) ^ fnv1a(&(steps.len() as u64).to_le_bytes());
         self.stats.reasoning_chains_built = self.stats.reasoning_chains_built.wrapping_add(1);
         let total_steps = self.stats.reasoning_chains_built.max(1);
-        self.stats.avg_chain_length =
-            ema_update(self.stats.avg_chain_length, steps.len() as u64);
+        self.stats.avg_chain_length = ema_update(self.stats.avg_chain_length, steps.len() as u64);
         ReasoningChain {
             chain_hash: ch,
             steps,
