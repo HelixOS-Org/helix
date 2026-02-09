@@ -203,18 +203,14 @@ impl AppsWorldModel {
     }
 
     /// Update the ecosystem with a new observation for an app type
-    pub fn update_ecosystem(
-        &mut self,
-        app_type_name: &str,
-        demand: f32,
-        instance_count: u32,
-    ) {
+    pub fn update_ecosystem(&mut self, app_type_name: &str, demand: f32, instance_count: u32) {
         self.tick += 1;
         let id = fnv1a_hash(app_type_name.as_bytes());
 
-        let dist = self.app_types.entry(id).or_insert_with(|| {
-            AppTypeDistribution::new(String::from(app_type_name))
-        });
+        let dist = self
+            .app_types
+            .entry(id)
+            .or_insert_with(|| AppTypeDistribution::new(String::from(app_type_name)));
 
         // Record prediction error before updating
         let pred_error = (demand.max(0.0).min(1.0) - dist.predicted_demand).abs();
@@ -232,8 +228,7 @@ impl AppsWorldModel {
         }
 
         // Recompute fractions
-        let total_instances: u32 = self.app_types.values()
-            .map(|d| d.instance_count).sum();
+        let total_instances: u32 = self.app_types.values().map(|d| d.instance_count).sum();
         if total_instances > 0 {
             for d in self.app_types.values_mut() {
                 d.fraction = d.instance_count as f32 / total_instances as f32;
@@ -241,8 +236,11 @@ impl AppsWorldModel {
         }
 
         // Update ecosystem health: lower surprise → healthier
-        let avg_surprise: f32 = self.app_types.values()
-            .map(|d| d.last_surprise).sum::<f32>()
+        let avg_surprise: f32 = self
+            .app_types
+            .values()
+            .map(|d| d.last_surprise)
+            .sum::<f32>()
             / self.app_types.len().max(1) as f32;
         let health = 1.0 - avg_surprise.min(1.0);
         self.ecosystem_health_ema =
@@ -252,7 +250,9 @@ impl AppsWorldModel {
     /// Predict demand for a specific app type with optional jitter
     pub fn predict_demand(&mut self, app_type_name: &str, add_jitter: bool) -> f32 {
         let id = fnv1a_hash(app_type_name.as_bytes());
-        let base_prediction = self.app_types.get(&id)
+        let base_prediction = self
+            .app_types
+            .get(&id)
             .map(|d| d.predicted_demand)
             .unwrap_or(0.0);
 
@@ -266,21 +266,22 @@ impl AppsWorldModel {
     }
 
     /// Record interference between two co-running app types
-    pub fn interference_map(
-        &mut self,
-        type_a: &str,
-        type_b: &str,
-        magnitude: f32,
-    ) {
+    pub fn interference_map(&mut self, type_a: &str, type_b: &str, magnitude: f32) {
         self.tick += 1;
         let id_a = fnv1a_hash(type_a.as_bytes());
         let id_b = fnv1a_hash(type_b.as_bytes());
         // Canonical ordering for consistent key
-        let (lo, hi) = if id_a <= id_b { (id_a, id_b) } else { (id_b, id_a) };
+        let (lo, hi) = if id_a <= id_b {
+            (id_a, id_b)
+        } else {
+            (id_b, id_a)
+        };
         let pair_key = lo ^ hi.wrapping_mul(FNV_PRIME);
 
-        let pair = self.interference.entry(pair_key).or_insert_with(|| {
-            InterferencePair {
+        let pair = self
+            .interference
+            .entry(pair_key)
+            .or_insert_with(|| InterferencePair {
                 type_a_id: id_a,
                 type_b_id: id_b,
                 type_a_name: String::from(type_a),
@@ -288,8 +289,7 @@ impl AppsWorldModel {
                 magnitude: 0.0,
                 observations: 0,
                 confidence: 0.0,
-            }
-        });
+            });
 
         let clamped = magnitude.max(0.0).min(1.0);
         pair.magnitude = EMA_ALPHA * clamped + (1.0 - EMA_ALPHA) * pair.magnitude;
@@ -322,7 +322,9 @@ impl AppsWorldModel {
 
     /// Get the top interference pairs sorted by magnitude
     pub fn top_interference(&self, max_results: usize) -> Vec<(String, String, f32)> {
-        let mut pairs: Vec<(String, String, f32)> = self.interference.values()
+        let mut pairs: Vec<(String, String, f32)> = self
+            .interference
+            .values()
             .filter(|p| p.confidence > 0.3)
             .map(|p| (p.type_a_name.clone(), p.type_b_name.clone(), p.magnitude))
             .collect();
@@ -333,19 +335,16 @@ impl AppsWorldModel {
 
     /// Compute aggregate world model statistics
     pub fn stats(&self) -> WorldModelStats {
-        let total_inst: u32 = self.app_types.values()
-            .map(|d| d.instance_count).sum();
+        let total_inst: u32 = self.app_types.values().map(|d| d.instance_count).sum();
         let avg_demand = if self.app_types.is_empty() {
             0.0
         } else {
-            self.app_types.values().map(|d| d.demand).sum::<f32>()
-                / self.app_types.len() as f32
+            self.app_types.values().map(|d| d.demand).sum::<f32>() / self.app_types.len() as f32
         };
         let avg_pred_err = if self.prediction_errors.is_empty() {
             1.0
         } else {
-            self.prediction_errors.iter().sum::<f32>()
-                / self.prediction_errors.len() as f32
+            self.prediction_errors.iter().sum::<f32>() / self.prediction_errors.len() as f32
         };
 
         WorldModelStats {
