@@ -39,16 +39,19 @@ impl CryptoAccel {
     }
 
     /// Has AES acceleration?
+    #[inline(always)]
     pub fn has_aes(&self) -> bool {
         self.has_aes
     }
 
     /// Has SHA acceleration?
+    #[inline(always)]
     pub fn has_sha(&self) -> bool {
         self.has_sha
     }
 
     /// Has CRC32 acceleration?
+    #[inline(always)]
     pub fn has_crc32(&self) -> bool {
         self.has_crc32
     }
@@ -73,6 +76,7 @@ impl CryptoAccel {
     }
 
     /// Fast FNV-1a hash
+    #[inline]
     pub fn fnv1a(&self, data: &[u8]) -> u64 {
         self.ops_count.fetch_add(1, Ordering::Relaxed);
 
@@ -115,6 +119,7 @@ impl CryptoAccel {
     }
 
     /// Get operations count
+    #[inline(always)]
     pub fn ops_count(&self) -> u64 {
         self.ops_count.load(Ordering::Relaxed)
     }
