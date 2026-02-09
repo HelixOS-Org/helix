@@ -398,8 +398,9 @@ impl HolisticOracle {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::string::ToString;
+
+    use super::*;
 
     #[test]
     fn test_register_and_report() {
