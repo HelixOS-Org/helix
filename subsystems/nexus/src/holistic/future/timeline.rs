@@ -326,13 +326,25 @@ impl HolisticTimeline {
 
         let points_a = self.branches.get(&branch_a_id).map(|b| b.points.clone());
         let points_b = self.branches.get(&branch_b_id).map(|b| b.points.clone());
-        let prob_a = self.branches.get(&branch_a_id).map(|b| b.probability).unwrap_or(0.5);
-        let prob_b = self.branches.get(&branch_b_id).map(|b| b.probability).unwrap_or(0.5);
+        let prob_a = self
+            .branches
+            .get(&branch_a_id)
+            .map(|b| b.probability)
+            .unwrap_or(0.5);
+        let prob_b = self
+            .branches
+            .get(&branch_b_id)
+            .map(|b| b.probability)
+            .unwrap_or(0.5);
 
         let mut merged_count = 0;
         let mut conflicts = 0_u32;
         let total_prob = prob_a + prob_b;
-        let wa = if total_prob > 0.0 { prob_a / total_prob } else { 0.5 };
+        let wa = if total_prob > 0.0 {
+            prob_a / total_prob
+        } else {
+            0.5
+        };
         let wb = 1.0 - wa;
 
         if let (Some(pa), Some(pb)) = (points_a, points_b) {
@@ -456,13 +468,14 @@ impl HolisticTimeline {
                 continue;
             }
 
-            let reason = if (cmp.predicted_cpu - cmp.actual_cpu).abs() / 100.0 > DIVERGENCE_THRESHOLD {
-                CorrectionReason::CpuDivergence
-            } else if (cmp.predicted_mem - cmp.actual_mem).abs() > DIVERGENCE_THRESHOLD {
-                CorrectionReason::MemoryDivergence
-            } else {
-                CorrectionReason::IoDivergence
-            };
+            let reason =
+                if (cmp.predicted_cpu - cmp.actual_cpu).abs() / 100.0 > DIVERGENCE_THRESHOLD {
+                    CorrectionReason::CpuDivergence
+                } else if (cmp.predicted_mem - cmp.actual_mem).abs() > DIVERGENCE_THRESHOLD {
+                    CorrectionReason::MemoryDivergence
+                } else {
+                    CorrectionReason::IoDivergence
+                };
 
             let id = fnv1a_hash(format!("corr-{}-{:?}", cmp.tick, reason).as_bytes());
 
@@ -477,19 +490,26 @@ impl HolisticTimeline {
                 if point.tick >= cmp.tick && !point.validated {
                     match reason {
                         CorrectionReason::CpuDivergence => {
-                            let dir = if cmp.actual_cpu > cmp.predicted_cpu { 1.0 } else { -1.0 };
+                            let dir = if cmp.actual_cpu > cmp.predicted_cpu {
+                                1.0
+                            } else {
+                                -1.0
+                            };
                             point.cpu_projected =
                                 (point.cpu_projected + dir * adj * 100.0).clamp(0.0, 100.0);
-                        }
+                        },
                         CorrectionReason::MemoryDivergence => {
-                            let dir = if cmp.actual_mem > cmp.predicted_mem { 1.0 } else { -1.0 };
-                            point.mem_projected =
-                                (point.mem_projected + dir * adj).clamp(0.0, 1.0);
-                        }
+                            let dir = if cmp.actual_mem > cmp.predicted_mem {
+                                1.0
+                            } else {
+                                -1.0
+                            };
+                            point.mem_projected = (point.mem_projected + dir * adj).clamp(0.0, 1.0);
+                        },
                         _ => {
                             point.io_projected =
                                 (point.io_projected + adj * 50.0).clamp(0.0, 100.0);
-                        }
+                        },
                     }
                     affected += 1;
                 }
