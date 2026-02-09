@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -140,28 +141,28 @@ impl PathLookup {
 /// LRU list for dcache eviction
 #[derive(Debug)]
 pub struct DcacheLru {
-    entries: Vec<u64>,
+    entries: VecDeque<u64>,
     max_size: usize,
 }
 
 impl DcacheLru {
     pub fn new(max_size: usize) -> Self {
         Self {
-            entries: Vec::new(),
+            entries: VecDeque::new(),
             max_size,
         }
     }
 
     pub fn touch(&mut self, hash: u64) {
         self.entries.retain(|&h| h != hash);
-        self.entries.push(hash);
+        self.entries.push_back(hash);
     }
 
     pub fn evict_oldest(&mut self) -> Option<u64> {
         if self.entries.is_empty() {
             None
         } else {
-            Some(self.entries.remove(0))
+            self.entries.pop_front()
         }
     }
 
