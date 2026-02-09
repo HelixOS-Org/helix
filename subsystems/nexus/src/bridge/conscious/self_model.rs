@@ -148,10 +148,10 @@ impl Capability {
 /// Severity of a known limitation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LimitationSeverity {
-    Minor = 1,
-    Moderate = 2,
+    Minor       = 1,
+    Moderate    = 2,
     Significant = 3,
-    Critical = 4,
+    Critical    = 4,
 }
 
 /// A known limitation of the bridge
@@ -227,9 +227,10 @@ impl BridgeSelfModel {
         self.tick += 1;
         let id = fnv1a_hash(name.as_bytes());
         let tick = self.tick;
-        let cap = self.capabilities.entry(id).or_insert_with(|| {
-            Capability::new(String::from(name))
-        });
+        let cap = self
+            .capabilities
+            .entry(id)
+            .or_insert_with(|| Capability::new(String::from(name)));
         cap.observe(raw_score, tick);
     }
 
@@ -256,10 +257,8 @@ impl BridgeSelfModel {
             occurrences: 0,
         });
         // EMA smooth frequency and impact
-        lim.frequency = EMA_ALPHA * frequency.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * lim.frequency;
-        lim.impact = EMA_ALPHA * impact.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * lim.impact;
+        lim.frequency = EMA_ALPHA * frequency.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * lim.frequency;
+        lim.impact = EMA_ALPHA * impact.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * lim.impact;
         lim.severity = severity;
         lim.occurrences += 1;
     }
@@ -284,14 +283,18 @@ impl BridgeSelfModel {
         let cap_count = self.capabilities.len() as f32;
         let avg_cap = cap_sum / cap_count;
 
-        let lim_penalty: f32 = self.limitations.values().map(|l| {
-            let raw_penalty = l.frequency * l.impact * (l.severity as u8 as f32 / 4.0);
-            if l.mitigated {
-                raw_penalty * (1.0 - l.mitigation_effectiveness)
-            } else {
-                raw_penalty
-            }
-        }).sum();
+        let lim_penalty: f32 = self
+            .limitations
+            .values()
+            .map(|l| {
+                let raw_penalty = l.frequency * l.impact * (l.severity as u8 as f32 / 4.0);
+                if l.mitigated {
+                    raw_penalty * (1.0 - l.mitigation_effectiveness)
+                } else {
+                    raw_penalty
+                }
+            })
+            .sum();
 
         let lim_count = self.limitations.len().max(1) as f32;
         let avg_penalty = lim_penalty / lim_count;
@@ -312,7 +315,11 @@ impl BridgeSelfModel {
         if self.capabilities.is_empty() {
             return 0.0;
         }
-        let sum: f32 = self.capabilities.values().map(|c| c.improvement_rate()).sum();
+        let sum: f32 = self
+            .capabilities
+            .values()
+            .map(|c| c.improvement_rate())
+            .sum();
         sum / self.capabilities.len() as f32
     }
 
@@ -329,7 +336,10 @@ impl BridgeSelfModel {
             0.0
         };
         let avg_ci = if cap_count > 0 {
-            self.capabilities.values().map(|c| c.confidence_half_width() * 2.0).sum::<f32>()
+            self.capabilities
+                .values()
+                .map(|c| c.confidence_half_width() * 2.0)
+                .sum::<f32>()
                 / cap_count as f32
         } else {
             1.0
@@ -353,18 +363,19 @@ impl BridgeSelfModel {
 
     /// List all capabilities with their confidence intervals
     pub fn capability_report(&self) -> Vec<(String, f32, f32, f32)> {
-        self.capabilities.values().map(|c| {
-            let (lo, hi) = c.confidence_interval();
-            (c.name.clone(), c.score, lo, hi)
-        }).collect()
+        self.capabilities
+            .values()
+            .map(|c| {
+                let (lo, hi) = c.confidence_interval();
+                (c.name.clone(), c.score, lo, hi)
+            })
+            .collect()
     }
 
     /// List all unmitigated limitations sorted by severity (descending)
     pub fn critical_limitations(&self) -> Vec<&Limitation> {
-        let mut lims: Vec<&Limitation> = self.limitations
-            .values()
-            .filter(|l| !l.mitigated)
-            .collect();
+        let mut lims: Vec<&Limitation> =
+            self.limitations.values().filter(|l| !l.mitigated).collect();
         lims.sort_by(|a, b| b.severity.cmp(&a.severity));
         lims
     }
