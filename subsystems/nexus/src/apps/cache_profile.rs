@@ -45,6 +45,7 @@ pub enum FalseSharingSeverity {
 
 /// Per-level cache statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheLevelStats {
     pub level: CacheProfileLevel,
     pub accesses: u64,
@@ -74,21 +75,25 @@ impl CacheLevelStats {
         }
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         if self.accesses == 0 { return 0.0; }
         self.hits as f64 / self.accesses as f64
     }
 
+    #[inline(always)]
     pub fn miss_rate(&self) -> f64 {
         1.0 - self.hit_rate()
     }
 
+    #[inline]
     pub fn prefetch_effectiveness(&self) -> f64 {
         let total = self.useful_prefetch + self.wasted_prefetch;
         if total == 0 { return 0.0; }
         self.useful_prefetch as f64 / total as f64
     }
 
+    #[inline]
     pub fn record_event(&mut self, event: CacheEventType) {
         match event {
             CacheEventType::Hit => { self.accesses += 1; self.hits += 1; }
@@ -103,6 +108,7 @@ impl CacheLevelStats {
 
 /// Cache line sharing info
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheLineSharing {
     pub address: u64,
     pub line_size: u32,
@@ -126,6 +132,7 @@ impl CacheLineSharing {
         }
     }
 
+    #[inline]
     pub fn severity(&self) -> FalseSharingSeverity {
         if self.owning_threads.len() < 2 { return FalseSharingSeverity::None; }
         if self.false_sharing_score < 0.1 { return FalseSharingSeverity::Low; }
@@ -169,10 +176,12 @@ pub struct WorkingSetEstimate {
 }
 
 impl WorkingSetEstimate {
+    #[inline(always)]
     pub fn total_pages(&self) -> u64 {
         self.hot_pages + self.warm_pages + self.cold_pages
     }
 
+    #[inline]
     pub fn best_fit_level(&self) -> CacheProfileLevel {
         if self.l1_fit { CacheProfileLevel::L1Data }
         else if self.l2_fit { CacheProfileLevel::L2Unified }
@@ -182,6 +191,7 @@ impl WorkingSetEstimate {
 
 /// Per-process cache profile
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessCacheProfile {
     pub pid: u64,
     pub level_stats: BTreeMap<u8, CacheLevelStats>,
@@ -213,12 +223,14 @@ impl ProcessCacheProfile {
         }
     }
 
+    #[inline]
     pub fn overall_miss_rate(&self) -> f64 {
         if let Some(l1) = self.level_stats.get(&0) {
             l1.miss_rate()
         } else { 0.0 }
     }
 
+    #[inline]
     pub fn record_event(&mut self, level: u8, event: CacheEventType) {
         if let Some(stats) = self.level_stats.get_mut(&level) {
             stats.record_event(event);
@@ -226,6 +238,7 @@ impl ProcessCacheProfile {
         self.sample_count += 1;
     }
 
+    #[inline]
     pub fn worst_false_sharing_score(&self) -> f64 {
         self.false_sharing_hotspots.iter()
             .map(|h| h.false_sharing_score)
@@ -235,6 +248,7 @@ impl ProcessCacheProfile {
 
 /// App Cache Profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppCacheProfilerStats {
     pub total_processes: usize,
     pub total_samples: u64,
@@ -244,6 +258,7 @@ pub struct AppCacheProfilerStats {
 }
 
 /// Application Cache Profiler
+#[repr(align(64))]
 pub struct AppCacheProfiler {
     profiles: BTreeMap<u64, ProcessCacheProfile>,
     global_samples: u64,
@@ -261,11 +276,13 @@ impl AppCacheProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessCacheProfile::new(pid));
         self.recompute();
     }
 
+    #[inline]
     pub fn record_event(&mut self, pid: u64, level: u8, event: CacheEventType) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_event(level, event);
@@ -330,14 +347,17 @@ impl AppCacheProfiler {
         self.stats.worst_miss_rate_pid = worst_pid;
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessCacheProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppCacheProfilerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.recompute();
