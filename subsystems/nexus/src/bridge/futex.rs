@@ -314,28 +314,6 @@ impl BridgeFutexProxy {
 // Merged from futex_v2
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FutexOp {
-    /// Wait until value changes
-    Wait,
-    /// Wake N waiters
-    Wake,
-    /// Requeue waiters to another futex
-    Requeue,
-    /// Compare-and-wake + requeue
-    CmpRequeue,
-    /// Wait with bitset mask
-    WaitBitset,
-    /// Wake with bitset mask
-    WakeBitset,
-    /// Lock with PI (priority inheritance)
-    LockPi,
-    /// Unlock with PI
-    UnlockPi,
-    /// Wait on multiple futexes (futex2)
-    WaitV,
-}
-
 /// Waiter priority class
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WaiterPriority {
