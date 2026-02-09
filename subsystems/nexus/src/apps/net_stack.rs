@@ -135,6 +135,7 @@ impl ConnectionProfile {
     }
 
     /// Record send
+    #[inline]
     pub fn record_send(&mut self, bytes: u64, now: u64) {
         self.bytes_sent += bytes;
         self.packets_sent += 1;
@@ -142,6 +143,7 @@ impl ConnectionProfile {
     }
 
     /// Record recv
+    #[inline]
     pub fn record_recv(&mut self, bytes: u64, now: u64) {
         self.bytes_recv += bytes;
         self.packets_recv += 1;
@@ -149,6 +151,7 @@ impl ConnectionProfile {
     }
 
     /// Record RTT sample
+    #[inline]
     pub fn record_rtt(&mut self, rtt_ns: u64) {
         self.rtt_ema_ns = 0.875 * self.rtt_ema_ns + 0.125 * rtt_ns as f64;
         if rtt_ns < self.rtt_min_ns {
@@ -160,11 +163,13 @@ impl ConnectionProfile {
     }
 
     /// Record retransmit
+    #[inline(always)]
     pub fn record_retransmit(&mut self) {
         self.retransmits += 1;
     }
 
     /// Retransmit rate
+    #[inline]
     pub fn retransmit_rate(&self) -> f64 {
         if self.packets_sent == 0 {
             return 0.0;
@@ -173,6 +178,7 @@ impl ConnectionProfile {
     }
 
     /// Throughput (bytes/sec)
+    #[inline]
     pub fn send_throughput(&self, now: u64) -> f64 {
         let elapsed = now.saturating_sub(self.established_ns);
         if elapsed == 0 {
@@ -182,6 +188,7 @@ impl ConnectionProfile {
     }
 
     /// Recv throughput
+    #[inline]
     pub fn recv_throughput(&self, now: u64) -> f64 {
         let elapsed = now.saturating_sub(self.established_ns);
         if elapsed == 0 {
@@ -191,6 +198,7 @@ impl ConnectionProfile {
     }
 
     /// Is idle
+    #[inline(always)]
     pub fn is_idle(&self, now: u64, timeout_ns: u64) -> bool {
         now.saturating_sub(self.last_activity_ns) > timeout_ns
     }
@@ -202,6 +210,7 @@ impl ConnectionProfile {
 
 /// Socket buffer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SocketBufferStats {
     /// Send buffer full events
     pub send_full_events: u64,
@@ -249,6 +258,7 @@ impl ProcessNetProfile {
     }
 
     /// Add/get connection
+    #[inline]
     pub fn connection(
         &mut self,
         conn_id: u64,
@@ -262,22 +272,26 @@ impl ProcessNetProfile {
     }
 
     /// Get connection
+    #[inline(always)]
     pub fn get_connection(&self, conn_id: u64) -> Option<&ConnectionProfile> {
         self.connections.get(&conn_id)
     }
 
     /// Remove connection
+    #[inline(always)]
     pub fn remove_connection(&mut self, conn_id: u64) {
         self.connections.remove(&conn_id);
     }
 
     /// Cleanup idle connections
+    #[inline(always)]
     pub fn cleanup_idle(&mut self, now: u64, timeout_ns: u64) {
         self.connections.retain(|_, c| !c.is_idle(now, timeout_ns));
         self.active_connections = self.connections.len();
     }
 
     /// Update aggregates
+    #[inline]
     pub fn update_aggregates(&mut self) {
         self.total_sent = self.connections.values().map(|c| c.bytes_sent).sum();
         self.total_recv = self.connections.values().map(|c| c.bytes_recv).sum();
@@ -295,6 +309,7 @@ impl ProcessNetProfile {
 
 /// Network profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppNetProfilerStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -323,6 +338,7 @@ impl AppNetStackProfiler {
     }
 
     /// Get/create process profile
+    #[inline]
     pub fn process(&mut self, pid: u64) -> &mut ProcessNetProfile {
         self.processes
             .entry(pid)
@@ -330,6 +346,7 @@ impl AppNetStackProfiler {
     }
 
     /// Record send
+    #[inline]
     pub fn record_send(&mut self, pid: u64, conn_id: u64, bytes: u64, now: u64) {
         let proc = self
             .processes
@@ -341,6 +358,7 @@ impl AppNetStackProfiler {
     }
 
     /// Record recv
+    #[inline]
     pub fn record_recv(&mut self, pid: u64, conn_id: u64, bytes: u64, now: u64) {
         let proc = self
             .processes
@@ -352,6 +370,7 @@ impl AppNetStackProfiler {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.update_stats();
@@ -379,6 +398,7 @@ impl AppNetStackProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppNetProfilerStats {
         &self.stats
     }
