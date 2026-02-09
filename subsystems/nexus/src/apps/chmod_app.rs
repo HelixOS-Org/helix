@@ -3,6 +3,7 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Permission bits
@@ -60,7 +61,7 @@ pub struct ChmodAppStats {
 /// Main chmod app manager
 #[derive(Debug)]
 pub struct AppChmod {
-    history: Vec<ChmodRecord>,
+    history: VecDeque<ChmodRecord>,
     max_history: usize,
     stats: ChmodAppStats,
 }
@@ -68,7 +69,7 @@ pub struct AppChmod {
 impl AppChmod {
     pub fn new(max_history: usize) -> Self {
         Self {
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history,
             stats: ChmodAppStats {
                 total_calls: 0, chmod_calls: 0, fchmod_calls: 0,
@@ -106,9 +107,9 @@ impl AppChmod {
             is_fchmod, tick,
         };
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(record);
+        self.history.push_back(record);
         ChmodResult::Success
     }
 
