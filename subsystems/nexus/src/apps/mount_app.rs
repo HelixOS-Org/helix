@@ -50,6 +50,7 @@ impl MountEntry {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MountAppStats {
     pub total_mounts: u32,
     pub readonly_mounts: u32,
@@ -66,14 +67,17 @@ pub struct AppMount {
 impl AppMount {
     pub fn new() -> Self { Self { mounts: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn mount(&mut self, source: u64, target: u64, fstype: String, flags: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.mounts.insert(id, MountEntry::new(id, source, target, fstype, flags, now));
         id
     }
 
+    #[inline(always)]
     pub fn umount(&mut self, id: u64) -> bool { self.mounts.remove(&id).is_some() }
 
+    #[inline]
     pub fn stats(&self) -> MountAppStats {
         let ro = self.mounts.values().filter(|m| m.flags & 1 != 0).count() as u32;
         let bind = self.mounts.values().filter(|m| m.flags & (1 << 12) != 0).count() as u32;
