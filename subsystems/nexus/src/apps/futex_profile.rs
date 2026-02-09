@@ -39,6 +39,7 @@ pub enum FutexContentionLevel {
 
 /// Single futex address stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FutexAddrStats {
     pub addr: u64,
     pub wait_count: u64,
@@ -72,11 +73,13 @@ impl FutexAddrStats {
         }
     }
 
+    #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
         if self.wait_count == 0 { return 0; }
         self.total_wait_ns / self.wait_count
     }
 
+    #[inline]
     pub fn contention_level(&self) -> FutexContentionLevel {
         if self.wait_count < 10 { return FutexContentionLevel::None; }
         let avg = self.avg_wait_ns();
@@ -86,11 +89,13 @@ impl FutexAddrStats {
         else { FutexContentionLevel::Severe }
     }
 
+    #[inline(always)]
     pub fn spin_efficiency(&self) -> f64 {
         if self.spin_attempts == 0 { return 0.0; }
         self.spin_successes as f64 / self.spin_attempts as f64
     }
 
+    #[inline]
     pub fn record_wait(&mut self, duration_ns: u64) {
         self.wait_count += 1;
         self.total_wait_ns += duration_ns;
@@ -99,6 +104,7 @@ impl FutexAddrStats {
         if self.current_waiters > self.max_waiters { self.max_waiters = self.current_waiters; }
     }
 
+    #[inline]
     pub fn record_wake(&mut self, count: u32) {
         self.wake_count += 1;
         self.current_waiters = self.current_waiters.saturating_sub(count);
@@ -145,6 +151,7 @@ impl ProcessFutexProfile {
         }
     }
 
+    #[inline]
     pub fn record_wait(&mut self, addr: u64, duration_ns: u64) {
         let stats = self.futex_stats.entry(addr)
             .or_insert_with(|| FutexAddrStats::new(addr));
@@ -153,6 +160,7 @@ impl ProcessFutexProfile {
         self.total_wait_ns += duration_ns;
     }
 
+    #[inline]
     pub fn record_wake(&mut self, addr: u64, count: u32) {
         let stats = self.futex_stats.entry(addr)
             .or_insert_with(|| FutexAddrStats::new(addr));
@@ -161,6 +169,7 @@ impl ProcessFutexProfile {
         if count > 4 { self.total_thundering_herds += 1; }
     }
 
+    #[inline]
     pub fn record_spin(&mut self, addr: u64, success: bool) {
         let stats = self.futex_stats.entry(addr)
             .or_insert_with(|| FutexAddrStats::new(addr));
@@ -168,6 +177,7 @@ impl ProcessFutexProfile {
         if success { stats.spin_successes += 1; }
     }
 
+    #[inline]
     pub fn hottest_futexes(&self, n: usize) -> Vec<&FutexAddrStats> {
         let mut sorted: Vec<_> = self.futex_stats.values().collect();
         sorted.sort_by(|a, b| b.total_wait_ns.cmp(&a.total_wait_ns));
@@ -175,6 +185,7 @@ impl ProcessFutexProfile {
         sorted
     }
 
+    #[inline]
     pub fn severe_contention_addrs(&self) -> Vec<u64> {
         self.futex_stats.values()
             .filter(|s| s.contention_level() == FutexContentionLevel::Severe)
@@ -182,6 +193,7 @@ impl ProcessFutexProfile {
             .collect()
     }
 
+    #[inline]
     pub fn update_chain(&mut self, chain: Vec<WaiterChainLink>) {
         let depth = chain.iter().map(|l| l.depth).max().unwrap_or(0);
         if depth > self.max_chain_depth { self.max_chain_depth = depth; }
@@ -191,6 +203,7 @@ impl ProcessFutexProfile {
 
 /// App futex profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppFutexProfilerStats {
     pub total_processes: usize,
     pub total_futexes: usize,
@@ -216,22 +229,26 @@ impl AppFutexProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessFutexProfile::new(pid));
     }
 
+    #[inline]
     pub fn record_wait(&mut self, pid: u64, addr: u64, duration_ns: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_wait(addr, duration_ns);
         }
     }
 
+    #[inline]
     pub fn record_wake(&mut self, pid: u64, addr: u64, count: u32) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_wake(addr, count);
         }
     }
 
+    #[inline]
     pub fn record_spin(&mut self, pid: u64, addr: u64, success: bool) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_spin(addr, success);
@@ -256,14 +273,17 @@ impl AppFutexProfiler {
             .unwrap_or(0);
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessFutexProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppFutexProfilerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.recompute();
