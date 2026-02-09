@@ -61,15 +61,15 @@ def fix_file(filepath: str, dry_run: bool = False) -> bool:
     """Fix a single file. Returns True if modified."""
     with open(filepath, 'r') as f:
         original = f.read()
-    
+
     content = original
     queue_fields = find_queue_field_names(content)
-    
+
     if not queue_fields:
         return False
-    
+
     modified = False
-    
+
     # 1. Fix .remove(0) → .pop_front() for queue fields
     for field in queue_fields:
         # self.field.remove(0) → self.field.pop_front()
@@ -103,7 +103,7 @@ def fix_file(filepath: str, dry_run: bool = False) -> bool:
                     modified = True
                 new_lines.append(line)
             content = '\n'.join(new_lines)
-        
+
         # Also handle non-self patterns: field.remove(0)
         plain_old = f'{field}.remove(0)'
         if plain_old in content and f'self.{field}' not in plain_old:
@@ -121,7 +121,7 @@ def fix_file(filepath: str, dry_run: bool = False) -> bool:
                     modified = True
                 new_lines.append(line)
             content = '\n'.join(new_lines)
-    
+
     # 2. Fix .push(x) → .push_back(x) for queue fields ONLY
     for field in queue_fields:
         # Match self.field.push(anything) but NOT self.field.push_back or push_front
@@ -134,7 +134,7 @@ def fix_file(filepath: str, dry_run: bool = False) -> bool:
             stats['push_fixed'] += count
             content = new_content
             modified = True
-    
+
     # 3. Fix .last() → .back() for queue fields
     for field in queue_fields:
         old_last = f'self.{field}.last()'
@@ -143,7 +143,7 @@ def fix_file(filepath: str, dry_run: bool = False) -> bool:
             content = content.replace(old_last, new_last)
             stats['last_fixed'] += 1
             modified = True
-    
+
     # 4. Fix Vec<T> → VecDeque<T> in field declarations for queue fields
     for field in queue_fields:
         # Match: pub field: Vec<Something> or field: Vec<Something>
@@ -155,7 +155,7 @@ def fix_file(filepath: str, dry_run: bool = False) -> bool:
             stats['field_decls_fixed'] += 1
             content = new_content
             modified = True
-    
+
     # 5. Fix Vec::new() → VecDeque::new() in constructors for queue fields
     for field in queue_fields:
         # Match: field: Vec::new()
@@ -167,7 +167,7 @@ def fix_file(filepath: str, dry_run: bool = False) -> bool:
             stats['vec_new_fixed'] += 1
             content = new_content
             modified = True
-    
+
     # 6. Add VecDeque import if not present and we made changes
     if modified and 'VecDeque' not in original:
         # Find existing alloc imports to add alongside
@@ -195,40 +195,40 @@ def fix_file(filepath: str, dry_run: bool = False) -> bool:
                 'extern crate alloc;\n\nuse alloc::collections::VecDeque;'
             )
             stats['imports_added'] += 1
-    
+
     if modified and not dry_run:
         with open(filepath, 'w') as f:
             f.write(content)
         stats['files_modified'] += 1
-    
+
     return modified
 
 
 def main():
     dry_run = '--dry-run' in sys.argv
     nexus_src = os.path.abspath(NEXUS_SRC)
-    
+
     if dry_run:
         print("=== DRY RUN MODE ===\n")
-    
+
     print(f"Scanning {nexus_src}...")
-    
+
     for root, dirs, files in os.walk(nexus_src):
         for fname in files:
             if not fname.endswith('.rs'):
                 continue
-            
+
             filepath = os.path.join(root, fname)
             relpath = os.path.relpath(filepath, nexus_src)
-            
+
             if relpath in SKIP_FILES:
                 continue
-            
+
             stats['files_scanned'] += 1
-            
+
             if fix_file(filepath, dry_run=dry_run):
                 print(f"  {'[DRY] ' if dry_run else ''}Fixed: {relpath}")
-    
+
     print(f"\n{'='*60}")
     print(f"NEXUS Performance Migration {'(DRY RUN)' if dry_run else 'COMPLETE'}")
     print(f"{'='*60}")
