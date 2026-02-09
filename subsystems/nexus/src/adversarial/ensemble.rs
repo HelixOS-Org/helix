@@ -91,6 +91,7 @@ impl EnsembleDefense {
     }
 
     /// Check for ensemble disagreement (potential attack indicator)
+    #[inline]
     pub fn check_disagreement(&self, threshold: f64) -> bool {
         let variance = self.prediction_variance();
         let max_var = variance.iter().fold(0.0, |a, &b| f64::max(a, b));
