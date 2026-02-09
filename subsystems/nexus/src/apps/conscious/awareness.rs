@@ -217,7 +217,8 @@ impl AppsAwareness {
 
     /// Compute the awareness score for a specific application
     pub fn app_awareness_score(&self, process_id: u64) -> f32 {
-        self.processes.get(&process_id)
+        self.processes
+            .get(&process_id)
             .map(|p| p.awareness)
             .unwrap_or(0.0)
     }
@@ -233,16 +234,16 @@ impl AppsAwareness {
         self.tick += 1;
         let behavior_hash = fnv1a_hash(behavior_signature.as_bytes());
 
-        let proc_entry = self.processes.entry(process_id).or_insert_with(|| {
-            ProcessAwareness::new(process_id, String::from(process_name))
-        });
+        let proc_entry = self
+            .processes
+            .entry(process_id)
+            .or_insert_with(|| ProcessAwareness::new(process_id, String::from(process_name)));
         proc_entry.observe(behavior_hash, matched_known, self.tick);
 
         // Update global awareness EMA
         let avg: f32 = self.processes.values().map(|p| p.awareness).sum::<f32>()
             / self.processes.len().max(1) as f32;
-        self.global_awareness_ema =
-            EMA_ALPHA * avg + (1.0 - EMA_ALPHA) * self.global_awareness_ema;
+        self.global_awareness_ema = EMA_ALPHA * avg + (1.0 - EMA_ALPHA) * self.global_awareness_ema;
 
         // Trigger novelty response if novelty exceeds threshold
         if proc_entry.novelty > NOVELTY_THRESHOLD && !matched_known {
@@ -262,21 +263,25 @@ impl AppsAwareness {
 
     /// Get the learning rate for a specific process
     pub fn learning_rate(&self, process_id: u64) -> f32 {
-        self.processes.get(&process_id)
+        self.processes
+            .get(&process_id)
             .map(|p| p.learning_rate)
             .unwrap_or(0.0)
     }
 
     /// Compute the familiarity index for a process (0.0 – 1.0)
     pub fn familiarity_index(&self, process_id: u64) -> f32 {
-        self.processes.get(&process_id)
+        self.processes
+            .get(&process_id)
             .map(|p| p.familiarity)
             .unwrap_or(0.0)
     }
 
     /// Generate a novelty response: prioritize exploration for novel processes
     pub fn novelty_response(&mut self) -> Vec<(u64, String, f32)> {
-        let mut novel: Vec<(u64, String, f32)> = self.processes.values()
+        let mut novel: Vec<(u64, String, f32)> = self
+            .processes
+            .values()
             .filter(|p| p.novelty > NOVELTY_THRESHOLD)
             .map(|p| (p.process_id, p.process_name.clone(), p.novelty))
             .collect();
@@ -310,10 +315,18 @@ impl AppsAwareness {
             let aw: f32 = self.processes.values().map(|p| p.awareness).sum::<f32>() / n as f32;
             let fam: f32 = self.processes.values().map(|p| p.familiarity).sum::<f32>() / n as f32;
             let nov: f32 = self.processes.values().map(|p| p.novelty).sum::<f32>() / n as f32;
-            let lr: f32 = self.processes.values().map(|p| p.learning_rate).sum::<f32>() / n as f32;
+            let lr: f32 = self
+                .processes
+                .values()
+                .map(|p| p.learning_rate)
+                .sum::<f32>()
+                / n as f32;
             let unk: u64 = self.processes.values().map(|p| p.unknown_events).sum();
-            let fam_c = self.processes.values()
-                .filter(|p| p.familiarity > FAMILIAR_THRESHOLD).count();
+            let fam_c = self
+                .processes
+                .values()
+                .filter(|p| p.familiarity > FAMILIAR_THRESHOLD)
+                .count();
             (aw, fam, nov, lr, unk, fam_c)
         } else {
             (0.0, 0.0, 0.0, 0.0, 0, 0)
