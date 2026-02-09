@@ -103,22 +103,22 @@ const DEFAULT_SEQ_LEN: usize = 512;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttentionType {
     /// Dot-product attention
-    DotProduct,
+    DotproductAttention,
     /// Additive attention (Bahdanau)
-    Additive,
+    AdditiveAttention,
     /// Multiplicative attention
-    Multiplicative,
+    MultiplicativeAttention,
     /// Cosine similarity attention
-    Cosine,
+    CosineSimilarityAttention,
 }
 
 /// Attention mask type (legacy)
 #[derive(Debug, Clone)]
 pub enum AttentionMask {
     /// No mask
-    None,
+    NoMask,
     /// Causal (autoregressive) mask
-    Causal,
+    CausalMask,
     /// Padding mask (indices to ignore)
     Padding(Vec<bool>),
     /// Custom mask matrix
@@ -486,11 +486,11 @@ pub enum KernelFunction {
     /// ELU + 1 kernel
     Elu,
     /// ReLU kernel
-    Relu,
+    ReluKernel,
     /// Softmax approximation (random features)
-    SoftmaxApprox,
+    SoftmaxApproximation,
     /// Polynomial kernel
-    Polynomial,
+    PolynomialKernel,
 }
 
 /// Linear attention (Performer-style)
@@ -650,7 +650,7 @@ impl LinearAttention {
 #[derive(Debug, Clone)]
 pub enum SparsityPattern {
     /// Full attention (no sparsity)
-    Full,
+    FullAttention,
     /// Local window attention
     Local(usize),
     /// Strided attention
@@ -846,13 +846,13 @@ impl SparseAttention {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RelativePosType {
     /// Shaw et al. style
-    Shaw,
+    ShawEtAl,
     /// Transformer-XL style
-    TransformerXL,
+    TransformerxlStyle,
     /// T5 relative position bias
-    T5Bias,
+    T5RelativePosition,
     /// RoPE (Rotary Position Embedding)
-    Rotary,
+    Rope,
 }
 
 /// Relative positional attention
@@ -1178,13 +1178,13 @@ impl FlashAttention {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KernelAttentionType {
     /// Full attention for short sequences
-    Full,
+    FullAttentionFor,
     /// Linear attention for long sequences
-    Linear,
+    LinearAttentionFor,
     /// Sparse attention for very long sequences
-    Sparse,
+    SparseAttentionFor,
     /// Flash attention for memory efficiency
-    Flash,
+    FlashAttentionFor,
 }
 
 /// Kernel attention manager
