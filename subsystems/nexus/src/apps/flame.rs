@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -104,12 +105,14 @@ impl FlameNode {
     }
 
     /// Self percentage
+    #[inline(always)]
     pub fn self_pct(&self) -> f64 {
         if self.total_count == 0 { return 0.0; }
         self.self_count as f64 / self.total_count as f64 * 100.0
     }
 
     /// Depth
+    #[inline]
     pub fn depth(&self) -> usize {
         if self.children.is_empty() {
             return 1;
@@ -118,6 +121,7 @@ impl FlameNode {
     }
 
     /// Hottest child
+    #[inline(always)]
     pub fn hottest_child(&self) -> Option<&FlameNode> {
         self.children.values().max_by_key(|c| c.total_count)
     }
@@ -136,6 +140,7 @@ pub struct HotPath {
 
 /// Flame profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppFlameProfilerStats {
     pub total_samples: u64,
     pub unique_stacks: usize,
@@ -153,7 +158,7 @@ pub struct AppFlameProfiler {
     /// Kernel samples
     kernel_samples: u64,
     /// Unique stack hashes
-    unique_stacks: BTreeMap<u64, u64>,
+    unique_stacks: LinearMap<u64, 64>,
     /// Stats
     stats: AppFlameProfilerStats,
 }
@@ -164,7 +169,7 @@ impl AppFlameProfiler {
             root: FlameNode::new(0, 0),
             total_samples: 0,
             kernel_samples: 0,
-            unique_stacks: BTreeMap::new(),
+            unique_stacks: LinearMap::new(),
             stats: AppFlameProfilerStats::default(),
         }
     }
@@ -184,7 +189,7 @@ impl AppFlameProfiler {
             stack_hash ^= frame.symbol_hash;
             stack_hash = stack_hash.wrapping_mul(0x100000001b3);
         }
-        *self.unique_stacks.entry(stack_hash).or_insert(0) += weight;
+        self.unique_stacks.add(stack_hash, weight);
 
         // Insert into flame tree (reverse order: bottom frame first)
         self.root.insert(&sample.frames, weight);
@@ -208,6 +213,7 @@ impl AppFlameProfiler {
     }
 
     /// Get hottest path from root
+    #[inline]
     pub fn hottest_trace(&self) -> Vec<u64> {
         let mut path = Vec::new();
         let mut node = &self.root;
@@ -227,6 +233,7 @@ impl AppFlameProfiler {
         } else { 0.0 };
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppFlameProfilerStats {
         &self.stats
     }
