@@ -159,7 +159,8 @@ impl SharingStrategy {
         self.dream_test_count += 1;
         let outcome = if success { 1.0 } else { 0.0 };
         self.dream_success_rate += EMA_ALPHA * (outcome - self.dream_success_rate);
-        let raw = self.fairness_score * 0.4 + self.throughput_score * 0.3 + self.dream_success_rate * 0.3;
+        let raw =
+            self.fairness_score * 0.4 + self.throughput_score * 0.3 + self.dream_success_rate * 0.3;
         self.composite_score += EMA_ALPHA * (raw - self.composite_score);
     }
 
@@ -212,7 +213,13 @@ impl TrustPattern {
 
     /// Add a trust observation
     pub fn observe_trust(&mut self, trust_val: f32) {
-        let clamped = if trust_val < 0.0 { 0.0 } else if trust_val > 1.0 { 1.0 } else { trust_val };
+        let clamped = if trust_val < 0.0 {
+            0.0
+        } else if trust_val > 1.0 {
+            1.0
+        } else {
+            trust_val
+        };
         let delta = clamped - self.avg_trust;
         self.avg_trust += EMA_ALPHA * delta;
         self.volatility += EMA_ALPHA * (delta.abs() - self.volatility);
@@ -384,14 +391,19 @@ impl CoopDreamEngine {
         episode.insight_count += fairness_built as u32;
 
         // Compute quality
-        let replay_score = if episode.replayed_events.is_empty() { 0.0 } else { 0.3 };
+        let replay_score = if episode.replayed_events.is_empty() {
+            0.0
+        } else {
+            0.3
+        };
         let discovery_score = episode.discovered_strategies.len() as f32 * 0.1;
         let insight_score = episode.insight_count as f32 * 0.05;
         episode.quality = (replay_score + discovery_score + insight_score).min(1.0);
         episode.duration = self.tick - episode.start_tick + 1;
 
         self.stats.total_dreams += 1;
-        self.stats.avg_dream_quality += EMA_ALPHA * (episode.quality - self.stats.avg_dream_quality);
+        self.stats.avg_dream_quality +=
+            EMA_ALPHA * (episode.quality - self.stats.avg_dream_quality);
         self.stats.strategies_discovered = self.strategies.len();
         self.stats.trust_patterns_learned = self.trust_patterns.len();
         self.stats.fairness_templates_built = self.fairness_templates.len();
@@ -620,7 +632,9 @@ impl CoopDreamEngine {
         }
 
         // Prune low-quality trust patterns
-        let low_quality: Vec<u64> = self.trust_patterns.iter()
+        let low_quality: Vec<u64> = self
+            .trust_patterns
+            .iter()
             .filter(|(_, p)| p.observation_count > 10 && p.importance < 0.1)
             .map(|(k, _)| *k)
             .collect();
