@@ -51,6 +51,7 @@ pub enum OomKillReason {
 
 /// Per-process OOM state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessOomState {
     pub pid: u64,
     pub rss_bytes: u64,
@@ -74,6 +75,7 @@ impl ProcessOomState {
         }
     }
 
+    #[inline]
     pub fn compute_badness(&mut self, total_mem: u64) {
         if self.is_unkillable || self.oom_score_adj == -1000 { self.oom_badness = 0; return; }
         let points = if total_mem == 0 { 0 } else { (self.rss_bytes + self.swap_bytes) * 1000 / total_mem };
@@ -83,6 +85,7 @@ impl ProcessOomState {
         self.oom_score = self.oom_badness as u32;
     }
 
+    #[inline(always)]
     pub fn total_mem(&self) -> u64 { self.rss_bytes + self.swap_bytes }
 }
 
@@ -119,6 +122,7 @@ pub enum OomEventKind {
 
 /// OOM handler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppOomStats {
     pub tracked_processes: usize,
     pub current_pressure: AppMemPressure,
@@ -147,9 +151,12 @@ impl AppsOomHandler {
         }
     }
 
+    #[inline(always)]
     pub fn track(&mut self, pid: u64) { self.processes.entry(pid).or_insert_with(|| ProcessOomState::new(pid)); }
+    #[inline(always)]
     pub fn untrack(&mut self, pid: u64) { self.processes.remove(&pid); }
 
+    #[inline]
     pub fn update(&mut self, pid: u64, rss: u64, swap: u64) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.rss_bytes = rss; p.swap_bytes = swap;
@@ -157,6 +164,7 @@ impl AppsOomHandler {
         }
     }
 
+    #[inline]
     pub fn set_adj(&mut self, pid: u64, adj: i16) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.oom_score_adj = adj.max(-1000).min(1000);
@@ -164,10 +172,12 @@ impl AppsOomHandler {
         }
     }
 
+    #[inline(always)]
     pub fn set_unkillable(&mut self, pid: u64, unkillable: bool) {
         if let Some(p) = self.processes.get_mut(&pid) { p.is_unkillable = unkillable; }
     }
 
+    #[inline]
     pub fn set_pressure(&mut self, pressure: AppMemPressure, available: u64, ts: u64) {
         if pressure != self.pressure {
             self.pressure = pressure;
@@ -175,6 +185,7 @@ impl AppsOomHandler {
         }
     }
 
+    #[inline]
     pub fn select_victim(&self) -> Option<u64> {
         self.processes.values()
             .filter(|p| !p.is_unkillable && p.oom_score_adj != -1000)
@@ -182,6 +193,7 @@ impl AppsOomHandler {
             .map(|p| p.pid)
     }
 
+    #[inline]
     pub fn select_victims(&self, count: usize) -> Vec<u64> {
         let mut candidates: Vec<&ProcessOomState> = self.processes.values()
             .filter(|p| !p.is_unkillable && p.oom_score_adj != -1000)
@@ -190,6 +202,7 @@ impl AppsOomHandler {
         candidates.iter().take(count).map(|p| p.pid).collect()
     }
 
+    #[inline]
     pub fn record_kill(&mut self, pid: u64, reason: OomKillReason, ts: u64) {
         if let Some(p) = self.processes.get(&pid) {
             self.kill_history.push(AppOomKillRecord {
@@ -201,6 +214,7 @@ impl AppsOomHandler {
         self.events.push(OomEvent { kind: OomEventKind::KillComplete, ts, pressure: self.pressure, available_bytes: 0 });
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.tracked_processes = self.processes.len();
         self.stats.current_pressure = self.pressure;
@@ -211,7 +225,10 @@ impl AppsOomHandler {
         self.stats.bytes_reclaimed = self.processes.values().map(|p| p.voluntary_reclaim_bytes).sum();
     }
 
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcessOomState> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn kill_history(&self) -> &[AppOomKillRecord] { &self.kill_history }
+    #[inline(always)]
     pub fn stats(&self) -> &AppOomStats { &self.stats }
 }
