@@ -35,7 +35,9 @@ pub struct Rlimit {
 
 impl Rlimit {
     pub fn new(soft: u64, hard: u64) -> Self { Self { soft, hard } }
+    #[inline(always)]
     pub fn unlimited() -> Self { Self { soft: u64::MAX, hard: u64::MAX } }
+    #[inline(always)]
     pub fn is_unlimited(&self) -> bool { self.hard == u64::MAX }
 }
 
@@ -54,10 +56,12 @@ impl ProcessLimits {
         Self { pid, limits, change_count: 0 }
     }
 
+    #[inline(always)]
     pub fn get(&self, resource: RlimitResource) -> Rlimit {
         self.limits.get(&(resource as u8)).copied().unwrap_or(Rlimit::unlimited())
     }
 
+    #[inline]
     pub fn set(&mut self, resource: RlimitResource, limit: Rlimit) -> bool {
         if limit.soft > limit.hard { return false; }
         if let Some(cur) = self.limits.get(&(resource as u8)) {
@@ -68,6 +72,7 @@ impl ProcessLimits {
         true
     }
 
+    #[inline(always)]
     pub fn check(&self, resource: RlimitResource, usage: u64) -> bool {
         let l = self.get(resource);
         usage <= l.soft
@@ -76,6 +81,7 @@ impl ProcessLimits {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrlimitAppStats {
     pub tracked_processes: u32,
     pub total_changes: u64,
@@ -89,16 +95,20 @@ pub struct AppPrlimit {
 
 impl AppPrlimit {
     pub fn new() -> Self { Self { processes: BTreeMap::new() } }
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessLimits::new(pid)); }
 
+    #[inline(always)]
     pub fn set_limit(&mut self, pid: u64, resource: RlimitResource, limit: Rlimit) -> bool {
         self.processes.get_mut(&pid).map_or(false, |p| p.set(resource, limit))
     }
 
+    #[inline(always)]
     pub fn get_limit(&self, pid: u64, resource: RlimitResource) -> Option<Rlimit> {
         Some(self.processes.get(&pid)?.get(resource))
     }
 
+    #[inline]
     pub fn stats(&self) -> PrlimitAppStats {
         let changes: u64 = self.processes.values().map(|p| p.change_count).sum();
         let unlimited: u32 = self.processes.values().map(|p| p.limits.values().filter(|l| l.is_unlimited()).count() as u32).sum();
