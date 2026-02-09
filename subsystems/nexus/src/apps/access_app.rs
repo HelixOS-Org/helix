@@ -78,6 +78,7 @@ impl AccessRecord {
 
 /// Per-process access pattern tracking.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessAccessState {
     pub pid: u64,
     pub checks_performed: u64,
@@ -113,6 +114,7 @@ impl ProcessAccessState {
         self.path_cache.insert(path_hash, result);
     }
 
+    #[inline]
     pub fn denial_rate(&self) -> f64 {
         if self.checks_performed == 0 {
             return 0.0;
@@ -123,6 +125,7 @@ impl ProcessAccessState {
 
 /// Statistics for access app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AccessAppStats {
     pub total_checks: u64,
     pub total_allowed: u64,
@@ -191,6 +194,7 @@ impl AppAccess {
         id
     }
 
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }
@@ -264,10 +268,12 @@ impl AccessV2Record {
         }
     }
 
+    #[inline(always)]
     pub fn used_effective_id(&self) -> bool {
         self.flag == AccessV2Flag::AtEaccess
     }
 
+    #[inline(always)]
     pub fn is_privileged_check(&self) -> bool {
         self.uid == 0 || self.effective_uid == 0
     }
@@ -294,6 +300,7 @@ impl PathAccessPattern {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, result: AccessV2Result, mode: AccessV2Mode) {
         self.check_count += 1;
         self.last_result = result;
@@ -303,6 +310,7 @@ impl PathAccessPattern {
         }
     }
 
+    #[inline(always)]
     pub fn deny_rate(&self) -> f64 {
         if self.check_count == 0 { 0.0 } else { self.denied_count as f64 / self.check_count as f64 }
     }
@@ -310,6 +318,7 @@ impl PathAccessPattern {
 
 /// Access v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AccessV2AppStats {
     pub total_checks: u64,
     pub allowed: u64,
@@ -355,6 +364,7 @@ impl AppAccessV2 {
         pattern.record(record.result, record.mode);
     }
 
+    #[inline(always)]
     pub fn denial_rate(&self) -> f64 {
         if self.stats.total_checks == 0 { 0.0 }
         else { self.stats.denied as f64 / self.stats.total_checks as f64 }
@@ -424,6 +434,7 @@ impl AccessV3Record {
 
 /// Access v3 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AccessV3AppStats {
     pub total_ops: u64,
     pub permitted: u64,
@@ -449,6 +460,7 @@ impl AppAccessV3 {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &AccessV3Record) {
         self.stats.total_ops += 1;
         match rec.result {
