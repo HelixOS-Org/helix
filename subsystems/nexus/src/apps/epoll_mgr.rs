@@ -39,10 +39,15 @@ impl EpollEventMask {
     pub const EPOLLET: u32 = 0x80000000;
 
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn empty() -> Self { Self { bits: 0 } }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn is_read(&self) -> bool { self.has(Self::EPOLLIN) }
+    #[inline(always)]
     pub fn is_write(&self) -> bool { self.has(Self::EPOLLOUT) }
+    #[inline(always)]
     pub fn is_edge(&self) -> bool { self.has(Self::EPOLLET) }
 }
 
@@ -70,16 +75,19 @@ impl EpollRegisteredFd {
         }
     }
 
+    #[inline(always)]
     pub fn record_ready(&mut self, ts: u64) {
         self.ready_count += 1;
         self.last_ready_ts = ts;
     }
 
+    #[inline(always)]
     pub fn is_stale(&self, now: u64) -> bool {
         if self.last_ready_ts == 0 { return now - self.registered_ts > self.stale_threshold_ns; }
         now - self.last_ready_ts > self.stale_threshold_ns
     }
 
+    #[inline]
     pub fn spurious_ratio(&self) -> f64 {
         let total = self.ready_count + self.spurious_count;
         if total == 0 { return 0.0; }
@@ -111,12 +119,15 @@ impl EpollInstance {
         }
     }
 
+    #[inline(always)]
     pub fn add_fd(&mut self, fd: i32, events: EpollEventMask, ts: u64) {
         self.fds.insert(fd, EpollRegisteredFd::new(fd, events, ts));
     }
 
+    #[inline(always)]
     pub fn remove_fd(&mut self, fd: i32) { self.fds.remove(&fd); }
 
+    #[inline]
     pub fn record_wait(&mut self, events_returned: u32, latency_ns: u64, ts: u64) {
         self.wait_count += 1;
         self.last_wait_ts = ts;
@@ -128,15 +139,19 @@ impl EpollInstance {
         else { self.avg_latency_ns = (self.avg_latency_ns * 7 + latency_ns) / 8; }
     }
 
+    #[inline(always)]
     pub fn fd_count(&self) -> usize { self.fds.len() }
+    #[inline(always)]
     pub fn timeout_ratio(&self) -> f64 {
         if self.wait_count == 0 { return 0.0; }
         self.timeout_count as f64 / self.wait_count as f64
     }
+    #[inline(always)]
     pub fn avg_events_per_wait(&self) -> f64 {
         if self.wait_count == 0 { return 0.0; }
         self.total_events_returned as f64 / self.wait_count as f64
     }
+    #[inline(always)]
     pub fn stale_fds(&self, now: u64) -> Vec<i32> {
         self.fds.iter().filter(|(_, f)| f.is_stale(now)).map(|(&fd, _)| fd).collect()
     }
@@ -156,12 +171,14 @@ impl ThunderingHerdDetector {
         Self { recent_concurrent_wakes: VecDeque::new(), max_history: 64, threshold, detected_count: 0 }
     }
 
+    #[inline]
     pub fn record_wake(&mut self, ts: u64, woken_count: u32) {
         self.recent_concurrent_wakes.push_back((ts, woken_count));
         if self.recent_concurrent_wakes.len() > self.max_history { self.recent_concurrent_wakes.pop_front(); }
         if woken_count >= self.threshold { self.detected_count += 1; }
     }
 
+    #[inline]
     pub fn is_thundering(&self) -> bool {
         if self.recent_concurrent_wakes.len() < 3 { return false; }
         let recent = &self.recent_concurrent_wakes[self.recent_concurrent_wakes.len()-3..];
@@ -171,6 +188,7 @@ impl ThunderingHerdDetector {
 
 /// Epoll manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct EpollMgrStats {
     pub total_instances: usize,
     pub total_monitored_fds: usize,
@@ -197,24 +215,30 @@ impl AppsEpollMgr {
         }
     }
 
+    #[inline(always)]
     pub fn create(&mut self, pid: u64, epfd: i32, ts: u64) {
         self.instances.insert((pid, epfd), EpollInstance::new(epfd, pid, ts));
     }
 
+    #[inline(always)]
     pub fn ctl_add(&mut self, pid: u64, epfd: i32, fd: i32, events: EpollEventMask, ts: u64) {
         if let Some(inst) = self.instances.get_mut(&(pid, epfd)) { inst.add_fd(fd, events, ts); }
     }
 
+    #[inline(always)]
     pub fn ctl_del(&mut self, pid: u64, epfd: i32, fd: i32) {
         if let Some(inst) = self.instances.get_mut(&(pid, epfd)) { inst.remove_fd(fd); }
     }
 
+    #[inline(always)]
     pub fn record_wait(&mut self, pid: u64, epfd: i32, events: u32, latency: u64, ts: u64) {
         if let Some(inst) = self.instances.get_mut(&(pid, epfd)) { inst.record_wait(events, latency, ts); }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, pid: u64, epfd: i32) { self.instances.remove(&(pid, epfd)); }
 
+    #[inline]
     pub fn recompute(&mut self, now: u64) {
         self.stats.total_instances = self.instances.len();
         self.stats.total_monitored_fds = self.instances.values().map(|i| i.fd_count()).sum();
@@ -227,6 +251,8 @@ impl AppsEpollMgr {
         }
     }
 
+    #[inline(always)]
     pub fn instance(&self, pid: u64, epfd: i32) -> Option<&EpollInstance> { self.instances.get(&(pid, epfd)) }
+    #[inline(always)]
     pub fn stats(&self) -> &EpollMgrStats { &self.stats }
 }
