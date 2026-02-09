@@ -188,9 +188,13 @@ impl HolisticExperiment {
             synthesis_log: Vec::new(),
             rng_state: seed | 1,
             stats: ExperimentStats {
-                total_experiments: 0, running_count: 0, completed_count: 0,
-                total_trials: 0, significant_main_effects: 0,
-                significant_interactions: 0, avg_effect_size_ema: 0.0,
+                total_experiments: 0,
+                running_count: 0,
+                completed_count: 0,
+                total_trials: 0,
+                significant_main_effects: 0,
+                significant_interactions: 0,
+                avg_effect_size_ema: 0.0,
                 synthesis_count: 0,
             },
         }
@@ -198,7 +202,11 @@ impl HolisticExperiment {
 
     /// Create a factorial design for a set of factors
     pub fn factorial_design(
-        &mut self, name: String, factors: Vec<Factor>, fractional: bool, tick: u64,
+        &mut self,
+        name: String,
+        factors: Vec<Factor>,
+        fractional: bool,
+        tick: u64,
     ) -> u64 {
         let id = fnv1a_hash(name.as_bytes()) ^ fnv1a_hash(&tick.to_le_bytes());
         let total = if fractional {
@@ -208,17 +216,24 @@ impl HolisticExperiment {
             factors.iter().map(|f| f.levels.len()).product()
         };
         let design = FactorialDesign {
-            experiment_id: id, factors,
+            experiment_id: id,
+            factors,
             is_fractional: fractional,
             fraction_power: if fractional { 1 } else { 0 },
-            total_combinations: total, completed_trials: 0,
+            total_combinations: total,
+            completed_trials: 0,
         };
         let record = ExperimentRecord {
-            id, name, design, trials: Vec::new(),
-            main_effects: Vec::new(), interactions: Vec::new(),
+            id,
+            name,
+            design,
+            trials: Vec::new(),
+            main_effects: Vec::new(),
+            interactions: Vec::new(),
             status: ExperimentStatus::Designed,
             conclusion: String::new(),
-            created_tick: tick, completed_tick: 0,
+            created_tick: tick,
+            completed_tick: 0,
         };
         self.experiments.insert(id, record);
         self.stats.total_experiments += 1;
@@ -233,13 +248,19 @@ impl HolisticExperiment {
         };
         exp.status = ExperimentStatus::Running;
         let n_factors = exp.design.factors.len();
-        if n_factors == 0 { return 0; }
-        let remaining = exp.design.total_combinations
+        if n_factors == 0 {
+            return 0;
+        }
+        let remaining = exp
+            .design
+            .total_combinations
             .saturating_sub(exp.design.completed_trials);
         let batch = remaining.min(32);
         let mut trials_run = 0;
         for _ in 0..batch {
-            if exp.trials.len() >= MAX_TRIALS_PER_EXP { break; }
+            if exp.trials.len() >= MAX_TRIALS_PER_EXP {
+                break;
+            }
             let mut assignments = Vec::new();
             for f in &exp.design.factors {
                 let lvl = (xorshift64(&mut self.rng_state) % f.levels.len() as u64) as usize;
@@ -248,9 +269,13 @@ impl HolisticExperiment {
             let response = self.simulate_response(&exp.design.factors, &assignments);
             let trial_id = fnv1a_hash(&self.stats.total_trials.to_le_bytes());
             exp.trials.push(Trial {
-                id: trial_id, level_assignments: assignments,
-                response, latency: xorshift_f32(&mut self.rng_state) * 10.0,
-                throughput: response * 100.0, tick, valid: true,
+                id: trial_id,
+                level_assignments: assignments,
+                response,
+                latency: xorshift_f32(&mut self.rng_state) * 10.0,
+                throughput: response * 100.0,
+                tick,
+                valid: true,
             });
             exp.design.completed_trials += 1;
             self.stats.total_trials += 1;
@@ -273,29 +298,43 @@ impl HolisticExperiment {
         let mut interactions = Vec::new();
         let n = exp.design.factors.len();
         let valid_trials: Vec<&Trial> = exp.trials.iter().filter(|t| t.valid).collect();
-        let grand_mean = valid_trials.iter().map(|t| t.response).sum::<f32>()
-            / valid_trials.len().max(1) as f32;
+        let grand_mean =
+            valid_trials.iter().map(|t| t.response).sum::<f32>() / valid_trials.len().max(1) as f32;
         for i in 0..n {
             for j in (i + 1)..n {
                 let mut groups: BTreeMap<(usize, usize), Vec<f32>> = BTreeMap::new();
                 for trial in &valid_trials {
-                    if trial.level_assignments.len() <= j { continue; }
+                    if trial.level_assignments.len() <= j {
+                        continue;
+                    }
                     let key = (trial.level_assignments[i], trial.level_assignments[j]);
-                    groups.entry(key).or_insert_with(Vec::new).push(trial.response);
+                    groups
+                        .entry(key)
+                        .or_insert_with(Vec::new)
+                        .push(trial.response);
                 }
                 let (mut isum, mut count) = (0.0f32, 0usize);
                 for (_, vals) in &groups {
-                    isum += (vals.iter().sum::<f32>() / vals.len().max(1) as f32 - grand_mean).abs();
+                    isum +=
+                        (vals.iter().sum::<f32>() / vals.len().max(1) as f32 - grand_mean).abs();
                     count += vals.len();
                 }
-                let effect = if count > 0 { isum / groups.len().max(1) as f32 } else { 0.0 };
+                let effect = if count > 0 {
+                    isum / groups.len().max(1) as f32
+                } else {
+                    0.0
+                };
                 let sig = effect > INTERACTION_THRESHOLD && count >= MIN_SAMPLES_FOR_SIG;
-                if sig { self.stats.significant_interactions += 1; }
+                if sig {
+                    self.stats.significant_interactions += 1;
+                }
                 interactions.push(InteractionEffect {
                     factor_a: exp.design.factors[i].name.clone(),
                     factor_b: exp.design.factors[j].name.clone(),
-                    interaction_size: effect, synergistic: effect > 0.0,
-                    significant: sig, samples: count,
+                    interaction_size: effect,
+                    synergistic: effect > 0.0,
+                    significant: sig,
+                    samples: count,
                 });
             }
         }
@@ -310,36 +349,51 @@ impl HolisticExperiment {
             None => return Vec::new(),
         };
         let mut effects = Vec::new();
-        let grand_mean = exp.trials.iter().filter(|t| t.valid)
-            .map(|t| t.response).sum::<f32>()
+        let grand_mean = exp
+            .trials
+            .iter()
+            .filter(|t| t.valid)
+            .map(|t| t.response)
+            .sum::<f32>()
             / exp.trials.iter().filter(|t| t.valid).count().max(1) as f32;
         for (fi, factor) in exp.design.factors.iter().enumerate() {
             let mut level_means: Vec<(usize, f32, usize)> = Vec::new();
             for lvl in 0..factor.levels.len() {
-                let vals: Vec<f32> = exp.trials.iter()
-                    .filter(|t| t.valid && t.level_assignments.len() > fi
-                        && t.level_assignments[fi] == lvl)
-                    .map(|t| t.response).collect();
+                let vals: Vec<f32> = exp
+                    .trials
+                    .iter()
+                    .filter(|t| {
+                        t.valid && t.level_assignments.len() > fi && t.level_assignments[fi] == lvl
+                    })
+                    .map(|t| t.response)
+                    .collect();
                 if !vals.is_empty() {
                     let mean = vals.iter().sum::<f32>() / vals.len() as f32;
                     level_means.push((lvl, mean, vals.len()));
                 }
             }
-            let effect_size: f32 = level_means.iter()
-                .map(|(_, m, _)| (*m - grand_mean).abs()).sum::<f32>()
+            let effect_size: f32 = level_means
+                .iter()
+                .map(|(_, m, _)| (*m - grand_mean).abs())
+                .sum::<f32>()
                 / level_means.len().max(1) as f32;
             let total_samples: usize = level_means.iter().map(|(_, _, n)| n).sum();
-            let direction = level_means.last().map(|(_, m, _)| *m - grand_mean)
+            let direction = level_means
+                .last()
+                .map(|(_, m, _)| *m - grand_mean)
                 .unwrap_or(0.0);
-            let sig = effect_size > EFFECT_SIZE_THRESHOLD
-                && total_samples >= MIN_SAMPLES_FOR_SIG;
-            if sig { self.stats.significant_main_effects += 1; }
+            let sig = effect_size > EFFECT_SIZE_THRESHOLD && total_samples >= MIN_SAMPLES_FOR_SIG;
+            if sig {
+                self.stats.significant_main_effects += 1;
+            }
             self.stats.avg_effect_size_ema =
-                EMA_ALPHA * effect_size
-                    + (1.0 - EMA_ALPHA) * self.stats.avg_effect_size_ema;
+                EMA_ALPHA * effect_size + (1.0 - EMA_ALPHA) * self.stats.avg_effect_size_ema;
             effects.push(MainEffect {
-                factor_name: factor.name.clone(), effect_size,
-                direction, samples: total_samples, significant: sig,
+                factor_name: factor.name.clone(),
+                effect_size,
+                direction,
+                samples: total_samples,
+                significant: sig,
             });
         }
         exp.main_effects = effects.clone();
@@ -356,7 +410,9 @@ impl HolisticExperiment {
         for ie in &exp.interactions {
             let p_approx = if ie.samples >= MIN_SAMPLES_FOR_SIG && ie.interaction_size > 0.0 {
                 (1.0 / (1.0 + ie.interaction_size * ie.samples as f32)).min(1.0)
-            } else { 1.0 };
+            } else {
+                1.0
+            };
             self.significance_matrix.push(SignificanceEntry {
                 row_factor: ie.factor_a.clone(),
                 col_factor: ie.factor_b.clone(),
@@ -372,13 +428,17 @@ impl HolisticExperiment {
     pub fn experiment_synthesis(&mut self) -> Vec<(u64, String)> {
         let mut conclusions = Vec::new();
         for (&id, exp) in &self.experiments {
-            if exp.status != ExperimentStatus::Completed
-                && exp.status != ExperimentStatus::Analysed { continue; }
-            let sig_main: Vec<&MainEffect> = exp.main_effects.iter()
-                .filter(|m| m.significant).collect();
-            let sig_int: Vec<&InteractionEffect> = exp.interactions.iter()
-                .filter(|i| i.significant).collect();
-            if sig_main.is_empty() && sig_int.is_empty() { continue; }
+            if exp.status != ExperimentStatus::Completed && exp.status != ExperimentStatus::Analysed
+            {
+                continue;
+            }
+            let sig_main: Vec<&MainEffect> =
+                exp.main_effects.iter().filter(|m| m.significant).collect();
+            let sig_int: Vec<&InteractionEffect> =
+                exp.interactions.iter().filter(|i| i.significant).collect();
+            if sig_main.is_empty() && sig_int.is_empty() {
+                continue;
+            }
             let mut summary = String::from("EXP:");
             for m in &sig_main {
                 summary.push_str(&m.factor_name);
@@ -398,7 +458,9 @@ impl HolisticExperiment {
     }
 
     /// Current statistics snapshot
-    pub fn stats(&self) -> &ExperimentStats { &self.stats }
+    pub fn stats(&self) -> &ExperimentStats {
+        &self.stats
+    }
 
     // ── private helpers ─────────────────────────────────────────────────
 
@@ -419,9 +481,10 @@ impl HolisticExperiment {
         for (_, exp) in &self.experiments {
             match exp.status {
                 ExperimentStatus::Running => running += 1,
-                ExperimentStatus::Completed | ExperimentStatus::Analysed
+                ExperimentStatus::Completed
+                | ExperimentStatus::Analysed
                 | ExperimentStatus::Synthesised => completed += 1,
-                _ => {}
+                _ => {},
             }
         }
         self.stats.running_count = running;
