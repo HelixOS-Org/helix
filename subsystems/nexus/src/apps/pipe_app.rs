@@ -36,6 +36,7 @@ impl PipeAppInstance {
         Self { read_fd: rfd, write_fd: wfd, state: PipeAppState::Open, capacity: cap, used: 0, flags: 0, total_writes: 0, total_reads: 0, total_bytes_written: 0, total_bytes_read: 0, reader_pid: 0, writer_pid: 0 }
     }
 
+    #[inline]
     pub fn write(&mut self, bytes: u32) -> bool {
         if self.used + bytes > self.capacity { return false; }
         self.used += bytes;
@@ -44,6 +45,7 @@ impl PipeAppInstance {
         true
     }
 
+    #[inline]
     pub fn read(&mut self, bytes: u32) -> u32 {
         let avail = if bytes > self.used { self.used } else { bytes };
         self.used -= avail;
@@ -55,6 +57,7 @@ impl PipeAppInstance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipeAppStats {
     pub total_pipes: u32,
     pub open_pipes: u32,
@@ -72,6 +75,7 @@ pub struct AppPipe {
 impl AppPipe {
     pub fn new() -> Self { Self { pipes: BTreeMap::new(), next_fd: 1 } }
 
+    #[inline]
     pub fn create_pipe(&mut self, capacity: u32) -> (u64, u64) {
         let rfd = self.next_fd; self.next_fd += 1;
         let wfd = self.next_fd; self.next_fd += 1;
@@ -79,24 +83,30 @@ impl AppPipe {
         (rfd, wfd)
     }
 
+    #[inline(always)]
     pub fn write(&mut self, rfd: u64, bytes: u32) -> bool {
         if let Some(p) = self.pipes.get_mut(&rfd) { p.write(bytes) } else { false }
     }
 
+    #[inline(always)]
     pub fn read(&mut self, rfd: u64, bytes: u32) -> u32 {
         if let Some(p) = self.pipes.get_mut(&rfd) { p.read(bytes) } else { 0 }
     }
 
+    #[inline(always)]
     pub fn close_read(&mut self, rfd: u64) {
         if let Some(p) = self.pipes.get_mut(&rfd) { p.state = PipeAppState::ReadClosed; }
     }
 
+    #[inline(always)]
     pub fn close_write(&mut self, rfd: u64) {
         if let Some(p) = self.pipes.get_mut(&rfd) { p.state = PipeAppState::WriteClosed; }
     }
 
+    #[inline(always)]
     pub fn destroy(&mut self, rfd: u64) { self.pipes.remove(&rfd); }
 
+    #[inline]
     pub fn stats(&self) -> PipeAppStats {
         let open = self.pipes.values().filter(|p| p.state == PipeAppState::Open).count() as u32;
         let writes: u64 = self.pipes.values().map(|p| p.total_writes).sum();
@@ -191,6 +201,7 @@ impl PipeV2Instance {
         to_read
     }
 
+    #[inline]
     pub fn set_capacity(&mut self, new_cap: usize) -> bool {
         if new_cap < self.current_usage {
             return false;
@@ -199,6 +210,7 @@ impl PipeV2Instance {
         true
     }
 
+    #[inline]
     pub fn close_read(&mut self) {
         self.state = match self.state {
             PipeV2State::Open => PipeV2State::ReadClosed,
@@ -207,6 +219,7 @@ impl PipeV2Instance {
         };
     }
 
+    #[inline]
     pub fn close_write(&mut self) {
         self.state = match self.state {
             PipeV2State::Open => PipeV2State::WriteClosed,
@@ -215,6 +228,7 @@ impl PipeV2Instance {
         };
     }
 
+    #[inline]
     pub fn utilization_percent(&self) -> f64 {
         if self.capacity == 0 {
             return 0.0;
@@ -225,6 +239,7 @@ impl PipeV2Instance {
 
 /// Statistics for pipe V2 app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipeV2AppStats {
     pub total_pipes: u64,
     pub active_pipes: u64,
@@ -290,6 +305,7 @@ impl AppPipeV2 {
         }
     }
 
+    #[inline(always)]
     pub fn pipe_count(&self) -> usize {
         self.pipes.len()
     }
@@ -322,6 +338,7 @@ impl PipeV3Record {
 
 /// Pipe v3 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PipeV3AppStats { pub total_ops: u64, pub created: u64, pub resized: u64 }
 
 /// Main app pipe v3
@@ -330,6 +347,7 @@ pub struct AppPipeV3 { pub stats: PipeV3AppStats }
 
 impl AppPipeV3 {
     pub fn new() -> Self { Self { stats: PipeV3AppStats { total_ops: 0, created: 0, resized: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &PipeV3Record) {
         self.stats.total_ops += 1;
         match rec.op {
