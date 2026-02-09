@@ -27,11 +27,13 @@ pub struct GroupId(pub u32);
 
 impl UserId {
     /// Is root
+    #[inline(always)]
     pub fn is_root(&self) -> bool {
         self.0 == 0
     }
 
     /// Is system user (< 1000)
+    #[inline(always)]
     pub fn is_system(&self) -> bool {
         self.0 < 1000
     }
@@ -57,6 +59,7 @@ pub struct CredentialSet {
 }
 
 impl CredentialSet {
+    #[inline]
     pub fn root() -> Self {
         Self {
             ruid: UserId(0),
@@ -69,6 +72,7 @@ impl CredentialSet {
         }
     }
 
+    #[inline]
     pub fn user(uid: u32, gid: u32) -> Self {
         Self {
             ruid: UserId(uid),
@@ -82,31 +86,37 @@ impl CredentialSet {
     }
 
     /// Is running as root?
+    #[inline(always)]
     pub fn is_privileged(&self) -> bool {
         self.euid.is_root()
     }
 
     /// Is setuid?
+    #[inline(always)]
     pub fn is_setuid(&self) -> bool {
         self.ruid.0 != self.euid.0
     }
 
     /// Is setgid?
+    #[inline(always)]
     pub fn is_setgid(&self) -> bool {
         self.rgid.0 != self.egid.0
     }
 
     /// In group?
+    #[inline(always)]
     pub fn in_group(&self, gid: GroupId) -> bool {
         self.egid == gid || self.groups.contains(&gid)
     }
 
     /// Set effective uid
+    #[inline(always)]
     pub fn set_euid(&mut self, uid: UserId) {
         self.euid = uid;
     }
 
     /// Set effective gid
+    #[inline(always)]
     pub fn set_egid(&mut self, gid: GroupId) {
         self.egid = gid;
     }
@@ -160,6 +170,7 @@ pub struct CredentialEvent {
 
 impl CredentialEvent {
     /// Detect if this is a privilege escalation
+    #[inline]
     pub fn detect_escalation(before: &CredentialSet, after: &CredentialSet) -> bool {
         // Escalation: gaining root when not root before
         if !before.is_privileged() && after.is_privileged() {
@@ -228,6 +239,7 @@ impl SecuritySession {
     }
 
     /// Add process
+    #[inline]
     pub fn add_process(&mut self, pid: u64, now: u64) {
         if !self.processes.contains(&pid) {
             self.processes.push(pid);
@@ -236,21 +248,25 @@ impl SecuritySession {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.retain(|&p| p != pid);
     }
 
     /// Duration
+    #[inline(always)]
     pub fn duration_ns(&self, now: u64) -> u64 {
         now.saturating_sub(self.created_at)
     }
 
     /// Is suspicious? (many escalations)
+    #[inline(always)]
     pub fn is_suspicious(&self) -> bool {
         self.escalation_count > 5
     }
 
     /// Close session
+    #[inline(always)]
     pub fn close(&mut self) {
         self.active = false;
     }
@@ -293,6 +309,7 @@ impl ProcessCredProfile {
     }
 
     /// Apply credential change
+    #[inline]
     pub fn apply_change(&mut self, new_creds: CredentialSet) -> bool {
         let escalation = CredentialEvent::detect_escalation(&self.credentials, &new_creds);
         self.credentials = new_creds;
@@ -310,6 +327,7 @@ impl ProcessCredProfile {
 
 /// Credential stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppCredentialStats {
     /// Tracked processes
     pub processes: usize,
@@ -347,6 +365,7 @@ impl AppCredentialManager {
     }
 
     /// Register process
+    #[inline]
     pub fn register_process(
         &mut self,
         pid: u64,
@@ -364,6 +383,7 @@ impl AppCredentialManager {
     }
 
     /// Create session
+    #[inline]
     pub fn create_session(
         &mut self,
         session_id: u64,
@@ -420,11 +440,13 @@ impl AppCredentialManager {
     }
 
     /// Check credential
+    #[inline(always)]
     pub fn credentials(&self, pid: u64) -> Option<&CredentialSet> {
         self.profiles.get(&pid).map(|p| &p.credentials)
     }
 
     /// Privileged processes
+    #[inline]
     pub fn privileged_processes(&self) -> Vec<u64> {
         self.profiles
             .values()
@@ -434,6 +456,7 @@ impl AppCredentialManager {
     }
 
     /// Suspicious sessions
+    #[inline]
     pub fn suspicious_sessions(&self) -> Vec<u64> {
         self.sessions
             .values()
@@ -443,6 +466,7 @@ impl AppCredentialManager {
     }
 
     /// Recent escalations
+    #[inline]
     pub fn recent_escalations(&self, limit: usize) -> Vec<&CredentialEvent> {
         self.events
             .iter()
@@ -463,6 +487,7 @@ impl AppCredentialManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppCredentialStats {
         &self.stats
     }
