@@ -46,6 +46,7 @@ pub struct RecvmsgRecord {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct SocketRecvState {
     pub fd: u64,
     pub total_bytes: u64,
@@ -70,6 +71,7 @@ impl SocketRecvState {
         }
     }
 
+    #[inline]
     pub fn record_recv(&mut self, bytes: u64, iov: u32, truncated: bool, peek: bool) {
         self.total_bytes += bytes;
         self.total_calls += 1;
@@ -79,16 +81,19 @@ impl SocketRecvState {
         if bytes > self.max_msg_size { self.max_msg_size = bytes; }
     }
 
+    #[inline(always)]
     pub fn avg_msg_size(&self) -> u64 {
         if self.total_calls == 0 { 0 } else { self.total_bytes / self.total_calls }
     }
 
+    #[inline(always)]
     pub fn truncation_rate(&self) -> u64 {
         if self.total_calls == 0 { 0 } else { (self.truncated_count * 100) / self.total_calls }
     }
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RecvmsgAppStats {
     pub total_recvs: u64,
     pub total_bytes: u64,
@@ -114,10 +119,12 @@ impl AppRecvmsg {
         }
     }
 
+    #[inline(always)]
     pub fn register_socket(&mut self, fd: u64) {
         self.sockets.insert(fd, SocketRecvState::new(fd));
     }
 
+    #[inline]
     pub fn record_recv(&mut self, fd: u64, bytes: u64, iov: u32, truncated: bool) {
         if let Some(s) = self.sockets.get_mut(&fd) {
             s.record_recv(bytes, iov, truncated, false);
@@ -127,5 +134,6 @@ impl AppRecvmsg {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &RecvmsgAppStats { &self.stats }
 }
