@@ -1245,3 +1245,6 @@ pub mod vma_app;
 pub mod swap_app;
 pub mod oom_app;
 pub mod mlock_app2;
+
+// Consciousness Framework — Application Understanding Self-Awareness
+pub mod conscious;
