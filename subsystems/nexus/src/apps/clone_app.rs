@@ -66,6 +66,7 @@ impl ProcessTreeNode {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CloneAppStats {
     pub total_processes: u32,
     pub total_clones: u64,
@@ -81,13 +82,16 @@ pub struct AppClone {
 impl AppClone {
     pub fn new() -> Self { Self { procs: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, ppid: u64) { self.procs.insert(pid, ProcessTreeNode::new(pid, ppid)); }
 
+    #[inline(always)]
     pub fn do_fork(&mut self, ppid: u64, child: u64) {
         if let Some(p) = self.procs.get_mut(&ppid) { p.total_forks += 1; p.children_count += 1; }
         self.procs.insert(child, ProcessTreeNode::new(child, ppid));
     }
 
+    #[inline]
     pub fn do_clone(&mut self, ppid: u64, child: u64, flags: u32) {
         if let Some(p) = self.procs.get_mut(&ppid) { p.total_clones += 1; p.children_count += 1; }
         let mut node = ProcessTreeNode::new(child, ppid);
@@ -95,13 +99,16 @@ impl AppClone {
         self.procs.insert(child, node);
     }
 
+    #[inline(always)]
     pub fn do_vfork(&mut self, ppid: u64, child: u64) {
         if let Some(p) = self.procs.get_mut(&ppid) { p.vfork_count += 1; p.children_count += 1; }
         self.procs.insert(child, ProcessTreeNode::new(child, ppid));
     }
 
+    #[inline(always)]
     pub fn exit(&mut self, pid: u64) { self.procs.remove(&pid); }
 
+    #[inline]
     pub fn stats(&self) -> CloneAppStats {
         let clones: u64 = self.procs.values().map(|p| p.total_clones).sum();
         let forks: u64 = self.procs.values().map(|p| p.total_forks).sum();
@@ -139,6 +146,7 @@ pub struct AppCloneV2Result {
 
 /// Stats for clone operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppCloneV2Stats {
     pub total_clones: u64,
     pub thread_clones: u64,
@@ -193,6 +201,7 @@ impl AppCloneV2Manager {
         result
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppCloneV2Stats {
         &self.stats
     }
