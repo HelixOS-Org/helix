@@ -98,13 +98,16 @@ impl TransitionRow {
     }
 
     fn most_likely(&self) -> Option<(u32, f32)> {
-        self.counts.iter()
+        self.counts
+            .iter()
             .max_by_key(|(_, &count)| count)
             .map(|(&syscall, &count)| (syscall, count as f32 / self.total.max(1) as f32))
     }
 
     fn top_n(&self, n: usize) -> Vec<(u32, f32)> {
-        let mut entries: Vec<(u32, f32)> = self.counts.iter()
+        let mut entries: Vec<(u32, f32)> = self
+            .counts
+            .iter()
             .map(|(&s, &c)| (s, c as f32 / self.total.max(1) as f32))
             .collect();
         entries.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
@@ -174,7 +177,9 @@ impl ProcessTimeline {
                 syscalls: self.recent_syscalls.clone(),
             };
             let ctx_hash = ctx.hash();
-            let row = self.transitions.entry(ctx_hash)
+            let row = self
+                .transitions
+                .entry(ctx_hash)
                 .or_insert_with(TransitionRow::new);
             row.record(syscall_nr);
 
@@ -189,7 +194,9 @@ impl ProcessTimeline {
 
         // Limit transition table size
         if self.transitions.len() > MAX_STATES {
-            let smallest = self.transitions.iter()
+            let smallest = self
+                .transitions
+                .iter()
                 .min_by_key(|(_, row)| row.total)
                 .map(|(&k, _)| k);
             if let Some(k) = smallest {
@@ -206,7 +213,8 @@ impl ProcessTimeline {
             syscalls: self.recent_syscalls.clone(),
         };
         let ctx_hash = ctx.hash();
-        self.transitions.get(&ctx_hash)
+        self.transitions
+            .get(&ctx_hash)
             .and_then(|row| row.most_likely())
     }
 
@@ -219,7 +227,9 @@ impl ProcessTimeline {
             if current_ctx.len() < MARKOV_MEMORY {
                 break;
             }
-            let ctx = StateContext { syscalls: current_ctx.clone() };
+            let ctx = StateContext {
+                syscalls: current_ctx.clone(),
+            };
             let ctx_hash = ctx.hash();
 
             match self.transitions.get(&ctx_hash) {
@@ -245,7 +255,7 @@ impl ProcessTimeline {
                     if current_ctx.len() > MARKOV_MEMORY {
                         current_ctx.remove(0);
                     }
-                }
+                },
                 None => break,
             }
         }
@@ -316,12 +326,16 @@ impl BridgeTimeline {
         self.tick += 1;
         self.total_observations += 1;
 
-        let timeline = self.timelines.entry(process_id)
+        let timeline = self
+            .timelines
+            .entry(process_id)
             .or_insert_with(|| ProcessTimeline::new(process_id));
         timeline.observe(syscall_nr);
 
         if self.timelines.len() > MAX_PROCESSES {
-            let least = self.timelines.iter()
+            let least = self
+                .timelines
+                .iter()
                 .min_by_key(|(_, t)| t.total_observations)
                 .map(|(&k, _)| k);
             if let Some(k) = least {
@@ -342,7 +356,7 @@ impl BridgeTimeline {
                         EMA_ALPHA * last.1 + (1.0 - EMA_ALPHA) * self.avg_confidence_ema;
                 }
                 seq
-            }
+            },
             None => Vec::new(),
         }
     }
@@ -358,17 +372,20 @@ impl BridgeTimeline {
                     syscalls: timeline.recent_syscalls.clone(),
                 };
                 let ctx_hash = ctx.hash();
-                timeline.transitions.get(&ctx_hash)
+                timeline
+                    .transitions
+                    .get(&ctx_hash)
                     .map(|row| row.top_n(n))
                     .unwrap_or_default()
-            }
+            },
             None => Vec::new(),
         }
     }
 
     /// Get branching points for a process timeline
     pub fn timeline_branch(&self, process_id: u64) -> Vec<(u64, f32)> {
-        self.timelines.get(&process_id)
+        self.timelines
+            .get(&process_id)
             .map(|t| t.branch_points())
             .unwrap_or_default()
     }
@@ -396,7 +413,9 @@ impl BridgeTimeline {
         let mut alt_seq = Vec::new();
         let mut current = alt_ctx_full;
         for _ in 0..CONVERGENCE_SCAN_DEPTH {
-            let ctx = StateContext { syscalls: current.clone() };
+            let ctx = StateContext {
+                syscalls: current.clone(),
+            };
             let ctx_hash = ctx.hash();
             match timeline.transitions.get(&ctx_hash) {
                 Some(row) => {
@@ -409,7 +428,7 @@ impl BridgeTimeline {
                     } else {
                         break;
                     }
-                }
+                },
                 None => break,
             }
         }
@@ -425,22 +444,28 @@ impl BridgeTimeline {
 
     /// Compute timeline entropy for a process
     pub fn timeline_entropy(&self, process_id: u64) -> f32 {
-        self.timelines.get(&process_id)
+        self.timelines
+            .get(&process_id)
             .map(|t| t.entropy_ema)
             .unwrap_or(0.0)
     }
 
     /// Aggregate timeline statistics
     pub fn stats(&self) -> TimelineStats {
-        let avg_ent = if self.timelines.is_empty() { 0.0 } else {
-            self.timelines.values()
-                .map(|t| t.entropy_ema)
-                .sum::<f32>() / self.timelines.len() as f32
+        let avg_ent = if self.timelines.is_empty() {
+            0.0
+        } else {
+            self.timelines.values().map(|t| t.entropy_ema).sum::<f32>()
+                / self.timelines.len() as f32
         };
-        let branch_count: u32 = self.timelines.values()
+        let branch_count: u32 = self
+            .timelines
+            .values()
             .map(|t| t.branch_points().len() as u32)
             .sum();
-        let total_trans: u64 = self.timelines.values()
+        let total_trans: u64 = self
+            .timelines
+            .values()
             .map(|t| t.transitions.values().map(|r| r.total).sum::<u64>())
             .sum();
 
