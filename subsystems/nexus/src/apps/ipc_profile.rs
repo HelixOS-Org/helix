@@ -79,30 +79,35 @@ impl IpcChannelProfile {
         }
     }
 
+    #[inline]
     pub fn throughput_bps(&self, duration_ns: u64) -> f64 {
         if duration_ns == 0 { return 0.0; }
         let total = self.bytes_sent + self.bytes_received;
         total as f64 / (duration_ns as f64 / 1_000_000_000.0)
     }
 
+    #[inline]
     pub fn avg_latency_ns(&self) -> u64 {
         let total_msgs = self.messages_sent + self.messages_received;
         if total_msgs == 0 { return 0; }
         self.total_latency_ns / total_msgs
     }
 
+    #[inline]
     pub fn avg_message_size(&self) -> u64 {
         let total_msgs = self.messages_sent + self.messages_received;
         if total_msgs == 0 { return 0; }
         (self.bytes_sent + self.bytes_received) / total_msgs
     }
 
+    #[inline]
     pub fn buffer_pressure(&self) -> f64 {
         let total = self.buffer_full_count + self.buffer_empty_count;
         if total == 0 { return 0.0; }
         self.buffer_full_count as f64 / total as f64
     }
 
+    #[inline]
     pub fn record_send(&mut self, bytes: u64, latency_ns: u64, ts: u64) {
         self.messages_sent += 1;
         self.bytes_sent += bytes;
@@ -112,6 +117,7 @@ impl IpcChannelProfile {
         self.last_activity = ts;
     }
 
+    #[inline]
     pub fn record_receive(&mut self, bytes: u64, latency_ns: u64, ts: u64) {
         self.messages_received += 1;
         self.bytes_received += bytes;
@@ -155,6 +161,7 @@ impl ProcessIpcProfile {
         }
     }
 
+    #[inline]
     pub fn add_channel(&mut self, channel: IpcChannelProfile) {
         let remote = channel.remote_pid;
         self.channels.insert(channel.channel_id, channel);
@@ -163,6 +170,7 @@ impl ProcessIpcProfile {
         }
     }
 
+    #[inline]
     pub fn record_send(&mut self, channel_id: u64, bytes: u64, latency_ns: u64, ts: u64) {
         if let Some(ch) = self.channels.get_mut(&channel_id) {
             ch.record_send(bytes, latency_ns, ts);
@@ -171,6 +179,7 @@ impl ProcessIpcProfile {
         }
     }
 
+    #[inline]
     pub fn record_receive(&mut self, channel_id: u64, bytes: u64, latency_ns: u64, ts: u64) {
         if let Some(ch) = self.channels.get_mut(&channel_id) {
             ch.record_receive(bytes, latency_ns, ts);
@@ -179,6 +188,7 @@ impl ProcessIpcProfile {
         }
     }
 
+    #[inline]
     pub fn bottleneck_channels(&self) -> Vec<u64> {
         self.channels.values()
             .filter(|ch| ch.buffer_pressure() > 0.7)
@@ -186,6 +196,7 @@ impl ProcessIpcProfile {
             .collect()
     }
 
+    #[inline]
     pub fn busiest_channel(&self) -> Option<u64> {
         self.channels.values()
             .max_by_key(|ch| ch.bytes_sent + ch.bytes_received)
@@ -195,6 +206,7 @@ impl ProcessIpcProfile {
 
 /// App IPC profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppIpcProfilerStats {
     pub total_processes: usize,
     pub total_channels: usize,
@@ -220,22 +232,26 @@ impl AppIpcProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.profiles.entry(pid).or_insert_with(|| ProcessIpcProfile::new(pid));
     }
 
+    #[inline]
     pub fn add_channel(&mut self, pid: u64, channel: IpcChannelProfile) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.add_channel(channel);
         }
     }
 
+    #[inline]
     pub fn record_send(&mut self, pid: u64, channel_id: u64, bytes: u64, latency_ns: u64, ts: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_send(channel_id, bytes, latency_ns, ts);
         }
     }
 
+    #[inline]
     pub fn record_receive(&mut self, pid: u64, channel_id: u64, bytes: u64, latency_ns: u64, ts: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_receive(channel_id, bytes, latency_ns, ts);
@@ -269,6 +285,7 @@ impl AppIpcProfiler {
         self.graph_edges = edge_map.into_values().collect();
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.profiles.len();
         self.stats.total_channels = self.profiles.values().map(|p| p.channels.len()).sum();
@@ -280,18 +297,22 @@ impl AppIpcProfiler {
         self.stats.unique_edges = self.graph_edges.len();
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessIpcProfile> {
         self.profiles.get(&pid)
     }
 
+    #[inline(always)]
     pub fn graph(&self) -> &[IpcGraphEdge] {
         &self.graph_edges
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppIpcProfilerStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.recompute();
