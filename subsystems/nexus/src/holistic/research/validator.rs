@@ -195,18 +195,21 @@ impl HolisticDiscoveryValidator {
             baseline_metrics: BTreeMap::new(),
             rng_state: seed | 1,
             stats: ValidatorStats {
-                total_validations: 0, passed_count: 0, failed_count: 0,
-                inconclusive_count: 0, invariants_checked: 0,
-                regressions_detected: 0, certificates_issued: 0,
-                avg_pass_rate_ema: 0.0, formal_runs: 0,
+                total_validations: 0,
+                passed_count: 0,
+                failed_count: 0,
+                inconclusive_count: 0,
+                invariants_checked: 0,
+                regressions_detected: 0,
+                certificates_issued: 0,
+                avg_pass_rate_ema: 0.0,
+                formal_runs: 0,
             },
         }
     }
 
     /// Register a system invariant to be checked during validation
-    pub fn register_invariant(
-        &mut self, property: SystemProperty, desc: String, threshold: f32,
-    ) {
+    pub fn register_invariant(&mut self, property: SystemProperty, desc: String, threshold: f32) {
         if self.invariant_registry.len() < MAX_INVARIANTS {
             self.invariant_registry.push((property, desc, threshold));
         }
@@ -244,23 +247,34 @@ impl HolisticDiscoveryValidator {
         };
 
         let cert = if verdict == Verdict::Passed {
-            let cert_hash = fnv1a_hash(&discovery_id.to_le_bytes())
-                ^ fnv1a_hash(&tick.to_le_bytes());
+            let cert_hash =
+                fnv1a_hash(&discovery_id.to_le_bytes()) ^ fnv1a_hash(&tick.to_le_bytes());
             self.stats.certificates_issued += 1;
             Some(ValidationCertificate {
-                discovery_id, cert_hash, verdict,
-                invariants_passed: inv_pass, invariants_total: inv_total,
-                regressions: reg_count, safety_proofs: proofs.len(),
-                formal_ok, issued_tick: tick,
+                discovery_id,
+                cert_hash,
+                verdict,
+                invariants_passed: inv_pass,
+                invariants_total: inv_total,
+                regressions: reg_count,
+                safety_proofs: proofs.len(),
+                formal_ok,
+                issued_tick: tick,
                 expires_tick: tick + CERT_VALIDITY_TICKS,
             })
-        } else { None };
+        } else {
+            None
+        };
 
         let record = ValidationRecord {
-            discovery_id, invariant_checks: invariants,
-            regressions, safety_proofs: proofs,
-            formal_result: Some(formal), certificate: cert,
-            verdict, tick,
+            discovery_id,
+            invariant_checks: invariants,
+            regressions,
+            safety_proofs: proofs,
+            formal_result: Some(formal),
+            certificate: cert,
+            verdict,
+            tick,
         };
         self.records.insert(discovery_id, record);
         self.stats.total_validations += 1;
@@ -281,8 +295,13 @@ impl HolisticDiscoveryValidator {
             let passed = measured <= *threshold + SAFETY_MARGIN;
             let id = fnv1a_hash(&(discovery_id ^ idx as u64).to_le_bytes());
             checks.push(InvariantCheck {
-                id, property: *prop, description: desc.clone(),
-                passed, measured, threshold: *threshold, tick,
+                id,
+                property: *prop,
+                description: desc.clone(),
+                passed,
+                measured,
+                threshold: *threshold,
+                tick,
             });
             self.stats.invariants_checked += 1;
         }
@@ -291,24 +310,39 @@ impl HolisticDiscoveryValidator {
 
     /// Run cross-subsystem regression tests
     pub fn cross_subsystem_regression(
-        &mut self, discovery_id: u64, tick: u64,
+        &mut self,
+        discovery_id: u64,
+        tick: u64,
     ) -> Vec<RegressionResult> {
         let mut results = Vec::new();
-        let subsystems = ["bridge", "application", "cooperation",
-            "memory", "scheduler", "ipc"];
+        let subsystems = [
+            "bridge",
+            "application",
+            "cooperation",
+            "memory",
+            "scheduler",
+            "ipc",
+        ];
         for sub in &subsystems {
             let key = fnv1a_hash(sub.as_bytes());
             let baseline = self.baseline_metrics.get(&key).copied().unwrap_or(0.5);
             let current = baseline + (xorshift_f32(&mut self.rng_state) - 0.5) * 0.1;
             let delta_pct = if baseline > 1e-9 {
                 ((current - baseline) / baseline) * 100.0
-            } else { 0.0 };
+            } else {
+                0.0
+            };
             let regressed = delta_pct < -5.0;
-            if regressed { self.stats.regressions_detected += 1; }
+            if regressed {
+                self.stats.regressions_detected += 1;
+            }
             results.push(RegressionResult {
                 subsystem: String::from(*sub),
                 metric: String::from("throughput"),
-                baseline, current, delta_pct, regressed,
+                baseline,
+                current,
+                delta_pct,
+                regressed,
             });
         }
         let _ = (discovery_id, tick);
@@ -316,12 +350,12 @@ impl HolisticDiscoveryValidator {
     }
 
     /// Construct safety proofs for all registered properties
-    pub fn system_safety_proof(
-        &mut self, discovery_id: u64, tick: u64,
-    ) -> Vec<SafetyProof> {
+    pub fn system_safety_proof(&mut self, discovery_id: u64, tick: u64) -> Vec<SafetyProof> {
         let properties = [
-            SystemProperty::MemoryBound, SystemProperty::CpuFairness,
-            SystemProperty::StarvationFreedom, SystemProperty::DeadlockFreedom,
+            SystemProperty::MemoryBound,
+            SystemProperty::CpuFairness,
+            SystemProperty::StarvationFreedom,
+            SystemProperty::DeadlockFreedom,
         ];
         let mut proofs = Vec::new();
         for prop in &properties {
@@ -329,9 +363,12 @@ impl HolisticDiscoveryValidator {
             let margin = bound - 0.5;
             let holds = margin > SAFETY_MARGIN;
             proofs.push(SafetyProof {
-                discovery_id, property: *prop,
+                discovery_id,
+                property: *prop,
                 proof_method: String::from("bounded_model_check"),
-                holds, bound_value: bound, margin,
+                holds,
+                bound_value: bound,
+                margin,
             });
         }
         let _ = tick;
@@ -339,9 +376,7 @@ impl HolisticDiscoveryValidator {
     }
 
     /// Lightweight formal verification (bounded state exploration)
-    pub fn formal_verification_lite(
-        &mut self, discovery_id: u64, tick: u64,
-    ) -> FormalResult {
+    pub fn formal_verification_lite(&mut self, discovery_id: u64, tick: u64) -> FormalResult {
         self.stats.formal_runs += 1;
         let mut states = 0usize;
         let mut depth = 0usize;
@@ -356,7 +391,8 @@ impl HolisticDiscoveryValidator {
             }
         }
         FormalResult {
-            discovery_id, states_explored: states,
+            discovery_id,
+            states_explored: states,
             counterexample_found: counterexample,
             depth_reached: depth,
             property_holds: !counterexample,
@@ -366,12 +402,15 @@ impl HolisticDiscoveryValidator {
 
     /// Issue a validation certificate for a specific discovery
     pub fn validation_certificate(&self, discovery_id: u64) -> Option<&ValidationCertificate> {
-        self.records.get(&discovery_id)
+        self.records
+            .get(&discovery_id)
             .and_then(|r| r.certificate.as_ref())
     }
 
     /// Current statistics snapshot
-    pub fn stats(&self) -> &ValidatorStats { &self.stats }
+    pub fn stats(&self) -> &ValidatorStats {
+        &self.stats
+    }
 
     // ── private helpers ─────────────────────────────────────────────────
 
