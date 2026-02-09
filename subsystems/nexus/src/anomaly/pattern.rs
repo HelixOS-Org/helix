@@ -48,11 +48,13 @@ impl PatternLibrary {
     }
 
     /// Add a pattern
+    #[inline(always)]
     pub fn add(&mut self, pattern: AnomalyPattern) {
         self.patterns.push(pattern);
     }
 
     /// Match against a sequence
+    #[inline]
     pub fn match_pattern(&self, metric: &str, values: &[f64]) -> Option<&AnomalyPattern> {
         for pattern in &self.patterns {
             if pattern.metrics.contains(&metric.to_string()) {
