@@ -39,8 +39,11 @@ impl FdFlags {
     pub const SYNC: Self = Self(0x20);
     pub const DSYNC: Self = Self(0x40);
 
+    #[inline(always)]
     pub fn contains(&self, flag: Self) -> bool { self.0 & flag.0 != 0 }
+    #[inline(always)]
     pub fn set(&mut self, flag: Self) { self.0 |= flag.0; }
+    #[inline(always)]
     pub fn clear(&mut self, flag: Self) { self.0 &= !flag.0; }
 }
 
@@ -73,22 +76,28 @@ impl FdEntry {
         }
     }
 
+    #[inline]
     pub fn record_read(&mut self, bytes: u64, now: u64) {
         self.read_bytes += bytes;
         self.read_ops += 1;
         self.last_access = now;
     }
 
+    #[inline]
     pub fn record_write(&mut self, bytes: u64, now: u64) {
         self.write_bytes += bytes;
         self.write_ops += 1;
         self.last_access = now;
     }
 
+    #[inline(always)]
     pub fn total_io_bytes(&self) -> u64 { self.read_bytes + self.write_bytes }
+    #[inline(always)]
     pub fn total_io_ops(&self) -> u64 { self.read_ops + self.write_ops }
 
+    #[inline(always)]
     pub fn is_close_on_exec(&self) -> bool { self.flags.contains(FdFlags::CLOEXEC) }
+    #[inline(always)]
     pub fn idle_time(&self, now: u64) -> u64 { now.saturating_sub(self.last_access) }
 }
 
@@ -107,6 +116,7 @@ impl ProcessFdTable {
         Self { pid, fds: BTreeMap::new(), max_fds, next_fd: 0, close_on_exec_count: 0 }
     }
 
+    #[inline]
     pub fn alloc_fd(&mut self, fd_type: FdType, flags: FdFlags, now: u64) -> Option<i32> {
         if self.fds.len() as i32 >= self.max_fds { return None; }
         let fd = self.find_lowest_free();
@@ -122,6 +132,7 @@ impl ProcessFdTable {
         fd
     }
 
+    #[inline]
     pub fn close_fd(&mut self, fd: i32) -> Option<FdEntry> {
         if let Some(entry) = self.fds.remove(&fd) {
             if entry.is_close_on_exec() && self.close_on_exec_count > 0 {
@@ -131,6 +142,7 @@ impl ProcessFdTable {
         } else { None }
     }
 
+    #[inline]
     pub fn dup_fd(&mut self, old_fd: i32, new_fd: Option<i32>, now: u64) -> Option<i32> {
         let entry = self.fds.get(&old_fd)?.clone();
         let target_fd = new_fd.unwrap_or_else(|| self.find_lowest_free());
@@ -142,6 +154,7 @@ impl ProcessFdTable {
         Some(target_fd)
     }
 
+    #[inline]
     pub fn exec_close(&mut self) -> u32 {
         let to_close: Vec<i32> = self.fds.iter()
             .filter(|(_, e)| e.is_close_on_exec())
@@ -153,9 +166,12 @@ impl ProcessFdTable {
         count
     }
 
+    #[inline(always)]
     pub fn used_count(&self) -> usize { self.fds.len() }
+    #[inline(always)]
     pub fn available(&self) -> i32 { self.max_fds - self.fds.len() as i32 }
 
+    #[inline]
     pub fn fds_by_type(&self, fd_type: FdType) -> Vec<i32> {
         self.fds.iter()
             .filter(|(_, e)| e.fd_type == fd_type)
@@ -163,6 +179,7 @@ impl ProcessFdTable {
             .collect()
     }
 
+    #[inline]
     pub fn io_heavy_fds(&self, threshold: u64) -> Vec<(i32, u64)> {
         self.fds.iter()
             .filter(|(_, e)| e.total_io_bytes() >= threshold)
@@ -173,6 +190,7 @@ impl ProcessFdTable {
 
 /// Fd table manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FdTableStats {
     pub tracked_processes: u32,
     pub total_open_fds: u64,
@@ -198,29 +216,35 @@ impl AppFdTable {
         }
     }
 
+    #[inline(always)]
     pub fn create_table(&mut self, pid: u32) {
         self.tables.insert(pid, ProcessFdTable::new(pid, self.default_max_fds));
     }
 
+    #[inline(always)]
     pub fn remove_table(&mut self, pid: u32) -> bool {
         self.tables.remove(&pid).is_some()
     }
 
+    #[inline(always)]
     pub fn alloc(&mut self, pid: u32, fd_type: FdType, flags: FdFlags, now: u64) -> Option<i32> {
         self.total_allocs += 1;
         self.tables.get_mut(&pid)?.alloc_fd(fd_type, flags, now)
     }
 
+    #[inline(always)]
     pub fn close(&mut self, pid: u32, fd: i32) -> Option<FdEntry> {
         self.total_closes += 1;
         self.tables.get_mut(&pid)?.close_fd(fd)
     }
 
+    #[inline(always)]
     pub fn dup(&mut self, pid: u32, old_fd: i32, new_fd: Option<i32>, now: u64) -> Option<i32> {
         self.total_dups += 1;
         self.tables.get_mut(&pid)?.dup_fd(old_fd, new_fd, now)
     }
 
+    #[inline]
     pub fn fork_table(&mut self, parent: u32, child: u32) -> bool {
         if let Some(parent_table) = self.tables.get(&parent) {
             let mut child_table = ProcessFdTable::new(child, parent_table.max_fds);
@@ -233,6 +257,7 @@ impl AppFdTable {
         } else { false }
     }
 
+    #[inline]
     pub fn stats(&self) -> FdTableStats {
         let total_fds: u64 = self.tables.values().map(|t| t.used_count() as u64).sum();
         FdTableStats {
