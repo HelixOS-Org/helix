@@ -59,6 +59,7 @@ impl ChdirRecord {
 
 /// Per-process CWD state.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessCwdState {
     pub pid: u64,
     pub current_cwd: String,
@@ -82,6 +83,7 @@ impl ProcessCwdState {
         }
     }
 
+    #[inline]
     pub fn change_dir(&mut self, new_cwd: String, variant: ChdirVariant) {
         if self.cwd_history.len() >= self.max_history {
             self.cwd_history.pop_front();
@@ -94,10 +96,12 @@ impl ProcessCwdState {
         }
     }
 
+    #[inline(always)]
     pub fn record_failure(&mut self) {
         self.failed_count += 1;
     }
 
+    #[inline(always)]
     pub fn total_changes(&self) -> u64 {
         self.chdir_count + self.fchdir_count
     }
@@ -105,6 +109,7 @@ impl ProcessCwdState {
 
 /// Statistics for chdir app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ChdirAppStats {
     pub total_chdir: u64,
     pub total_fchdir: u64,
@@ -178,6 +183,7 @@ impl AppChdir {
         id
     }
 
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.processes.len()
     }
