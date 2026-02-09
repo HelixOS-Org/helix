@@ -64,6 +64,7 @@ pub struct EffectorResult {
 
 impl EffectorResult {
     /// Success result
+    #[inline]
     pub fn success(changes: Vec<Change>, duration: Duration) -> Self {
         Self {
             success: true,
@@ -74,6 +75,7 @@ impl EffectorResult {
     }
 
     /// Failure result
+    #[inline]
     pub fn failure(message: impl Into<String>, duration: Duration) -> Self {
         Self {
             success: false,
@@ -84,6 +86,7 @@ impl EffectorResult {
     }
 
     /// Empty success
+    #[inline]
     pub fn ok() -> Self {
         Self {
             success: true,
@@ -94,6 +97,7 @@ impl EffectorResult {
     }
 
     /// Has changes?
+    #[inline(always)]
     pub fn has_changes(&self) -> bool {
         !self.changes.is_empty()
     }
@@ -121,6 +125,7 @@ impl EffectorRegistry {
     }
 
     /// Create with default effectors
+    #[inline]
     pub fn with_defaults() -> Self {
         use super::effectors::*;
 
@@ -132,6 +137,7 @@ impl EffectorRegistry {
     }
 
     /// Register an effector
+    #[inline]
     pub fn register(&mut self, effector: Box<dyn Effector>) {
         let id = effector.id();
         let handles = effector.handles().to_vec();
@@ -144,6 +150,7 @@ impl EffectorRegistry {
     }
 
     /// Unregister an effector
+    #[inline]
     pub fn unregister(&mut self, id: EffectorId) -> Option<Box<dyn Effector>> {
         if let Some(effector) = self.effectors.remove(&id) {
             // Remove from action type mappings
@@ -171,6 +178,7 @@ impl EffectorRegistry {
     }
 
     /// Find all effectors for action type
+    #[inline]
     pub fn find_all(&self, action_type: ActionType) -> Vec<EffectorId> {
         self.by_action
             .get(&action_type)
@@ -179,26 +187,31 @@ impl EffectorRegistry {
     }
 
     /// Get effector by ID
+    #[inline(always)]
     pub fn get(&self, id: EffectorId) -> Option<&dyn Effector> {
         self.effectors.get(&id).map(|e| e.as_ref())
     }
 
     /// Get mutable effector by ID
+    #[inline(always)]
     pub fn get_mut(&mut self, id: EffectorId) -> Option<&mut (dyn Effector + 'static)> {
         self.effectors.get_mut(&id).map(|e| &mut **e)
     }
 
     /// Count effectors
+    #[inline(always)]
     pub fn count(&self) -> usize {
         self.effectors.len()
     }
 
     /// List all effector IDs
+    #[inline(always)]
     pub fn list(&self) -> impl Iterator<Item = EffectorId> + '_ {
         self.effectors.keys().copied()
     }
 
     /// Get effector names
+    #[inline(always)]
     pub fn names(&self) -> Vec<&str> {
         self.effectors.values().map(|e| e.name()).collect()
     }
