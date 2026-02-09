@@ -31,12 +31,15 @@ impl PivotRootOp {
         Self { id, pid, new_root_hash: new_root, put_old_hash: put_old, state: PivotState::Pending, timestamp: now, duration_ns: 0 }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, dur: u64) { self.state = PivotState::Completed; self.duration_ns = dur; }
+    #[inline(always)]
     pub fn fail(&mut self) { self.state = PivotState::Failed; }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PivotRootAppStats {
     pub total_ops: u32,
     pub completed: u32,
@@ -53,12 +56,14 @@ pub struct AppPivotRoot {
 impl AppPivotRoot {
     pub fn new() -> Self { Self { ops: Vec::new(), next_id: 1 } }
 
+    #[inline]
     pub fn pivot_root(&mut self, pid: u64, new_root: u64, put_old: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.ops.push(PivotRootOp::new(id, pid, new_root, put_old, now));
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> PivotRootAppStats {
         let completed = self.ops.iter().filter(|o| o.state == PivotState::Completed).count() as u32;
         let failed = self.ops.iter().filter(|o| o.state == PivotState::Failed).count() as u32;
