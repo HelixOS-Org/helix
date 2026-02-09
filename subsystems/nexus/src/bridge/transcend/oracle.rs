@@ -293,10 +293,7 @@ impl BridgeOracle {
 
     /// Perform Bayesian fusion of predictor outputs. Public interface that
     /// returns posterior confidence and per-predictor contributions.
-    pub fn bayesian_fusion(
-        &self,
-        inputs: &[(u64, u32, f32)],
-    ) -> (f32, Vec<(u64, f32)>) {
+    pub fn bayesian_fusion(&self, inputs: &[(u64, u32, f32)]) -> (f32, Vec<(u64, f32)>) {
         let result = self.bayesian_fusion_internal(inputs);
         (result.posterior, result.contributions)
     }
@@ -308,8 +305,12 @@ impl BridgeOracle {
             .find(|p| p.prediction_id == prediction_id)
             .map(|pred| {
                 let n = pred.predictor_contributions.len().max(1) as f32;
-                let mean_contrib: f32 =
-                    pred.predictor_contributions.iter().map(|(_, c)| c).sum::<f32>() / n;
+                let mean_contrib: f32 = pred
+                    .predictor_contributions
+                    .iter()
+                    .map(|(_, c)| c)
+                    .sum::<f32>()
+                    / n;
                 let variance: f32 = pred
                     .predictor_contributions
                     .iter()
@@ -377,7 +378,8 @@ impl BridgeOracle {
         } else {
             0.0
         };
-        self.stats.accuracy_ema = EMA_ALPHA * accuracy + (1.0 - EMA_ALPHA) * self.stats.accuracy_ema;
+        self.stats.accuracy_ema =
+            EMA_ALPHA * accuracy + (1.0 - EMA_ALPHA) * self.stats.accuracy_ema;
 
         let cal_err = abs_f32(posterior - if correct { 1.0 } else { 0.0 });
         self.stats.calibration_error_ema =
