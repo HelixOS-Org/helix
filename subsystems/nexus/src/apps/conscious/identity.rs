@@ -57,13 +57,13 @@ fn xorshift64(state: &mut u64) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CapabilityMaturity {
     /// Just introduced, experimental
-    Nascent = 0,
+    Nascent    = 0,
     /// Functional but not battle-tested
     Developing = 1,
     /// Reliable in common scenarios
-    Mature = 2,
+    Mature     = 2,
     /// Proven across edge cases, highly optimized
-    Mastered = 3,
+    Mastered   = 3,
 }
 
 /// A declared classification capability
@@ -199,7 +199,8 @@ impl AppsIdentity {
 
     /// Get the list of supported workload types
     pub fn supported_workloads(&self) -> Vec<(String, f32, u64)> {
-        self.workloads.values()
+        self.workloads
+            .values()
             .map(|w| (w.name.clone(), w.support_level, w.classifications))
             .collect()
     }
@@ -212,13 +213,16 @@ impl AppsIdentity {
         let tick = self.tick;
 
         let is_new = !self.workloads.contains_key(&id);
-        let wl = self.workloads.entry(id).or_insert_with(|| SupportedWorkload {
-            name: String::from(name),
-            id,
-            support_level: 0.0,
-            classifications: 0,
-            since_tick: tick,
-        });
+        let wl = self
+            .workloads
+            .entry(id)
+            .or_insert_with(|| SupportedWorkload {
+                name: String::from(name),
+                id,
+                support_level: 0.0,
+                classifications: 0,
+                since_tick: tick,
+            });
         wl.support_level = support_level.max(0.0).min(1.0);
 
         if is_new && self.workloads.len() <= MAX_WORKLOAD_TYPES {
@@ -229,7 +233,8 @@ impl AppsIdentity {
 
     /// Compute the capability vector: a summary of all capabilities
     pub fn capability_vector(&self) -> Vec<(String, CapabilityMaturity, f32, f32)> {
-        self.capabilities.values()
+        self.capabilities
+            .values()
             .map(|c| (c.name.clone(), c.maturity, c.performance, c.reliability))
             .collect()
     }
@@ -248,8 +253,10 @@ impl AppsIdentity {
         let tick = self.tick;
 
         let is_new = !self.capabilities.contains_key(&id);
-        let cap = self.capabilities.entry(id).or_insert_with(|| {
-            ClassificationCapability {
+        let cap = self
+            .capabilities
+            .entry(id)
+            .or_insert_with(|| ClassificationCapability {
                 name: String::from(name),
                 id,
                 maturity,
@@ -259,8 +266,7 @@ impl AppsIdentity {
                 declared_tick: tick,
                 last_update_tick: tick,
                 updates: 0,
-            }
-        });
+            });
 
         let old_maturity = cap.maturity;
         cap.maturity = maturity;
@@ -315,21 +321,41 @@ impl AppsIdentity {
     /// Compute aggregate identity statistics
     pub fn stats(&self) -> IdentityStats {
         let n = self.capabilities.len();
-        let nascent = self.capabilities.values()
-            .filter(|c| c.maturity == CapabilityMaturity::Nascent).count();
-        let developing = self.capabilities.values()
-            .filter(|c| c.maturity == CapabilityMaturity::Developing).count();
-        let mature = self.capabilities.values()
-            .filter(|c| c.maturity == CapabilityMaturity::Mature).count();
-        let mastered = self.capabilities.values()
-            .filter(|c| c.maturity == CapabilityMaturity::Mastered).count();
+        let nascent = self
+            .capabilities
+            .values()
+            .filter(|c| c.maturity == CapabilityMaturity::Nascent)
+            .count();
+        let developing = self
+            .capabilities
+            .values()
+            .filter(|c| c.maturity == CapabilityMaturity::Developing)
+            .count();
+        let mature = self
+            .capabilities
+            .values()
+            .filter(|c| c.maturity == CapabilityMaturity::Mature)
+            .count();
+        let mastered = self
+            .capabilities
+            .values()
+            .filter(|c| c.maturity == CapabilityMaturity::Mastered)
+            .count();
         let avg_perf = if n > 0 {
-            self.capabilities.values().map(|c| c.performance).sum::<f32>() / n as f32
+            self.capabilities
+                .values()
+                .map(|c| c.performance)
+                .sum::<f32>()
+                / n as f32
         } else {
             0.0
         };
         let avg_rel = if n > 0 {
-            self.capabilities.values().map(|c| c.reliability).sum::<f32>() / n as f32
+            self.capabilities
+                .values()
+                .map(|c| c.reliability)
+                .sum::<f32>()
+                / n as f32
         } else {
             0.0
         };
