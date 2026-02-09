@@ -73,6 +73,7 @@ impl CpuBehavior {
     }
 
     /// CPU efficiency score (0.0 - 1.0)
+    #[inline]
     pub fn efficiency(&self) -> f64 {
         let ipc_score = (self.avg_ipc / 4.0).min(1.0);
         let cache_score = 1.0 - self.cache_miss_rate;
@@ -126,11 +127,13 @@ impl MemoryBehavior {
     }
 
     /// Whether a memory leak is likely
+    #[inline(always)]
     pub fn likely_leak(&self) -> bool {
         self.growing && self.growth_rate > 1024.0 && self.alloc_rate > self.free_rate * 1.1
     }
 
     /// Whether the app would benefit from huge pages
+    #[inline(always)]
     pub fn should_use_huge_pages(&self) -> bool {
         !self.uses_huge_pages && self.working_set > 2 * 1024 * 1024 && self.major_fault_ratio > 0.1
     }
@@ -184,12 +187,14 @@ impl IoBehavior {
     }
 
     /// Whether the app is I/O intensive
+    #[inline(always)]
     pub fn is_io_intensive(&self) -> bool {
         self.read_iops + self.write_iops > 1000
             || self.read_throughput + self.write_throughput > 100 * 1024 * 1024
     }
 
     /// Optimal read-ahead size based on behavior
+    #[inline]
     pub fn optimal_readahead(&self) -> usize {
         if self.sequential_reads {
             // Sequential: aggressive readahead
@@ -240,6 +245,7 @@ impl NetworkBehavior {
     }
 
     /// Whether the app is network-intensive
+    #[inline]
     pub fn is_network_intensive(&self) -> bool {
         self.rx_throughput + self.tx_throughput > 10 * 1024 * 1024
             || self.active_connections > 100
@@ -320,6 +326,7 @@ impl ProcessProfile {
     }
 
     /// Whether this profile is mature enough for reliable decisions
+    #[inline(always)]
     pub fn is_mature(&self) -> bool {
         self.observation_windows >= 10 && self.profile_duration_ms >= 5000
     }
