@@ -52,7 +52,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(v: u64, lo: u64, hi: u64) -> u64 {
-    if v < lo { lo } else if v > hi { hi } else { v }
+    if v < lo {
+        lo
+    } else if v > hi {
+        hi
+    } else {
+        v
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -199,11 +205,14 @@ impl CoopOracle {
         let predicted = self.extrapolate(history, horizon);
         let certainty = self.compute_certainty(history);
 
-        let pid = fnv1a(&[
-            agent_id.to_le_bytes(),
-            self.tick.to_le_bytes(),
-            horizon.to_le_bytes(),
-        ].concat());
+        let pid = fnv1a(
+            &[
+                agent_id.to_le_bytes(),
+                self.tick.to_le_bytes(),
+                horizon.to_le_bytes(),
+            ]
+            .concat(),
+        );
 
         let record = PredictionRecord {
             prediction_id: pid,
@@ -263,10 +272,14 @@ impl CoopOracle {
         if mean == 0 {
             return 50;
         }
-        let variance = history.iter().map(|&v| {
-            let d = abs_diff(v, mean);
-            d * d
-        }).sum::<u64>() / n;
+        let variance = history
+            .iter()
+            .map(|&v| {
+                let d = abs_diff(v, mean);
+                d * d
+            })
+            .sum::<u64>()
+            / n;
 
         let std_dev = integer_sqrt(variance);
         let cv = std_dev * 100 / mean.max(1);
@@ -325,13 +338,21 @@ impl CoopOracle {
             }
         }
 
-        let avg_demand = if demand_count > 0 { total_demand / demand_count } else { 0 };
+        let avg_demand = if demand_count > 0 {
+            total_demand / demand_count
+        } else {
+            0
+        };
         let overlap_factor = clamp(participants.len() as u64 * 15, 0, 100);
         let severity = clamp((avg_demand / 10).saturating_add(overlap_factor), 0, 100);
         let probability = clamp(severity * 80 / 100, 5, 95);
         let lead_time = clamp(20u64.saturating_sub(severity / 5), 1, 20);
 
-        let existing_acc = self.forecasts.get(&fid).map(|f| f.ema_accuracy).unwrap_or(50);
+        let existing_acc = self
+            .forecasts
+            .get(&fid)
+            .map(|f| f.ema_accuracy)
+            .unwrap_or(50);
 
         let forecast = ConflictForecast {
             forecast_id: fid,
@@ -357,7 +378,12 @@ impl CoopOracle {
 
     // -- trust trajectory ---------------------------------------------------
 
-    pub fn trust_trajectory(&mut self, source: u64, target: u64, current_trust: u64) -> TrustTrajectory {
+    pub fn trust_trajectory(
+        &mut self,
+        source: u64,
+        target: u64,
+        current_trust: u64,
+    ) -> TrustTrajectory {
         let pair_id = fnv1a(&[source.to_le_bytes(), target.to_le_bytes()].concat());
 
         if let Some(traj) = self.trajectories.get_mut(&pair_id) {
@@ -419,7 +445,9 @@ impl CoopOracle {
 
     pub fn tick(&mut self) {
         self.tick += 1;
-        let expired: Vec<u64> = self.predictions.iter()
+        let expired: Vec<u64> = self
+            .predictions
+            .iter()
             .filter(|(_, p)| {
                 p.actual_value.is_none() && self.tick > p.tick_created + p.horizon_ticks + 5
             })
@@ -440,11 +468,15 @@ impl CoopOracle {
 
         let avg_cert = if np > 0 {
             self.predictions.values().map(|p| p.certainty).sum::<u64>() / np as u64
-        } else { 50 };
+        } else {
+            50
+        };
 
         let avg_err = if np > 0 {
             self.predictions.values().map(|p| p.error_ema).sum::<u64>() / np as u64
-        } else { 50 };
+        } else {
+            50
+        };
 
         self.stats = OracleStats {
             total_predictions: np,
