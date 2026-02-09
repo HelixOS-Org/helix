@@ -145,8 +145,7 @@ impl StageHistory {
 
     fn record(&mut self, latency_ns: u64, failed: bool) {
         self.observations += 1;
-        self.latency_ema =
-            EMA_ALPHA * latency_ns as f32 + (1.0 - EMA_ALPHA) * self.latency_ema;
+        self.latency_ema = EMA_ALPHA * latency_ns as f32 + (1.0 - EMA_ALPHA) * self.latency_ema;
         let f = if failed { 1.0 } else { 0.0 };
         self.failure_rate_ema = EMA_ALPHA * f + (1.0 - EMA_ALPHA) * self.failure_rate_ema;
     }
@@ -210,7 +209,9 @@ impl BridgeRehearsal {
             total_latency += stage.estimated_latency_ns;
             total_cost += stage.resource_cost;
 
-            let hist = self.stage_history.entry(stage.stage_id)
+            let hist = self
+                .stage_history
+                .entry(stage.stage_id)
                 .or_insert_with(StageHistory::new);
             let simulated_fail = stage.failure_probability > 0.5;
             hist.record(stage.estimated_latency_ns, simulated_fail);
@@ -236,9 +237,14 @@ impl BridgeRehearsal {
 
         // Trim known bottlenecks
         while self.known_bottlenecks.len() > MAX_BOTTLENECKS {
-            let weakest = self.known_bottlenecks.iter()
-                .min_by(|a, b| a.1.severity.partial_cmp(&b.1.severity)
-                    .unwrap_or(core::cmp::Ordering::Equal))
+            let weakest = self
+                .known_bottlenecks
+                .iter()
+                .min_by(|a, b| {
+                    a.1.severity
+                        .partial_cmp(&b.1.severity)
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
                 .map(|(&k, _)| k);
             if let Some(k) = weakest {
                 self.known_bottlenecks.remove(&k);
@@ -249,7 +255,8 @@ impl BridgeRehearsal {
 
         // Generate counterfactuals
         let counterfactuals = self.generate_counterfactuals(&path, &bottlenecks);
-        let benefit: u64 = counterfactuals.iter()
+        let benefit: u64 = counterfactuals
+            .iter()
             .filter(|c| c.latency_delta_ns < 0)
             .map(|c| (-c.latency_delta_ns) as u64)
             .max()
@@ -257,9 +264,11 @@ impl BridgeRehearsal {
         self.total_benefit += benefit;
 
         if !counterfactuals.is_empty() {
-            let avg_imp = counterfactuals.iter()
+            let avg_imp = counterfactuals
+                .iter()
                 .map(|c| c.improvement_fraction)
-                .sum::<f32>() / counterfactuals.len() as f32;
+                .sum::<f32>()
+                / counterfactuals.len() as f32;
             self.avg_improvement_ema =
                 EMA_ALPHA * avg_imp + (1.0 - EMA_ALPHA) * self.avg_improvement_ema;
         }
@@ -302,15 +311,18 @@ impl BridgeRehearsal {
         for (i, stage) in path.stages.iter().enumerate() {
             if stage.estimated_latency_ns >= BOTTLENECK_THRESHOLD_NS {
                 let fraction = stage.estimated_latency_ns as f32 / total as f32;
-                let historical_lat = self.stage_history.get(&stage.stage_id)
+                let historical_lat = self
+                    .stage_history
+                    .get(&stage.stage_id)
                     .map(|h| h.latency_ema)
                     .unwrap_or(stage.estimated_latency_ns as f32);
                 let severity = fraction * (1.0 + stage.failure_probability);
                 let opt_potential = if historical_lat > stage.estimated_latency_ns as f32 {
                     0.1
                 } else {
-                    (1.0 - stage.estimated_latency_ns as f32
-                        / historical_lat.max(1.0)).abs().min(0.9)
+                    (1.0 - stage.estimated_latency_ns as f32 / historical_lat.max(1.0))
+                        .abs()
+                        .min(0.9)
                 };
 
                 let bid = fnv1a_hash(&stage.stage_id.to_le_bytes())
@@ -328,8 +340,11 @@ impl BridgeRehearsal {
                 });
             }
         }
-        bottlenecks.sort_by(|a, b|
-            b.severity.partial_cmp(&a.severity).unwrap_or(core::cmp::Ordering::Equal));
+        bottlenecks.sort_by(|a, b| {
+            b.severity
+                .partial_cmp(&a.severity)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         bottlenecks
     }
 
@@ -368,8 +383,7 @@ impl BridgeRehearsal {
                 0.0
             };
 
-            let scenario_id = fnv1a_hash(&bn.bottleneck_id.to_le_bytes())
-                ^ (i as u64);
+            let scenario_id = fnv1a_hash(&bn.bottleneck_id.to_le_bytes()) ^ (i as u64);
             results.push(Counterfactual {
                 scenario_id,
                 original_path_id: path.path_id,
@@ -385,7 +399,8 @@ impl BridgeRehearsal {
 
     /// Net benefit of rehearsal: total savings from acted-upon insights
     pub fn rehearsal_benefit(&self) -> (u64, f32) {
-        let overhead_cost = (self.avg_latency_ema * self.rehearsal_overhead_ema
+        let overhead_cost = (self.avg_latency_ema
+            * self.rehearsal_overhead_ema
             * self.total_rehearsals as f32) as u64;
         let net = if self.total_benefit > overhead_cost {
             self.total_benefit - overhead_cost
