@@ -115,6 +115,7 @@ impl ProcessEffector {
     }
 
     /// Get actions executed count
+    #[inline(always)]
     pub fn actions_executed(&self) -> u64 {
         self.actions_executed.load(Ordering::Relaxed)
     }
@@ -223,6 +224,7 @@ impl MemoryEffector {
     }
 
     /// Get actions executed count
+    #[inline(always)]
     pub fn actions_executed(&self) -> u64 {
         self.actions_executed.load(Ordering::Relaxed)
     }
