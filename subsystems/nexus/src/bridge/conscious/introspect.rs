@@ -147,7 +147,11 @@ impl CategoryTracker {
         self.total_decisions += 1;
         self.total_confidence += confidence;
         self.total_outcome += outcome;
-        if success { self.success_count += 1; } else { self.failure_count += 1; }
+        if success {
+            self.success_count += 1;
+        } else {
+            self.failure_count += 1;
+        }
         self.avg_confidence = EMA_ALPHA * confidence + (1.0 - EMA_ALPHA) * self.avg_confidence;
         self.avg_outcome = EMA_ALPHA * outcome + (1.0 - EMA_ALPHA) * self.avg_outcome;
     }
@@ -236,8 +240,12 @@ impl BridgeIntrospector {
                 d.outcome = outcome;
                 d.outcome_score = clamped;
 
-                let success = matches!(outcome, DecisionOutcome::Success | DecisionOutcome::PartialSuccess);
-                let tracker = self.category_trackers
+                let success = matches!(
+                    outcome,
+                    DecisionOutcome::Success | DecisionOutcome::PartialSuccess
+                );
+                let tracker = self
+                    .category_trackers
                     .entry(d.category as u8)
                     .or_insert_with(CategoryTracker::new);
                 tracker.record(d.final_confidence, clamped, success);
@@ -251,29 +259,43 @@ impl BridgeIntrospector {
 
     /// Analyze reasoning quality for a specific decision
     pub fn analyze_reasoning(&self, decision_id: u64) -> Option<ReasoningAnalysis> {
-        self.decisions.iter().find(|d| d.id == decision_id).map(|d| {
-            let depth = d.reasoning_chain.len();
-            let total_alts: u32 = d.reasoning_chain.iter()
-                .map(|s| s.alternatives_considered as u32).sum();
-            let avg_evidence: f32 = if depth > 0 {
-                d.reasoning_chain.iter().map(|s| s.evidence_weight).sum::<f32>() / depth as f32
-            } else {
-                0.0
-            };
-            let confidence_trajectory: Vec<f32> = d.reasoning_chain.iter()
-                .map(|s| s.confidence_at_step).collect();
-            let monotonic = confidence_trajectory.windows(2)
-                .all(|w| w[1] >= w[0] || (w[0] - w[1]).abs() < 0.05);
+        self.decisions
+            .iter()
+            .find(|d| d.id == decision_id)
+            .map(|d| {
+                let depth = d.reasoning_chain.len();
+                let total_alts: u32 = d
+                    .reasoning_chain
+                    .iter()
+                    .map(|s| s.alternatives_considered as u32)
+                    .sum();
+                let avg_evidence: f32 = if depth > 0 {
+                    d.reasoning_chain
+                        .iter()
+                        .map(|s| s.evidence_weight)
+                        .sum::<f32>()
+                        / depth as f32
+                } else {
+                    0.0
+                };
+                let confidence_trajectory: Vec<f32> = d
+                    .reasoning_chain
+                    .iter()
+                    .map(|s| s.confidence_at_step)
+                    .collect();
+                let monotonic = confidence_trajectory
+                    .windows(2)
+                    .all(|w| w[1] >= w[0] || (w[0] - w[1]).abs() < 0.05);
 
-            ReasoningAnalysis {
-                depth,
-                total_alternatives_considered: total_alts,
-                avg_evidence_weight: avg_evidence,
-                confidence_trajectory,
-                monotonic_confidence: monotonic,
-                calibration_error: (d.final_confidence - d.outcome_score).abs(),
-            }
-        })
+                ReasoningAnalysis {
+                    depth,
+                    total_alternatives_considered: total_alts,
+                    avg_evidence_weight: avg_evidence,
+                    confidence_trajectory,
+                    monotonic_confidence: monotonic,
+                    calibration_error: (d.final_confidence - d.outcome_score).abs(),
+                }
+            })
     }
 
     /// Identify systematic biases across decision categories
@@ -338,23 +360,36 @@ impl BridgeIntrospector {
     /// Compute full introspection statistics
     pub fn stats(&self) -> IntrospectionStats {
         let n = self.decisions.len();
-        let resolved: Vec<&Decision> = self.decisions.iter()
-            .filter(|d| d.outcome != DecisionOutcome::Pending).collect();
-        let overconf = resolved.iter()
-            .filter(|d| d.final_confidence > d.outcome_score + 0.1).count();
-        let underconf = resolved.iter()
-            .filter(|d| d.final_confidence < d.outcome_score - 0.1).count();
+        let resolved: Vec<&Decision> = self
+            .decisions
+            .iter()
+            .filter(|d| d.outcome != DecisionOutcome::Pending)
+            .collect();
+        let overconf = resolved
+            .iter()
+            .filter(|d| d.final_confidence > d.outcome_score + 0.1)
+            .count();
+        let underconf = resolved
+            .iter()
+            .filter(|d| d.final_confidence < d.outcome_score - 0.1)
+            .count();
         let resolved_n = resolved.len().max(1) as f32;
 
         let avg_alts = if n > 0 {
-            self.decisions.iter()
-                .map(|d| d.alternatives.len() as f32).sum::<f32>() / n as f32
+            self.decisions
+                .iter()
+                .map(|d| d.alternatives.len() as f32)
+                .sum::<f32>()
+                / n as f32
         } else {
             0.0
         };
 
-        let avg_cal: f32 = self.category_trackers.values()
-            .map(|t| t.calibration_gap()).sum::<f32>()
+        let avg_cal: f32 = self
+            .category_trackers
+            .values()
+            .map(|t| t.calibration_gap())
+            .sum::<f32>()
             / self.category_trackers.len().max(1) as f32;
 
         IntrospectionStats {
