@@ -188,27 +188,42 @@ impl HolisticHypothesisEngine {
             evidence_buffer: Vec::new(),
             rng_state: seed | 1,
             stats: HypothesisStats {
-                total_hypotheses: 0, active_count: 0, confirmed_count: 0,
-                rejected_count: 0, avg_confidence_ema: 0.0,
-                breakthrough_candidates: 0, graph_edges: 0,
-                correlations_found: 0, evidence_items: 0, pruned_total: 0,
+                total_hypotheses: 0,
+                active_count: 0,
+                confirmed_count: 0,
+                rejected_count: 0,
+                avg_confidence_ema: 0.0,
+                breakthrough_candidates: 0,
+                graph_edges: 0,
+                correlations_found: 0,
+                evidence_items: 0,
+                pruned_total: 0,
             },
         }
     }
 
     /// Generate a new system-wide hypothesis from cross-module evidence
     pub fn generate_global_hypothesis(
-        &mut self, statement: String, origins: Vec<EvidenceOrigin>, tick: u64,
+        &mut self,
+        statement: String,
+        origins: Vec<EvidenceOrigin>,
+        tick: u64,
     ) -> u64 {
         let id = fnv1a_hash(statement.as_bytes()) ^ fnv1a_hash(&tick.to_le_bytes());
         let testability = xorshift_f32(&mut self.rng_state) * 0.5 + 0.4;
         let impact = xorshift_f32(&mut self.rng_state) * 0.6 + 0.3;
         let hyp = GlobalHypothesis {
-            id, statement, phase: HypothesisPhase::Conceived,
-            confidence: 0.50, evidence: Vec::new(),
-            origins_involved: origins, impact_estimate: impact,
-            testability, breakthrough_prob: 0.0,
-            created_tick: tick, last_updated: tick,
+            id,
+            statement,
+            phase: HypothesisPhase::Conceived,
+            confidence: 0.50,
+            evidence: Vec::new(),
+            origins_involved: origins,
+            impact_estimate: impact,
+            testability,
+            breakthrough_prob: 0.0,
+            created_tick: tick,
+            last_updated: tick,
         };
         self.hypotheses.insert(id, hyp);
         self.stats.total_hypotheses += 1;
@@ -220,27 +235,42 @@ impl HolisticHypothesisEngine {
     pub fn cross_module_correlation(&mut self, tick: u64) -> Vec<CorrelationResult> {
         let mut results = Vec::new();
         let origins = [
-            EvidenceOrigin::Bridge, EvidenceOrigin::Application,
-            EvidenceOrigin::Cooperation, EvidenceOrigin::Memory,
+            EvidenceOrigin::Bridge,
+            EvidenceOrigin::Application,
+            EvidenceOrigin::Cooperation,
+            EvidenceOrigin::Memory,
             EvidenceOrigin::Scheduler,
         ];
         let window = self.evidence_buffer.len().min(CORRELATION_WINDOW);
-        if window < 4 { return results; }
+        if window < 4 {
+            return results;
+        }
         let recent = &self.evidence_buffer[self.evidence_buffer.len() - window..];
         for i in 0..origins.len() {
             for j in (i + 1)..origins.len() {
-                let vals_a: Vec<f32> = recent.iter()
-                    .filter(|e| e.origin == origins[i]).map(|e| e.value).collect();
-                let vals_b: Vec<f32> = recent.iter()
-                    .filter(|e| e.origin == origins[j]).map(|e| e.value).collect();
+                let vals_a: Vec<f32> = recent
+                    .iter()
+                    .filter(|e| e.origin == origins[i])
+                    .map(|e| e.value)
+                    .collect();
+                let vals_b: Vec<f32> = recent
+                    .iter()
+                    .filter(|e| e.origin == origins[j])
+                    .map(|e| e.value)
+                    .collect();
                 let n = vals_a.len().min(vals_b.len());
-                if n < 3 { continue; }
+                if n < 3 {
+                    continue;
+                }
                 let r = self.pearson(&vals_a[..n], &vals_b[..n]);
                 if r.abs() > 0.3 {
                     let cr = CorrelationResult {
-                        origin_a: origins[i], origin_b: origins[j],
-                        metric_a: String::from("agg"), metric_b: String::from("agg"),
-                        pearson_r: r, samples: n,
+                        origin_a: origins[i],
+                        origin_b: origins[j],
+                        metric_a: String::from("agg"),
+                        metric_b: String::from("agg"),
+                        pearson_r: r,
+                        samples: n,
                     };
                     results.push(cr.clone());
                     self.correlations.push(cr);
@@ -258,7 +288,9 @@ impl HolisticHypothesisEngine {
         self.evidence_buffer.push(evidence.clone());
         self.stats.evidence_items = self.evidence_buffer.len() as u64;
         for (_, hyp) in self.hypotheses.iter_mut() {
-            if hyp.phase == HypothesisPhase::Archived { continue; }
+            if hyp.phase == HypothesisPhase::Archived {
+                continue;
+            }
             if hyp.origins_involved.contains(&evidence.origin) {
                 hyp.evidence.push(evidence.clone());
                 let new_conf = hyp.confidence + evidence.weight * 0.05;
@@ -276,16 +308,18 @@ impl HolisticHypothesisEngine {
 
     /// Rank hypotheses by testability × expected impact
     pub fn testability_rank(&self) -> Vec<(u64, f32)> {
-        let mut ranked: Vec<(u64, f32)> = self.hypotheses.iter()
-            .filter(|(_, h)| h.phase != HypothesisPhase::Archived
-                && h.phase != HypothesisPhase::Rejected)
+        let mut ranked: Vec<(u64, f32)> = self
+            .hypotheses
+            .iter()
+            .filter(|(_, h)| {
+                h.phase != HypothesisPhase::Archived && h.phase != HypothesisPhase::Rejected
+            })
             .map(|(&id, h)| {
                 let score = h.testability * h.impact_estimate * h.confidence;
                 (id, score)
             })
             .collect();
-        ranked.sort_by(|a, b|
-            b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
+        ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
         ranked
     }
 
@@ -295,22 +329,28 @@ impl HolisticHypothesisEngine {
         let ids: Vec<u64> = self.hypotheses.keys().copied().collect();
         for i in 0..ids.len() {
             for j in (i + 1)..ids.len() {
-                if self.graph_edges.len() >= MAX_GRAPH_EDGES { break; }
+                if self.graph_edges.len() >= MAX_GRAPH_EDGES {
+                    break;
+                }
                 let ha = &self.hypotheses[&ids[i]];
                 let hb = &self.hypotheses[&ids[j]];
-                let overlap = ha.origins_involved.iter()
-                    .filter(|o| hb.origins_involved.contains(o)).count();
+                let overlap = ha
+                    .origins_involved
+                    .iter()
+                    .filter(|o| hb.origins_involved.contains(o))
+                    .count();
                 if overlap > 0 {
-                    let strength = overlap as f32
-                        / ha.origins_involved.len().max(1) as f32;
+                    let strength = overlap as f32 / ha.origins_involved.len().max(1) as f32;
                     let rel = if (ha.confidence - hb.confidence).abs() < 0.1 {
                         EdgeRelation::Reinforces
                     } else {
                         EdgeRelation::DependsOn
                     };
                     self.graph_edges.push(HypothesisEdge {
-                        from_id: ids[i], to_id: ids[j],
-                        relationship: rel, strength,
+                        from_id: ids[i],
+                        to_id: ids[j],
+                        relationship: rel,
+                        strength,
                     });
                 }
             }
@@ -324,7 +364,11 @@ impl HolisticHypothesisEngine {
         let mut results = Vec::new();
         let mut candidates = 0u64;
         for (&id, hyp) in self.hypotheses.iter_mut() {
-            let novelty = if hyp.origins_involved.len() >= 3 { 0.3 } else { 0.0 };
+            let novelty = if hyp.origins_involved.len() >= 3 {
+                0.3
+            } else {
+                0.0
+            };
             let bp = hyp.impact_estimate * hyp.confidence * (1.0 + novelty);
             hyp.breakthrough_prob = bp.min(1.0);
             if bp > BREAKTHROUGH_THRESHOLD {
@@ -332,14 +376,15 @@ impl HolisticHypothesisEngine {
             }
             results.push((id, bp));
         }
-        results.sort_by(|a, b|
-            b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
+        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
         self.stats.breakthrough_candidates = candidates;
         results
     }
 
     /// Current statistics snapshot
-    pub fn stats(&self) -> &HypothesisStats { &self.stats }
+    pub fn stats(&self) -> &HypothesisStats {
+        &self.stats
+    }
 
     /// Decay confidence on stale hypotheses and prune dead ones
     pub fn decay_and_prune(&mut self, tick: u64) {
@@ -348,9 +393,7 @@ impl HolisticHypothesisEngine {
             let age = tick.saturating_sub(hyp.last_updated);
             hyp.confidence -= CONFIDENCE_DECAY * age as f32 * 0.001;
             hyp.confidence = hyp.confidence.max(0.0);
-            if hyp.confidence < PRUNE_CONFIDENCE_MIN
-                && hyp.phase != HypothesisPhase::Confirmed
-            {
+            if hyp.confidence < PRUNE_CONFIDENCE_MIN && hyp.phase != HypothesisPhase::Confirmed {
                 to_prune.push(id);
             }
         }
@@ -372,7 +415,7 @@ impl HolisticHypothesisEngine {
             match h.phase {
                 HypothesisPhase::Confirmed => confirmed += 1,
                 HypothesisPhase::Rejected => rejected += 1,
-                HypothesisPhase::Archived => {}
+                HypothesisPhase::Archived => {},
                 _ => active += 1,
             }
             conf_sum += h.confidence;
@@ -388,7 +431,9 @@ impl HolisticHypothesisEngine {
 
     fn pearson(&self, a: &[f32], b: &[f32]) -> f32 {
         let n = a.len().min(b.len()) as f32;
-        if n < 2.0 { return 0.0; }
+        if n < 2.0 {
+            return 0.0;
+        }
         let mean_a: f32 = a.iter().sum::<f32>() / n;
         let mean_b: f32 = b.iter().sum::<f32>() / n;
         let mut cov = 0.0f32;
