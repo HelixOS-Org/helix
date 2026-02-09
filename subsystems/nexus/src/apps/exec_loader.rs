@@ -98,6 +98,7 @@ pub struct AslrLayout {
 
 /// Per-process exec state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessExecState {
     pub process_id: u64,
     pub elf_meta: Option<ElfMetadata>,
@@ -127,31 +128,38 @@ impl ProcessExecState {
         }
     }
 
+    #[inline]
     pub fn load_elf(&mut self, meta: ElfMetadata, ts: u64) {
         self.elf_meta = Some(meta);
         self.exec_count += 1;
         self.last_exec_ns = ts;
     }
 
+    #[inline(always)]
     pub fn add_library(&mut self, lib: SharedLib) {
         self.libraries.push(lib);
     }
 
+    #[inline(always)]
     pub fn resolve_symbol(&mut self, res: SymbolResolution) {
         self.total_relocations += 1;
         self.symbol_cache.insert(res.name_hash, res);
     }
 
+    #[inline(always)]
     pub fn set_aslr(&mut self, layout: AslrLayout) {
         self.aslr = Some(layout);
     }
 
+    #[inline(always)]
     pub fn lib_count(&self) -> usize { self.libraries.len() }
 
+    #[inline(always)]
     pub fn total_lib_size(&self) -> u64 {
         self.libraries.iter().map(|l| l.size).sum()
     }
 
+    #[inline(always)]
     pub fn find_lib_at(&self, addr: u64) -> Option<&SharedLib> {
         self.libraries.iter().find(|l| addr >= l.load_base && addr < l.load_base + l.size)
     }
@@ -167,6 +175,7 @@ pub struct LibDependency {
 
 /// Apps exec loader stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsExecLoaderStats {
     pub total_processes: usize,
     pub total_libraries: usize,
@@ -192,10 +201,12 @@ impl AppsExecLoader {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) {
         self.states.entry(pid).or_insert_with(|| ProcessExecState::new(pid));
     }
 
+    #[inline]
     pub fn exec(&mut self, pid: u64, meta: ElfMetadata, ts: u64) {
         if let Some(state) = self.states.get_mut(&pid) {
             state.load_elf(meta, ts);
@@ -204,24 +215,30 @@ impl AppsExecLoader {
         }
     }
 
+    #[inline(always)]
     pub fn load_library(&mut self, pid: u64, lib: SharedLib) {
         if let Some(state) = self.states.get_mut(&pid) { state.add_library(lib); }
     }
 
+    #[inline(always)]
     pub fn resolve_symbol(&mut self, pid: u64, res: SymbolResolution) {
         if let Some(state) = self.states.get_mut(&pid) { state.resolve_symbol(res); }
     }
 
+    #[inline(always)]
     pub fn set_aslr(&mut self, pid: u64, layout: AslrLayout) {
         if let Some(state) = self.states.get_mut(&pid) { state.set_aslr(layout); }
     }
 
+    #[inline(always)]
     pub fn add_dependency(&mut self, dep: LibDependency) {
         self.lib_deps.push(dep);
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.states.len();
         self.stats.total_libraries = self.states.values().map(|s| s.lib_count()).sum();
@@ -233,7 +250,9 @@ impl AppsExecLoader {
             .count();
     }
 
+    #[inline(always)]
     pub fn process_exec(&self, pid: u64) -> Option<&ProcessExecState> { self.states.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsExecLoaderStats { &self.stats }
 }
 
@@ -283,6 +302,7 @@ pub struct AuxvEntry {
 
 /// Exec context
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ExecContext {
     pub id: u64,
     pub exec_type: ExecType,
@@ -311,13 +331,17 @@ impl ExecContext {
         }
     }
 
+    #[inline(always)]
     pub fn add_mapping(&mut self, m: ExecMapping) { self.total_mapped += m.size; self.mappings.push(m); }
+    #[inline(always)]
     pub fn set_ready(&mut self, entry: u64, duration: u64) { self.entry_point = entry; self.load_time_ns = duration; self.state = LoaderState::Ready; }
+    #[inline(always)]
     pub fn fail(&mut self) { self.state = LoaderState::Failed; }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExecLoaderV2Stats {
     pub total_loaded: u64,
     pub total_failed: u64,
@@ -336,16 +360,19 @@ pub struct AppExecLoaderV2 {
 impl AppExecLoaderV2 {
     pub fn new() -> Self { Self { contexts: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn begin_load(&mut self, etype: ExecType) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.contexts.insert(id, ExecContext::new(id, etype));
         id
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, id: u64, entry: u64, duration: u64) {
         if let Some(ctx) = self.contexts.get_mut(&id) { ctx.set_ready(entry, duration); }
     }
 
+    #[inline]
     pub fn stats(&self) -> ExecLoaderV2Stats {
         let loaded = self.contexts.values().filter(|c| c.state == LoaderState::Ready).count() as u64;
         let failed = self.contexts.values().filter(|c| c.state == LoaderState::Failed).count() as u64;
@@ -445,15 +472,21 @@ impl ExecImageV3 {
         }
     }
 
+    #[inline(always)]
     pub fn add_segment(&mut self, seg: SegmentV3) { self.total_mapped += seg.mem_size; self.segments.push(seg); }
+    #[inline(always)]
     pub fn advance(&mut self, phase: LoadPhase) { self.phase = phase; }
+    #[inline(always)]
     pub fn complete(&mut self, entry: u64, duration: u64) { self.entry = entry; self.load_duration_ns = duration; self.phase = LoadPhase::Complete; }
+    #[inline(always)]
     pub fn fail(&mut self) { self.phase = LoadPhase::Error; }
+    #[inline(always)]
     pub fn effective_entry(&self) -> u64 { self.entry.wrapping_add(self.aslr_offset) }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExecLoaderV3Stats {
     pub total_images: u32,
     pub completed: u32,
@@ -485,6 +518,7 @@ impl AppExecLoaderV3 {
         }
     }
 
+    #[inline]
     pub fn load(&mut self, fmt: ExecV3Format, aslr: AslrLevel) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut img = ExecImageV3::new(id, fmt, aslr);
@@ -493,6 +527,7 @@ impl AppExecLoaderV3 {
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> ExecLoaderV3Stats {
         let comp = self.images.values().filter(|i| i.phase == LoadPhase::Complete).count() as u32;
         let fail = self.images.values().filter(|i| i.phase == LoadPhase::Error).count() as u32;
