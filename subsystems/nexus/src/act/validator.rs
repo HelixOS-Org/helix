@@ -42,18 +42,21 @@ impl ValidationRule {
     }
 
     /// Set action types
+    #[inline(always)]
     pub fn for_actions(mut self, actions: Vec<ActionType>) -> Self {
         self.applies_to = actions;
         self
     }
 
     /// Set as non-blocking
+    #[inline(always)]
     pub fn non_blocking(mut self) -> Self {
         self.blocking = false;
         self
     }
 
     /// Check if rule applies to action type
+    #[inline(always)]
     pub fn applies(&self, action_type: ActionType) -> bool {
         self.applies_to.is_empty() || self.applies_to.contains(&action_type)
     }
@@ -119,6 +122,7 @@ pub struct ValidationResult {
 
 impl ValidationResult {
     /// Create valid result
+    #[inline]
     pub fn ok() -> Self {
         Self {
             valid: true,
@@ -129,6 +133,7 @@ impl ValidationResult {
     }
 
     /// Create invalid result
+    #[inline]
     pub fn invalid(failure: ValidationFailure) -> Self {
         Self {
             valid: false,
@@ -139,17 +144,20 @@ impl ValidationResult {
     }
 
     /// Add warning
+    #[inline(always)]
     pub fn with_warning(mut self, warning: impl Into<String>) -> Self {
         self.warnings.push(warning.into());
         self
     }
 
     /// Get blocking failures
+    #[inline(always)]
     pub fn blocking_failures(&self) -> impl Iterator<Item = &ValidationFailure> {
         self.failed.iter().filter(|f| f.blocking)
     }
 
     /// Get failure reasons
+    #[inline(always)]
     pub fn failure_reasons(&self) -> Vec<&str> {
         self.failed.iter().map(|f| f.reason.as_str()).collect()
     }
@@ -180,6 +188,7 @@ impl ValidationFailure {
     }
 
     /// Set as non-blocking
+    #[inline(always)]
     pub fn non_blocking(mut self) -> Self {
         self.blocking = false;
         self
@@ -259,11 +268,13 @@ impl PreValidator {
     }
 
     /// Add custom rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: ValidationRule) {
         self.rules.push(rule);
     }
 
     /// Remove rule by ID
+    #[inline]
     pub fn remove_rule(&mut self, id: u32) -> bool {
         let len_before = self.rules.len();
         self.rules.retain(|r| r.id != id);
@@ -271,6 +282,7 @@ impl PreValidator {
     }
 
     /// Get rule count
+    #[inline(always)]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }
@@ -345,6 +357,7 @@ impl PreValidator {
     }
 
     /// Get statistics
+    #[inline]
     pub fn stats(&self) -> ValidatorStats {
         ValidatorStats {
             validations: self.validations.load(Ordering::Relaxed),
@@ -362,6 +375,7 @@ impl Default for PreValidator {
 
 /// Validator statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     /// Total validations
     pub validations: u64,
