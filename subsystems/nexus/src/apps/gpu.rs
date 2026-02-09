@@ -10,6 +10,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -86,6 +87,7 @@ impl GpuDevice {
     }
 
     /// VRAM utilization
+    #[inline]
     pub fn vram_utilization(&self) -> f64 {
         if self.total_vram == 0 {
             return 0.0;
@@ -94,6 +96,7 @@ impl GpuDevice {
     }
 
     /// Overall utilization
+    #[inline]
     pub fn overall_utilization(&self) -> f64 {
         if self.engine_util.is_empty() {
             return 0.0;
@@ -102,6 +105,7 @@ impl GpuDevice {
     }
 
     /// Update engine utilization
+    #[inline(always)]
     pub fn update_engine(&mut self, engine: GpuEngine, utilization: f64) {
         self.engine_util.insert(engine as u8, utilization);
     }
@@ -159,7 +163,7 @@ pub struct ProcessGpuProfile {
     /// Process ID
     pub pid: u64,
     /// VRAM usage per device (bytes)
-    pub vram_usage: BTreeMap<u32, u64>,
+    pub vram_usage: ArrayMap<u64, 32>,
     /// Engine usage
     pub engine_time: BTreeMap<u8, u64>,
     /// GPU calls count
@@ -180,7 +184,7 @@ impl ProcessGpuProfile {
     pub fn new(pid: u64) -> Self {
         Self {
             pid,
-            vram_usage: BTreeMap::new(),
+            vram_usage: ArrayMap::new(0),
             engine_time: BTreeMap::new(),
             gpu_calls: 0,
             gpu_wait_ns: 0,
@@ -192,6 +196,7 @@ impl ProcessGpuProfile {
     }
 
     /// Record GPU call
+    #[inline]
     pub fn record_call(&mut self, compute_ns: u64, wait_ns: u64) {
         self.gpu_calls += 1;
         self.gpu_compute_ns += compute_ns;
@@ -199,8 +204,9 @@ impl ProcessGpuProfile {
     }
 
     /// Record allocation
+    #[inline]
     pub fn record_alloc(&mut self, device: u32, size: u64) {
-        *self.vram_usage.entry(device).or_insert(0) += size;
+        self.vram_usage.add(device as usize, size);
         self.allocation_count += 1;
         let total_vram: u64 = self.vram_usage.values().sum();
         if total_vram > self.peak_vram {
@@ -209,6 +215,7 @@ impl ProcessGpuProfile {
     }
 
     /// Record free
+    #[inline]
     pub fn record_free(&mut self, device: u32, size: u64) {
         if let Some(usage) = self.vram_usage.get_mut(&device) {
             *usage = usage.saturating_sub(size);
@@ -216,11 +223,13 @@ impl ProcessGpuProfile {
     }
 
     /// Total VRAM usage
+    #[inline(always)]
     pub fn total_vram(&self) -> u64 {
         self.vram_usage.values().sum()
     }
 
     /// GPU efficiency (compute / (compute + wait))
+    #[inline]
     pub fn gpu_efficiency(&self) -> f64 {
         let total = self.gpu_compute_ns + self.gpu_wait_ns;
         if total == 0 {
@@ -236,6 +245,7 @@ impl ProcessGpuProfile {
 
 /// GPU analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppGpuStats {
     /// Tracked devices
     pub device_count: usize,
@@ -275,12 +285,14 @@ impl AppGpuAnalyzer {
     }
 
     /// Register GPU device
+    #[inline(always)]
     pub fn register_device(&mut self, device: GpuDevice) {
         self.devices.insert(device.index, device);
         self.stats.device_count = self.devices.len();
     }
 
     /// Record GPU call
+    #[inline]
     pub fn record_call(&mut self, pid: u64, compute_ns: u64, wait_ns: u64) {
         let profile = self
             .profiles
@@ -331,6 +343,7 @@ impl AppGpuAnalyzer {
     }
 
     /// Free VRAM
+    #[inline]
     pub fn free_vram(&mut self, alloc_id: u64) {
         if let Some(alloc) = self.allocations.remove(&alloc_id) {
             if let Some(dev) = self.devices.get_mut(&alloc.device) {
@@ -344,6 +357,7 @@ impl AppGpuAnalyzer {
     }
 
     /// Record sync stall
+    #[inline]
     pub fn record_sync_stall(&mut self, pid: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.sync_stalls += 1;
@@ -370,16 +384,19 @@ impl AppGpuAnalyzer {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessGpuProfile> {
         self.profiles.get(&pid)
     }
 
     /// Get device
+    #[inline(always)]
     pub fn device(&self, index: u32) -> Option<&GpuDevice> {
         self.devices.get(&index)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppGpuStats {
         &self.stats
     }
