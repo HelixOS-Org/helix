@@ -73,6 +73,7 @@ impl NodeMemInfo {
     }
 
     /// Local access ratio
+    #[inline]
     pub fn locality_ratio(&self) -> f64 {
         let total = self.local_accesses + self.remote_accesses;
         if total == 0 {
@@ -82,6 +83,7 @@ impl NodeMemInfo {
     }
 
     /// Net migration (positive = gaining pages)
+    #[inline(always)]
     pub fn net_migration(&self) -> i64 {
         self.pages_migrated_in as i64 - self.pages_migrated_out as i64
     }
@@ -144,6 +146,7 @@ impl ProcessNumaProfile {
     }
 
     /// Record page placement on a node
+    #[inline]
     pub fn record_placement(&mut self, node_id: u32, pages: u64) {
         let info = self.nodes.entry(node_id)
             .or_insert_with(|| NodeMemInfo::new(node_id));
@@ -152,6 +155,7 @@ impl ProcessNumaProfile {
     }
 
     /// Record an access
+    #[inline]
     pub fn record_access(&mut self, cpu_node: u32, mem_node: u32, timestamp_ns: u64) {
         let info = self.nodes.entry(mem_node)
             .or_insert_with(|| NodeMemInfo::new(mem_node));
@@ -187,6 +191,7 @@ impl ProcessNumaProfile {
     }
 
     /// Overall locality ratio
+    #[inline]
     pub fn overall_locality(&self) -> f64 {
         let mut local = 0u64;
         let mut total = 0u64;
@@ -198,6 +203,7 @@ impl ProcessNumaProfile {
     }
 
     /// Page distribution across nodes (node_id, fraction)
+    #[inline]
     pub fn page_distribution(&self) -> Vec<(u32, f64)> {
         if self.total_pages == 0 {
             return Vec::new();
@@ -224,6 +230,7 @@ impl ProcessNumaProfile {
     }
 
     /// Suggest optimal node
+    #[inline]
     pub fn suggest_optimal_node(&self) -> Option<u32> {
         self.nodes.iter()
             .max_by(|a, b| {
@@ -235,6 +242,7 @@ impl ProcessNumaProfile {
     }
 
     /// Migration rate (migrations per 1000 accesses)
+    #[inline]
     pub fn migration_rate(&self) -> f64 {
         let total_accesses: u64 = self.nodes.values()
             .map(|info| info.local_accesses + info.remote_accesses)
@@ -248,6 +256,7 @@ impl ProcessNumaProfile {
 
 /// NUMA profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppNumaProfileStats {
     pub tracked_processes: usize,
     pub avg_locality: f64,
@@ -270,16 +279,19 @@ impl AppNumaProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn get_or_create(&mut self, pid: u64) -> &mut ProcessNumaProfile {
         self.processes.entry(pid)
             .or_insert_with(|| ProcessNumaProfile::new(pid))
     }
 
+    #[inline(always)]
     pub fn record_access(&mut self, pid: u64, cpu_node: u32, mem_node: u32, ts: u64) {
         self.get_or_create(pid).record_access(cpu_node, mem_node, ts);
         self.update_stats();
     }
 
+    #[inline(always)]
     pub fn record_migration(&mut self, pid: u64, event: NumaMigrationEvent) {
         self.get_or_create(pid).record_migration(event);
         self.update_stats();
@@ -303,11 +315,13 @@ impl AppNumaProfiler {
             .count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppNumaProfileStats {
         &self.stats
     }
 
     /// Processes needing NUMA rebalancing
+    #[inline]
     pub fn rebalance_candidates(&self) -> Vec<u64> {
         self.processes.iter()
             .filter(|(_, p)| p.overall_locality() < 0.5 && p.total_pages > 256)
