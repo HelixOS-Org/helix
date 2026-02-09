@@ -264,8 +264,7 @@ impl CoopExplorer {
     pub fn mutate_strategy(&mut self, individual: &mut ProtocolIndividual) {
         for param in individual.params.iter_mut() {
             if xorshift_f32(&mut self.rng_state) < self.mutation_rate {
-                let delta =
-                    (xorshift_f32(&mut self.rng_state) - 0.5) * 2.0 * param.mutation_sigma;
+                let delta = (xorshift_f32(&mut self.rng_state) - 0.5) * 2.0 * param.mutation_sigma;
                 param.value = (param.value + delta).clamp(param.min_value, param.max_value);
                 self.stats.mutations_performed += 1;
             }
@@ -356,7 +355,8 @@ impl CoopExplorer {
             let sum: f32 = self.population.iter().map(|p| p.fitness).sum();
             sum / self.population.len() as f32
         };
-        self.fitness_curve.record(self.generation, fitness, mean_fit);
+        self.fitness_curve
+            .record(self.generation, fitness, mean_fit);
 
         ProtocolFitnessResult {
             individual_id: individual.id,
