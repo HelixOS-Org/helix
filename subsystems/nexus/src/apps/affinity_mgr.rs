@@ -24,24 +24,32 @@ pub struct CpuSet {
 
 impl CpuSet {
     pub fn new() -> Self { Self { mask: [0u64; 4] } }
+    #[inline]
     pub fn all(ncpus: u32) -> Self {
         let mut s = Self::new();
         for i in 0..ncpus.min(256) { s.set(i); }
         s
     }
 
+    #[inline(always)]
     pub fn set(&mut self, cpu: u32) { if cpu < 256 { self.mask[(cpu / 64) as usize] |= 1u64 << (cpu % 64); } }
+    #[inline(always)]
     pub fn clear(&mut self, cpu: u32) { if cpu < 256 { self.mask[(cpu / 64) as usize] &= !(1u64 << (cpu % 64)); } }
+    #[inline(always)]
     pub fn has(&self, cpu: u32) -> bool { if cpu < 256 { self.mask[(cpu / 64) as usize] & (1u64 << (cpu % 64)) != 0 } else { false } }
+    #[inline(always)]
     pub fn count(&self) -> u32 { self.mask.iter().map(|m| m.count_ones()).sum() }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.mask.iter().all(|&m| m == 0) }
 
+    #[inline]
     pub fn intersect(&self, other: &Self) -> Self {
         let mut r = Self::new();
         for i in 0..4 { r.mask[i] = self.mask[i] & other.mask[i]; }
         r
     }
 
+    #[inline]
     pub fn union(&self, other: &Self) -> Self {
         let mut r = Self::new();
         for i in 0..4 { r.mask[i] = self.mask[i] | other.mask[i]; }
@@ -66,13 +74,17 @@ impl ThreadAffinity {
         Self { tid, policy: AffinityPolicy::Preferred, cpu_set: CpuSet::all(256), effective: CpuSet::all(256), migrations: 0, last_cpu: 0, pin_count: 0 }
     }
 
+    #[inline(always)]
     pub fn bind(&mut self, set: CpuSet) { self.cpu_set = set.clone(); self.effective = set; }
+    #[inline(always)]
     pub fn migrate(&mut self, new_cpu: u32) { if new_cpu != self.last_cpu { self.migrations += 1; self.last_cpu = new_cpu; } }
+    #[inline(always)]
     pub fn pin(&mut self, cpu: u32) { let mut s = CpuSet::new(); s.set(cpu); self.cpu_set = s.clone(); self.effective = s; self.pin_count += 1; }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AffinityMgrStats {
     pub total_threads: u32,
     pub pinned_threads: u32,
@@ -87,9 +99,12 @@ pub struct AppAffinityMgr {
 
 impl AppAffinityMgr {
     pub fn new() -> Self { Self { threads: BTreeMap::new() } }
+    #[inline(always)]
     pub fn register(&mut self, tid: u64) { self.threads.insert(tid, ThreadAffinity::new(tid)); }
+    #[inline(always)]
     pub fn set_affinity(&mut self, tid: u64, set: CpuSet) { if let Some(t) = self.threads.get_mut(&tid) { t.bind(set); } }
 
+    #[inline]
     pub fn stats(&self) -> AffinityMgrStats {
         let pinned = self.threads.values().filter(|t| t.cpu_set.count() == 1).count() as u32;
         let mig: u64 = self.threads.values().map(|t| t.migrations).sum();
