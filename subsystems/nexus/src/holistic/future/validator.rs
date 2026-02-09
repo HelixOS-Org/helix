@@ -351,8 +351,8 @@ impl HolisticPredictionValidator {
 
                 let trend = if entries.len() >= 4 {
                     let half = entries.len() / 2;
-                    let first: f32 = entries[..half].iter().map(|e| e.accuracy).sum::<f32>()
-                        / half as f32;
+                    let first: f32 =
+                        entries[..half].iter().map(|e| e.accuracy).sum::<f32>() / half as f32;
                     let second: f32 = entries[half..].iter().map(|e| e.accuracy).sum::<f32>()
                         / (entries.len() - half) as f32;
                     second - first
@@ -369,7 +369,7 @@ impl HolisticPredictionValidator {
                     trend,
                     rank: 0,
                 }
-            }
+            },
             _ => SubsystemAccuracy {
                 subsystem,
                 mean_accuracy: 0.0,
@@ -385,7 +385,11 @@ impl HolisticPredictionValidator {
     /// Detect systematic errors in a subsystem's predictions
     pub fn systematic_error(&mut self, subsystem: SubsystemId) -> Vec<SystematicError> {
         let sub_key = subsystem as u8;
-        let entries = self.subsystem_stats.get(&sub_key).cloned().unwrap_or_default();
+        let entries = self
+            .subsystem_stats
+            .get(&sub_key)
+            .cloned()
+            .unwrap_or_default();
         let mut errors = Vec::new();
 
         if entries.len() < 5 {
@@ -412,7 +416,8 @@ impl HolisticPredictionValidator {
                 description: String::from("persistent directional bias"),
                 correction_applied: false,
             });
-            self.systematic_errors.insert(id, errors.last().unwrap().clone());
+            self.systematic_errors
+                .insert(id, errors.last().unwrap().clone());
             self.systematic_count += 1;
         }
 
@@ -433,7 +438,8 @@ impl HolisticPredictionValidator {
                 description: String::from("high prediction variance / noise"),
                 correction_applied: false,
             });
-            self.systematic_errors.insert(id, errors.last().unwrap().clone());
+            self.systematic_errors
+                .insert(id, errors.last().unwrap().clone());
             self.systematic_count += 1;
         }
 
@@ -455,7 +461,8 @@ impl HolisticPredictionValidator {
                     description: String::from("prediction lag — errors shift over time"),
                     correction_applied: false,
                 });
-                self.systematic_errors.insert(id, errors.last().unwrap().clone());
+                self.systematic_errors
+                    .insert(id, errors.last().unwrap().clone());
                 self.systematic_count += 1;
             }
         }
@@ -505,7 +512,7 @@ impl HolisticPredictionValidator {
                     bias_fraction: bias.powi(2) / total,
                     variance_fraction: variance / total,
                 }
-            }
+            },
             _ => PredictionDecomposition {
                 subsystem,
                 bias_component: 0.0,
@@ -544,8 +551,14 @@ impl HolisticPredictionValidator {
 
         ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
 
-        let (best, best_acc) = ranked.first().copied().unwrap_or((SubsystemId::Holistic, 0.0));
-        let (second, second_acc) = ranked.get(1).copied().unwrap_or((SubsystemId::Holistic, 0.0));
+        let (best, best_acc) = ranked
+            .first()
+            .copied()
+            .unwrap_or((SubsystemId::Holistic, 0.0));
+        let (second, second_acc) = ranked
+            .get(1)
+            .copied()
+            .unwrap_or((SubsystemId::Holistic, 0.0));
 
         let id = fnv1a_hash(format!("model-sel-{}", dimension).as_bytes())
             ^ xorshift64(&mut self.rng_state);
