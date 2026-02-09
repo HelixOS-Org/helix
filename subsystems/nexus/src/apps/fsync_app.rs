@@ -37,6 +37,7 @@ pub struct AppSyncCompletion {
 
 /// Statistics for sync operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppSyncStats {
     pub total_syncs: u64,
     pub fsync_count: u64,
@@ -133,10 +134,12 @@ impl AppFsyncManager {
         count
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending_syncs.len()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppSyncStats {
         &self.stats
     }
