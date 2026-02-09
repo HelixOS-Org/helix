@@ -166,23 +166,14 @@ impl AppAttentionState {
         }
     }
 
-    fn update_salience(
-        &mut self,
-        resource_impact: f32,
-        novelty: f32,
-        priority: f32,
-        events: f32,
-    ) {
+    fn update_salience(&mut self, resource_impact: f32, novelty: f32, priority: f32, events: f32) {
         self.resource_impact = resource_impact;
         self.novelty_signal = novelty;
         self.priority_class = priority;
         self.event_density = events;
 
         // Weighted composite salience
-        let raw = 0.30 * resource_impact
-            + 0.25 * novelty
-            + 0.25 * priority
-            + 0.20 * events;
+        let raw = 0.30 * resource_impact + 0.25 * novelty + 0.25 * priority + 0.20 * events;
 
         self.salience = EMA_ALPHA * raw + (1.0 - EMA_ALPHA) * self.salience;
 
@@ -214,8 +205,7 @@ impl AppAttentionState {
         let len = self.salience_history.len();
         let mid = len / 2;
         let first: f32 = self.salience_history[..mid].iter().sum::<f32>() / mid as f32;
-        let second: f32 =
-            self.salience_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
+        let second: f32 = self.salience_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
         second - first
     }
 }
@@ -269,7 +259,11 @@ impl AppsAttentionEngine {
             total_shifts: 0,
             beneficial_shifts: 0,
             tick: 0,
-            rng_state: if seed == 0 { 0xA77E_CAFE_1234_5678 } else { seed },
+            rng_state: if seed == 0 {
+                0xA77E_CAFE_1234_5678
+            } else {
+                seed
+            },
         }
     }
 
@@ -317,8 +311,7 @@ impl AppsAttentionEngine {
 
         // Cold apps get exponentially spaced scans
         if new_tier == AttentionTier::Cold {
-            state.scan_interval =
-                (state.scan_interval * 2).min(COLD_SCAN_INTERVAL_MAX);
+            state.scan_interval = (state.scan_interval * 2).min(COLD_SCAN_INTERVAL_MAX);
         } else {
             state.scan_interval = COLD_SCAN_INTERVAL_BASE;
         }
