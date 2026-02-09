@@ -52,12 +52,12 @@ fn xorshift64(state: &mut u64) -> u64 {
 /// Canonical application lifecycle phase
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LifecyclePhase {
-    Startup = 0,
-    Warming = 1,
+    Startup     = 0,
+    Warming     = 1,
     SteadyState = 2,
-    Peak = 3,
-    WindDown = 4,
-    Exit = 5,
+    Peak        = 3,
+    WindDown    = 4,
+    Exit        = 5,
 }
 
 impl LifecyclePhase {
@@ -211,10 +211,13 @@ impl AppTimeline {
                 return 1000.0;
             }
             let avg = self.avg_phase_duration(phase);
-            let sum_sq: f32 = durs.iter().map(|&d| {
-                let diff = d as f32 - avg;
-                diff * diff
-            }).sum();
+            let sum_sq: f32 = durs
+                .iter()
+                .map(|&d| {
+                    let diff = d as f32 - avg;
+                    diff * diff
+                })
+                .sum();
             sum_sq / (durs.len() - 1) as f32
         } else {
             1000.0
@@ -222,13 +225,15 @@ impl AppTimeline {
     }
 
     fn transition_count(&self, from: LifecyclePhase, to: LifecyclePhase) -> u64 {
-        self.transitions.iter()
+        self.transitions
+            .iter()
             .filter(|(f, t, _)| *f == from && *t == to)
             .count() as u64
     }
 
     fn total_transitions_from(&self, from: LifecyclePhase) -> u64 {
-        self.transitions.iter()
+        self.transitions
+            .iter()
             .filter(|(f, _, _)| *f == from)
             .count() as u64
     }
@@ -290,12 +295,7 @@ impl AppsTimeline {
     }
 
     /// Record a phase transition for an app
-    pub fn record_transition(
-        &mut self,
-        process_id: u64,
-        new_phase: LifecyclePhase,
-        tick: u64,
-    ) {
+    pub fn record_transition(&mut self, process_id: u64, new_phase: LifecyclePhase, tick: u64) {
         self.tick = tick;
         self.total_transitions += 1;
         if let Some(app) = self.apps.get_mut(&process_id) {
@@ -494,8 +494,7 @@ impl AppsTimeline {
         }
 
         let correct = if expected == actual_phase { 1.0 } else { 0.0 };
-        self.phase_accuracy_ema =
-            EMA_ALPHA * correct + (1.0 - EMA_ALPHA) * self.phase_accuracy_ema;
+        self.phase_accuracy_ema = EMA_ALPHA * correct + (1.0 - EMA_ALPHA) * self.phase_accuracy_ema;
 
         let mut desc = String::new();
         if divergence > DIVERGENCE_THRESHOLD {
