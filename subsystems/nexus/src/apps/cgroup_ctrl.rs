@@ -77,7 +77,9 @@ impl AppCgroup {
         }
     }
 
+    #[inline(always)]
     pub fn set_cpu_quota(&mut self, quota_us: i64, period_us: u64) { self.cpu_quota_us = quota_us; self.cpu_period_us = period_us; }
+    #[inline(always)]
     pub fn set_mem_limit(&mut self, hard: u64, soft: u64) { self.mem_limit = hard; self.mem_soft = soft; }
 
     pub fn charge_cpu(&mut self, us: u64) {
@@ -93,6 +95,7 @@ impl AppCgroup {
         }
     }
 
+    #[inline]
     pub fn charge_mem(&mut self, bytes: u64) -> bool {
         if self.mem_usage + bytes > self.mem_limit { self.state = EnforcementState::OverLimit; return false; }
         self.mem_usage += bytes;
@@ -100,18 +103,22 @@ impl AppCgroup {
         true
     }
 
+    #[inline(always)]
     pub fn uncharge_mem(&mut self, bytes: u64) { self.mem_usage = self.mem_usage.saturating_sub(bytes); }
 
+    #[inline]
     pub fn reset_period(&mut self) {
         self.cpu_usage_us = 0;
         self.burst_used_us = 0;
         if self.state == EnforcementState::Throttled || self.state == EnforcementState::Burst { self.state = EnforcementState::Normal; }
     }
 
+    #[inline(always)]
     pub fn cpu_util_pct(&self) -> f64 {
         if self.cpu_quota_us <= 0 { 0.0 } else { self.cpu_usage_us as f64 / self.cpu_quota_us as f64 * 100.0 }
     }
 
+    #[inline(always)]
     pub fn mem_util_pct(&self) -> f64 {
         if self.mem_limit == u64::MAX { 0.0 } else { self.mem_usage as f64 / self.mem_limit as f64 * 100.0 }
     }
@@ -139,6 +146,7 @@ pub enum AppCgroupEventKind {
 
 /// Cgroup controller stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppCgroupStats {
     pub total_cgroups: usize,
     pub throttled_count: usize,
@@ -159,6 +167,7 @@ pub struct AppsCgroupCtrl {
 impl AppsCgroupCtrl {
     pub fn new() -> Self { Self { cgroups: BTreeMap::new(), events: Vec::new(), stats: AppCgroupStats::default(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, name: String, parent: Option<u64>) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let cg = AppCgroup::new(id, name, parent);
@@ -167,6 +176,7 @@ impl AppsCgroupCtrl {
         id
     }
 
+    #[inline]
     pub fn charge_cpu(&mut self, id: u64, us: u64, ts: u64) {
         if let Some(cg) = self.cgroups.get_mut(&id) {
             let old = cg.state;
@@ -177,6 +187,7 @@ impl AppsCgroupCtrl {
         }
     }
 
+    #[inline]
     pub fn charge_mem(&mut self, id: u64, bytes: u64, ts: u64) -> bool {
         if let Some(cg) = self.cgroups.get_mut(&id) {
             let ok = cg.charge_mem(bytes);
@@ -185,14 +196,17 @@ impl AppsCgroupCtrl {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn uncharge_mem(&mut self, id: u64, bytes: u64) { if let Some(cg) = self.cgroups.get_mut(&id) { cg.uncharge_mem(bytes); } }
 
+    #[inline]
     pub fn reset_periods(&mut self, ts: u64) {
         let ids: Vec<u64> = self.cgroups.keys().copied().collect();
         for id in ids { if let Some(cg) = self.cgroups.get_mut(&id) { cg.reset_period(); } }
         self.events.push(AppCgroupEvent { cgroup_id: 0, kind: AppCgroupEventKind::PeriodReset, ts, value: 0 });
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_cgroups = self.cgroups.len();
         self.stats.throttled_count = self.cgroups.values().filter(|c| c.state == EnforcementState::Throttled).count();
@@ -202,6 +216,8 @@ impl AppsCgroupCtrl {
         self.stats.total_throttle_events = self.cgroups.values().map(|c| c.nr_throttled).sum();
     }
 
+    #[inline(always)]
     pub fn cgroup(&self, id: u64) -> Option<&AppCgroup> { self.cgroups.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppCgroupStats { &self.stats }
 }
