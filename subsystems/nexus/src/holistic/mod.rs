@@ -1529,3 +1529,15 @@ mod tests {
 pub mod anomaly;
 pub mod cpu_topo;
 pub mod hugepage;
+// R30 — Memory Management
+pub mod mmap_holistic;
+pub mod shmem_holistic;
+pub mod mprotect_holistic;
+pub mod mremap_holistic;
+pub mod msync_holistic;
+pub mod munmap_holistic;
+pub mod vma_holistic;
+pub mod page_fault_holistic;
+pub mod oom_holistic;
+pub mod swap_holistic;
+pub mod mlock_holistic;
