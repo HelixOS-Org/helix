@@ -73,6 +73,7 @@ impl ProcessMadvise {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MadviseAppStats {
     pub tracked_procs: u32,
     pub total_calls: u64,
@@ -89,14 +90,18 @@ pub struct AppMadvise {
 impl AppMadvise {
     pub fn new() -> Self { Self { procs: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn track(&mut self, pid: u64) { self.procs.insert(pid, ProcessMadvise::new(pid)); }
 
+    #[inline(always)]
     pub fn advise(&mut self, pid: u64, addr: u64, len: u64, advice: MadviseAdvice, now: u64) {
         if let Some(p) = self.procs.get_mut(&pid) { p.advise(addr, len, advice, now); }
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, pid: u64) { self.procs.remove(&pid); }
 
+    #[inline]
     pub fn stats(&self) -> MadviseAppStats {
         let calls: u64 = self.procs.values().map(|p| p.total_calls).sum();
         let bytes: u64 = self.procs.values().map(|p| p.total_bytes).sum();
