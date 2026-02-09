@@ -28,100 +28,68 @@
 // Sub-module declarations
 // ---------------------------------------------------------------------------
 
+pub mod beyond;
+pub mod genesis;
+pub mod interface;
 pub mod omniscient;
 pub mod optimal;
-pub mod beyond;
-pub mod interface;
-pub mod singularity;
 pub mod oracle;
+pub mod singularity;
 pub mod synthesis_engine;
-pub mod genesis;
 
 // ---------------------------------------------------------------------------
 // Re-exports — omniscient.rs
 // ---------------------------------------------------------------------------
 
-pub use omniscient::DomainObservation;
-pub use omniscient::HolisticOmniscient;
-pub use omniscient::OmniscientStats;
-pub use omniscient::QueryEntry;
-pub use omniscient::QueryResult;
-pub use omniscient::SystemStateSnapshot;
-
-// ---------------------------------------------------------------------------
-// Re-exports — optimal.rs
-// ---------------------------------------------------------------------------
-
-pub use optimal::Decision;
-pub use optimal::HolisticOptimal;
-pub use optimal::OptimalStats;
-pub use optimal::OptimalityCertificate;
-pub use optimal::ParetoPoint;
-pub use optimal::ResourceDescriptor;
-
 // ---------------------------------------------------------------------------
 // Re-exports — beyond.rs
 // ---------------------------------------------------------------------------
-
 pub use beyond::BeyondStats;
-pub use beyond::Breakthrough;
-pub use beyond::EvolutionEvent;
-pub use beyond::HolisticBeyond;
-pub use beyond::InfiniteHorizonPlan;
-pub use beyond::ZeroLatencyDecision;
-
-// ---------------------------------------------------------------------------
-// Re-exports — interface.rs
-// ---------------------------------------------------------------------------
-
-pub use interface::Explanation;
-pub use interface::HolisticInterface;
-pub use interface::InterfaceStats;
-pub use interface::KnowledgePacket;
-pub use interface::Lesson;
-pub use interface::ReasoningChain;
-pub use interface::ReasoningStep;
-pub use interface::Recommendation;
-
-// ---------------------------------------------------------------------------
-// Re-exports — singularity.rs
-// ---------------------------------------------------------------------------
-
-pub use singularity::HolisticSingularity;
-pub use singularity::IntelligenceSource;
-pub use singularity::ParityAssessment;
-pub use singularity::SingularityEvent;
-pub use singularity::SingularityStats;
-
-// ---------------------------------------------------------------------------
-// Re-exports — oracle.rs
-// ---------------------------------------------------------------------------
-
-pub use oracle::BayesianFusion;
-pub use oracle::HolisticOracle;
-pub use oracle::OraclePrediction;
-pub use oracle::OracleStats;
-pub use oracle::PredictionSource;
-pub use oracle::UncertaintyState;
-
-// ---------------------------------------------------------------------------
-// Re-exports — synthesis_engine.rs
-// ---------------------------------------------------------------------------
-
-pub use synthesis_engine::ArchitectureVariant;
-pub use synthesis_engine::CandidateAlgorithm;
-pub use synthesis_engine::HolisticSynthesisEngine;
-pub use synthesis_engine::ImprovementEvent;
-pub use synthesis_engine::NovelAlgorithm;
-pub use synthesis_engine::SynthesisStats;
-
+pub use beyond::{
+    Breakthrough, EvolutionEvent, HolisticBeyond, InfiniteHorizonPlan, ZeroLatencyDecision,
+};
 // ---------------------------------------------------------------------------
 // Re-exports — genesis.rs
 // ---------------------------------------------------------------------------
-
 pub use genesis::Capability;
-pub use genesis::CapabilityTreeSummary;
-pub use genesis::DynamicExtension;
-pub use genesis::GenesisEvent;
-pub use genesis::GenesisStats;
-pub use genesis::HolisticGenesis;
+pub use genesis::{
+    CapabilityTreeSummary, DynamicExtension, GenesisEvent, GenesisStats, HolisticGenesis,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — interface.rs
+// ---------------------------------------------------------------------------
+pub use interface::Explanation;
+pub use interface::{
+    HolisticInterface, InterfaceStats, KnowledgePacket, Lesson, ReasoningChain, ReasoningStep,
+    Recommendation,
+};
+pub use omniscient::{
+    DomainObservation, HolisticOmniscient, OmniscientStats, QueryEntry, QueryResult,
+    SystemStateSnapshot,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — optimal.rs
+// ---------------------------------------------------------------------------
+pub use optimal::Decision;
+pub use optimal::{
+    HolisticOptimal, OptimalStats, OptimalityCertificate, ParetoPoint, ResourceDescriptor,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — oracle.rs
+// ---------------------------------------------------------------------------
+pub use oracle::BayesianFusion;
+pub use oracle::{
+    HolisticOracle, OraclePrediction, OracleStats, PredictionSource, UncertaintyState,
+};
+// ---------------------------------------------------------------------------
+// Re-exports — singularity.rs
+// ---------------------------------------------------------------------------
+pub use singularity::HolisticSingularity;
+pub use singularity::{IntelligenceSource, ParityAssessment, SingularityEvent, SingularityStats};
+// ---------------------------------------------------------------------------
+// Re-exports — synthesis_engine.rs
+// ---------------------------------------------------------------------------
+pub use synthesis_engine::ArchitectureVariant;
+pub use synthesis_engine::{
+    CandidateAlgorithm, HolisticSynthesisEngine, ImprovementEvent, NovelAlgorithm, SynthesisStats,
+};
