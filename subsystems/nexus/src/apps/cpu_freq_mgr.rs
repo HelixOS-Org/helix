@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -35,7 +36,7 @@ pub struct FreqDomain {
     pub current_freq_khz: u32,
     pub governor: FreqGovernor,
     pub transition_count: u64,
-    pub time_in_freq: BTreeMap<u32, u64>,
+    pub time_in_freq: ArrayMap<u64, 32>,
     last_transition_ns: u64,
 }
 
@@ -49,7 +50,7 @@ impl FreqDomain {
             current_freq_khz: max_khz,
             governor: FreqGovernor::Schedutil,
             transition_count: 0,
-            time_in_freq: BTreeMap::new(),
+            time_in_freq: ArrayMap::new(0),
             last_transition_ns: 0,
         }
     }
@@ -78,11 +79,13 @@ impl FreqDomain {
         direction
     }
 
+    #[inline(always)]
     pub fn utilization_ratio(&self) -> f64 {
         if self.max_freq_khz == 0 { return 0.0; }
         self.current_freq_khz as f64 / self.max_freq_khz as f64
     }
 
+    #[inline]
     pub fn dominant_frequency(&self) -> u32 {
         self.time_in_freq
             .iter()
@@ -91,6 +94,7 @@ impl FreqDomain {
             .unwrap_or(self.current_freq_khz)
     }
 
+    #[inline(always)]
     pub fn available_headroom_khz(&self) -> u32 {
         self.max_freq_khz.saturating_sub(self.current_freq_khz)
     }
@@ -105,7 +109,7 @@ pub struct AppFreqProfile {
     pub avg_utilization: f64,
     pub samples: u64,
     pub latency_sensitive: bool,
-    pub freq_histogram: BTreeMap<u32, u64>,
+    pub freq_histogram: ArrayMap<u64, 32>,
     total_util_sum: f64,
 }
 
@@ -118,18 +122,20 @@ impl AppFreqProfile {
             avg_utilization: 0.0,
             samples: 0,
             latency_sensitive: false,
-            freq_histogram: BTreeMap::new(),
+            freq_histogram: ArrayMap::new(0),
             total_util_sum: 0.0,
         }
     }
 
+    #[inline]
     pub fn record_sample(&mut self, freq_khz: u32, utilization: f64) {
         self.samples += 1;
         self.total_util_sum += utilization;
         self.avg_utilization = self.total_util_sum / self.samples as f64;
-        *self.freq_histogram.entry(freq_khz).or_insert(0) += 1;
+        self.freq_histogram.add(freq_khz as usize, 1);
     }
 
+    #[inline]
     pub fn suggest_governor(&self) -> FreqGovernor {
         if self.latency_sensitive {
             FreqGovernor::Performance
@@ -142,6 +148,7 @@ impl AppFreqProfile {
         }
     }
 
+    #[inline]
     pub fn most_common_freq(&self) -> u32 {
         self.freq_histogram
             .iter()
@@ -160,6 +167,7 @@ pub struct EnergyPoint {
 }
 
 impl EnergyPoint {
+    #[inline(always)]
     pub fn efficiency(&self) -> f64 {
         if self.power_mw == 0 { return 0.0; }
         self.capacity as f64 / self.power_mw as f64
@@ -168,6 +176,7 @@ impl EnergyPoint {
 
 /// CPU frequency manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CpuFreqMgrStats {
     pub domains_managed: u64,
     pub transitions_total: u64,
@@ -200,15 +209,18 @@ impl AppCpuFreqMgr {
         }
     }
 
+    #[inline(always)]
     pub fn add_domain(&mut self, domain_id: u32, cpus: Vec<u32>, min_khz: u32, max_khz: u32) {
         self.domains.insert(domain_id, FreqDomain::new(domain_id, cpus, min_khz, max_khz));
         self.stats.domains_managed += 1;
     }
 
+    #[inline(always)]
     pub fn set_energy_model(&mut self, points: Vec<EnergyPoint>) {
         self.energy_model = points;
     }
 
+    #[inline]
     pub fn set_frequency(&mut self, domain_id: u32, freq_khz: u32, now_ns: u64) -> Option<FreqTransition> {
         let domain = self.domains.get_mut(&domain_id)?;
         let transition = domain.set_frequency(freq_khz, now_ns);
@@ -218,6 +230,7 @@ impl AppCpuFreqMgr {
         Some(transition)
     }
 
+    #[inline]
     pub fn set_governor(&mut self, domain_id: u32, governor: FreqGovernor) -> bool {
         if let Some(domain) = self.domains.get_mut(&domain_id) {
             domain.governor = governor;
@@ -227,6 +240,7 @@ impl AppCpuFreqMgr {
         }
     }
 
+    #[inline]
     pub fn register_app(&mut self, pid: u64) {
         if !self.profiles.contains_key(&pid) {
             self.profiles.insert(pid, AppFreqProfile::new(pid));
@@ -234,6 +248,7 @@ impl AppCpuFreqMgr {
         }
     }
 
+    #[inline]
     pub fn sample_app(&mut self, pid: u64, cpu_id: u32, utilization: f64) {
         // Find the domain for this CPU
         let freq_khz = self.domains.values()
@@ -246,18 +261,21 @@ impl AppCpuFreqMgr {
         }
     }
 
+    #[inline]
     pub fn suggest_governor_for_app(&mut self, pid: u64) -> Option<FreqGovernor> {
         let profile = self.profiles.get(&pid)?;
         self.stats.governor_hints += 1;
         Some(profile.suggest_governor())
     }
 
+    #[inline]
     pub fn most_efficient_freq(&self) -> Option<u32> {
         self.energy_model.iter()
             .max_by(|a, b| a.efficiency().partial_cmp(&b.efficiency()).unwrap_or(core::cmp::Ordering::Equal))
             .map(|e| e.freq_khz)
     }
 
+    #[inline]
     pub fn domain_info(&self, domain_id: u32) -> Option<(u32, u32, f64)> {
         self.domains.get(&domain_id).map(|d| {
             (d.current_freq_khz, d.max_freq_khz, d.utilization_ratio())
@@ -279,6 +297,7 @@ impl AppCpuFreqMgr {
         total
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CpuFreqMgrStats {
         &self.stats
     }
