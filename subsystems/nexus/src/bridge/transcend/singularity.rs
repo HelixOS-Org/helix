@@ -372,8 +372,14 @@ impl BridgeSingularity {
     /// optimisation and domains where it still falls short.
     pub fn beyond_human(&self) -> BeyondHumanReport {
         let domain_names = [
-            "Prediction", "Optimisation", "Research", "Consciousness",
-            "Knowledge", "Transcendence", "Oracle", "Synthesis",
+            "Prediction",
+            "Optimisation",
+            "Research",
+            "Consciousness",
+            "Knowledge",
+            "Transcendence",
+            "Oracle",
+            "Synthesis",
         ];
         let mut surpassed = Vec::new();
         let mut below = Vec::new();
@@ -434,7 +440,8 @@ impl BridgeSingularity {
             return 0.0;
         }
         let mean = scores.iter().sum::<f32>() / scores.len() as f32;
-        let variance = scores.iter().map(|s| (s - mean) * (s - mean)).sum::<f32>() / scores.len() as f32;
+        let variance =
+            scores.iter().map(|s| (s - mean) * (s - mean)).sum::<f32>() / scores.len() as f32;
         // Low variance = high convergence.
         (1.0 - variance.min(1.0)).max(0.0)
     }
