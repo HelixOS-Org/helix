@@ -64,6 +64,30 @@ pub mod monte_carlo;
 /// Prediction validation: MAPE, directional accuracy, bias detection
 pub mod validator;
 
+/// Branching scenario trees for app behavior futures
+pub mod scenario_tree;
+
+/// Causal prediction of app behavior: why apps behave as they do
+pub mod causal_forecast;
+
+/// Counterfactual "what if" analysis for resource allocation decisions
+pub mod counterfactual;
+
+/// Uncertainty quantification and confidence intervals for app predictions
+pub mod confidence_interval;
+
+/// Multi-model ensemble for app behavior prediction
+pub mod ensemble;
+
+/// Multi-horizon temporal fusion for coherent app forecasts
+pub mod temporal_fusion;
+
+/// Anomaly forecasting: predict app crashes, hangs, thrashing before they happen
+pub mod anomaly_forecast;
+
+/// Pre-cognitive behavioral shift sensing below anomaly thresholds
+pub mod precognition;
+
 // Re-exports for convenience
 pub use horizon::AppsHorizonPredictor;
 pub use monte_carlo::AppsMonteCarlo;
@@ -72,3 +96,11 @@ pub use rehearsal::AppsRehearsal;
 pub use simulator::AppsSimulator;
 pub use timeline::AppsTimeline;
 pub use validator::AppsPredictionValidator;
+pub use scenario_tree::AppsScenarioTree;
+pub use causal_forecast::AppsCausalForecast;
+pub use counterfactual::AppsCounterfactual;
+pub use confidence_interval::AppsConfidenceInterval;
+pub use ensemble::AppsEnsemble;
+pub use temporal_fusion::AppsTemporalFusion;
+pub use anomaly_forecast::AppsAnomalyForecast;
+pub use precognition::AppsPrecognition;
