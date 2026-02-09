@@ -243,10 +243,6 @@ impl FanotifyV2Mask {
     pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
 }
 
-/// FAN mark type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FanMarkType { Inode, Mount, Filesystem }
-
 /// Fanotify v2 event
 #[derive(Debug, Clone)]
 pub struct FanotifyV2Event {
