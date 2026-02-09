@@ -3,7 +3,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 
 /// Ioctl direction
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +27,7 @@ pub struct IoctlCmd {
 }
 
 impl IoctlCmd {
+    #[inline]
     pub fn from_raw(cmd: u32) -> Self {
         let dir = match (cmd >> 30) & 3 { 0 => IoctlDir::None, 1 => IoctlDir::Write, 2 => IoctlDir::Read, _ => IoctlDir::ReadWrite };
         let size = ((cmd >> 16) & 0x3FFF) as u32;
@@ -48,17 +51,18 @@ pub struct IoctlEvent {
 /// Ioctl frequency tracker
 #[derive(Debug)]
 pub struct IoctlTracker {
-    pub cmd_counts: BTreeMap<u32, u64>,
+    pub cmd_counts: ArrayMap<u64, 32>,
     pub total_calls: u64,
     pub total_errors: u64,
     pub total_time_ns: u64,
 }
 
 impl IoctlTracker {
-    pub fn new() -> Self { Self { cmd_counts: BTreeMap::new(), total_calls: 0, total_errors: 0, total_time_ns: 0 } }
+    pub fn new() -> Self { Self { cmd_counts: ArrayMap::new(0), total_calls: 0, total_errors: 0, total_time_ns: 0 } }
 
+    #[inline]
     pub fn record(&mut self, cmd: u32, success: bool, dur: u64) {
-        *self.cmd_counts.entry(cmd).or_insert(0) += 1;
+        self.cmd_counts.add(cmd as usize, 1);
         self.total_calls += 1;
         if !success { self.total_errors += 1; }
         self.total_time_ns += dur;
@@ -67,6 +71,7 @@ impl IoctlTracker {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoctlAppStats {
     pub total_calls: u64,
     pub unique_cmds: u32,
@@ -82,8 +87,10 @@ pub struct AppIoctl {
 impl AppIoctl {
     pub fn new() -> Self { Self { tracker: IoctlTracker::new() } }
 
+    #[inline(always)]
     pub fn record(&mut self, cmd: u32, success: bool, dur: u64) { self.tracker.record(cmd, success, dur); }
 
+    #[inline(always)]
     pub fn stats(&self) -> IoctlAppStats {
         let avg = if self.tracker.total_calls == 0 { 0 } else { self.tracker.total_time_ns / self.tracker.total_calls };
         IoctlAppStats { total_calls: self.tracker.total_calls, unique_cmds: self.tracker.cmd_counts.len() as u32, total_errors: self.tracker.total_errors, avg_duration_ns: avg }
@@ -215,6 +222,7 @@ impl IoctlV2Route {
 
 /// Statistics for ioctl V2 app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct IoctlV2AppStats {
     pub total_calls: u64,
     pub total_errors: u64,
@@ -228,7 +236,7 @@ pub struct IoctlV2AppStats {
 /// Main apps ioctl V2 manager.
 pub struct AppIoctlV2 {
     pub routes: BTreeMap<u16, IoctlV2Route>, // (type << 8 | nr) → route
-    pub recent_records: Vec<IoctlV2Record>,
+    pub recent_records: VecDeque<IoctlV2Record>,
     pub next_record_id: u64,
     pub max_history: usize,
     pub stats: IoctlV2AppStats,
@@ -238,7 +246,7 @@ impl AppIoctlV2 {
     pub fn new() -> Self {
         Self {
             routes: BTreeMap::new(),
-            recent_records: Vec::new(),
+            recent_records: VecDeque::new(),
             next_record_id: 1,
             max_history: 1024,
             stats: IoctlV2AppStats {
@@ -253,6 +261,7 @@ impl AppIoctlV2 {
         }
     }
 
+    #[inline]
     pub fn register_route(&mut self, dev_class: IoctlV2DevClass, cmd_type: u8, handler: String) {
         let key = (cmd_type as u16) << 8;
         let route = IoctlV2Route::new(dev_class, cmd_type, handler);
@@ -276,12 +285,13 @@ impl AppIoctlV2 {
         }
         self.stats.total_calls += 1;
         if self.recent_records.len() >= self.max_history {
-            self.recent_records.remove(0);
+            self.recent_records.pop_front();
         }
-        self.recent_records.push(rec);
+        self.recent_records.push_back(rec);
         id
     }
 
+    #[inline(always)]
     pub fn route_count(&self) -> usize {
         self.routes.len()
     }
