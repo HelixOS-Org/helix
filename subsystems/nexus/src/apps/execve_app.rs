@@ -55,6 +55,7 @@ impl ProcessExecTracker {
         Self { pid, total_execs: 0, success_count: 0, fail_count: 0, last_binary_hash: 0, avg_load_ns: 0 }
     }
 
+    #[inline]
     pub fn record(&mut self, entry: &ExecEntry) {
         self.total_execs += 1;
         if entry.result == ExecResult::Success {
@@ -70,6 +71,7 @@ impl ProcessExecTracker {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ExecveAppStats {
     pub tracked_procs: u32,
     pub total_execs: u64,
@@ -85,14 +87,18 @@ pub struct AppExecve {
 impl AppExecve {
     pub fn new() -> Self { Self { procs: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn track(&mut self, pid: u64) { self.procs.insert(pid, ProcessExecTracker::new(pid)); }
 
+    #[inline(always)]
     pub fn exec(&mut self, entry: &ExecEntry) {
         if let Some(t) = self.procs.get_mut(&entry.pid) { t.record(entry); }
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, pid: u64) { self.procs.remove(&pid); }
 
+    #[inline]
     pub fn stats(&self) -> ExecveAppStats {
         let execs: u64 = self.procs.values().map(|p| p.total_execs).sum();
         let succ: u64 = self.procs.values().map(|p| p.success_count).sum();
