@@ -347,8 +347,8 @@ impl HolisticProactive {
         self.tick += 1;
         self.defrags_done += 1;
 
-        let pages_to_move = ((fragmentation_level * pages_available as f32) as u64)
-            .min(pages_available);
+        let pages_to_move =
+            ((fragmentation_level * pages_available as f32) as u64).min(pages_available);
         let frag_after = (fragmentation_level * (1.0 - 0.7)).clamp(0.0, 1.0);
         let contiguous = pages_to_move * 3 / 4;
 
@@ -393,9 +393,8 @@ impl HolisticProactive {
         let mitigation = actions_taken.len() as f32 * 0.2;
         let risk_after = (current_risk - mitigation).clamp(0.0, 1.0);
 
-        let id = fnv1a_hash(
-            format!("cascade-{:?}-{}", trigger_domain, self.tick).as_bytes(),
-        ) ^ xorshift64(&mut self.rng_state);
+        let id = fnv1a_hash(format!("cascade-{:?}-{}", trigger_domain, self.tick).as_bytes())
+            ^ xorshift64(&mut self.rng_state);
 
         let record = CascadePreventionRecord {
             id,
@@ -444,8 +443,8 @@ impl HolisticProactive {
     pub fn record_outcome(&mut self, action_id: u64, outcome: f32, savings: SavingsEntry) {
         if let Some(action) = self.actions.get_mut(&action_id) {
             action.outcome_score = outcome.clamp(0.0, 1.0);
-            self.outcome_ema = EMA_ALPHA * outcome.clamp(0.0, 1.0)
-                + (1.0 - EMA_ALPHA) * self.outcome_ema;
+            self.outcome_ema =
+                EMA_ALPHA * outcome.clamp(0.0, 1.0) + (1.0 - EMA_ALPHA) * self.outcome_ema;
         }
         self.savings.insert(savings.action_id, savings);
 
