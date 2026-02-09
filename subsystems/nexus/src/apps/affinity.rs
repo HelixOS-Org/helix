@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
@@ -61,6 +62,7 @@ impl CoreDescriptor {
     }
 
     /// Frequency ratio
+    #[inline]
     pub fn freq_ratio(&self) -> f64 {
         if self.max_freq_mhz == 0 {
             return 0.0;
@@ -92,6 +94,7 @@ impl AffinityMask {
     }
 
     /// Set all CPUs
+    #[inline]
     pub fn set_all(&mut self) {
         for i in 0..self.total_cpus {
             self.set(i);
@@ -99,6 +102,7 @@ impl AffinityMask {
     }
 
     /// Set a CPU
+    #[inline]
     pub fn set(&mut self, cpu: u32) {
         if cpu < self.total_cpus {
             let word = cpu as usize / 64;
@@ -110,6 +114,7 @@ impl AffinityMask {
     }
 
     /// Clear a CPU
+    #[inline]
     pub fn clear(&mut self, cpu: u32) {
         if cpu < self.total_cpus {
             let word = cpu as usize / 64;
@@ -135,11 +140,13 @@ impl AffinityMask {
     }
 
     /// Count set CPUs
+    #[inline(always)]
     pub fn count(&self) -> u32 {
         self.bits.iter().map(|w| w.count_ones()).sum()
     }
 
     /// Iterate over set CPUs
+    #[inline]
     pub fn iter_set(&self) -> Vec<u32> {
         let mut result = Vec::new();
         for cpu in 0..self.total_cpus {
@@ -151,6 +158,7 @@ impl AffinityMask {
     }
 
     /// Intersection with another mask
+    #[inline]
     pub fn intersect(&self, other: &AffinityMask) -> AffinityMask {
         let min_len = self.bits.len().min(other.bits.len());
         let mut result = AffinityMask::new(self.total_cpus.min(other.total_cpus));
@@ -225,7 +233,7 @@ pub struct ProcessAffinityProfile {
     /// Policy
     pub policy: AffinityPolicy,
     /// Core usage histogram (core -> time_ns)
-    pub core_usage: BTreeMap<u32, u64>,
+    pub core_usage: ArrayMap<u64, 32>,
     /// Migration count
     pub migrations: u64,
     /// Last core
@@ -244,7 +252,7 @@ impl ProcessAffinityProfile {
             pid,
             mask,
             policy: AffinityPolicy::SystemManaged,
-            core_usage: BTreeMap::new(),
+            core_usage: ArrayMap::new(0),
             migrations: 0,
             last_core: 0,
             preferred_type: CoreType::General,
@@ -253,16 +261,18 @@ impl ProcessAffinityProfile {
     }
 
     /// Record core usage
+    #[inline]
     pub fn record_usage(&mut self, core: u32, duration_ns: u64) {
         if core != self.last_core && self.total_runtime_ns > 0 {
             self.migrations += 1;
         }
-        *self.core_usage.entry(core).or_insert(0) += duration_ns;
+        self.core_usage.add(core as usize, duration_ns);
         self.total_runtime_ns += duration_ns;
         self.last_core = core;
     }
 
     /// Most-used core
+    #[inline]
     pub fn most_used_core(&self) -> Option<u32> {
         self.core_usage
             .iter()
@@ -271,6 +281,7 @@ impl ProcessAffinityProfile {
     }
 
     /// Migration rate (per second)
+    #[inline]
     pub fn migration_rate(&self) -> f64 {
         if self.total_runtime_ns == 0 {
             return 0.0;
@@ -279,11 +290,13 @@ impl ProcessAffinityProfile {
     }
 
     /// Core spread (number of unique cores used)
+    #[inline(always)]
     pub fn core_spread(&self) -> usize {
         self.core_usage.len()
     }
 
     /// Concentration ratio (fraction on most-used core)
+    #[inline]
     pub fn concentration_ratio(&self) -> f64 {
         if self.total_runtime_ns == 0 {
             return 0.0;
@@ -299,6 +312,7 @@ impl ProcessAffinityProfile {
 
 /// App affinity stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppAffinityStats {
     /// Tracked processes
     pub process_count: usize,
@@ -319,7 +333,7 @@ pub struct AppAffinityManager {
     /// Process profiles
     profiles: BTreeMap<u64, ProcessAffinityProfile>,
     /// Exclusive assignments (core -> pid)
-    exclusive: BTreeMap<u32, u64>,
+    exclusive: ArrayMap<u64, 32>,
     /// Migration log
     migration_log: VecDeque<MigrationEvent>,
     /// Max log size
@@ -333,7 +347,7 @@ impl AppAffinityManager {
         Self {
             cores: BTreeMap::new(),
             profiles: BTreeMap::new(),
-            exclusive: BTreeMap::new(),
+            exclusive: ArrayMap::new(0),
             migration_log: VecDeque::new(),
             max_log: 1024,
             stats: AppAffinityStats::default(),
@@ -341,11 +355,13 @@ impl AppAffinityManager {
     }
 
     /// Register core
+    #[inline(always)]
     pub fn register_core(&mut self, desc: CoreDescriptor) {
         self.cores.insert(desc.id, desc);
     }
 
     /// Register process
+    #[inline]
     pub fn register_process(&mut self, pid: u64) {
         let total_cpus = self.cores.len() as u32;
         self.profiles
@@ -354,6 +370,7 @@ impl AppAffinityManager {
     }
 
     /// Set affinity
+    #[inline]
     pub fn set_affinity(&mut self, pid: u64, mask: AffinityMask, policy: AffinityPolicy) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.mask = mask;
@@ -365,7 +382,7 @@ impl AppAffinityManager {
     pub fn set_exclusive(&mut self, pid: u64, cores: &[u32]) -> bool {
         // Check no conflicts
         for &core in cores {
-            if let Some(&existing) = self.exclusive.get(&core) {
+            if let Some(&existing) = self.exclusive.try_get(core as usize) {
                 if existing != pid {
                     return false;
                 }
@@ -427,7 +444,7 @@ impl AppAffinityManager {
                     score += 25; // warm cache
                 }
                 // Avoid exclusive cores owned by others
-                if let Some(&owner) = self.exclusive.get(&core_id) {
+                if let Some(&owner) = self.exclusive.try_get(core_id as usize) {
                     if owner != pid {
                         continue;
                     }
@@ -459,11 +476,13 @@ impl AppAffinityManager {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessAffinityProfile> {
         self.profiles.get(&pid)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppAffinityStats {
         &self.stats
     }
