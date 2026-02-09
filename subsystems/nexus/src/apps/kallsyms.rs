@@ -65,16 +65,19 @@ impl KernelSymbol {
         }
     }
 
+    #[inline(always)]
     pub fn with_size(mut self, size: u64) -> Self {
         self.size = size;
         self
     }
 
+    #[inline(always)]
     pub fn with_module(mut self, module: String) -> Self {
         self.module = Some(module);
         self
     }
 
+    #[inline]
     pub fn contains_addr(&self, addr: u64) -> bool {
         if self.size == 0 {
             return addr == self.address;
@@ -82,6 +85,7 @@ impl KernelSymbol {
         addr >= self.address && addr < self.address + self.size
     }
 
+    #[inline]
     pub fn offset_of(&self, addr: u64) -> Option<u64> {
         if self.contains_addr(addr) {
             Some(addr - self.address)
@@ -90,6 +94,7 @@ impl KernelSymbol {
         }
     }
 
+    #[inline(always)]
     pub fn is_kernel_text(&self) -> bool {
         self.sym_type == SymbolType::Text && self.module.is_none()
     }
@@ -133,10 +138,12 @@ pub struct SymbolSection {
 }
 
 impl SymbolSection {
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool {
         addr >= self.start && addr < self.end
     }
 
+    #[inline(always)]
     pub fn size(&self) -> u64 {
         self.end.saturating_sub(self.start)
     }
@@ -144,6 +151,7 @@ impl SymbolSection {
 
 /// Kallsyms stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KallsymsStats {
     pub total_symbols: u64,
     pub text_symbols: u64,
@@ -278,10 +286,12 @@ impl AppKallsyms {
         })
     }
 
+    #[inline(always)]
     pub fn symbolize_stack(&mut self, addresses: &[u64]) -> Vec<SymbolLookup> {
         addresses.iter().filter_map(|&addr| self.lookup_by_addr(addr)).collect()
     }
 
+    #[inline]
     pub fn add_section(&mut self, name: String, start: u64, end: u64) {
         let count = self.symbols_by_addr.iter()
             .filter(|s| s.address >= start && s.address < end)
@@ -289,10 +299,12 @@ impl AppKallsyms {
         self.sections.push(SymbolSection { name, start, end, symbol_count: count });
     }
 
+    #[inline(always)]
     pub fn set_restrict_exported(&mut self, restrict: bool) {
         self.restrict_to_exported = restrict;
     }
 
+    #[inline]
     pub fn search_prefix(&self, prefix: &str, max: usize) -> Vec<&str> {
         self.name_index.keys()
             .filter(|name| name.starts_with(prefix))
@@ -301,6 +313,7 @@ impl AppKallsyms {
             .collect()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &KallsymsStats {
         &self.stats
     }
