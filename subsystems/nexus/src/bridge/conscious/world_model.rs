@@ -160,16 +160,19 @@ impl BridgeWorldModel {
         let clamped = observed_health.max(0.0).min(1.0);
         let id = fnv1a_hash(subsystem_name.as_bytes());
 
-        let sub = self.subsystems.entry(id).or_insert_with(|| SubsystemHealth {
-            name: String::from(subsystem_name),
-            id,
-            health: 0.5,
-            variance: 0.0,
-            predicted_health: 0.5,
-            observations: 0,
-            last_surprise: 0.0,
-            cumulative_surprise: 0.0,
-        });
+        let sub = self
+            .subsystems
+            .entry(id)
+            .or_insert_with(|| SubsystemHealth {
+                name: String::from(subsystem_name),
+                id,
+                health: 0.5,
+                variance: 0.0,
+                predicted_health: 0.5,
+                observations: 0,
+                last_surprise: 0.0,
+                cumulative_surprise: 0.0,
+            });
 
         // Compute surprise before updating
         let surprise = (clamped - sub.predicted_health).abs();
@@ -195,8 +198,8 @@ impl BridgeWorldModel {
         self.pred_write_idx = (self.pred_write_idx + 1) % MAX_PREDICTION_HISTORY;
 
         // EMA update of global prediction error
-        self.avg_prediction_error = EMA_ALPHA * surprise
-            + (1.0 - EMA_ALPHA) * self.avg_prediction_error;
+        self.avg_prediction_error =
+            EMA_ALPHA * surprise + (1.0 - EMA_ALPHA) * self.avg_prediction_error;
 
         // Update subsystem state
         let diff = clamped - sub.health;
@@ -231,11 +234,14 @@ impl BridgeWorldModel {
 
         ResourceState {
             memory_available: (self.resources.memory_available + delta_mem * scale * 0.3 + jitter)
-                .max(0.0).min(1.0),
+                .max(0.0)
+                .min(1.0),
             cpu_utilization: (self.resources.cpu_utilization + delta_cpu * scale * 0.3 + jitter)
-                .max(0.0).min(1.0),
+                .max(0.0)
+                .min(1.0),
             io_saturation: (self.resources.io_saturation + delta_io * scale * 0.3 + jitter)
-                .max(0.0).min(1.0),
+                .max(0.0)
+                .min(1.0),
             active_processes: self.resources.active_processes,
             syscall_rate: (self.resources.syscall_rate + delta_rate * scale * 0.3).max(0.0),
             tick: self.tick + ticks_ahead as u64,
@@ -250,7 +256,8 @@ impl BridgeWorldModel {
     /// Detect surprise events: subsystems whose last observation deviated
     /// significantly from prediction
     pub fn surprise_detection(&self) -> Vec<(String, f32)> {
-        self.subsystems.values()
+        self.subsystems
+            .values()
             .filter(|s| s.last_surprise > SURPRISE_THRESHOLD)
             .map(|s| (s.name.clone(), s.last_surprise))
             .collect()
@@ -263,22 +270,24 @@ impl BridgeWorldModel {
         }
 
         // Entropy from subsystem variance
-        let variance_sum: f32 = self.subsystems.values()
-            .map(|s| s.variance)
-            .sum();
+        let variance_sum: f32 = self.subsystems.values().map(|s| s.variance).sum();
         let avg_variance = variance_sum / self.subsystems.len() as f32;
 
         // Entropy from resource volatility
-        let resource_delta = (self.resources.memory_available - self.prev_resources.memory_available).abs()
-            + (self.resources.cpu_utilization - self.prev_resources.cpu_utilization).abs()
-            + (self.resources.io_saturation - self.prev_resources.io_saturation).abs();
+        let resource_delta =
+            (self.resources.memory_available - self.prev_resources.memory_available).abs()
+                + (self.resources.cpu_utilization - self.prev_resources.cpu_utilization).abs()
+                + (self.resources.io_saturation - self.prev_resources.io_saturation).abs();
         let resource_entropy = resource_delta / 3.0;
 
         // Combined: weighted average with surprise rate
         let surprise_rate = if self.predictions.is_empty() {
             0.0
         } else {
-            self.predictions.iter().filter(|p| p.error > SURPRISE_THRESHOLD).count() as f32
+            self.predictions
+                .iter()
+                .filter(|p| p.error > SURPRISE_THRESHOLD)
+                .count() as f32
                 / self.predictions.len() as f32
         };
 
@@ -290,8 +299,7 @@ impl BridgeWorldModel {
         let avg_health = if self.subsystems.is_empty() {
             0.0
         } else {
-            self.subsystems.values().map(|s| s.health).sum::<f32>()
-                / self.subsystems.len() as f32
+            self.subsystems.values().map(|s| s.health).sum::<f32>() / self.subsystems.len() as f32
         };
 
         let resource_pressure = self.resources.cpu_utilization * 0.4
@@ -318,7 +326,9 @@ impl BridgeWorldModel {
 
     /// List all subsystems sorted by health (worst first)
     pub fn subsystem_ranking(&self) -> Vec<(String, f32)> {
-        let mut ranking: Vec<(String, f32)> = self.subsystems.values()
+        let mut ranking: Vec<(String, f32)> = self
+            .subsystems
+            .values()
             .map(|s| (s.name.clone(), s.health))
             .collect();
         ranking.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(core::cmp::Ordering::Equal));
