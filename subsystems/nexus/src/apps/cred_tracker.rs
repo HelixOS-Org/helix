@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Security context label
@@ -81,7 +82,7 @@ pub struct AppCredState {
     pub no_new_privs: bool,
     pub security_label: Option<SecurityLabel>,
     pub escalation_count: u32,
-    pub change_history: Vec<CredentialChange>,
+    pub change_history: VecDeque<CredentialChange>,
     pub max_history: usize,
 }
 
@@ -98,7 +99,7 @@ impl AppCredState {
             no_new_privs: false,
             security_label: None,
             escalation_count: 0,
-            change_history: Vec::new(),
+            change_history: VecDeque::new(),
             max_history: max_hist,
         }
     }
@@ -108,8 +109,8 @@ impl AppCredState {
     pub fn record_change(&mut self, change: CredentialChange) {
         // Detect privilege escalation
         if change.gained_privilege { self.escalation_count += 1; }
-        self.change_history.push(change);
-        while self.change_history.len() > self.max_history { self.change_history.remove(0); }
+        self.change_history.push_back(change);
+        while self.change_history.len() > self.max_history { self.change_history.pop_front(); }
     }
 
     pub fn drop_privileges(&mut self) {
@@ -173,7 +174,7 @@ pub struct AppsCredTrackerStats {
 /// Apps Credential Tracker
 pub struct AppsCredTracker {
     states: BTreeMap<u64, AppCredState>,
-    alerts: Vec<EscalationAlert>,
+    alerts: VecDeque<EscalationAlert>,
     max_alerts: usize,
     stats: AppsCredTrackerStats,
 }
@@ -182,7 +183,7 @@ impl AppsCredTracker {
     pub fn new(max_alerts: usize) -> Self {
         Self {
             states: BTreeMap::new(),
-            alerts: Vec::new(),
+            alerts: VecDeque::new(),
             max_alerts,
             stats: AppsCredTrackerStats::default(),
         }
@@ -204,12 +205,12 @@ impl AppsCredTracker {
                 gained_privilege: gained, syscall_nr: 0,
             });
             if gained {
-                self.alerts.push(EscalationAlert {
+                self.alerts.push_back(EscalationAlert {
                     process_id: pid, timestamp_ns: ts,
                     escalation_type: EscalationType::SetuidRoot,
                     details_hash: 0,
                 });
-                while self.alerts.len() > self.max_alerts { self.alerts.remove(0); }
+                while self.alerts.len() > self.max_alerts { self.alerts.pop_front(); }
             }
         }
     }
