@@ -123,30 +123,36 @@ pub struct AppCapabilitySet {
 }
 
 impl AppCapabilitySet {
+    #[inline(always)]
     pub fn empty() -> Self {
         Self { bits: 0 }
     }
 
+    #[inline(always)]
     pub fn full() -> Self {
         Self { bits: u64::MAX }
     }
 
     /// Grant capability
+    #[inline(always)]
     pub fn grant(&mut self, cap: AppCapability) {
         self.bits |= 1u64 << (cap as u32);
     }
 
     /// Revoke capability
+    #[inline(always)]
     pub fn revoke(&mut self, cap: AppCapability) {
         self.bits &= !(1u64 << (cap as u32));
     }
 
     /// Has capability?
+    #[inline(always)]
     pub fn has(&self, cap: AppCapability) -> bool {
         (self.bits & (1u64 << (cap as u32))) != 0
     }
 
     /// Count capabilities
+    #[inline]
     pub fn count(&self) -> u32 {
         let mut n = self.bits;
         let mut count = 0u32;
@@ -188,6 +194,7 @@ impl AppCapabilitySet {
     }
 
     /// Intersection
+    #[inline]
     pub fn intersect(&self, other: &AppCapabilitySet) -> AppCapabilitySet {
         AppCapabilitySet {
             bits: self.bits & other.bits,
@@ -195,6 +202,7 @@ impl AppCapabilitySet {
     }
 
     /// Union
+    #[inline]
     pub fn union(&self, other: &AppCapabilitySet) -> AppCapabilitySet {
         AppCapabilitySet {
             bits: self.bits | other.bits,
@@ -246,6 +254,7 @@ impl ProcessCapProfile {
     }
 
     /// Record usage
+    #[inline]
     pub fn record_use(&mut self, cap: AppCapability, now: u64) {
         self.used.grant(cap);
         let record = self.usage.entry(cap as u8).or_insert_with(|| CapUsageRecord {
@@ -304,6 +313,7 @@ impl ProcessCapProfile {
     }
 
     /// Least-privilege recommendation
+    #[inline(always)]
     pub fn least_privilege(&self) -> AppCapabilitySet {
         self.used.clone()
     }
@@ -315,6 +325,7 @@ impl ProcessCapProfile {
 
 /// Capability stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppCapabilityStats {
     /// Processes tracked
     pub processes: usize,
@@ -341,6 +352,7 @@ impl AppCapabilityManager {
     }
 
     /// Grant capabilities
+    #[inline]
     pub fn grant(&mut self, pid: u64, caps: AppCapabilitySet) {
         let profile = self
             .profiles
@@ -365,6 +377,7 @@ impl AppCapabilityManager {
     }
 
     /// Check permission
+    #[inline]
     pub fn check(&self, pid: u64, cap: AppCapability) -> bool {
         self.profiles
             .get(&pid)
@@ -373,6 +386,7 @@ impl AppCapabilityManager {
     }
 
     /// Over-privileged processes
+    #[inline]
     pub fn over_privileged(&self) -> Vec<(u64, Vec<AppCapability>)> {
         let mut result = Vec::new();
         for profile in self.profiles.values() {
@@ -386,6 +400,7 @@ impl AppCapabilityManager {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppCapabilityStats {
         &self.stats
     }
