@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -77,6 +78,7 @@ pub enum StormSeverity {
 
 /// Per-IRQ statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IrqStats {
     /// IRQ number
     pub irq_number: u32,
@@ -123,6 +125,7 @@ impl IrqStats {
     }
 
     /// Average duration
+    #[inline]
     pub fn avg_ns(&self) -> u64 {
         if self.invocations == 0 {
             0
@@ -132,6 +135,7 @@ impl IrqStats {
     }
 
     /// Rate (per second, given time window)
+    #[inline]
     pub fn rate(&self, window_ns: u64) -> f64 {
         if window_ns == 0 {
             return 0.0;
@@ -146,6 +150,7 @@ impl IrqStats {
 
 /// Per-softirq statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SoftirqStats {
     /// Type
     pub softirq_type: u8,
@@ -166,6 +171,7 @@ impl SoftirqStats {
     }
 
     /// Record
+    #[inline]
     pub fn record(&mut self, duration_ns: u64) {
         self.count += 1;
         self.total_ns += duration_ns;
@@ -225,11 +231,13 @@ impl ProcessIrqImpact {
     }
 
     /// Record softirq impact
+    #[inline(always)]
     pub fn record_softirq(&mut self, duration_ns: u64) {
         self.softirq_stolen_ns += duration_ns;
     }
 
     /// Total stolen time
+    #[inline(always)]
     pub fn total_stolen_ns(&self) -> u64 {
         self.irq_stolen_ns + self.softirq_stolen_ns
     }
@@ -247,7 +255,7 @@ pub struct StormDetector {
     /// Current window start
     window_start: u64,
     /// IRQ counts in window
-    window_counts: BTreeMap<u32, u64>,
+    window_counts: ArrayMap<u64, 32>,
     /// Storm threshold (per window)
     threshold: u64,
     /// Storms detected
@@ -259,7 +267,7 @@ impl StormDetector {
         Self {
             window_ns,
             window_start: 0,
-            window_counts: BTreeMap::new(),
+            window_counts: ArrayMap::new(0),
             threshold,
             storms_detected: 0,
         }
@@ -271,7 +279,7 @@ impl StormDetector {
             self.window_counts.clear();
             self.window_start = now;
         }
-        *self.window_counts.entry(irq).or_insert(0) += 1;
+        self.window_counts.add(irq as usize, 1);
         let count = self.window_counts[&irq];
         if count > self.threshold * 3 {
             self.storms_detected += 1;
@@ -292,6 +300,7 @@ impl StormDetector {
 
 /// Interrupt profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppInterruptStats {
     /// Tracked IRQs
     pub tracked_irqs: usize,
@@ -378,6 +387,7 @@ impl AppInterruptProfiler {
     }
 
     /// Get process IRQ impact
+    #[inline(always)]
     pub fn process_impact(&self, pid: u64) -> Option<&ProcessIrqImpact> {
         self.processes.get(&pid)
     }
@@ -389,6 +399,7 @@ impl AppInterruptProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppInterruptStats {
         &self.stats
     }
