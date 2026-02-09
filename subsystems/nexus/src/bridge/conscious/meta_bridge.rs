@@ -147,7 +147,7 @@ pub struct MetaCognitionStats {
     pub blind_spots_acknowledged: usize,
     pub meta_learning_rate: f32,
     pub meta_learning_trend: f32,
-    pub cognitive_load: f32,
+    pub cognitive_load: f32,l
     pub attention_entropy: f32,
     pub reasoning_efficiency: f32,
 }
