@@ -215,8 +215,8 @@ impl AppsReflection {
         self.tick += 1;
         self.total_reflections += 1;
 
-        let quality = accuracy * 0.4 + prediction_hit_rate * 0.3
-            + (1.0 - false_positive_rate) * 0.3;
+        let quality =
+            accuracy * 0.4 + prediction_hit_rate * 0.3 + (1.0 - false_positive_rate) * 0.3;
         let clamped_quality = quality.max(0.0).min(1.0);
         let outcome = CycleOutcome::from_score(clamped_quality);
         let context_hash = fnv1a_hash(context_desc.as_bytes());
@@ -263,14 +263,16 @@ impl AppsReflection {
 
         // Update EMAs
         self.quality_ema = EMA_ALPHA * clamped_quality + (1.0 - EMA_ALPHA) * self.quality_ema;
-        self.accuracy_ema = EMA_ALPHA * accuracy.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * self.accuracy_ema;
+        self.accuracy_ema =
+            EMA_ALPHA * accuracy.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * self.accuracy_ema;
         self.false_positive_ema = EMA_ALPHA * false_positive_rate.max(0.0).min(1.0)
             + (1.0 - EMA_ALPHA) * self.false_positive_ema;
 
         // Update pattern tracking
-        let pattern = self.patterns.entry(context_hash).or_insert_with(|| {
-            ReflectionPattern {
+        let pattern = self
+            .patterns
+            .entry(context_hash)
+            .or_insert_with(|| ReflectionPattern {
                 id: context_hash,
                 description: String::from(context_desc),
                 context_hash,
@@ -278,11 +280,9 @@ impl AppsReflection {
                 avg_outcome: 0.5,
                 positive: true,
                 confidence: 0.0,
-            }
-        });
+            });
         pattern.occurrences += 1;
-        pattern.avg_outcome =
-            EMA_ALPHA * clamped_quality + (1.0 - EMA_ALPHA) * pattern.avg_outcome;
+        pattern.avg_outcome = EMA_ALPHA * clamped_quality + (1.0 - EMA_ALPHA) * pattern.avg_outcome;
         pattern.positive = pattern.avg_outcome > 0.5;
         pattern.confidence =
             (pattern.occurrences as f32 / (PATTERN_MIN_OCCURRENCES as f32 * 5.0)).min(1.0);
@@ -297,20 +297,30 @@ impl AppsReflection {
             return 0.0;
         }
         let mid = n / 2;
-        let early_avg: f32 =
-            self.reflections[..mid].iter().map(|r| r.accuracy).sum::<f32>() / mid as f32;
-        let recent_avg: f32 =
-            self.reflections[mid..].iter().map(|r| r.accuracy).sum::<f32>() / (n - mid) as f32;
+        let early_avg: f32 = self.reflections[..mid]
+            .iter()
+            .map(|r| r.accuracy)
+            .sum::<f32>()
+            / mid as f32;
+        let recent_avg: f32 = self.reflections[mid..]
+            .iter()
+            .map(|r| r.accuracy)
+            .sum::<f32>()
+            / (n - mid) as f32;
         recent_avg - early_avg
     }
 
     /// Analyze false positives: which contexts produce the most?
     pub fn false_positive_analysis(&self) -> Vec<(String, f32, u64)> {
-        let mut analysis: Vec<(String, f32, u64)> = self.patterns.values()
+        let mut analysis: Vec<(String, f32, u64)> = self
+            .patterns
+            .values()
             .filter(|p| p.occurrences >= PATTERN_MIN_OCCURRENCES)
             .map(|p| {
                 // Find average false positive rate for this context
-                let matching: Vec<&CycleReflection> = self.reflections.iter()
+                let matching: Vec<&CycleReflection> = self
+                    .reflections
+                    .iter()
                     .filter(|r| r.context_hash == p.context_hash)
                     .collect();
                 let avg_fp = if matching.is_empty() {
@@ -334,8 +344,8 @@ impl AppsReflection {
                 continue;
             }
             let seed: u64 = 0xABCD_EF01_2345_6789;
-            let insight_id = fnv1a_hash(pattern.description.as_bytes())
-                ^ seed.wrapping_mul(pattern.occurrences);
+            let insight_id =
+                fnv1a_hash(pattern.description.as_bytes()) ^ seed.wrapping_mul(pattern.occurrences);
 
             if self.insights.contains_key(&insight_id) {
                 continue;
@@ -374,8 +384,8 @@ impl AppsReflection {
             last_applied_tick: tick,
         });
 
-        entry.strength = EMA_ALPHA * strength.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * entry.strength;
+        entry.strength =
+            EMA_ALPHA * strength.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * entry.strength;
         entry.applications += 1;
         entry.last_applied_tick = tick;
 
