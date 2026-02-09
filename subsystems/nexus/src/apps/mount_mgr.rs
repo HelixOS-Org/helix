@@ -50,14 +50,17 @@ impl MountFlags {
     pub const DIRSYNC: u32 = 1 << 10;
     pub const MANDLOCK: u32 = 1 << 11;
 
+    #[inline(always)]
     pub fn contains(&self, flag: u32) -> bool {
         self.0 & flag != 0
     }
 
+    #[inline(always)]
     pub fn is_readonly(&self) -> bool {
         self.contains(Self::RDONLY)
     }
 
+    #[inline]
     pub fn security_score(&self) -> u32 {
         let mut score = 0u32;
         if self.contains(Self::NOSUID) { score += 2; }
@@ -105,6 +108,7 @@ impl MountEntry {
         }
     }
 
+    #[inline]
     pub fn record_io(&mut self, is_write: bool) {
         if is_write {
             self.io_writes += 1;
@@ -113,24 +117,29 @@ impl MountEntry {
         }
     }
 
+    #[inline(always)]
     pub fn total_io(&self) -> u64 {
         self.io_reads + self.io_writes
     }
 
+    #[inline]
     pub fn write_ratio(&self) -> f64 {
         let total = self.total_io();
         if total == 0 { return 0.0; }
         self.io_writes as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn is_pseudo_fs(&self) -> bool {
         matches!(self.mount_type, MountType::Proc | MountType::Sysfs | MountType::Devpts | MountType::Cgroup)
     }
 
+    #[inline(always)]
     pub fn is_overlay_or_tmpfs(&self) -> bool {
         matches!(self.mount_type, MountType::Overlay | MountType::Tmpfs)
     }
 
+    #[inline(always)]
     pub fn is_child_of(&self, path: &str) -> bool {
         self.mount_point.starts_with(path)
     }
@@ -155,18 +164,21 @@ impl MountNamespace {
         }
     }
 
+    #[inline]
     pub fn add_mount(&mut self, mount_id: u64) {
         if !self.mounts.contains(&mount_id) {
             self.mounts.push(mount_id);
         }
     }
 
+    #[inline]
     pub fn remove_mount(&mut self, mount_id: u64) {
         if let Some(pos) = self.mounts.iter().position(|&m| m == mount_id) {
             self.mounts.swap_remove(pos);
         }
     }
 
+    #[inline(always)]
     pub fn mount_count(&self) -> usize {
         self.mounts.len()
     }
@@ -174,6 +186,7 @@ impl MountNamespace {
 
 /// Per-app mount state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct AppMountState {
     pub pid: u64,
     pub namespace_id: u64,
@@ -197,15 +210,18 @@ impl AppMountState {
         }
     }
 
+    #[inline(always)]
     pub fn total_ops(&self) -> u64 {
         self.mount_ops + self.umount_ops
     }
 
+    #[inline(always)]
     pub fn failure_rate(&self) -> f64 {
         if self.mount_ops == 0 { return 0.0; }
         self.mount_failures as f64 / self.mount_ops as f64
     }
 
+    #[inline(always)]
     pub fn is_sandboxed(&self) -> bool {
         self.chroot_path.is_some() || self.pivot_root_done
     }
@@ -213,6 +229,7 @@ impl AppMountState {
 
 /// Mount manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MountMgrStats {
     pub total_mounts: u64,
     pub total_namespaces: u64,
@@ -251,6 +268,7 @@ impl AppMountMgr {
         }
     }
 
+    #[inline]
     pub fn create_namespace(&mut self, owner_pid: u64, timestamp_ns: u64) -> u64 {
         let id = self.next_ns_id;
         self.next_ns_id += 1;
@@ -259,6 +277,7 @@ impl AppMountMgr {
         id
     }
 
+    #[inline(always)]
     pub fn register_app(&mut self, pid: u64, ns_id: u64) {
         self.app_states.insert(pid, AppMountState::new(pid, ns_id));
     }
@@ -306,28 +325,33 @@ impl AppMountMgr {
         }
     }
 
+    #[inline]
     pub fn record_io(&mut self, mount_id: u64, is_write: bool) {
         if let Some(entry) = self.mounts.get_mut(&mount_id) {
             entry.record_io(is_write);
         }
     }
 
+    #[inline]
     pub fn set_chroot(&mut self, pid: u64, path: String) {
         if let Some(app) = self.app_states.get_mut(&pid) {
             app.chroot_path = Some(path);
         }
     }
 
+    #[inline]
     pub fn set_pivot_root(&mut self, pid: u64) {
         if let Some(app) = self.app_states.get_mut(&pid) {
             app.pivot_root_done = true;
         }
     }
 
+    #[inline(always)]
     pub fn mounts_under(&self, path: &str) -> Vec<&MountEntry> {
         self.mounts.values().filter(|m| m.is_child_of(path)).collect()
     }
 
+    #[inline]
     pub fn least_secure_mounts(&self, top: usize) -> Vec<(u64, u32)> {
         let mut v: Vec<(u64, u32)> = self.mounts.iter()
             .map(|(&id, m)| (id, m.flags.security_score()))
@@ -337,6 +361,7 @@ impl AppMountMgr {
         v
     }
 
+    #[inline]
     pub fn busiest_mounts(&self, top: usize) -> Vec<(u64, u64)> {
         let mut v: Vec<(u64, u64)> = self.mounts.iter()
             .map(|(&id, m)| (id, m.total_io()))
@@ -346,14 +371,17 @@ impl AppMountMgr {
         v
     }
 
+    #[inline(always)]
     pub fn get_mount(&self, id: u64) -> Option<&MountEntry> {
         self.mounts.get(&id)
     }
 
+    #[inline(always)]
     pub fn get_app_state(&self, pid: u64) -> Option<&AppMountState> {
         self.app_states.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MountMgrStats {
         &self.stats
     }
