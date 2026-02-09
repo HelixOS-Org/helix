@@ -70,43 +70,53 @@ impl PtyPair {
         }
     }
 
+    #[inline]
     pub fn activate(&mut self, session_leader: u64) {
         self.state = PtyState::Active;
         self.session_leader = session_leader;
         self.controlling_pid = session_leader;
     }
 
+    #[inline(always)]
     pub fn set_foreground(&mut self, pgrp: u64) { self.foreground_pgrp = pgrp; }
+    #[inline(always)]
     pub fn set_winsize(&mut self, ws: PtyWinSize) { self.winsize = ws; }
 
+    #[inline]
     pub fn record_write(&mut self, bytes: usize, ts: u64) {
         self.bytes_written += bytes as u64;
         self.write_ops += 1;
         self.last_io_ts = ts;
     }
 
+    #[inline]
     pub fn record_read(&mut self, bytes: usize, ts: u64) {
         self.bytes_read += bytes as u64;
         self.read_ops += 1;
         self.last_io_ts = ts;
     }
 
+    #[inline(always)]
     pub fn add_member(&mut self, pid: u64) {
         if !self.member_pids.contains(&pid) { self.member_pids.push(pid); }
     }
 
+    #[inline(always)]
     pub fn remove_member(&mut self, pid: u64) {
         self.member_pids.retain(|&p| p != pid);
     }
 
+    #[inline(always)]
     pub fn hangup(&mut self) { self.state = PtyState::Hung; }
 
+    #[inline]
     pub fn throughput_bps(&self, elapsed_ns: u64) -> f64 {
         if elapsed_ns == 0 { return 0.0; }
         let total = self.bytes_written + self.bytes_read;
         (total as f64 * 1_000_000_000.0) / elapsed_ns as f64
     }
 
+    #[inline(always)]
     pub fn is_idle(&self, now: u64, threshold_ns: u64) -> bool {
         if self.last_io_ts == 0 { return now - self.created_ts > threshold_ns; }
         now - self.last_io_ts > threshold_ns
@@ -115,6 +125,7 @@ impl PtyPair {
 
 /// Job control state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct JobControlState {
     pub session_id: u64,
     pub process_groups: BTreeMap<u64, Vec<u64>>,
@@ -127,19 +138,23 @@ impl JobControlState {
         Self { session_id: sid, process_groups: BTreeMap::new(), stopped_groups: Vec::new(), orphaned_groups: Vec::new() }
     }
 
+    #[inline(always)]
     pub fn add_to_group(&mut self, pgrp: u64, pid: u64) {
         self.process_groups.entry(pgrp).or_insert_with(Vec::new).push(pid);
     }
 
+    #[inline(always)]
     pub fn remove_pid(&mut self, pid: u64) {
         for group in self.process_groups.values_mut() { group.retain(|&p| p != pid); }
         self.process_groups.retain(|_, g| !g.is_empty());
     }
 
+    #[inline(always)]
     pub fn mark_stopped(&mut self, pgrp: u64) {
         if !self.stopped_groups.contains(&pgrp) { self.stopped_groups.push(pgrp); }
     }
 
+    #[inline(always)]
     pub fn mark_continued(&mut self, pgrp: u64) { self.stopped_groups.retain(|&g| g != pgrp); }
 
     pub fn detect_orphaned(&mut self) -> Vec<u64> {
@@ -158,6 +173,7 @@ impl JobControlState {
 
 /// PTY manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PtyMgrStats {
     pub total_ptys: usize,
     pub active_ptys: usize,
@@ -186,6 +202,7 @@ impl AppsPtyMgr {
         }
     }
 
+    #[inline]
     pub fn allocate(&mut self, master: i32, slave: i32, name: String, ts: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -193,6 +210,7 @@ impl AppsPtyMgr {
         id
     }
 
+    #[inline]
     pub fn activate(&mut self, pty_id: u64, session_leader: u64) {
         if let Some(pty) = self.ptys.get_mut(&pty_id) {
             pty.activate(session_leader);
@@ -200,24 +218,30 @@ impl AppsPtyMgr {
         }
     }
 
+    #[inline(always)]
     pub fn record_write(&mut self, pty_id: u64, bytes: usize, ts: u64) {
         if let Some(pty) = self.ptys.get_mut(&pty_id) { pty.record_write(bytes, ts); }
     }
 
+    #[inline(always)]
     pub fn record_read(&mut self, pty_id: u64, bytes: usize, ts: u64) {
         if let Some(pty) = self.ptys.get_mut(&pty_id) { pty.record_read(bytes, ts); }
     }
 
+    #[inline(always)]
     pub fn set_winsize(&mut self, pty_id: u64, ws: PtyWinSize) {
         if let Some(pty) = self.ptys.get_mut(&pty_id) { pty.set_winsize(ws); }
     }
 
+    #[inline(always)]
     pub fn hangup(&mut self, pty_id: u64) {
         if let Some(pty) = self.ptys.get_mut(&pty_id) { pty.hangup(); }
     }
 
+    #[inline(always)]
     pub fn close(&mut self, pty_id: u64) { self.ptys.remove(&pty_id); }
 
+    #[inline]
     pub fn recompute(&mut self, now: u64) {
         self.stats.total_ptys = self.ptys.len();
         self.stats.active_ptys = self.ptys.values().filter(|p| p.state == PtyState::Active).count();
@@ -228,6 +252,8 @@ impl AppsPtyMgr {
         self.stats.idle_ptys = self.ptys.values().filter(|p| p.is_idle(now, self.idle_threshold_ns)).count();
     }
 
+    #[inline(always)]
     pub fn pty(&self, id: u64) -> Option<&PtyPair> { self.ptys.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &PtyMgrStats { &self.stats }
 }
