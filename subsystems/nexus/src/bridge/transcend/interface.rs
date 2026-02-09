@@ -341,10 +341,7 @@ impl BridgeInterface {
             });
         }
 
-        let final_conf = trace_steps
-            .last()
-            .map(|s| s.confidence)
-            .unwrap_or(0.5);
+        let final_conf = trace_steps.last().map(|s| s.confidence).unwrap_or(0.5);
 
         self.stats.avg_trace_depth_ema = EMA_ALPHA * trace_steps.len() as f32
             + (1.0 - EMA_ALPHA) * self.stats.avg_trace_depth_ema;
@@ -427,7 +424,11 @@ impl BridgeInterface {
 
         if self.recommendations.len() >= MAX_RECOMMENDATIONS {
             // Remove lowest-urgency recommendation.
-            if let Some(pos) = self.recommendations.iter().position(|r| r.urgency == Urgency::Informational) {
+            if let Some(pos) = self
+                .recommendations
+                .iter()
+                .position(|r| r.urgency == Urgency::Informational)
+            {
                 self.recommendations.remove(pos);
             } else {
                 self.recommendations.remove(0);
@@ -467,7 +468,9 @@ impl BridgeInterface {
         let hundreds = conf_pct / 100;
         let tens = (conf_pct % 100) / 10;
         let ones = conf_pct % 10;
-        if hundreds > 0 { s.push((b'0' + hundreds as u8) as char); }
+        if hundreds > 0 {
+            s.push((b'0' + hundreds as u8) as char);
+        }
         s.push((b'0' + tens as u8) as char);
         s.push((b'0' + ones as u8) as char);
         s.push_str("%)");
@@ -484,7 +487,13 @@ impl BridgeInterface {
         out
     }
 
-    fn build_narrative_body(&self, heading: &str, before: f32, after: f32, improvement: f32) -> String {
+    fn build_narrative_body(
+        &self,
+        heading: &str,
+        before: f32,
+        after: f32,
+        improvement: f32,
+    ) -> String {
         let mut body = String::from("Metric '");
         body.push_str(heading);
         body.push_str("' changed. Improvement observed. ");
