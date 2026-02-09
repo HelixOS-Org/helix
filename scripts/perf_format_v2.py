@@ -27,7 +27,7 @@ TEST_MOD_RE = re.compile(r'#\[cfg\(test\)\]')
 SINGLE_VAR_RE = re.compile(r'format!\(\s*"{}"\s*,\s*(\w+)\s*\)')
 
 # Pattern 2: format!("literal") with no arguments → String::from("literal")
-# → replace with InlineStr::from_str("literal") 
+# → replace with InlineStr::from_str("literal")
 LITERAL_ONLY_RE = re.compile(r'format!\(\s*"([^"{}]+)"\s*\)')
 
 # Pattern 3: format!("{:?}", var)  → alloc::format!  (keep as-is, debug formatting)
@@ -44,25 +44,25 @@ def eliminate_format(file_path, content):
     """Eliminate unnecessary format!() calls."""
     if 'format!' not in content:
         return content, 0
-    
+
     lines = content.split('\n')
     changes = 0
     in_test = False
     new_lines = []
-    
+
     for i, line in enumerate(lines):
         if TEST_MOD_RE.search(line):
             in_test = True
         if in_test:
             new_lines.append(line)
             continue
-        
+
         new_line = line
-        
+
         # Pattern 1: format!("{}", x) → alloc::string::ToString for now, log it
         # Actually many of these are used where a String is expected.
         # We'll leave them but convert the simple identity ones.
-        
+
         # Pattern 2: format!("literal") → "literal".into() or keep
         m = LITERAL_ONLY_RE.search(line)
         if m and 'format!("' in line:
@@ -71,7 +71,7 @@ def eliminate_format(file_path, content):
                 # Only replace if result is assigned to a variable or passed to fn
                 # For safety, just count these
                 pass
-        
+
         # Pattern 4: format!("prefix_{}", id) used as hash/map key
         # Replace with FastHasher for fnv1a hashing
         m = PREFIX_NUM_RE.search(line)
@@ -87,9 +87,9 @@ def eliminate_format(file_path, content):
                 new_line = line.replace(old, new)
                 if new_line != line:
                     changes += 1
-        
+
         new_lines.append(new_line)
-    
+
     return '\n'.join(new_lines), changes
 
 
@@ -97,26 +97,26 @@ def main():
     print("=== NEXUS format!() Eliminator v2 ===")
     print(f"Dry run: {DRY_RUN}")
     print()
-    
+
     total_changes = 0
     total_files = 0
     total_format_remaining = 0
-    
+
     for root, dirs, files in os.walk(NEXUS_SRC):
         dirs[:] = [d for d in dirs if d != 'tests']
         for fname in files:
             if not fname.endswith('.rs'):
                 continue
             fpath = os.path.join(root, fname)
-            
+
             try:
                 with open(fpath, 'r', encoding='utf-8') as f:
                     content = f.read()
             except (UnicodeDecodeError, IOError):
                 continue
-            
+
             new_content, changes = eliminate_format(fpath, content)
-            
+
             # Count remaining format!
             in_test = False
             for line in content.split('\n'):
@@ -124,7 +124,7 @@ def main():
                     in_test = True
                 if not in_test and 'format!' in line and '//' not in line.split('format!')[0]:
                     total_format_remaining += 1
-            
+
             if changes > 0:
                 total_files += 1
                 total_changes += changes
@@ -134,7 +134,7 @@ def main():
                     with open(fpath, 'w', encoding='utf-8') as f:
                         f.write(new_content)
                     print(f"  ✓ {fpath}: {changes} changes")
-    
+
     print(f"\n=== RESULTS ===")
     print(f"Files modified: {total_files}")
     print(f"Total changes:  {total_changes}")
