@@ -29,6 +29,7 @@ impl KillRecord {
 
 /// Kill app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KillAppStats { pub total_ops: u64, pub success: u64, pub denied: u64, pub no_process: u64 }
 
 /// Main app kill
@@ -37,6 +38,7 @@ pub struct AppKill { pub stats: KillAppStats }
 
 impl AppKill {
     pub fn new() -> Self { Self { stats: KillAppStats { total_ops: 0, success: 0, denied: 0, no_process: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &KillRecord) {
         self.stats.total_ops += 1;
         match rec.result {
