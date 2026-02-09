@@ -181,6 +181,7 @@ impl Default for SchedulerConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SchedulerStats {
     /// Tasks scheduled
     pub tasks_scheduled: u64,
@@ -228,6 +229,7 @@ impl ActionScheduler {
     }
 
     /// Set deadline
+    #[inline]
     pub fn set_deadline(&mut self, task_id: u64, deadline: Timestamp) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.deadline = Some(deadline);
@@ -235,6 +237,7 @@ impl ActionScheduler {
     }
 
     /// Set duration
+    #[inline]
     pub fn set_duration(&mut self, task_id: u64, duration_ns: u64) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.duration_ns = duration_ns;
@@ -242,6 +245,7 @@ impl ActionScheduler {
     }
 
     /// Add dependency
+    #[inline]
     pub fn add_dependency(&mut self, task_id: u64, dependency_id: u64) {
         if task_id != dependency_id {
             if let Some(task) = self.tasks.get_mut(&task_id) {
@@ -253,6 +257,7 @@ impl ActionScheduler {
     }
 
     /// Add resource requirement
+    #[inline]
     pub fn require_resource(&mut self, task_id: u64, resource: ResourceRequirement) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             task.resources.push(resource);
@@ -494,6 +499,7 @@ impl ActionScheduler {
     }
 
     /// Cancel task
+    #[inline]
     pub fn cancel_task(&mut self, task_id: u64) {
         if let Some(task) = self.tasks.get_mut(&task_id) {
             if task.status == TaskStatus::Running {
@@ -504,16 +510,19 @@ impl ActionScheduler {
     }
 
     /// Get task
+    #[inline(always)]
     pub fn get_task(&self, id: u64) -> Option<&ScheduledTask> {
         self.tasks.get(&id)
     }
 
     /// Get schedule
+    #[inline(always)]
     pub fn get_schedule(&self) -> Option<&Schedule> {
         self.schedule.as_ref()
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SchedulerStats {
         &self.stats
     }
