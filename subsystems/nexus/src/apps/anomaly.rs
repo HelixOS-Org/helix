@@ -8,6 +8,7 @@
 //! - Performance anomalies (degradation detection)
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -107,7 +108,7 @@ pub struct RunningStats {
     /// Maximum observed
     max: f64,
     /// Recent values (sliding window)
-    recent: Vec<f64>,
+    recent: VecDeque<f64>,
     /// Max window size
     window_size: usize,
 }
@@ -120,7 +121,7 @@ impl RunningStats {
             m2: 0.0,
             min: f64::MAX,
             max: f64::MIN,
-            recent: Vec::new(),
+            recent: VecDeque::new(),
             window_size,
         }
     }
@@ -141,9 +142,9 @@ impl RunningStats {
         }
 
         if self.recent.len() >= self.window_size {
-            self.recent.remove(0);
+            self.recent.pop_front();
         }
-        self.recent.push(value);
+        self.recent.push_back(value);
     }
 
     /// Variance
@@ -223,7 +224,7 @@ pub struct ProcessAnomalyDetector {
     /// Z-score threshold for anomaly
     z_threshold: f64,
     /// Detected anomalies
-    anomalies: Vec<Anomaly>,
+    anomalies: VecDeque<Anomaly>,
     /// Max anomalies to keep
     max_anomalies: usize,
     /// Total anomalies detected
@@ -240,7 +241,7 @@ impl ProcessAnomalyDetector {
             fd_count_stats: RunningStats::new(60),
             ctx_switch_stats: RunningStats::new(60),
             z_threshold,
-            anomalies: Vec::new(),
+            anomalies: VecDeque::new(),
             max_anomalies: 100,
             total_detected: 0,
         }
@@ -390,9 +391,9 @@ impl ProcessAnomalyDetector {
     fn record_anomaly(&mut self, anomaly: Anomaly) {
         self.total_detected += 1;
         if self.anomalies.len() >= self.max_anomalies {
-            self.anomalies.remove(0);
+            self.anomalies.pop_front();
         }
-        self.anomalies.push(anomaly);
+        self.anomalies.push_back(anomaly);
     }
 
     /// Get recent anomalies
@@ -422,7 +423,7 @@ pub struct AnomalyManager {
     /// Max processes
     max_processes: usize,
     /// Global anomaly log
-    global_log: Vec<Anomaly>,
+    global_log: VecDeque<Anomaly>,
     /// Max global log size
     max_log: usize,
     /// Total system anomalies
@@ -437,7 +438,7 @@ impl AnomalyManager {
             detectors: BTreeMap::new(),
             z_threshold,
             max_processes,
-            global_log: Vec::new(),
+            global_log: VecDeque::new(),
             max_log: 10000,
             total_anomalies: 0,
             critical_count: 0,
@@ -463,9 +464,9 @@ impl AnomalyManager {
             self.critical_count += 1;
         }
         if self.global_log.len() >= self.max_log {
-            self.global_log.remove(0);
+            self.global_log.pop_front();
         }
-        self.global_log.push(anomaly);
+        self.global_log.push_back(anomaly);
     }
 
     /// Remove process
