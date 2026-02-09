@@ -124,6 +124,7 @@ impl DependencyEdge {
     }
 
     /// Bandwidth (bytes/sec) estimate
+    #[inline]
     pub fn bandwidth_estimate(&self) -> f64 {
         if self.avg_latency_ns <= 0.0 || self.comm_count == 0 {
             return 0.0;
@@ -183,12 +184,14 @@ impl DependencyGraph {
     }
 
     /// Get edge
+    #[inline(always)]
     pub fn edge(&self, source: u64, target: u64) -> Option<&DependencyEdge> {
         let key = Self::edge_key(source, target);
         self.edges.get(&key)
     }
 
     /// Get mutable edge
+    #[inline(always)]
     pub fn edge_mut(&mut self, source: u64, target: u64) -> Option<&mut DependencyEdge> {
         let key = Self::edge_key(source, target);
         self.edges.get_mut(&key)
@@ -219,16 +222,19 @@ impl DependencyGraph {
     }
 
     /// Dependencies of pid (outgoing)
+    #[inline(always)]
     pub fn dependencies(&self, pid: u64) -> Vec<u64> {
         self.outgoing.get(&pid).cloned().unwrap_or_default()
     }
 
     /// Dependents of pid (incoming)
+    #[inline(always)]
     pub fn dependents(&self, pid: u64) -> Vec<u64> {
         self.incoming.get(&pid).cloned().unwrap_or_default()
     }
 
     /// Node count
+    #[inline]
     pub fn node_count(&self) -> usize {
         let mut nodes = alloc::collections::BTreeSet::new();
         for edge in self.edges.values() {
@@ -239,11 +245,13 @@ impl DependencyGraph {
     }
 
     /// Edge count
+    #[inline(always)]
     pub fn edge_count(&self) -> usize {
         self.edges.len()
     }
 
     /// Detect simple cycles (2-node mutual dependencies)
+    #[inline]
     pub fn detect_cycles(&self) -> Vec<(u64, u64)> {
         let mut cycles = Vec::new();
         for edge in self.edges.values() {
@@ -256,6 +264,7 @@ impl DependencyGraph {
     }
 
     /// Critical edges (blocking or critical strength)
+    #[inline]
     pub fn critical_edges(&self) -> Vec<&DependencyEdge> {
         self.edges.values()
             .filter(|e| e.strength == DepStrength::Critical || e.state == DepState::Blocked)
@@ -269,6 +278,7 @@ impl DependencyGraph {
 
 /// Dependency stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppDependencyStats {
     /// Nodes
     pub node_count: usize,
@@ -297,6 +307,7 @@ impl AppDependencyAnalyzer {
     }
 
     /// Record dependency
+    #[inline]
     pub fn record(&mut self, source: u64, target: u64, dep_type: AppDepType, bytes: u64, latency_ns: u64, now: u64) {
         if let Some(edge) = self.graph.edge_mut(source, target) {
             edge.record(bytes, latency_ns, now);
@@ -309,17 +320,20 @@ impl AppDependencyAnalyzer {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.graph.remove_node(pid);
         self.update_stats();
     }
 
     /// Impact of losing pid
+    #[inline(always)]
     pub fn impact_of_loss(&self, pid: u64) -> Vec<u64> {
         self.graph.dependents(pid)
     }
 
     /// Graph ref
+    #[inline(always)]
     pub fn graph(&self) -> &DependencyGraph {
         &self.graph
     }
@@ -333,6 +347,7 @@ impl AppDependencyAnalyzer {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppDependencyStats {
         &self.stats
     }
