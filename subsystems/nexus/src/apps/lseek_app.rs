@@ -26,6 +26,7 @@ pub struct AppSeekRecord {
 
 /// Statistics for seek operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppSeekStats {
     pub total_seeks: u64,
     pub sequential_seeks: u64,
@@ -67,6 +68,7 @@ impl AppLseekManager {
         }
     }
 
+    #[inline]
     pub fn register_fd(&mut self, fd: u64, file_size: u64) {
         let pos = AppFilePosition {
             fd,
@@ -130,10 +132,12 @@ impl AppLseekManager {
         }
     }
 
+    #[inline(always)]
     pub fn get_position(&self, fd: u64) -> Option<u64> {
         self.positions.get(&fd).map(|p| p.current_offset)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppSeekStats {
         &self.stats
     }
