@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -393,7 +394,7 @@ pub struct AppCgroupAnalyzer {
     /// PID to cgroup mapping
     pid_cgroup: BTreeMap<u64, u64>,
     /// Migration log
-    migrations: Vec<CgroupMigration>,
+    migrations: VecDeque<CgroupMigration>,
     /// Max migration log
     max_migrations: usize,
     /// Next cgroup ID
@@ -407,7 +408,7 @@ impl AppCgroupAnalyzer {
         Self {
             nodes: BTreeMap::new(),
             pid_cgroup: BTreeMap::new(),
-            migrations: Vec::new(),
+            migrations: VecDeque::new(),
             max_migrations: 256,
             next_id: 1,
             stats: AppCgroupStats::default(),
@@ -438,7 +439,7 @@ impl AppCgroupAnalyzer {
                 if let Some(old_node) = self.nodes.get_mut(&old_cgroup) {
                     old_node.remove_pid(pid);
                 }
-                self.migrations.push(CgroupMigration {
+                self.migrations.push_back(CgroupMigration {
                     pid,
                     from_cgroup: old_cgroup,
                     to_cgroup: cgroup_id,
@@ -446,7 +447,7 @@ impl AppCgroupAnalyzer {
                     voluntary: true,
                 });
                 if self.migrations.len() > self.max_migrations {
-                    self.migrations.remove(0);
+                    self.migrations.pop_front();
                 }
                 self.stats.migrations += 1;
             }
