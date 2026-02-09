@@ -5,6 +5,7 @@
 
 use alloc::format;
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -164,7 +165,7 @@ impl AuditOutcome {
 /// Audit logger
 pub struct AuditLogger {
     /// Audit entries
-    entries: Vec<AuditEntry>,
+    entries: VecDeque<AuditEntry>,
     /// Maximum entries
     max_entries: usize,
     /// Entries written
@@ -175,7 +176,7 @@ impl AuditLogger {
     /// Create new audit logger
     pub fn new(max_entries: usize) -> Self {
         Self {
-            entries: Vec::new(),
+            entries: VecDeque::new(),
             max_entries,
             total_entries: AtomicU64::new(0),
         }
@@ -184,12 +185,12 @@ impl AuditLogger {
     /// Log an entry
     pub fn log(&mut self, entry: AuditEntry) -> AuditId {
         let id = entry.id;
-        self.entries.push(entry);
+        self.entries.push_back(entry);
         self.total_entries.fetch_add(1, Ordering::Relaxed);
 
         // Trim if necessary
         if self.entries.len() > self.max_entries {
-            self.entries.remove(0);
+            self.entries.pop_front();
         }
 
         id
