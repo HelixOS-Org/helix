@@ -111,8 +111,8 @@ impl MetaLearningState {
     fn record_episode(&mut self, quality_improvement: f32) {
         self.episodes += 1;
         self.prev_learning_rate = self.learning_rate;
-        self.learning_rate = EMA_ALPHA * quality_improvement.abs()
-            + (1.0 - EMA_ALPHA) * self.learning_rate;
+        self.learning_rate =
+            EMA_ALPHA * quality_improvement.abs() + (1.0 - EMA_ALPHA) * self.learning_rate;
         self.meta_rate = self.learning_rate - self.prev_learning_rate;
 
         if self.rate_history.len() < self.max_history {
@@ -190,12 +190,7 @@ impl BridgeMetaCognition {
     }
 
     /// Record attention spent on a category
-    pub fn analyze_attention(
-        &mut self,
-        category: &str,
-        cycles_spent: u64,
-        decision_quality: f32,
-    ) {
+    pub fn analyze_attention(&mut self, category: &str, cycles_spent: u64, decision_quality: f32) {
         self.tick += 1;
         self.total_cycles += cycles_spent;
         let id = fnv1a_hash(category.as_bytes());
@@ -211,10 +206,9 @@ impl BridgeMetaCognition {
         });
 
         slice.decision_count += 1;
-        slice.avg_cost_us = EMA_ALPHA * cycles_spent as f32
-            + (1.0 - EMA_ALPHA) * slice.avg_cost_us;
-        slice.avg_quality = EMA_ALPHA * decision_quality.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * slice.avg_quality;
+        slice.avg_cost_us = EMA_ALPHA * cycles_spent as f32 + (1.0 - EMA_ALPHA) * slice.avg_cost_us;
+        slice.avg_quality =
+            EMA_ALPHA * decision_quality.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * slice.avg_quality;
 
         // Recompute fractions
         let total = self.total_cycles.max(1) as f32;
@@ -253,8 +247,7 @@ impl BridgeMetaCognition {
             occurrences: 0,
         });
 
-        spot.severity = EMA_ALPHA * severity.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * spot.severity;
+        spot.severity = EMA_ALPHA * severity.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * spot.severity;
         spot.latency_ticks = latency_ticks;
         spot.occurrences += 1;
         id
@@ -300,7 +293,9 @@ impl BridgeMetaCognition {
     /// Current cognitive load (0.0 – 1.0)
     pub fn cognitive_load(&mut self) -> f32 {
         // Load = active blind spots weight + attention entropy pressure
-        let blind_pressure: f32 = self.blind_spots.values()
+        let blind_pressure: f32 = self
+            .blind_spots
+            .values()
             .filter(|b| !b.acknowledged)
             .map(|b| b.severity * 0.1)
             .sum();
@@ -341,8 +336,7 @@ impl BridgeMetaCognition {
             meta_learning_trend: self.meta_learning.trend(),
             cognitive_load: load,
             attention_entropy: self.attention_entropy(),
-            reasoning_efficiency: self.attention.values()
-                .map(|s| s.efficiency).sum::<f32>()
+            reasoning_efficiency: self.attention.values().map(|s| s.efficiency).sum::<f32>()
                 / self.attention.len().max(1) as f32,
         }
     }
