@@ -26,6 +26,7 @@ impl AcceleratorRegistry {
     }
 
     /// Get capabilities summary
+    #[inline]
     pub fn capabilities(&self) -> AcceleratorCapabilities {
         AcceleratorCapabilities {
             simd_type: self.vector.simd_type(),
