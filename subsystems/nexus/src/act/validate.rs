@@ -204,6 +204,7 @@ impl Default for ValidatorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ValidatorStats {
     /// Validations performed
     pub validations: u64,
@@ -229,31 +230,37 @@ impl ActionValidator {
     }
 
     /// Set state
+    #[inline(always)]
     pub fn set_state(&mut self, key: &str, value: ParamValue) {
         self.state.insert(key.into(), value);
     }
 
     /// Get state
+    #[inline(always)]
     pub fn get_state(&self, key: &str) -> Option<&ParamValue> {
         self.state.get(key)
     }
 
     /// Set resource
+    #[inline(always)]
     pub fn set_resource(&mut self, name: &str, amount: f64) {
         self.resources.insert(name.into(), amount);
     }
 
     /// Grant permission
+    #[inline(always)]
     pub fn grant_permission(&mut self, name: &str) {
         self.permissions.insert(name.into(), true);
     }
 
     /// Revoke permission
+    #[inline(always)]
     pub fn revoke_permission(&mut self, name: &str) {
         self.permissions.insert(name.into(), false);
     }
 
     /// Add rule
+    #[inline(always)]
     pub fn add_rule(&mut self, rule: ValidationRule) {
         self.rules.push(rule);
     }
@@ -478,11 +485,13 @@ impl ActionValidator {
     }
 
     /// Get history
+    #[inline(always)]
     pub fn history(&self) -> &[ValidationResult] {
         &self.history
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &ValidatorStats {
         &self.stats
     }
@@ -522,18 +531,21 @@ impl ActionBuilder {
     }
 
     /// Set type
+    #[inline(always)]
     pub fn action_type(mut self, t: &str) -> Self {
         self.action_type = t.into();
         self
     }
 
     /// Add parameter
+    #[inline(always)]
     pub fn param(mut self, name: &str, value: ParamValue) -> Self {
         self.params.insert(name.into(), value);
         self
     }
 
     /// Require state equals
+    #[inline]
     pub fn require_state(mut self, name: &str, value: ParamValue, critical: bool) -> Self {
         self.preconditions.push(Precondition {
             name: name.into(),
@@ -545,6 +557,7 @@ impl ActionBuilder {
     }
 
     /// Require permission
+    #[inline]
     pub fn require_permission(mut self, name: &str) -> Self {
         self.preconditions.push(Precondition {
             name: name.into(),
@@ -556,6 +569,7 @@ impl ActionBuilder {
     }
 
     /// Add effect
+    #[inline]
     pub fn effect(mut self, target: &str, op: EffectOp, value: ParamValue) -> Self {
         self.effects.push(Effect {
             target: target.into(),
@@ -566,6 +580,7 @@ impl ActionBuilder {
     }
 
     /// Build
+    #[inline]
     pub fn build(self) -> ActionSpec {
         ActionSpec {
             id: self.id,
