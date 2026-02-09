@@ -87,11 +87,13 @@ impl TcpConnInfo {
         }
     }
 
+    #[inline(always)]
     pub fn goodput_bps(&self, duration_ns: u64) -> f64 {
         if duration_ns == 0 { return 0.0; }
         (self.bytes_sent + self.bytes_recv) as f64 / (duration_ns as f64 / 1_000_000_000.0)
     }
 
+    #[inline(always)]
     pub fn retransmit_rate(&self) -> f64 {
         if self.packets_sent == 0 { return 0.0; }
         self.retransmits as f64 / self.packets_sent as f64
@@ -122,6 +124,7 @@ impl UdpFlowInfo {
 
 /// DNS cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DnsCacheEntry {
     pub name_hash: u64,
     pub resolved_addr: [u8; 4],
@@ -131,6 +134,7 @@ pub struct DnsCacheEntry {
 }
 
 impl DnsCacheEntry {
+    #[inline(always)]
     pub fn is_expired(&self, now: u64) -> bool {
         let expiry = self.resolve_ns + (self.ttl_secs as u64) * 1_000_000_000;
         now >= expiry
@@ -139,6 +143,7 @@ impl DnsCacheEntry {
 
 /// Per-app network state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppNetState {
     pub process_id: u64,
     pub tcp_conns: BTreeMap<u64, TcpConnInfo>,
@@ -185,6 +190,7 @@ impl AppNetState {
         true
     }
 
+    #[inline]
     pub fn remove_tcp_conn(&mut self, tuple: &ConnTuple) {
         let key = tuple.hash();
         if self.tcp_conns.remove(&key).is_some() {
@@ -192,11 +198,15 @@ impl AppNetState {
         }
     }
 
+    #[inline(always)]
     pub fn record_send(&mut self, bytes: u64) { self.total_bytes_sent += bytes; }
+    #[inline(always)]
     pub fn record_recv(&mut self, bytes: u64) { self.total_bytes_recv += bytes; }
 
+    #[inline(always)]
     pub fn reset_rate_counter(&mut self) { self.connections_this_second = 0; }
 
+    #[inline(always)]
     pub fn expire_dns(&mut self, now: u64) {
         self.dns_cache.retain(|_, entry| !entry.is_expired(now));
     }
@@ -204,6 +214,7 @@ impl AppNetState {
 
 /// Apps network manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsNetMgrStats {
     pub total_processes: usize,
     pub total_tcp_conns: usize,
@@ -224,36 +235,45 @@ impl AppsNetMgr {
         Self { states: BTreeMap::new(), stats: AppsNetMgrStats::default() }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) {
         self.states.entry(pid).or_insert_with(|| AppNetState::new(pid));
     }
 
+    #[inline(always)]
     pub fn add_tcp(&mut self, pid: u64, conn: TcpConnInfo) -> bool {
         self.states.get_mut(&pid).map(|s| s.add_tcp_conn(conn)).unwrap_or(false)
     }
 
+    #[inline(always)]
     pub fn remove_tcp(&mut self, pid: u64, tuple: &ConnTuple) {
         if let Some(s) = self.states.get_mut(&pid) { s.remove_tcp_conn(tuple); }
     }
 
+    #[inline(always)]
     pub fn record_send(&mut self, pid: u64, bytes: u64) {
         if let Some(s) = self.states.get_mut(&pid) { s.record_send(bytes); }
     }
 
+    #[inline(always)]
     pub fn record_recv(&mut self, pid: u64, bytes: u64) {
         if let Some(s) = self.states.get_mut(&pid) { s.record_recv(bytes); }
     }
 
+    #[inline(always)]
     pub fn set_rate_limit(&mut self, pid: u64, limit: u32) {
         if let Some(s) = self.states.get_mut(&pid) { s.connection_rate_limit = Some(limit); }
     }
 
+    #[inline(always)]
     pub fn tick_rate_counters(&mut self) {
         for s in self.states.values_mut() { s.reset_rate_counter(); }
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.states.len();
         self.stats.total_tcp_conns = self.states.values().map(|s| s.tcp_conns.len()).sum();
@@ -263,6 +283,8 @@ impl AppsNetMgr {
         self.stats.total_rate_limit_hits = self.states.values().map(|s| s.rate_limit_hits).sum();
     }
 
+    #[inline(always)]
     pub fn app_state(&self, pid: u64) -> Option<&AppNetState> { self.states.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsNetMgrStats { &self.stats }
 }
