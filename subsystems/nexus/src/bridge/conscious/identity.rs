@@ -55,13 +55,13 @@ fn xorshift64(state: &mut u64) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CapabilityMaturity {
     /// Just introduced, experimental
-    Nascent = 0,
+    Nascent    = 0,
     /// Functional but not battle-tested
     Developing = 1,
     /// Reliable in common scenarios
-    Mature = 2,
+    Mature     = 2,
     /// Proven across edge cases, highly optimized
-    Mastered = 3,
+    Mastered   = 3,
 }
 
 /// A declared capability of the bridge
@@ -184,17 +184,20 @@ impl BridgeIdentity {
         let is_new = !self.capabilities.contains_key(&id);
         let old_maturity = self.capabilities.get(&id).map(|c| c.maturity);
 
-        let cap = self.capabilities.entry(id).or_insert_with(|| DeclaredCapability {
-            name: String::from(name),
-            id,
-            maturity,
-            performance: 0.0,
-            reliability: 0.0,
-            introduced_version: self.version,
-            declared_tick: self.tick,
-            last_update_tick: self.tick,
-            updates: 0,
-        });
+        let cap = self
+            .capabilities
+            .entry(id)
+            .or_insert_with(|| DeclaredCapability {
+                name: String::from(name),
+                id,
+                maturity,
+                performance: 0.0,
+                reliability: 0.0,
+                introduced_version: self.version,
+                declared_tick: self.tick,
+                last_update_tick: self.tick,
+                updates: 0,
+            });
 
         cap.performance = performance.max(0.0).min(1.0);
         cap.reliability = reliability.max(0.0).min(1.0);
@@ -341,25 +344,43 @@ impl BridgeIdentity {
 
     /// Compute aggregate identity statistics
     pub fn stats(&mut self) -> IdentityStats {
-        let nascent = self.capabilities.values()
-            .filter(|c| c.maturity == CapabilityMaturity::Nascent).count();
-        let developing = self.capabilities.values()
-            .filter(|c| c.maturity == CapabilityMaturity::Developing).count();
-        let mature = self.capabilities.values()
-            .filter(|c| c.maturity == CapabilityMaturity::Mature).count();
-        let mastered = self.capabilities.values()
-            .filter(|c| c.maturity == CapabilityMaturity::Mastered).count();
+        let nascent = self
+            .capabilities
+            .values()
+            .filter(|c| c.maturity == CapabilityMaturity::Nascent)
+            .count();
+        let developing = self
+            .capabilities
+            .values()
+            .filter(|c| c.maturity == CapabilityMaturity::Developing)
+            .count();
+        let mature = self
+            .capabilities
+            .values()
+            .filter(|c| c.maturity == CapabilityMaturity::Mature)
+            .count();
+        let mastered = self
+            .capabilities
+            .values()
+            .filter(|c| c.maturity == CapabilityMaturity::Mastered)
+            .count();
 
         let avg_perf = if self.capabilities.is_empty() {
             0.0
         } else {
-            self.capabilities.values().map(|c| c.performance).sum::<f32>()
+            self.capabilities
+                .values()
+                .map(|c| c.performance)
+                .sum::<f32>()
                 / self.capabilities.len() as f32
         };
         let avg_rel = if self.capabilities.is_empty() {
             0.0
         } else {
-            self.capabilities.values().map(|c| c.reliability).sum::<f32>()
+            self.capabilities
+                .values()
+                .map(|c| c.reliability)
+                .sum::<f32>()
                 / self.capabilities.len() as f32
         };
 
@@ -381,7 +402,9 @@ impl BridgeIdentity {
 
     /// List all capabilities sorted by maturity (highest first)
     pub fn capability_roster(&self) -> Vec<(String, CapabilityMaturity, f32)> {
-        let mut roster: Vec<(String, CapabilityMaturity, f32)> = self.capabilities.values()
+        let mut roster: Vec<(String, CapabilityMaturity, f32)> = self
+            .capabilities
+            .values()
             .map(|c| (c.name.clone(), c.maturity, c.performance))
             .collect();
         roster.sort_by(|a, b| b.1.cmp(&a.1));
