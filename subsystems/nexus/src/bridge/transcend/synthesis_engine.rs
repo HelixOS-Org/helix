@@ -179,7 +179,9 @@ impl Population {
 
     fn tournament_select(&self, rng: &mut u64) -> usize {
         let n = self.individuals.len();
-        if n == 0 { return 0; }
+        if n == 0 {
+            return 0;
+        }
         let mut best_idx = (xorshift64(rng) % n as u64) as usize;
         for _ in 1..TOURNAMENT_SIZE {
             let idx = (xorshift64(rng) % n as u64) as usize;
@@ -192,7 +194,11 @@ impl Population {
 
     fn crossover(parent_a: &Individual, parent_b: &Individual, rng: &mut u64) -> Individual {
         let len = parent_a.genome.len().min(parent_b.genome.len());
-        let cut = if len > 1 { (xorshift64(rng) % (len as u64 - 1) + 1) as usize } else { 0 };
+        let cut = if len > 1 {
+            (xorshift64(rng) % (len as u64 - 1) + 1) as usize
+        } else {
+            0
+        };
         let mut genome = Vec::with_capacity(len);
         for i in 0..len {
             if i < cut {
@@ -225,11 +231,15 @@ impl Population {
 
     fn update_stats(&mut self) {
         let n = self.individuals.len();
-        if n == 0 { return; }
+        if n == 0 {
+            return;
+        }
         let mut best = f32::MIN;
         let mut sum = 0.0f32;
         for ind in &self.individuals {
-            if ind.fitness > best { best = ind.fitness; }
+            if ind.fitness > best {
+                best = ind.fitness;
+            }
             sum += ind.fitness;
         }
         self.best_fitness = best;
@@ -280,7 +290,8 @@ impl BridgeSynthesisEngine {
 
         // Initialise on first call.
         if self.population.individuals.is_empty() {
-            self.population.initialise(population_size, genome_len, &mut self.rng_state);
+            self.population
+                .initialise(population_size, genome_len, &mut self.rng_state);
         }
 
         // Evaluate fitness for each individual.
@@ -295,7 +306,9 @@ impl BridgeSynthesisEngine {
 
         // Sort by fitness descending.
         self.population.individuals.sort_by(|a, b| {
-            b.fitness.partial_cmp(&a.fitness).unwrap_or(core::cmp::Ordering::Equal)
+            b.fitness
+                .partial_cmp(&a.fitness)
+                .unwrap_or(core::cmp::Ordering::Equal)
         });
 
         // Keep elites, breed the rest.
@@ -333,7 +346,10 @@ impl BridgeSynthesisEngine {
         self.stats.avg_fitness_ema = self.population.avg_fitness_ema;
         self.prev_best = self.population.best_fitness;
 
-        let best_genome = next_gen.first().map(|i| i.genome.clone()).unwrap_or_default();
+        let best_genome = next_gen
+            .first()
+            .map(|i| i.genome.clone())
+            .unwrap_or_default();
         let best_fitness = next_gen.first().map(|i| i.fitness).unwrap_or(0.0);
         self.population.individuals = next_gen;
 
@@ -369,9 +385,11 @@ impl BridgeSynthesisEngine {
 
         if self.strategies.len() >= MAX_STRATEGIES {
             // Evict least-fit strategy.
-            if let Some((&evict_id, _)) = self.strategies.iter()
-                .min_by(|a, b| a.1.fitness.partial_cmp(&b.1.fitness).unwrap_or(core::cmp::Ordering::Equal))
-            {
+            if let Some((&evict_id, _)) = self.strategies.iter().min_by(|a, b| {
+                a.1.fitness
+                    .partial_cmp(&b.1.fitness)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            }) {
                 self.strategies.remove(&evict_id);
             }
         }
@@ -408,7 +426,8 @@ impl BridgeSynthesisEngine {
         }
 
         let mean: f32 = results.iter().sum::<f32>() / n.max(1) as f32;
-        let variance: f32 = results.iter().map(|r| (r - mean) * (r - mean)).sum::<f32>() / n.max(1) as f32;
+        let variance: f32 =
+            results.iter().map(|r| (r - mean) * (r - mean)).sum::<f32>() / n.max(1) as f32;
         let consistency = (1.0 - variance.min(1.0)).max(0.0);
         let improvement = mean - self.baseline_fitness;
         let is_valid = improvement > 0.0 && consistency > 0.5;
@@ -438,7 +457,9 @@ impl BridgeSynthesisEngine {
 
     /// Assess how novel a strategy is compared to existing ones.
     pub fn synthesis_novelty(&self, strategy_id: u64) -> NoveltyAssessment {
-        let genome = self.strategies.get(&strategy_id)
+        let genome = self
+            .strategies
+            .get(&strategy_id)
             .map(|s| &s.genome)
             .cloned()
             .unwrap_or_default();
@@ -479,17 +500,22 @@ impl BridgeSynthesisEngine {
     /// Proxy fitness: reward genomes whose elements are diverse and sum
     /// to a moderate total (simulating a balanced optimisation strategy).
     fn evaluate_fitness(&self, genome: &[f32]) -> f32 {
-        if genome.is_empty() { return 0.0; }
+        if genome.is_empty() {
+            return 0.0;
+        }
         let sum: f32 = genome.iter().sum();
         let mean = sum / genome.len() as f32;
-        let variance: f32 = genome.iter().map(|g| (g - mean) * (g - mean)).sum::<f32>() / genome.len() as f32;
+        let variance: f32 =
+            genome.iter().map(|g| (g - mean) * (g - mean)).sum::<f32>() / genome.len() as f32;
         let balance = 1.0 - abs_f32(mean - 0.5) * 2.0; // reward mean ≈ 0.5
         let diversity = variance.min(0.25) / 0.25; // reward some variance
         balance * 0.6 + diversity * 0.4
     }
 
     fn compute_novelty(&self, genome: &[f32]) -> f32 {
-        if self.strategies.is_empty() { return 1.0; }
+        if self.strategies.is_empty() {
+            return 1.0;
+        }
         let nearest = self.nearest_distance(genome);
         (nearest * 4.0).min(1.0)
     }
@@ -497,7 +523,8 @@ impl BridgeSynthesisEngine {
     fn nearest_distance(&self, genome: &[f32]) -> f32 {
         let mut min_dist = f32::MAX;
         for s in self.strategies.values() {
-            let dist = genome.iter()
+            let dist = genome
+                .iter()
                 .zip(s.genome.iter())
                 .map(|(a, b)| (a - b) * (a - b))
                 .sum::<f32>();
@@ -511,13 +538,17 @@ impl BridgeSynthesisEngine {
             } else {
                 0.0
             };
-            if d < min_dist { min_dist = d; }
+            if d < min_dist {
+                min_dist = d;
+            }
         }
         min_dist
     }
 
     fn genome_entropy(&self, genome: &[f32]) -> f32 {
-        if genome.is_empty() { return 0.0; }
+        if genome.is_empty() {
+            return 0.0;
+        }
         // Bucket into 10 bins, compute histogram entropy.
         let mut bins = [0u32; 10];
         for &g in genome {
