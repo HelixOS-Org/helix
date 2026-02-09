@@ -50,6 +50,7 @@ impl PrctlRecord {
 
 /// Prctl app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrctlAppStats {
     pub total_ops: u64,
     pub gets: u64,
@@ -68,6 +69,7 @@ impl AppPrctl {
         Self { stats: PrctlAppStats { total_ops: 0, gets: 0, sets: 0, errors: 0 } }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &PrctlRecord) {
         self.stats.total_ops += 1;
         match rec.option {
@@ -113,6 +115,7 @@ pub struct AppPrctlV2Entry {
 
 /// Stats for prctl operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppPrctlV2Stats {
     pub total_ops: u64,
     pub name_changes: u64,
@@ -154,6 +157,7 @@ impl AppPrctlV2Manager {
         self.entries.insert(pid, entry);
     }
 
+    #[inline]
     pub fn set_name(&mut self, pid: u64, name: &str) -> bool {
         self.stats.total_ops += 1;
         if let Some(entry) = self.entries.get_mut(&pid) {
@@ -166,6 +170,7 @@ impl AppPrctlV2Manager {
         }
     }
 
+    #[inline]
     pub fn set_no_new_privs(&mut self, pid: u64) -> bool {
         self.stats.total_ops += 1;
         if let Some(entry) = self.entries.get_mut(&pid) {
@@ -177,6 +182,7 @@ impl AppPrctlV2Manager {
         }
     }
 
+    #[inline]
     pub fn set_seccomp(&mut self, pid: u64, mode: u32) -> bool {
         self.stats.total_ops += 1;
         if let Some(entry) = self.entries.get_mut(&pid) {
@@ -188,10 +194,12 @@ impl AppPrctlV2Manager {
         }
     }
 
+    #[inline(always)]
     pub fn get_entry(&self, pid: u64) -> Option<&AppPrctlV2Entry> {
         self.entries.get(&pid)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppPrctlV2Stats {
         &self.stats
     }
