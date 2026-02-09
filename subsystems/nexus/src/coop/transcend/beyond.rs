@@ -52,7 +52,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(v: u64, lo: u64, hi: u64) -> u64 {
-    if v < lo { lo } else if v > hi { hi } else { v }
+    if v < lo {
+        lo
+    } else if v > hi {
+        hi
+    } else {
+        v
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -238,10 +244,14 @@ impl CoopBeyond {
         if mean == 0 {
             return 50;
         }
-        let variance = history.iter().map(|&x| {
-            let d = if x > mean { x - mean } else { mean - x };
-            d * d
-        }).sum::<u64>() / n;
+        let variance = history
+            .iter()
+            .map(|&x| {
+                let d = if x > mean { x - mean } else { mean - x };
+                d * d
+            })
+            .sum::<u64>()
+            / n;
 
         // Integer sqrt approximation
         let std_dev = integer_sqrt(variance);
@@ -334,11 +344,22 @@ impl CoopBeyond {
             genome.push(xorshift64(&mut self.rng_state) % 256);
         }
 
-        let protocol_id = fnv1a(&genome.iter().flat_map(|g| g.to_le_bytes()).collect::<Vec<u8>>());
+        let protocol_id = fnv1a(
+            &genome
+                .iter()
+                .flat_map(|g| g.to_le_bytes())
+                .collect::<Vec<u8>>(),
+        );
         let fitness = self.evaluate_protocol_fitness(&genome);
         let novelty = self.compute_novelty(&genome);
 
-        let generation = self.protocols.values().map(|p| p.generation).max().unwrap_or(0) + 1;
+        let generation = self
+            .protocols
+            .values()
+            .map(|p| p.generation)
+            .max()
+            .unwrap_or(0)
+            + 1;
 
         let proto = EmergentProtocol {
             protocol_id,
@@ -375,9 +396,20 @@ impl CoopBeyond {
             return 100;
         }
         let mut min_distance = u64::MAX;
-        let genome_hash = fnv1a(&genome.iter().flat_map(|g| g.to_le_bytes()).collect::<Vec<u8>>());
+        let genome_hash = fnv1a(
+            &genome
+                .iter()
+                .flat_map(|g| g.to_le_bytes())
+                .collect::<Vec<u8>>(),
+        );
         for proto in self.protocols.values() {
-            let other_hash = fnv1a(&proto.genome.iter().flat_map(|g| g.to_le_bytes()).collect::<Vec<u8>>());
+            let other_hash = fnv1a(
+                &proto
+                    .genome
+                    .iter()
+                    .flat_map(|g| g.to_le_bytes())
+                    .collect::<Vec<u8>>(),
+            );
             let dist = genome_hash ^ other_hash;
             let dist_score = (dist % 100).max(1);
             if dist_score < min_distance {
@@ -429,7 +461,8 @@ impl CoopBeyond {
         let protocol_score = self.stats.avg_protocol_fitness;
         let innovation_score = clamp(self.innovation_events, 0, 100);
 
-        let transcendence = (anticipation_score + trust_score + protocol_score + innovation_score) / 4;
+        let transcendence =
+            (anticipation_score + trust_score + protocol_score + innovation_score) / 4;
         self.stats.transcendence_level = transcendence;
         transcendence
     }
@@ -439,7 +472,9 @@ impl CoopBeyond {
     pub fn tick(&mut self) {
         self.tick += 1;
         // Expire old anticipations
-        let expired: Vec<u64> = self.needs.iter()
+        let expired: Vec<u64> = self
+            .needs
+            .iter()
             .filter(|(_, n)| n.horizon_ticks == 0)
             .map(|(&id, _)| id)
             .collect();
@@ -461,17 +496,27 @@ impl CoopBeyond {
 
         let avg_acc = if n_needs > 0 {
             self.needs.values().map(|n| n.accuracy_ema).sum::<u64>() / n_needs as u64
-        } else { 50 };
+        } else {
+            50
+        };
 
         let avg_trust = if n_seeds > 0 {
             self.seeds.values().map(|s| s.synthetic_trust).sum::<u64>() / n_seeds as u64
-        } else { 0 };
+        } else {
+            0
+        };
 
         let avg_fit = if n_protos > 0 {
             self.protocols.values().map(|p| p.fitness).sum::<u64>() / n_protos as u64
-        } else { 0 };
+        } else {
+            0
+        };
 
-        let inno_rate = if self.tick > 0 { self.innovation_events * 100 / self.tick } else { 0 };
+        let inno_rate = if self.tick > 0 {
+            self.innovation_events * 100 / self.tick
+        } else {
+            0
+        };
 
         self.stats = BeyondStats {
             anticipated_needs: n_needs,
