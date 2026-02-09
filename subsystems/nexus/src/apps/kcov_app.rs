@@ -25,6 +25,7 @@ pub struct CoverageHit {
 
 impl CoverageHit {
     pub fn new(pc: u64, now: u64) -> Self { Self { pc, hit_count: 1, first_seen: now, last_seen: now } }
+    #[inline(always)]
     pub fn hit(&mut self, now: u64) { self.hit_count += 1; self.last_seen = now; }
 }
 
@@ -56,9 +57,12 @@ impl KcovInstance {
         Self { id, tid, mode: KcovMode::Disabled, coverage: BTreeMap::new(), comparisons: Vec::new(), buffer_size, enabled: false, total_hits: 0 }
     }
 
+    #[inline(always)]
     pub fn enable(&mut self, mode: KcovMode) { self.mode = mode; self.enabled = true; }
+    #[inline(always)]
     pub fn disable(&mut self) { self.mode = KcovMode::Disabled; self.enabled = false; }
 
+    #[inline]
     pub fn trace_pc(&mut self, pc: u64, now: u64) {
         if !self.enabled || self.mode != KcovMode::TracePC { return; }
         self.total_hits += 1;
@@ -66,6 +70,7 @@ impl KcovInstance {
         else { self.coverage.insert(pc, CoverageHit::new(pc, now)); }
     }
 
+    #[inline]
     pub fn trace_cmp(&mut self, pc: u64, arg1: u64, arg2: u64, size: u8) {
         if !self.enabled || self.mode != KcovMode::TraceCmp { return; }
         if self.comparisons.len() < self.buffer_size as usize {
@@ -73,12 +78,15 @@ impl KcovInstance {
         }
     }
 
+    #[inline(always)]
     pub fn unique_edges(&self) -> u32 { self.coverage.len() as u32 }
+    #[inline(always)]
     pub fn coverage_density(&self) -> f64 { if self.total_hits == 0 { 0.0 } else { self.coverage.len() as f64 / self.total_hits as f64 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KcovAppStats {
     pub total_instances: u32,
     pub enabled_instances: u32,
@@ -97,14 +105,17 @@ pub struct AppKcov {
 impl AppKcov {
     pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, tid: u64, buffer: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
         self.instances.insert(id, KcovInstance::new(id, tid, buffer));
         id
     }
 
+    #[inline(always)]
     pub fn enable(&mut self, id: u64, mode: KcovMode) { if let Some(i) = self.instances.get_mut(&id) { i.enable(mode); } }
 
+    #[inline]
     pub fn stats(&self) -> KcovAppStats {
         let enabled = self.instances.values().filter(|i| i.enabled).count() as u32;
         let edges: u64 = self.instances.values().map(|i| i.unique_edges() as u64).sum();
