@@ -13,10 +13,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -156,7 +157,9 @@ struct ContextIndex {
 
 impl ContextIndex {
     fn new() -> Self {
-        Self { tag_to_entries: BTreeMap::new() }
+        Self {
+            tag_to_entries: BTreeMap::new(),
+        }
     }
 
     fn index_entry(&mut self, wisdom_id: u64, tags: &[String]) {
@@ -328,8 +331,7 @@ impl BridgeWisdom {
             };
             // Update depth: depth grows with successful applications
             entry.depth_score = (entry.times_successful as f32 / DEPTH_SCALE).min(1.0);
-            self.depth_ema =
-                EMA_ALPHA * entry.depth_score + (1.0 - EMA_ALPHA) * self.depth_ema;
+            self.depth_ema = EMA_ALPHA * entry.depth_score + (1.0 - EMA_ALPHA) * self.depth_ema;
         }
     }
 
@@ -410,7 +412,11 @@ impl BridgeWisdom {
             s
         };
 
-        let merged_conf = if weight_sum > 0.0 { conf_sum / weight_sum } else { 0.0 };
+        let merged_conf = if weight_sum > 0.0 {
+            conf_sum / weight_sum
+        } else {
+            0.0
+        };
         let n = contributing.len().max(1) as f32;
 
         SageDecision {
