@@ -46,12 +46,14 @@ impl FileAccessTracker {
         Self { fd, pid, inode, regions: Vec::new(), read_bytes: 0, sequential_reads: 0, random_reads: 0, last_offset: 0, readahead_hits: 0, readahead_misses: 0 }
     }
 
+    #[inline]
     pub fn record_read(&mut self, offset: u64, len: u64) {
         if offset == self.last_offset { self.sequential_reads += 1; } else { self.random_reads += 1; }
         self.last_offset = offset + len;
         self.read_bytes += len;
     }
 
+    #[inline]
     pub fn detect_pattern(&self) -> FadviseAdvice {
         let total = self.sequential_reads + self.random_reads;
         if total < 10 { return FadviseAdvice::Normal; }
@@ -62,6 +64,7 @@ impl FileAccessTracker {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FadviseAppStats {
     pub tracked_files: u32,
     pub total_advices: u64,
@@ -78,16 +81,19 @@ pub struct AppFadvise {
 impl AppFadvise {
     pub fn new() -> Self { Self { trackers: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn track(&mut self, fd: i32, pid: u64, inode: u64) {
         let key = ((pid as u64) << 32) | fd as u64;
         self.trackers.insert(key, FileAccessTracker::new(fd, pid, inode));
     }
 
+    #[inline(always)]
     pub fn advise(&mut self, pid: u64, fd: i32, region: FadviseRegion) {
         let key = ((pid as u64) << 32) | fd as u64;
         if let Some(t) = self.trackers.get_mut(&key) { t.regions.push(region); }
     }
 
+    #[inline]
     pub fn stats(&self) -> FadviseAppStats {
         let advices: u64 = self.trackers.values().map(|t| t.regions.len() as u64).sum();
         let seq = self.trackers.values().filter(|t| t.detect_pattern() == FadviseAdvice::Sequential).count() as u32;
@@ -136,18 +142,21 @@ impl FileAdviceV2 {
         Self { fd, regions: Vec::new(), total_advised: 0, total_bytes: 0, cache_hits: 0, cache_misses: 0 }
     }
 
+    #[inline]
     pub fn advise(&mut self, offset: u64, len: u64, advice: FadviseV2Advice, now: u64) {
         self.regions.push(FadviseV2Region { offset, length: len, advice, applied_at: now });
         self.total_advised += 1;
         self.total_bytes += len;
     }
 
+    #[inline]
     pub fn record_access(&mut self, offset: u64, hit: bool) {
         if hit { self.cache_hits += 1; }
         else { self.cache_misses += 1; }
         let _ = offset;
     }
 
+    #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.cache_hits + self.cache_misses;
         if total == 0 { return 0.0; }
@@ -157,6 +166,7 @@ impl FileAdviceV2 {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FadviseV2AppStats {
     pub tracked_files: u32,
     pub total_advise_calls: u64,
@@ -172,18 +182,23 @@ pub struct AppFadviseV2 {
 impl AppFadviseV2 {
     pub fn new() -> Self { Self { files: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn track(&mut self, fd: u64) { self.files.insert(fd, FileAdviceV2::new(fd)); }
 
+    #[inline(always)]
     pub fn advise(&mut self, fd: u64, offset: u64, len: u64, advice: FadviseV2Advice, now: u64) {
         if let Some(f) = self.files.get_mut(&fd) { f.advise(offset, len, advice, now); }
     }
 
+    #[inline(always)]
     pub fn record_access(&mut self, fd: u64, offset: u64, hit: bool) {
         if let Some(f) = self.files.get_mut(&fd) { f.record_access(offset, hit); }
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, fd: u64) { self.files.remove(&fd); }
 
+    #[inline]
     pub fn stats(&self) -> FadviseV2AppStats {
         let calls: u64 = self.files.values().map(|f| f.total_advised).sum();
         let bytes: u64 = self.files.values().map(|f| f.total_bytes).sum();
@@ -247,6 +262,7 @@ impl FadviseV3Record {
 
 /// Per-file readahead state.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FileReadaheadState {
     pub inode: u64,
     pub current_window: u64,
@@ -306,12 +322,14 @@ impl FileReadaheadState {
         self.last_length = length;
     }
 
+    #[inline]
     pub fn apply_willneed(&mut self, length: u64) {
         let pages = (length + 4095) / 4096;
         self.willneed_prefetches += 1;
         self.readahead_pages += pages;
     }
 
+    #[inline]
     pub fn apply_dontneed(&mut self, length: u64) {
         let pages = (length + 4095) / 4096;
         self.dontneed_evictions += 1;
@@ -321,6 +339,7 @@ impl FileReadaheadState {
 
 /// Statistics for fadvise V3 app.
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FadviseV3AppStats {
     pub total_calls: u64,
     pub sequential_advices: u64,
@@ -405,6 +424,7 @@ impl AppFadviseV3 {
         id
     }
 
+    #[inline(always)]
     pub fn file_count(&self) -> usize {
         self.files.len()
     }
@@ -449,10 +469,12 @@ impl FadviseV4Record {
         Self { fd, advice, result: FadviseV4Result::Success, offset: 0, length: 0 }
     }
 
+    #[inline(always)]
     pub fn is_readahead_hint(&self) -> bool {
         matches!(self.advice, FadviseV4Advice::Sequential | FadviseV4Advice::WillNeed)
     }
 
+    #[inline(always)]
     pub fn is_drop_hint(&self) -> bool {
         matches!(self.advice, FadviseV4Advice::DontNeed | FadviseV4Advice::NoReuse)
     }
@@ -473,6 +495,7 @@ impl ReadaheadWindow {
         Self { fd, window_start: start, window_size: size, hits: 0, misses: 0 }
     }
 
+    #[inline]
     pub fn check(&mut self, offset: u64) -> bool {
         if offset >= self.window_start && offset < self.window_start + self.window_size {
             self.hits += 1;
@@ -483,6 +506,7 @@ impl ReadaheadWindow {
         }
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
         if total == 0 { 0.0 } else { self.hits as f64 / total as f64 }
@@ -491,6 +515,7 @@ impl ReadaheadWindow {
 
 /// Fadvise v4 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct FadviseV4AppStats {
     pub total_calls: u64,
     pub sequential_hints: u64,
