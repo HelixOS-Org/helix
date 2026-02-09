@@ -55,10 +55,12 @@ impl AppIoRequest {
         }
     }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
         if self.complete_ns > self.submit_ns { self.complete_ns - self.submit_ns } else { 0 }
     }
 
+    #[inline]
     pub fn is_sequential_after(&self, prev: &AppIoRequest) -> bool {
         self.direction == prev.direction
             && self.device_id == prev.device_id
@@ -88,21 +90,25 @@ impl AppIoBandwidth {
         }
     }
 
+    #[inline(always)]
     pub fn read_bw_bps(&self) -> f64 {
         if self.window_duration_ns == 0 { return 0.0; }
         self.read_bytes as f64 / (self.window_duration_ns as f64 / 1_000_000_000.0)
     }
 
+    #[inline(always)]
     pub fn write_bw_bps(&self) -> f64 {
         if self.window_duration_ns == 0 { return 0.0; }
         self.write_bytes as f64 / (self.window_duration_ns as f64 / 1_000_000_000.0)
     }
 
+    #[inline(always)]
     pub fn total_iops(&self) -> f64 {
         if self.window_duration_ns == 0 { return 0.0; }
         (self.read_ops + self.write_ops) as f64 / (self.window_duration_ns as f64 / 1_000_000_000.0)
     }
 
+    #[inline]
     pub fn merge_ratio(&self) -> f64 {
         let total = self.read_ops + self.write_ops;
         if total == 0 { return 0.0; }
@@ -131,11 +137,13 @@ impl ReadAheadConfig {
         }
     }
 
+    #[inline(always)]
     pub fn record_hit(&mut self) {
         self.hit_count += 1;
         self.update_rate();
     }
 
+    #[inline(always)]
     pub fn record_miss(&mut self) {
         self.miss_count += 1;
         self.update_rate();
@@ -146,6 +154,7 @@ impl ReadAheadConfig {
         if total > 0 { self.hit_rate = self.hit_count as f64 / total as f64; }
     }
 
+    #[inline]
     pub fn adapt(&mut self) {
         if !self.adaptive { return; }
         if self.hit_rate > 0.8 && self.pages < 256 {
@@ -159,6 +168,7 @@ impl ReadAheadConfig {
 
 /// Per-app I/O scheduling state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppIoSchedState {
     pub process_id: u64,
     pub io_class: AppIoClass,
@@ -188,6 +198,7 @@ impl AppIoSchedState {
         }
     }
 
+    #[inline]
     pub fn submit_io(&mut self, req: AppIoRequest) {
         match req.direction {
             IoDirection::Read => { self.bandwidth.read_ops += 1; self.bandwidth.read_bytes += req.size; }
@@ -197,6 +208,7 @@ impl AppIoSchedState {
         self.pending_requests.push(req);
     }
 
+    #[inline]
     pub fn complete_io(&mut self, id: u64, ts: u64) {
         if let Some(idx) = self.pending_requests.iter().position(|r| r.id == id) {
             let mut req = self.pending_requests.remove(idx);
@@ -208,6 +220,7 @@ impl AppIoSchedState {
         }
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.latency_count == 0 { 0 } else { self.latency_sum_ns / self.latency_count }
     }
@@ -215,6 +228,7 @@ impl AppIoSchedState {
 
 /// Apps I/O scheduler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsIoSchedStats {
     pub total_processes: usize,
     pub total_pending: usize,
@@ -239,10 +253,12 @@ impl AppsIoSchedBridge {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, ts: u64) {
         self.states.entry(pid).or_insert_with(|| AppIoSchedState::new(pid, ts));
     }
 
+    #[inline]
     pub fn set_io_priority(&mut self, pid: u64, class: AppIoClass, nice: u8) {
         if let Some(state) = self.states.get_mut(&pid) {
             state.io_class = class;
@@ -250,6 +266,7 @@ impl AppsIoSchedBridge {
         }
     }
 
+    #[inline]
     pub fn submit(&mut self, pid: u64, dir: IoDirection, offset: u64, size: u64, ts: u64) -> u64 {
         let id = self.next_io_id;
         self.next_io_id += 1;
@@ -258,12 +275,15 @@ impl AppsIoSchedBridge {
         id
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, pid: u64, io_id: u64, ts: u64) {
         if let Some(state) = self.states.get_mut(&pid) { state.complete_io(io_id, ts); }
     }
 
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.states.len();
         self.stats.total_pending = self.states.values().map(|s| s.pending_requests.len()).sum();
@@ -274,6 +294,8 @@ impl AppsIoSchedBridge {
         self.stats.avg_latency_ns = if total_count > 0 { total_lat / total_count } else { 0 };
     }
 
+    #[inline(always)]
     pub fn app_state(&self, pid: u64) -> Option<&AppIoSchedState> { self.states.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsIoSchedStats { &self.stats }
 }
