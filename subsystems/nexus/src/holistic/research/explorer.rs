@@ -193,11 +193,18 @@ impl HolisticExplorer {
             frontier_log: Vec::new(),
             rng_state: seed | 1,
             stats: ExplorerStats {
-                generation: 0, population_size: 0, best_fitness: 0.0,
-                avg_fitness_ema: 0.0, pareto_size: 0, stagnation_count: 0,
-                mutation_rate: BASE_MUTATION_RATE, synergies_found: 0,
-                emergent_properties: 0, frontier_size: 0,
-                novelty_archive_size: 0, total_evaluations: 0,
+                generation: 0,
+                population_size: 0,
+                best_fitness: 0.0,
+                avg_fitness_ema: 0.0,
+                pareto_size: 0,
+                stagnation_count: 0,
+                mutation_rate: BASE_MUTATION_RATE,
+                synergies_found: 0,
+                emergent_properties: 0,
+                frontier_size: 0,
+                novelty_archive_size: 0,
+                total_evaluations: 0,
             },
         }
     }
@@ -214,8 +221,7 @@ impl HolisticExplorer {
         self.select_and_breed();
         self.mutate_population(tick);
         if self.stats.stagnation_count > STAGNATION_LIMIT {
-            self.stats.mutation_rate =
-                (self.stats.mutation_rate + MUTATION_BOOST).min(0.50);
+            self.stats.mutation_rate = (self.stats.mutation_rate + MUTATION_BOOST).min(0.50);
             self.stats.stagnation_count = 0;
         }
         self.stats.population_size = self.population.len() as u64;
@@ -243,9 +249,12 @@ impl HolisticExplorer {
     pub fn cross_subsystem_synergy(&mut self, tick: u64) -> Vec<SynergyResult> {
         let mut found = Vec::new();
         let axes = [
-            SubsystemAxis::Bridge, SubsystemAxis::Application,
-            SubsystemAxis::Cooperation, SubsystemAxis::Memory,
-            SubsystemAxis::Scheduler, SubsystemAxis::Ipc,
+            SubsystemAxis::Bridge,
+            SubsystemAxis::Application,
+            SubsystemAxis::Cooperation,
+            SubsystemAxis::Memory,
+            SubsystemAxis::Scheduler,
+            SubsystemAxis::Ipc,
         ];
         for i in 0..axes.len() {
             for j in (i + 1)..axes.len() {
@@ -253,7 +262,8 @@ impl HolisticExplorer {
                 if corr.abs() > SYNERGY_THRESHOLD {
                     let key = fnv1a_hash(&[i as u8, j as u8]);
                     let syn = SynergyResult {
-                        axis_a: axes[i], axis_b: axes[j],
+                        axis_a: axes[i],
+                        axis_b: axes[j],
                         correlation: corr,
                         synergy_score: corr.abs() * 1.5,
                         tick,
@@ -271,11 +281,16 @@ impl HolisticExplorer {
     pub fn emergent_pattern_search(&mut self, tick: u64) -> Vec<EmergentProperty> {
         let mut detected = Vec::new();
         let window = self.frontier_log.len().min(EMERGENCE_SCAN_WINDOW);
-        if window < 4 { return detected; }
+        if window < 4 {
+            return detected;
+        }
         let recent = &self.frontier_log[self.frontier_log.len() - window..];
         let mean: f32 = recent.iter().map(|(_, v)| *v).sum::<f32>() / window as f32;
-        let variance: f32 = recent.iter()
-            .map(|(_, v)| (*v - mean) * (*v - mean)).sum::<f32>() / window as f32;
+        let variance: f32 = recent
+            .iter()
+            .map(|(_, v)| (*v - mean) * (*v - mean))
+            .sum::<f32>()
+            / window as f32;
         if variance > 0.05 {
             let id = fnv1a_hash(&tick.to_le_bytes());
             let prop = EmergentProperty {
@@ -301,10 +316,14 @@ impl HolisticExplorer {
     pub fn pareto_optimal_set(&mut self) -> &[ParetoPoint] {
         let mut candidates: Vec<ParetoPoint> = Vec::new();
         for ind in &self.population {
-            if !ind.evaluated { continue; }
+            if !ind.evaluated {
+                continue;
+            }
             let scores: Vec<f32> = ind.objectives.iter().map(|o| o.measured).collect();
             candidates.push(ParetoPoint {
-                id: ind.id, scores, generation: ind.generation_born,
+                id: ind.id,
+                scores,
+                generation: ind.generation_born,
                 dimension_count: ind.dimensions.len(),
             });
         }
@@ -331,26 +350,40 @@ impl HolisticExplorer {
     }
 
     /// Current statistics snapshot
-    pub fn stats(&self) -> &ExplorerStats { &self.stats }
+    pub fn stats(&self) -> &ExplorerStats {
+        &self.stats
+    }
 
     // ── private helpers ─────────────────────────────────────────────────
 
     fn seed_population(&mut self) {
         for i in 0..MAX_POPULATION {
             let id = fnv1a_hash(&(i as u64).to_le_bytes());
-            let dim_count = (xorshift64(&mut self.rng_state) % MAX_DIMENSIONS as u64).max(4) as usize;
-            let dims: Vec<ConfigDimension> = (0..dim_count).map(|d| {
-                let val = xorshift_f32(&mut self.rng_state);
-                ConfigDimension {
-                    name: String::from("dim"), axis: SubsystemAxis::Bridge,
-                    value: val, min_val: 0.0, max_val: 1.0, sensitivity: 0.5,
-                    hash: fnv1a_hash(&(d as u64).to_le_bytes()),
-                }
-            }).collect();
+            let dim_count =
+                (xorshift64(&mut self.rng_state) % MAX_DIMENSIONS as u64).max(4) as usize;
+            let dims: Vec<ConfigDimension> = (0..dim_count)
+                .map(|d| {
+                    let val = xorshift_f32(&mut self.rng_state);
+                    ConfigDimension {
+                        name: String::from("dim"),
+                        axis: SubsystemAxis::Bridge,
+                        value: val,
+                        min_val: 0.0,
+                        max_val: 1.0,
+                        sensitivity: 0.5,
+                        hash: fnv1a_hash(&(d as u64).to_le_bytes()),
+                    }
+                })
+                .collect();
             self.population.push(SystemIndividual {
-                id, dimensions: dims, objectives: Vec::new(),
-                fitness: 0.0, crowding_distance: 0.0, rank: 0,
-                generation_born: 0, evaluated: false,
+                id,
+                dimensions: dims,
+                objectives: Vec::new(),
+                fitness: 0.0,
+                crowding_distance: 0.0,
+                rank: 0,
+                generation_born: 0,
+                evaluated: false,
             });
         }
     }
@@ -358,12 +391,20 @@ impl HolisticExplorer {
     fn evaluate_all(&mut self, tick: u64) {
         let mut best = self.stats.best_fitness;
         for ind in self.population.iter_mut() {
-            if ind.evaluated { continue; }
-            let fit: f32 = ind.dimensions.iter().map(|d| d.value * d.sensitivity)
-                .sum::<f32>() / ind.dimensions.len().max(1) as f32;
+            if ind.evaluated {
+                continue;
+            }
+            let fit: f32 = ind
+                .dimensions
+                .iter()
+                .map(|d| d.value * d.sensitivity)
+                .sum::<f32>()
+                / ind.dimensions.len().max(1) as f32;
             ind.fitness = fit;
             ind.evaluated = true;
-            if fit > best { best = fit; }
+            if fit > best {
+                best = fit;
+            }
             self.stats.total_evaluations += 1;
         }
         self.stats.avg_fitness_ema =
@@ -376,7 +417,8 @@ impl HolisticExplorer {
         let len = self.population.len();
         for i in 0..len {
             let fi = self.population[i].fitness;
-            let rank = (0..len).filter(|&j| j != i && self.population[j].fitness > fi)
+            let rank = (0..len)
+                .filter(|&j| j != i && self.population[j].fitness > fi)
                 .count() as u32;
             self.population[i].rank = rank;
         }
@@ -384,51 +426,77 @@ impl HolisticExplorer {
 
     fn crowding_distance_assignment(&mut self) {
         let len = self.population.len();
-        if len < 3 { return; }
-        for ind in self.population.iter_mut() { ind.crowding_distance = 0.0; }
+        if len < 3 {
+            return;
+        }
+        for ind in self.population.iter_mut() {
+            ind.crowding_distance = 0.0;
+        }
         let mut idx: Vec<usize> = (0..len).collect();
-        idx.sort_by(|&a, &b| self.population[a].fitness
-            .partial_cmp(&self.population[b].fitness).unwrap_or(core::cmp::Ordering::Equal));
+        idx.sort_by(|&a, &b| {
+            self.population[a]
+                .fitness
+                .partial_cmp(&self.population[b].fitness)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         self.population[idx[0]].crowding_distance = f32::MAX;
         self.population[idx[len - 1]].crowding_distance = f32::MAX;
         let range = self.population[idx[len - 1]].fitness - self.population[idx[0]].fitness;
-        if range < 1e-9 { return; }
+        if range < 1e-9 {
+            return;
+        }
         for k in 1..(len - 1) {
-            let d = (self.population[idx[k + 1]].fitness
-                - self.population[idx[k - 1]].fitness) / range;
+            let d =
+                (self.population[idx[k + 1]].fitness - self.population[idx[k - 1]].fitness) / range;
             self.population[idx[k]].crowding_distance += d;
         }
     }
 
     fn select_and_breed(&mut self) {
-        self.population.sort_by(|a, b| a.rank.cmp(&b.rank).then(
-            b.crowding_distance.partial_cmp(&a.crowding_distance)
-                .unwrap_or(core::cmp::Ordering::Equal)));
-        self.population.truncate(((self.population.len() as f32 * ELITISM_FRACTION) as usize).max(2));
+        self.population.sort_by(|a, b| {
+            a.rank.cmp(&b.rank).then(
+                b.crowding_distance
+                    .partial_cmp(&a.crowding_distance)
+                    .unwrap_or(core::cmp::Ordering::Equal),
+            )
+        });
+        self.population
+            .truncate(((self.population.len() as f32 * ELITISM_FRACTION) as usize).max(2));
     }
 
     fn crossover_pass(&mut self) -> usize {
         let mut children = 0;
         let parents = self.population.clone();
         let len = parents.len();
-        if len < 2 { return 0; }
+        if len < 2 {
+            return 0;
+        }
         while self.population.len() < MAX_POPULATION {
             let a = (xorshift64(&mut self.rng_state) % len as u64) as usize;
             let b = (xorshift64(&mut self.rng_state) % len as u64) as usize;
-            if a == b || xorshift_f32(&mut self.rng_state) > CROSSOVER_RATE { continue; }
+            if a == b || xorshift_f32(&mut self.rng_state) > CROSSOVER_RATE {
+                continue;
+            }
             let id = fnv1a_hash(&self.stats.total_evaluations.to_le_bytes());
             let dl = parents[a].dimensions.len().min(parents[b].dimensions.len());
-            let dims: Vec<ConfigDimension> = (0..dl).map(|d| {
-                let mut dim = parents[a].dimensions[d].clone();
-                if xorshift_f32(&mut self.rng_state) >= 0.5 {
-                    dim.value = parents[b].dimensions[d].value;
-                }
-                dim
-            }).collect();
+            let dims: Vec<ConfigDimension> = (0..dl)
+                .map(|d| {
+                    let mut dim = parents[a].dimensions[d].clone();
+                    if xorshift_f32(&mut self.rng_state) >= 0.5 {
+                        dim.value = parents[b].dimensions[d].value;
+                    }
+                    dim
+                })
+                .collect();
             self.population.push(SystemIndividual {
-                id, dimensions: dims, objectives: Vec::new(),
-                fitness: 0.0, crowding_distance: 0.0, rank: 0,
-                generation_born: self.stats.generation, evaluated: false,
+                id,
+                dimensions: dims,
+                objectives: Vec::new(),
+                fitness: 0.0,
+                crowding_distance: 0.0,
+                rank: 0,
+                generation_born: self.stats.generation,
+                evaluated: false,
             });
             children += 1;
         }
@@ -437,8 +505,11 @@ impl HolisticExplorer {
 
     fn select_survivors(&mut self) {
         if self.population.len() > MAX_POPULATION {
-            self.population.sort_by(|a, b|
-                b.fitness.partial_cmp(&a.fitness).unwrap_or(core::cmp::Ordering::Equal));
+            self.population.sort_by(|a, b| {
+                b.fitness
+                    .partial_cmp(&a.fitness)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            });
             self.population.truncate(MAX_POPULATION);
         }
     }
@@ -459,11 +530,26 @@ impl HolisticExplorer {
     fn axis_correlation(&self, a: SubsystemAxis, b: SubsystemAxis) -> f32 {
         let (mut sa, mut sb, mut sab, mut n) = (0.0f32, 0.0f32, 0.0f32, 0.0f32);
         for ind in &self.population {
-            let va: f32 = ind.dimensions.iter().filter(|d| d.axis == a).map(|d| d.value).sum();
-            let vb: f32 = ind.dimensions.iter().filter(|d| d.axis == b).map(|d| d.value).sum();
-            sa += va; sb += vb; sab += va * vb; n += 1.0;
+            let va: f32 = ind
+                .dimensions
+                .iter()
+                .filter(|d| d.axis == a)
+                .map(|d| d.value)
+                .sum();
+            let vb: f32 = ind
+                .dimensions
+                .iter()
+                .filter(|d| d.axis == b)
+                .map(|d| d.value)
+                .sum();
+            sa += va;
+            sb += vb;
+            sab += va * vb;
+            n += 1.0;
         }
-        if n < 2.0 { return 0.0; }
+        if n < 2.0 {
+            return 0.0;
+        }
         (sab / n) - (sa / n) * (sb / n)
     }
 }
