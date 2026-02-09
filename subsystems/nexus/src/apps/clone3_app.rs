@@ -34,9 +34,13 @@ impl Clone3Flags {
     pub const INTO_CGROUP: u64 = 1 << 20;
 
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn set(&mut self, f: u64) { self.0 |= f; }
+    #[inline(always)]
     pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
+    #[inline(always)]
     pub fn is_thread(&self) -> bool { self.has(Self::THREAD) }
+    #[inline(always)]
     pub fn creates_ns(&self) -> bool { self.0 & 0x1FC00 != 0 }
 }
 
@@ -79,6 +83,7 @@ pub struct Clone3Event {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct Clone3AppStats {
     pub total_clones: u64,
     pub successful: u64,
@@ -98,6 +103,7 @@ pub struct AppClone3 {
 impl AppClone3 {
     pub fn new() -> Self { Self { events: Vec::new(), next_id: 1, max_events: 8192 } }
 
+    #[inline]
     pub fn clone3(&mut self, parent: u64, child: u64, args: &Clone3Args, result: Clone3Result, duration: u64, now: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         if self.events.len() >= self.max_events { self.events.drain(..self.max_events / 2); }
@@ -105,6 +111,7 @@ impl AppClone3 {
         id
     }
 
+    #[inline]
     pub fn stats(&self) -> Clone3AppStats {
         let success = self.events.iter().filter(|e| matches!(e.result, Clone3Result::Success { .. })).count() as u64;
         let failed = self.events.len() as u64 - success;
