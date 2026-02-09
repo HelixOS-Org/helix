@@ -44,6 +44,7 @@ impl KernelAdversarialDefense {
     }
 
     /// Add reference sample
+    #[inline]
     pub fn add_reference(&mut self, sample: Vec<f64>) {
         self.reference_samples.push_back(sample);
 
@@ -84,6 +85,7 @@ impl KernelAdversarialDefense {
     }
 
     /// Purify suspicious input
+    #[inline]
     pub fn purify<F>(&self, input: &[f64], energy_fn: F, seed: u64) -> Vec<f64>
     where
         F: FnMut(&[f64]) -> (f64, Vec<f64>),
