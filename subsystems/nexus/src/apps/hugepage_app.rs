@@ -23,6 +23,7 @@ pub enum HugePageTier {
 }
 
 impl HugePageTier {
+    #[inline]
     pub fn size_bytes(&self) -> u64 {
         match self {
             Self::Large => 2 * 1024 * 1024,
@@ -30,6 +31,7 @@ impl HugePageTier {
         }
     }
 
+    #[inline(always)]
     pub fn pages_4k(&self) -> u64 {
         self.size_bytes() / 4096
     }
@@ -95,6 +97,7 @@ impl HugePageRegion {
         }
     }
 
+    #[inline]
     pub fn record_access(&mut self, subpage_offset: u64) {
         self.access_count += 1;
         if subpage_offset < self.tier.pages_4k() {
@@ -102,6 +105,7 @@ impl HugePageRegion {
         }
     }
 
+    #[inline]
     pub fn access_density(&self) -> f64 {
         let total = self.tier.pages_4k();
         if total == 0 {
@@ -111,16 +115,19 @@ impl HugePageRegion {
         touched as f64 / total as f64
     }
 
+    #[inline(always)]
     pub fn mark_promoted(&mut self, now: u64) {
         self.state = ThpState::Promoted;
         self.promoted_at = Some(now);
     }
 
+    #[inline(always)]
     pub fn mark_demoted(&mut self, now: u64) {
         self.state = ThpState::Demoted;
         self.demoted_at = Some(now);
     }
 
+    #[inline(always)]
     pub fn mark_failed(&mut self) {
         self.promotion_attempts += 1;
         self.promotion_failures += 1;
@@ -129,6 +136,7 @@ impl HugePageRegion {
 
 /// Huge page stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct HugePageAppStats {
     pub candidates_evaluated: u64,
     pub promotions_attempted: u64,
@@ -163,6 +171,7 @@ impl HugePageAppManager {
     }
 
     /// Register a huge-page-eligible region for monitoring
+    #[inline]
     pub fn monitor_region(&mut self, app_id: u64, base_vpn: u64, tier: HugePageTier) {
         let regions = self.app_regions.entry(app_id).or_insert_with(BTreeMap::new);
         regions
@@ -234,6 +243,7 @@ impl HugePageAppManager {
     }
 
     /// Demote a huge page region back to 4K pages
+    #[inline]
     pub fn demote(&mut self, app_id: u64, base_vpn: u64, now: u64) {
         if let Some(regions) = self.app_regions.get_mut(&app_id) {
             if let Some(region) = regions.get_mut(&base_vpn) {
@@ -243,10 +253,12 @@ impl HugePageAppManager {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &HugePageAppStats {
         &self.stats
     }
 
+    #[inline(always)]
     pub fn set_threshold(&mut self, threshold: f64) {
         self.promotion_threshold = threshold.clamp(0.1, 1.0);
     }
