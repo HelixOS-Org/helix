@@ -76,6 +76,7 @@ impl ProcessFdTracker {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct OpenAppStats {
     pub tracked_procs: u32,
     pub total_fds: u32,
@@ -91,8 +92,10 @@ pub struct AppOpen {
 
 impl AppOpen {
     pub fn new() -> Self { Self { procs: BTreeMap::new() } }
+    #[inline(always)]
     pub fn track(&mut self, pid: u64) { self.procs.insert(pid, ProcessFdTracker::new(pid)); }
 
+    #[inline]
     pub fn open_file(&mut self, pid: u64, fd: u64, inode: u64, flags: u32, mode: u32, now: u64) {
         if let Some(p) = self.procs.get_mut(&pid) {
             p.total_opens += 1;
@@ -100,16 +103,20 @@ impl AppOpen {
         }
     }
 
+    #[inline(always)]
     pub fn close_file(&mut self, pid: u64, fd: u64) {
         if let Some(p) = self.procs.get_mut(&pid) { p.fds.remove(&fd); p.total_closes += 1; }
     }
 
+    #[inline(always)]
     pub fn record_failure(&mut self, pid: u64) {
         if let Some(p) = self.procs.get_mut(&pid) { p.total_failures += 1; }
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, pid: u64) { self.procs.remove(&pid); }
 
+    #[inline]
     pub fn stats(&self) -> OpenAppStats {
         let fds: u32 = self.procs.values().map(|p| p.fds.len() as u32).sum();
         let opens: u64 = self.procs.values().map(|p| p.total_opens).sum();
@@ -151,6 +158,7 @@ pub struct AppFileDescriptor {
 
 /// Stats for open operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppOpenStats {
     pub total_opens: u64,
     pub active_fds: u64,
@@ -215,6 +223,7 @@ impl AppOpenV2Manager {
         Some(fd)
     }
 
+    #[inline]
     pub fn close_fd(&mut self, fd: u64) -> bool {
         if let Some(desc) = self.descriptors.remove(&fd) {
             let hash = Self::hash_path(&desc.path);
@@ -243,10 +252,12 @@ impl AppOpenV2Manager {
         }
     }
 
+    #[inline(always)]
     pub fn get_descriptor(&self, fd: u64) -> Option<&AppFileDescriptor> {
         self.descriptors.get(&fd)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppOpenStats {
         &self.stats
     }
