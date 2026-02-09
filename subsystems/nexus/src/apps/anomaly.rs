@@ -96,6 +96,7 @@ pub struct Anomaly {
 
 /// Running statistics for a metric
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct RunningStats {
     /// Number of samples
     count: u64,
@@ -148,6 +149,7 @@ impl RunningStats {
     }
 
     /// Variance
+    #[inline]
     pub fn variance(&self) -> f64 {
         if self.count < 2 {
             0.0
@@ -157,12 +159,14 @@ impl RunningStats {
     }
 
     /// Standard deviation
+    #[inline(always)]
     pub fn std_dev(&self) -> f64 {
         let var = self.variance();
         if var > 0.0 { libm::sqrt(var) } else { 0.0 }
     }
 
     /// Z-score for a value
+    #[inline]
     pub fn z_score(&self, value: f64) -> f64 {
         let sd = self.std_dev();
         if sd < 0.001 {
@@ -188,11 +192,13 @@ impl RunningStats {
     }
 
     /// Mean value
+    #[inline(always)]
     pub fn mean(&self) -> f64 {
         self.mean
     }
 
     /// Recent average (over window)
+    #[inline]
     pub fn recent_avg(&self) -> f64 {
         if self.recent.is_empty() {
             0.0
@@ -397,12 +403,14 @@ impl ProcessAnomalyDetector {
     }
 
     /// Get recent anomalies
+    #[inline(always)]
     pub fn recent_anomalies(&self, n: usize) -> &[Anomaly] {
         let start = self.anomalies.len().saturating_sub(n);
         &self.anomalies[start..]
     }
 
     /// Has critical anomaly
+    #[inline]
     pub fn has_critical(&self) -> bool {
         self.anomalies
             .iter()
@@ -446,6 +454,7 @@ impl AnomalyManager {
     }
 
     /// Get or create detector for a process
+    #[inline]
     pub fn get_detector(&mut self, pid: u64) -> &mut ProcessAnomalyDetector {
         let threshold = self.z_threshold;
         if !self.detectors.contains_key(&pid) && self.detectors.len() < self.max_processes {
@@ -458,6 +467,7 @@ impl AnomalyManager {
     }
 
     /// Report an anomaly
+    #[inline]
     pub fn report(&mut self, anomaly: Anomaly) {
         self.total_anomalies += 1;
         if anomaly.severity == AnomalySeverity::Critical {
@@ -470,11 +480,13 @@ impl AnomalyManager {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.detectors.remove(&pid);
     }
 
     /// Processes with active critical anomalies
+    #[inline]
     pub fn critical_processes(&self) -> Vec<u64> {
         self.detectors
             .iter()
@@ -484,6 +496,7 @@ impl AnomalyManager {
     }
 
     /// Recent anomalies (global)
+    #[inline(always)]
     pub fn recent_anomalies(&self, n: usize) -> &[Anomaly] {
         let start = self.global_log.len().saturating_sub(n);
         &self.global_log[start..]
