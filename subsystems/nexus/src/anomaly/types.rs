@@ -38,6 +38,7 @@ impl AnomalySeverity {
     }
 
     /// Get numeric value (0-4)
+    #[inline]
     pub fn value(&self) -> u8 {
         match self {
             Self::Warning => 0,
@@ -49,6 +50,7 @@ impl AnomalySeverity {
     }
 
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Warning => "Warning",
