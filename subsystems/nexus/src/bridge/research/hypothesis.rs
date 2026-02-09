@@ -313,8 +313,11 @@ impl BridgeHypothesisEngine {
 
         if hyp.evidence.len() >= MAX_EVIDENCE_PER_HYPOTHESIS {
             // Remove weakest evidence
-            hyp.evidence
-                .sort_by(|a, b| b.strength.partial_cmp(&a.strength).unwrap_or(core::cmp::Ordering::Equal));
+            hyp.evidence.sort_by(|a, b| {
+                b.strength
+                    .partial_cmp(&a.strength)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            });
             hyp.evidence.truncate(MAX_EVIDENCE_PER_HYPOTHESIS - 1);
         }
 
@@ -345,8 +348,8 @@ impl BridgeHypothesisEngine {
         let total = support_strength + refute_strength;
         if total > 0.0 {
             let new_conf = support_strength / total;
-            hyp.confidence = EVIDENCE_WEIGHT_EMA * new_conf
-                + (1.0 - EVIDENCE_WEIGHT_EMA) * hyp.confidence;
+            hyp.confidence =
+                EVIDENCE_WEIGHT_EMA * new_conf + (1.0 - EVIDENCE_WEIGHT_EMA) * hyp.confidence;
         }
 
         // Advance phase if enough evidence
@@ -382,7 +385,11 @@ impl BridgeHypothesisEngine {
             })
             .collect();
 
-        rankings.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(core::cmp::Ordering::Equal));
+        rankings.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         for (i, r) in rankings.iter_mut().enumerate() {
             r.rank = i as u32 + 1;
         }
@@ -397,13 +404,8 @@ impl BridgeHypothesisEngine {
     }
 
     fn testability_score_inner(&self, h: &Hypothesis) -> f32 {
-        let evidence_factor =
-            (h.evidence.len() as f32 / MIN_EVIDENCE_FOR_RANKING as f32).min(1.0);
-        let criteria_factor = if h.test_criteria.is_some() {
-            1.0
-        } else {
-            0.5
-        };
+        let evidence_factor = (h.evidence.len() as f32 / MIN_EVIDENCE_FOR_RANKING as f32).min(1.0);
+        let criteria_factor = if h.test_criteria.is_some() { 1.0 } else { 0.5 };
         let recency_factor = if self.current_tick > h.last_updated_tick {
             let age = self.current_tick - h.last_updated_tick;
             1.0 / (1.0 + age as f32 / 10000.0)
@@ -455,11 +457,9 @@ impl BridgeHypothesisEngine {
             .filter(|h| h.phase != HypothesisPhase::Archived)
             .collect();
         if !active.is_empty() {
-            let avg_conf =
-                active.iter().map(|h| h.confidence).sum::<f32>() / active.len() as f32;
-            self.stats.avg_confidence_ema =
-                EVIDENCE_WEIGHT_EMA * avg_conf
-                    + (1.0 - EVIDENCE_WEIGHT_EMA) * self.stats.avg_confidence_ema;
+            let avg_conf = active.iter().map(|h| h.confidence).sum::<f32>() / active.len() as f32;
+            self.stats.avg_confidence_ema = EVIDENCE_WEIGHT_EMA * avg_conf
+                + (1.0 - EVIDENCE_WEIGHT_EMA) * self.stats.avg_confidence_ema;
         }
 
         let total_resolved = self.stats.total_confirmed + self.stats.total_rejected;
