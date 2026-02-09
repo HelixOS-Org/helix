@@ -67,6 +67,7 @@ impl AllocRecord {
     }
 
     /// Lifetime (ns, 0 = still live)
+    #[inline]
     pub fn lifetime_ns(&self) -> u64 {
         if self.free_ns > 0 {
             self.free_ns.saturating_sub(self.alloc_ns)
@@ -76,6 +77,7 @@ impl AllocRecord {
     }
 
     /// Classify by size
+    #[inline]
     pub fn alloc_type(&self) -> AllocType {
         match self.size {
             0..=64 => AllocType::Small,
@@ -88,6 +90,7 @@ impl AllocRecord {
 
 /// Callsite statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CallsiteAllocStats {
     /// Callsite hash
     pub callsite_hash: u64,
@@ -121,6 +124,7 @@ impl CallsiteAllocStats {
         }
     }
 
+    #[inline]
     pub fn record_alloc(&mut self, size: u64) {
         self.alloc_count += 1;
         self.total_bytes += size;
@@ -131,6 +135,7 @@ impl CallsiteAllocStats {
         }
     }
 
+    #[inline]
     pub fn record_free(&mut self, lifetime_ns: u64) {
         self.free_count += 1;
         self.current_live = self.current_live.saturating_sub(1);
@@ -138,6 +143,7 @@ impl CallsiteAllocStats {
     }
 
     /// Leak ratio
+    #[inline(always)]
     pub fn leak_ratio(&self) -> f64 {
         if self.alloc_count == 0 { return 0.0; }
         1.0 - (self.free_count as f64 / self.alloc_count as f64)
@@ -209,6 +215,7 @@ impl ProcessAllocProfile {
     }
 
     /// Record free
+    #[inline]
     pub fn record_free(&mut self, address: u64, now_ns: u64) {
         if let Some(record) = self.live.remove(&address) {
             self.total_frees += 1;
@@ -240,6 +247,7 @@ impl ProcessAllocProfile {
     }
 
     /// Top leaking callsites
+    #[inline]
     pub fn top_leakers(&self, n: usize) -> Vec<(u64, f64)> {
         let mut leakers: Vec<(u64, f64)> = self.callsites.iter()
             .filter(|(_, cs)| cs.alloc_count > 10)
@@ -253,6 +261,7 @@ impl ProcessAllocProfile {
 
 /// Allocator profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppAllocProfilerStats {
     pub tracked_processes: usize,
     pub total_live_allocs: usize,
@@ -275,6 +284,7 @@ impl AppAllocProfiler {
         }
     }
 
+    #[inline]
     pub fn record_alloc(&mut self, pid: u64, address: u64, size: u64, callsite: u64, now_ns: u64) {
         self.processes.entry(pid)
             .or_insert_with(|| ProcessAllocProfile::new(pid))
@@ -282,6 +292,7 @@ impl AppAllocProfiler {
         self.update_stats();
     }
 
+    #[inline]
     pub fn record_free(&mut self, pid: u64, address: u64, now_ns: u64) {
         if let Some(proc_profile) = self.processes.get_mut(&pid) {
             proc_profile.record_free(address, now_ns);
@@ -299,6 +310,7 @@ impl AppAllocProfiler {
             .count();
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppAllocProfilerStats {
         &self.stats
     }
