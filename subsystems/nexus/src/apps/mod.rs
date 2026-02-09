@@ -312,9 +312,6 @@ pub use access_app::{
     AccessAppStats, AccessFlag, AccessMode, AccessRecord, AccessResult, AppAccess,
     ProcessAccessState,
 };
-    AccessV2AppStats, AccessV2Flag, AccessV2Mode, AccessV2Record, AccessV2Result, AppAccessV2,
-    PathAccessPattern,
-};
 pub use adapt::{AdaptationAction, AdaptationEngine, ResourceAdjustment, ResourceTarget};
 // Round 3 re-exports
 pub use affinity::{
@@ -387,9 +384,6 @@ pub use cgroup_ctrl::{
     EnforcementState,
 };
 // Round 6 re-exports
-    AppCgroupV2Profiler, AppCgroupV2Stats, CgroupIoStats, CgroupMemoryStats,
-    CgroupNode as CgroupV2Node, CgroupPressure as CgroupV2Pressure, CpuBandwidth,
-};
 pub use chdir_app::{
     AppChdir, ChdirAppStats, ChdirRecord, ChdirResult, ChdirVariant, ProcessCwdState,
 };
@@ -435,9 +429,6 @@ pub use coredump_mgr::{
     CorePipeHandler, CoreSignal, CoredumpMgrStats, RegisterSnapshot,
 };
 // Re-exports from Round 14 apps modules
-    AppCoreDumpV2, CoreDump as CoreDumpV2Entry, CoreDumpV2Stats, CoreFilter as CoreV2Filter,
-    CoreFormat as CoreV2Format, CoreSegment, CoreState as CoreV2State, NoteType as CoreNoteType,
-};
 pub use cpu_freq_mgr::{
     AppCpuFreqMgr, AppFreqProfile, CpuFreqMgrStats, EnergyPoint, FreqDomain, FreqGovernor,
     FreqTransition,
@@ -497,8 +488,6 @@ pub use epoll_mgr::{
     EpollTriggerMode, ThunderingHerdDetector,
 };
 pub use eventfd_app::{AppEventfd, EventfdAppStats, EventfdFlags, EventfdInstance};
-    AppEventfdV2, EventfdV2AppStats, EventfdV2Flag, EventfdV2Instance, EventfdV2State,
-};
 pub use eventpoll_mgr::{
     AppEventPollMgr, EpollEvents as EpollV2Events, EpollInstance as EpollV2Instance, EpollItem,
     EpollOp, EpollWaitResult, EventPollMgrStats,
@@ -512,9 +501,6 @@ pub use exec_loader::{
     AppsExecLoader, AppsExecLoaderStats, AslrLayout, ElfArch, ElfMetadata, ElfType, LibDependency,
     ProcessExecState, SharedLib, SymbolBind, SymbolResolution,
 };
-    AppExecLoaderV3, AslrLevel, ExecImageV3, ExecLoaderV3Stats, ExecV3Format, LoadPhase,
-    RelocEntry, SegmentV3,
-};
 pub use exec_shield::{
     AppExecShield, AslrLayout, CanaryCheck, ExecShieldStats, MitigationFlags, ProcessShieldState,
     ViolationRecord, ViolationType,
@@ -526,20 +512,12 @@ pub use execve_app::{
 pub use fadvise_app::{
     AppFadvise, FadviseAdvice, FadviseAppStats, FadviseRegion, FileAccessTracker,
 };
-    AppFadviseV2, FadviseV2Advice, FadviseV2AppStats, FadviseV2Region, FileAdviceV2,
-};
-    AppFadviseV3, FadviseV3Advice, FadviseV3AppStats, FadviseV3Record, FadviseV3Result,
-    FileReadaheadState,
-};
 pub use fallocate_app::{AppFallocate, FallocateAppStats, FallocateMode, FallocateOp};
 pub use fault::{
     AppFaultAnalyzer, AppFaultStats, FaultEvent, FaultPattern, FaultSeverity, FaultType,
     ProcessFaultProfile,
 };
 pub use fcntl_app::{AppFcntl, FcntlAppStats, FcntlCmd, FcntlOp, FdFlagsTracker, FileSeal};
-    AppFcntlV2, FcntlV2AppStats, FcntlV2Cmd, FcntlV2Lease, FcntlV2LeaseType, FcntlV2Lock,
-    FcntlV2LockType, ProcessFcntlV2State,
-};
 pub use fd_mgr::{
     AppsFdMgr, AppsFdMgrStats, FdEntry, FdFlags, FdLeakHeuristic, FdType, FileDescription,
     ProcessFdTable,
@@ -568,14 +546,7 @@ pub use futex_profile::{
     AppFutexProfiler, AppFutexProfilerStats, FutexAddrStats, FutexContentionLevel, FutexOpType,
     ProcessFutexProfile, WaiterChainLink,
 };
-    AppFutexV2Profiler, AppFutexV2Stats, BucketStats, ContentionLevel as FutexContentionLevel,
-    FutexAddress, FutexHashProfiler, FutexOp, WaitChainDetector, WaitResult,
-};
-    AppFutexV3, Futex2Bucket, Futex2Op, Futex2Size, Futex2WaitV, Futex2Waiter, Futex3Stats,
-};
 pub use getdents_app::{AppGetdents, DentEntry, DentType, DirReadSession, GetdentsAppStats};
-    AppGetdentsV2, DentEntryV2, DentTypeV2, DirSessionV2, GetdentsV2AppStats,
-};
 pub use getsockopt_app::{
     AppGetsockopt, GetsockoptAppStats, SockoptLevel, SockoptName, SockoptQuery, SockoptValue,
 };
@@ -621,9 +592,6 @@ pub use io_uring_app::{
     AppIoUring, Cqe, IoUringAppStats, IoUringInstance, IoUringOp, Sqe, SqeFlags,
 };
 pub use ioctl_app::{AppIoctl, IoctlAppStats, IoctlCmd, IoctlDir, IoctlEvent, IoctlTracker};
-    AppIoctlV2, IoctlV2AppStats, IoctlV2Command, IoctlV2DevClass, IoctlV2Dir, IoctlV2Record,
-    IoctlV2Result, IoctlV2Route,
-};
 pub use iovec_mgr::{AppIoVecMgr, IoVec, IoVecArray, IoVecMgrStats, IoVecOp, IoVecOpType};
 pub use ipc::{
     AppIpcAnalyzer, AppIpcChannel, AppIpcMechanism, AppIpcStats, IpcChannelId, IpcDirection,
@@ -655,14 +623,9 @@ pub use leak_detect::{
     AllocPattern, AllocType, AllocationRecord, AppLeakDetector, AppLeakDetectorStats,
     CallsiteStats as LeakCallsiteStats, LeakReport, LeakSeverity, ProcessLeakDetector,
 };
-    AllocRecordV2, AppLeakDetectorV2, AppLeakDetectorV2Stats, CallsiteLeakProfile, LeakSeverityV2,
-    ProcessLeakProfileV2,
-};
 pub use lifecycle::{LifecycleEvent, LifecycleManager, LifecyclePhase, ProcessLifecycle};
 pub use link_app::{
     AppLink, LinkAppStats, LinkRecord, LinkResult, LinkType, UnlinkRecord, UnlinkResult,
-};
-    AppLinkV2, InodeLinkTracker, LinkV2AppStats, LinkV2Flag, LinkV2Record, LinkV2Result, LinkV2Type,
 };
 pub use listen_app::{AppListen, ListenAppStats, ListenBacklog, ListenState, ListenSynState};
 pub use lock::{
@@ -681,8 +644,6 @@ pub use madvise_mgr::{
     AppMadviseMgr, MadviseAdvice, MadviseEvent, MadviseMgrStats, MadviseRegion, MadviseResult,
     ProcessMadviseRequest, ProcessMadviseState,
 };
-    AppMadviseV2, MadvBehavior, MadvRegion as MadvV2Region, MadviseV2Stats, ProcessMadvState,
-};
 pub use mem_advisor::{
     AppsMemAdvisor, MemAdvice, MemAdvisorStats, MemAdvisory, MemPattern, MemRegionStats, NumaPref,
     ProcessMemProfile,
@@ -700,9 +661,6 @@ pub use migration::{
 pub use mincore_app::{
     AppMincore, MincoreAppStats, MincoreQuery, PageResidency, ProcessResidencyInfo,
 };
-    AppMincoreV2, MincoreV2AppStats, MincoreV2Query, PageResidencyV2, ProcessResidencyV2,
-    ResidencySnapshotV2,
-};
 pub use mkdir_app::{AppMkdir, MkdirAppStats, MkdirRecord, MkdirResult};
 pub use mlock_app::{
     AppMlock, LockedRegion as MlockAppRegion, MlockAppStats, MlockFlags as MlockAppFlags,
@@ -711,15 +669,9 @@ pub use mlock_app::{
 pub use mlock_mgr::{
     AppsMlockMgr, LockedRegion, MlockFlags, MlockMgrStats, MlockType, ProcessMlockState,
 };
-    AppMlockV2, LockRegionState, LockedRegion, MlockMode, MlockV2Stats, MunlockMode,
-    ProcessMlockState,
-};
 pub use mmap_tracker::{
     AppMmapStats, AppMmapTracker, MmapFlags, MmapProtection, MmapRegion, MmapType,
     ProcessAddressSpace, VasStats,
-};
-    AppMmapV2Tracker, MmapTrackerProt, MmapTrackerType, MmapV2TrackerStats, ProcessMmapV2State,
-    TrackedMmapRegion,
 };
 pub use mount_app::{AppMount, MountAppFlag, MountAppStats, MountEntry as MountAppEntry};
 pub use mount_mgr::{
@@ -801,9 +753,6 @@ pub use poll_mgr::{
     PollMechanism, PollMgrStats,
 };
 pub use prctl_mgr::{AppsPrctlMgr, PrctlMgrStats, PrctlOp, PrctlRecord, ProcessPrctlState};
-    AppPrctlV2, DumpableSetting, PrctlAuditRecord, PrctlOption, PrctlV2Stats, ProcessPrctlState,
-    SeccompMode as PrctlSeccompMode,
-};
 pub use preadv_app::{
     AppPreadv, FdVectoredTracker, IoVec as PreadvIoVec, PreadvAppStats, VectoredIoDir,
     VectoredIoFlag, VectoredIoOp,
@@ -831,12 +780,8 @@ pub use quota::{
 };
 pub use readdir_app::{AppReaddir, DirentEntry, DirentType, ReaddirAppStats, ReaddirState};
 // Re-exports from Round 23 apps modules
-    AppReaddirV2, DirentV2Entry, DirentV2Type, ReaddirV2AppStats, ReaddirV2Sort, ReaddirV2Stream,
-};
 pub use readlink_app::{
     AppReadlink, ReadlinkAppStats, ReadlinkResult, SymlinkCache, SymlinkResolution,
-};
-    AppReadlinkV2, ReadlinkCacheEntry, ReadlinkV2AppStats, ReadlinkV2Record, ReadlinkV2Result,
 };
 pub use recvmsg_app::{
     AppRecvmsg, RecvmsgAncillary, RecvmsgAppStats, RecvmsgFlag, RecvmsgRecord, RecvmsgResult,
@@ -844,8 +789,6 @@ pub use recvmsg_app::{
 };
 pub use remap_pfn_app::{AppRemapPfn, PfnMapping, RemapPfnAppStats, RemapPfnType};
 pub use rename_app::{AppRename, RenameAppStats, RenameFlag, RenameRecord, RenameResult};
-    AppRenameV2, RenameV2AppStats, RenameV2Flag, RenameV2Record, RenameV2Result,
-};
 pub use resource::{
     CpuAccounting, FdTracker, IoAccounting, MemoryAccounting, NetworkAccounting, ResourceManager,
     ResourceTracker,
@@ -879,9 +822,6 @@ pub use sched_policy::{
     ProcessSchedProfile as AppSchedProfile, SchedClass, SchedPolicyStats, SchedPolicyType,
     TaskSchedState,
 };
-    AppSchedPolicyV2, DeadlineParams, ProcessSchedState, SchedPolicyType as SchedV2PolicyType,
-    SchedPolicyV2Stats, SchedPriority as SchedV2Priority,
-};
 pub use sched_profile::{
     AppSchedProfileStats, AppSchedProfiler, ContextSwitchReason, CpuBurst, RunState,
     ThreadSchedProfile, WakeupChainTracker, WakeupEvent as AppWakeupEvent,
@@ -901,13 +841,8 @@ pub use seccomp_profile::{
     AppSeccompProfiler, AppSeccompProfilerStats, FilterChain, FilterResult, FilterRule,
     ProcessSeccompProfile, SeccompAction, ViolationRecord, ViolationSeverity,
 };
-    AppSeccompV2, BpfInsn as SeccompBpfInsn, SeccompAction as SeccompV2Action,
-    SeccompFilter as SeccompV2Filter, SeccompNotification, SeccompNotifyInstance, SeccompV2Stats,
-};
 pub use select_app::{AppSelect, SelectAppStats, SelectCall, SelectFdEntry, SelectFdSet};
 pub use sendfile_app::{AppSendfile, SendfileAppStats, SendfileState, SendfileTransfer};
-    AppSendfileV2, FdSendfileTracker, SendfileV2AppStats, SendfileV2Dir, SendfileV2Transfer,
-};
 pub use sendmsg_app::{
     AppSendmsg, SendmsgAppStats, SendmsgCmsgType, SendmsgFlag, SendmsgRecord, SendmsgResult,
     SocketSendState,
@@ -941,12 +876,8 @@ pub use signalfd_app::{
     AppSignalfd, SigMask, SignalNum as SigfdSignalNum, SignalfdAppStats, SignalfdInfo,
     SignalfdInstance,
 };
-    AppSignalfdV2, SignalInfoV2, SignalV2Num, SignalfdV2AppStats, SignalfdV2Instance,
-};
 pub use socket_app::{
     AppSocket, AppSocketDomain, AppSocketEntry, AppSocketState, AppSocketType, SocketAppStats,
-};
-    AppSocketV2, SocketV2AppStats, SocketV2Domain, SocketV2Instance, SocketV2State, SocketV2Type,
 };
 pub use socketpair_app::{
     AppSocketpair, SocketpairAppStats, SocketpairDomain, SocketpairInstance, SocketpairState,
@@ -965,9 +896,6 @@ pub use syscall_profile::{
     ProcessSyscallProfile, SyscallBottleneck, SyscallCategory, SyscallCostClass, SyscallCounter,
     SyscallDescriptor, SyscallPattern,
 };
-    AppSyscallV2GlobalStats, AppSyscallV2Profiler, ProcessSyscallV2Profile, SyscallArgPattern,
-    SyscallBigram, SyscallV2Result, SyscallV2Stats,
-};
 pub use task_stats::{
     AppsTaskStats, CpuAccounting, DelayAccounting, IoAccounting, MemAccounting, TaskStatEntry,
     TaskStatsStats,
@@ -979,9 +907,6 @@ pub use thermal::{
 };
 pub use thread_pool::{
     AppThreadPoolProfiler, AppThreadPoolStats, DetectedPool, PoolType, WorkerState, WorkerStats,
-};
-    AppsThreadPoolV2, AppsThreadPoolV2Stats, PoolSizingStrategy, PoolTask, PoolTaskPriority,
-    PoolTaskStatus, PoolWorkerV2, WorkerStateV2,
 };
 pub use threading::{
     AppThreadAnalyzer, AppThreadState, AppThreadStats, CommEdge, CommType, ThreadDescriptor,
@@ -1002,30 +927,17 @@ pub use tlb_profile::{
     AppTlbProfiler, AppTlbProfilerStats, ProcessTlbProfile, TlbEvent, TlbLevel, TlbPageSize,
 };
 pub use tls_mgr::{AppsTlsMgr, ThreadTlsState, TlsImage, TlsMgrStats, TlsModule, TlsVariant};
-    AppTlsV2, DtvEntry, ThreadTlsState, TlsBlock, TlsBlockState, TlsModel, TlsModule, TlsV2Stats,
-    TlsVariant,
-};
 pub use trace::{
     AppCallGraph, AppTraceEvent, AppTraceEventType, AppTraceProfiler, AppTraceStats, CallNode,
     FlameGraphCollector, FlameStack,
 };
 pub use truncate_app::{AppTruncate, TruncateAppStats, TruncateOp, TruncateType};
-    AppTruncateV2, FileTruncateV2State, TruncateV2AppStats, TruncateV2Op, TruncateV2Record,
-    TruncateV2Result,
-};
-    AppTruncateV3, TruncBlockState, TruncateV3AppStats, TruncateV3Mode, TruncateV3Record,
-    TruncateV3Result,
-};
 pub use umask_app::{
     AppUmask, FileMode, ProcessUmask, UmaskAppStats, UmaskAuditEvent, UmaskValue as AppUmaskValue,
 };
 pub use umask_mgr::{
     AppUmaskMgr, ProcessUmaskState, UmaskChangeEvent, UmaskMgrStats, UmaskPolicy,
     UmaskSecurityLevel, UmaskValue,
-};
-    AppUmaskV2, ProcessUmaskV2State, UmaskV2AppStats, UmaskV2Bits, UmaskV2DirOverride, UmaskV2Scope,
-};
-    AppUmaskV3, NsUmaskPolicy, ThreadUmaskV3State, UmaskV3AppStats, UmaskV3Context, UmaskV3Record,
 };
 pub use uname_cache::{
     AppsUnameCache, ArchCaps, ArchType, BootParam, KernelFeature, KernelVersion, UnameCacheStats,
@@ -1051,9 +963,6 @@ pub use wait_tracker::{
     AppsWaitTracker, ChildStatus, WaitEvent, WaitOptions, WaitPattern, WaitTrackerStats,
     WaitVariant, ZombieEntry,
 };
-    AppWaitV2Tracker, ProcessWaitV2State, WaitV2Option, WaitV2Record, WaitV2Status, WaitV2Target,
-    WaitV2TrackerStats,
-};
 pub use waitid_app::{
     AppWaitId, ChildStatus as WaitIdChildStatus, ProcessWaitState, WaitIdAppStats, WaitIdOptions,
     WaitIdSiginfo, WaitIdType as WaitIdV2Type,
@@ -1077,22 +986,11 @@ pub use workload_class::{
 pub use xattr_mgr::{
     AppXattrMgr, AppXattrProfile, InodeXattrs, XattrEntry, XattrMgrStats, XattrNamespace, XattrOp,
 };
-    AppChmodV2, ChmodV2AppStats, ChmodV2Call, ChmodV2Record, ChmodV2Result,
-};
-    AppChownV2, ChownV2AppStats, ChownV2Call, ChownV2Record, ChownV2Result,
-};
-    AppFadviseV4, FadviseV4Advice, FadviseV4AppStats, FadviseV4Record, FadviseV4Result,
-    ReadaheadWindow,
-};
-    AppFallocateV2, FallocateV2AppStats, FallocateV2Mode, FallocateV2Record, FallocateV2Result,
-};
 pub use fstat_app::{
     AppFstat, FstatAppStats, FstatCacheEntry, FstatRecord, FstatResult,
 };
 pub use lstat_app::{
     AppLstat, LstatAppStats, LstatFileType, LstatRecord, LstatResult,
-};
-    AppStatV2, StatV2AppStats, StatV2Call, StatV2Record, StatV2Result,
 };
 pub use statvfs_app::{
     AppStatvfs, StatvfsAppStats, StatvfsCall, StatvfsRecord, StatvfsResult,
@@ -1107,8 +1005,6 @@ pub use xattr_app::{
     AppXattr, XattrAppStats, XattrNs, XattrOp as XattrSysOp, XattrRecord, XattrResult,
 };
 // Re-exports from Round 25 — Security/credentials apps
-    AccessV3AppStats, AccessV3Flag, AccessV3Mode, AccessV3Record, AccessV3Result, AppAccessV3,
-};
 pub use getgid_app::{AppGetgid, GetgidAppStats, GetgidRecord, GetgidResult, GetgidVariant};
 pub use getuid_app::{AppGetuid, GetuidAppStats, GetuidRecord, GetuidResult, GetuidVariant};
 pub use groups_app::{AppGroups, GroupsAppStats, GroupsOp, GroupsRecord, GroupsResult};
@@ -1124,8 +1020,6 @@ pub use setreuid_app::{
 };
 pub use setuid_app::{AppSetuid, SetuidAppStats, SetuidRecord, SetuidResult, SetuidVariant};
 // Re-exports from Round 26 — IPC/signals apps
-    AppEventfdV3, EventfdV3AppFlag, EventfdV3AppOp, EventfdV3AppRecord, EventfdV3AppStats,
-};
 pub use kill_app::{AppKill, KillAppStats, KillRecord, KillResult, KillVariant};
 pub use mq_open_app::{AppMqOpen, MqOpenAppStats, MqOpenFlag, MqOpenRecord, MqOpenResult};
 pub use msgget_app::{AppMsgget, MsggetAppStats, MsggetRecord, MsggetResult};
