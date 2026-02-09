@@ -213,8 +213,12 @@ impl BridgeReflection {
             context_hash = context_hash.wrapping_mul(FNV_PRIME);
         }
 
-        let strength_hashes: Vec<u64> = strengths.iter().map(|s| fnv1a_hash(s.as_bytes())).collect();
-        let weakness_hashes: Vec<u64> = weaknesses.iter().map(|w| fnv1a_hash(w.as_bytes())).collect();
+        let strength_hashes: Vec<u64> =
+            strengths.iter().map(|s| fnv1a_hash(s.as_bytes())).collect();
+        let weakness_hashes: Vec<u64> = weaknesses
+            .iter()
+            .map(|w| fnv1a_hash(w.as_bytes()))
+            .collect();
 
         let id = fnv1a_hash(&self.total_reflections.to_le_bytes());
         let outcome = BatchOutcome::from_score(clamped_quality);
@@ -247,7 +251,10 @@ impl BridgeReflection {
         self.failure_rate = EMA_ALPHA * fail_sample + (1.0 - EMA_ALPHA) * self.failure_rate;
 
         // Track context → outcome for pattern detection
-        let outcomes = self.context_outcomes.entry(context_hash).or_insert_with(Vec::new);
+        let outcomes = self
+            .context_outcomes
+            .entry(context_hash)
+            .or_insert_with(Vec::new);
         if outcomes.len() < 64 {
             outcomes.push(clamped_quality);
         }
@@ -274,8 +281,10 @@ impl BridgeReflection {
             let confidence = (outcomes.len() as f32 / 20.0).min(1.0);
             let pattern_id = ctx_hash ^ fnv1a_hash(b"pattern");
 
-            let pattern = self.patterns.entry(pattern_id).or_insert_with(|| {
-                ReflectionPattern {
+            let pattern = self
+                .patterns
+                .entry(pattern_id)
+                .or_insert_with(|| ReflectionPattern {
                     id: pattern_id,
                     description: desc.clone(),
                     context_hash: ctx_hash,
@@ -283,8 +292,7 @@ impl BridgeReflection {
                     avg_outcome: 0.5,
                     positive,
                     confidence: 0.0,
-                }
-            });
+                });
 
             pattern.occurrences = outcomes.len() as u64;
             pattern.avg_outcome = EMA_ALPHA * avg + (1.0 - EMA_ALPHA) * pattern.avg_outcome;
@@ -338,8 +346,8 @@ impl BridgeReflection {
     pub fn apply_insight(&mut self, lesson_id: u64, observed_improvement: f32) {
         if let Some(lesson) = self.lessons.get_mut(&lesson_id) {
             lesson.applied = true;
-            lesson.improvement = EMA_ALPHA * observed_improvement
-                + (1.0 - EMA_ALPHA) * lesson.improvement;
+            lesson.improvement =
+                EMA_ALPHA * observed_improvement + (1.0 - EMA_ALPHA) * lesson.improvement;
         }
     }
 
@@ -354,11 +362,13 @@ impl BridgeReflection {
             return 0.05 * (self.lessons.len() as f32).min(10.0) / 10.0;
         }
 
-        let avg_improvement: f32 = applied.iter().map(|l| l.improvement).sum::<f32>()
-            / applied.len() as f32;
+        let avg_improvement: f32 =
+            applied.iter().map(|l| l.improvement).sum::<f32>() / applied.len() as f32;
         let application_rate = applied.len() as f32 / self.lessons.len() as f32;
-        let reinforcement_depth: f32 = applied.iter()
-            .map(|l| (l.reinforcements as f32).min(10.0) / 10.0).sum::<f32>()
+        let reinforcement_depth: f32 = applied
+            .iter()
+            .map(|l| (l.reinforcements as f32).min(10.0) / 10.0)
+            .sum::<f32>()
             / applied.len() as f32;
 
         (avg_improvement * 0.4 + application_rate * 0.3 + reinforcement_depth * 0.3).min(1.0)
@@ -371,10 +381,16 @@ impl BridgeReflection {
             return 0.0;
         }
         let mid = len / 2;
-        let first: f32 = self.reflections[..mid].iter()
-            .map(|r| r.quality_score).sum::<f32>() / mid as f32;
-        let second: f32 = self.reflections[mid..].iter()
-            .map(|r| r.quality_score).sum::<f32>() / (len - mid) as f32;
+        let first: f32 = self.reflections[..mid]
+            .iter()
+            .map(|r| r.quality_score)
+            .sum::<f32>()
+            / mid as f32;
+        let second: f32 = self.reflections[mid..]
+            .iter()
+            .map(|r| r.quality_score)
+            .sum::<f32>()
+            / (len - mid) as f32;
         second - first
     }
 
@@ -394,11 +410,12 @@ impl BridgeReflection {
 
     /// Get the most impactful applied lessons
     pub fn top_insights(&self, count: usize) -> Vec<&Lesson> {
-        let mut applied: Vec<&Lesson> = self.lessons.values()
-            .filter(|l| l.applied)
-            .collect();
-        applied.sort_by(|a, b| b.improvement.partial_cmp(&a.improvement)
-            .unwrap_or(core::cmp::Ordering::Equal));
+        let mut applied: Vec<&Lesson> = self.lessons.values().filter(|l| l.applied).collect();
+        applied.sort_by(|a, b| {
+            b.improvement
+                .partial_cmp(&a.improvement)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         applied.truncate(count);
         applied
     }
