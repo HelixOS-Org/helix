@@ -234,20 +234,20 @@ impl BridgeOmniscient {
         for node in self.nodes.values() {
             let name_hash = fnv1a_hash(node.name.as_bytes());
             let hash_dist = (keyword_hash ^ name_hash).count_ones() as f32 / 64.0;
-            let name_match = if node.name.as_bytes().windows(keyword.len().min(node.name.len()))
+            let name_match = if node
+                .name
+                .as_bytes()
+                .windows(keyword.len().min(node.name.len()))
                 .any(|w| {
                     let kw = keyword.as_bytes();
                     w.len() >= kw.len() && w[..kw.len()].iter().zip(kw).all(|(a, b)| a == b)
-                })
-            {
+                }) {
                 0.5
             } else {
                 0.0
             };
-            let relevance = name_match
-                + (1.0 - hash_dist) * 0.3
-                + node.freshness * 0.1
-                + node.confidence * 0.1;
+            let relevance =
+                name_match + (1.0 - hash_dist) * 0.3 + node.freshness * 0.1 + node.confidence * 0.1;
 
             if relevance > 0.2 {
                 results.push(QueryResult {
@@ -261,7 +261,11 @@ impl BridgeOmniscient {
             }
         }
 
-        results.sort_by(|a, b| b.relevance.partial_cmp(&a.relevance).unwrap_or(core::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.relevance
+                .partial_cmp(&a.relevance)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         results.truncate(MAX_QUERY_RESULTS);
         results
     }
@@ -272,10 +276,15 @@ impl BridgeOmniscient {
         if self.category_coverage.is_empty() {
             return 0.0;
         }
-        let (sum, count) = self.category_coverage.values().fold((0.0f32, 0u32), |(s, c), cov| {
-            let score = cov.coverage_ratio() * 0.6 + cov.avg_confidence() * 0.3 + cov.freshness_ema * 0.1;
-            (s + score, c + 1)
-        });
+        let (sum, count) = self
+            .category_coverage
+            .values()
+            .fold((0.0f32, 0u32), |(s, c), cov| {
+                let score = cov.coverage_ratio() * 0.6
+                    + cov.avg_confidence() * 0.3
+                    + cov.freshness_ema * 0.1;
+                (s + score, c + 1)
+            });
         if count == 0 { 0.0 } else { sum / count as f32 }
     }
 
@@ -284,9 +293,14 @@ impl BridgeOmniscient {
     pub fn missing_knowledge(&mut self) -> Vec<KnowledgeGap> {
         let mut gaps = Vec::new();
         let cat_names = [
-            "SyscallPattern", "ProcessBehaviour", "ResourceEffect",
-            "OptimisationPath", "SecurityConstraint", "LatencyProfile",
-            "ThroughputProfile", "FailureMode",
+            "SyscallPattern",
+            "ProcessBehaviour",
+            "ResourceEffect",
+            "OptimisationPath",
+            "SecurityConstraint",
+            "LatencyProfile",
+            "ThroughputProfile",
+            "FailureMode",
         ];
         let categories = [
             KnowledgeCategory::SyscallPattern,
@@ -304,7 +318,9 @@ impl BridgeOmniscient {
             if ratio < COMPLETENESS_TARGET {
                 let severity = (COMPLETENESS_TARGET - ratio) / COMPLETENESS_TARGET;
                 let i = (*idx as usize).min(cat_names.len() - 1);
-                let related: Vec<u64> = self.nodes.values()
+                let related: Vec<u64> = self
+                    .nodes
+                    .values()
                     .filter(|n| n.category as u8 == *idx)
                     .map(|n| n.node_id)
                     .take(8)
@@ -385,14 +401,17 @@ impl BridgeOmniscient {
         }
 
         self.global_freshness_ema = EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * self.global_freshness_ema;
-        self.global_confidence_ema = EMA_ALPHA * conf + (1.0 - EMA_ALPHA) * self.global_confidence_ema;
+        self.global_confidence_ema =
+            EMA_ALPHA * conf + (1.0 - EMA_ALPHA) * self.global_confidence_ema;
 
         // Enforce capacity
         if self.nodes.len() >= MAX_KNOWLEDGE_NODES && !self.nodes.contains_key(&node_id) {
             // Evict the stalest node
-            if let Some((&evict_id, _)) = self.nodes.iter()
-                .min_by(|a, b| a.1.freshness.partial_cmp(&b.1.freshness).unwrap_or(core::cmp::Ordering::Equal))
-            {
+            if let Some((&evict_id, _)) = self.nodes.iter().min_by(|a, b| {
+                a.1.freshness
+                    .partial_cmp(&b.1.freshness)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            }) {
                 self.nodes.remove(&evict_id);
             }
         }
