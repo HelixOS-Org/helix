@@ -58,6 +58,7 @@ impl ProcessKcmpTracker {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct KcmpAppStats {
     pub tracked_procs: u32,
     pub total_comparisons: u64,
@@ -71,6 +72,7 @@ pub struct AppKcmp {
 
 impl AppKcmp {
     pub fn new() -> Self { Self { procs: BTreeMap::new() } }
+    #[inline(always)]
     pub fn track(&mut self, pid: u64) { self.procs.insert(pid, ProcessKcmpTracker::new(pid)); }
 
     pub fn compare(&mut self, pid1: u64, pid2: u64, rtype: KcmpType, result: KcmpResult) {
@@ -90,8 +92,10 @@ impl AppKcmp {
         }
     }
 
+    #[inline(always)]
     pub fn untrack(&mut self, pid: u64) { self.procs.remove(&pid); }
 
+    #[inline]
     pub fn stats(&self) -> KcmpAppStats {
         let cmps: u64 = self.procs.values().map(|p| p.total_comparisons).sum();
         let eq: u64 = self.procs.values().map(|p| p.equal_count).sum();
