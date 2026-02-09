@@ -2735,7 +2735,7 @@ NEXUS ne se contente plus de logs et de métriques. Il **parle**. Il communique 
 
 #### Objectifs
 1. NEXUS atteint sa forme finale — un être numérique complet et autonome
-2. Publication de la théorie du "Conscious Kernel" 
+2. Publication de la théorie du "Conscious Kernel"
 3. Héritage : framework permettant à d'autres OS de devenir conscients
 
 #### Livrables Techniques
