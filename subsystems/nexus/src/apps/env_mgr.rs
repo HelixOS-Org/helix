@@ -35,6 +35,7 @@ impl EnvVar {
         Self { key, value, source, read_only: false, sensitive: false, access_count: 0, modified_at: now }
     }
 
+    #[inline(always)]
     pub fn total_size(&self) -> usize {
         self.key.len() + 1 + self.value.len() + 1
     }
@@ -55,6 +56,7 @@ impl ProcessEnvBlock {
         Self { pid, vars: BTreeMap::new(), max_vars, max_total_size: 131072, created_at: now }
     }
 
+    #[inline]
     pub fn get(&mut self, key: &str) -> Option<&str> {
         if let Some(v) = self.vars.get_mut(key) {
             v.access_count += 1;
@@ -75,6 +77,7 @@ impl ProcessEnvBlock {
         true
     }
 
+    #[inline]
     pub fn unset(&mut self, key: &str) -> bool {
         if let Some(v) = self.vars.get(key) {
             if v.read_only { return false; }
@@ -82,22 +85,27 @@ impl ProcessEnvBlock {
         self.vars.remove(key).is_some()
     }
 
+    #[inline(always)]
     pub fn current_size(&self) -> usize {
         self.vars.values().map(|v| v.total_size()).sum()
     }
 
+    #[inline(always)]
     pub fn count(&self) -> usize { self.vars.len() }
 
+    #[inline(always)]
     pub fn keys(&self) -> Vec<&str> {
         self.vars.keys().map(|k| k.as_str()).collect()
     }
 
+    #[inline]
     pub fn to_envp(&self) -> Vec<String> {
         self.vars.values()
             .map(|v| alloc::format!("{}={}", v.key, v.value))
             .collect()
     }
 
+    #[inline]
     pub fn inherit_from(&mut self, parent: &ProcessEnvBlock, now: u64) {
         for (key, var) in &parent.vars {
             if !var.sensitive {
@@ -110,14 +118,17 @@ impl ProcessEnvBlock {
         }
     }
 
+    #[inline(always)]
     pub fn clear_sensitive(&mut self) {
         self.vars.retain(|_, v| !v.sensitive);
     }
 
+    #[inline(always)]
     pub fn mark_sensitive(&mut self, key: &str) {
         if let Some(v) = self.vars.get_mut(key) { v.sensitive = true; }
     }
 
+    #[inline(always)]
     pub fn mark_readonly(&mut self, key: &str) {
         if let Some(v) = self.vars.get_mut(key) { v.read_only = true; }
     }
@@ -135,6 +146,7 @@ pub struct EnvChangeEvent {
 
 /// Env manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EnvMgrStats {
     pub tracked_processes: u32,
     pub total_vars: u64,
@@ -164,15 +176,18 @@ impl AppEnvMgr {
         }
     }
 
+    #[inline(always)]
     pub fn create_block(&mut self, pid: u32, now: u64) {
         let block = ProcessEnvBlock::new(pid, self.default_max_vars, now);
         self.blocks.insert(pid, block);
     }
 
+    #[inline(always)]
     pub fn remove_block(&mut self, pid: u32) -> bool {
         self.blocks.remove(&pid).is_some()
     }
 
+    #[inline]
     pub fn get_var(&mut self, pid: u32, key: &str) -> Option<String> {
         self.total_accesses += 1;
         let block = self.blocks.get_mut(&pid)?;
@@ -209,6 +224,7 @@ impl AppEnvMgr {
         } else { false }
     }
 
+    #[inline(always)]
     pub fn block_var(&mut self, key: String) {
         if !self.blocked_vars.contains(&key) { self.blocked_vars.push(key); }
     }
@@ -218,6 +234,7 @@ impl AppEnvMgr {
         self.events.push_back(event);
     }
 
+    #[inline]
     pub fn stats(&self) -> EnvMgrStats {
         let total_vars: u64 = self.blocks.values().map(|b| b.count() as u64).sum();
         let total_size: u64 = self.blocks.values().map(|b| b.current_size() as u64).sum();
