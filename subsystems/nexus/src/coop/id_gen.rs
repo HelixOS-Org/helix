@@ -50,11 +50,17 @@ impl SnowflakeId {
     }
 
     #[inline(always)]
-    pub fn timestamp_ms(&self) -> u64 { self.raw >> Self::TIMESTAMP_SHIFT }
+    pub fn timestamp_ms(&self) -> u64 {
+        self.raw >> Self::TIMESTAMP_SHIFT
+    }
     #[inline(always)]
-    pub fn node_id(&self) -> u16 { ((self.raw >> Self::NODE_SHIFT) & Self::NODE_MASK) as u16 }
+    pub fn node_id(&self) -> u16 {
+        ((self.raw >> Self::NODE_SHIFT) & Self::NODE_MASK) as u16
+    }
     #[inline(always)]
-    pub fn sequence(&self) -> u16 { (self.raw & Self::SEQUENCE_MASK) as u16 }
+    pub fn sequence(&self) -> u16 {
+        (self.raw & Self::SEQUENCE_MASK) as u16
+    }
 }
 
 /// Per-namespace generator state
@@ -74,9 +80,15 @@ pub struct NamespaceGenerator {
 impl NamespaceGenerator {
     pub fn new(namespace: u32, format: IdFormat, node_id: u16, epoch_ms: u64) -> Self {
         Self {
-            namespace, format, node_id, last_timestamp_ms: 0,
-            sequence: 0, total_generated: 0, clock_drift_events: 0,
-            max_drift_ms: 0, epoch_ms,
+            namespace,
+            format,
+            node_id,
+            last_timestamp_ms: 0,
+            sequence: 0,
+            total_generated: 0,
+            clock_drift_events: 0,
+            max_drift_ms: 0,
+            epoch_ms,
         }
     }
 
@@ -88,45 +100,56 @@ impl NamespaceGenerator {
                 if ts < self.last_timestamp_ms {
                     let drift = self.last_timestamp_ms - ts;
                     self.clock_drift_events += 1;
-                    if drift > self.max_drift_ms { self.max_drift_ms = drift; }
-                    if drift > 5 { return None; } // reject if drift > 5ms
+                    if drift > self.max_drift_ms {
+                        self.max_drift_ms = drift;
+                    }
+                    if drift > 5 {
+                        return None;
+                    } // reject if drift > 5ms
                     // tolerate small drift, use last timestamp
                     self.sequence += 1;
-                    if self.sequence >= 4096 { return None; }
+                    if self.sequence >= 4096 {
+                        return None;
+                    }
                 } else if ts == self.last_timestamp_ms {
                     self.sequence += 1;
-                    if self.sequence >= 4096 { return None; }
+                    if self.sequence >= 4096 {
+                        return None;
+                    }
                 } else {
                     self.last_timestamp_ms = ts;
                     self.sequence = 0;
                 }
                 self.total_generated += 1;
                 Some(SnowflakeId::compose(self.last_timestamp_ms, self.node_id, self.sequence).raw)
-            }
+            },
             IdFormat::Monotonic => {
                 self.total_generated += 1;
                 let counter = self.total_generated;
                 Some((counter << 16) | (self.node_id as u64))
-            }
+            },
             IdFormat::TimeSorted => {
                 self.sequence = self.sequence.wrapping_add(1);
                 self.total_generated += 1;
                 // Use XOR of timestamp and sequence for pseudo-random suffix
-                let rand_part = (ts ^ (self.sequence as u64).wrapping_mul(0x9e3779b97f4a7c15)) & 0xFFFF;
+                let rand_part =
+                    (ts ^ (self.sequence as u64).wrapping_mul(0x9e3779b97f4a7c15)) & 0xFFFF;
                 Some((ts << 16) | rand_part)
-            }
+            },
             IdFormat::Compact => {
                 let ts32 = (ts & 0xFFFF_FFFF) as u32;
                 if ts == self.last_timestamp_ms {
                     self.sequence += 1;
-                    if self.sequence >= 65535 { return None; }
+                    if self.sequence >= 65535 {
+                        return None;
+                    }
                 } else {
                     self.last_timestamp_ms = ts;
                     self.sequence = 0;
                 }
                 self.total_generated += 1;
                 Some(((ts32 as u64) << 32) | ((self.node_id as u64) << 16) | (self.sequence as u64))
-            }
+            },
         }
     }
 
@@ -174,21 +197,29 @@ pub struct CoopIdGen {
 impl CoopIdGen {
     pub fn new(epoch_ms: u64) -> Self {
         Self {
-            namespaces: BTreeMap::new(), nodes: BTreeMap::new(),
-            default_epoch_ms: epoch_ms, stats: IdGenStats::default(),
+            namespaces: BTreeMap::new(),
+            nodes: BTreeMap::new(),
+            default_epoch_ms: epoch_ms,
+            stats: IdGenStats::default(),
         }
     }
 
     #[inline]
     pub fn register_node(&mut self, node_id: u16, ts: u64) {
         self.nodes.insert(node_id, NodeRegistration {
-            node_id, registered_ts: ts, last_seen_ts: ts, ids_generated: 0,
+            node_id,
+            registered_ts: ts,
+            last_seen_ts: ts,
+            ids_generated: 0,
         });
     }
 
     #[inline(always)]
     pub fn create_namespace(&mut self, ns: u32, format: IdFormat, node_id: u16) {
-        self.namespaces.insert(ns, NamespaceGenerator::new(ns, format, node_id, self.default_epoch_ms));
+        self.namespaces.insert(
+            ns,
+            NamespaceGenerator::new(ns, format, node_id, self.default_epoch_ms),
+        );
     }
 
     #[inline]
@@ -213,17 +244,27 @@ impl CoopIdGen {
     }
 
     #[inline(always)]
-    pub fn parse_snowflake(raw: u64) -> SnowflakeId { SnowflakeId { raw } }
+    pub fn parse_snowflake(raw: u64) -> SnowflakeId {
+        SnowflakeId { raw }
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_namespaces = self.namespaces.len();
         self.stats.total_nodes = self.nodes.len();
         self.stats.total_generated = self.namespaces.values().map(|n| n.total_generated).sum();
-        self.stats.total_drift_events = self.namespaces.values().map(|n| n.clock_drift_events).sum();
-        self.stats.max_drift_ms = self.namespaces.values().map(|n| n.max_drift_ms).max().unwrap_or(0);
+        self.stats.total_drift_events =
+            self.namespaces.values().map(|n| n.clock_drift_events).sum();
+        self.stats.max_drift_ms = self
+            .namespaces
+            .values()
+            .map(|n| n.max_drift_ms)
+            .max()
+            .unwrap_or(0);
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &IdGenStats { &self.stats }
+    pub fn stats(&self) -> &IdGenStats {
+        &self.stats
+    }
 }
