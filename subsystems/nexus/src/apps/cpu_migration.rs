@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Migration type
@@ -82,7 +83,7 @@ pub struct ThreadCpuMigrationHistory {
     pub home_cpu: u32,
     pub total_migrations: u64,
     pub cross_numa_count: u64,
-    pub recent_events: Vec<CpuMigrationEvent>,
+    pub recent_events: VecDeque<CpuMigrationEvent>,
     pub accumulated_cost_ns: u64,
     pub last_migration_ts: u64,
     pub bounce_count: u32,
@@ -97,7 +98,7 @@ impl ThreadCpuMigrationHistory {
             home_cpu: initial_cpu,
             total_migrations: 0,
             cross_numa_count: 0,
-            recent_events: Vec::new(),
+            recent_events: VecDeque::new(),
             accumulated_cost_ns: 0,
             last_migration_ts: 0,
             bounce_count: 0,
@@ -123,9 +124,9 @@ impl ThreadCpuMigrationHistory {
         }
 
         self.last_migration_ts = event.timestamp;
-        self.recent_events.push(event);
+        self.recent_events.push_back(event);
         if self.recent_events.len() > self.max_recent {
-            self.recent_events.remove(0);
+            self.recent_events.pop_front();
         }
     }
 
