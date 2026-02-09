@@ -22,6 +22,7 @@ impl MsggetRecord {
 
 /// Msgget app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MsggetAppStats { pub total_ops: u64, pub created: u64, pub errors: u64 }
 
 /// Main app msgget
@@ -30,6 +31,7 @@ pub struct AppMsgget { pub stats: MsggetAppStats }
 
 impl AppMsgget {
     pub fn new() -> Self { Self { stats: MsggetAppStats { total_ops: 0, created: 0, errors: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &MsggetRecord) {
         self.stats.total_ops += 1;
         if rec.result == MsggetResult::Success { self.stats.created += 1; }
