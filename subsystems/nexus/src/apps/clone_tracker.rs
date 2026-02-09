@@ -43,11 +43,17 @@ impl CloneFlags {
     pub const CLONE_NEWUSER: u64 = 0x10000000;
 
     pub fn new(bits: u64) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn empty() -> Self { Self { bits: 0 } }
+    #[inline(always)]
     pub fn has(&self, flag: u64) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn is_thread(&self) -> bool { self.has(Self::CLONE_THREAD) }
+    #[inline(always)]
     pub fn shares_vm(&self) -> bool { self.has(Self::CLONE_VM) }
+    #[inline(always)]
     pub fn shares_files(&self) -> bool { self.has(Self::CLONE_FILES) }
+    #[inline(always)]
     pub fn creates_namespace(&self) -> bool {
         self.has(Self::CLONE_NEWNS) || self.has(Self::CLONE_NEWPID) ||
         self.has(Self::CLONE_NEWNET) || self.has(Self::CLONE_NEWUSER)
@@ -99,6 +105,7 @@ impl ProcessTreeNode {
         }
     }
 
+    #[inline]
     pub fn add_child(&mut self, child: u64, is_thread: bool, ts: u64) {
         if is_thread {
             self.threads.push(child);
@@ -111,11 +118,13 @@ impl ProcessTreeNode {
         self.last_clone_ts = ts;
     }
 
+    #[inline(always)]
     pub fn remove_child(&mut self, child: u64) {
         self.children.retain(|&c| c != child);
         self.threads.retain(|&t| t != child);
     }
 
+    #[inline(always)]
     pub fn total_descendants(&self) -> usize { self.children.len() + self.threads.len() }
 }
 
@@ -141,6 +150,7 @@ impl ClonePattern {
         }
     }
 
+    #[inline]
     pub fn record_event(&mut self, latency_ns: u64, is_thread: bool, creates_ns: bool) {
         self.total_events += 1;
         self.total_latency_sum += latency_ns;
@@ -153,6 +163,7 @@ impl ClonePattern {
 
 /// Clone tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CloneTrackerStats {
     pub tracked_processes: usize,
     pub total_events: u64,
@@ -204,6 +215,7 @@ impl AppsCloneTracker {
         if self.events.len() > self.max_events { self.events.pop_front(); }
     }
 
+    #[inline]
     pub fn record_exit(&mut self, pid: u64) {
         if let Some(node) = self.tree.get(&pid) {
             let parent = node.parent_pid;
@@ -227,6 +239,7 @@ impl AppsCloneTracker {
         depth
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.tracked_processes = self.tree.len();
         self.stats.total_events = self.events.len() as u64;
@@ -238,7 +251,10 @@ impl AppsCloneTracker {
         if !self.events.is_empty() { self.stats.avg_clone_latency_ns = total_lat / self.events.len() as u64; }
     }
 
+    #[inline(always)]
     pub fn tree_node(&self, pid: u64) -> Option<&ProcessTreeNode> { self.tree.get(&pid) }
+    #[inline(always)]
     pub fn pattern(&self, pid: u64) -> Option<&ClonePattern> { self.patterns.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &CloneTrackerStats { &self.stats }
 }
