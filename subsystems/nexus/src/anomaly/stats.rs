@@ -16,6 +16,7 @@ use crate::math;
 
 /// Running statistics for a metric
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MetricStats {
     /// Metric name
     pub name: String,
@@ -69,6 +70,7 @@ impl MetricStats {
     }
 
     /// Get mean
+    #[inline]
     pub fn mean(&self) -> f64 {
         if self.values.is_empty() {
             return 0.0;
@@ -91,11 +93,13 @@ impl MetricStats {
     }
 
     /// Get standard deviation
+    #[inline(always)]
     pub fn std_dev(&self) -> f64 {
         math::sqrt(self.variance())
     }
 
     /// Calculate z-score for a value
+    #[inline]
     pub fn z_score(&self, value: f64) -> f64 {
         let std = self.std_dev();
         if std == 0.0 {
@@ -122,12 +126,14 @@ impl MetricStats {
     }
 
     /// Get IQR (Interquartile Range)
+    #[inline(always)]
     pub fn iqr(&self) -> f64 {
         let (q1, _, q3) = self.quartiles();
         q3 - q1
     }
 
     /// Check if value is outlier using IQR method
+    #[inline]
     pub fn is_iqr_outlier(&self, value: f64, multiplier: f64) -> bool {
         let (q1, _, q3) = self.quartiles();
         let iqr = q3 - q1;
