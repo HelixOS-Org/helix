@@ -190,10 +190,8 @@ impl TermIndex {
         let bytes = query.as_bytes();
         let mut start = 0;
         for i in 0..=bytes.len() {
-            let is_sep = i == bytes.len()
-                || bytes[i] == b' '
-                || bytes[i] == b'\n'
-                || bytes[i] == b'\t';
+            let is_sep =
+                i == bytes.len() || bytes[i] == b' ' || bytes[i] == b'\n' || bytes[i] == b'\t';
             if is_sep && i > start {
                 let word = &bytes[start..i];
                 let mut lower: Vec<u8> = Vec::with_capacity(word.len());
@@ -297,8 +295,7 @@ impl BridgeJournal {
         tick: u64,
     ) -> u64 {
         self.current_tick = tick;
-        let entry_id =
-            fnv1a_hash(title.as_bytes()) ^ fnv1a_hash(&discovery_id.to_le_bytes());
+        let entry_id = fnv1a_hash(title.as_bytes()) ^ fnv1a_hash(&discovery_id.to_le_bytes());
         let topic_hash = fnv1a_hash(abstract_text.as_bytes());
 
         // Track citations
