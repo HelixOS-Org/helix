@@ -46,11 +46,11 @@ fn fnv1a_hash(data: &[u8]) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AwarenessState {
     /// No self-awareness — pure reactive mode
-    Dormant = 0,
+    Dormant      = 0,
     /// Basic awareness of own operations
-    Aware = 1,
+    Aware        = 1,
     /// Can reflect on own decisions and learn from them
-    Reflective = 2,
+    Reflective   = 2,
     /// Full self-model with meta-cognitive optimization
     Transcendent = 3,
 }
@@ -193,10 +193,16 @@ impl BridgeAwareness {
         let score = self.consciousness_ema;
         let target = match self.state {
             AwarenessState::Dormant if score >= AWARE_THRESHOLD => Some(AwarenessState::Aware),
-            AwarenessState::Aware if score >= REFLECTIVE_THRESHOLD => Some(AwarenessState::Reflective),
-            AwarenessState::Reflective if score >= TRANSCENDENT_THRESHOLD => Some(AwarenessState::Transcendent),
+            AwarenessState::Aware if score >= REFLECTIVE_THRESHOLD => {
+                Some(AwarenessState::Reflective)
+            },
+            AwarenessState::Reflective if score >= TRANSCENDENT_THRESHOLD => {
+                Some(AwarenessState::Transcendent)
+            },
             // Regression: can drop states if score falls too low
-            AwarenessState::Transcendent if score < REFLECTIVE_THRESHOLD => Some(AwarenessState::Reflective),
+            AwarenessState::Transcendent if score < REFLECTIVE_THRESHOLD => {
+                Some(AwarenessState::Reflective)
+            },
             AwarenessState::Reflective if score < AWARE_THRESHOLD => Some(AwarenessState::Aware),
             AwarenessState::Aware if score < AWARE_THRESHOLD * 0.5 => Some(AwarenessState::Dormant),
             _ => None,
@@ -222,31 +228,28 @@ impl BridgeAwareness {
     }
 
     /// Update a perception channel with new sensory data
-    pub fn perception_update(
-        &mut self,
-        channel_name: &str,
-        signal: f32,
-        noise: f32,
-    ) {
+    pub fn perception_update(&mut self, channel_name: &str, signal: f32, noise: f32) {
         self.tick += 1;
         let id = fnv1a_hash(channel_name.as_bytes());
         let clamped_signal = signal.max(0.0).min(1.0);
         let clamped_noise = noise.max(0.0).min(1.0);
 
-        let channel = self.perceptions.entry(id).or_insert_with(|| PerceptionChannel {
-            name: String::from(channel_name),
-            id,
-            fidelity: 0.5,
-            noise: 0.5,
-            signal_strength: 0.5,
-            snr: 1.0,
-            observations: 0,
-        });
+        let channel = self
+            .perceptions
+            .entry(id)
+            .or_insert_with(|| PerceptionChannel {
+                name: String::from(channel_name),
+                id,
+                fidelity: 0.5,
+                noise: 0.5,
+                signal_strength: 0.5,
+                snr: 1.0,
+                observations: 0,
+            });
 
-        channel.signal_strength = EMA_ALPHA * clamped_signal
-            + (1.0 - EMA_ALPHA) * channel.signal_strength;
-        channel.noise = EMA_ALPHA * clamped_noise
-            + (1.0 - EMA_ALPHA) * channel.noise;
+        channel.signal_strength =
+            EMA_ALPHA * clamped_signal + (1.0 - EMA_ALPHA) * channel.signal_strength;
+        channel.noise = EMA_ALPHA * clamped_noise + (1.0 - EMA_ALPHA) * channel.noise;
         channel.snr = if channel.noise > 0.001 {
             channel.signal_strength / channel.noise
         } else {
@@ -315,14 +318,14 @@ impl BridgeAwareness {
         meta_cognition: f32,
         agency: f32,
     ) {
-        self.dimensions.memory = EMA_ALPHA * memory.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * self.dimensions.memory;
+        self.dimensions.memory =
+            EMA_ALPHA * memory.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * self.dimensions.memory;
         self.dimensions.reflection = EMA_ALPHA * reflection.max(0.0).min(1.0)
             + (1.0 - EMA_ALPHA) * self.dimensions.reflection;
         self.dimensions.meta_cognition = EMA_ALPHA * meta_cognition.max(0.0).min(1.0)
             + (1.0 - EMA_ALPHA) * self.dimensions.meta_cognition;
-        self.dimensions.agency = EMA_ALPHA * agency.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * self.dimensions.agency;
+        self.dimensions.agency =
+            EMA_ALPHA * agency.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * self.dimensions.agency;
         self.recompute_dimensions();
     }
 
@@ -335,20 +338,22 @@ impl BridgeAwareness {
     fn recompute_dimensions(&mut self) {
         // Perception = average channel fidelity
         if !self.perceptions.is_empty() {
-            self.dimensions.perception = self.perceptions.values()
-                .map(|c| c.fidelity).sum::<f32>() / self.perceptions.len() as f32;
+            self.dimensions.perception = self.perceptions.values().map(|c| c.fidelity).sum::<f32>()
+                / self.perceptions.len() as f32;
         }
         // Attention = highest focus intensity × focus count diversity
         if !self.focuses.is_empty() {
-            let max_intensity = self.focuses.iter()
-                .map(|f| f.intensity).fold(0.0f32, |a, b| a.max(b));
+            let max_intensity = self
+                .focuses
+                .iter()
+                .map(|f| f.intensity)
+                .fold(0.0f32, |a, b| a.max(b));
             let diversity = (self.focuses.len() as f32).min(5.0) / 5.0;
             self.dimensions.attention = max_intensity * 0.6 + diversity * 0.4;
         }
 
         let composite = self.dimensions.composite();
-        self.consciousness_ema = EMA_ALPHA * composite
-            + (1.0 - EMA_ALPHA) * self.consciousness_ema;
+        self.consciousness_ema = EMA_ALPHA * composite + (1.0 - EMA_ALPHA) * self.consciousness_ema;
     }
 
     /// Compute aggregate awareness statistics
