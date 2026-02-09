@@ -187,6 +187,7 @@ impl Default for CompensatorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CompensatorStats {
     /// Sagas created
     pub sagas_created: u64,
@@ -430,11 +431,13 @@ impl ActionCompensator {
     }
 
     /// Get saga
+    #[inline(always)]
     pub fn get_saga(&self, id: u64) -> Option<&Saga> {
         self.sagas.get(&id)
     }
 
     /// Get active sagas
+    #[inline]
     pub fn active_sagas(&self) -> Vec<&Saga> {
         self.sagas.values()
             .filter(|s| s.status == SagaStatus::Running || s.status == SagaStatus::Compensating)
@@ -442,6 +445,7 @@ impl ActionCompensator {
     }
 
     /// Get failed sagas
+    #[inline]
     pub fn failed_sagas(&self) -> Vec<&Saga> {
         self.sagas.values()
             .filter(|s| s.status == SagaStatus::Failed)
@@ -449,6 +453,7 @@ impl ActionCompensator {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CompensatorStats {
         &self.stats
     }
@@ -482,12 +487,14 @@ impl<'a> SagaBuilder<'a> {
     }
 
     /// Add step
+    #[inline(always)]
     pub fn step(self, name: &str, action_id: u64, compensation_id: Option<u64>) -> Self {
         self.compensator.add_step(self.saga_id, name, action_id, compensation_id);
         self
     }
 
     /// Build
+    #[inline(always)]
     pub fn build(self) -> u64 {
         self.saga_id
     }
