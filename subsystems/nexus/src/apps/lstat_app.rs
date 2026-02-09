@@ -65,6 +65,7 @@ impl LstatRecord {
 
 /// Lstat app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct LstatAppStats {
     pub total_calls: u64,
     pub symlinks_found: u64,
@@ -90,6 +91,7 @@ impl AppLstat {
         }
     }
 
+    #[inline]
     pub fn record(&mut self, rec: &LstatRecord) {
         self.stats.total_calls += 1;
         if rec.is_symlink || rec.file_type == LstatFileType::Symlink {
@@ -102,6 +104,7 @@ impl AppLstat {
         }
     }
 
+    #[inline]
     pub fn symlink_ratio(&self) -> f64 {
         if self.stats.total_calls == 0 {
             0.0
