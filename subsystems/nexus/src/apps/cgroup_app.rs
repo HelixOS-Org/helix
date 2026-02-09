@@ -42,6 +42,7 @@ pub struct CgroupLimits {
 }
 
 impl CgroupLimits {
+    #[inline(always)]
     pub fn unlimited() -> Self {
         Self { cpu_max_us: u64::MAX, cpu_period_us: 100_000, mem_max: u64::MAX, mem_swap_max: u64::MAX, pids_max: u32::MAX, io_weight: 100, io_max_rbps: u64::MAX, io_max_wbps: u64::MAX }
     }
@@ -73,13 +74,17 @@ impl CgroupNode {
         }
     }
 
+    #[inline(always)]
     pub fn add_process(&mut self, pid: u64) { if !self.processes.contains(&pid) { self.processes.push(pid); } }
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) { self.processes.retain(|&p| p != pid); }
+    #[inline(always)]
     pub fn mem_utilization(&self) -> f64 { if self.limits.mem_max == u64::MAX { 0.0 } else { self.mem_current as f64 / self.limits.mem_max as f64 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CgroupAppStats {
     pub total_groups: u32,
     pub total_processes: u32,
@@ -101,6 +106,7 @@ impl AppCgroup {
         Self { groups: g, next_id: 1 }
     }
 
+    #[inline]
     pub fn create(&mut self, parent: u64) -> Option<u64> {
         let depth = self.groups.get(&parent)?.depth + 1;
         let id = self.next_id; self.next_id += 1;
@@ -109,10 +115,12 @@ impl AppCgroup {
         Some(id)
     }
 
+    #[inline(always)]
     pub fn attach(&mut self, group: u64, pid: u64) {
         if let Some(g) = self.groups.get_mut(&group) { g.add_process(pid); }
     }
 
+    #[inline]
     pub fn stats(&self) -> CgroupAppStats {
         let procs: u32 = self.groups.values().map(|g| g.processes.len() as u32).sum();
         let frozen = self.groups.values().filter(|g| g.freeze == CgroupFreezeState::Frozen).count() as u32;
