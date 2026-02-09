@@ -54,9 +54,9 @@ fn xorshift64(state: &mut u64) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum GoalPriority {
     Critical = 0,
-    High = 1,
-    Medium = 2,
-    Low = 3,
+    High     = 1,
+    Medium   = 2,
+    Low      = 3,
 }
 
 /// Status of a goal
@@ -323,7 +323,8 @@ impl HolisticGoalTracker {
             EMA_ALPHA * avg_progress + (1.0 - EMA_ALPHA) * self.overall_progress_ema;
 
         if self.progress_history.len() < MAX_HISTORY {
-            self.progress_history.push((self.tick, self.overall_progress_ema));
+            self.progress_history
+                .push((self.tick, self.overall_progress_ema));
         }
 
         status
@@ -357,8 +358,7 @@ impl HolisticGoalTracker {
             0.5
         };
 
-        self.alignment_ema =
-            EMA_ALPHA * alignment + (1.0 - EMA_ALPHA) * self.alignment_ema;
+        self.alignment_ema = EMA_ALPHA * alignment + (1.0 - EMA_ALPHA) * self.alignment_ema;
         self.alignment_ema
     }
 
@@ -440,15 +440,26 @@ impl HolisticGoalTracker {
 
     /// Compute aggregate statistics
     pub fn stats(&self) -> GoalTrackerStats {
-        let on_track = self.root_goals.values().filter(|g| g.status == GoalStatus::OnTrack).count();
-        let at_risk = self.root_goals.values().filter(|g| g.status == GoalStatus::AtRisk).count();
-        let achieved = self.root_goals.values().filter(|g| g.status == GoalStatus::Achieved).count();
+        let on_track = self
+            .root_goals
+            .values()
+            .filter(|g| g.status == GoalStatus::OnTrack)
+            .count();
+        let at_risk = self
+            .root_goals
+            .values()
+            .filter(|g| g.status == GoalStatus::AtRisk)
+            .count();
+        let achieved = self
+            .root_goals
+            .values()
+            .filter(|g| g.status == GoalStatus::Achieved)
+            .count();
 
         let avg_progress = if self.root_goals.is_empty() {
             0.0
         } else {
-            self.root_goals.values().map(|g| g.progress).sum::<f32>()
-                / self.root_goals.len() as f32
+            self.root_goals.values().map(|g| g.progress).sum::<f32>() / self.root_goals.len() as f32
         };
 
         let synergy_score = if self.synergies.is_empty() {
