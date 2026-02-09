@@ -427,8 +427,7 @@ impl BridgeLiterature {
         // Also include cross-domain results with lower weight
         for entry in self.entries.values() {
             if entry.domain != domain {
-                let sim =
-                    FingerprintEngine::similarity(&query_fps, &entry.fingerprints) * 0.5;
+                let sim = FingerprintEngine::similarity(&query_fps, &entry.fingerprints) * 0.5;
                 if sim > 0.1 {
                     results.push(RelatedWork {
                         entry_id: entry.entry_id,
@@ -456,11 +455,7 @@ impl BridgeLiterature {
         let entry_ids = self.domain_index.get(&domain_key);
 
         let entries: Vec<&KnowledgeEntry> = entry_ids
-            .map(|ids| {
-                ids.iter()
-                    .filter_map(|id| self.entries.get(id))
-                    .collect()
-            })
+            .map(|ids| ids.iter().filter_map(|id| self.entries.get(id)).collect())
             .unwrap_or_default();
 
         let total = entries.len();
@@ -515,11 +510,7 @@ impl BridgeLiterature {
         let entry_ids = self.domain_index.get(&domain_key);
 
         let entries: Vec<&KnowledgeEntry> = entry_ids
-            .map(|ids| {
-                ids.iter()
-                    .filter_map(|id| self.entries.get(id))
-                    .collect()
-            })
+            .map(|ids| ids.iter().filter_map(|id| self.entries.get(id)).collect())
             .unwrap_or_default();
 
         let total = entries.len();
