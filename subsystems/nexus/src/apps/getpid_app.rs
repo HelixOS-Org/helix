@@ -33,6 +33,7 @@ pub enum AppIdQuery {
 
 /// Stats for ID queries
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppGetpidStats {
     pub total_queries: u64,
     pub pid_queries: u64,
@@ -61,6 +62,7 @@ impl AppGetpidManager {
         }
     }
 
+    #[inline(always)]
     pub fn register(&mut self, identity: AppProcessIdentity) {
         self.identities.insert(identity.pid, identity);
     }
@@ -85,12 +87,14 @@ impl AppGetpidManager {
         }
     }
 
+    #[inline]
     pub fn update_pgid(&mut self, pid: u64, pgid: u64) {
         if let Some(id) = self.identities.get_mut(&pid) {
             id.pgid = pgid;
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppGetpidStats {
         &self.stats
     }
