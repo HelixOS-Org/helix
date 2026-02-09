@@ -181,6 +181,7 @@ impl Default for RetryConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct RetryStats {
     /// Total attempts
     pub total_attempts: u64,
@@ -276,6 +277,7 @@ impl RetryEngine {
     }
 
     /// Report success
+    #[inline]
     pub fn report_success(&mut self, action_id: u64) {
         if let Some(action) = self.actions.get_mut(&action_id) {
             if let Some(attempt) = action.attempts.last_mut() {
@@ -453,16 +455,19 @@ impl RetryEngine {
     }
 
     /// Get action
+    #[inline(always)]
     pub fn get_action(&self, id: u64) -> Option<&RetryableAction> {
         self.actions.get(&id)
     }
 
     /// Get breaker
+    #[inline(always)]
     pub fn get_breaker(&self, id: u64) -> Option<&CircuitBreaker> {
         self.breakers.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &RetryStats {
         &self.stats
     }
