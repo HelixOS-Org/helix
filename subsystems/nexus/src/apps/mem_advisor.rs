@@ -51,6 +51,7 @@ pub enum NumaPref {
 
 /// Per-region memory stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MemRegionStats {
     pub start_addr: u64,
     pub size_bytes: u64,
@@ -77,9 +78,12 @@ impl MemRegionStats {
         }
     }
 
+    #[inline(always)]
     pub fn residency_pct(&self) -> f64 { if self.size_bytes == 0 { 0.0 } else { self.resident_bytes as f64 / self.size_bytes as f64 * 100.0 } }
+    #[inline(always)]
     pub fn numa_local_pct(&self) -> f64 { if self.access_count == 0 { 100.0 } else { (self.access_count - self.numa_misses) as f64 / self.access_count as f64 * 100.0 } }
 
+    #[inline]
     pub fn update_hot_score(&mut self, now: u64) {
         let age = now.saturating_sub(self.last_access_ts);
         let freq = if age == 0 { self.access_count as f64 } else { self.access_count as f64 / (age as f64 / 1_000_000.0) };
@@ -113,12 +117,15 @@ impl ProcessMemProfile {
         }
     }
 
+    #[inline(always)]
     pub fn estimate_wss(&mut self, now: u64) {
         let threshold = now.saturating_sub(self.wss_window_us);
         self.working_set_bytes = self.regions.iter().filter(|r| r.last_access_ts >= threshold).map(|r| r.resident_bytes).sum();
     }
 
+    #[inline(always)]
     pub fn rss_to_wss_ratio(&self) -> f64 { if self.working_set_bytes == 0 { 0.0 } else { self.rss_bytes as f64 / self.working_set_bytes as f64 } }
+    #[inline(always)]
     pub fn fault_rate(&self) -> f64 { if self.rss_bytes == 0 { 0.0 } else { (self.major_faults + self.minor_faults) as f64 } }
 }
 
@@ -147,6 +154,7 @@ pub enum AdvisoryReason {
 
 /// Memory advisor stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MemAdvisorStats {
     pub tracked_processes: usize,
     pub total_rss: u64,
@@ -166,17 +174,22 @@ pub struct AppsMemAdvisor {
 impl AppsMemAdvisor {
     pub fn new() -> Self { Self { profiles: BTreeMap::new(), advisories: Vec::new(), stats: MemAdvisorStats::default() } }
 
+    #[inline(always)]
     pub fn track(&mut self, pid: u64) { self.profiles.entry(pid).or_insert_with(|| ProcessMemProfile::new(pid)); }
+    #[inline(always)]
     pub fn untrack(&mut self, pid: u64) { self.profiles.remove(&pid); }
 
+    #[inline(always)]
     pub fn update_rss(&mut self, pid: u64, rss: u64, swap: u64) {
         if let Some(p) = self.profiles.get_mut(&pid) { p.rss_bytes = rss; p.swap_bytes = swap; }
     }
 
+    #[inline(always)]
     pub fn record_fault(&mut self, pid: u64, major: bool) {
         if let Some(p) = self.profiles.get_mut(&pid) { if major { p.major_faults += 1; } else { p.minor_faults += 1; } }
     }
 
+    #[inline(always)]
     pub fn add_region(&mut self, pid: u64, start: u64, size: u64) {
         if let Some(p) = self.profiles.get_mut(&pid) { p.regions.push(MemRegionStats::new(start, size)); }
     }
@@ -205,6 +218,7 @@ impl AppsMemAdvisor {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.tracked_processes = self.profiles.len();
         self.stats.total_rss = self.profiles.values().map(|p| p.rss_bytes).sum();
@@ -213,7 +227,10 @@ impl AppsMemAdvisor {
         self.stats.processes_swapping = self.profiles.values().filter(|p| p.swap_bytes > 0).count();
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessMemProfile> { self.profiles.get(&pid) }
+    #[inline(always)]
     pub fn advisories(&self) -> &[MemAdvisory] { &self.advisories }
+    #[inline(always)]
     pub fn stats(&self) -> &MemAdvisorStats { &self.stats }
 }
