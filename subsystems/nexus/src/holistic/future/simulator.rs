@@ -361,7 +361,8 @@ impl HolisticSimulator {
                         magnitude: cpu_diff,
                         description: String::from("CPU utilization divergence"),
                     });
-                    self.divergences.insert(rec_id, records.last().unwrap().clone());
+                    self.divergences
+                        .insert(rec_id, records.last().unwrap().clone());
                 }
 
                 if mem_diff > 0.1 {
@@ -374,7 +375,8 @@ impl HolisticSimulator {
                         magnitude: mem_diff,
                         description: String::from("Memory pressure divergence"),
                     });
-                    self.divergences.insert(rec_id, records.last().unwrap().clone());
+                    self.divergences
+                        .insert(rec_id, records.last().unwrap().clone());
                 }
             }
         }
@@ -415,7 +417,7 @@ impl HolisticSimulator {
                     total_stability: sc.final_stability,
                     interventions,
                 }
-            }
+            },
             None => OptimalPath {
                 steps: Vec::new(),
                 total_cost: 1.0,
@@ -454,8 +456,8 @@ impl HolisticSimulator {
         let net_err = (pred_net - actual_net).abs() / 100.0;
         let fidelity = 1.0 - (cpu_err + mem_err + io_err + net_err) / 4.0;
 
-        self.fidelity_ema = EMA_ALPHA * fidelity.clamp(0.0, 1.0)
-            + (1.0 - EMA_ALPHA) * self.fidelity_ema;
+        self.fidelity_ema =
+            EMA_ALPHA * fidelity.clamp(0.0, 1.0) + (1.0 - EMA_ALPHA) * self.fidelity_ema;
 
         let report = FidelityReport {
             scenario_id,
@@ -512,7 +514,8 @@ impl HolisticSimulator {
                 mitigation_benefit: (avg_sev * 0.6).clamp(0.0, 1.0),
             });
 
-            self.bottlenecks.insert(id, predictions.last().unwrap().clone());
+            self.bottlenecks
+                .insert(id, predictions.last().unwrap().clone());
         }
 
         while self.bottlenecks.len() > MAX_BOTTLENECK_ENTRIES {
