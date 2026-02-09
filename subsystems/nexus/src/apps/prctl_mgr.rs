@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 
 /// Known prctl operations
@@ -41,6 +42,7 @@ pub enum PrctlOp {
 }
 
 impl PrctlOp {
+    #[inline]
     pub fn is_set(&self) -> bool {
         matches!(self,
             Self::SetName | Self::SetDumpable | Self::SetSeccomp | Self::SetNoNewPrivs |
@@ -49,6 +51,7 @@ impl PrctlOp {
         )
     }
 
+    #[inline]
     pub fn is_get(&self) -> bool {
         matches!(self,
             Self::GetName | Self::GetDumpable | Self::GetSeccomp | Self::GetNoNewPrivs |
@@ -57,6 +60,7 @@ impl PrctlOp {
         )
     }
 
+    #[inline]
     pub fn is_security_related(&self) -> bool {
         matches!(self,
             Self::SetSeccomp | Self::GetSeccomp | Self::SetNoNewPrivs | Self::GetNoNewPrivs |
@@ -68,6 +72,7 @@ impl PrctlOp {
 
 /// Per-process prctl state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessPrctlState {
     pub pid: u64,
     pub name: String,
@@ -117,10 +122,12 @@ impl ProcessPrctlState {
         }
     }
 
+    #[inline(always)]
     pub fn is_hardened(&self) -> bool {
         self.no_new_privs && self.seccomp_mode > 0 && self.dumpable == 0
     }
 
+    #[inline(always)]
     pub fn is_reaper(&self) -> bool { self.child_subreaper }
 }
 
@@ -136,6 +143,7 @@ pub struct PrctlRecord {
 
 /// Prctl manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct PrctlMgrStats {
     pub tracked_processes: usize,
     pub total_ops: u64,
@@ -149,7 +157,7 @@ pub struct PrctlMgrStats {
 /// Apps prctl manager
 pub struct AppsPrctlMgr {
     processes: BTreeMap<u64, ProcessPrctlState>,
-    records: Vec<PrctlRecord>,
+    records: VecDeque<PrctlRecord>,
     max_records: usize,
     stats: PrctlMgrStats,
 }
@@ -157,18 +165,20 @@ pub struct AppsPrctlMgr {
 impl AppsPrctlMgr {
     pub fn new() -> Self {
         Self {
-            processes: BTreeMap::new(), records: Vec::new(),
+            processes: BTreeMap::new(), records: VecDeque::new(),
             max_records: 512, stats: PrctlMgrStats::default(),
         }
     }
 
+    #[inline]
     pub fn record_op(&mut self, pid: u64, op: PrctlOp, arg: u64, success: bool, ts: u64) {
         let state = self.processes.entry(pid).or_insert_with(|| ProcessPrctlState::new(pid));
         if success { state.apply_op(op, arg, ts); }
-        self.records.push(PrctlRecord { pid, op, arg, timestamp: ts, success });
-        if self.records.len() > self.max_records { self.records.remove(0); }
+        self.records.push_back(PrctlRecord { pid, op, arg, timestamp: ts, success });
+        if self.records.len() > self.max_records { self.records.pop_front(); }
     }
 
+    #[inline]
     pub fn set_name(&mut self, pid: u64, name: String, ts: u64) {
         let state = self.processes.entry(pid).or_insert_with(|| ProcessPrctlState::new(pid));
         state.name = name;
@@ -176,6 +186,7 @@ impl AppsPrctlMgr {
         state.last_op_ts = ts;
     }
 
+    #[inline(always)]
     pub fn process_exit(&mut self, pid: u64) { self.processes.remove(&pid); }
 
     pub fn fork_inherit(&mut self, parent: u64, child: u64) {
@@ -191,6 +202,7 @@ impl AppsPrctlMgr {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.tracked_processes = self.processes.len();
         self.stats.total_ops = self.processes.values().map(|p| p.op_count).sum();
@@ -201,6 +213,8 @@ impl AppsPrctlMgr {
         self.stats.no_new_privs_set = self.processes.values().filter(|p| p.no_new_privs).count();
     }
 
+    #[inline(always)]
     pub fn process(&self, pid: u64) -> Option<&ProcessPrctlState> { self.processes.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &PrctlMgrStats { &self.stats }
 }
