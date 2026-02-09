@@ -73,6 +73,7 @@ impl SectionPerms {
     }
 
     /// Is writable and executable? (security concern)
+    #[inline(always)]
     pub fn is_wx(&self) -> bool {
         self.write && self.exec
     }
@@ -115,11 +116,13 @@ impl SectionInfo {
     }
 
     /// End address
+    #[inline(always)]
     pub fn end_vaddr(&self) -> u64 {
         self.vaddr + self.size
     }
 
     /// Contains address?
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool {
         addr >= self.vaddr && addr < self.end_vaddr()
     }
@@ -240,6 +243,7 @@ impl BinaryProfile {
     }
 
     /// Code to data ratio
+    #[inline]
     pub fn code_data_ratio(&self) -> f64 {
         if self.data_size == 0 {
             return f64::MAX;
@@ -248,6 +252,7 @@ impl BinaryProfile {
     }
 
     /// Security score (0-100, higher = more secure)
+    #[inline]
     pub fn security_score(&self) -> u32 {
         let mut score = 50u32;
         if self.is_pie { score += 15; }
@@ -258,6 +263,7 @@ impl BinaryProfile {
     }
 
     /// Find section by address
+    #[inline(always)]
     pub fn section_at(&self, addr: u64) -> Option<&SectionInfo> {
         self.sections.iter().find(|s| s.contains(addr))
     }
@@ -269,6 +275,7 @@ impl BinaryProfile {
 
 /// Binary analysis stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppBinaryStats {
     /// Profiles analyzed
     pub profiles_analyzed: usize,
@@ -295,23 +302,27 @@ impl AppBinaryAnalyzer {
     }
 
     /// Register binary profile
+    #[inline(always)]
     pub fn register(&mut self, pid: u64, profile: BinaryProfile) {
         self.profiles.insert(pid, profile);
         self.update_stats();
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&BinaryProfile> {
         self.profiles.get(&pid)
     }
 
     /// Remove
+    #[inline(always)]
     pub fn remove(&mut self, pid: u64) {
         self.profiles.remove(&pid);
         self.update_stats();
     }
 
     /// Insecure binaries
+    #[inline]
     pub fn insecure_binaries(&self) -> Vec<u64> {
         self.profiles.iter()
             .filter(|(_, p)| p.security_score() < 50)
@@ -329,6 +340,7 @@ impl AppBinaryAnalyzer {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppBinaryStats {
         &self.stats
     }
