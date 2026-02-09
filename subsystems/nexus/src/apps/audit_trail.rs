@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -238,7 +239,7 @@ pub struct AuditTrailStats {
 
 /// Main apps audit trail manager
 pub struct AppAuditTrail {
-    records: Vec<AuditRecord>,
+    records: VecDeque<AuditRecord>,
     processes: BTreeMap<u64, ProcessAuditState>,
     filters: Vec<AuditFilter>,
     next_seq: u64,
@@ -250,7 +251,7 @@ pub struct AppAuditTrail {
 impl AppAuditTrail {
     pub fn new() -> Self {
         Self {
-            records: Vec::new(),
+            records: VecDeque::new(),
             processes: BTreeMap::new(),
             filters: Vec::new(),
             next_seq: 1,
@@ -312,10 +313,10 @@ impl AppAuditTrail {
 
         let seq = record.seq;
         if self.records.len() >= self.max_records {
-            self.records.remove(0);
+            self.records.pop_front();
             self.stats.buffer_overflows += 1;
         }
-        self.records.push(record);
+        self.records.push_back(record);
         self.stats.total_records += 1;
         Some(seq)
     }
