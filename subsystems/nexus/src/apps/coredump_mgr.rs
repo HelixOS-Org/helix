@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
@@ -43,9 +44,13 @@ pub struct CoreMemRegion {
 }
 
 impl CoreMemRegion {
+    #[inline(always)]
     pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
+    #[inline(always)]
     pub fn is_readable(&self) -> bool { self.permissions & 0x4 != 0 }
+    #[inline(always)]
     pub fn is_writable(&self) -> bool { self.permissions & 0x2 != 0 }
+    #[inline(always)]
     pub fn is_executable(&self) -> bool { self.permissions & 0x1 != 0 }
 }
 
@@ -75,7 +80,9 @@ impl CoreFilter {
     pub const HUGETLB_SHARED: Self = Self(0x40);
     pub const DAX_PRIVATE: Self = Self(0x80);
 
+    #[inline(always)]
     pub fn default_filter() -> Self { Self(0x33) }
+    #[inline(always)]
     pub fn contains(&self, other: Self) -> bool { self.0 & other.0 != 0 }
 }
 
@@ -127,14 +134,17 @@ impl CoreDumpEntry {
         }
     }
 
+    #[inline(always)]
     pub fn total_region_size(&self) -> u64 {
         self.regions.iter().filter(|r| r.included).map(|r| r.size()).sum()
     }
 
+    #[inline(always)]
     pub fn is_oversized(&self) -> bool {
         self.total_region_size() > self.max_size
     }
 
+    #[inline(always)]
     pub fn duration(&self) -> u64 {
         if self.end_time > 0 { self.end_time - self.start_time } else { 0 }
     }
@@ -151,13 +161,14 @@ pub struct CorePipeHandler {
 
 /// Coredump manager stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoredumpMgrStats {
     pub total_dumps: u64,
     pub completed: u64,
     pub failed: u64,
     pub truncated: u64,
     pub total_bytes_written: u64,
-    pub signal_counts: BTreeMap<u32, u64>,
+    pub signal_counts: ArrayMap<u64, 32>,
 }
 
 /// Main coredump manager
@@ -185,7 +196,7 @@ impl AppCoredumpMgr {
             pipe_handler: None,
             stats: CoredumpMgrStats {
                 total_dumps: 0, completed: 0, failed: 0, truncated: 0,
-                total_bytes_written: 0, signal_counts: BTreeMap::new(),
+                total_bytes_written: 0, signal_counts: ArrayMap::new(0),
             },
         }
     }
@@ -204,18 +215,21 @@ impl AppCoredumpMgr {
         id
     }
 
+    #[inline]
     pub fn add_region(&mut self, dump_id: u64, region: CoreMemRegion) {
         if let Some(entry) = self.active_dumps.get_mut(&dump_id) {
             entry.regions.push(region);
         }
     }
 
+    #[inline]
     pub fn set_registers(&mut self, dump_id: u64, regs: RegisterSnapshot) {
         if let Some(entry) = self.active_dumps.get_mut(&dump_id) {
             entry.registers = regs;
         }
     }
 
+    #[inline]
     pub fn advance_state(&mut self, dump_id: u64, state: CoreDumpState) {
         if let Some(entry) = self.active_dumps.get_mut(&dump_id) {
             entry.state = state;
@@ -236,6 +250,7 @@ impl AppCoredumpMgr {
         }
     }
 
+    #[inline]
     pub fn fail_dump(&mut self, dump_id: u64, now: u64) {
         if let Some(mut entry) = self.active_dumps.remove(&dump_id) {
             entry.state = CoreDumpState::Failed;
@@ -248,13 +263,17 @@ impl AppCoredumpMgr {
         }
     }
 
+    #[inline(always)]
     pub fn set_pipe_handler(&mut self, handler: CorePipeHandler) {
         self.pipe_handler = Some(handler);
     }
 
+    #[inline(always)]
     pub fn set_size_limit(&mut self, limit: u64) { self.core_size_limit = limit; }
 
+    #[inline(always)]
     pub fn active_count(&self) -> usize { self.active_dumps.len() }
 
+    #[inline(always)]
     pub fn stats(&self) -> &CoredumpMgrStats { &self.stats }
 }
