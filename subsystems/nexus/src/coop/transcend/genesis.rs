@@ -52,7 +52,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(v: u64, lo: u64, hi: u64) -> u64 {
-    if v < lo { lo } else if v > hi { hi } else { v }
+    if v < lo {
+        lo
+    } else if v > hi {
+        hi
+    } else {
+        v
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -214,7 +220,7 @@ impl CoopGenesis {
                     if c_combined > b_combined {
                         best = Some(candidate);
                     }
-                }
+                },
             }
         }
 
@@ -237,7 +243,11 @@ impl CoopGenesis {
         if mean == 0 {
             return 50;
         }
-        let max_dev = weights.iter().map(|&w| abs_diff(w, mean)).max().unwrap_or(0);
+        let max_dev = weights
+            .iter()
+            .map(|&w| abs_diff(w, mean))
+            .max()
+            .unwrap_or(0);
         let uniformity = 100u64.saturating_sub(max_dev);
 
         let sum_sq: u64 = weights.iter().map(|&w| w * w).sum();
@@ -264,7 +274,8 @@ impl CoopGenesis {
 
     fn hash_weights(&mut self, weights: &[u64]) -> u64 {
         let seed = xorshift64(&mut self.rng_state);
-        let bytes: Vec<u8> = weights.iter()
+        let bytes: Vec<u8> = weights
+            .iter()
             .flat_map(|w| w.to_le_bytes())
             .chain(seed.to_le_bytes().iter().copied())
             .collect();
@@ -307,13 +318,17 @@ impl CoopGenesis {
                     if c_combined > b_combined {
                         best = Some(candidate);
                     }
-                }
+                },
             }
         }
 
         if let Some(ref mech) = best {
             self.mechanisms.insert(mech.mechanism_id, mech.clone());
-            self.record_event(CapabilityType::Trust, mech.mechanism_id, mech.robustness_score);
+            self.record_event(
+                CapabilityType::Trust,
+                mech.mechanism_id,
+                mech.robustness_score,
+            );
             self.creation_rate_ema = ema_update(self.creation_rate_ema, 100);
             self.refresh_stats();
         }
@@ -327,10 +342,14 @@ impl CoopGenesis {
         let n = params.len() as u64;
         let sum: u64 = params.iter().sum();
         let mean = sum / n;
-        let variance = params.iter().map(|&p| {
-            let d = abs_diff(p, mean);
-            d * d
-        }).sum::<u64>() / n;
+        let variance = params
+            .iter()
+            .map(|&p| {
+                let d = abs_diff(p, mean);
+                d * d
+            })
+            .sum::<u64>()
+            / n;
 
         let stability = 100u64.saturating_sub(variance / 50);
         let min_val = params.iter().copied().min().unwrap_or(0);
@@ -356,7 +375,8 @@ impl CoopGenesis {
 
     fn hash_params(&mut self, params: &[u64]) -> u64 {
         let seed = xorshift64(&mut self.rng_state);
-        let bytes: Vec<u8> = params.iter()
+        let bytes: Vec<u8> = params
+            .iter()
             .flat_map(|p| p.to_le_bytes())
             .chain(seed.to_le_bytes().iter().copied())
             .collect();
@@ -399,13 +419,17 @@ impl CoopGenesis {
                     if c_combined > b_combined {
                         best = Some(candidate);
                     }
-                }
+                },
             }
         }
 
         if let Some(ref strat) = best {
             self.strategies.insert(strat.strategy_id, strat.clone());
-            self.record_event(CapabilityType::Negotiation, strat.strategy_id, strat.mutual_gain);
+            self.record_event(
+                CapabilityType::Negotiation,
+                strat.strategy_id,
+                strat.mutual_gain,
+            );
             self.creation_rate_ema = ema_update(self.creation_rate_ema, 100);
             self.refresh_stats();
         }
@@ -434,17 +458,22 @@ impl CoopGenesis {
         let cooperation_ratio = cooperative * 100 / n;
         let sum: u64 = tactics.iter().sum();
         let mean = sum / n;
-        let variance = tactics.iter().map(|&t| {
-            let d = abs_diff(t, mean);
-            d * d
-        }).sum::<u64>() / n;
+        let variance = tactics
+            .iter()
+            .map(|&t| {
+                let d = abs_diff(t, mean);
+                d * d
+            })
+            .sum::<u64>()
+            / n;
         let low_conflict = 100u64.saturating_sub(variance / 30);
         clamp((cooperation_ratio + low_conflict) / 2, 0, 100)
     }
 
     fn hash_tactics(&mut self, tactics: &[u64]) -> u64 {
         let seed = xorshift64(&mut self.rng_state);
-        let bytes: Vec<u8> = tactics.iter()
+        let bytes: Vec<u8> = tactics
+            .iter()
             .flat_map(|t| t.to_le_bytes())
             .chain(seed.to_le_bytes().iter().copied())
             .collect();
@@ -461,24 +490,24 @@ impl CoopGenesis {
 
     pub fn capability_evolution(&self, cap_type: CapabilityType) -> u64 {
         match cap_type {
-            CapabilityType::Fairness => {
-                self.algorithms.values()
-                    .map(|a| a.fairness_score)
-                    .max()
-                    .unwrap_or(0)
-            }
-            CapabilityType::Trust => {
-                self.mechanisms.values()
-                    .map(|m| m.robustness_score)
-                    .max()
-                    .unwrap_or(0)
-            }
-            CapabilityType::Negotiation => {
-                self.strategies.values()
-                    .map(|s| s.mutual_gain)
-                    .max()
-                    .unwrap_or(0)
-            }
+            CapabilityType::Fairness => self
+                .algorithms
+                .values()
+                .map(|a| a.fairness_score)
+                .max()
+                .unwrap_or(0),
+            CapabilityType::Trust => self
+                .mechanisms
+                .values()
+                .map(|m| m.robustness_score)
+                .max()
+                .unwrap_or(0),
+            CapabilityType::Negotiation => self
+                .strategies
+                .values()
+                .map(|s| s.mutual_gain)
+                .max()
+                .unwrap_or(0),
         }
     }
 
@@ -502,9 +531,24 @@ impl CoopGenesis {
     }
 
     fn refresh_stats(&mut self) {
-        let bf = self.algorithms.values().map(|a| a.fairness_score).max().unwrap_or(0);
-        let bt = self.mechanisms.values().map(|m| m.robustness_score).max().unwrap_or(0);
-        let bn = self.strategies.values().map(|s| s.mutual_gain).max().unwrap_or(0);
+        let bf = self
+            .algorithms
+            .values()
+            .map(|a| a.fairness_score)
+            .max()
+            .unwrap_or(0);
+        let bt = self
+            .mechanisms
+            .values()
+            .map(|m| m.robustness_score)
+            .max()
+            .unwrap_or(0);
+        let bn = self
+            .strategies
+            .values()
+            .map(|s| s.mutual_gain)
+            .max()
+            .unwrap_or(0);
 
         self.stats = GenesisStats {
             total_algorithms: self.algorithms.len(),
