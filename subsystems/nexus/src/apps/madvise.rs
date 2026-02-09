@@ -47,6 +47,7 @@ impl MadvRegion {
         Self { start, len, behavior, applied_at: now, pages_affected: len / 4096 }
     }
 
+    #[inline(always)]
     pub fn overlaps(&self, addr: u64, size: u64) -> bool {
         self.start < addr + size && addr < self.start + self.len
     }
@@ -54,6 +55,7 @@ impl MadvRegion {
 
 /// Process advisory state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessMadvState {
     pub pid: u64,
     pub regions: Vec<MadvRegion>,
@@ -92,11 +94,13 @@ impl ProcessMadvState {
         self.regions.push(region);
     }
 
+    #[inline(always)]
     pub fn active_regions(&self) -> usize { self.regions.len() }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MadviseV2Stats {
     pub total_processes: u32,
     pub total_advisories: u64,
@@ -114,6 +118,7 @@ pub struct AppMadviseV2 {
 impl AppMadviseV2 {
     pub fn new() -> Self { Self { processes: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn advise(&mut self, pid: u64, start: u64, len: u64, behavior: MadvBehavior, now: u64) {
         let state = self.processes.entry(pid).or_insert_with(|| ProcessMadvState::new(pid));
         state.apply(start, len, behavior, now);
