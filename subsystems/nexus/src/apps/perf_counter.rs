@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -76,6 +77,7 @@ pub enum PerfBottleneck {
 
 /// Counter values snapshot
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CounterSnapshot {
     /// Cycles
     pub cycles: u64,
@@ -111,6 +113,7 @@ pub struct CounterSnapshot {
 
 impl CounterSnapshot {
     /// IPC
+    #[inline]
     pub fn ipc(&self) -> f64 {
         if self.cycles == 0 {
             return 0.0;
@@ -119,6 +122,7 @@ impl CounterSnapshot {
     }
 
     /// Cache miss rate
+    #[inline]
     pub fn cache_miss_rate(&self) -> f64 {
         if self.cache_refs == 0 {
             return 0.0;
@@ -127,6 +131,7 @@ impl CounterSnapshot {
     }
 
     /// Branch misprediction rate
+    #[inline]
     pub fn branch_miss_rate(&self) -> f64 {
         if self.branches == 0 {
             return 0.0;
@@ -135,6 +140,7 @@ impl CounterSnapshot {
     }
 
     /// L1d miss rate
+    #[inline]
     pub fn l1d_miss_rate(&self) -> f64 {
         if self.l1d_loads == 0 {
             return 0.0;
@@ -143,6 +149,7 @@ impl CounterSnapshot {
     }
 
     /// Frontend stall ratio
+    #[inline]
     pub fn frontend_stall_ratio(&self) -> f64 {
         if self.cycles == 0 {
             return 0.0;
@@ -151,6 +158,7 @@ impl CounterSnapshot {
     }
 
     /// Backend stall ratio
+    #[inline]
     pub fn backend_stall_ratio(&self) -> f64 {
         if self.cycles == 0 {
             return 0.0;
@@ -194,7 +202,7 @@ pub struct ProcessPerfProfile {
     /// Previous snapshot (for delta)
     pub previous: CounterSnapshot,
     /// History of IPC samples
-    ipc_history: Vec<f64>,
+    ipc_history: VecDeque<f64>,
     /// Detected bottleneck
     pub bottleneck: PerfBottleneck,
 }
@@ -205,20 +213,21 @@ impl ProcessPerfProfile {
             pid,
             current: CounterSnapshot::default(),
             previous: CounterSnapshot::default(),
-            ipc_history: Vec::new(),
+            ipc_history: VecDeque::new(),
             bottleneck: PerfBottleneck::Balanced,
         }
     }
 
     /// Update with new snapshot
+    #[inline]
     pub fn update(&mut self, snapshot: CounterSnapshot) {
         self.previous = core::mem::replace(&mut self.current, snapshot);
         let delta = self.current.delta(&self.previous);
         let ipc = delta.ipc();
         if self.ipc_history.len() >= 128 {
-            self.ipc_history.remove(0);
+            self.ipc_history.pop_front();
         }
-        self.ipc_history.push(ipc);
+        self.ipc_history.push_back(ipc);
         self.detect_bottleneck(&delta);
     }
 
@@ -270,6 +279,7 @@ impl ProcessPerfProfile {
     }
 
     /// Average IPC
+    #[inline]
     pub fn avg_ipc(&self) -> f64 {
         if self.ipc_history.is_empty() {
             return 0.0;
@@ -279,6 +289,7 @@ impl ProcessPerfProfile {
     }
 
     /// IPC trend (positive = improving)
+    #[inline]
     pub fn ipc_trend(&self) -> f64 {
         if self.ipc_history.len() < 4 {
             return 0.0;
@@ -296,6 +307,7 @@ impl ProcessPerfProfile {
 
 /// Perf counter profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppPerfCounterStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -308,6 +320,7 @@ pub struct AppPerfCounterStats {
 }
 
 /// App perf counter profiler
+#[repr(align(64))]
 pub struct AppPerfCounterProfiler {
     /// Per-process profiles
     processes: BTreeMap<u64, ProcessPerfProfile>,
@@ -324,6 +337,7 @@ impl AppPerfCounterProfiler {
     }
 
     /// Get/create process
+    #[inline]
     pub fn process(&mut self, pid: u64) -> &mut ProcessPerfProfile {
         self.processes
             .entry(pid)
@@ -331,6 +345,7 @@ impl AppPerfCounterProfiler {
     }
 
     /// Update process counters
+    #[inline]
     pub fn update(&mut self, pid: u64, snapshot: CounterSnapshot) {
         let proc = self
             .processes
@@ -341,12 +356,14 @@ impl AppPerfCounterProfiler {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.processes.remove(&pid);
         self.update_stats();
     }
 
     /// Get bottleneck distribution
+    #[inline]
     pub fn bottleneck_distribution(&self) -> BTreeMap<u8, usize> {
         let mut dist = BTreeMap::new();
         for proc in self.processes.values() {
@@ -375,6 +392,7 @@ impl AppPerfCounterProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppPerfCounterStats {
         &self.stats
     }
