@@ -46,6 +46,7 @@ impl ListenBacklog {
         }
     }
 
+    #[inline]
     pub fn incoming_syn(&mut self) -> bool {
         if self.syn_queue_len >= self.max_backlog {
             self.total_overflows += 1;
@@ -57,11 +58,13 @@ impl ListenBacklog {
         true
     }
 
+    #[inline(always)]
     pub fn syn_completed(&mut self) {
         if self.syn_queue_len > 0 { self.syn_queue_len -= 1; }
         self.accept_queue_len += 1;
     }
 
+    #[inline]
     pub fn accept_connection(&mut self) -> bool {
         if self.accept_queue_len == 0 { return false; }
         self.accept_queue_len -= 1;
@@ -73,11 +76,13 @@ impl ListenBacklog {
         true
     }
 
+    #[inline(always)]
     pub fn utilization_pct(&self) -> u64 {
         if self.max_backlog == 0 { 0 }
         else { (self.current_pending as u64 * 100) / self.max_backlog as u64 }
     }
 
+    #[inline(always)]
     pub fn drop_rate(&self) -> u64 {
         let total = self.total_accepted + self.total_dropped;
         if total == 0 { 0 } else { (self.total_dropped * 100) / total }
@@ -85,6 +90,7 @@ impl ListenBacklog {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ListenAppStats {
     pub total_listeners: u64,
     pub total_accepted: u64,
@@ -110,11 +116,13 @@ impl AppListen {
         }
     }
 
+    #[inline(always)]
     pub fn start_listen(&mut self, fd: u64, backlog: u32) {
         self.backlogs.insert(fd, ListenBacklog::new(fd, backlog));
         self.stats.total_listeners += 1;
     }
 
+    #[inline]
     pub fn incoming_connection(&mut self, fd: u64) -> bool {
         if let Some(bl) = self.backlogs.get_mut(&fd) {
             return bl.incoming_syn();
@@ -122,6 +130,7 @@ impl AppListen {
         false
     }
 
+    #[inline]
     pub fn accept(&mut self, fd: u64) -> bool {
         if let Some(bl) = self.backlogs.get_mut(&fd) {
             if bl.accept_connection() {
@@ -132,6 +141,7 @@ impl AppListen {
         false
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ListenAppStats { &self.stats }
 }
 
@@ -156,6 +166,7 @@ impl ListenV2Request {
 
 /// Listen v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ListenV2AppStats { pub total_listens: u64, pub active: u32, pub fast_opens: u64, pub failures: u64 }
 
 /// Main app listen v2
@@ -164,6 +175,7 @@ pub struct AppListenV2 { pub stats: ListenV2AppStats }
 
 impl AppListenV2 {
     pub fn new() -> Self { Self { stats: ListenV2AppStats { total_listens: 0, active: 0, fast_opens: 0, failures: 0 } } }
+    #[inline]
     pub fn listen(&mut self, req: &ListenV2Request) -> ListenV2Result {
         self.stats.total_listens += 1;
         self.stats.active += 1;
