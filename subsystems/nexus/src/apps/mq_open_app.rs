@@ -32,6 +32,7 @@ impl MqOpenRecord {
 
 /// Mq open app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MqOpenAppStats { pub total_ops: u64, pub opened: u64, pub created: u64, pub errors: u64 }
 
 /// Main app mq_open
@@ -40,6 +41,7 @@ pub struct AppMqOpen { pub stats: MqOpenAppStats }
 
 impl AppMqOpen {
     pub fn new() -> Self { Self { stats: MqOpenAppStats { total_ops: 0, opened: 0, created: 0, errors: 0 } } }
+    #[inline]
     pub fn record(&mut self, rec: &MqOpenRecord) {
         self.stats.total_ops += 1;
         if rec.result == MqOpenResult::Success { self.stats.opened += 1; }
