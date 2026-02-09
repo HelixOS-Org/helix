@@ -65,6 +65,7 @@ pub struct SizeBucket {
 }
 
 impl SizeBucket {
+    #[inline]
     pub fn record(&mut self, size: u32) {
         match size {
             0..=512 => self.le_512 += 1,
@@ -77,6 +78,7 @@ impl SizeBucket {
         }
     }
 
+    #[inline(always)]
     pub fn total(&self) -> u64 { self.le_512 + self.le_4k + self.le_16k + self.le_64k + self.le_256k + self.le_1m + self.gt_1m }
 }
 
@@ -97,6 +99,7 @@ impl LatencyTracker {
         Self { samples: Vec::new(), sorted: false, count: 0, sum: 0, min: u64::MAX, max: 0, max_samples: max }
     }
 
+    #[inline]
     pub fn record(&mut self, ns: u64) {
         self.count += 1; self.sum += ns;
         if ns < self.min { self.min = ns; }
@@ -106,8 +109,10 @@ impl LatencyTracker {
 
     fn ensure_sorted(&mut self) { if !self.sorted { self.samples.sort(); self.sorted = true; } }
 
+    #[inline(always)]
     pub fn avg(&self) -> u64 { if self.count == 0 { 0 } else { self.sum / self.count } }
 
+    #[inline]
     pub fn percentile(&mut self, p: f64) -> u64 {
         if self.samples.is_empty() { return 0; }
         self.ensure_sorted();
@@ -172,15 +177,21 @@ impl ProcessIoProfile {
         };
     }
 
+    #[inline(always)]
     pub fn rw_ratio(&self) -> f64 { if self.write_ios == 0 { f64::MAX } else { self.read_ios as f64 / self.write_ios as f64 } }
+    #[inline(always)]
     pub fn total_ios(&self) -> u64 { self.read_ios + self.write_ios }
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 { self.read_bytes + self.write_bytes }
+    #[inline(always)]
     pub fn avg_size(&self) -> u64 { let t = self.total_ios(); if t == 0 { 0 } else { self.total_bytes() / t } }
+    #[inline(always)]
     pub fn merge_pct(&self) -> f64 { let t = self.total_ios(); if t == 0 { 0.0 } else { self.merges as f64 / t as f64 * 100.0 } }
 }
 
 /// IO profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IoProfilerStats {
     pub tracked_processes: usize,
     pub total_ios: u64,
@@ -199,9 +210,12 @@ pub struct AppsIoProfiler {
 impl AppsIoProfiler {
     pub fn new() -> Self { Self { profiles: BTreeMap::new(), stats: IoProfilerStats::default() } }
 
+    #[inline(always)]
     pub fn track(&mut self, pid: u64) { self.profiles.entry(pid).or_insert_with(|| ProcessIoProfile::new(pid)); }
+    #[inline(always)]
     pub fn untrack(&mut self, pid: u64) { self.profiles.remove(&pid); }
 
+    #[inline(always)]
     pub fn record(&mut self, pid: u64, rec: &IoRecord) {
         let p = self.profiles.entry(pid).or_insert_with(|| ProcessIoProfile::new(pid));
         p.record(rec);
@@ -220,6 +234,8 @@ impl AppsIoProfiler {
         }
     }
 
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessIoProfile> { self.profiles.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &IoProfilerStats { &self.stats }
 }
