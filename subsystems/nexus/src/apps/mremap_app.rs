@@ -15,6 +15,7 @@ impl MremapFlags {
     pub const FIXED: u32 = 2;
     pub const DONTUNMAP: u32 = 4;
     pub fn new() -> Self { Self(0) }
+    #[inline(always)]
     pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
 }
 
@@ -33,8 +34,11 @@ pub struct RemapOp {
 }
 
 impl RemapOp {
+    #[inline(always)]
     pub fn grew(&self) -> bool { self.new_size > self.old_size }
+    #[inline(always)]
     pub fn shrank(&self) -> bool { self.new_size < self.old_size }
+    #[inline(always)]
     pub fn delta(&self) -> i64 { self.new_size as i64 - self.old_size as i64 }
 }
 
@@ -53,6 +57,7 @@ pub struct ProcessRemapInfo {
 impl ProcessRemapInfo {
     pub fn new(pid: u64) -> Self { Self { pid, remap_count: 0, move_count: 0, grow_count: 0, shrink_count: 0, total_grown_bytes: 0, total_shrunk_bytes: 0 } }
 
+    #[inline]
     pub fn record(&mut self, op: &RemapOp) {
         self.remap_count += 1;
         if op.moved { self.move_count += 1; }
@@ -63,6 +68,7 @@ impl ProcessRemapInfo {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MremapAppStats {
     pub tracked_processes: u32,
     pub total_remaps: u64,
@@ -80,14 +86,17 @@ pub struct AppMremap {
 
 impl AppMremap {
     pub fn new() -> Self { Self { processes: BTreeMap::new(), history: Vec::new(), max_history: 4096 } }
+    #[inline(always)]
     pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessRemapInfo::new(pid)); }
 
+    #[inline]
     pub fn remap(&mut self, op: RemapOp) {
         if let Some(p) = self.processes.get_mut(&op.pid) { p.record(&op); }
         if self.history.len() >= self.max_history { self.history.drain(..self.max_history / 2); }
         self.history.push(op);
     }
 
+    #[inline]
     pub fn stats(&self) -> MremapAppStats {
         let remaps: u64 = self.processes.values().map(|p| p.remap_count).sum();
         let moves: u64 = self.processes.values().map(|p| p.move_count).sum();
