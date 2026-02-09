@@ -171,11 +171,15 @@ impl PatternMiner {
 
     fn observe(&mut self, syscall_ids: &[u32], latency_ns: f32) {
         let hash = fnv1a_hash(
-            &syscall_ids.iter().flat_map(|s| s.to_le_bytes()).collect::<Vec<u8>>(),
+            &syscall_ids
+                .iter()
+                .flat_map(|s| s.to_le_bytes())
+                .collect::<Vec<u8>>(),
         );
-        let entry = self.observed.entry(hash).or_insert_with(|| {
-            (syscall_ids.to_vec(), 0, 0.0)
-        });
+        let entry = self
+            .observed
+            .entry(hash)
+            .or_insert_with(|| (syscall_ids.to_vec(), 0, 0.0));
         entry.1 += 1;
         entry.2 = EMA_ALPHA * latency_ns + (1.0 - EMA_ALPHA) * entry.2;
     }
@@ -269,14 +273,24 @@ impl BridgeGenesis {
 
         // Evict least-effective capability if at capacity.
         if self.capabilities.len() >= MAX_CAPABILITIES && !self.capabilities.contains_key(&cid) {
-            if let Some((&evict_id, _)) = self.capabilities.iter()
-                .filter(|(_, c)| c.status == CapabilityStatus::Retired || c.status == CapabilityStatus::Degraded)
-                .min_by(|a, b| a.1.effectiveness.partial_cmp(&b.1.effectiveness).unwrap_or(core::cmp::Ordering::Equal))
+            if let Some((&evict_id, _)) = self
+                .capabilities
+                .iter()
+                .filter(|(_, c)| {
+                    c.status == CapabilityStatus::Retired || c.status == CapabilityStatus::Degraded
+                })
+                .min_by(|a, b| {
+                    a.1.effectiveness
+                        .partial_cmp(&b.1.effectiveness)
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
             {
                 self.capabilities.remove(&evict_id);
-            } else if let Some((&evict_id, _)) = self.capabilities.iter()
-                .min_by(|a, b| a.1.effectiveness.partial_cmp(&b.1.effectiveness).unwrap_or(core::cmp::Ordering::Equal))
-            {
+            } else if let Some((&evict_id, _)) = self.capabilities.iter().min_by(|a, b| {
+                a.1.effectiveness
+                    .partial_cmp(&b.1.effectiveness)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            }) {
                 self.capabilities.remove(&evict_id);
             }
         }
@@ -325,7 +339,11 @@ impl BridgeGenesis {
                 count += 1;
             }
         }
-        let combined = if count > 0 { total_eff / count as f32 } else { 0.0 };
+        let combined = if count > 0 {
+            total_eff / count as f32
+        } else {
+            0.0
+        };
 
         let ext = DynamicExtension {
             extension_id: eid,
@@ -359,7 +377,9 @@ impl BridgeGenesis {
 
         self.stats.total_genesis_events += 1;
         let eid = xorshift64(&mut self.rng_state);
-        let origin = self.capabilities.get(&capability_id)
+        let origin = self
+            .capabilities
+            .get(&capability_id)
             .map(|c| c.origin)
             .unwrap_or(CapabilityOrigin::PatternMining);
 
@@ -381,9 +401,21 @@ impl BridgeGenesis {
     /// Produce a full capability inventory report.
     pub fn capability_inventory(&self) -> CapabilityInventory {
         let total = self.capabilities.len();
-        let active = self.capabilities.values().filter(|c| c.status == CapabilityStatus::Active).count();
-        let testing = self.capabilities.values().filter(|c| c.status == CapabilityStatus::Testing).count();
-        let retired = self.capabilities.values().filter(|c| c.status == CapabilityStatus::Retired).count();
+        let active = self
+            .capabilities
+            .values()
+            .filter(|c| c.status == CapabilityStatus::Active)
+            .count();
+        let testing = self
+            .capabilities
+            .values()
+            .filter(|c| c.status == CapabilityStatus::Testing)
+            .count();
+        let retired = self
+            .capabilities
+            .values()
+            .filter(|c| c.status == CapabilityStatus::Retired)
+            .count();
 
         let mut origin_counts: BTreeMap<u8, usize> = BTreeMap::new();
         for cap in self.capabilities.values() {
@@ -404,7 +436,11 @@ impl BridgeGenesis {
             .collect();
 
         let avg_eff = if total > 0 {
-            self.capabilities.values().map(|c| c.effectiveness).sum::<f32>() / total as f32
+            self.capabilities
+                .values()
+                .map(|c| c.effectiveness)
+                .sum::<f32>()
+                / total as f32
         } else {
             0.0
         };
@@ -434,12 +470,7 @@ impl BridgeGenesis {
     }
 
     /// Record usage of a capability with outcome feedback.
-    pub fn record_usage(
-        &mut self,
-        capability_id: u64,
-        success: bool,
-        latency_improvement: f32,
-    ) {
+    pub fn record_usage(&mut self, capability_id: u64, success: bool, latency_improvement: f32) {
         if let Some(cap) = self.capabilities.get_mut(&capability_id) {
             cap.activation_count += 1;
             cap.last_used_tick = self.tick;
@@ -452,8 +483,8 @@ impl BridgeGenesis {
                 EMA_ALPHA * latency_improvement + (1.0 - EMA_ALPHA) * cap.latency_improvement_ema;
 
             self.stats.total_activations += 1;
-            self.stats.avg_effectiveness_ema =
-                EMA_ALPHA * cap.effectiveness + (1.0 - EMA_ALPHA) * self.stats.avg_effectiveness_ema;
+            self.stats.avg_effectiveness_ema = EMA_ALPHA * cap.effectiveness
+                + (1.0 - EMA_ALPHA) * self.stats.avg_effectiveness_ema;
             self.stats.avg_latency_improvement_ema = EMA_ALPHA * cap.latency_improvement_ema
                 + (1.0 - EMA_ALPHA) * self.stats.avg_latency_improvement_ema;
 
