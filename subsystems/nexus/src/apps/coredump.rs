@@ -40,8 +40,10 @@ impl CoredumpFilter {
     pub const HUGETLB_SHARED: u32 = 64;
     pub const DAX_PRIVATE: u32 = 128;
 
+    #[inline(always)]
     pub fn default_filter() -> Self { Self { bits: Self::ANON_PRIVATE | Self::ANON_SHARED | Self::ELF_HEADERS } }
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
 }
 
@@ -59,6 +61,7 @@ pub enum CrashSignal {
 }
 
 impl CrashSignal {
+    #[inline(always)]
     pub fn generates_core(&self) -> bool {
         matches!(self, Self::Segfault | Self::BusError | Self::IllegalInsn | Self::FpeError | Self::Abort | Self::Trap)
     }
@@ -109,6 +112,7 @@ impl ExeCrashHistory {
         }
     }
 
+    #[inline]
     pub fn record_crash(&mut self, ts: u64, signal: CrashSignal, fault_addr: u64) {
         self.crash_count += 1;
         self.last_crash_ts = ts;
@@ -121,6 +125,7 @@ impl ExeCrashHistory {
         }
     }
 
+    #[inline]
     pub fn crash_rate(&self, window_ns: u64) -> f64 {
         if self.recent_crashes.len() < 2 { return 0.0; }
         let first = self.recent_crashes[0];
@@ -130,7 +135,9 @@ impl ExeCrashHistory {
         (self.recent_crashes.len() as f64 / span as f64) * window_ns as f64
     }
 
+    #[inline(always)]
     pub fn is_repeated_crash(&self) -> bool { self.crash_count > 3 }
+    #[inline(always)]
     pub fn unique_faults(&self) -> usize { self.unique_fault_addrs.len() }
 }
 
@@ -146,6 +153,7 @@ pub struct CoredumpConfig {
 }
 
 impl CoredumpConfig {
+    #[inline]
     pub fn default_config() -> Self {
         Self {
             enabled: true, max_size: 512 * 1024 * 1024,
@@ -157,6 +165,7 @@ impl CoredumpConfig {
 
 /// Coredump stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoredumpStats {
     pub total_coredumps: u64,
     pub total_core_bytes: u64,
@@ -209,18 +218,23 @@ impl AppsCoredump {
         true
     }
 
+    #[inline(always)]
     pub fn set_config(&mut self, config: CoredumpConfig) { self.config = config; }
 
+    #[inline(always)]
     pub fn exe_crash_history(&self, exe: &str) -> Option<&ExeCrashHistory> {
         self.exe_history.get(exe)
     }
 
+    #[inline(always)]
     pub fn recompute(&mut self) {
         self.stats.unique_crashers = self.exe_history.len();
         self.stats.repeated_crashers = self.exe_history.values().filter(|h| h.is_repeated_crash()).count();
     }
 
+    #[inline(always)]
     pub fn config(&self) -> &CoredumpConfig { &self.config }
+    #[inline(always)]
     pub fn stats(&self) -> &CoredumpStats { &self.stats }
 }
 
@@ -322,30 +336,37 @@ impl CoreDump {
         }
     }
 
+    #[inline(always)]
     pub fn add_segment(&mut self, seg: CoreSegment) {
         self.total_size += seg.size;
         self.segments.push(seg);
     }
 
+    #[inline(always)]
     pub fn begin_write(&mut self) { self.state = CoreState::Generating; }
 
+    #[inline(always)]
     pub fn write_progress(&mut self, bytes: u64) {
         self.written_bytes += bytes;
         self.state = CoreState::Writing;
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, now: u64) {
         self.state = CoreState::Complete;
         self.completed_at = now;
     }
 
+    #[inline(always)]
     pub fn fail(&mut self) { self.state = CoreState::Failed; }
 
+    #[inline(always)]
     pub fn progress(&self) -> f64 {
         if self.total_size == 0 { return 0.0; }
         self.written_bytes as f64 / self.total_size as f64
     }
 
+    #[inline(always)]
     pub fn duration_ns(&self) -> u64 {
         self.completed_at.saturating_sub(self.started_at)
     }
@@ -353,6 +374,7 @@ impl CoreDump {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CoreDumpV2Stats {
     pub total_dumps: u32,
     pub completed_dumps: u32,
@@ -370,6 +392,7 @@ pub struct AppCoreDumpV2 {
 impl AppCoreDumpV2 {
     pub fn new() -> Self { Self { dumps: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn begin_dump(&mut self, pid: u64, signal: u32, format: CoreFormat, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -377,14 +400,17 @@ impl AppCoreDumpV2 {
         id
     }
 
+    #[inline(always)]
     pub fn add_segment(&mut self, id: u64, seg: CoreSegment) {
         if let Some(d) = self.dumps.get_mut(&id) { d.add_segment(seg); }
     }
 
+    #[inline(always)]
     pub fn complete_dump(&mut self, id: u64, now: u64) {
         if let Some(d) = self.dumps.get_mut(&id) { d.complete(now); }
     }
 
+    #[inline]
     pub fn stats(&self) -> CoreDumpV2Stats {
         let completed = self.dumps.values().filter(|d| d.state == CoreState::Complete).count() as u32;
         let failed = self.dumps.values().filter(|d| d.state == CoreState::Failed).count() as u32;
