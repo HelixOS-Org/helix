@@ -48,6 +48,7 @@ pub struct ChmodRecord {
 
 /// Statistics for chmod app
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ChmodAppStats {
     pub total_calls: u64,
     pub chmod_calls: u64,
@@ -113,6 +114,7 @@ impl AppChmod {
         ChmodResult::Success
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ChmodAppStats {
         &self.stats
     }
@@ -169,15 +171,19 @@ impl ChmodV2Record {
         }
     }
 
+    #[inline(always)]
     pub fn is_setuid(&self) -> bool {
         self.new_mode & 0o4000 != 0
     }
+    #[inline(always)]
     pub fn is_setgid(&self) -> bool {
         self.new_mode & 0o2000 != 0
     }
+    #[inline(always)]
     pub fn is_sticky(&self) -> bool {
         self.new_mode & 0o1000 != 0
     }
+    #[inline(always)]
     pub fn made_world_writable(&self) -> bool {
         self.new_mode & 0o002 != 0 && self.old_mode & 0o002 == 0
     }
@@ -185,6 +191,7 @@ impl ChmodV2Record {
 
 /// Chmod v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ChmodV2AppStats {
     pub total_calls: u64,
     pub setuid_changes: u64,
