@@ -70,40 +70,47 @@ impl AuditEntry {
     }
 
     /// Set duration
+    #[inline(always)]
     pub fn with_duration(mut self, duration: Duration) -> Self {
         self.duration = duration;
         self
     }
 
     /// Set effector
+    #[inline(always)]
     pub fn with_effector(mut self, effector: impl Into<String>) -> Self {
         self.effector = effector.into();
         self
     }
 
     /// Set transaction
+    #[inline(always)]
     pub fn with_transaction(mut self, tx_id: TransactionId) -> Self {
         self.transaction_id = Some(tx_id);
         self
     }
 
     /// Add change description
+    #[inline(always)]
     pub fn add_change(&mut self, change: impl Into<String>) {
         self.changes.push(change.into());
     }
 
     /// Mark as rolled back
+    #[inline(always)]
     pub fn mark_rolled_back(&mut self) {
         self.rolled_back = true;
         self.outcome = AuditOutcome::RolledBack;
     }
 
     /// Is success?
+    #[inline(always)]
     pub fn is_success(&self) -> bool {
         self.outcome == AuditOutcome::Success
     }
 
     /// Is failure?
+    #[inline]
     pub fn is_failure(&self) -> bool {
         matches!(
             self.outcome,
@@ -135,6 +142,7 @@ pub enum AuditOutcome {
 
 impl AuditOutcome {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Success => "Success",
@@ -147,6 +155,7 @@ impl AuditOutcome {
     }
 
     /// From action outcome
+    #[inline]
     pub fn from_action_outcome(outcome: &ActionOutcome) -> Self {
         match outcome {
             ActionOutcome::Success { .. } => Self::Success,
@@ -230,17 +239,20 @@ impl AuditLogger {
     }
 
     /// Get all entries
+    #[inline(always)]
     pub fn entries(&self) -> &[AuditEntry] {
         &self.entries
     }
 
     /// Get recent entries
+    #[inline(always)]
     pub fn recent(&self, count: usize) -> &[AuditEntry] {
         let start = self.entries.len().saturating_sub(count);
         &self.entries[start..]
     }
 
     /// Get entries by outcome
+    #[inline]
     pub fn by_outcome(&self, outcome: AuditOutcome) -> Vec<&AuditEntry> {
         self.entries
             .iter()
@@ -249,6 +261,7 @@ impl AuditLogger {
     }
 
     /// Get entries by action type
+    #[inline]
     pub fn by_action(&self, action_type: ActionType) -> Vec<&AuditEntry> {
         self.entries
             .iter()
@@ -257,6 +270,7 @@ impl AuditLogger {
     }
 
     /// Get entries for intent
+    #[inline]
     pub fn for_intent(&self, intent_id: IntentId) -> Vec<&AuditEntry> {
         self.entries
             .iter()
@@ -265,16 +279,19 @@ impl AuditLogger {
     }
 
     /// Get entry count
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
     /// Is empty?
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
     /// Clear all entries
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.entries.clear();
     }
@@ -303,6 +320,7 @@ impl Default for AuditLogger {
 
 /// Audit statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AuditStats {
     /// Total entries logged
     pub total_entries: u64,
@@ -318,6 +336,7 @@ pub struct AuditStats {
 
 impl AuditStats {
     /// Success rate
+    #[inline]
     pub fn success_rate(&self) -> f32 {
         if self.total_entries == 0 {
             0.0
