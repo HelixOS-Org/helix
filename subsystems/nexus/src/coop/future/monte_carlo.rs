@@ -208,27 +208,39 @@ impl CoopMonteCarlo {
             volatility: params[4],
         };
 
-        let strategy = self.strategies.get(&strategy_hash).cloned().unwrap_or(StrategyDef {
-            strategy_hash,
-            trust_threshold: 500,
-            resource_commitment: 500,
-            flexibility: 500,
-            risk_tolerance: 500,
-        });
+        let strategy = self
+            .strategies
+            .get(&strategy_hash)
+            .cloned()
+            .unwrap_or(StrategyDef {
+                strategy_hash,
+                trust_threshold: 500,
+                resource_commitment: 500,
+                flexibility: 500,
+                risk_tolerance: 500,
+            });
 
-        let trust_noise = (xorshift64(&mut self.rng_state) % (scenario.volatility.max(1) * 2)) as i64
+        let trust_noise = (xorshift64(&mut self.rng_state) % (scenario.volatility.max(1) * 2))
+            as i64
             - scenario.volatility as i64;
         let trust_outcome = if trust_noise >= 0 {
             scenario.base_trust.saturating_add(trust_noise as u64)
         } else {
             scenario.base_trust.saturating_sub((-trust_noise) as u64)
-        }.min(1000);
+        }
+        .min(1000);
 
         let contention_noise = xorshift64(&mut self.rng_state) % scenario.volatility.max(1);
-        let contention = scenario.base_contention.saturating_add(contention_noise)
-            .saturating_sub(strategy.flexibility / 5).min(1000);
+        let contention = scenario
+            .base_contention
+            .saturating_add(contention_noise)
+            .saturating_sub(strategy.flexibility / 5)
+            .min(1000);
 
-        let resource_demand = scenario.agent_count.saturating_mul(strategy.resource_commitment) / 10;
+        let resource_demand = scenario
+            .agent_count
+            .saturating_mul(strategy.resource_commitment)
+            / 10;
         let utilization = resource_demand.saturating_mul(1000) / scenario.resource_pool.max(1);
         let utilization = utilization.min(1000);
 
@@ -241,7 +253,8 @@ impl CoopMonteCarlo {
             10 + xorshift64(&mut self.rng_state) % 20
         };
 
-        let cost = rounds.saturating_mul(scenario.agent_count)
+        let cost = rounds
+            .saturating_mul(scenario.agent_count)
             .saturating_add(contention / 10)
             .saturating_add(if cooperation_success { 0 } else { 200 });
 
@@ -296,8 +309,10 @@ impl CoopMonteCarlo {
 
         costs.sort();
         let p95_idx = (capped_samples as usize).saturating_mul(95) / 100;
-        let p95_cost = costs.get(p95_idx.min(costs.len().saturating_sub(1)))
-            .copied().unwrap_or(0);
+        let p95_cost = costs
+            .get(p95_idx.min(costs.len().saturating_sub(1)))
+            .copied()
+            .unwrap_or(0);
 
         let success_rate = if capped_samples > 0 {
             successes.saturating_mul(1000) / capped_samples
@@ -307,7 +322,10 @@ impl CoopMonteCarlo {
 
         self.stats.avg_success_rate = ema_update(self.stats.avg_success_rate, success_rate, 3, 10);
 
-        let rewards = self.reward_history.entry(strategy_hash).or_insert_with(Vec::new);
+        let rewards = self
+            .reward_history
+            .entry(strategy_hash)
+            .or_insert_with(Vec::new);
         if rewards.len() >= self.max_reward_history {
             rewards.remove(0);
         }
@@ -317,16 +335,33 @@ impl CoopMonteCarlo {
             run_id,
             samples_count: capped_samples,
             success_rate,
-            avg_trust: if capped_samples > 0 { trust_sum / capped_samples } else { 0 },
-            avg_utilization: if capped_samples > 0 { util_sum / capped_samples } else { 0 },
-            avg_contention: if capped_samples > 0 { contention_sum / capped_samples } else { 0 },
+            avg_trust: if capped_samples > 0 {
+                trust_sum / capped_samples
+            } else {
+                0
+            },
+            avg_utilization: if capped_samples > 0 {
+                util_sum / capped_samples
+            } else {
+                0
+            },
+            avg_contention: if capped_samples > 0 {
+                contention_sum / capped_samples
+            } else {
+                0
+            },
             percentile_95_cost: p95_cost,
             worst_case_trust: worst_trust,
         }
     }
 
     /// Estimate failure probability for a strategy under given conditions.
-    pub fn failure_probability(&mut self, strategy_hash: u64, params: &[u64; 5], samples: u64) -> FailureProbability {
+    pub fn failure_probability(
+        &mut self,
+        strategy_hash: u64,
+        params: &[u64; 5],
+        samples: u64,
+    ) -> FailureProbability {
         let result = self.run_cooperations(strategy_hash, params, samples);
         let failure_rate = 1000u64.saturating_sub(result.success_rate);
 
@@ -361,10 +396,15 @@ impl CoopMonteCarlo {
     }
 
     /// Find the optimal strategy among all registered strategies.
-    pub fn optimal_strategy(&mut self, params: &[u64; 5], samples_per_strategy: u64) -> OptimalStrategy {
-        self.stats.strategies_evaluated = self.stats.strategies_evaluated.saturating_add(
-            self.strategies.len() as u64,
-        );
+    pub fn optimal_strategy(
+        &mut self,
+        params: &[u64; 5],
+        samples_per_strategy: u64,
+    ) -> OptimalStrategy {
+        self.stats.strategies_evaluated = self
+            .stats
+            .strategies_evaluated
+            .saturating_add(self.strategies.len() as u64);
 
         let strategy_hashes: Vec<u64> = self.strategies.keys().copied().collect();
         let mut best_hash: u64 = 0;
@@ -399,7 +439,8 @@ impl CoopMonteCarlo {
                 best_hash = sh;
                 dominates = 0;
                 for &(other_sh, ref other) in &all_results {
-                    if other_sh != sh && result.success_rate >= other.success_rate
+                    if other_sh != sh
+                        && result.success_rate >= other.success_rate
                         && result.avg_trust >= other.avg_trust
                     {
                         dominates = dominates.saturating_add(1);
@@ -426,7 +467,9 @@ impl CoopMonteCarlo {
 
     /// Compute the risk distribution over recent samples.
     pub fn risk_distribution(&self, bucket_count: usize) -> RiskDistribution {
-        let mut risk_values: Vec<u64> = self.sample_cache.iter()
+        let mut risk_values: Vec<u64> = self
+            .sample_cache
+            .iter()
             .map(|s| {
                 let trust_risk = 1000u64.saturating_sub(s.trust_outcome);
                 let contention_risk = s.contention_level;
@@ -447,11 +490,15 @@ impl CoopMonteCarlo {
         };
         let median_risk = risk_values.get(n / 2).copied().unwrap_or(0);
         let tail_idx = n.saturating_mul(95) / 100;
-        let tail_risk = risk_values.get(tail_idx.min(n.saturating_sub(1)))
-            .copied().unwrap_or(0);
+        let tail_risk = risk_values
+            .get(tail_idx.min(n.saturating_sub(1)))
+            .copied()
+            .unwrap_or(0);
         let var_idx = n.saturating_mul(99) / 100;
-        let var = risk_values.get(var_idx.min(n.saturating_sub(1)))
-            .copied().unwrap_or(0);
+        let var = risk_values
+            .get(var_idx.min(n.saturating_sub(1)))
+            .copied()
+            .unwrap_or(0);
 
         let actual_buckets = bucket_count.max(1).min(20);
         let bucket_size = 1000u64 / actual_buckets as u64;
@@ -460,10 +507,15 @@ impl CoopMonteCarlo {
         for i in 0..actual_buckets {
             let lower = (i as u64).saturating_mul(bucket_size);
             let upper = lower.saturating_add(bucket_size);
-            let count = risk_values.iter()
+            let count = risk_values
+                .iter()
                 .filter(|&&v| v >= lower && v < upper)
                 .count() as u64;
-            let freq = if n > 0 { count.saturating_mul(1000) / n as u64 } else { 0 };
+            let freq = if n > 0 {
+                count.saturating_mul(1000) / n as u64
+            } else {
+                0
+            };
             buckets.push(RiskBucket {
                 lower_bound: lower,
                 upper_bound: upper,
@@ -494,10 +546,14 @@ impl CoopMonteCarlo {
         };
         let n = rewards.len() as u64;
         let mean = rewards.iter().sum::<u64>() / n.max(1);
-        let variance: u64 = rewards.iter().map(|&r| {
-            let diff = if r > mean { r - mean } else { mean - r };
-            diff.saturating_mul(diff)
-        }).sum::<u64>() / n.max(1);
+        let variance: u64 = rewards
+            .iter()
+            .map(|&r| {
+                let diff = if r > mean { r - mean } else { mean - r };
+                diff.saturating_mul(diff)
+            })
+            .sum::<u64>()
+            / n.max(1);
         variance
     }
 }
