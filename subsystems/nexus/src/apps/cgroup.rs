@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
@@ -80,6 +81,7 @@ impl CpuLimit {
     }
 
     /// Effective CPU fraction
+    #[inline]
     pub fn cpu_fraction(&self) -> f64 {
         if self.quota_us == 0 || self.period_us == 0 {
             return 1.0;
@@ -88,6 +90,7 @@ impl CpuLimit {
     }
 
     /// Throttle rate
+    #[inline]
     pub fn throttle_rate(&self, total_periods: u64) -> f64 {
         if total_periods == 0 {
             return 0.0;
@@ -135,6 +138,7 @@ impl MemoryLimit {
     }
 
     /// Memory utilization (fraction of max)
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.max_bytes == 0 {
             return 0.0;
@@ -190,6 +194,7 @@ impl IoLimit {
     }
 
     /// Read utilization
+    #[inline]
     pub fn read_utilization(&self) -> f64 {
         if self.rbps_max == 0 {
             return 0.0;
@@ -198,6 +203,7 @@ impl IoLimit {
     }
 
     /// Write utilization
+    #[inline]
     pub fn write_utilization(&self) -> f64 {
         if self.wbps_max == 0 {
             return 0.0;
@@ -227,6 +233,7 @@ impl PidLimit {
     }
 
     /// Utilization
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.max_pids == 0 {
             return 0.0;
@@ -297,11 +304,13 @@ impl CgroupNode {
     }
 
     /// Process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.pids.len()
     }
 
     /// Add process
+    #[inline]
     pub fn add_pid(&mut self, pid: u64) {
         if !self.pids.contains(&pid) {
             self.pids.push(pid);
@@ -309,6 +318,7 @@ impl CgroupNode {
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_pid(&mut self, pid: u64) {
         self.pids.retain(|&p| p != pid);
     }
@@ -372,6 +382,7 @@ pub struct CgroupMigration {
 
 /// Cgroup analyzer stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppCgroupStats {
     /// Cgroup count
     pub cgroup_count: usize,
@@ -392,7 +403,7 @@ pub struct AppCgroupAnalyzer {
     /// Cgroup nodes
     nodes: BTreeMap<u64, CgroupNode>,
     /// PID to cgroup mapping
-    pid_cgroup: BTreeMap<u64, u64>,
+    pid_cgroup: LinearMap<u64, 64>,
     /// Migration log
     migrations: VecDeque<CgroupMigration>,
     /// Max migration log
@@ -407,7 +418,7 @@ impl AppCgroupAnalyzer {
     pub fn new() -> Self {
         Self {
             nodes: BTreeMap::new(),
-            pid_cgroup: BTreeMap::new(),
+            pid_cgroup: LinearMap::new(),
             migrations: VecDeque::new(),
             max_migrations: 256,
             next_id: 1,
@@ -434,7 +445,7 @@ impl AppCgroupAnalyzer {
     /// Assign process to cgroup
     pub fn assign_process(&mut self, pid: u64, cgroup_id: u64, now: u64) {
         // Remove from old cgroup
-        if let Some(&old_cgroup) = self.pid_cgroup.get(&pid) {
+        if let Some(&old_cgroup) = self.pid_cgroup.get(pid) {
             if old_cgroup != cgroup_id {
                 if let Some(old_node) = self.nodes.get_mut(&old_cgroup) {
                     old_node.remove_pid(pid);
@@ -462,6 +473,7 @@ impl AppCgroupAnalyzer {
     }
 
     /// Set CPU limit
+    #[inline]
     pub fn set_cpu_limit(&mut self, cgroup_id: u64, limit: CpuLimit) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             node.cpu = Some(limit);
@@ -472,6 +484,7 @@ impl AppCgroupAnalyzer {
     }
 
     /// Set memory limit
+    #[inline]
     pub fn set_memory_limit(&mut self, cgroup_id: u64, limit: MemoryLimit) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             node.memory = Some(limit);
@@ -482,6 +495,7 @@ impl AppCgroupAnalyzer {
     }
 
     /// Set I/O limit
+    #[inline]
     pub fn set_io_limit(&mut self, cgroup_id: u64, limit: IoLimit) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             node.io = Some(limit);
@@ -492,6 +506,7 @@ impl AppCgroupAnalyzer {
     }
 
     /// Update memory usage
+    #[inline]
     pub fn update_memory_usage(&mut self, cgroup_id: u64, bytes: u64) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             if let Some(mem) = &mut node.memory {
@@ -501,6 +516,7 @@ impl AppCgroupAnalyzer {
     }
 
     /// Record OOM kill
+    #[inline]
     pub fn record_oom_kill(&mut self, cgroup_id: u64) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             if let Some(mem) = &mut node.memory {
@@ -511,6 +527,7 @@ impl AppCgroupAnalyzer {
     }
 
     /// Record CPU throttle
+    #[inline]
     pub fn record_throttle(&mut self, cgroup_id: u64, duration_ns: u64) {
         if let Some(node) = self.nodes.get_mut(&cgroup_id) {
             if let Some(cpu) = &mut node.cpu {
@@ -522,6 +539,7 @@ impl AppCgroupAnalyzer {
     }
 
     /// Get cgroup for PID
+    #[inline]
     pub fn cgroup_for_pid(&self, pid: u64) -> Option<&CgroupNode> {
         self.pid_cgroup
             .get(&pid)
@@ -543,11 +561,13 @@ impl AppCgroupAnalyzer {
     }
 
     /// Get node
+    #[inline(always)]
     pub fn node(&self, id: u64) -> Option<&CgroupNode> {
         self.nodes.get(&id)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppCgroupStats {
         &self.stats
     }
@@ -618,6 +638,7 @@ pub struct CpuBandwidth {
 
 impl CpuBandwidth {
     /// Utilization (0.0-1.0)
+    #[inline]
     pub fn utilization(&self) -> f64 {
         if self.quota_us == 0 || self.period_us == 0 {
             return 0.0;
@@ -626,6 +647,7 @@ impl CpuBandwidth {
     }
 
     /// Throttle rate
+    #[inline]
     pub fn throttle_rate(&self) -> f64 {
         if self.total_periods == 0 {
             return 0.0;
@@ -640,6 +662,7 @@ impl CpuBandwidth {
 
 /// Memory stats for a cgroup
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CgroupMemoryStats {
     /// Current usage (bytes)
     pub usage_bytes: u64,
@@ -665,6 +688,7 @@ pub struct CgroupMemoryStats {
 
 impl CgroupMemoryStats {
     /// Usage ratio
+    #[inline]
     pub fn usage_ratio(&self) -> f64 {
         if self.limit_bytes == 0 {
             return 0.0;
@@ -693,6 +717,7 @@ impl CgroupMemoryStats {
 
 /// IO stats for cgroup
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CgroupIoStats {
     /// Read bytes
     pub read_bytes: u64,
@@ -712,6 +737,7 @@ pub struct CgroupIoStats {
 
 impl CgroupIoStats {
     /// Record read
+    #[inline]
     pub fn record_read(&mut self, bytes: u64, latency_ns: u64) {
         self.read_bytes += bytes;
         self.read_iops += 1;
@@ -719,6 +745,7 @@ impl CgroupIoStats {
     }
 
     /// Record write
+    #[inline]
     pub fn record_write(&mut self, bytes: u64, latency_ns: u64) {
         self.write_bytes += bytes;
         self.write_iops += 1;
@@ -726,6 +753,7 @@ impl CgroupIoStats {
     }
 
     /// Total IOPS
+    #[inline(always)]
     pub fn total_iops(&self) -> u64 {
         self.read_iops + self.write_iops
     }
@@ -777,6 +805,7 @@ impl CgroupNode {
     }
 
     /// Add PID
+    #[inline]
     pub fn add_pid(&mut self, pid: u64) {
         if !self.pids.contains(&pid) {
             self.pids.push(pid);
@@ -784,16 +813,19 @@ impl CgroupNode {
     }
 
     /// Remove PID
+    #[inline(always)]
     pub fn remove_pid(&mut self, pid: u64) {
         self.pids.retain(|&p| p != pid);
     }
 
     /// Process count
+    #[inline(always)]
     pub fn process_count(&self) -> usize {
         self.pids.len()
     }
 
     /// Is at PID limit
+    #[inline(always)]
     pub fn at_pid_limit(&self) -> bool {
         self.max_pids > 0 && self.pids.len() >= self.max_pids as usize
     }
@@ -805,6 +837,7 @@ impl CgroupNode {
 
 /// Cgroup profiler stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppCgroupV2Stats {
     /// Tracked cgroups
     pub tracked_cgroups: usize,
@@ -821,7 +854,7 @@ pub struct AppCgroupV2Profiler {
     /// Cgroup nodes, keyed by FNV-1a of path
     nodes: BTreeMap<u64, CgroupNode>,
     /// PID to cgroup key mapping
-    pid_map: BTreeMap<u64, u64>,
+    pid_map: LinearMap<u64, 64>,
     /// Stats
     stats: AppCgroupV2Stats,
 }
@@ -830,7 +863,7 @@ impl AppCgroupV2Profiler {
     pub fn new() -> Self {
         Self {
             nodes: BTreeMap::new(),
-            pid_map: BTreeMap::new(),
+            pid_map: LinearMap::new(),
             stats: AppCgroupV2Stats::default(),
         }
     }
@@ -846,6 +879,7 @@ impl AppCgroupV2Profiler {
     }
 
     /// Register cgroup
+    #[inline]
     pub fn register(&mut self, path: String, version: CgroupVersion) -> u64 {
         let key = Self::hash_path(&path);
         self.nodes
@@ -856,6 +890,7 @@ impl AppCgroupV2Profiler {
     }
 
     /// Add process to cgroup
+    #[inline]
     pub fn add_process(&mut self, path: &str, pid: u64) {
         let key = Self::hash_path(path);
         if let Some(node) = self.nodes.get_mut(&key) {
@@ -866,6 +901,7 @@ impl AppCgroupV2Profiler {
     }
 
     /// Update CPU stats
+    #[inline]
     pub fn update_cpu(&mut self, path: &str, consumed_us: u64, throttled: bool) {
         let key = Self::hash_path(path);
         if let Some(node) = self.nodes.get_mut(&key) {
@@ -878,6 +914,7 @@ impl AppCgroupV2Profiler {
     }
 
     /// Update memory stats
+    #[inline]
     pub fn update_memory(&mut self, path: &str, usage: u64, limit: u64) {
         let key = Self::hash_path(path);
         if let Some(node) = self.nodes.get_mut(&key) {
@@ -891,6 +928,7 @@ impl AppCgroupV2Profiler {
     }
 
     /// Record OOM kill
+    #[inline]
     pub fn record_oom_kill(&mut self, path: &str) {
         let key = Self::hash_path(path);
         if let Some(node) = self.nodes.get_mut(&key) {
@@ -899,6 +937,7 @@ impl AppCgroupV2Profiler {
     }
 
     /// Get pressure for cgroup
+    #[inline]
     pub fn pressure(&self, path: &str) -> CgroupPressure {
         let key = Self::hash_path(path);
         self.nodes
@@ -923,6 +962,7 @@ impl AppCgroupV2Profiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppCgroupV2Stats {
         &self.stats
     }
