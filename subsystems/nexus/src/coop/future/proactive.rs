@@ -190,15 +190,20 @@ impl CoopProactive {
     ) -> PreNegotiationResult {
         self.stats.pre_negotiations = self.stats.pre_negotiations.saturating_add(1);
 
-        let contract_id = fnv1a_hash(&[
-            resource_id.to_le_bytes(),
-            partner_id.to_le_bytes(),
-            self.stats.pre_negotiations.to_le_bytes(),
-        ].concat());
+        let contract_id = fnv1a_hash(
+            &[
+                resource_id.to_le_bytes(),
+                partner_id.to_le_bytes(),
+                self.stats.pre_negotiations.to_le_bytes(),
+            ]
+            .concat(),
+        );
 
-        let trust_factor = self.trust_bootstraps.get(
-            &fnv1a_hash(&partner_id.to_le_bytes())
-        ).map(|t| t.trust_level).unwrap_or(300);
+        let trust_factor = self
+            .trust_bootstraps
+            .get(&fnv1a_hash(&partner_id.to_le_bytes()))
+            .map(|t| t.trust_level)
+            .unwrap_or(300);
 
         let noise = xorshift64(&mut self.rng_state) % 100;
         let success_threshold = trust_factor.saturating_mul(8) / 10 + noise;
@@ -216,7 +221,8 @@ impl CoopProactive {
                 expiry_tick: self.current_tick.saturating_add(validity_ticks),
                 activated: false,
             });
-            self.stats.successful_pre_negotiations = self.stats.successful_pre_negotiations.saturating_add(1);
+            self.stats.successful_pre_negotiations =
+                self.stats.successful_pre_negotiations.saturating_add(1);
         }
 
         PreNegotiationResult {
@@ -231,19 +237,27 @@ impl CoopProactive {
     }
 
     /// Pre-establish trust with a cooperation partner.
-    pub fn pre_build_trust(&mut self, partner_id: u64, target_trust: u64, expiry_ticks: u64) -> PreTrustRecord {
+    pub fn pre_build_trust(
+        &mut self,
+        partner_id: u64,
+        target_trust: u64,
+        expiry_ticks: u64,
+    ) -> PreTrustRecord {
         self.stats.trust_establishments = self.stats.trust_establishments.saturating_add(1);
 
         let key = fnv1a_hash(&partner_id.to_le_bytes());
         let handshake_cost = target_trust / 5 + 10;
 
-        let entry = self.trust_bootstraps.entry(key).or_insert_with(|| TrustBootstrap {
-            partner_id,
-            trust_level: 0,
-            handshakes: 0,
-            cost_accumulated: 0,
-            expiry_tick: self.current_tick.saturating_add(expiry_ticks),
-        });
+        let entry = self
+            .trust_bootstraps
+            .entry(key)
+            .or_insert_with(|| TrustBootstrap {
+                partner_id,
+                trust_level: 0,
+                handshakes: 0,
+                cost_accumulated: 0,
+                expiry_tick: self.current_tick.saturating_add(expiry_ticks),
+            });
 
         let increment = target_trust.saturating_sub(entry.trust_level) / 3;
         entry.trust_level = entry.trust_level.saturating_add(increment).min(1000);
@@ -269,10 +283,13 @@ impl CoopProactive {
         self.stats.coalitions_anticipated = self.stats.coalitions_anticipated.saturating_add(1);
 
         let purpose_hash = fnv1a_hash(purpose.as_bytes());
-        let coalition_id = fnv1a_hash(&[
-            purpose_hash.to_le_bytes(),
-            self.stats.coalitions_anticipated.to_le_bytes(),
-        ].concat());
+        let coalition_id = fnv1a_hash(
+            &[
+                purpose_hash.to_le_bytes(),
+                self.stats.coalitions_anticipated.to_le_bytes(),
+            ]
+            .concat(),
+        );
 
         let mut readiness: u64 = 0;
         let mut benefit: u64 = 0;
@@ -287,7 +304,11 @@ impl CoopProactive {
             }
         }
         let member_count = member_ids.len() as u64;
-        readiness = if member_count > 0 { readiness / member_count } else { 0 };
+        readiness = if member_count > 0 {
+            readiness / member_count
+        } else {
+            0
+        };
         benefit = benefit.saturating_add(member_count.saturating_mul(50));
         let formation_cost = member_count.saturating_mul(30) + 20;
 
@@ -324,11 +345,14 @@ impl CoopProactive {
 
         let resource_hash = fnv1a_hash(resource_name.as_bytes());
         let terms_hash = fnv1a_hash(terms.as_bytes());
-        let contract_id = fnv1a_hash(&[
-            resource_hash.to_le_bytes(),
-            terms_hash.to_le_bytes(),
-            self.stats.contracts_created.to_le_bytes(),
-        ].concat());
+        let contract_id = fnv1a_hash(
+            &[
+                resource_hash.to_le_bytes(),
+                terms_hash.to_le_bytes(),
+                self.stats.contracts_created.to_le_bytes(),
+            ]
+            .concat(),
+        );
 
         let penalty_rate = 50 + (xorshift64(&mut self.rng_state) % 100);
         let activation_tick = self.current_tick.saturating_add(activation_delay);
@@ -348,24 +372,36 @@ impl CoopProactive {
 
     /// Estimate the negotiation cost savings from proactive preparation.
     pub fn savings_estimate(&mut self) -> u64 {
-        let active_slots = self.negotiation_slots.values()
+        let active_slots = self
+            .negotiation_slots
+            .values()
             .filter(|s| !s.activated && s.expiry_tick > self.current_tick)
             .count() as u64;
 
-        let trust_coverage = self.trust_bootstraps.values()
+        let trust_coverage = self
+            .trust_bootstraps
+            .values()
             .filter(|t| t.expiry_tick > self.current_tick)
             .count() as u64;
 
-        let coalition_readiness: u64 = self.coalition_plans.values()
+        let coalition_readiness: u64 = self
+            .coalition_plans
+            .values()
             .map(|c| c.readiness_score)
-            .sum::<u64>() / self.coalition_plans.len().max(1) as u64;
+            .sum::<u64>()
+            / self.coalition_plans.len().max(1) as u64;
 
         let slot_savings = active_slots.saturating_mul(80);
         let trust_savings = trust_coverage.saturating_mul(120);
-        let coalition_savings = coalition_readiness.saturating_mul(self.coalition_plans.len() as u64) / 10;
+        let coalition_savings =
+            coalition_readiness.saturating_mul(self.coalition_plans.len() as u64) / 10;
 
-        let total_savings = slot_savings.saturating_add(trust_savings).saturating_add(coalition_savings);
-        self.stats.total_negotiation_cost_saved = self.stats.total_negotiation_cost_saved
+        let total_savings = slot_savings
+            .saturating_add(trust_savings)
+            .saturating_add(coalition_savings);
+        self.stats.total_negotiation_cost_saved = self
+            .stats
+            .total_negotiation_cost_saved
             .saturating_add(total_savings / 100);
 
         if self.savings_history.len() >= 64 {
@@ -396,7 +432,9 @@ impl CoopProactive {
     /// Remove expired negotiation slots.
     fn expire_stale_slots(&mut self) {
         let current = self.current_tick;
-        let expired: Vec<u64> = self.negotiation_slots.iter()
+        let expired: Vec<u64> = self
+            .negotiation_slots
+            .iter()
             .filter(|(_, s)| s.expiry_tick <= current)
             .map(|(&k, _)| k)
             .collect();
@@ -408,7 +446,9 @@ impl CoopProactive {
     /// Remove expired trust bootstraps.
     fn expire_stale_trusts(&mut self) {
         let current = self.current_tick;
-        let expired: Vec<u64> = self.trust_bootstraps.iter()
+        let expired: Vec<u64> = self
+            .trust_bootstraps
+            .iter()
             .filter(|(_, t)| t.expiry_tick <= current)
             .map(|(&k, _)| k)
             .collect();
