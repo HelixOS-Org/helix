@@ -23,6 +23,7 @@ impl FGSM {
     }
 
     /// Generate adversarial example
+    #[inline]
     pub fn attack(&self, input: &[f64], gradient: &[f64]) -> Perturbation {
         let mut perturbation = Perturbation::new(input.len(), self.pert_type, self.epsilon);
 
