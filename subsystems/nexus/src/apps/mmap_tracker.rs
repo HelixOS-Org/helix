@@ -28,6 +28,7 @@ pub struct MmapProtection {
 }
 
 impl MmapProtection {
+    #[inline]
     pub fn read_only() -> Self {
         Self {
             read: true,
@@ -36,6 +37,7 @@ impl MmapProtection {
         }
     }
 
+    #[inline]
     pub fn read_write() -> Self {
         Self {
             read: true,
@@ -44,6 +46,7 @@ impl MmapProtection {
         }
     }
 
+    #[inline]
     pub fn read_exec() -> Self {
         Self {
             read: true,
@@ -52,6 +55,7 @@ impl MmapProtection {
         }
     }
 
+    #[inline]
     pub fn rwx() -> Self {
         Self {
             read: true,
@@ -61,6 +65,7 @@ impl MmapProtection {
     }
 
     /// Is writable and executable (security concern)
+    #[inline(always)]
     pub fn is_wx(&self) -> bool {
         self.write && self.exec
     }
@@ -87,11 +92,13 @@ pub enum MmapType {
 
 impl MmapType {
     /// Is shared?
+    #[inline(always)]
     pub fn is_shared(&self) -> bool {
         matches!(self, Self::AnonShared | Self::FileShared)
     }
 
     /// Is file-backed?
+    #[inline(always)]
     pub fn is_file_backed(&self) -> bool {
         matches!(self, Self::FilePrivate | Self::FileShared)
     }
@@ -113,6 +120,7 @@ pub struct MmapFlags {
 }
 
 impl MmapFlags {
+    #[inline]
     pub fn default_flags() -> Self {
         Self {
             fixed: false,
@@ -179,16 +187,19 @@ impl MmapRegion {
     }
 
     /// Size in bytes
+    #[inline(always)]
     pub fn size(&self) -> u64 {
         self.end.saturating_sub(self.start)
     }
 
     /// Size in pages (4K)
+    #[inline(always)]
     pub fn pages(&self) -> u64 {
         (self.size() + 4095) / 4096
     }
 
     /// Residency ratio
+    #[inline]
     pub fn residency(&self) -> f64 {
         let pages = self.pages();
         if pages == 0 {
@@ -198,6 +209,7 @@ impl MmapRegion {
     }
 
     /// Dirty ratio
+    #[inline]
     pub fn dirty_ratio(&self) -> f64 {
         if self.resident_pages == 0 {
             return 0.0;
@@ -206,22 +218,26 @@ impl MmapRegion {
     }
 
     /// Overlaps with another region?
+    #[inline(always)]
     pub fn overlaps(&self, other: &MmapRegion) -> bool {
         self.start < other.end && other.start < self.end
     }
 
     /// Contains address?
+    #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool {
         addr >= self.start && addr < self.end
     }
 
     /// Record access
+    #[inline(always)]
     pub fn record_access(&mut self, now: u64) {
         self.access_count += 1;
         self.last_access = now;
     }
 
     /// Security concern: W+X
+    #[inline(always)]
     pub fn is_security_concern(&self) -> bool {
         self.prot.is_wx()
     }
@@ -233,6 +249,7 @@ impl MmapRegion {
 
 /// Virtual address space statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct VasStats {
     /// Total mapped bytes
     pub mapped_bytes: u64,
@@ -267,6 +284,7 @@ impl ProcessAddressSpace {
     }
 
     /// Map a region
+    #[inline]
     pub fn map_region(&mut self, region: MmapRegion) {
         self.total_mapped += region.size();
         // Insert sorted by start address
@@ -279,6 +297,7 @@ impl ProcessAddressSpace {
     }
 
     /// Unmap by address range
+    #[inline]
     pub fn unmap(&mut self, start: u64, size: u64) {
         let end = start + size;
         self.regions.retain(|r| {
@@ -291,11 +310,13 @@ impl ProcessAddressSpace {
     }
 
     /// Find region containing address
+    #[inline(always)]
     pub fn find_region(&self, addr: u64) -> Option<&MmapRegion> {
         self.regions.iter().find(|r| r.contains(addr))
     }
 
     /// Find overlapping regions
+    #[inline]
     pub fn find_overlaps(&self) -> Vec<(usize, usize)> {
         let mut overlaps = Vec::new();
         for i in 0..self.regions.len() {
@@ -309,11 +330,13 @@ impl ProcessAddressSpace {
     }
 
     /// Shared regions
+    #[inline(always)]
     pub fn shared_regions(&self) -> Vec<&MmapRegion> {
         self.regions.iter().filter(|r| r.map_type.is_shared()).collect()
     }
 
     /// W+X regions (security concern)
+    #[inline(always)]
     pub fn wx_regions(&self) -> Vec<&MmapRegion> {
         self.regions.iter().filter(|r| r.is_security_concern()).collect()
     }
@@ -345,11 +368,13 @@ impl ProcessAddressSpace {
     }
 
     /// Region count
+    #[inline(always)]
     pub fn region_count(&self) -> usize {
         self.regions.len()
     }
 
     /// Total mapped bytes
+    #[inline(always)]
     pub fn total_mapped(&self) -> u64 {
         self.total_mapped
     }
@@ -361,6 +386,7 @@ impl ProcessAddressSpace {
 
 /// Mmap tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppMmapStats {
     /// Processes tracked
     pub processes: usize,
@@ -387,6 +413,7 @@ impl AppMmapTracker {
     }
 
     /// Map region for process
+    #[inline]
     pub fn map(
         &mut self,
         pid: u64,
@@ -406,6 +433,7 @@ impl AppMmapTracker {
     }
 
     /// Unmap region
+    #[inline]
     pub fn unmap(&mut self, pid: u64, start: u64, size: u64) {
         if let Some(space) = self.spaces.get_mut(&pid) {
             space.unmap(start, size);
@@ -414,6 +442,7 @@ impl AppMmapTracker {
     }
 
     /// Get address space
+    #[inline(always)]
     pub fn address_space(&self, pid: u64) -> Option<&ProcessAddressSpace> {
         self.spaces.get(&pid)
     }
@@ -444,6 +473,7 @@ impl AppMmapTracker {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppMmapStats {
         &self.stats
     }
@@ -500,14 +530,18 @@ impl TrackedMmapRegion {
         }
     }
 
+    #[inline(always)]
     pub fn length(&self) -> u64 { self.end - self.start }
+    #[inline(always)]
     pub fn pages(&self) -> u64 { self.length() / 4096 }
 
+    #[inline(always)]
     pub fn page_fault(&mut self) {
         self.fault_count += 1;
         self.resident_pages += 1;
     }
 
+    #[inline(always)]
     pub fn cow_fault(&mut self) {
         self.cow_count += 1;
     }
@@ -515,6 +549,7 @@ impl TrackedMmapRegion {
 
 /// Per-process mmap tracking
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessMmapV2State {
     pub pid: u64,
     pub regions: BTreeMap<u64, TrackedMmapRegion>,
@@ -535,6 +570,7 @@ impl ProcessMmapV2State {
         }
     }
 
+    #[inline]
     pub fn add_region(&mut self, region: TrackedMmapRegion) {
         let len = region.length();
         self.regions.insert(region.start, region);
@@ -545,6 +581,7 @@ impl ProcessMmapV2State {
         }
     }
 
+    #[inline]
     pub fn remove_region(&mut self, addr: u64) -> Option<TrackedMmapRegion> {
         if let Some(r) = self.regions.remove(&addr) {
             self.total_virtual -= r.length();
@@ -556,6 +593,7 @@ impl ProcessMmapV2State {
 
 /// Statistics for mmap V2 tracker
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MmapV2TrackerStats {
     pub processes_tracked: u64,
     pub total_mmaps: u64,
@@ -584,11 +622,13 @@ impl AppMmapV2Tracker {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
         self.processes.insert(pid, ProcessMmapV2State::new(pid));
         self.stats.processes_tracked += 1;
     }
 
+    #[inline]
     pub fn mmap(&mut self, pid: u64, start: u64, end: u64, prot: MmapTrackerProt, map_type: MmapTrackerType) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.add_region(TrackedMmapRegion::new(start, end, prot, map_type));
@@ -600,6 +640,7 @@ impl AppMmapV2Tracker {
         } else { false }
     }
 
+    #[inline]
     pub fn munmap(&mut self, pid: u64, addr: u64) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             if proc.remove_region(addr).is_some() {
@@ -610,6 +651,7 @@ impl AppMmapV2Tracker {
         false
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &MmapV2TrackerStats {
         &self.stats
     }
