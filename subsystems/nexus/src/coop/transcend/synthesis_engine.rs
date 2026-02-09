@@ -57,7 +57,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(v: u64, lo: u64, hi: u64) -> u64 {
-    if v < lo { lo } else if v > hi { hi } else { v }
+    if v < lo {
+        lo
+    } else if v > hi {
+        hi
+    } else {
+        v
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -200,17 +206,23 @@ impl CoopSynthesisEngine {
     fn evaluate_fitness(&self, genes: &[u64]) -> u64 {
         let sum: u64 = genes.iter().sum();
         let mean = sum / GENOME_LENGTH as u64;
-        let variance = genes.iter().map(|&g| {
-            let d = abs_diff(g, mean);
-            d * d
-        }).sum::<u64>() / GENOME_LENGTH as u64;
+        let variance = genes
+            .iter()
+            .map(|&g| {
+                let d = abs_diff(g, mean);
+                d * d
+            })
+            .sum::<u64>()
+            / GENOME_LENGTH as u64;
 
         let balance_score = 100u64.saturating_sub(variance / 100);
         let magnitude_score = clamp(mean / 10, 0, 100);
 
-        let pair_harmony: u64 = genes.windows(2).map(|w| {
-            100u64.saturating_sub(abs_diff(w[0], w[1]) / 10)
-        }).sum::<u64>() / (GENOME_LENGTH as u64 - 1).max(1);
+        let pair_harmony: u64 = genes
+            .windows(2)
+            .map(|w| 100u64.saturating_sub(abs_diff(w[0], w[1]) / 10))
+            .sum::<u64>()
+            / (GENOME_LENGTH as u64 - 1).max(1);
 
         clamp((balance_score + magnitude_score + pair_harmony) / 3, 0, 100)
     }
@@ -347,15 +359,17 @@ impl CoopSynthesisEngine {
                         if candidate.fitness > b.fitness {
                             best = Some(candidate);
                         }
-                    }
+                    },
                 }
             }
         }
-        best.cloned().unwrap_or_else(|| self.random_genome(SynthesisMethod::RandomGenesis))
+        best.cloned()
+            .unwrap_or_else(|| self.random_genome(SynthesisMethod::RandomGenesis))
     }
 
     fn worst_genome_id(&self) -> Option<u64> {
-        self.population.values()
+        self.population
+            .values()
             .min_by_key(|g| g.fitness)
             .map(|g| g.genome_id)
     }
@@ -390,7 +404,7 @@ impl CoopSynthesisEngine {
                         if child.fitness > b.fitness {
                             best = Some(child);
                         }
-                    }
+                    },
                 }
             }
         }
@@ -426,7 +440,12 @@ impl CoopSynthesisEngine {
     fn refresh_stats(&mut self) {
         let pop = self.population.len();
         let (best, avg_f, avg_n) = if pop > 0 {
-            let bf = self.population.values().map(|g| g.fitness).max().unwrap_or(0);
+            let bf = self
+                .population
+                .values()
+                .map(|g| g.fitness)
+                .max()
+                .unwrap_or(0);
             let af = self.population.values().map(|g| g.fitness).sum::<u64>() / pop as u64;
             let an = self.population.values().map(|g| g.novelty).sum::<u64>() / pop as u64;
             (bf, af, an)
