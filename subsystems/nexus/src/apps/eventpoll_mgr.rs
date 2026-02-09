@@ -24,8 +24,11 @@ impl EpollEvents {
     pub const WAKEUP: u32 = 1 << 29;
 
     pub fn new(bits: u32) -> Self { Self { bits } }
+    #[inline(always)]
     pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    #[inline(always)]
     pub fn is_edge_triggered(&self) -> bool { self.has(Self::ET) }
+    #[inline(always)]
     pub fn is_oneshot(&self) -> bool { self.has(Self::ONESHOT) }
 }
 
@@ -63,6 +66,7 @@ impl EpollItem {
         Self { fd, events, data, active: true, ready_events: 0, trigger_count: 0, last_triggered: 0 }
     }
 
+    #[inline]
     pub fn fire(&mut self, events: u32, now: u64) -> bool {
         let masked = events & self.events.bits;
         if masked == 0 { return false; }
@@ -73,6 +77,7 @@ impl EpollItem {
         true
     }
 
+    #[inline]
     pub fn consume(&mut self) -> u32 {
         let r = self.ready_events;
         if self.events.is_edge_triggered() { self.ready_events = 0; }
@@ -100,19 +105,23 @@ impl EpollInstance {
         }
     }
 
+    #[inline]
     pub fn add(&mut self, fd: i32, events: EpollEvents, data: u64) -> bool {
         if self.items.contains_key(&fd) { return false; }
         self.items.insert(fd, EpollItem::new(fd, events, data));
         true
     }
 
+    #[inline(always)]
     pub fn modify(&mut self, fd: i32, events: EpollEvents) -> bool {
         if let Some(item) = self.items.get_mut(&fd) { item.events = events; item.active = true; true }
         else { false }
     }
 
+    #[inline(always)]
     pub fn remove(&mut self, fd: i32) -> bool { self.items.remove(&fd).is_some() }
 
+    #[inline(always)]
     pub fn ready_count(&self) -> u32 {
         self.items.values().filter(|i| i.active && i.ready_events != 0).count() as u32
     }
@@ -134,6 +143,7 @@ impl EpollInstance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct EventPollMgrStats {
     pub total_instances: u32,
     pub total_fds_monitored: u32,
@@ -151,6 +161,7 @@ pub struct AppEventPollMgr {
 impl AppEventPollMgr {
     pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
 
+    #[inline]
     pub fn create(&mut self, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
@@ -158,10 +169,12 @@ impl AppEventPollMgr {
         id
     }
 
+    #[inline(always)]
     pub fn add_fd(&mut self, inst_id: u64, fd: i32, events: EpollEvents, data: u64) -> bool {
         self.instances.get_mut(&inst_id).map(|i| i.add(fd, events, data)).unwrap_or(false)
     }
 
+    #[inline]
     pub fn stats(&self) -> EventPollMgrStats {
         let fds: u32 = self.instances.values().map(|i| i.items.len() as u32).sum();
         let waits: u64 = self.instances.values().map(|i| i.total_waits).sum();
