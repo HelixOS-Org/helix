@@ -234,20 +234,13 @@ impl CoopExperiment {
     }
 
     /// Run a controlled test — add an observation to the appropriate arm
-    pub fn controlled_test(
-        &mut self,
-        experiment_id: u64,
-        is_control: bool,
-        value: f32,
-    ) -> bool {
+    pub fn controlled_test(&mut self, experiment_id: u64, is_control: bool, value: f32) -> bool {
         self.tick += 1;
         let exp = match self.experiments.get_mut(&experiment_id) {
             Some(e) => e,
             None => return false,
         };
-        if exp.phase == ExperimentPhase::Concluded
-            || exp.phase == ExperimentPhase::Invalidated
-        {
+        if exp.phase == ExperimentPhase::Concluded || exp.phase == ExperimentPhase::Invalidated {
             return false;
         }
         if exp.phase == ExperimentPhase::Designed {
@@ -336,9 +329,13 @@ impl CoopExperiment {
 
         // Welch-Satterthwaite degrees of freedom (approximation)
         let num = (s1_sq / n1 + s2_sq / n2) * (s1_sq / n1 + s2_sq / n2);
-        let denom = (s1_sq / n1) * (s1_sq / n1) / (n1 - 1.0)
-            + (s2_sq / n2) * (s2_sq / n2) / (n2 - 1.0);
-        let df = if denom > 0.0 { num / denom } else { n1 + n2 - 2.0 };
+        let denom =
+            (s1_sq / n1) * (s1_sq / n1) / (n1 - 1.0) + (s2_sq / n2) * (s2_sq / n2) / (n2 - 1.0);
+        let df = if denom > 0.0 {
+            num / denom
+        } else {
+            n1 + n2 - 2.0
+        };
 
         // Approximate p-value using a sigmoid approximation for |t|
         let abs_t = if t_stat < 0.0 { -t_stat } else { t_stat };
@@ -428,8 +425,7 @@ impl CoopExperiment {
             self.stats.total_practical += 1;
         }
 
-        let rate = self.stats.total_significant as f32
-            / self.stats.total_concluded.max(1) as f32;
+        let rate = self.stats.total_significant as f32 / self.stats.total_concluded.max(1) as f32;
         self.stats.success_rate_ema =
             EMA_ALPHA * rate + (1.0 - EMA_ALPHA) * self.stats.success_rate_ema;
 
