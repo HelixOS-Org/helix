@@ -278,11 +278,7 @@ impl AppsSimulator {
     }
 
     /// Simulate the future of a specific app for `num_steps` steps
-    pub fn simulate_app_future(
-        &mut self,
-        process_id: u64,
-        num_steps: usize,
-    ) -> SimulationResult {
+    pub fn simulate_app_future(&mut self, process_id: u64, num_steps: usize) -> SimulationResult {
         self.total_simulations += 1;
         let steps = num_steps.min(MAX_SIM_STEPS);
 
