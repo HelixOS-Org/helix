@@ -577,44 +577,6 @@ impl AppCgroupAnalyzer {
 // Merged from cgroup_v2
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CgroupController {
-    /// CPU controller
-    Cpu,
-    /// Memory controller
-    Memory,
-    /// IO controller
-    Io,
-    /// PID controller
-    Pids,
-    /// CPU set
-    Cpuset,
-    /// Huge pages
-    Hugetlb,
-}
-
-/// Cgroup version
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CgroupVersion {
-    /// v1 (legacy)
-    V1,
-    /// v2 (unified)
-    V2,
-}
-
-/// Memory pressure level
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CgroupPressure {
-    /// No pressure
-    None,
-    /// Low pressure
-    Low,
-    /// Medium pressure
-    Medium,
-    /// Critical pressure
-    Critical,
-}
-
 // ============================================================================
 // CPU BANDWIDTH
 // ============================================================================
@@ -762,31 +724,6 @@ impl CgroupIoStats {
 // ============================================================================
 // CGROUP NODE
 // ============================================================================
-
-/// Cgroup node
-#[derive(Debug)]
-pub struct CgroupNode {
-    /// Path (e.g., "/system.slice/myapp.service")
-    pub path: String,
-    /// Parent path
-    pub parent_path: Option<String>,
-    /// Controllers active
-    pub controllers: Vec<CgroupController>,
-    /// CPU bandwidth
-    pub cpu: CpuBandwidth,
-    /// Memory stats
-    pub memory: CgroupMemoryStats,
-    /// IO stats
-    pub io: CgroupIoStats,
-    /// Member PIDs
-    pub pids: Vec<u64>,
-    /// Max PIDs
-    pub max_pids: u32,
-    /// Child cgroup names
-    pub children: Vec<String>,
-    /// Version
-    pub version: CgroupVersion,
-}
 
 impl CgroupNode {
     pub fn new(path: String, version: CgroupVersion) -> Self {
