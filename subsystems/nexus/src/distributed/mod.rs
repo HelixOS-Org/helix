@@ -145,7 +145,7 @@ pub enum NodeState {
     /// Initializing
     Initializing,
     /// Joining cluster
-    Joining,
+    JoiningCluster,
     /// Active
     Active,
     /// Syncing
@@ -264,21 +264,21 @@ pub struct Improvement {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImprovementType {
     /// Algorithm optimization
-    Algorithm,
+    AlgorithmOptimization,
     /// Data structure improvement
-    DataStructure,
+    DataStructureImprovement,
     /// Memory optimization
-    Memory,
+    MemoryOptimization,
     /// Scheduling optimization
-    Scheduling,
+    SchedulingOptimization,
     /// Security enhancement
-    Security,
+    SecurityEnhancement,
     /// Performance tuning
-    Performance,
+    PerformanceTuning,
     /// Bug fix
     BugFix,
     /// Feature addition
-    Feature,
+    FeatureAddition,
 }
 
 /// Improvement payload
@@ -504,15 +504,15 @@ impl Default for DistributedConfig {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrivacyMode {
     /// No privacy (share all)
-    None,
+    NoPrivacy,
     /// Standard (encrypted payload)
     Standard,
     /// Differential privacy
-    Differential,
+    DifferentialPrivacy,
     /// Secure multi-party computation
-    SecureMPC,
+    SecureMultipartyComputation,
     /// Homomorphic encryption
-    Homomorphic,
+    HomomorphicEncryption,
 }
 
 /// Event handlers
