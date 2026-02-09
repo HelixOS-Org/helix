@@ -11,6 +11,7 @@ extern crate alloc;
 use alloc::format;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -171,7 +172,7 @@ pub struct ActionValidator {
     /// Rules
     rules: Vec<ValidationRule>,
     /// History
-    history: Vec<ValidationResult>,
+    history: VecDeque<ValidationResult>,
     /// Next ID
     next_id: AtomicU64,
     /// Configuration
@@ -220,7 +221,7 @@ impl ActionValidator {
             resources: BTreeMap::new(),
             permissions: BTreeMap::new(),
             rules: Vec::new(),
-            history: Vec::new(),
+            history: VecDeque::new(),
             next_id: AtomicU64::new(1),
             config,
             stats: ValidatorStats::default(),
@@ -469,10 +470,10 @@ impl ActionValidator {
     }
 
     fn record_result(&mut self, result: ValidationResult) {
-        self.history.push(result);
+        self.history.push_back(result);
 
         while self.history.len() > self.config.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
