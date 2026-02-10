@@ -2,8 +2,6 @@
 //! Bridge select — fd_set based I/O multiplexing with tracking
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Select fd set type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
