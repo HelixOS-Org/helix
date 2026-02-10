@@ -380,7 +380,7 @@ impl ContractCompliance {
         };
         self.history.push_back(compliant);
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         // Update penalty action
