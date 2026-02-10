@@ -563,7 +563,7 @@ impl OutputManager {
 
         // Limit storage
         while self.outputs.len() > self.config.max_outputs {
-            let removed = self.outputs.pop_front().unwrap();
+            let removed = self.outputs.remove(0).unwrap();
             if let Some(ids) = self.by_type.get_mut(&removed.output_type) {
                 ids.retain(|&i| i != removed.id);
             }
