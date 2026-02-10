@@ -212,7 +212,7 @@ impl AppsContainerRuntime {
     }
 
     #[inline]
-    pub fn check_restarts(&mut self, ts: u64) -> Vec<u64> {
+    pub fn check_restarts(&mut self, _ts: u64) -> Vec<u64> {
         let need_restart: Vec<u64> = self.containers.values().filter(|c| c.state == ContainerState::Stopped && c.should_restart()).map(|c| c.id).collect();
         for &id in &need_restart { if let Some(c) = self.containers.get_mut(&id) { c.restart_count += 1; c.state = ContainerState::Created; } }
         need_restart
