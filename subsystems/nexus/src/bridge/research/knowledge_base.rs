@@ -288,7 +288,7 @@ impl BridgeKnowledgeBase {
         }
 
         // TF-IDF-inspired scoring
-        let mut scores: LinearMap<f32, 64> = BTreeMap::new();
+        let mut scores: LinearMap<f32, 64> = LinearMap::new();
         let n_docs = self.entries.len().max(1) as f32;
 
         for &qt in &query_tokens {
@@ -405,7 +405,7 @@ impl BridgeKnowledgeBase {
         self.tick += 1;
         let mut decayed = 0u64;
         for entry in self.entries.values_mut() {
-            let age = (self.tick - entry.last_used_tick) as f32;
+            let _age = (self.tick - entry.last_used_tick) as f32;
             let decay_factor = DECAY_RATE;
             // Entries used more often decay slower
             let use_protection = (entry.times_used as f32 * USE_BOOST).min(0.3);
