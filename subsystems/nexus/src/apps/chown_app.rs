@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Chown result codes
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
