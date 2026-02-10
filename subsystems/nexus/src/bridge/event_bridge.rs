@@ -47,7 +47,7 @@ pub enum EventSourceType {
 pub struct EventInterest {
     pub fd: i32,
     pub source_type: EventSourceType,
-    pub events: u32, // bitmask of EventKind
+    pub events: u32, // bitmask of EventKind,
     pub trigger: TriggerMode,
     pub user_data: u64,
     pub priority: u8,
