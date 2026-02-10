@@ -21,6 +21,7 @@ use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -388,7 +389,7 @@ impl BridgeQualiaEngine {
         };
         let overall = state.compute_overall();
         if self.history.len() >= MAX_EXPERIENCE_HISTORY {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(QualiaState {
             overall_quality: overall,
@@ -408,7 +409,7 @@ impl BridgeQualiaEngine {
             flow_level,
         };
         if self.snapshots.len() >= MAX_SNAPSHOTS {
-            self.snapshots.pop_front();
+            self.snapshots.remove(0);
         }
         self.snapshots.push_back(snap);
     }
