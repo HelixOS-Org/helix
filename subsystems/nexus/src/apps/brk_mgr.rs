@@ -118,7 +118,7 @@ impl ProcessBrkState {
 
     fn record_change(&mut self, change: BrkChange) {
         if self.changes.len() >= self.max_changes {
-            self.changes.pop_front();
+            self.changes.remove(0);
         }
         self.changes.push_back(change);
     }
@@ -272,11 +272,11 @@ impl AppBrkMgr {
         match op {
             BrkOp::Expand => {
                 self.stats.total_expands += 1;
-                self.stats.total_pages_allocated += proc_state.changes.last().map_or(0, |c| c.pages_changed);
+                self.stats.total_pages_allocated += proc_state.changes.back().map_or(0, |c| c.pages_changed);
             }
             BrkOp::Contract => {
                 self.stats.total_contracts += 1;
-                self.stats.total_pages_freed += proc_state.changes.last().map_or(0, |c| c.pages_changed);
+                self.stats.total_pages_freed += proc_state.changes.back().map_or(0, |c| c.pages_changed);
             }
             BrkOp::Failed => {
                 self.stats.total_failures += 1;
