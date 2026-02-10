@@ -7,6 +7,7 @@ use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Syslog facility
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyslogFacility {
     Kern,
@@ -73,7 +74,7 @@ impl SyslogRingBuffer {
     #[inline]
     pub fn write(&mut self, facility: SyslogFacility, severity: SyslogSeverity, msg_hash: u64, pid: u64, now: u64) -> u64 {
         let seq = self.next_seq; self.next_seq += 1;
-        if self.messages.len() >= self.capacity { self.messages.pop_front(); self.dropped_count += 1; }
+        if self.messages.len() >= self.capacity { self.messages.remove(0); self.dropped_count += 1; }
         self.messages.push_back(SyslogMessage { seq, facility, severity, msg_hash, timestamp: now, pid, dropped: false });
         seq
     }
