@@ -245,6 +245,8 @@ impl PidLimit {
 /// Cgroup pressure level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CgroupPressure {
+    /// None
+    None,
     /// Low
     Low,
     /// Medium
@@ -260,7 +262,7 @@ pub enum CgroupPressure {
 // ============================================================================
 
 /// Cgroup node in hierarchy
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct CgroupNode {
     /// Cgroup ID
     pub id: u64,
@@ -284,6 +286,10 @@ pub struct CgroupNode {
     pub controllers: Vec<CgroupController>,
     /// Created at
     pub created_at: u64,
+
+    pub max_pids: u32
+    pub parent_path: alloc::string::String
+    pub version: u32
 }
 
 impl CgroupNode {
@@ -300,6 +306,7 @@ impl CgroupNode {
             pid_limit: None,
             controllers: Vec::new(),
             created_at: 0,
+            ..Default::default(),
         }
     }
 
@@ -447,18 +454,18 @@ impl AppCgroupAnalyzer {
         // Remove from old cgroup
         if let Some(&old_cgroup) = self.pid_cgroup.get(pid) {
             if old_cgroup != cgroup_id {
-                if let Some(old_node) = self.nodes.get_mut(&old_cgroup) {
+                if let Some(old_node) = self.nodes.get_mut(old_cgroup) {
                     old_node.remove_pid(pid);
                 }
                 self.migrations.push_back(CgroupMigration {
                     pid,
-                    from_cgroup: old_cgroup,
+                    from_cgroup: *old_cgroup,
                     to_cgroup: cgroup_id,
                     timestamp: now,
                     voluntary: true,
                 });
                 if self.migrations.len() > self.max_migrations {
-                    self.migrations.pop_front();
+                    self.migrations.remove(0);
                 }
                 self.stats.migrations += 1;
             }
@@ -542,8 +549,8 @@ impl AppCgroupAnalyzer {
     #[inline]
     pub fn cgroup_for_pid(&self, pid: u64) -> Option<&CgroupNode> {
         self.pid_cgroup
-            .get(&pid)
-            .and_then(|&id| self.nodes.get(&id))
+            .get(pid)
+            .and_then(|&id| self.nodes.get(id))
     }
 
     /// Find pressured cgroups
@@ -725,48 +732,7 @@ impl CgroupIoStats {
 // CGROUP NODE
 // ============================================================================
 
-impl CgroupNode {
-    pub fn new(path: String, version: CgroupVersion) -> Self {
-        Self {
-            path,
-            parent_path: None,
-            controllers: Vec::new(),
-            cpu: CpuBandwidth::default(),
-            memory: CgroupMemoryStats::default(),
-            io: CgroupIoStats::default(),
-            pids: Vec::new(),
-            max_pids: 0,
-            children: Vec::new(),
-            version,
-        }
-    }
 
-    /// Add PID
-    #[inline]
-    pub fn add_pid(&mut self, pid: u64) {
-        if !self.pids.contains(&pid) {
-            self.pids.push(pid);
-        }
-    }
-
-    /// Remove PID
-    #[inline(always)]
-    pub fn remove_pid(&mut self, pid: u64) {
-        self.pids.retain(|&p| p != pid);
-    }
-
-    /// Process count
-    #[inline(always)]
-    pub fn process_count(&self) -> usize {
-        self.pids.len()
-    }
-
-    /// Is at PID limit
-    #[inline(always)]
-    pub fn at_pid_limit(&self) -> bool {
-        self.max_pids > 0 && self.pids.len() >= self.max_pids as usize
-    }
-}
 
 // ============================================================================
 // ENGINE
