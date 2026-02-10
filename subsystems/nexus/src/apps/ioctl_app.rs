@@ -8,6 +8,7 @@ use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 
 /// Ioctl direction
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IoctlDir {
     None,
@@ -285,7 +286,7 @@ impl AppIoctlV2 {
         }
         self.stats.total_calls += 1;
         if self.recent_records.len() >= self.max_history {
-            self.recent_records.pop_front();
+            self.recent_records.remove(0);
         }
         self.recent_records.push_back(rec);
         id
