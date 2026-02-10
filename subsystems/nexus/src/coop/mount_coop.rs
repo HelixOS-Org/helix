@@ -4,9 +4,9 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Coop mount propagation
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoopMountProp {
     Private,
@@ -214,7 +214,7 @@ impl CoopMountV2Manager {
     #[inline(always)]
     pub fn lookup_mount(&self, path: &str) -> Option<&CoopMountV2Entry> {
         let hash = Self::hash_path(path);
-        self.path_index.get(hash).and_then(|id| self.mounts.get(id))
+        self.path_index.get(hash).and_then(|id| self.mounts.get(&id))
     }
 
     #[inline(always)]
