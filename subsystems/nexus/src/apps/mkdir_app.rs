@@ -6,7 +6,6 @@ use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
-use alloc::vec::Vec;
 
 /// Mkdir result codes
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
