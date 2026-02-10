@@ -293,7 +293,7 @@ impl CoopLeaseManager {
         let key = Self::resource_key(resource, resource_id);
 
         // Check if resource is already leased
-        if let Some(&lease_id) = self.resource_leases.get(key) {
+        if let Some(lease_id) = self.resource_leases.get(key) {
             if let Some(lease) = self.leases.get(&lease_id) {
                 if lease.is_active() {
                     // Queue request
@@ -408,7 +408,7 @@ impl CoopLeaseManager {
                 );
                 self.leases.insert(id, lease);
                 self.resource_leases.insert(key, id);
-                queue.pop_front();
+                queue.remove(0);
                 return Some(id);
             }
         }
