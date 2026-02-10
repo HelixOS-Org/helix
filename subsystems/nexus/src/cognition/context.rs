@@ -509,7 +509,7 @@ impl ContextManager {
         let snapshot = self.current.clone();
 
         if self.history.len() >= self.config.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         self.history.push_back(snapshot);
