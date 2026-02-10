@@ -484,7 +484,7 @@ impl AppRlimitManager {
             }
             self.violations.push_back(v.clone());
             if self.violations.len() > self.max_violations {
-                self.violations.pop_front();
+                self.violations.remove(0);
             }
             Some(v.violation)
         } else {
