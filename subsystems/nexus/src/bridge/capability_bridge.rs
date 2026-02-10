@@ -2,8 +2,6 @@
 //! Bridge capability — POSIX capability management bridge
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Capability
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
