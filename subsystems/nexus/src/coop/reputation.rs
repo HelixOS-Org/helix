@@ -139,7 +139,7 @@ impl DimensionScore {
 
         self.history.push_back(self.score);
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
