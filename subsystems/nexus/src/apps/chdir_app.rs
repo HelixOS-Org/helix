@@ -121,7 +121,7 @@ pub struct ChdirAppStats {
 /// Main apps chdir manager.
 pub struct AppChdir {
     pub processes: BTreeMap<u64, ProcessCwdState>,
-    pub path_cache: BTreeMap<u64, String>, // path hash → resolved path
+    pub path_cache: BTreeMap<u64, String>, // path hash → resolved path,
     pub recent_records: Vec<ChdirRecord>,
     pub next_record_id: u64,
     pub stats: ChdirAppStats,
