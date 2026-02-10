@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 // ============================================================================
 // THROTTLE TYPES
@@ -235,8 +234,8 @@ impl ProcessThrottleState {
     #[inline]
     pub fn update_state(&mut self, resource: ThrottleResource, state: ThrottleState, now: u64) {
         let key = resource as u8;
-        let prev = self.states.get(&key).copied().unwrap_or(ThrottleState::Normal);
-        if prev != ThrottleState::Normal && state == ThrottleState::Normal {
+        let prev = self.states.get(&key).unwrap_or(&ThrottleState::Normal);
+        if *prev != ThrottleState::Normal && state == ThrottleState::Normal {
             // Was throttled, now normal: accumulate time
             self.throttled_time_ns += now.saturating_sub(self.last_change);
         }
@@ -249,9 +248,7 @@ impl ProcessThrottleState {
     pub fn worst_state(&self) -> ThrottleState {
         self.states
             .values()
-            .max_by(|a, b| {
-                (*a as u8).cmp(&(*b as u8))
-            })
+            .max_by(|a, b| (**a as u8).cmp(&(**b as u8)))
             .copied()
             .unwrap_or(ThrottleState::Normal)
     }
