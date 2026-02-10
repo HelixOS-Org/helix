@@ -12,11 +12,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -193,7 +193,7 @@ impl AnomalyTracker {
 
         self.anomalies.push_back(anomaly);
         if self.anomalies.len() > MAX_ANOMALIES {
-            self.anomalies.pop_front();
+            self.anomalies.remove(0);
         }
     }
 
@@ -201,8 +201,8 @@ impl AnomalyTracker {
         let mut patterns: Vec<(u64, u32)> = self
             .pattern_hashes
             .iter()
-            .filter(|(_, &count)| count > 2)
-            .map(|(&k, &v)| (k, v))
+            .filter(|(_, count)| *count > 2)
+            .map(|(k, v)| (k, v))
             .collect();
         patterns.sort_by(|a, b| b.1.cmp(&a.1));
         patterns
