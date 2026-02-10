@@ -88,6 +88,7 @@ impl AioIocb {
 /// AIO context
 #[derive(Debug, Clone)]
 #[repr(align(64))]
+#[derive(Default)]
 pub struct AioContext {
     pub ctx_id: u64,
     pub owner_pid: u64,
@@ -99,6 +100,12 @@ pub struct AioContext {
     pub total_errors: u64,
     pub created_ts: u64,
     pub destroyed: bool,
+
+    pub completion_mode: u32,
+    pub in_flight: u32,
+    pub iocbs: alloc::vec::Vec<Iocb>,
+    pub state: u32,
+    pub total_bytes: u64,
 }
 
 impl AioContext {
@@ -107,6 +114,11 @@ impl AioContext {
             ctx_id: id, owner_pid: owner, max_events, outstanding: 0,
             total_submitted: 0, total_completed: 0, total_cancelled: 0,
             total_errors: 0, created_ts: ts, destroyed: false,
+            completion_mode: 0,
+            in_flight: 0,
+            iocbs: alloc::vec::Vec::new(),
+            state: 0,
+            total_bytes: 0,
         }
     }
 
@@ -216,7 +228,7 @@ impl BridgeAioBridge {
                 c.complete(result >= 0);
             }
         }
-        if self.events.len() > self.max_events { self.events.pop_front(); }
+        if self.events.len() > self.max_events { self.events.remove(0); }
     }
 
     #[inline]
@@ -322,40 +334,7 @@ impl Iocb {
     }
 }
 
-impl AioContext {
-    pub fn new(id: u64, max_events: u32) -> Self {
-        Self {
-            id, state: AioCtxState::Active, max_events, iocbs: Vec::new(),
-            in_flight: 0, total_submitted: 0, total_completed: 0,
-            total_bytes: 0, completion_mode: AioV2CompletionMode::Interrupt,
-        }
-    }
 
-    #[inline]
-    pub fn submit(&mut self, iocb: Iocb) -> bool {
-        if self.in_flight >= self.max_events { return false; }
-        self.total_bytes += iocb.length;
-        self.in_flight += 1;
-        self.total_submitted += 1;
-        self.iocbs.push(iocb);
-        true
-    }
-
-    #[inline]
-    pub fn complete(&mut self, iocb_id: u64, result: i64, now: u64) {
-        if let Some(iocb) = self.iocbs.iter_mut().find(|i| i.id == iocb_id && i.in_flight) {
-            iocb.complete(result, now);
-            self.in_flight -= 1;
-            self.total_completed += 1;
-        }
-    }
-
-    #[inline(always)]
-    pub fn throughput_mbps(&self, elapsed_ns: u64) -> f64 {
-        if elapsed_ns == 0 { return 0.0; }
-        (self.total_bytes as f64 / (1024.0 * 1024.0)) / (elapsed_ns as f64 / 1_000_000_000.0)
-    }
-}
 
 /// Stats
 #[derive(Debug, Clone)]
@@ -383,15 +362,15 @@ impl BridgeAioV2 {
     #[inline]
     pub fn create_context(&mut self, max_events: u32) -> u64 {
         let id = self.next_id; self.next_id += 1;
-        self.contexts.insert(id, AioContext::new(id, max_events));
+        self.contexts.insert(id, AioContext::new(id, 0, max_events, 0));
         id
     }
 
     #[inline]
     pub fn submit(&mut self, ctx: u64, op: AioV2Op, fd: i32, offset: u64, length: u64, now: u64) -> Option<u64> {
         let iocb_id = self.next_iocb_id; self.next_iocb_id += 1;
-        let iocb = Iocb::new(iocb_id, op, fd, offset, length, now);
-        if self.contexts.get_mut(&ctx)?.submit(iocb) { Some(iocb_id) } else { None }
+        let _iocb = Iocb::new(iocb_id, op, fd, offset, length, now);
+        if self.contexts.get_mut(&ctx)?.submit() { Some(iocb_id) } else { None }
     }
 
     #[inline]
