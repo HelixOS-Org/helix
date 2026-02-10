@@ -50,7 +50,7 @@ impl KernelAdversarialDefense {
 
         // Limit size
         while self.reference_samples.len() > 1000 {
-            self.reference_samples.pop_front();
+            self.reference_samples.remove(0);
         }
     }
 
