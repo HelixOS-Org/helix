@@ -117,7 +117,7 @@ impl AppLink {
             link_type, pid, result: LinkResult::Success, tick,
         };
         if self.link_history.len() >= self.max_history {
-            self.link_history.pop_front();
+            self.link_history.remove(0);
         }
         self.link_history.push_back(record);
         LinkResult::Success
@@ -131,7 +131,7 @@ impl AppLink {
             pid, result: UnlinkResult::Success, was_last_link: was_last, tick,
         };
         if self.unlink_history.len() >= self.max_history {
-            self.unlink_history.pop_front().unwrap();
+            self.unlink_history.remove(0).unwrap();
         }
         self.unlink_history.push_back(record);
         UnlinkResult::Success
