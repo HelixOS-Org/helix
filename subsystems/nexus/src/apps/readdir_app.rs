@@ -122,7 +122,7 @@ pub struct ReaddirAppStats {
 
 /// Main apps readdir manager.
 pub struct AppReaddir {
-    pub states: BTreeMap<u64, ReaddirState>, // key = (pid << 32) | fd
+    pub states: BTreeMap<u64, ReaddirState>, // key = (pid << 32) | fd,
     pub next_key: u64,
     pub stats: ReaddirAppStats,
 }
