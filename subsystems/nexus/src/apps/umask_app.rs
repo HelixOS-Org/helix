@@ -493,7 +493,7 @@ impl AppUmaskV3 {
 
     #[inline(always)]
     pub fn most_common_mask(&self) -> Option<(u16, u64)> {
-        self.stats.common_masks.iter().max_by_key(|(_, &c)| c).map(|(&m, &c)| (m, c))
+        self.stats.common_masks.iter().max_by_key(|&(_, &c)| c).map(|(&m, &c)| (m, c))
     }
 }
 
