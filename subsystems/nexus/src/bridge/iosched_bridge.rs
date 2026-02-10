@@ -2,8 +2,6 @@
 //! Bridge IO scheduler — IO priority and scheduling bridge
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// IO sched bridge operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
