@@ -9,7 +9,6 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -173,8 +172,8 @@ impl IntentDeclaration {
         }
         let sum: f64 = self.requirements.iter()
             .map(|r| {
-                let alloc = allocations.get(&r.resource_hash).copied().unwrap_or(0.0);
-                r.satisfaction(alloc)
+                let alloc = allocations.get(&r.resource_hash).unwrap_or(&0.0);
+                r.satisfaction(*alloc)
             })
             .sum();
         self.fulfillment = sum / self.requirements.len() as f64;
@@ -241,7 +240,7 @@ pub struct CoopIntentEngine {
     /// Process -> intent IDs
     process_intents: BTreeMap<u64, Vec<u64>>,
     /// Resource availability
-    available: LinearMap<f64, 64>,
+    available: BTreeMap<u64, f64>,
     /// Stats
     stats: CoopIntentStats,
     /// Next intent ID
@@ -253,7 +252,7 @@ impl CoopIntentEngine {
         Self {
             intents: BTreeMap::new(),
             process_intents: BTreeMap::new(),
-            available: LinearMap::new(),
+            available: BTreeMap::new(),
             stats: CoopIntentStats::default(),
             next_intent_id: 1,
         }
@@ -323,7 +322,7 @@ impl CoopIntentEngine {
 
         for (&resource_hash, demands) in &demand_per_resource {
             let total_demand: f64 = demands.iter().map(|(_, d)| d).sum();
-            let available = self.available.get(resource_hash).copied().unwrap_or(0.0);
+            let available = self.available.get(&resource_hash).copied().unwrap_or(0.0);
             if total_demand > available && demands.len() >= 2 {
                 // Pairwise conflicts
                 for i in 0..demands.len().min(8) {
