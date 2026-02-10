@@ -8,8 +8,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -156,6 +155,7 @@ impl AppsOracle {
     /// Record an observation and validate any outstanding predictions.
     pub fn observe(&mut self, app_id: u64, cpu: u64, mem: u64, io: u64, ipc: u64) {
         self.tick += 1;
+        let tick = self.tick;
         let model = self.get_or_create(app_id);
 
         // Compute trend before updating EMA.
@@ -171,11 +171,23 @@ impl AppsOracle {
         if model.history.len() >= HISTORY_CAP {
             model.history.remove(0).unwrap();
         }
-        model.history.push_back(Observation { tick: self.tick, cpu, mem, io, ipc });
+        model.history.push_back(Observation {
+            tick,
+            cpu,
+            mem,
+            io,
+            ipc,
+        });
     }
 
     /// Validate a previous prediction against actuals.
-    pub fn validate_prediction(&mut self, app_id: u64, pred: &Prediction, actual_cpu: u64, actual_mem: u64) {
+    pub fn validate_prediction(
+        &mut self,
+        app_id: u64,
+        pred: &Prediction,
+        actual_cpu: u64,
+        actual_mem: u64,
+    ) {
         let model = match self.models.get_mut(&app_id) {
             Some(m) => m,
             None => return,
@@ -218,7 +230,7 @@ impl AppsOracle {
                     predicted_ipc: 0,
                     confidence: 0,
                 };
-            }
+            },
         };
 
         let pred_cpu = self.extrapolate(model.cpu_ema, model.cpu_trend, horizon);
@@ -325,13 +337,18 @@ impl AppsOracle {
             None => return None,
         };
 
+        let cpu_ema = model.cpu_ema;
+        let mem_ema = model.mem_ema;
+        let cpu_trend = model.cpu_trend;
+        let mem_trend = model.mem_trend;
+
         let original = self.oracle_predict(app_id, FORECAST_HORIZON / 2);
 
-        let altered_cpu = (model.cpu_ema as i64 + cpu_delta).max(0) as u64;
-        let altered_mem = (model.mem_ema as i64 + mem_delta).max(0) as u64;
+        let altered_cpu = (cpu_ema as i64 + cpu_delta).max(0) as u64;
+        let altered_mem = (mem_ema as i64 + mem_delta).max(0) as u64;
 
-        let altered_cpu_pred = self.extrapolate(altered_cpu, model.cpu_trend, FORECAST_HORIZON / 2);
-        let altered_mem_pred = self.extrapolate(altered_mem, model.mem_trend, FORECAST_HORIZON / 2);
+        let altered_cpu_pred = self.extrapolate(altered_cpu, cpu_trend, FORECAST_HORIZON / 2);
+        let altered_mem_pred = self.extrapolate(altered_mem, mem_trend, FORECAST_HORIZON / 2);
 
         let altered = Prediction {
             app_id,
@@ -357,7 +374,9 @@ impl AppsOracle {
 
         let desc = alloc::format!(
             "Counterfactual: cpu_delta={}, mem_delta={} => total impact={}",
-            cpu_delta, mem_delta, delta
+            cpu_delta,
+            mem_delta,
+            delta
         );
         let scenario_hash = fnv1a(desc.as_bytes()) ^ xorshift64(&mut self.rng);
 
@@ -424,7 +443,11 @@ impl AppsOracle {
         let accuracy_factor = model.accuracy_ema * 30 / 100;
         let horizon_penalty = (horizon * 2).min(40);
         let raw = history_factor + accuracy_factor;
-        if raw > horizon_penalty { raw - horizon_penalty } else { 0 }
+        if raw > horizon_penalty {
+            raw - horizon_penalty
+        } else {
+            0
+        }
     }
 
     fn detect_period(&self, model: &OracleModel) -> u64 {
