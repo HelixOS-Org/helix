@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -355,7 +354,7 @@ impl ValidCache {
     ) {
         let entries = self.entries.entry(pid).or_insert_with(Vec::new);
         if entries.len() >= self.max_per_process {
-            entries.pop_front();
+            entries.remove(0);
         }
         entries.push(CachedValidation {
             syscall_nr,
