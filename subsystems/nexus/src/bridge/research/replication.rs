@@ -13,7 +13,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -167,7 +166,7 @@ pub struct CrisisAnalysis {
 pub struct BridgeReplication {
     findings: BTreeMap<u64, OriginalFinding>,
     stats: ReplicationStats,
-    recent_results: VecDeque<bool>, // recent replication successes
+    recent_results: Vec<bool>, // recent replication successes
     rng_state: u64,
     tick: u64,
 }
@@ -189,7 +188,7 @@ impl BridgeReplication {
                 crisis_detected: false,
                 crisis_severity: 0.0,
             },
-            recent_results: VecDeque::new(),
+            recent_results: Vec::new(),
             rng_state: seed ^ 0x4E011CA010E001,
             tick: 0,
         }
@@ -312,9 +311,9 @@ impl BridgeReplication {
 
         // Track for crisis detection
         if self.recent_results.len() >= MAX_HISTORY {
-            self.recent_results.pop_front();
+            self.recent_results.remove(0);
         }
-        self.recent_results.push_back(replicated);
+        self.recent_results.push(replicated);
 
         // Update robust/fragile counts
         self.update_robustness_counts();
