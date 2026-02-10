@@ -153,7 +153,7 @@ pub struct CoopMerkleTree {
 
 impl CoopMerkleTree {
     pub fn new() -> Self {
-        Self { nodes: BTreeMap::new(), leaves: BTreeMap::new(), root_id: None, stats: MerkleTreeStats::default(), next_id: 1 }
+        Self { nodes: BTreeMap::new(), leaves: LinearMap::new(), root_id: None, stats: MerkleTreeStats::default(), next_id: 1 }
     }
 
     #[inline]
@@ -167,7 +167,7 @@ impl CoopMerkleTree {
 
     #[inline]
     pub fn update(&mut self, key: u64, new_value_hash: u64) {
-        if let Some(&node_id) = self.leaves.get(key) {
+        if let Some(node_id) = self.leaves.get(key) {
             if let Some(node) = self.nodes.get_mut(&node_id) {
                 node.value_hash = Some(new_value_hash);
                 node.rehash_leaf();
@@ -186,7 +186,7 @@ impl CoopMerkleTree {
 
     fn rebuild(&mut self) {
         // Remove all internal nodes
-        let leaf_ids: Vec<u64> = self.leaves.values().copied().collect();
+        let leaf_ids: Vec<u64> = self.leaves.values().collect();
         self.nodes.retain(|id, _| leaf_ids.contains(id));
 
         if leaf_ids.is_empty() { self.root_id = None; return; }
@@ -233,7 +233,7 @@ impl CoopMerkleTree {
     }
 
     pub fn generate_proof(&mut self, key: u64) -> Option<MerkleProof> {
-        let &node_id = self.leaves.get(key)?;
+        let node_id = self.leaves.get(key)?;
         let node = self.nodes.get(&node_id)?;
         let value_hash = node.value_hash?;
         let mut steps = Vec::new();
@@ -246,11 +246,9 @@ impl CoopMerkleTree {
                     let rh = self.nodes.get(&right).map(|n| n.hash).unwrap_or(0);
                     steps.push(ProofStep { hash: rh, is_left: false });
                 }
-            } else {
-                if let Some(left) = parent.left_child {
-                    let lh = self.nodes.get(&left).map(|n| n.hash).unwrap_or(0);
-                    steps.push(ProofStep { hash: lh, is_left: true });
-                }
+            } else if let Some(left) = parent.left_child {
+                let lh = self.nodes.get(&left).map(|n| n.hash).unwrap_or(0);
+                steps.push(ProofStep { hash: lh, is_left: true });
             }
             current = parent_id;
         }
@@ -269,7 +267,7 @@ impl CoopMerkleTree {
         self.stats.diffs_computed += 1;
         let mut diffs = Vec::new();
 
-        for (&key, &local_node_id) in &self.leaves {
+        for (key, local_node_id) in self.leaves.iter() {
             let local_hash = self.nodes.get(&local_node_id).and_then(|n| n.value_hash);
             if let Some(&remote_hash) = other_leaves.get(&key) {
                 if local_hash != Some(remote_hash) {
