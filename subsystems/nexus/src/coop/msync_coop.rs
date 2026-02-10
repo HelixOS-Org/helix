@@ -220,12 +220,12 @@ impl MsyncCoopManager {
         let mut all_leq = true;
         let mut some_lt = false;
         for (k, &va) in clock_a {
-            let vb = clock_b.get(k).copied().unwrap_or(0);
-            if va > vb {
+            let vb = clock_b.get(k).unwrap_or(&0);
+            if va > *vb {
                 all_leq = false;
                 break;
             }
-            if va < vb {
+            if va < *vb {
                 some_lt = true;
             }
         }
