@@ -69,8 +69,8 @@ pub struct IpcChannel {
     pub channel_id: u64,
     pub channel_type: IpcChannelType,
     pub state: IpcChannelState,
-    pub endpoint_a: u64, // pid
-    pub endpoint_b: u64, // pid
+    pub endpoint_a: u64, // pid,
+    pub endpoint_b: u64, // pid,
     pub buffer_size: u32,
     pub buffered_bytes: u32,
     pub messages_sent: u64,
@@ -298,7 +298,7 @@ impl BridgeIpcProxy {
         self.stats = BridgeIpcProxyStats {
             active_channels: active,
             total_messages: total_msgs,
-            total_bytes: total_bytes,
+            total_bytes,
             backpressured_channels: bp,
             routes: self.routes.len(),
             pending_batches: self.batches.len(),
