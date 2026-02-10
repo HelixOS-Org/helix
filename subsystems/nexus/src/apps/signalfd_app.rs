@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Signal number
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
