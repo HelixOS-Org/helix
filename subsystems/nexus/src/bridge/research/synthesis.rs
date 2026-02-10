@@ -178,7 +178,7 @@ impl VersionTracker {
         });
         // Limit history size
         while self.history.len() > MAX_HISTORY {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
@@ -191,7 +191,7 @@ impl VersionTracker {
     }
 
     fn current_version(&self, strategy_id: u64) -> u32 {
-        self.version_map.get(strategy_id).copied().unwrap_or(0)
+        self.version_map.get(strategy_id).unwrap_or(0)
     }
 
     fn rollback_available(&self, strategy_id: u64) -> bool {
