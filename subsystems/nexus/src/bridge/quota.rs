@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // QUOTA TYPES
@@ -89,7 +90,7 @@ impl QuotaDefinition {
             resource,
             limit,
             window_ns,
-            burst_allowance: limit / 10, // 10% burst
+            burst_allowance: limit / 10,   // 10% burst
             hard_limit: limit + limit / 5, // 20% hard cap
             burst_penalty_ns: window_ns / 2,
         }
@@ -203,11 +204,18 @@ impl ProcessQuota {
         let key = def.resource as u8;
         let window_ns = def.window_ns;
         self.definitions.insert(key, def);
-        self.usage.entry(key).or_insert_with(|| WindowedUsage::new(window_ns, now));
+        self.usage
+            .entry(key)
+            .or_insert_with(|| WindowedUsage::new(window_ns, now));
     }
 
     /// Check and record usage
-    pub fn check_and_record(&mut self, resource: QuotaResource, amount: u64, now: u64) -> QuotaAction {
+    pub fn check_and_record(
+        &mut self,
+        resource: QuotaResource,
+        amount: u64,
+        now: u64,
+    ) -> QuotaAction {
         let key = resource as u8;
         let def = match self.definitions.get(&key) {
             Some(d) => d.clone(),
@@ -222,10 +230,8 @@ impl ProcessQuota {
         tracker.record(amount, now);
 
         // Check burst penalty
-        if now < self.burst_penalty_until {
-            if tracker.current_usage > def.limit * 8 / 10 {
-                return QuotaAction::Throttle;
-            }
+        if now < self.burst_penalty_until && tracker.current_usage > def.limit * 8 / 10 {
+            return QuotaAction::Throttle;
         }
 
         let usage = tracker.current_usage;
@@ -315,7 +321,9 @@ impl GroupQuota {
         let key = def.resource as u8;
         let window_ns = def.window_ns;
         self.limits.insert(key, def);
-        self.aggregate.entry(key).or_insert_with(|| WindowedUsage::new(window_ns, now));
+        self.aggregate
+            .entry(key)
+            .or_insert_with(|| WindowedUsage::new(window_ns, now));
     }
 
     /// Record group usage
@@ -386,17 +394,26 @@ impl BridgeQuotaEnforcer {
     /// Set process quota
     #[inline]
     pub fn set_process_quota(&mut self, pid: u64, def: QuotaDefinition, now: u64) {
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessQuota::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessQuota::new(pid));
         proc.set_quota(def, now);
         self.update_stats();
     }
 
     /// Check and record
-    pub fn check(&mut self, pid: u64, resource: QuotaResource, amount: u64, now: u64) -> QuotaAction {
+    pub fn check(
+        &mut self,
+        pid: u64,
+        resource: QuotaResource,
+        amount: u64,
+        now: u64,
+    ) -> QuotaAction {
         self.stats.total_checks += 1;
 
         // Check group quota first
-        if let Some(&group_id) = self.pid_to_group.get(pid) {
+        if let Some(group_id) = self.pid_to_group.get(pid) {
             if let Some(group) = self.groups.get_mut(&group_id) {
                 let group_action = group.record(resource, amount, now);
                 if group_action == QuotaAction::Deny {
@@ -407,12 +424,15 @@ impl BridgeQuotaEnforcer {
         }
 
         // Check process quota
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessQuota::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessQuota::new(pid));
         let action = proc.check_and_record(resource, amount, now);
         match action {
             QuotaAction::Deny => self.stats.denials += 1,
             QuotaAction::Throttle => self.stats.throttles += 1,
-            _ => {}
+            _ => {},
         }
         action
     }
