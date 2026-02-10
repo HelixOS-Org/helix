@@ -319,7 +319,7 @@ impl BridgeMonteCarlo {
         }
 
         // Percentiles
-        let mut percentiles = BTreeMap::new();
+        let mut percentiles = ArrayMap::new(0.0f32);
         for &p in &[5u32, 10, 25, 50, 75, 90, 95] {
             let idx = ((p as f32 / 100.0) * n_f) as usize;
             let idx = idx.min(n - 1);
