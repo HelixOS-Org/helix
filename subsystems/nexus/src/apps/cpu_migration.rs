@@ -126,7 +126,7 @@ impl ThreadCpuMigrationHistory {
         self.last_migration_ts = event.timestamp;
         self.recent_events.push_back(event);
         if self.recent_events.len() > self.max_recent {
-            self.recent_events.pop_front();
+            self.recent_events.remove(0);
         }
     }
 
