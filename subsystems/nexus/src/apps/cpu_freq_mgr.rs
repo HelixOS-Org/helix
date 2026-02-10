@@ -3,9 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// CPU frequency governor type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,7 +82,9 @@ impl FreqDomain {
 
     #[inline(always)]
     pub fn utilization_ratio(&self) -> f64 {
-        if self.max_freq_khz == 0 { return 0.0; }
+        if self.max_freq_khz == 0 {
+            return 0.0;
+        }
         self.current_freq_khz as f64 / self.max_freq_khz as f64
     }
 
@@ -169,7 +172,9 @@ pub struct EnergyPoint {
 impl EnergyPoint {
     #[inline(always)]
     pub fn efficiency(&self) -> f64 {
-        if self.power_mw == 0 { return 0.0; }
+        if self.power_mw == 0 {
+            return 0.0;
+        }
         self.capacity as f64 / self.power_mw as f64
     }
 }
@@ -211,7 +216,10 @@ impl AppCpuFreqMgr {
 
     #[inline(always)]
     pub fn add_domain(&mut self, domain_id: u32, cpus: Vec<u32>, min_khz: u32, max_khz: u32) {
-        self.domains.insert(domain_id, FreqDomain::new(domain_id, cpus, min_khz, max_khz));
+        self.domains.insert(
+            domain_id,
+            FreqDomain::new(domain_id, cpus, min_khz, max_khz),
+        );
         self.stats.domains_managed += 1;
     }
 
@@ -221,7 +229,12 @@ impl AppCpuFreqMgr {
     }
 
     #[inline]
-    pub fn set_frequency(&mut self, domain_id: u32, freq_khz: u32, now_ns: u64) -> Option<FreqTransition> {
+    pub fn set_frequency(
+        &mut self,
+        domain_id: u32,
+        freq_khz: u32,
+        now_ns: u64,
+    ) -> Option<FreqTransition> {
         let domain = self.domains.get_mut(&domain_id)?;
         let transition = domain.set_frequency(freq_khz, now_ns);
         if transition != FreqTransition::Same {
@@ -251,7 +264,9 @@ impl AppCpuFreqMgr {
     #[inline]
     pub fn sample_app(&mut self, pid: u64, cpu_id: u32, utilization: f64) {
         // Find the domain for this CPU
-        let freq_khz = self.domains.values()
+        let freq_khz = self
+            .domains
+            .values()
             .find(|d| d.cpus.contains(&cpu_id))
             .map(|d| d.current_freq_khz)
             .unwrap_or(0);
@@ -270,26 +285,34 @@ impl AppCpuFreqMgr {
 
     #[inline]
     pub fn most_efficient_freq(&self) -> Option<u32> {
-        self.energy_model.iter()
-            .max_by(|a, b| a.efficiency().partial_cmp(&b.efficiency()).unwrap_or(core::cmp::Ordering::Equal))
+        self.energy_model
+            .iter()
+            .max_by(|a, b| {
+                a.efficiency()
+                    .partial_cmp(&b.efficiency())
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            })
             .map(|e| e.freq_khz)
     }
 
     #[inline]
     pub fn domain_info(&self, domain_id: u32) -> Option<(u32, u32, f64)> {
-        self.domains.get(&domain_id).map(|d| {
-            (d.current_freq_khz, d.max_freq_khz, d.utilization_ratio())
-        })
+        self.domains
+            .get(&domain_id)
+            .map(|d| (d.current_freq_khz, d.max_freq_khz, d.utilization_ratio()))
     }
 
     pub fn total_power_estimate_mw(&self) -> u32 {
         let mut total = 0u32;
         for domain in self.domains.values() {
-            let closest = self.energy_model.iter()
-                .min_by_key(|e| {
-                    let diff = e.freq_khz as i64 - domain.current_freq_khz as i64;
-                    if diff < 0 { (-diff) as u64 } else { diff as u64 }
-                });
+            let closest = self.energy_model.iter().min_by_key(|e| {
+                let diff = e.freq_khz as i64 - domain.current_freq_khz as i64;
+                if diff < 0 {
+                    (-diff) as u64
+                } else {
+                    diff as u64
+                }
+            });
             if let Some(point) = closest {
                 total += point.power_mw * domain.cpus.len() as u32;
             }
