@@ -168,9 +168,9 @@ impl CoopTaskGraph {
     }
 
     pub fn topological_sort(&mut self) -> bool {
-        let mut in_deg: LinearMap<usize, 64> = BTreeMap::new();
+        let mut in_deg: LinearMap<usize, 64> = LinearMap::new();
         for (&id, t) in &self.tasks { in_deg.insert(id, t.deps.len()); }
-        let mut queue: Vec<u64> = in_deg.iter().filter(|(_, &d)| d == 0).map(|(&id, _)| id).collect();
+        let mut queue: Vec<u64> = in_deg.iter().filter(|(_, d)| *d == 0).map(|(id, _)| id).collect();
         queue.sort_by(|a, b| {
             let pa = self.tasks.get(a).map(|t| t.priority).unwrap_or(GraphTaskPriority::Normal);
             let pb = self.tasks.get(b).map(|t| t.priority).unwrap_or(GraphTaskPriority::Normal);
@@ -181,7 +181,7 @@ impl CoopTaskGraph {
             order.push(id);
             let dependents = self.tasks.get(&id).map(|t| t.dependents.clone()).unwrap_or_default();
             for dep in dependents {
-                if let Some(d) = in_deg.get_mut(&dep) {
+                if let Some(d) = in_deg.get_mut(dep) {
                     *d = d.saturating_sub(1);
                     if *d == 0 { queue.push(dep); }
                 }
@@ -252,25 +252,25 @@ impl CoopTaskGraph {
     }
 
     pub fn critical_path(&self) -> Vec<CriticalPathSegment> {
-        let mut longest: LinearMap<u64, 64> = BTreeMap::new();
+        let mut longest: LinearMap<u64, 64> = LinearMap::new();
         let mut prev: BTreeMap<u64, Option<u64>> = BTreeMap::new();
         for &id in &self.topo_order {
             let cost = self.tasks.get(&id).map(|t| t.cost_ns).unwrap_or(0);
             let max_dep = self.tasks.get(&id).map(|t| {
-                t.deps.iter().map(|d| longest.get(d).copied().unwrap_or(0)).max().unwrap_or(0)
+                t.deps.iter().map(|d| longest.get(d).unwrap_or(0)).max().unwrap_or(0)
             }).unwrap_or(0);
             let max_dep_id = self.tasks.get(&id).and_then(|t| {
-                t.deps.iter().max_by_key(|d| longest.get(d).copied().unwrap_or(0)).copied()
+                t.deps.iter().max_by_key(|d| longest.get(d).unwrap_or(0)).copied()
             });
             longest.insert(id, max_dep + cost);
             prev.insert(id, max_dep_id);
         }
-        let end = longest.iter().max_by_key(|(_, &v)| v).map(|(&k, _)| k);
+        let end = longest.iter().max_by_key(|(_, v)| *v).map(|(k, _)| k);
         let mut path = Vec::new();
         let mut cur = end;
         while let Some(id) = cur {
             let cost = self.tasks.get(&id).map(|t| t.cost_ns).unwrap_or(0);
-            let cum = longest.get(&id).copied().unwrap_or(0);
+            let cum = longest.get(id).unwrap_or(0);
             path.push(CriticalPathSegment { task_id: id, cost_ns: cost, cumulative_ns: cum });
             cur = prev.get(&id).copied().flatten();
         }
@@ -280,10 +280,10 @@ impl CoopTaskGraph {
 
     pub fn execution_levels(&self) -> Vec<ExecLevel> {
         let mut levels: BTreeMap<u32, Vec<u64>> = BTreeMap::new();
-        let mut depth: LinearMap<u32, 64> = BTreeMap::new();
+        let mut depth: LinearMap<u32, 64> = LinearMap::new();
         for &id in &self.topo_order {
             let d = self.tasks.get(&id).map(|t| {
-                t.deps.iter().map(|dep| depth.get(dep).copied().unwrap_or(0) + 1).max().unwrap_or(0)
+                t.deps.iter().map(|dep| depth.get(dep).unwrap_or(0) + 1).max().unwrap_or(0)
             }).unwrap_or(0);
             depth.insert(id, d);
             levels.entry(d).or_insert_with(Vec::new).push(id);
