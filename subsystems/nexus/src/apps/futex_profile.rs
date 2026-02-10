@@ -120,7 +120,7 @@ impl FutexAddrStats {
 pub struct WaiterChainLink {
     pub thread_id: u64,
     pub futex_addr: u64,
-    pub waiting_for: Option<u64>, // thread holding the lock
+    pub waiting_for: Option<u64>, // thread holding the lock,
     pub depth: u32,
 }
 
