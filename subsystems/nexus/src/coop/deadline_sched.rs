@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Deadline task state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
