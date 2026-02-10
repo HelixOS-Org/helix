@@ -158,8 +158,8 @@ impl ThreadSignalState {
     #[inline]
     pub fn queue_signal(&mut self, sig: QueuedSignal) {
         // Standard signals coalesce (only one pending), RT signals queue
-        if sig.signum < SIGRTMIN {
-            if self.pending.iter().any(|s| s.signum == sig.signum) { return; }
+        if sig.signum < SIGRTMIN && self.pending.iter().any(|s| s.signum == sig.signum) {
+            return;
         }
         self.pending.push(sig);
     }
