@@ -333,7 +333,7 @@ pub struct ReactiveLayer {
     pub priority: BehaviorPriority,
     pub behaviors: Vec<ReactiveBehavior>,
     pub is_enabled: bool,
-    pub suppresses: Vec<u32>, // Layer IDs this layer suppresses
+    pub suppresses: Vec<u32>, // Layer IDs this layer suppresses,
 }
 
 impl ReactiveLayer {
