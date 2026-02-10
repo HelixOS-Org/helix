@@ -199,7 +199,7 @@ impl AuditLogger {
 
         // Trim if necessary
         if self.entries.len() > self.max_entries {
-            self.entries.pop_front();
+            self.entries.remove(0);
         }
 
         id
