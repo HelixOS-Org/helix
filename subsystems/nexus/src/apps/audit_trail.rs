@@ -322,7 +322,7 @@ impl AppAuditTrail {
 
         let seq = record.seq;
         if self.records.len() >= self.max_records {
-            self.records.pop_front();
+            self.records.remove(0);
             self.stats.buffer_overflows += 1;
         }
         self.records.push_back(record);
