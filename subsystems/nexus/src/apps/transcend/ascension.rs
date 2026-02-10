@@ -15,10 +15,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -183,7 +184,7 @@ impl AppsAscension {
         };
         phases.insert(PHASE_AWAKENING, awakening);
 
-        let mut tunable_params = BTreeMap::new();
+        let mut tunable_params = LinearMap::new();
         tunable_params.insert(fnv1a(b"alloc_bias"), 50);
         tunable_params.insert(fnv1a(b"class_threshold"), 30);
         tunable_params.insert(fnv1a(b"opt_aggressiveness"), 40);
@@ -392,15 +393,10 @@ impl AppsAscension {
     ) -> TranscendentAllocation {
         self.stats.optimizations_performed += 1;
 
-        let alloc_bias = self
-            .tunable_params
-            .get(&fnv1a(b"alloc_bias"))
-            .copied()
-            .unwrap_or(50);
+        let alloc_bias = self.tunable_params.get(&fnv1a(b"alloc_bias")).unwrap_or(50);
         let aggressiveness = self
             .tunable_params
             .get(&fnv1a(b"opt_aggressiveness"))
-            .copied()
             .unwrap_or(40);
 
         let demand = (cpu * 3 + mem * 2 + io) / 6;
@@ -455,11 +451,11 @@ impl AppsAscension {
 
     fn trigger_self_improvement(&mut self) -> u64 {
         let mut modifications = 0u64;
-        let param_keys: Vec<u64> = self.tunable_params.keys().copied().collect();
+        let param_keys: Vec<u64> = self.tunable_params.keys().collect();
 
         for key in &param_keys {
             let old_val = match self.tunable_params.get(key) {
-                Some(v) => *v,
+                Some(v) => v,
                 None => continue,
             };
 
