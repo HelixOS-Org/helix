@@ -2,8 +2,6 @@
 //! Bridge random — getrandom/urandom bridge with entropy tracking
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Random source
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
