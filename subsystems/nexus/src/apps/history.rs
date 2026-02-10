@@ -8,7 +8,6 @@
 //! - Regression detection across versions
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -19,11 +18,11 @@ use alloc::vec::Vec;
 #[derive(Debug, Clone)]
 pub struct TimeSeries {
     /// Raw samples (most recent)
-    raw: VecDeque<(u64, f64)>,
+    raw: Vec<(u64, f64)>,
     /// Minute-level aggregates
-    minute_agg: VecDeque<TimeAggregate>,
+    minute_agg: Vec<TimeAggregate>,
     /// Hour-level aggregates
-    hour_agg: VecDeque<TimeAggregate>,
+    hour_agg: Vec<TimeAggregate>,
     /// Max raw samples
     max_raw: usize,
     /// Max minute aggregates
@@ -107,9 +106,9 @@ impl AggregateAccumulator {
 impl TimeSeries {
     pub fn new(max_raw: usize, max_minutes: usize, max_hours: usize) -> Self {
         Self {
-            raw: VecDeque::new(),
-            minute_agg: VecDeque::new(),
-            hour_agg: VecDeque::new(),
+            raw: Vec::new(),
+            minute_agg: Vec::new(),
+            hour_agg: Vec::new(),
             max_raw,
             max_minutes,
             max_hours,
@@ -122,9 +121,9 @@ impl TimeSeries {
     pub fn add(&mut self, timestamp: u64, value: f64) {
         // Store raw
         if self.raw.len() >= self.max_raw {
-            self.raw.pop_front();
+            self.raw.remove(0);
         }
-        self.raw.push_back((timestamp, value));
+        self.raw.push((timestamp, value));
 
         // Minute aggregation (60,000 ms = 1 minute)
         match &mut self.current_minute {
@@ -134,9 +133,9 @@ impl TimeSeries {
             Some(acc) => {
                 let agg = acc.finalize(timestamp);
                 if self.minute_agg.len() >= self.max_minutes {
-                    self.minute_agg.pop_front();
+                    self.minute_agg.remove(0);
                 }
-                self.minute_agg.push_back(agg);
+                self.minute_agg.push(agg);
                 self.current_minute = Some(AggregateAccumulator::new(timestamp, value));
             },
             None => {
@@ -152,9 +151,9 @@ impl TimeSeries {
             Some(acc) => {
                 let agg = acc.finalize(timestamp);
                 if self.hour_agg.len() >= self.max_hours {
-                    self.hour_agg.pop_front();
+                    self.hour_agg.remove(0);
                 }
-                self.hour_agg.push_back(agg);
+                self.hour_agg.push(agg);
                 self.current_hour = Some(AggregateAccumulator::new(timestamp, value));
             },
             None => {
@@ -166,7 +165,7 @@ impl TimeSeries {
     /// Get latest raw value
     #[inline(always)]
     pub fn latest(&self) -> Option<f64> {
-        self.raw.back().map(|(_, v)| *v)
+        self.raw.last().map(|(_, v)| *v)
     }
 
     /// Average of recent raw values
@@ -239,7 +238,7 @@ pub struct WorkloadHistory {
     /// Thread count time series
     pub thread_count: TimeSeries,
     /// Workload fingerprint snapshots
-    pub fingerprints: VecDeque<WorkloadFingerprint>,
+    pub fingerprints: Vec<WorkloadFingerprint>,
     /// Max fingerprints
     max_fingerprints: usize,
 }
@@ -276,7 +275,7 @@ impl WorkloadHistory {
             syscall_rate: TimeSeries::new(300, 60, 24),
             network_rate: TimeSeries::new(300, 60, 24),
             thread_count: TimeSeries::new(300, 60, 24),
-            fingerprints: VecDeque::new(),
+            fingerprints: Vec::new(),
             max_fingerprints: 100,
         }
     }
@@ -285,9 +284,9 @@ impl WorkloadHistory {
     #[inline]
     pub fn add_fingerprint(&mut self, fp: WorkloadFingerprint) {
         if self.fingerprints.len() >= self.max_fingerprints {
-            self.fingerprints.pop_front();
+            self.fingerprints.remove(0);
         }
-        self.fingerprints.push_back(fp);
+        self.fingerprints.push(fp);
     }
 
     /// Detect workload change (compare recent fingerprint to historical)
