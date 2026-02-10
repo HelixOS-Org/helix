@@ -5,7 +5,6 @@
 extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use super::edge::CausalEdgeType;
@@ -49,7 +48,7 @@ impl CausalTracker {
         let node_id = node.id;
 
         // Link to previous event for this component
-        if let Some(&prev_id) = self.current_node.get(&component.raw()) {
+        if let Some(prev_id) = self.current_node.get(component.raw()) {
             self.graph.add_node(node);
             self.graph
                 .link(prev_id, node_id, CausalEdgeType::Sequential);
@@ -78,7 +77,7 @@ impl CausalTracker {
         let send_id = self.graph.add_node(send_node);
 
         // Link to previous
-        if let Some(&prev) = self.current_node.get(&from.raw()) {
+        if let Some(prev) = self.current_node.get(from.raw()) {
             self.graph.link(prev, send_id, CausalEdgeType::Sequential);
         }
         self.current_node.insert(from.raw(), send_id);
@@ -91,7 +90,7 @@ impl CausalTracker {
         self.graph.link(send_id, recv_id, CausalEdgeType::Message);
 
         // Link to receiver's previous
-        if let Some(&prev) = self.current_node.get(&to.raw()) {
+        if let Some(prev) = self.current_node.get(to.raw()) {
             self.graph.link(prev, recv_id, CausalEdgeType::Sequential);
         }
         self.current_node.insert(to.raw(), recv_id);
