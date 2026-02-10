@@ -165,7 +165,7 @@ impl ProcessTlbProfile {
     #[inline]
     pub fn hot_pages(&self, n: usize) -> Vec<(u64, u32)> {
         let mut pages: Vec<(u64, u32)> = self.distinct_pages.iter()
-            .map(|(&addr, &count)| (addr, count))
+            .map(|(addr, count)| (addr, count))
             .collect();
         pages.sort_by(|a, b| b.1.cmp(&a.1));
         pages.truncate(n);
