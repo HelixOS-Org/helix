@@ -141,7 +141,7 @@ impl ProcessAffinity {
     }
 
     #[inline]
-    pub fn migrate_to(&mut self, cpu: u32, mig_type: AffinityMigrationType) {
+    pub fn migrate_to(&mut self, cpu: u32, _mig_type: AffinityMigrationType) {
         if self.mask.is_set(cpu) {
             self.last_cpu = cpu;
             self.migrations += 1;
