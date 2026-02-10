@@ -377,7 +377,7 @@ impl Default for PipelineConfig {
             enable_transform: true,
             enable_cache: true,
             enable_security: true,
-            fast_path_types: vec![SyscallType::Brk, SyscallType::Close],
+            fast_path_types: alloc::vec![SyscallType::Brk, SyscallType::Close],
             max_concurrent: 4096,
         }
     }
