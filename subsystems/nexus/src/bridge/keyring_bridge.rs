@@ -294,7 +294,7 @@ impl BridgeKeyring {
     #[inline]
     pub fn record_event(&mut self, event: KeyEvent) {
         self.stats.total_ops += 1;
-        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        if self.events.len() >= self.max_events { self.events.remove(0); }
         self.events.push_back(event);
     }
 
