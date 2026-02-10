@@ -290,14 +290,15 @@ impl CoopEmbargoEngine {
     /// Release an embargo
     #[inline]
     pub fn release(&mut self, embargo_id: u64) -> bool {
-        if let Some(embargo) = self.embargoes.get_mut(&embargo_id) {
+        let target = if let Some(embargo) = self.embargoes.get_mut(&embargo_id) {
             embargo.active = false;
-            self.process_pending(embargo.target);
-            self.update_stats();
-            true
+            embargo.target
         } else {
-            false
-        }
+            return false;
+        };
+        self.process_pending(target);
+        self.update_stats();
+        true
     }
 
     /// Tick — expire old embargoes, process pending
@@ -308,11 +309,11 @@ impl CoopEmbargoEngine {
             .filter(|(_, e)| e.active && e.is_expired(now_ns))
             .map(|(_, e)| {
                 e.active = false;
-                self.total_expired += 1;
                 e.target
             })
             .collect();
 
+        self.total_expired += expired_targets.len() as u64;
         for target in expired_targets {
             self.process_pending(target);
         }
