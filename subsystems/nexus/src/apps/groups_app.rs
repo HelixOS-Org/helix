@@ -2,7 +2,6 @@
 //! App groups — getgroups/setgroups supplementary groups interface
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Groups operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
