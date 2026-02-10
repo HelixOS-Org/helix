@@ -369,7 +369,7 @@ impl BridgeIntuitionEngine {
         }
 
         if self.comparisons.len() >= MAX_COMPARISON_HISTORY {
-            self.comparisons.pop_front();
+            self.comparisons.remove(0);
         }
         self.comparisons.push_back(ComparisonRecord {
             pattern_hash,
