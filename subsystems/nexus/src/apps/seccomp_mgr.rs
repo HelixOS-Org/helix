@@ -12,7 +12,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use alloc::string::String;
 
 /// Seccomp action
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
