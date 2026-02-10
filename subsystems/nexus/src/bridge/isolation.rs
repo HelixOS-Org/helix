@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -148,10 +147,8 @@ impl FilterRule {
         // Check args
         for filter in &self.arg_filters {
             let idx = filter.arg_index as usize;
-            if idx < args.len() {
-                if !filter.matches(args[idx]) {
-                    return false;
-                }
+            if idx < args.len() && !filter.matches(args[idx]) {
+                return false;
             }
         }
         true
@@ -242,7 +239,7 @@ pub struct AuditEntry {
 #[derive(Debug)]
 pub struct AuditLog {
     /// Entries
-    entries: VecDeque<AuditEntry>,
+    entries: Vec<AuditEntry>,
     /// Max entries
     max_entries: usize,
     /// Total logged
@@ -252,7 +249,7 @@ pub struct AuditLog {
 impl AuditLog {
     pub fn new(max_entries: usize) -> Self {
         Self {
-            entries: VecDeque::new(),
+            entries: Vec::new(),
             max_entries,
             total_logged: 0,
         }
@@ -262,9 +259,9 @@ impl AuditLog {
     #[inline]
     pub fn log(&mut self, entry: AuditEntry) {
         if self.entries.len() >= self.max_entries {
-            self.entries.pop_front();
+            self.entries.remove(0);
         }
-        self.entries.push_back(entry);
+        self.entries.push(entry);
         self.total_logged += 1;
     }
 
@@ -282,8 +279,15 @@ impl AuditLog {
     /// Denied entries for pid
     #[inline]
     pub fn denied_for(&self, pid: u64) -> Vec<&AuditEntry> {
-        self.entries.iter()
-            .filter(|e| e.pid == pid && matches!(e.action, FilterAction::Deny | FilterAction::LogDeny | FilterAction::Kill))
+        self.entries
+            .iter()
+            .filter(|e| {
+                e.pid == pid
+                    && matches!(
+                        e.action,
+                        FilterAction::Deny | FilterAction::LogDeny | FilterAction::Kill
+                    )
+            })
             .collect()
     }
 }
@@ -361,8 +365,11 @@ impl BridgeIsolationManager {
 
         // Audit if denied or logged
         match action {
-            FilterAction::Deny | FilterAction::LogDeny | FilterAction::LogAllow
-            | FilterAction::Trap | FilterAction::Kill => {
+            FilterAction::Deny
+            | FilterAction::LogDeny
+            | FilterAction::LogAllow
+            | FilterAction::Trap
+            | FilterAction::Kill => {
                 self.audit.log(AuditEntry {
                     pid,
                     syscall_nr,
@@ -371,11 +378,14 @@ impl BridgeIsolationManager {
                     timestamp: now,
                 });
                 self.stats.audit_entries = self.audit.total_logged;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
-        if matches!(action, FilterAction::Deny | FilterAction::LogDeny | FilterAction::Kill) {
+        if matches!(
+            action,
+            FilterAction::Deny | FilterAction::LogDeny | FilterAction::Kill
+        ) {
             self.stats.total_denials += 1;
         }
 
