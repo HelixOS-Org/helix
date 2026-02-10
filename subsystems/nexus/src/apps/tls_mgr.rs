@@ -70,7 +70,7 @@ pub struct ThreadTlsState {
 }
 
 impl ThreadTlsState {
-    pub fn new(tid: u64, base: u64, ts: u64) -> Self {
+    pub fn new(tid: u64, base: u64, _ts: u64) -> Self {
         Self {
             tid,
             tls_base: base,
