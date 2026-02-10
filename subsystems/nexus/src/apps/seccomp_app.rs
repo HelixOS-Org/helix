@@ -2,7 +2,6 @@
 //! App seccomp — seccomp filter application syscall interface
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Seccomp app operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
