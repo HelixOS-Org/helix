@@ -110,7 +110,7 @@ impl AppStat {
     }
 
     #[inline]
-    pub fn stat(&mut self, path: &str, tick: u64) -> Option<&StatResult> {
+    pub fn stat(&mut self, path: &str, _tick: u64) -> Option<&StatResult> {
         self.stats.stat_calls += 1;
         let hash = Self::hash_path(path);
         if let Some(entry) = self.cache.get_mut(&hash) {
