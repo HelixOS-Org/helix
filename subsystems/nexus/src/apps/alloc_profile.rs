@@ -11,6 +11,7 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+use crate::fast::math::{F64Ext};
 
 /// Allocation type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
