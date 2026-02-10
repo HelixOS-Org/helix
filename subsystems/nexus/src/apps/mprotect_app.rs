@@ -193,9 +193,9 @@ impl MprotectAppManager {
         }
 
         let change = ProtChange { vma_start, vma_end, old_prot, new_prot, timestamp: now };
-        profile.prot_changes.push(change);
+        profile.prot_changes.push_back(change);
         if profile.prot_changes.len() > self.max_history {
-            profile.prot_changes.pop_front().unwrap();
+            profile.prot_changes.remove(0).unwrap();
         }
         self.stats.total_prot_changes += 1;
 
