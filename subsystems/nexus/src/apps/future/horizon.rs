@@ -186,7 +186,7 @@ impl ProcessHorizon {
     }
 
     fn resource_key(resource: ResourceKind, scale: HorizonScale) -> u32 {
-        (resource as u32) << 8 | (scale as u32)
+        ((resource as u32) << 8) | (scale as u32)
     }
 
     #[inline]
