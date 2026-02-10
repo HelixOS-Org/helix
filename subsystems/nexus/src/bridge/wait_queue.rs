@@ -43,7 +43,7 @@ pub struct WaitEntry {
     pub enqueue_ts: u64,
     pub timeout_ns: u64,
     pub exclusive: bool,
-    pub wait_reason: u32, // hash of reason
+    pub wait_reason: u32, // hash of reason,
 }
 
 impl WaitEntry {
