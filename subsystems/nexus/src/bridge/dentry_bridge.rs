@@ -2,8 +2,6 @@
 //! Bridge dentry — directory entry cache bridge with lookup and invalidation
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Dentry bridge operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
