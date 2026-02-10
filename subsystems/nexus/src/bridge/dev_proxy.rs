@@ -299,7 +299,7 @@ impl BridgeDevProxy {
         };
         self.hotplug_log.push_back(event);
         if self.hotplug_log.len() > self.max_hotplug_log {
-            self.hotplug_log.pop_front();
+            self.hotplug_log.remove(0);
         }
         self.stats.hotplug_events += 1;
     }
@@ -376,7 +376,7 @@ impl BridgeDevProxy {
             };
             self.io_log.push_back(req);
             if self.io_log.len() > self.max_io_log {
-                self.io_log.pop_front();
+                self.io_log.remove(0);
             }
             self.stats.io_requests += 1;
             true
