@@ -133,10 +133,10 @@ impl ServiceInstance {
 
     #[inline]
     pub fn check_circuit(&mut self, now_ns: u64) {
-        if self.circuit == CircuitState::Open {
-            if now_ns - self.circuit_open_ns > self.circuit_half_open_timeout_ns {
-                self.circuit = CircuitState::HalfOpen;
-            }
+        if self.circuit == CircuitState::Open
+            && now_ns - self.circuit_open_ns > self.circuit_half_open_timeout_ns
+        {
+            self.circuit = CircuitState::HalfOpen;
         }
     }
 
