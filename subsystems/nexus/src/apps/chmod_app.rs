@@ -2,7 +2,6 @@
 //! NEXUS Apps — Chmod App (file permission change tracking)
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
@@ -108,7 +107,7 @@ impl AppChmod {
             is_fchmod, tick,
         };
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(record);
         ChmodResult::Success
