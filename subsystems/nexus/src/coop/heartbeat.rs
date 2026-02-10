@@ -36,7 +36,7 @@ impl ArrivalWindow {
     #[inline(always)]
     pub fn record(&mut self, interval_ns: u64) {
         self.samples.push_back(interval_ns);
-        if self.samples.len() > self.max_samples { self.samples.pop_front(); }
+        if self.samples.len() > self.max_samples { self.samples.remove(0); }
     }
 
     #[inline]
