@@ -2,8 +2,6 @@
 //! Bridge inode — inode operation bridge with alloc/free tracking
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Inode bridge operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
