@@ -7,7 +7,6 @@
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -476,7 +475,7 @@ impl Default for SubsumptionArchitecture {
 /// Buffer for managing incoming stimuli
 #[repr(align(64))]
 pub struct StimulusBuffer {
-    stimuli: VecDeque<Stimulus>,
+    stimuli: Vec<Stimulus>,
     max_age: u64,
     max_size: usize,
 }
@@ -484,7 +483,7 @@ pub struct StimulusBuffer {
 impl StimulusBuffer {
     pub fn new(max_age: u64, max_size: usize) -> Self {
         Self {
-            stimuli: VecDeque::new(),
+            stimuli: Vec::new(),
             max_age,
             max_size,
         }
@@ -492,11 +491,11 @@ impl StimulusBuffer {
 
     #[inline]
     pub fn add(&mut self, stimulus: Stimulus) {
-        self.stimuli.push_back(stimulus);
+        self.stimuli.push(stimulus);
 
         // Enforce size limit
         while self.stimuli.len() > self.max_size {
-            self.stimuli.pop_front();
+            self.stimuli.remove(0);
         }
     }
 
