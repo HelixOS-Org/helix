@@ -118,7 +118,7 @@ pub struct BehaviorLayer {
     pub layer_type: BehaviorLayerType,
     pub priority: i32,
     pub is_enabled: bool,
-    pub subsumes: Vec<u32>, // Layer IDs this layer can override
+    pub subsumes: Vec<u32>, // Layer IDs this layer can override,
 
     // Layer implementations (only one is active based on type)
     behavior_tree: Option<BehaviorTree>,
