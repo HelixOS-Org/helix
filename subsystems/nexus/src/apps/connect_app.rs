@@ -230,7 +230,7 @@ impl AppConnectV2 {
         }
     }
     #[inline]
-    pub fn connect(&mut self, req: &ConnectV2Request) -> ConnectV2Result {
+    pub fn connect(&mut self, _req: &ConnectV2Request) -> ConnectV2Result {
         self.stats.total_connects += 1;
         self.stats.connected += 1;
         ConnectV2Result::Connected
