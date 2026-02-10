@@ -417,7 +417,7 @@ impl CoopDeadlineManager {
 
                 self.misses.push_back(miss);
                 if self.misses.len() > self.max_misses {
-                    self.misses.pop_front();
+                    self.misses.remove(0);
                 }
 
                 self.stats.total_misses += 1;
