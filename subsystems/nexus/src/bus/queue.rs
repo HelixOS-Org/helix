@@ -46,7 +46,7 @@ impl MessageQueue {
         }
 
         let idx = message.priority as usize;
-        self.queues[idx].push(message);
+        self.queues[idx].push_back(message);
         self.count += 1;
         true
     }
@@ -55,7 +55,7 @@ impl MessageQueue {
     fn drop_lowest(&mut self) -> bool {
         for queue in &mut self.queues {
             if !queue.is_empty() {
-                queue.pop_front();
+                queue.remove(0);
                 self.count -= 1;
                 return true;
             }
@@ -70,7 +70,7 @@ impl MessageQueue {
         for queue in self.queues.iter_mut().rev() {
             if !queue.is_empty() {
                 self.count -= 1;
-                return queue.pop_front();
+                return queue.remove(0);
             }
         }
         None
@@ -84,7 +84,7 @@ impl MessageQueue {
         for idx in (min_idx..5).rev() {
             while !self.queues[idx].is_empty() {
                 self.count -= 1;
-                result.push(self.queues[idx].pop_front().unwrap());
+                result.push(self.queues[idx].remove(0).unwrap());
             }
         }
 
@@ -159,7 +159,7 @@ impl MessageQueue {
     pub fn drain(&mut self) -> Vec<Message> {
         let mut result = Vec::with_capacity(self.count);
         for queue in self.queues.iter_mut().rev() {
-            result.append(queue);
+            result.extend(queue.drain(..));
         }
         self.count = 0;
         result
