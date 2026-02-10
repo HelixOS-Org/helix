@@ -36,6 +36,22 @@ pub enum EmulationTarget {
     Custom(u32),
 }
 
+impl EmulationTarget {
+    /// Get numeric discriminant.
+    #[inline(always)]
+    pub fn disc(&self) -> u8 {
+        match self {
+            Self::LinuxX86_64 => 0,
+            Self::LinuxAarch64 => 1,
+            Self::FreeBsd => 2,
+            Self::Posix => 3,
+            Self::WindowsNt => 4,
+            Self::MacOsMach => 5,
+            Self::Custom(_) => 255,
+        }
+    }
+}
+
 /// Emulation accuracy
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmulationAccuracy {
@@ -335,14 +351,14 @@ impl BridgeEmulationManager {
     /// Register translation table
     #[inline(always)]
     pub fn register_table(&mut self, table: TranslationTable) {
-        self.tables.insert(table.target as u8, table);
+        self.tables.insert(table.target.disc(), table);
         self.stats.tables_loaded = self.tables.len();
     }
 
     /// Register errno mapping
     #[inline(always)]
     pub fn register_errno(&mut self, mapping: ErrnoMapping) {
-        self.errno_maps.insert(mapping.target as u8, mapping);
+        self.errno_maps.insert(mapping.target.disc(), mapping);
     }
 
     /// Create emulation context for process
@@ -368,12 +384,13 @@ impl BridgeEmulationManager {
         foreign_args: &[u64],
     ) -> Option<(u32, Vec<u64>, EmulationAccuracy)> {
         let context = self.contexts.get(&pid)?;
-        let target_key = context.target as u8;
+        let target_key = context.target.disc();
         let table = self.tables.get(&target_key)?;
         let entry = table.lookup(foreign_nr)?;
 
         let native_args = entry.translate_args(foreign_args);
         let accuracy = entry.accuracy;
+        let native_nr = entry.native_nr;
 
         // Update stats
         if let Some(ctx) = self.contexts.get_mut(&pid) {
@@ -395,14 +412,14 @@ impl BridgeEmulationManager {
                 1.0 - (self.stats.total_failures as f64 / self.stats.total_emulated as f64);
         }
 
-        Some((entry.native_nr, native_args, accuracy))
+        Some((native_nr, native_args, accuracy))
     }
 
     /// Translate errno
     #[inline]
     pub fn translate_errno(&self, target: EmulationTarget, native_errno: i32) -> i32 {
         self.errno_maps
-            .get(&(target as u8))
+            .get(&(target.disc()))
             .map(|m| m.to_foreign(native_errno))
             .unwrap_or(native_errno)
     }
