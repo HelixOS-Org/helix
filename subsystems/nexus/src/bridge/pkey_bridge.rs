@@ -27,10 +27,14 @@ pub struct Pkey {
 /// PKRU register state (32-bit: 2 bits per key, 16 keys)
 #[derive(Debug, Clone, Copy)]
 #[repr(align(64))]
-pub struct PkruState(pub u32);
+pub struct PkruState {
+    pub pkru_value: u32,
+    pub pid: u64,
+    pub last_modified: u64,
+}
 
 impl PkruState {
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self { Self { pkru_value: 0, pid: 0, last_modified: 0 } }
 
     #[inline]
     pub fn set_key(&mut self, key: u32, access: PkeyAccess) {
@@ -38,13 +42,23 @@ impl PkruState {
         let shift = key * 2;
         let mask = !(3u32 << shift);
         let bits = match access { PkeyAccess::ReadWrite => 0, PkeyAccess::NoAccess => 3, PkeyAccess::WriteOnly => 1, PkeyAccess::ReadOnly => 2 };
-        self.0 = (self.0 & mask) | (bits << shift);
+        self.pkru_value = (self.pkru_value & mask) | (bits << shift);
     }
 
     #[inline(always)]
     pub fn get_key(&self, key: u32) -> PkeyAccess {
         if key >= 16 { return PkeyAccess::NoAccess; }
-        match (self.0 >> (key * 2)) & 3 { 0 => PkeyAccess::ReadWrite, 1 => PkeyAccess::WriteOnly, 2 => PkeyAccess::ReadOnly, _ => PkeyAccess::NoAccess }
+        match (self.pkru_value >> (key * 2)) & 3 { 0 => PkeyAccess::ReadWrite, 1 => PkeyAccess::WriteOnly, 2 => PkeyAccess::ReadOnly, _ => PkeyAccess::NoAccess }
+    }
+
+    /// Set key access by disable_write and disable_access flags (V2 API)
+    #[inline]
+    pub fn set_key_access(&mut self, key: u32, disable_write: bool, disable_access: bool) {
+        if key >= 16 { return; }
+        let shift = key * 2;
+        let mask = !(3u32 << shift);
+        let bits = if disable_access { 3u32 } else if disable_write { 2u32 } else { 0u32 };
+        self.pkru_value = (self.pkru_value & mask) | (bits << shift);
     }
 }
 
@@ -145,16 +159,7 @@ impl PkeyV2Entry {
     }
 }
 
-impl PkruState {
-    pub fn new(pid: u64) -> Self { Self { pid, pkru_value: 0, last_modified: 0 } }
 
-    #[inline]
-    pub fn set_key_access(&mut self, key: u32, disable_write: bool, disable_access: bool) {
-        let bits = ((disable_access as u32) << 1) | (disable_write as u32);
-        let shift = key * 2;
-        self.pkru_value = (self.pkru_value & !(3 << shift)) | (bits << shift);
-    }
-}
 
 /// Stats
 #[derive(Debug, Clone)]
@@ -179,7 +184,7 @@ impl BridgePkeyV2 {
     #[inline(always)]
     pub fn alloc(&mut self, key: u32, pid: u64, now: u64) {
         self.keys.insert(key, PkeyV2Entry::new(key, pid, now));
-        self.pkru_states.entry(pid).or_insert_with(|| PkruState::new(pid));
+        self.pkru_states.entry(pid).or_insert_with(|| PkruState::new());
     }
 
     #[inline(always)]
