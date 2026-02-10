@@ -8,7 +8,6 @@
 //! - Resource abuse prevention
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
@@ -249,7 +248,7 @@ impl RateLimiter {
     /// Set a per-type rate limit
     #[inline(always)]
     pub fn set_type_limit(&mut self, syscall_type: SyscallType, max_per_window: u64) {
-        self.type_limits.insert(syscall_type as u8, max_per_window);
+        self.type_limits.insert(syscall_type.disc(), max_per_window);
     }
 
     /// Check if a syscall should be rate-limited
@@ -277,11 +276,11 @@ impl RateLimiter {
         }
 
         state.count += 1;
-        *state.per_type.entry(syscall_type as u8).or_insert(0) += 1;
+        *state.per_type.entry(syscall_type.disc()).or_insert(0) += 1;
 
         // Check per-type limit
-        if let Some(&type_limit) = self.type_limits.get(&(syscall_type as u8)) {
-            if *state.per_type.get(&(syscall_type as u8)).unwrap_or(&0) > type_limit {
+        if let Some(&type_limit) = self.type_limits.get(&(syscall_type.disc())) {
+            if *state.per_type.get(&(syscall_type.disc())).unwrap_or(&0) > type_limit {
                 state.penalized = true;
                 state.penalty_until = current_time + self.config.penalty_ms;
                 state.rate_limited_count += 1;
@@ -365,7 +364,7 @@ pub struct SyscallAnomalyDetector {
     /// Per-process normal behavior profiles
     profiles: BTreeMap<u64, SyscallBehaviorProfile>,
     /// Detected anomalies
-    anomalies: VecDeque<AnomalyEvent>,
+    anomalies: Vec<AnomalyEvent>,
     /// Max anomalies to store
     max_anomalies: usize,
     /// Detection sensitivity (0.0 = lenient, 1.0 = strict)
@@ -403,11 +402,11 @@ impl SyscallBehaviorProfile {
         let alpha = 0.1; // EMA alpha
 
         // Update type frequency
-        let entry = self.expected_types.entry(syscall_type as u8).or_insert(0.0);
+        let entry = self.expected_types.entry(syscall_type.disc()).or_insert(0.0);
         *entry = *entry * (1.0 - alpha) + alpha;
 
         // Decay others
-        let key = syscall_type as u8;
+        let key = syscall_type.disc();
         for (k, v) in self.expected_types.iter_mut() {
             if *k != key {
                 *v *= 1.0 - alpha * 0.1;
@@ -424,7 +423,7 @@ impl SyscallAnomalyDetector {
     pub fn new(sensitivity: f64) -> Self {
         Self {
             profiles: BTreeMap::new(),
-            anomalies: VecDeque::new(),
+            anomalies: Vec::new(),
             max_anomalies: 1024,
             sensitivity: sensitivity.clamp(0.0, 1.0),
         }
@@ -469,7 +468,7 @@ impl SyscallAnomalyDetector {
             // Unusual type check
             let type_freq = profile
                 .expected_types
-                .get(&(syscall_type as u8))
+                .get(&(syscall_type.disc()))
                 .copied()
                 .unwrap_or(0.0);
             if type_freq < 0.01 * self.sensitivity && profile.samples > 500 {
@@ -502,9 +501,9 @@ impl SyscallAnomalyDetector {
         // Store anomalies
         for event in &events {
             if self.anomalies.len() >= self.max_anomalies {
-                self.anomalies.pop_front();
+                self.anomalies.remove(0);
             }
-            self.anomalies.push_back(event.clone());
+            self.anomalies.push(event.clone());
         }
 
         events
