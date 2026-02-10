@@ -13,7 +13,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use alloc::string::String;
 
 /// Resolution strategy
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -225,8 +224,10 @@ impl CoopConflictResolver {
         let mut resolved = Vec::new();
         for id in ids {
             if let Some(c) = self.conflicts.get(&id) {
-                if c.state == ConflictState::Detected || c.state == ConflictState::Retrying {
-                    if self.resolve(id, ts) { resolved.push(id); }
+                if (c.state == ConflictState::Detected || c.state == ConflictState::Retrying)
+                    && self.resolve(id, ts)
+                {
+                    resolved.push(id);
                 }
             }
         }
@@ -240,7 +241,7 @@ impl CoopConflictResolver {
 
     pub fn detect_cycles(&self) -> Vec<Vec<u64>> {
         let mut cycles = Vec::new();
-        let mut visited: LinearMap<u8, 64> = BTreeMap::new();
+        let mut visited: LinearMap<u8, 64> = LinearMap::new();
         let nodes: Vec<u64> = self.edges.iter().map(|e| e.from).collect();
         for n in &nodes { visited.entry(*n).or_insert(0); }
         // Simple DFS cycle detection
