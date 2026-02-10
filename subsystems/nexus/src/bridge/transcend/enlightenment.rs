@@ -170,7 +170,7 @@ impl BridgeEnlightenment {
             tradeoffs_transcended: 0,
             decisions_made: 0,
             tick: 0,
-            rng_state: seed ^ 0xE1IG_4700_CAFE,
+            rng_state: seed ^ 0xE11C_4700_CAFE,
             understanding_ema: 0.0,
             clarity_ema: 0.0,
             balance_ema: 0.0,
