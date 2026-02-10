@@ -301,7 +301,7 @@ impl IpcGraph {
     /// Processes with most connections
     #[inline]
     pub fn most_connected(&self) -> Vec<(u64, usize)> {
-        let mut counts: LinearMap<usize, 64> = BTreeMap::new();
+        let mut counts: LinearMap<usize, 64> = LinearMap::new();
         for edge in self.edges.values() {
             *counts.entry(edge.src).or_insert(0) += 1;
             *counts.entry(edge.dst).or_insert(0) += 1;
