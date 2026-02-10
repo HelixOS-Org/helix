@@ -402,7 +402,7 @@ pub struct TrustSnapshot {
     /// Trust level
     pub level: TrustLevel,
     /// Per-dimension scores
-    pub dimensions: Vec<(TrustDimension, f64, f64)>, // (dim, score, confidence)
+    pub dimensions: Vec<(TrustDimension, f64, f64)>, // (dim, score, confidence),
     /// Process age (seconds)
     pub age_secs: u64,
 }
@@ -462,7 +462,7 @@ impl TrustManager {
     pub fn get_trust(&self, pid: u64) -> Option<TrustSnapshot> {
         let profile = self.profiles.get(&pid)?;
 
-        let dimensions: Vec<(TrustDimension, f64, f64)> = vec![
+        let dimensions: Vec<(TrustDimension, f64, f64)> = alloc::vec![
             (TrustDimension::Behavioral, 0.0, 0.0),
             (TrustDimension::Resource, 0.0, 0.0),
             (TrustDimension::Communication, 0.0, 0.0),
