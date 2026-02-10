@@ -149,7 +149,7 @@ impl ProcessShieldState {
     pub fn record_violation(&mut self, violation: ViolationRecord) {
         self.violation_count += 1;
         if self.violations.len() >= self.max_violations {
-            self.violations.pop_front();
+            self.violations.remove(0);
         }
         self.violations.push_back(violation);
     }
