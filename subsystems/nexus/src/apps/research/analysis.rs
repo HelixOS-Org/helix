@@ -232,7 +232,7 @@ impl AppsAnalysisEngine {
         let entry = self.category_values.entry(String::from(category)).or_insert_with(Vec::new);
         entry.push(mean_t);
         if entry.len() > MAX_RESULTS {
-            entry.pop_front();
+            entry.remove(0);
         }
 
         if self.results.len() >= MAX_RESULTS {
@@ -366,7 +366,7 @@ impl AppsAnalysisEngine {
         };
 
         if self.comparisons.len() >= MAX_COMPARISONS {
-            self.comparisons.pop_front();
+            self.comparisons.remove(0);
         }
         self.comparisons.push_back(comparison.clone());
         Some(comparison)
@@ -430,7 +430,7 @@ impl AppsAnalysisEngine {
         };
 
         if self.summary_history.len() >= MAX_SUMMARY_HISTORY {
-            self.summary_history.pop_front();
+            self.summary_history.remove(0);
         }
         self.summary_history.push_back(summary.clone());
         summary
