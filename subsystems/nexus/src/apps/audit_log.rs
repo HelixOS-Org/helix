@@ -124,7 +124,7 @@ pub struct AuditLogStats {
 
 /// Main audit log manager
 pub struct AppAuditLog {
-    entries: VecDeque<AuditEntry>,
+    entries: Vec<AuditEntry>,
     rules: Vec<AuditRule>,
     max_entries: usize,
     sequence: u64,
@@ -141,7 +141,7 @@ pub struct AppAuditLog {
 impl AppAuditLog {
     pub fn new(max_entries: usize) -> Self {
         Self {
-            entries: VecDeque::new(), rules: Vec::new(),
+            entries: Vec::new(), rules: Vec::new(),
             max_entries, sequence: 0, enabled: true,
             lost_count: 0, backlog_limit: 8192,
             rate_limit_per_sec: 0, rate_window_start: 0,
@@ -190,7 +190,7 @@ impl AppAuditLog {
         if idx < 8 { self.severity_counts[idx] += 1; }
         self.category_counts.add(category as usize, 1);
 
-        self.entries.push_back(AuditEntry {
+        self.entries.push(AuditEntry {
             seq: self.sequence, timestamp: now, category, severity,
             pid, uid, syscall, result, message,
         });
