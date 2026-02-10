@@ -242,6 +242,8 @@ impl BridgeErrorRecovery {
         let pattern = self.patterns.entry(pattern_key)
             .or_insert_with(|| ErrorPattern::new(syscall_nr, category, now_ns));
         pattern.record(now_ns);
+        // Drop the mutable borrow on self.patterns before select_strategy
+        drop(pattern);
 
         // Store in recent
         let entry = SyscallError {
@@ -258,7 +260,8 @@ impl BridgeErrorRecovery {
         self.recent_pos += 1;
 
         // Determine strategy
-        let strategy = self.select_strategy(category, pattern);
+        let pattern_ref = self.patterns.get(&pattern_key).unwrap();
+        let strategy = self.select_strategy(category, pattern_ref);
         self.update_stats();
         strategy
     }
