@@ -4,7 +4,6 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Coop inode state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -198,7 +197,7 @@ impl CoopInodeV2Manager {
     }
 
     pub fn writeback(&mut self) -> usize {
-        let dirty: alloc::vec::Vec<u64> = self.dirty_set.keys().cloned().collect();
+        let dirty: alloc::vec::Vec<u64> = self.dirty_set.keys().collect();
         let count = dirty.len();
         for ino in dirty {
             if let Some(entry) = self.inodes.get_mut(&ino) {
