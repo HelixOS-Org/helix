@@ -475,7 +475,7 @@ impl TraceAnalyzer {
     #[inline]
     pub fn add_trace(&mut self, trace: Trace) {
         if self.traces.len() >= self.max_traces {
-            self.traces.pop_front();
+            self.traces.remove(0);
         }
         self.traces.push_back(trace);
     }
