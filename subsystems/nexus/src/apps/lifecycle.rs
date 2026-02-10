@@ -138,7 +138,7 @@ impl ProcessLifecycle {
     #[inline]
     pub fn record_event(&mut self, event: LifecycleEvent, timestamp: u64) {
         if self.events.len() >= 256 {
-            self.events.pop_front();
+            self.events.remove(0);
         }
         self.events.push_back((timestamp, event));
     }
@@ -153,17 +153,17 @@ impl ProcessLifecycle {
     ) {
         // Track recent metrics (keep last 30 samples)
         if self.recent_syscall_rates.len() >= 30 {
-            self.recent_syscall_rates.pop_front();
+            self.recent_syscall_rates.remove(0);
         }
         self.recent_syscall_rates.push_back(syscall_rate);
 
         if self.recent_cpu_usage.len() >= 30 {
-            self.recent_cpu_usage.pop_front();
+            self.recent_cpu_usage.remove(0);
         }
         self.recent_cpu_usage.push_back(cpu_usage);
 
         if self.recent_memory_usage.len() >= 30 {
-            self.recent_memory_usage.pop_front();
+            self.recent_memory_usage.remove(0);
         }
         self.recent_memory_usage.push_back(memory_bytes);
 
@@ -242,7 +242,7 @@ impl ProcessLifecycle {
         };
 
         if self.transitions.len() >= 128 {
-            self.transitions.pop_front();
+            self.transitions.remove(0);
         }
         self.transitions.push_back(transition);
 
@@ -365,7 +365,7 @@ impl LifecycleManager {
 
     fn log_global_event(&mut self, timestamp: u64, pid: u64, event: LifecycleEvent) {
         if self.global_events.len() >= self.max_global_events {
-            self.global_events.pop_front();
+            self.global_events.remove(0);
         }
         self.global_events.push_back((timestamp, pid, event));
     }
