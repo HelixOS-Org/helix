@@ -377,14 +377,13 @@ impl CondvarV3Instance {
         if self.waiters.is_empty() {
             return None;
         }
-        self.waiters.pop_front()
+        self.waiters.remove(0)
     }
 
     #[inline]
     pub fn broadcast_all(&mut self) -> Vec<CondvarV3Waiter> {
         self.broadcast_count += 1;
-        let mut all = Vec::new();
-        core::mem::swap(&mut all, &mut self.waiters);
+        let all: Vec<CondvarV3Waiter> = self.waiters.drain(..).collect();
         all
     }
 
