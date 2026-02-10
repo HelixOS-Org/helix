@@ -207,7 +207,7 @@ impl CoopAntiEntropyV2 {
         local == remote_hash
     }
 
-    pub fn find_divergences(&self, peer_id: u64, remote_keys: &BTreeMap<u64, u64>) -> Vec<Divergence> {
+    pub fn find_divergences(&self, _peer_id: u64, remote_keys: &BTreeMap<u64, u64>) -> Vec<Divergence> {
         let mut divs = Vec::new();
         // Keys in local but not remote or different
         for (&k, node) in &self.local_tree {
