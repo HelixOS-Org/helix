@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -106,7 +105,7 @@ pub struct ParadigmProposal {
     pub proposal_id: u64,
     pub name: String,
     pub description: String,
-    pub supporting_evidence: VecDeque<u64>,
+    pub supporting_evidence: Vec<u64>,
     pub viability_score: f32,
     pub improvement_estimate: f32,
     pub proposed_tick: u64,
@@ -178,9 +177,9 @@ pub struct ParadigmStats {
 /// Paradigm shift detection engine for app understanding.
 pub struct AppsParadigm {
     current_paradigm: String,
-    evidence: VecDeque<ParadigmEvidence>,
+    evidence: Vec<ParadigmEvidence>,
     proposals: BTreeMap<u64, ParadigmProposal>,
-    chronicle: VecDeque<ChronicleEntry>,
+    chronicle: Vec<ChronicleEntry>,
     status: ParadigmStatus,
     last_shift_tick: u64,
     stats: ParadigmStats,
@@ -193,9 +192,9 @@ impl AppsParadigm {
     pub fn new(seed: u64, initial_paradigm: &str) -> Self {
         Self {
             current_paradigm: String::from(initial_paradigm),
-            evidence: VecDeque::new(),
+            evidence: Vec::new(),
             proposals: BTreeMap::new(),
-            chronicle: VecDeque::new(),
+            chronicle: Vec::new(),
             status: ParadigmStatus::Stable,
             last_shift_tick: 0,
             stats: ParadigmStats {
@@ -302,9 +301,9 @@ impl AppsParadigm {
         };
 
         if self.evidence.len() >= MAX_EVIDENCE {
-            self.evidence.pop_front();
+            self.evidence.remove(0);
         }
-        self.evidence.push_back(evidence);
+        self.evidence.push(evidence);
 
         self.stats.ema_evidence_strength =
             EMA_ALPHA * clamped + (1.0 - EMA_ALPHA) * self.stats.ema_evidence_strength;
@@ -475,9 +474,9 @@ impl AppsParadigm {
         });
 
         if self.chronicle.len() >= MAX_CHRONICLE {
-            self.chronicle.pop_front();
+            self.chronicle.remove(0);
         }
-        self.chronicle.push_back(entry);
+        self.chronicle.push(entry);
 
         // Remove the executed proposal
         self.proposals.remove(&proposal_id);
