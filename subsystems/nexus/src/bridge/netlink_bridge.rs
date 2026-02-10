@@ -255,7 +255,7 @@ impl NlV2Socket {
 
     #[inline(always)]
     pub fn dequeue(&mut self) -> Option<NlV2Message> {
-        if self.recv_queue.is_empty() { None } else { self.recv_count += 1; self.recv_queue.pop_front() }
+        if self.recv_queue.is_empty() { None } else { self.recv_count += 1; self.recv_queue.remove(0) }
     }
 }
 
