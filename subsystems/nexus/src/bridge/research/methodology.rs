@@ -249,7 +249,7 @@ impl BridgeMethodology {
                 return MethodologyCheck {
                     experiment_id,
                     checks_passed: Vec::new(),
-                    issues: vec![String::from("Experiment not found")],
+                    issues: alloc::vec![String::from("Experiment not found")],
                     overall_score: 0.0,
                     passed: false,
                     sample_adequate: false,
