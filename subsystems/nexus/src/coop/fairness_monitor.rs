@@ -116,7 +116,7 @@ impl ResourceFairness {
 
     /// Recompute fairness metrics
     pub fn recompute(&mut self) {
-        let values: Vec<f64> = self.allocations.values().cloned().collect();
+        let values: Vec<f64> = self.allocations.values().collect();
         let n = values.len();
         if n < 2 {
             self.jains_index = 1.0;
@@ -177,7 +177,7 @@ impl ResourceFairness {
 
         // Track history
         if self.jains_history.len() >= 128 {
-            self.jains_history.pop_front();
+            self.jains_history.remove(0);
         }
         self.jains_history.push_back(self.jains_index);
     }
@@ -205,8 +205,8 @@ impl ResourceFairness {
 
         self.allocations
             .iter()
-            .filter(|(_, &v)| v < fair_share * threshold)
-            .map(|(&pid, _)| pid)
+            .filter(|(_, v)| *v < fair_share * threshold)
+            .map(|(pid, _)| pid)
             .collect()
     }
 }
@@ -282,9 +282,9 @@ impl CoopFairnessMonitor {
             let starved = rf.detect_starvation(threshold);
             for pid in starved {
                 if self.alerts.len() >= 256 {
-                    self.alerts.pop_front();
+                    self.alerts.remove(0);
                 }
-                let alloc = rf.allocations.get(&pid).cloned().unwrap_or(0.0);
+                let alloc = rf.allocations.get(pid).unwrap_or(0.0);
                 let total: f64 = rf.allocations.values().sum();
                 let fair = total / rf.allocations.len().max(1) as f64;
                 self.alerts.push_back(StarvationAlert {
