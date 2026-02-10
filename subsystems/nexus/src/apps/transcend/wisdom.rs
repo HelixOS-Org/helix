@@ -382,11 +382,12 @@ impl AppsWisdom {
         let ctx_hash = fnv1a(context_label.as_bytes());
         let advice_hash = fnv1a(advice_label.as_bytes());
         let entry_id = ctx_hash ^ advice_hash ^ self.tick;
+        let tick = self.tick;
 
         if let Some(existing) = self.find_matching_entry_mut(ctx_hash, advice_hash) {
             existing.success_rate = ema_update(existing.success_rate, outcome);
             existing.application_count += 1;
-            existing.last_applied_tick = self.tick;
+            existing.last_applied_tick = tick;
             existing.confidence = (existing.application_count * 5).min(100);
             return;
         }
@@ -421,15 +422,20 @@ impl AppsWisdom {
         ctx_hash: u64,
         advice_hash: u64,
     ) -> Option<&mut WisdomEntry> {
-        let ids = self.context_index.get(&ctx_hash)?;
-        for eid in ids {
-            if let Some(entry) = self.entries.get_mut(eid) {
-                if entry.advice_hash == advice_hash {
-                    return Some(entry);
+        let matching_eid = {
+            let ids = self.context_index.get(&ctx_hash)?;
+            let mut found = None;
+            for eid in ids {
+                if let Some(entry) = self.entries.get(eid) {
+                    if entry.advice_hash == advice_hash {
+                        found = Some(*eid);
+                        break;
+                    }
                 }
             }
-        }
-        None
+            found?
+        };
+        self.entries.get_mut(&matching_eid)
     }
 
     fn matching_wisdom_entries(&self, topic_hash: u64) -> Vec<&WisdomEntry> {
