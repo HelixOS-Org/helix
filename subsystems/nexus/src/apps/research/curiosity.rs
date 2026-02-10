@@ -371,7 +371,7 @@ impl AppsCuriosityEngine {
         };
 
         if self.reward_history.len() >= MAX_HISTORY {
-            self.reward_history.pop_front();
+            self.reward_history.remove(0);
         }
         self.reward_history.push_back(record.clone());
         record
