@@ -187,10 +187,8 @@ impl AppKmodUsage {
             if !self.requested_modules.contains(&mod_id) {
                 self.requested_modules.push(mod_id);
             }
-        } else {
-            if !self.denied_modules.contains(&mod_id) {
-                self.denied_modules.push(mod_id);
-            }
+        } else if !self.denied_modules.contains(&mod_id) {
+            self.denied_modules.push(mod_id);
         }
     }
 
