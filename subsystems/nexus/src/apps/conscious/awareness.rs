@@ -243,6 +243,7 @@ impl AppsAwareness {
             .entry(process_id)
             .or_insert_with(|| ProcessAwareness::new(process_id, String::from(process_name)));
         proc_entry.observe(behavior_hash, matched_known, self.tick);
+        let proc_novelty = proc_entry.novelty;
 
         // Update global awareness EMA
         let avg: f32 = self.processes.values().map(|p| p.awareness).sum::<f32>()
@@ -250,12 +251,12 @@ impl AppsAwareness {
         self.global_awareness_ema = EMA_ALPHA * avg + (1.0 - EMA_ALPHA) * self.global_awareness_ema;
 
         // Trigger novelty response if novelty exceeds threshold
-        if proc_entry.novelty > NOVELTY_THRESHOLD && !matched_known {
+        if proc_novelty > NOVELTY_THRESHOLD && !matched_known {
             self.total_novelty_events += 1;
             let event = NoveltyEvent {
                 process_id,
                 process_name: String::from(process_name),
-                novelty_score: proc_entry.novelty,
+                novelty_score: proc_novelty,
                 behavior_hash,
                 tick: self.tick,
             };
