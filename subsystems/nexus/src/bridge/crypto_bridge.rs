@@ -222,7 +222,7 @@ impl BridgeCrypto {
         if req.latency_ns > entry.peak_latency_ns { entry.peak_latency_ns = req.latency_ns; }
         entry.avg_latency_ns = ((entry.avg_latency_ns * (entry.total_ops - 1)) + req.latency_ns) / entry.total_ops;
 
-        if self.requests.len() >= self.max_requests { self.requests.pop_front(); }
+        if self.requests.len() >= self.max_requests { self.requests.remove(0); }
         self.requests.push_back(req);
     }
 
