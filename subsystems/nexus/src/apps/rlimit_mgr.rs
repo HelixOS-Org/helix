@@ -96,7 +96,7 @@ pub struct ProcessLimits {
 impl ProcessLimits {
     pub fn new(pid: u32) -> Self {
         Self {
-            pid, limits: BTreeMap::new(), current_usage: BTreeMap::new(),
+            pid, limits: BTreeMap::new(), current_usage: ArrayMap::new(0),
             violation_count: 0, last_violation: 0,
         }
     }
@@ -170,7 +170,8 @@ impl ProcessLimits {
         ];
         for &res in &resources {
             let key = res as u32;
-            if let (Some(lim), Some(&usage)) = (self.limits.get(&key), self.current_usage.get(&key)) {
+            let usage = self.current_usage.get(key as usize);
+            if let Some(lim) = self.limits.get(&key) {
                 let util = lim.utilization(usage);
                 if util >= threshold { result.push((res, util)); }
             }
@@ -243,7 +244,7 @@ impl AppRlimitMgr {
                     pid, resource: res, current: value, limit: soft,
                     timestamp: now, was_hard: !proc_limits.check_hard(res, value),
                 };
-                if self.violations.len() >= self.max_violations { self.violations.pop_front(); }
+                if self.violations.len() >= self.max_violations { self.violations.remove(0); }
                 self.violations.push_back(violation);
                 return false;
             }
