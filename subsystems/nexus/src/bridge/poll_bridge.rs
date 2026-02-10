@@ -52,6 +52,7 @@ impl PollEvents {
 
 /// Poll syscall variant
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
 pub enum PollVariant {
     Select,
     Poll,
@@ -197,7 +198,7 @@ impl BridgePollBridge {
                 fs.avg_wait_ns = if fs.poll_count == 0 { 0 } else { fs.total_wait_ns / fs.poll_count };
             }
         }
-        if self.requests.len() > self.max_requests { self.requests.pop_front(); }
+        if self.requests.len() > self.max_requests { self.requests.remove(0); }
     }
 
     pub fn recompute(&mut self) {
@@ -369,7 +370,7 @@ impl BridgePollV2 {
 
     #[inline(always)]
     pub fn most_polled_fd(&self) -> Option<(i32, u64)> {
-        self.fd_history.iter().max_by_key(|(_, &v)| v).map(|(&k, &v)| (k, v))
+        self.fd_history.iter().max_by_key(|&(_, &v)| v).map(|(&k, &v)| (k, v))
     }
 
     #[inline(always)]
