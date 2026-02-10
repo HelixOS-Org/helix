@@ -2,7 +2,6 @@
 //! NEXUS Apps — Chown App (file ownership change tracking)
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
@@ -102,7 +101,7 @@ impl AppChown {
             pid, variant, result: ChownResult::Success, tick,
         };
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(record);
         ChownResult::Success
