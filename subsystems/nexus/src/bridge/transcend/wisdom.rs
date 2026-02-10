@@ -103,7 +103,7 @@ pub struct WisdomEntry {
 #[repr(align(64))]
 pub struct ContextualAdvice {
     pub context: String,
-    pub candidates: Vec<(u64, f32)>, // wisdom_id, relevance
+    pub candidates: Vec<(u64, f32)>, // wisdom_id, relevance,
     pub best_advice: Option<String>,
     pub best_confidence: f32,
 }
@@ -174,7 +174,7 @@ impl ContextIndex {
 
     fn lookup(&self, tags: &[String]) -> Vec<(u64, usize)> {
         // Returns wisdom_ids with a count of how many tags matched
-        let mut hits: LinearMap<usize, 64> = BTreeMap::new();
+        let mut hits: LinearMap<usize, 64> = LinearMap::new();
         for tag in tags {
             let h = fnv1a_hash(tag.as_bytes());
             if let Some(ids) = self.tag_to_entries.get(&h) {
