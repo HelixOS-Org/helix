@@ -135,7 +135,7 @@ impl CoopIntrusiveList {
 
     #[inline(always)]
     pub fn pop_front(&mut self, list: usize) -> Option<u64> {
-        if list < self.lists.len() { self.lists[list].pop_front() } else { None }
+        if list < self.lists.len() { self.lists[list].remove(0) } else { None }
     }
 
     #[inline]
