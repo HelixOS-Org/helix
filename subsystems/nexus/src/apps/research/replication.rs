@@ -299,7 +299,7 @@ impl AppsReplication {
 
         let attempt_list = self.attempts.entry(finding_id).or_insert_with(Vec::new);
         if attempt_list.len() >= MAX_REPLICATIONS_PER_FINDING {
-            attempt_list.pop_front();
+            attempt_list.remove(0);
         }
         attempt_list.push(attempt.clone());
 
@@ -337,7 +337,7 @@ impl AppsReplication {
 
         let cond_list = self.conditions.entry(finding_id).or_insert_with(Vec::new);
         if cond_list.len() >= MAX_REPLICATIONS_PER_FINDING {
-            cond_list.pop_front();
+            cond_list.remove(0);
         }
         cond_list.push(cond.clone());
         Some(cond)
@@ -438,7 +438,7 @@ impl AppsReplication {
         };
 
         if self.report_history.len() >= MAX_REPORT_HISTORY {
-            self.report_history.pop_front();
+            self.report_history.remove(0);
         }
         self.report_history.push_back(report.clone());
         Some(report)
