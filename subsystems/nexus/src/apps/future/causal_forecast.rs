@@ -17,7 +17,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -262,14 +261,14 @@ impl AppCausalState {
     fn record_action(&mut self, action: AppActionType, tick: u64) {
         self.recent_actions.push_back((action, tick));
         if self.recent_actions.len() > 64 {
-            self.recent_actions.pop_front();
+            self.recent_actions.remove(0);
         }
     }
 
     fn record_effect(&mut self, effect: SystemEffect, tick: u64) {
         self.recent_effects.push_back((effect, tick));
         if self.recent_effects.len() > 64 {
-            self.recent_effects.pop_front();
+            self.recent_effects.remove(0);
         }
         // Check for causal linkage: any recent action within 10 ticks
         for &(action, a_tick) in self.recent_actions.iter().rev() {
