@@ -13,10 +13,11 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -221,7 +222,7 @@ impl BridgeDreamEngine {
         self.sequence_counter += 1;
 
         if self.replay_buffer.len() >= MAX_REPLAY_EVENTS {
-            self.replay_buffer.pop_front();
+            self.replay_buffer.remove(0);
         }
 
         let event = ReplayEvent {
@@ -240,10 +241,11 @@ impl BridgeDreamEngine {
     #[inline]
     pub fn idle_detected(&mut self, cpu_utilization: f32) -> bool {
         self.current_tick += 1;
-        if cpu_utilization < IDLE_THRESHOLD && self.current_phase == DreamPhase::Waiting {
-            if self.replay_buffer.len() >= MIN_REPLAY_LENGTH {
-                return true;
-            }
+        if cpu_utilization < IDLE_THRESHOLD
+            && self.current_phase == DreamPhase::Waiting
+            && self.replay_buffer.len() >= MIN_REPLAY_LENGTH
+        {
+            return true;
         }
         false
     }
@@ -473,7 +475,7 @@ impl BridgeDreamEngine {
         // Archive the session
         if let Some(session) = self.current_session.take() {
             if self.sessions.len() >= MAX_DREAM_SESSIONS {
-                self.sessions.pop_front();
+                self.sessions.remove(0);
             }
             self.sessions.push_back(session);
         }
@@ -521,7 +523,9 @@ impl BridgeDreamEngine {
     pub fn decay_consolidated(&mut self, decay_amount: f32) {
         let mut to_remove = Vec::new();
         for (&hash, pattern) in self.consolidated.iter_mut() {
-            let age = self.current_tick.saturating_sub(pattern.last_consolidated_tick);
+            let age = self
+                .current_tick
+                .saturating_sub(pattern.last_consolidated_tick);
             let age_factor = 1.0 / (1.0 + age as f32 / 1000.0);
             pattern.strength = (pattern.strength - decay_amount * (1.0 - age_factor)).max(0.0);
             if pattern.strength < 0.01 {
