@@ -4,7 +4,6 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Session entry
 #[derive(Debug, Clone)]
@@ -81,7 +80,7 @@ impl AppSetsidManager {
 
     #[inline(always)]
     pub fn getsid(&self, pid: u64) -> Option<u64> {
-        self.pid_to_sid.get(pid).cloned()
+        self.pid_to_sid.get(pid)
     }
 
     #[inline]
