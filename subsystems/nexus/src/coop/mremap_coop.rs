@@ -48,7 +48,7 @@ pub struct AddressNegotiation {
     pub initiator: u64,
     pub affected_pids: Vec<u64>,
     pub proposed_range: (u64, u64),
-    pub conflicts: Vec<(u64, u64, u64)>, // (pid, overlap_start, overlap_end)
+    pub conflicts: Vec<(u64, u64, u64)>, // (pid, overlap_start, overlap_end),
     pub resolved: bool,
 }
 
