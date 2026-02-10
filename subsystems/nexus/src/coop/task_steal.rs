@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Task priority for steal ordering
@@ -107,7 +106,7 @@ impl StealTask {
 #[repr(align(64))]
 pub struct WorkQueue {
     pub cpu_id: u32,
-    pub tasks: VecDeque<StealTask>,
+    pub tasks: Vec<StealTask>,
     pub capacity: u32,
     pub total_enqueued: u64,
     pub total_dequeued: u64,
@@ -118,7 +117,7 @@ pub struct WorkQueue {
 impl WorkQueue {
     pub fn new(cpu_id: u32, capacity: u32) -> Self {
         Self {
-            cpu_id, tasks: VecDeque::new(), capacity,
+            cpu_id, tasks: Vec::new(), capacity,
             total_enqueued: 0, total_dequeued: 0,
             total_stolen_from: 0, total_stolen_to: 0,
         }
@@ -127,7 +126,7 @@ impl WorkQueue {
     #[inline]
     pub fn push(&mut self, task: StealTask) -> bool {
         if self.tasks.len() as u32 >= self.capacity { return false; }
-        self.tasks.push_back(task);
+        self.tasks.push(task);
         self.total_enqueued += 1;
         true
     }
@@ -136,7 +135,7 @@ impl WorkQueue {
     pub fn pop(&mut self) -> Option<StealTask> {
         if self.tasks.is_empty() { return None; }
         self.total_dequeued += 1;
-        self.tasks.pop_front()
+        Some(self.tasks.remove(0))
     }
 
     #[inline]
