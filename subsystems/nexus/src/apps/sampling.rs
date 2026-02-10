@@ -103,13 +103,13 @@ impl AddressHistogram {
     /// Record hit
     #[inline(always)]
     pub fn record(&mut self, addr: u64, weight: u32) {
-        self.hits.add(addr, weight);
+        self.hits.add(addr, weight as u64);
         self.total += weight as u64;
     }
 
     /// Top N addresses
     pub fn top_n(&self, n: usize) -> Vec<(u64, u64, f64)> {
-        let mut entries: Vec<_> = self.hits.iter().map(|(&a, &c)| (a, c)).collect();
+        let mut entries: Vec<_> = self.hits.iter().map(|(a, c)| (a, c)).collect();
         entries.sort_by(|a, b| b.1.cmp(&a.1));
         entries.truncate(n);
         entries
@@ -187,19 +187,19 @@ impl CallGraph {
         }
         // Self-weight to the top of stack (leaf)
         let leaf = stack[stack.len() - 1];
-        self.self_weight.add(leaf, weight);
+        self.self_weight.add(leaf, weight as u64);
         self.total_weight += weight as u64;
 
         // Edges from bottom to top
         for i in 0..stack.len() - 1 {
             let key = Self::edge_key(stack[i], stack[i + 1]);
-            self.edges.add(key, weight);
+            self.edges.add(key, weight as u64);
         }
     }
 
     /// Hot functions (by self time)
     pub fn hot_functions(&self, limit: usize) -> Vec<(u64, u64, f64)> {
-        let mut funcs: Vec<_> = self.self_weight.iter().map(|(&a, &w)| (a, w)).collect();
+        let mut funcs: Vec<_> = self.self_weight.iter().map(|(a, w)| (a, w)).collect();
         funcs.sort_by(|a, b| b.1.cmp(&a.1));
         funcs.truncate(limit);
         funcs
