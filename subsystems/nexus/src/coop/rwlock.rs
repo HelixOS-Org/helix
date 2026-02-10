@@ -57,7 +57,7 @@ impl RwLockInstance {
         }
     }
 
-    pub fn try_read(&mut self, tid: u64) -> bool {
+    pub fn try_read(&mut self, _tid: u64) -> bool {
         match self.state {
             RwLockState::Free | RwLockState::ReadLocked => {
                 if self.fairness == RwLockFairness::WriterPreferred && self.waiters.iter().any(|w| w.wants_write) {
