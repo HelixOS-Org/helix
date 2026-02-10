@@ -2,8 +2,6 @@
 //! Bridge BIO — block I/O submission bridge
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// BIO bridge operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
