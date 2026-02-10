@@ -220,7 +220,7 @@ impl TelemetryCollector {
 
         // Check buffer limit
         if self.points.len() >= self.config.max_points {
-            self.points.pop_front();
+            self.points.remove(0);
             self.stats.points_dropped += 1;
         }
 
@@ -320,7 +320,7 @@ impl TelemetryCollector {
 
         // Check buffer limit
         if self.events.len() >= self.config.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
             self.stats.events_dropped += 1;
         }
 
