@@ -10,16 +10,16 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-
 // ============================================================================
 // GOSSIP MESSAGE TYPES
 // ============================================================================
-
 /// Gossip message type
+use alloc::string::String;
+use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
+use crate::fast::linear_map::LinearMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GossipMessageType {
     /// Regular state update
@@ -91,13 +91,13 @@ impl VectorClock {
     /// Get clock for node
     #[inline(always)]
     pub fn get(&self, node: u32) -> u64 {
-        self.clocks.try_get(node as usize).copied().unwrap_or(0)
+        self.clocks.try_get(node as usize).unwrap_or(0)
     }
 
     /// Merge with other clock (take max)
     #[inline]
     pub fn merge(&mut self, other: &VectorClock) {
-        for (&node, &time) in &other.clocks {
+        for (node, time) in other.clocks.iter() {
             let entry = self.clocks.entry(node).or_insert(0);
             if time > *entry {
                 *entry = time;
@@ -108,8 +108,8 @@ impl VectorClock {
     /// Check if this clock happened-before other
     pub fn happened_before(&self, other: &VectorClock) -> bool {
         let mut at_least_one_less = false;
-        for (&node, &time) in &self.clocks {
-            let other_time = other.get(node);
+        for (node, time) in self.clocks.iter() {
+            let other_time = other.get(node as u32);
             if time > other_time {
                 return false;
             }
@@ -118,8 +118,8 @@ impl VectorClock {
             }
         }
         // Check nodes in other but not in self
-        for (&node, &time) in &other.clocks {
-            if !self.clocks.contains_key(&node) && time > 0 {
+        for (node, time) in other.clocks.iter() {
+            if !self.clocks.contains_key(node) && time > 0 {
                 at_least_one_less = true;
             }
         }
@@ -129,7 +129,21 @@ impl VectorClock {
     /// Are these concurrent?
     #[inline(always)]
     pub fn concurrent(&self, other: &VectorClock) -> bool {
-        !self.happened_before(other) && !other.happened_before(self) && self.clocks != other.clocks
+        if self.happened_before(other) || other.happened_before(self) {
+            return false;
+        }
+        // Check if clocks differ
+        for (node, time) in self.clocks.iter() {
+            if other.clocks.try_get(node).unwrap_or(0) != time {
+                return true;
+            }
+        }
+        for (node, time) in other.clocks.iter() {
+            if self.clocks.try_get(node).unwrap_or(0) != time {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -166,7 +180,7 @@ pub struct GossipNode {
     /// Vector clock
     pub vclock: VectorClock,
     /// Key-value state
-    pub state: BTreeMap<u64, (u64, u64)>, // key → (value, version)
+    pub state: BTreeMap<u64, (u64, u64)>, // key → (value, version),
     /// Rumor buffer (unconfirmed messages)
     pub rumors: Vec<GossipMessage>,
     /// Suspected by nodes
@@ -213,7 +227,8 @@ impl GossipNode {
     /// Check if suspect
     #[inline]
     pub fn check_suspect(&mut self, now: u64, timeout_ms: u64) -> bool {
-        if self.health == NodeHealth::Alive && now.saturating_sub(self.last_heartbeat) > timeout_ms {
+        if self.health == NodeHealth::Alive && now.saturating_sub(self.last_heartbeat) > timeout_ms
+        {
             self.health = NodeHealth::Suspected;
             true
         } else {
@@ -366,15 +381,11 @@ impl CoopGossipManager {
                 if let Some(node) = self.nodes.get_mut(&msg.source) {
                     node.heartbeat(now);
                 }
-            }
+            },
             GossipMessageType::StateUpdate => {
                 // Merge state
                 if let Some(node) = self.nodes.get_mut(&msg.source) {
-                    let existing_version = node
-                        .state
-                        .get(&msg.key)
-                        .map(|(_, v)| *v)
-                        .unwrap_or(0);
+                    let existing_version = node.state.get(&msg.key).map(|(_, v)| *v).unwrap_or(0);
 
                     if msg.version > existing_version {
                         node.state.insert(msg.key, (msg.value, msg.version));
@@ -387,18 +398,18 @@ impl CoopGossipManager {
                     forwarded.ttl -= 1;
                     self.outbox.push(forwarded);
                 }
-            }
+            },
             GossipMessageType::Join => {
                 if !self.nodes.contains_key(&msg.source) {
                     self.add_node(msg.source, now);
                 }
-            }
+            },
             GossipMessageType::Leave => {
                 if let Some(node) = self.nodes.get_mut(&msg.source) {
                     node.health = NodeHealth::Dead;
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -442,7 +453,7 @@ impl CoopGossipManager {
         let alive: Vec<u32> = self
             .nodes
             .iter()
-            .filter(|(&id, n)| id != self.local_id && n.health == NodeHealth::Alive)
+            .filter(|&(&id, n)| id != self.local_id && n.health == NodeHealth::Alive)
             .map(|(id, _)| *id)
             .collect();
 
@@ -596,19 +607,30 @@ pub struct Rumor {
 impl Rumor {
     pub fn new(id: u64, key: String, version: u64, origin: u64, ts: u64) -> Self {
         Self {
-            id, key, version, origin_node: origin, payload_hash: 0,
-            created_ts: ts, infections: 0, max_infections: 10, is_expired: false,
+            id,
+            key,
+            version,
+            origin_node: origin,
+            payload_hash: 0,
+            created_ts: ts,
+            infections: 0,
+            max_infections: 10,
+            is_expired: false,
         }
     }
 
     #[inline(always)]
     pub fn infect(&mut self) {
         self.infections += 1;
-        if self.infections >= self.max_infections { self.is_expired = true; }
+        if self.infections >= self.max_infections {
+            self.is_expired = true;
+        }
     }
 
     #[inline(always)]
-    pub fn should_spread(&self) -> bool { !self.is_expired }
+    pub fn should_spread(&self) -> bool {
+        !self.is_expired
+    }
 }
 
 /// Gossip peer state
@@ -632,24 +654,40 @@ pub struct GossipPeer {
 impl GossipPeer {
     pub fn new(node_id: u64) -> Self {
         Self {
-            node_id, liveness: LivenessState::Alive, incarnation: 0,
-            last_ping_ts: 0, last_ack_ts: 0, ping_req_targets: Vec::new(),
-            suspicion_ts: None, suspicion_confirmers: Vec::new(),
-            suspicion_timeout_ns: 10_000_000_000, msgs_sent: 0, msgs_recv: 0,
-            round_trip_ns: 0, min_rtt_ns: u64::MAX,
+            node_id,
+            liveness: LivenessState::Alive,
+            incarnation: 0,
+            last_ping_ts: 0,
+            last_ack_ts: 0,
+            ping_req_targets: Vec::new(),
+            suspicion_ts: None,
+            suspicion_confirmers: Vec::new(),
+            suspicion_timeout_ns: 10_000_000_000,
+            msgs_sent: 0,
+            msgs_recv: 0,
+            round_trip_ns: 0,
+            min_rtt_ns: u64::MAX,
         }
     }
 
     #[inline(always)]
-    pub fn ping(&mut self, ts: u64) { self.last_ping_ts = ts; self.msgs_sent += 1; }
+    pub fn ping(&mut self, ts: u64) {
+        self.last_ping_ts = ts;
+        self.msgs_sent += 1;
+    }
 
     #[inline]
     pub fn ack(&mut self, ts: u64) {
         self.last_ack_ts = ts;
         self.msgs_recv += 1;
         self.round_trip_ns = ts.saturating_sub(self.last_ping_ts);
-        if self.round_trip_ns < self.min_rtt_ns { self.min_rtt_ns = self.round_trip_ns; }
-        if self.liveness == LivenessState::Suspected { self.liveness = LivenessState::Alive; self.suspicion_ts = None; }
+        if self.round_trip_ns < self.min_rtt_ns {
+            self.min_rtt_ns = self.round_trip_ns;
+        }
+        if self.liveness == LivenessState::Suspected {
+            self.liveness = LivenessState::Alive;
+            self.suspicion_ts = None;
+        }
     }
 
     #[inline]
@@ -672,11 +710,15 @@ impl GossipPeer {
     pub fn is_suspicion_expired(&self, now: u64) -> bool {
         if let Some(ts) = self.suspicion_ts {
             now.saturating_sub(ts) >= self.suspicion_timeout_ns
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn mark_dead(&mut self) { self.liveness = LivenessState::Dead; }
+    pub fn mark_dead(&mut self) {
+        self.liveness = LivenessState::Dead;
+    }
 }
 
 /// Digest entry for push-pull
@@ -721,10 +763,17 @@ pub struct CoopGossipV2 {
 impl CoopGossipV2 {
     pub fn new(self_id: u64, fanout: u32, interval_ns: u64) -> Self {
         Self {
-            self_id, peers: BTreeMap::new(), rumors: BTreeMap::new(),
-            state_versions: LinearMap::new(), stats: GossipV2Stats::default(),
-            next_id: 1, fanout, gossip_interval_ns: interval_ns,
-            last_gossip_ts: 0, incarnation: 1, rng_state: self_id ^ 0xdeadbeef,
+            self_id,
+            peers: BTreeMap::new(),
+            rumors: BTreeMap::new(),
+            state_versions: LinearMap::new(),
+            stats: GossipV2Stats::default(),
+            next_id: 1,
+            fanout,
+            gossip_interval_ns: interval_ns,
+            last_gossip_ts: 0,
+            incarnation: 1,
+            rng_state: self_id ^ 0xdeadbeef,
         }
     }
 
@@ -737,22 +786,35 @@ impl CoopGossipV2 {
 
     #[inline(always)]
     pub fn add_peer(&mut self, node_id: u64) {
-        self.peers.entry(node_id).or_insert_with(|| GossipPeer::new(node_id));
+        self.peers
+            .entry(node_id)
+            .or_insert_with(|| GossipPeer::new(node_id));
     }
 
     #[inline(always)]
-    pub fn remove_peer(&mut self, node_id: u64) { self.peers.remove(&node_id); }
+    pub fn remove_peer(&mut self, node_id: u64) {
+        self.peers.remove(&node_id);
+    }
 
     #[inline]
     pub fn spread_rumor(&mut self, key: String, version: u64, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.rumors.insert(id, Rumor::new(id, key, version, self.self_id, ts));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.rumors
+            .insert(id, Rumor::new(id, key, version, self.self_id, ts));
         id
     }
 
     pub fn select_targets(&mut self) -> Vec<u64> {
-        let alive: Vec<u64> = self.peers.values().filter(|p| p.liveness == LivenessState::Alive).map(|p| p.node_id).collect();
-        if alive.is_empty() { return Vec::new(); }
+        let alive: Vec<u64> = self
+            .peers
+            .values()
+            .filter(|p| p.liveness == LivenessState::Alive)
+            .map(|p| p.node_id)
+            .collect();
+        if alive.is_empty() {
+            return Vec::new();
+        }
         let mut targets = Vec::new();
         let n = (self.fanout as usize).min(alive.len());
         let mut indices: Vec<usize> = (0..alive.len()).collect();
@@ -766,26 +828,37 @@ impl CoopGossipV2 {
 
     #[inline(always)]
     pub fn ping(&mut self, target: u64, ts: u64) {
-        if let Some(p) = self.peers.get_mut(&target) { p.ping(ts); }
+        if let Some(p) = self.peers.get_mut(&target) {
+            p.ping(ts);
+        }
     }
 
     #[inline(always)]
     pub fn receive_ack(&mut self, from: u64, ts: u64) {
-        if let Some(p) = self.peers.get_mut(&from) { p.ack(ts); }
+        if let Some(p) = self.peers.get_mut(&from) {
+            p.ack(ts);
+        }
     }
 
     #[inline(always)]
     pub fn suspect_node(&mut self, node_id: u64, ts: u64) {
-        if let Some(p) = self.peers.get_mut(&node_id) { p.suspect(ts); }
+        if let Some(p) = self.peers.get_mut(&node_id) {
+            p.suspect(ts);
+        }
     }
 
     #[inline]
     pub fn check_suspicions(&mut self, now: u64) {
-        let expired: Vec<u64> = self.peers.values()
+        let expired: Vec<u64> = self
+            .peers
+            .values()
             .filter(|p| p.liveness == LivenessState::Suspected && p.is_suspicion_expired(now))
-            .map(|p| p.node_id).collect();
+            .map(|p| p.node_id)
+            .collect();
         for id in expired {
-            if let Some(p) = self.peers.get_mut(&id) { p.mark_dead(); }
+            if let Some(p) = self.peers.get_mut(&id) {
+                p.mark_dead();
+            }
         }
     }
 
@@ -799,13 +872,22 @@ impl CoopGossipV2 {
         self.stats.gossip_rounds += 1;
         self.last_gossip_ts = now;
         // Age rumors
-        let expired: Vec<u64> = self.rumors.iter().filter(|(_, r)| r.is_expired).map(|(&id, _)| id).collect();
-        for id in expired { self.rumors.remove(&id); }
+        let expired: Vec<u64> = self
+            .rumors
+            .iter()
+            .filter(|(_, r)| r.is_expired)
+            .map(|(&id, _)| id)
+            .collect();
+        for id in expired {
+            self.rumors.remove(&id);
+        }
     }
 
     #[inline(always)]
     pub fn infect_rumor(&mut self, rumor_id: u64) {
-        if let Some(r) = self.rumors.get_mut(&rumor_id) { r.infect(); }
+        if let Some(r) = self.rumors.get_mut(&rumor_id) {
+            r.infect();
+        }
     }
 
     #[inline(always)]
@@ -815,19 +897,44 @@ impl CoopGossipV2 {
 
     pub fn recompute(&mut self) {
         self.stats.total_peers = self.peers.len();
-        self.stats.alive_peers = self.peers.values().filter(|p| p.liveness == LivenessState::Alive).count();
-        self.stats.suspected_peers = self.peers.values().filter(|p| p.liveness == LivenessState::Suspected).count();
-        self.stats.dead_peers = self.peers.values().filter(|p| p.liveness == LivenessState::Dead).count();
+        self.stats.alive_peers = self
+            .peers
+            .values()
+            .filter(|p| p.liveness == LivenessState::Alive)
+            .count();
+        self.stats.suspected_peers = self
+            .peers
+            .values()
+            .filter(|p| p.liveness == LivenessState::Suspected)
+            .count();
+        self.stats.dead_peers = self
+            .peers
+            .values()
+            .filter(|p| p.liveness == LivenessState::Dead)
+            .count();
         self.stats.active_rumors = self.rumors.values().filter(|r| !r.is_expired).count();
         self.stats.expired_rumors = self.rumors.values().filter(|r| r.is_expired).count();
         self.stats.total_msgs_sent = self.peers.values().map(|p| p.msgs_sent).sum();
         self.stats.total_msgs_recv = self.peers.values().map(|p| p.msgs_recv).sum();
-        let alive_rtts: Vec<u64> = self.peers.values().filter(|p| p.round_trip_ns > 0).map(|p| p.round_trip_ns).collect();
-        self.stats.avg_rtt_ns = if alive_rtts.is_empty() { 0.0 } else { alive_rtts.iter().sum::<u64>() as f64 / alive_rtts.len() as f64 };
+        let alive_rtts: Vec<u64> = self
+            .peers
+            .values()
+            .filter(|p| p.round_trip_ns > 0)
+            .map(|p| p.round_trip_ns)
+            .collect();
+        self.stats.avg_rtt_ns = if alive_rtts.is_empty() {
+            0.0
+        } else {
+            alive_rtts.iter().sum::<u64>() as f64 / alive_rtts.len() as f64
+        };
     }
 
     #[inline(always)]
-    pub fn peer(&self, id: u64) -> Option<&GossipPeer> { self.peers.get(&id) }
+    pub fn peer(&self, id: u64) -> Option<&GossipPeer> {
+        self.peers.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &GossipV2Stats { &self.stats }
+    pub fn stats(&self) -> &GossipV2Stats {
+        &self.stats
+    }
 }
