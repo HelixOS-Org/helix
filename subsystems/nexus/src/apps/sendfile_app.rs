@@ -6,6 +6,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 /// Sendfile transfer state
+use alloc::collections::BTreeMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SendfileState {
     Pending,
