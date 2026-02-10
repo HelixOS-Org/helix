@@ -228,8 +228,8 @@ impl AppsCreativity {
         let genes = best.genes.clone();
 
         let quantum = genes.first().copied().unwrap_or(20) + 5;
-        let preempt = genes.get(1).copied().unwrap_or(50);
-        let affinity = genes.get(2).copied().unwrap_or(30);
+        let preempt = genes.get(1).unwrap_or(&50);
+        let affinity = genes.get(2).unwrap_or(&30);
 
         let sid = fnv1a(label.as_bytes()) ^ xorshift64(&mut self.rng);
         let sched = NovelSchedule {
@@ -237,8 +237,8 @@ impl AppsCreativity {
             label: String::from(label),
             genome_id: gid,
             quantum_base: quantum,
-            preempt_threshold: preempt,
-            affinity_weight: affinity,
+            preempt_threshold: *preempt,
+            affinity_weight: *affinity,
             effectiveness_ema: 50,
             times_applied: 0,
         };
@@ -293,8 +293,8 @@ impl AppsCreativity {
         let max_len = ga.genes.len().max(gb.genes.len());
         let mut offspring_genes = Vec::with_capacity(max_len);
         for i in 0..max_len {
-            let va = ga.genes.get(i).copied().unwrap_or(50);
-            let vb = gb.genes.get(i).copied().unwrap_or(50);
+            let va = *ga.genes.get(i).unwrap_or(&50);
+            let vb = *gb.genes.get(i).unwrap_or(&50);
             let pick = if xorshift64(&mut self.rng) % 2 == 0 { va } else { vb };
             offspring_genes.push(pick);
         }
@@ -411,8 +411,8 @@ impl AppsCreativity {
         }
         let mut total_diff: u64 = 0;
         for i in 0..max_len {
-            let va = a.get(i).copied().unwrap_or(50);
-            let vb = b.get(i).copied().unwrap_or(50);
+            let va = a.get(i).unwrap_or(&50);
+            let vb = b.get(i).unwrap_or(&50);
             total_diff += if va > vb { va - vb } else { vb - va };
         }
         total_diff / max_len as u64
