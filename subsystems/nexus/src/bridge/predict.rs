@@ -6,12 +6,11 @@
 //! Uses n-gram sequence analysis and Markov chain models to learn
 //! per-process syscall patterns.
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONFIDENCE TYPE
@@ -139,7 +138,7 @@ impl SyscallPattern {
 #[repr(align(64))]
 pub struct SyscallPredictor {
     /// Recent syscall history (ring buffer per process)
-    history: VecDeque<SyscallType>,
+    history: Vec<SyscallType>,
     /// History capacity
     capacity: usize,
     /// N-gram order (e.g., 3 = trigrams)
@@ -186,9 +185,9 @@ impl SyscallPredictor {
 
         // Add to history
         if self.history.len() >= self.capacity {
-            self.history.pop_front();
+            self.history.remove(0);
         }
-        self.history.push_back(syscall_type);
+        self.history.push(syscall_type);
         self.total_observations += 1;
     }
 
@@ -200,7 +199,7 @@ impl SyscallPredictor {
 
         let key = self.compute_ngram_key();
         let transitions = self.ngram_table.get(&key)?;
-        let total = *self.ngram_totals.get(key)?;
+        let total = self.ngram_totals.get(key)?;
 
         if total < self.min_occurrences {
             return None;
@@ -242,7 +241,7 @@ impl SyscallPredictor {
                     if let Some((best_type_key, best_count)) =
                         transitions.iter().max_by_key(|(_, c)| **c)
                     {
-                        let probability = *best_count as f64 / *total as f64;
+                        let probability = *best_count as f64 / total as f64;
 
                         // Confidence degrades with steps ahead
                         let degraded_conf = probability * libm::pow(0.9_f64, step as f64);
@@ -266,7 +265,7 @@ impl SyscallPredictor {
 
                         // Advance simulated history
                         if simulated_history.len() >= self.capacity {
-                            simulated_history.pop_front();
+                            simulated_history.remove(0);
                         }
                         simulated_history.push(predicted_type);
                     }
@@ -291,7 +290,7 @@ impl SyscallPredictor {
             None => return Vec::new(),
         };
         let total = match self.ngram_totals.get(key) {
-            Some(t) => *t,
+            Some(t) => t,
             None => return Vec::new(),
         };
 
@@ -378,6 +377,8 @@ impl SyscallType {
             Self::Readdir => 78,
             Self::SemWait => 230,
             Self::SemPost => 231,
+            Self::Poll => 7,
+            Self::Clone => 57,
             Self::Unknown(n) => *n,
         }
     }
