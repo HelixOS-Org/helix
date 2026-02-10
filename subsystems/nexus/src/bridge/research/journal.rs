@@ -10,7 +10,6 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -188,7 +187,7 @@ impl TermIndex {
     }
 
     fn search(&self, query: &str) -> BTreeMap<u64, u32> {
-        let mut scores: LinearMap<u32, 64> = BTreeMap::new();
+        let mut scores: BTreeMap<u64, u32> = BTreeMap::new();
         let bytes = query.as_bytes();
         let mut start = 0;
         for i in 0..=bytes.len() {
