@@ -198,43 +198,49 @@ impl AppsEnlightenment {
     ) {
         self.tick += 1;
 
-        let profile = self
-            .profiles
-            .entry(app_id)
-            .or_insert_with(|| {
-                self.stats.total_apps += 1;
-                AppEnlightenmentProfile {
-                    app_id,
-                    name: String::from(name),
-                    level: EnlightenmentLevel::Ignorance,
-                    understanding_score: 0,
-                    observation_count: 0,
-                    prediction_accuracy: 0,
-                    predictions: Vec::new(),
-                    actuals: Vec::new(),
-                    essence_fingerprint: Vec::new(),
-                    purpose_hash: 0,
-                    purpose_label: String::new(),
-                    last_tick: 0,
-                }
+        if !self.profiles.contains_key(&app_id) {
+            self.stats.total_apps += 1;
+            self.profiles.insert(app_id, AppEnlightenmentProfile {
+                app_id,
+                name: String::from(name),
+                level: EnlightenmentLevel::Ignorance,
+                understanding_score: 0,
+                observation_count: 0,
+                prediction_accuracy: 0,
+                predictions: Vec::new(),
+                actuals: Vec::new(),
+                essence_fingerprint: Vec::new(),
+                purpose_hash: 0,
+                purpose_label: String::new(),
+                last_tick: 0,
             });
-
-        profile.observation_count += 1;
-        profile.last_tick = self.tick;
-
-        // Track prediction accuracy
-        if profile.predictions.len() >= PREDICTION_HISTORY {
-            profile.predictions.remove(0);
-            profile.actuals.remove(0);
         }
-        profile.predictions.push(predicted_cpu);
-        profile.actuals.push(cpu);
 
-        let accuracy = self.compute_accuracy(&profile.predictions, &profile.actuals);
+        {
+            let profile = self.profiles.get_mut(&app_id).unwrap();
+            profile.observation_count += 1;
+            profile.last_tick = self.tick;
+
+            // Track prediction accuracy
+            if profile.predictions.len() >= PREDICTION_HISTORY {
+                profile.predictions.remove(0);
+                profile.actuals.remove(0);
+            }
+            profile.predictions.push(predicted_cpu);
+            profile.actuals.push(cpu);
+        }
+
+        // Compute accuracy outside the mutable borrow
+        let predictions_clone = self.profiles.get(&app_id).unwrap().predictions.clone();
+        let actuals_clone = self.profiles.get(&app_id).unwrap().actuals.clone();
+        let accuracy = self.compute_accuracy(&predictions_clone, &actuals_clone);
+
+        let profile = self.profiles.get_mut(&app_id).unwrap();
         profile.prediction_accuracy = ema_update(profile.prediction_accuracy, accuracy);
 
-        // Update essence fingerprint
+        // Update essence fingerprint - compute essence outside borrow
         let new_essence = self.compute_essence(cpu, mem, io, ipc);
+        let profile = self.profiles.get_mut(&app_id).unwrap();
         if profile.essence_fingerprint.is_empty() {
             profile.essence_fingerprint = new_essence;
         } else {
@@ -252,7 +258,9 @@ impl AppsEnlightenment {
         profile.understanding_score = (obs_factor + pred_factor) / 2;
 
         // Advance enlightenment level
-        let new_level = self.score_to_level(profile.understanding_score);
+        let score = profile.understanding_score;
+        let new_level = self.score_to_level(score);
+        let profile = self.profiles.get_mut(&app_id).unwrap();
         profile.level = new_level;
 
         self.refresh_stats();
@@ -272,8 +280,10 @@ impl AppsEnlightenment {
             return None;
         }
 
+        let observation_count = profile.observation_count;
+        let understanding_score = profile.understanding_score;
         let (purpose_label, purpose_hash) = self.infer_purpose(dims);
-        let confidence = (profile.understanding_score * profile.observation_count.min(50)) / 50;
+        let confidence = (understanding_score * observation_count.min(50)) / 50;
 
         // Store purpose in profile
         if let Some(p) = self.profiles.get_mut(&app_id) {
@@ -291,7 +301,7 @@ impl AppsEnlightenment {
             purpose_hash,
             purpose_label,
             confidence: confidence.min(100),
-            supporting_observations: profile.observation_count,
+            supporting_observations: observation_count,
         })
     }
 
