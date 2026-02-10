@@ -303,7 +303,7 @@ impl CoopResourcePoolV2 {
     }
 
     /// Adaptive sizing — grow hot slabs, shrink cold ones
-    pub fn rebalance(&mut self, now_ns: u64) {
+    pub fn rebalance(&mut self, _now_ns: u64) {
         let hot_ids: Vec<u64> = self
             .slabs
             .iter()
