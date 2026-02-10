@@ -13,7 +13,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -131,8 +130,8 @@ impl HorizonTracker {
         self.total += 1;
 
         if self.predictions.len() > MAX_HISTORY_PER_HORIZON {
-            self.predictions.pop_front();
-            self.actuals.pop_front();
+            self.predictions.remove(0);
+            self.actuals.remove(0);
         }
 
         let error = (actual - predicted).abs();
