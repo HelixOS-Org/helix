@@ -122,7 +122,7 @@ impl TimerEntry {
 /// Timer wheel level
 #[derive(Debug, Clone)]
 pub struct WheelLevel {
-    pub slots: Vec<Vec<u64>>, // timer IDs per slot
+    pub slots: Vec<Vec<u64>>, // timer IDs per slot,
     pub current_slot: u32,
     pub slot_count: u32,
     pub resolution_ns: u64,
