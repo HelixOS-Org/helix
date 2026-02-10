@@ -60,7 +60,7 @@ impl MpmcQueue {
         if self.buffer.is_empty() { self.empty_count += 1; return None; }
         self.head += 1;
         self.dequeue_count += 1;
-        self.buffer.pop_front()
+        self.buffer.remove(0)
     }
 
     #[inline(always)]
