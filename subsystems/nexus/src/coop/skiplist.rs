@@ -45,7 +45,7 @@ pub struct SkiplistLevel {
 #[derive(Debug, Clone)]
 pub struct SkiplistConfig {
     pub max_height: u32,
-    pub probability: u32, // out of 100
+    pub probability: u32, // out of 100,
     pub seed: u64,
 }
 
