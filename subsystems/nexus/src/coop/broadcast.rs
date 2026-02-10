@@ -311,7 +311,7 @@ impl CoopBroadcast {
 
         self.messages.push_back(msg);
         if self.messages.len() > self.max_history {
-            self.messages.pop_front();
+            self.messages.remove(0);
         }
         seq
     }
