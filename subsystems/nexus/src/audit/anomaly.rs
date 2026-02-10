@@ -3,7 +3,6 @@
 //! Security anomaly detection and baseline statistics.
 
 use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -251,7 +250,7 @@ impl AnomalyDetector {
     /// Add anomaly
     fn add_anomaly(&mut self, anomaly: Anomaly) {
         if self.anomalies.len() >= self.max_anomalies {
-            self.anomalies.pop_front();
+            self.anomalies.remove(0);
         }
         self.anomalies.push_back(anomaly);
     }
