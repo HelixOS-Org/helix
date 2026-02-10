@@ -1,6 +1,5 @@
 //! AI-powered cache intelligence coordination.
 
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::multilevel::MultiLevelCache;
@@ -19,7 +18,7 @@ pub struct CacheIntelligence {
     /// Cache warmer
     warmer: CacheWarmer,
     /// Hit rate history
-    hit_rate_history: VecDeque<f64>,
+    hit_rate_history: Vec<f64>,
     /// Max history
     max_history: usize,
 }
@@ -38,7 +37,7 @@ impl CacheIntelligence {
         Self {
             mlc,
             warmer: CacheWarmer::default(),
-            hit_rate_history: VecDeque::new(),
+            hit_rate_history: Vec::new(),
             max_history: 1000,
         }
     }
@@ -69,10 +68,10 @@ impl CacheIntelligence {
     #[inline]
     pub fn sample(&mut self) {
         let stats = self.mlc.aggregate_stats();
-        self.hit_rate_history.push_back(stats.hit_rate());
+        self.hit_rate_history.push(stats.hit_rate());
 
         if self.hit_rate_history.len() > self.max_history {
-            self.hit_rate_history.pop_front();
+            self.hit_rate_history.remove(0);
         }
     }
 
