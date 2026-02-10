@@ -13,7 +13,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -282,7 +281,7 @@ impl AppsLiterature {
             let history = self.domain_history.entry(dom_key).or_insert_with(Vec::new);
             history.push(tick);
             if history.len() > EVOLUTION_WINDOW {
-                history.pop_front();
+                history.remove(0);
             }
         }
         id
