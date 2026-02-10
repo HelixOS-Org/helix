@@ -408,7 +408,7 @@ impl CoopHandshakeManager {
 
             self.completion_times.push_back(duration);
             if self.completion_times.len() > self.max_history {
-                self.completion_times.pop_front();
+                self.completion_times.remove(0);
             }
 
             self.stats.completed += 1;
@@ -461,8 +461,8 @@ impl CoopHandshakeManager {
     #[inline]
     pub fn session_for_pid(&self, pid: u64) -> Option<&HandshakeSession> {
         self.pid_sessions
-            .get(&pid)
-            .and_then(|id| self.sessions.get(id))
+            .get(pid)
+            .and_then(|id| self.sessions.get(&id))
     }
 
     /// Get stats
@@ -487,7 +487,7 @@ impl CoopHandshakeManager {
 
         for id in to_remove {
             if let Some(session) = self.sessions.remove(&id) {
-                self.pid_sessions.remove(&session.pid);
+                self.pid_sessions.remove(session.pid);
             }
         }
 
