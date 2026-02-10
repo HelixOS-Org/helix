@@ -488,7 +488,7 @@ impl PipelineManager {
     /// Get pipeline for topic
     #[inline(always)]
     pub fn get_route(&self, topic: &str) -> Option<u64> {
-        self.routes.get(topic).copied()
+        self.routes.get(topic)
     }
 
     /// Process data through appropriate pipeline
