@@ -348,7 +348,7 @@ impl CoopMigrationCoordinator {
         if let Some(plan) = self.plans.get_mut(&id) {
             plan.complete(now);
             if self.completed_downtimes.len() >= self.max_history {
-                self.completed_downtimes.pop_front();
+                self.completed_downtimes.remove(0);
             }
             self.completed_downtimes.push_back(plan.downtime_ns);
             self.stats.total_completed += 1;
