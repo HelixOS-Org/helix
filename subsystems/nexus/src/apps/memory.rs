@@ -8,10 +8,11 @@
 //! - Cache behavior prediction
 //! - NUMA affinity detection
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use crate::fast::math::{F64Ext};
+
+use crate::fast::linear_map::LinearMap;
+use crate::fast::math::F64Ext;
 
 // ============================================================================
 // WORKING SET ESTIMATION
