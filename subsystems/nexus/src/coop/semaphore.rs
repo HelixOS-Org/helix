@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Semaphore type
@@ -39,7 +38,7 @@ pub struct SemaphoreV2 {
     pub sem_type: SemTypeV2,
     pub value: i32,
     pub max_value: i32,
-    pub waiters: VecDeque<SemWaiter>,
+    pub waiters: Vec<SemWaiter>,
     pub total_acquires: u64,
     pub total_releases: u64,
     pub total_timeouts: u64,
@@ -48,7 +47,7 @@ pub struct SemaphoreV2 {
 
 impl SemaphoreV2 {
     pub fn new(id: u64, stype: SemTypeV2, initial: i32, max: i32) -> Self {
-        Self { id, sem_type: stype, value: initial, max_value: max, waiters: VecDeque::new(), total_acquires: 0, total_releases: 0, total_timeouts: 0, contention_count: 0 }
+        Self { id, sem_type: stype, value: initial, max_value: max, waiters: Vec::new(), total_acquires: 0, total_releases: 0, total_timeouts: 0, contention_count: 0 }
     }
 
     #[inline]
@@ -160,7 +159,7 @@ pub struct SemaphoreV3 {
     pub id: u64,
     pub count: i64,
     pub max_count: u32,
-    pub waiters: VecDeque<SemV3Waiter>,
+    pub waiters: Vec<SemV3Waiter>,
     pub total_acquires: u64,
     pub total_releases: u64,
     pub total_wait_ns: u64,
@@ -168,7 +167,7 @@ pub struct SemaphoreV3 {
 
 impl SemaphoreV3 {
     pub fn new(id: u64, initial: u32) -> Self {
-        Self { id, count: initial as i64, max_count: initial, waiters: VecDeque::new(), total_acquires: 0, total_releases: 0, total_wait_ns: 0 }
+        Self { id, count: initial as i64, max_count: initial, waiters: Vec::new(), total_acquires: 0, total_releases: 0, total_wait_ns: 0 }
     }
 
     #[inline]
@@ -182,7 +181,7 @@ impl SemaphoreV3 {
 
     #[inline(always)]
     pub fn enqueue_waiter(&mut self, tid: u64, n: u32, now: u64) {
-        self.waiters.push_back(SemV3Waiter { tid, count: n, enqueue_time: now });
+        self.waiters.push(SemV3Waiter { tid, count: n, enqueue_time: now });
     }
 
     pub fn release(&mut self, n: u32, now: u64) -> Vec<u64> {
@@ -190,7 +189,7 @@ impl SemaphoreV3 {
         self.total_releases += 1;
         let mut woken = Vec::new();
         while !self.waiters.is_empty() && self.count >= self.waiters[0].count as i64 {
-            let w = self.waiters.pop_front().unwrap();
+            let w = self.waiters.remove(0);
             self.count -= w.count as i64;
             self.total_wait_ns += now.saturating_sub(w.enqueue_time);
             woken.push(w.tid);
@@ -307,7 +306,7 @@ pub struct SemaphoreV4Instance {
     pub sem_id: u64,
     pub count: i64,
     pub max_count: i64,
-    pub waiters: VecDeque<SemaphoreV4Waiter>,
+    pub waiters: Vec<SemaphoreV4Waiter>,
     pub total_acquires: u64,
     pub total_releases: u64,
     pub total_timeouts: u64,
@@ -322,7 +321,7 @@ impl SemaphoreV4Instance {
             sem_id,
             count: initial,
             max_count: initial,
-            waiters: VecDeque::new(),
+            waiters: Vec::new(),
             total_acquires: 0,
             total_releases: 0,
             total_timeouts: 0,
@@ -358,7 +357,7 @@ impl SemaphoreV4Instance {
 
     #[inline]
     pub fn enqueue_waiter(&mut self, waiter: SemaphoreV4Waiter) {
-        self.waiters.push_back(waiter);
+        self.waiters.push(waiter);
         let len = self.waiters.len() as u32;
         if len > self.peak_waiters {
             self.peak_waiters = len;
