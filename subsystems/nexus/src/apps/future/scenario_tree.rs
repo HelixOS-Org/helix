@@ -208,7 +208,7 @@ impl AppTreeState {
             return 1.0 / 8.0;
         }
         let key = fnv1a_hash(action.as_str().as_bytes());
-        let count = self.action_frequency.get(key).copied().unwrap_or(0);
+        let count = self.action_frequency.get(key).unwrap_or(0);
         count as f64 / self.observation_count as f64
     }
 }
