@@ -166,7 +166,7 @@ impl AppVmState {
             address: addr, fault_type, latency_ns: latency, timestamp_ns: ts,
         });
         while self.fault_history.len() > self.max_fault_history {
-            self.fault_history.pop_front();
+            self.fault_history.remove(0);
         }
     }
 
@@ -202,7 +202,7 @@ impl AppVmState {
             growth_rate: 0.0,
         };
         self.wss_estimates.push_back(est);
-        if self.wss_estimates.len() > 64 { self.wss_estimates.pop_front(); }
+        if self.wss_estimates.len() > 64 { self.wss_estimates.remove(0); }
     }
 
     #[inline]
