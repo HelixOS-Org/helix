@@ -238,11 +238,11 @@ impl BridgeFutexProxy {
     pub fn detect_deadlocks(&self, now_ns: u64) -> Vec<FutexDeadlockHint> {
         let mut hints = Vec::new();
         // Simple: check if any PID waits on a futex owned by another waiting PID
-        for (&pid, &addr) in &self.wait_chains {
+        for (pid, addr) in self.wait_chains.iter() {
             if let Some(entry) = self.futexes.get(&addr) {
                 if let Some(owner) = entry.owner_pid {
                     if owner != pid {
-                        if let Some(&owner_waiting_on) = self.wait_chains.get(owner) {
+                        if let Some(owner_waiting_on) = self.wait_chains.get(owner) {
                             // Owner is also waiting - potential deadlock
                             if let Some(other_entry) = self.futexes.get(&owner_waiting_on) {
                                 if other_entry.owner_pid == Some(pid) {
@@ -267,7 +267,7 @@ impl BridgeFutexProxy {
         let mut entries: Vec<(u64, u32)> = self
             .futexes
             .iter()
-            .map(|(&addr, e)| (addr, e.waiters))
+            .map(|(addr, e)| (*addr, e.waiters))
             .collect();
         entries.sort_by(|a, b| b.1.cmp(&a.1));
         entries.truncate(n);
@@ -429,7 +429,7 @@ impl FutexBucket {
             return None;
         }
         self.total_wakes += 1;
-        self.waiters.pop_front()
+        self.waiters.remove(0)
     }
 
     #[inline]
@@ -629,13 +629,20 @@ impl BridgeFutexV2 {
     }
 
     pub fn futex_lock_pi(&mut self, addr: u64, tid: u64, waiter: FutexWaiter) -> bool {
-        let bucket = self.get_or_create_bucket(addr);
-        if bucket.pi_owner.is_none() {
-            bucket.pi_owner = Some(tid);
-            return true;
+        // First pass: check ownership and get holder tid
+        {
+            let bucket = self.get_or_create_bucket(addr);
+            if bucket.pi_owner.is_none() {
+                bucket.pi_owner = Some(tid);
+                return true;
+            }
         }
-        // Priority inheritance boost
-        let holder_tid = bucket.pi_owner.unwrap();
+        // Re-acquire bucket to read holder
+        let holder_tid = {
+            let bucket = self.get_or_create_bucket(addr);
+            bucket.pi_owner.unwrap()
+        };
+        // Priority inheritance boost (no bucket borrow active)
         if waiter.priority.as_value() < WaiterPriority::Normal(0).as_value() {
             let entry = PiChainEntry {
                 holder_tid,
@@ -655,6 +662,8 @@ impl BridgeFutexV2 {
             }
             self.stats.pi_boosts += 1;
         }
+        // Re-acquire bucket to enqueue waiter
+        let bucket = self.get_or_create_bucket(addr);
         bucket.enqueue(waiter);
         self.stats.total_waits += 1;
         false
