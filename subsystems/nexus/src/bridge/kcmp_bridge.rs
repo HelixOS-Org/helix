@@ -103,10 +103,10 @@ impl ProcessResources {
         match rtype {
             KcmpType::File => {
                 let a = self.files.get(idx1);
-                let b = other.files.get(&idx2);
+                let b = other.files.get(idx2);
                 match (a, b) {
-                    (Some(&a), Some(&b)) if a == b => KcmpResult::Equal,
-                    (Some(&a), Some(&b)) if a < b => KcmpResult::LessThan,
+                    (Some(a), Some(b)) if a == b => KcmpResult::Equal,
+                    (Some(a), Some(b)) if a < b => KcmpResult::LessThan,
                     (Some(_), Some(_)) => KcmpResult::GreaterThan,
                     _ => KcmpResult::Error,
                 }
