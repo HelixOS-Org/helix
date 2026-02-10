@@ -333,7 +333,7 @@ impl HeapAppManager {
         let max_idx = counts
             .iter()
             .enumerate()
-            .max_by_key(|(_, &c)| c)
+            .max_by_key(|&(_, &c)| c)
             .map(|(i, _)| i)
             .unwrap_or(5);
 
