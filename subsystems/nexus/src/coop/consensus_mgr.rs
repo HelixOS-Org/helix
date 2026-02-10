@@ -251,7 +251,7 @@ impl CoopConsensusMgr {
             .collect();
         for id in &resolved {
             if let Some(p) = self.proposals.remove(id) {
-                if self.history.len() >= self.max_history { self.history.pop_front(); }
+                if self.history.len() >= self.max_history { self.history.remove(0); }
                 self.history.push_back(p);
             }
         }
