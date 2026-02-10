@@ -86,7 +86,7 @@ impl ProcessCwdState {
     #[inline]
     pub fn change_dir(&mut self, new_cwd: String, variant: ChdirVariant) {
         if self.cwd_history.len() >= self.max_history {
-            self.cwd_history.pop_front();
+            self.cwd_history.remove(0);
         }
         self.cwd_history.push_back(self.current_cwd.clone());
         self.current_cwd = new_cwd;
