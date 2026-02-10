@@ -7,6 +7,8 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Seccomp action
+use core::sync::atomic::AtomicU64;
+use core::sync::atomic::Ordering;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SeccompBridgeAction {
     Allow,
