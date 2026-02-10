@@ -15,10 +15,28 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Vector clock
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct VectorClock {
     pub entries: LinearMap<u64, 64>,
 }
+
+impl PartialEq for VectorClock {
+    fn eq(&self, other: &Self) -> bool {
+        for (node, val) in self.entries.iter() {
+            if other.entries.get(node).unwrap_or(0) != val {
+                return false;
+            }
+        }
+        for (node, val) in other.entries.iter() {
+            if self.entries.get(node).unwrap_or(0) != val {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl Eq for VectorClock {}
 
 impl VectorClock {
     pub fn new() -> Self { Self { entries: LinearMap::new() } }
@@ -31,12 +49,12 @@ impl VectorClock {
 
     #[inline(always)]
     pub fn get(&self, node_id: u64) -> u64 {
-        self.entries.get(node_id).copied().unwrap_or(0)
+        self.entries.get(node_id).unwrap_or(0)
     }
 
     #[inline]
     pub fn merge(&mut self, other: &VectorClock) {
-        for (&node, &counter) in &other.entries {
+        for (node, counter) in other.entries.iter() {
             let entry = self.entries.entry(node).or_insert(0);
             if counter > *entry { *entry = counter; }
         }
@@ -44,13 +62,13 @@ impl VectorClock {
 
     pub fn happens_before(&self, other: &VectorClock) -> bool {
         let mut at_least_one_less = false;
-        for (&node, &counter) in &self.entries {
+        for (node, counter) in self.entries.iter() {
             let other_counter = other.get(node);
             if counter > other_counter { return false; }
             if counter < other_counter { at_least_one_less = true; }
         }
         // Check for nodes in other not in self
-        for (&node, &counter) in &other.entries {
+        for (node, counter) in other.entries.iter() {
             if !self.entries.contains_key(node) && counter > 0 {
                 at_least_one_less = true;
             }
@@ -173,8 +191,8 @@ impl NodeCausalState {
         // and for all other j: event's clock[j] <= delivered_clock[j]
         let expected = self.last_delivered_clock.get(source_node) + 1;
         if event_clock.get(source_node) != expected { return false; }
-        for (&node, &counter) in &event_clock.entries {
-            if node != source_node && counter > self.last_delivered_clock.get(node) { return false; }
+        for (node, counter) in event_clock.entries.iter() {
+            if node as u64 != source_node && counter > self.last_delivered_clock.get(node as u64) { return false; }
         }
         true
     }
