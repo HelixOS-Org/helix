@@ -92,7 +92,7 @@ impl AppWaitId {
     pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessWaitState::new(pid)); }
 
     #[inline]
-    pub fn waitid(&mut self, pid: u64, id_type: WaitIdType, options: WaitIdOptions) {
+    pub fn waitid(&mut self, pid: u64, _id_type: WaitIdType, options: WaitIdOptions) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.wait_count += 1;
             if options.has(WaitIdOptions::WNOHANG) { p.nohang_count += 1; }
