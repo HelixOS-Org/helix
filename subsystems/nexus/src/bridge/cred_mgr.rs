@@ -271,7 +271,7 @@ impl BridgeCredMgr {
             old_uid, new_uid, old_gid, new_gid,
             timestamp_ns: ts, success,
         });
-        while self.events.len() > self.max_events { self.events.pop_front(); }
+        while self.events.len() > self.max_events { self.events.remove(0); }
     }
 
     #[inline(always)]
