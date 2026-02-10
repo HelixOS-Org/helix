@@ -350,7 +350,7 @@ impl CascadeDetector {
         };
 
         if self.cascades.len() >= self.max_cascades {
-            self.cascades.pop_front();
+            self.cascades.remove(0);
         }
         self.cascades.push_back(event.clone());
         Some(event)
