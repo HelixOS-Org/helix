@@ -16,6 +16,8 @@ use alloc::vec::Vec;
 // ============================================================================
 
 /// Channel direction
+extern crate alloc;
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChannelDirection {
     /// App → Kernel
@@ -54,6 +56,12 @@ pub enum ChannelState {
     Closed,
     /// Error state
     Error,
+    /// Sender side closed
+    SenderClosed,
+    /// Receiver side closed
+    ReceiverClosed,
+    /// Both sides closed
+    FullyClosed,
 }
 
 /// A channel message
@@ -634,15 +642,6 @@ pub enum ChannelType {
     Oneshot,
     /// Priority — messages ordered by priority
     Priority,
-}
-
-/// Channel state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChannelState {
-    Open,
-    SenderClosed,
-    ReceiverClosed,
-    FullyClosed,
 }
 
 /// A message in a channel
