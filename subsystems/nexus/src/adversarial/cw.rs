@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use crate::adversarial::perturbation::Perturbation;
 use crate::adversarial::types::PerturbationType;
 use crate::adversarial::utils::lcg_next;
+use crate::fast::math::{F64Ext};
 
 /// Carlini & Wagner (C&W) Attack
 #[derive(Debug, Clone)]
