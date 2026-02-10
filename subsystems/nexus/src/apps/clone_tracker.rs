@@ -151,7 +151,7 @@ impl ClonePattern {
     }
 
     #[inline]
-    pub fn record_event(&mut self, latency_ns: u64, is_thread: bool, creates_ns: bool) {
+    pub fn record_event(&mut self, latency_ns: u64, _is_thread: bool, creates_ns: bool) {
         self.total_events += 1;
         self.total_latency_sum += latency_ns;
         if self.total_events > 0 {
