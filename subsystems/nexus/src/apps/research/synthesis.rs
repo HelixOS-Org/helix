@@ -300,7 +300,7 @@ impl AppsSynthesis {
             if self.history.len() < MAX_HISTORY {
                 self.history.push_back(snapshot);
             } else {
-                self.history.pop_front();
+                self.history.remove(0);
                 self.history.push_back(snapshot);
             }
 
@@ -356,7 +356,10 @@ impl AppsSynthesis {
         // Find the most recent snapshot for this rule
         let snapshot_idx = self.history.iter().rposition(|s| s.rule_id == rule_id);
         let snapshot = match snapshot_idx {
-            Some(idx) => self.history.remove(idx),
+            Some(idx) => match self.history.remove(idx) {
+                Some(s) => s,
+                None => return false,
+            },
             None => return false,
         };
 
