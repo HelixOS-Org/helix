@@ -7,7 +7,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// MCS node state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
