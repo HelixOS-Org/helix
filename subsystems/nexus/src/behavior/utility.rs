@@ -7,7 +7,6 @@
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
@@ -68,7 +67,7 @@ impl UtilityContext {
 
     #[inline(always)]
     pub fn get_or(&self, key: &str, default: f64) -> f64 {
-        self.inputs.get(key).copied().unwrap_or(default)
+        *self.inputs.get(key).unwrap_or(&default)
     }
 }
 
@@ -509,7 +508,7 @@ pub struct ReasonerAI {
     name: String,
     buckets: BTreeMap<String, UtilitySelector>,
     active_bucket: Option<String>,
-    decision_history: VecDeque<DecisionRecord>,
+    decision_history: Vec<DecisionRecord>,
     max_history: usize,
 }
 
@@ -528,7 +527,7 @@ impl ReasonerAI {
             name: name.into(),
             buckets: BTreeMap::new(),
             active_bucket: None,
-            decision_history: VecDeque::new(),
+            decision_history: Vec::new(),
             max_history: 100,
         }
     }
@@ -584,9 +583,9 @@ impl ReasonerAI {
             score,
         };
 
-        self.decision_history.push_back(record);
+        self.decision_history.push(record);
         if self.decision_history.len() > self.max_history {
-            self.decision_history.pop_front();
+            self.decision_history.remove(0);
         }
 
         Some(action_id)
