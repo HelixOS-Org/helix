@@ -76,7 +76,7 @@ impl ThreadSplitLockState {
 
     #[inline(always)]
     pub fn top_hotspot(&self) -> Option<(u64, u64)> {
-        self.hotspot_ips.iter().max_by_key(|&(_, &count)| count).map(|(&ip, &count)| (ip, count))
+        self.hotspot_ips.iter().max_by_key(|(_, count)| *count).map(|(ip, count)| (ip, count))
     }
 
     #[inline(always)]
