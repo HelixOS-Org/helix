@@ -5,7 +5,6 @@
 
 use alloc::format;
 use alloc::string::String;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
