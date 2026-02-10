@@ -6,6 +6,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Unlink result
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnlinkResult {
     Success,
