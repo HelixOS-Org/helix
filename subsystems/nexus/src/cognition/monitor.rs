@@ -491,7 +491,7 @@ impl CognitiveMonitor {
 
             // Limit active alerts
             if self.alerts.len() > self.config.max_alerts {
-                let oldest = self.alerts.pop_front().unwrap();
+                let oldest = self.alerts.remove(0).unwrap();
                 self.alert_history.push(oldest);
             }
         }
