@@ -14,6 +14,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// TTY type
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TtyType {
     Console,
@@ -25,6 +26,7 @@ pub enum TtyType {
 
 /// Line discipline
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
 pub enum LineDiscipline {
     N_TTY,
     N_SLIP,
@@ -253,6 +255,7 @@ impl BridgeTtyBridge {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
 pub enum TtyV2Ldisc {
     N_TTY,
     N_SLIP,
