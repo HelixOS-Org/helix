@@ -71,14 +71,14 @@ impl ShmSegment {
             .count();
         if on_preferred * 2 < self.participants.len() {
             // Find majority node
-            let mut node_counts: ArrayMap<usize, 32> = BTreeMap::new();
+            let mut node_counts: ArrayMap<usize, 32> = ArrayMap::new(0);
             for p in &self.participants {
                 *node_counts.entry(p.numa_node).or_insert(0) += 1;
             }
             node_counts
                 .into_iter()
                 .max_by_key(|(_, c)| *c)
-                .map(|(n, _)| n)
+                .map(|(n, _)| n as u32)
         } else {
             None
         }
