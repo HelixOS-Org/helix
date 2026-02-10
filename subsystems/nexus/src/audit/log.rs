@@ -52,7 +52,7 @@ impl AuditLog {
         self.total_logged.fetch_add(1, Ordering::Relaxed);
 
         if self.events.len() >= self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
             self.events_dropped.fetch_add(1, Ordering::Relaxed);
         }
 
