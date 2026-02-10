@@ -116,9 +116,9 @@ impl CapToken {
 #[derive(Debug, Clone)]
 pub struct CapSet {
     pub process_id: u64,
-    pub effective: Vec<u64>,     // active token IDs
-    pub permitted: Vec<u64>,     // allowed token IDs
-    pub inheritable: Vec<u64>,   // inherited on exec
+    pub effective: Vec<u64>,     // active token IDs,
+    pub permitted: Vec<u64>,     // allowed token IDs,
+    pub inheritable: Vec<u64>,   // inherited on exec,
     pub ambient: Vec<BridgeCapType>,
 }
 
@@ -242,14 +242,18 @@ impl BridgeCapMgr {
     /// Use (consume) a capability
     #[inline]
     pub fn use_cap(&mut self, token_id: u64, now: u64) -> bool {
-        if let Some(token) = self.tokens.get_mut(&token_id) {
+        let (owner_id, resource_id) = if let Some(token) = self.tokens.get_mut(&token_id) {
             if token.is_valid(now) {
                 token.consume();
-                self.audit(now, token_id, token.owner_id, CapAuditAction::Use, token.resource_id, true);
-                return true;
+                (token.owner_id, token.resource_id)
+            } else {
+                return false;
             }
-        }
-        false
+        } else {
+            return false;
+        };
+        self.audit(now, token_id, owner_id, CapAuditAction::Use, resource_id, true);
+        true
     }
 
     /// Revoke a capability
@@ -288,7 +292,7 @@ impl BridgeCapMgr {
             result,
         });
         while self.audit_log.len() > self.max_audit {
-            self.audit_log.pop_front();
+            self.audit_log.remove(0);
         }
     }
 
