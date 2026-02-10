@@ -2,7 +2,6 @@
 //! Coop seccomp — cooperative seccomp filter coordination
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Seccomp coop strategy
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
