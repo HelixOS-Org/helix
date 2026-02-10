@@ -13,9 +13,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -138,7 +138,7 @@ pub struct BridgeEvolution {
     total_mutations: u64,
     total_crossovers: u64,
     total_selections: u64,
-    fitness_history: VecDeque<f32>,
+    fitness_history: Vec<f32>,
     best_ever_fitness: f32,
     best_ever_id: u64,
     tick: u64,
@@ -155,11 +155,11 @@ impl BridgeEvolution {
             total_mutations: 0,
             total_crossovers: 0,
             total_selections: 0,
-            fitness_history: VecDeque::new(),
+            fitness_history: Vec::new(),
             best_ever_fitness: 0.0,
             best_ever_id: 0,
             tick: 0,
-            rng_state: seed ^ 0xEV01_0000_CAFE,
+            rng_state: seed ^ 0xEF01_0000_CAFE,
             fitness_ema: 0.0,
         }
     }
@@ -296,7 +296,7 @@ impl BridgeEvolution {
 
     /// Mutate a strategy's genome in place.
     pub fn mutate(&mut self, strategy_id: u64) -> bool {
-        if let Some(strat) = self.population.get_mut(&strategy_id) {
+        let mutated = if let Some(strat) = self.population.get_mut(&strategy_id) {
             let mut mutated = false;
             for gene in strat.genome.iter_mut() {
                 let roll = (xorshift64(&mut self.rng_state) % 100) as f32 / 100.0;
@@ -309,15 +309,22 @@ impl BridgeEvolution {
                     mutated = true;
                 }
             }
-            if mutated {
-                strat.genome_hash = self.hash_genome_inline(&strat.genome);
-                strat.status = StrategyStatus::Mutant;
-                self.total_mutations += 1;
-            }
             mutated
         } else {
-            false
+            return false;
+        };
+        if mutated {
+            if let Some(strat) = self.population.get(&strategy_id) {
+                let genome_clone = strat.genome.clone();
+                let hash = self.hash_genome_inline(&genome_clone);
+                if let Some(strat) = self.population.get_mut(&strategy_id) {
+                    strat.genome_hash = hash;
+                    strat.status = StrategyStatus::Mutant;
+                }
+            }
+            self.total_mutations += 1;
         }
+        mutated
     }
 
     /// Advance to the next generation: evaluate all, select, breed, mutate.
@@ -388,9 +395,9 @@ impl BridgeEvolution {
             ranked.iter().map(|r| r.1).sum::<f32>() / ranked.len() as f32
         };
 
-        self.fitness_history.push_back(avg_fit);
+        self.fitness_history.push(avg_fit);
         if self.fitness_history.len() > FITNESS_STAGNATION_WINDOW * 2 {
-            self.fitness_history.pop_front();
+            self.fitness_history.remove(0);
         }
 
         let diversity = self.compute_diversity();
@@ -535,8 +542,8 @@ fn genome_distance(a: &[f32], b: &[f32]) -> f32 {
     let max_len = a.len().max(b.len());
     let mut sum_sq = 0.0_f32;
     for i in 0..max_len {
-        let va = a.get(i).copied().unwrap_or(0.0);
-        let vb = b.get(i).copied().unwrap_or(0.0);
+        let va = a.get(i).unwrap_or(&0.0);
+        let vb = b.get(i).unwrap_or(&0.0);
         let diff = va - vb;
         sum_sq += diff * diff;
     }
