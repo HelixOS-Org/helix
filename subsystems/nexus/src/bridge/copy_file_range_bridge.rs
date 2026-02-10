@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Copy file range mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
