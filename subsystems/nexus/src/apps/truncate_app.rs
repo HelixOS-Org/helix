@@ -6,6 +6,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 /// Truncate type
+use alloc::collections::BTreeMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TruncateType {
     Truncate,
