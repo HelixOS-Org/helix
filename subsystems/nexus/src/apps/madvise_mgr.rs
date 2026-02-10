@@ -107,7 +107,7 @@ impl ProcessMadviseState {
 
     pub fn dominant_advice(&self) -> Option<MadviseAdvice> {
         self.advice_counts.iter()
-            .max_by_key(|(_, count)| count)
+            .max_by_key(|(_, count)| *count)
             .and_then(|(k, _)| {
                 Some(match k {
                     0 => MadviseAdvice::Normal,
