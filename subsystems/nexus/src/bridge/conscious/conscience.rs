@@ -350,7 +350,7 @@ impl BridgeConscience {
         // Audit log
         let action_hash = fnv1a_hash(action.as_bytes());
         if self.audit_log.len() >= MAX_AUDIT_LOG {
-            self.audit_log.pop_front();
+            self.audit_log.remove(0);
         }
         self.audit_log.push_back(AuditEntry {
             tick: self.current_tick,
@@ -381,7 +381,7 @@ impl BridgeConscience {
         }
 
         if self.violations.len() >= MAX_VIOLATION_HISTORY {
-            self.violations.pop_front();
+            self.violations.remove(0);
         }
 
         self.violations.push_back(Violation {
