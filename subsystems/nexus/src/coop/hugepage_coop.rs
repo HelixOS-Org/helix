@@ -40,7 +40,7 @@ pub struct HugePagePool {
     pub free_2mb: u64,
     pub total_1gb: u64,
     pub free_1gb: u64,
-    pub reservations: LinearMap<u64, 64>, // pid → reserved count
+    pub reservations: LinearMap<u64, 64>, // pid → reserved count,
 }
 
 impl HugePagePool {
@@ -130,10 +130,10 @@ impl HugePageCoopManager {
     pub fn release(&mut self, pid: u64, count: u64, numa_node: u32) {
         if let Some(pool) = self.pools.get_mut(&numa_node) {
             pool.free_2mb += count;
-            if let Some(r) = pool.reservations.get_mut(&pid) {
+            if let Some(r) = pool.reservations.get_mut(pid) {
                 *r = r.saturating_sub(count);
                 if *r == 0 {
-                    pool.reservations.remove(&pid);
+                    pool.reservations.remove(pid);
                 }
             }
         }
@@ -141,7 +141,7 @@ impl HugePageCoopManager {
 
     /// Coordinate THP promotion: check if promotion won't starve others
     #[inline]
-    pub fn can_promote(&self, pid: u64, numa_node: u32) -> bool {
+    pub fn can_promote(&self, _pid: u64, numa_node: u32) -> bool {
         let pool = match self.pools.get(&numa_node) {
             Some(p) => p,
             None => return false,
