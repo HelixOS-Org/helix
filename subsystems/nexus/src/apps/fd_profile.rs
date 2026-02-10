@@ -190,7 +190,7 @@ pub struct ProcessFdProfile {
     pub current_open: u32,
     pub fd_limit: u32,
     pub distribution: FdTypeDistribution,
-    pub fd_growth_samples: VecDeque<(u64, u32)>, // (ts, open_count)
+    pub fd_growth_samples: VecDeque<(u64, u32)>, // (ts, open_count),
 }
 
 impl ProcessFdProfile {
