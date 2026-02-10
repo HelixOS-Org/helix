@@ -2,7 +2,6 @@
 //! Coop capability — cooperative capability bounding set management
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Capability coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
