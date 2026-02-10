@@ -31,7 +31,7 @@ const EMA_ALPHA: f64 = 0.10;
 const DEFAULT_CI_LEVEL: f64 = 0.90;
 const FNV_OFFSET: u64 = 0xcbf29ce484222325;
 const FNV_PRIME: u64 = 0x100000001b3;
-const XORSHIFT_SEED: u64 = 0xbadc0ffee_0dd1ce;
+const XORSHIFT_SEED: u64 = 0x0bad_c0ff_ee0d_d1ce;
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -438,7 +438,7 @@ impl AppsConfidenceInterval {
 
         let std = tracker.error_std();
         let bias = tracker.ema_error;
-        let alpha_tail = (1.0 - ci_level) / 2.0;
+        let _alpha_tail = (1.0 - ci_level) / 2.0;
 
         // Approximate z-score for common levels
         let z = if ci_level >= 0.99 {
