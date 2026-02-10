@@ -117,7 +117,7 @@ impl AdaptiveLockInstance {
 
         // Wake first waiter
         if !self.waiters.is_empty() {
-            Some(self.waiters.pop_front().unwrap())
+            Some(self.waiters.remove(0).unwrap())
         } else { None }
     }
 
