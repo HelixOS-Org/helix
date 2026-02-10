@@ -256,7 +256,7 @@ impl BridgeAttentionEngine {
 
         // Record history
         if self.history.len() >= MAX_ATTENTION_HISTORY {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(AttentionHistoryEntry {
             target_hash,
@@ -293,7 +293,7 @@ impl BridgeAttentionEngine {
             let second_best = self
                 .focus_targets
                 .iter()
-                .filter(|(&h, _)| h != top_hash)
+                .filter(|&(&h, _)| h != top_hash)
                 .map(|(_, f)| f.salience)
                 .fold(0.0f32, |a, b| a.max(b));
 
@@ -328,7 +328,7 @@ impl BridgeAttentionEngine {
     #[inline(always)]
     pub fn salience_score(&self, target: &str) -> f32 {
         let hash = fnv1a_hash(target.as_bytes());
-        self.salience_signals.get(hash).copied().unwrap_or(0.0)
+        self.salience_signals.get(hash).unwrap_or(0.0)
     }
 
     /// How much attention budget remains?
