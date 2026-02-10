@@ -9,10 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // SYSCALL CATEGORY
@@ -436,13 +436,7 @@ impl AppSyscallProfiler {
     }
 
     /// Record syscall
-    pub fn record(
-        &mut self,
-        pid: u64,
-        number: u32,
-        latency_ns: u64,
-        error: bool,
-    ) {
+    pub fn record(&mut self, pid: u64, number: u32, latency_ns: u64, error: bool) {
         let category = self
             .descriptors
             .get(&number)
