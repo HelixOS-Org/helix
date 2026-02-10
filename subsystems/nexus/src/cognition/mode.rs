@@ -345,7 +345,7 @@ impl ModeManager {
 
         // Update history
         if self.history.len() >= self.config.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(transition.clone());
 
@@ -488,7 +488,7 @@ impl ModeManager {
     /// Get domain mode
     #[inline(always)]
     pub fn get_domain_mode(&self, domain: DomainId) -> CognitiveMode {
-        self.domain_modes.get(&domain).copied().unwrap_or(self.current_mode)
+        self.domain_modes.get(&domain).unwrap_or(self.current_mode)
     }
 
     /// Set domain mode
