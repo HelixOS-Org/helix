@@ -181,7 +181,7 @@ impl EvictionOptimizer {
 
         self.eviction_history.push_back(record);
         if self.eviction_history.len() > self.max_history {
-            self.eviction_history.pop_front();
+            self.eviction_history.remove(0);
         }
 
         let stats = self.policy_stats.entry(self.policy).or_default();
