@@ -96,21 +96,21 @@ impl TransitionRow {
         if self.total == 0 {
             return 0.0;
         }
-        self.counts.try_get(syscall as usize).copied().unwrap_or(0) as f32 / self.total as f32
+        self.counts.try_get(syscall as usize).unwrap_or(0) as f32 / self.total as f32
     }
 
     fn most_likely(&self) -> Option<(u32, f32)> {
         self.counts
             .iter()
-            .max_by_key(|(_, &count)| count)
-            .map(|(&syscall, &count)| (syscall, count as f32 / self.total.max(1) as f32))
+            .max_by_key(|(_, count)| *count)
+            .map(|(syscall, count)| (syscall as u32, count as f32 / self.total.max(1) as f32))
     }
 
     fn top_n(&self, n: usize) -> Vec<(u32, f32)> {
         let mut entries: Vec<(u32, f32)> = self
             .counts
             .iter()
-            .map(|(&s, &c)| (s, c as f32 / self.total.max(1) as f32))
+            .map(|(s, c)| (s as u32, c as f32 / self.total.max(1) as f32))
             .collect();
         entries.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
         entries.truncate(n);
@@ -122,7 +122,7 @@ impl TransitionRow {
             return 0.0;
         }
         let mut h = 0.0f32;
-        for &count in self.counts.values() {
+        for count in self.counts.values() {
             let p = count as f32 / self.total as f32;
             if p > 0.0 {
                 h -= p * log2_approx(p);
@@ -177,7 +177,7 @@ impl ProcessTimeline {
 
         if self.recent_syscalls.len() >= MARKOV_MEMORY {
             let ctx = StateContext {
-                syscalls: self.recent_syscalls.clone(),
+                syscalls: self.recent_syscalls.iter().copied().collect(),
             };
             let ctx_hash = ctx.hash();
             let row = self
@@ -192,7 +192,7 @@ impl ProcessTimeline {
 
         self.recent_syscalls.push_back(syscall_nr);
         if self.recent_syscalls.len() > MARKOV_MEMORY {
-            self.recent_syscalls.pop_front();
+            self.recent_syscalls.remove(0);
         }
 
         // Limit transition table size
@@ -213,7 +213,7 @@ impl ProcessTimeline {
             return None;
         }
         let ctx = StateContext {
-            syscalls: self.recent_syscalls.clone(),
+            syscalls: self.recent_syscalls.iter().copied().collect(),
         };
         let ctx_hash = ctx.hash();
         self.transitions
@@ -231,7 +231,7 @@ impl ProcessTimeline {
                 break;
             }
             let ctx = StateContext {
-                syscalls: current_ctx.clone(),
+                syscalls: current_ctx.iter().copied().collect(),
             };
             let ctx_hash = ctx.hash();
 
@@ -254,9 +254,9 @@ impl ProcessTimeline {
                         }
                     }
                     result.push(chosen);
-                    current_ctx.push(chosen.0);
+                    current_ctx.push_back(chosen.0);
                     if current_ctx.len() > MARKOV_MEMORY {
-                        current_ctx.pop_front();
+                        current_ctx.remove(0);
                     }
                 },
                 None => break,
@@ -375,7 +375,7 @@ impl BridgeTimeline {
                     return Vec::new();
                 }
                 let ctx = StateContext {
-                    syscalls: timeline.recent_syscalls.clone(),
+                    syscalls: timeline.recent_syscalls.iter().copied().collect(),
                 };
                 let ctx_hash = ctx.hash();
                 timeline
@@ -430,7 +430,7 @@ impl BridgeTimeline {
                         alt_seq.push(s);
                         current.push(s);
                         if current.len() > MARKOV_MEMORY {
-                            current.pop_front();
+                            current.remove(0);
                         }
                     } else {
                         break;
