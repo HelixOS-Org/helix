@@ -2,7 +2,6 @@
 //! Coop LSM — cooperative LSM hook coordination
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// LSM coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
