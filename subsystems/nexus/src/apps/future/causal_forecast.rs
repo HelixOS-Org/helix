@@ -271,10 +271,11 @@ impl AppCausalState {
             self.recent_effects.remove(0);
         }
         // Check for causal linkage: any recent action within 10 ticks
-        for &(action, a_tick) in self.recent_actions.iter().rev() {
-            if tick.saturating_sub(a_tick) > 10 {
-                break;
-            }
+        let actions: Vec<_> = self.recent_actions.iter().rev()
+            .take_while(|&&(_, a_tick)| tick.saturating_sub(a_tick) <= 10)
+            .copied()
+            .collect();
+        for (action, _a_tick) in actions {
             self.link_or_reinforce(action, effect, tick);
         }
     }
