@@ -2,7 +2,6 @@
 //!
 //! Fundamental types for BPF program and map management.
 
-use alloc::vec::Vec;
 
 /// BPF program identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
