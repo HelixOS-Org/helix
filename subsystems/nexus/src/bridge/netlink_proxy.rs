@@ -118,7 +118,7 @@ impl NlSocket {
     }
 
     #[inline(always)]
-    pub fn dequeue(&mut self) -> Option<NlMessage> { if self.recv_queue.is_empty() { None } else { self.recv_queue.pop_front() } }
+    pub fn dequeue(&mut self) -> Option<NlMessage> { if self.recv_queue.is_empty() { None } else { self.recv_queue.remove(0) } }
     #[inline(always)]
     pub fn queue_len(&self) -> usize { self.recv_queue.len() }
 }
