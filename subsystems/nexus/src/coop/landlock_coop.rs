@@ -2,7 +2,6 @@
 //! Coop Landlock — cooperative Landlock sandbox layering
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Landlock coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
