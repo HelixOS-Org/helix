@@ -323,7 +323,7 @@ impl CoopBackpressureProtocol {
         };
 
         if self.signals.len() >= 1024 {
-            self.signals.pop_front();
+            self.signals.remove(0);
         }
         self.signals.push_back(signal);
         self.stats.total_signals += 1;
