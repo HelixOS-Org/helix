@@ -85,7 +85,7 @@ pub struct ProcessAccessState {
     pub denied_count: u64,
     pub capability_overrides: u64,
     pub unique_paths: u64,
-    pub path_cache: BTreeMap<u64, AccessResult>, // path hash → last result
+    pub path_cache: BTreeMap<u64, AccessResult>, // path hash → last result,
 }
 
 impl ProcessAccessState {
