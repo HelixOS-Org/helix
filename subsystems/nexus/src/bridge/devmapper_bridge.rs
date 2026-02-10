@@ -2,8 +2,6 @@
 //! Bridge device mapper — DM ioctl and target management bridge
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// DM bridge operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
