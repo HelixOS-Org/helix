@@ -436,7 +436,7 @@ impl TriggerEngine {
 
         // Store in history
         if self.event_history.len() >= self.config.max_history {
-            self.event_history.pop_front();
+            self.event_history.remove(0);
         }
         self.event_history.push_back(event.clone());
 
@@ -598,7 +598,7 @@ impl TriggerEngine {
         match condition {
             TriggerCondition::Expression(_) => true,
             TriggerCondition::Threshold { metric, operator, value } => {
-                let actual = self.metrics.get(metric).copied().unwrap_or(0.0);
+                let actual = self.metrics.get(metric).unwrap_or(0.0);
                 match operator {
                     ThresholdOp::Greater => actual > *value,
                     ThresholdOp::GreaterEqual => actual >= *value,
@@ -636,7 +636,7 @@ impl TriggerEngine {
                 Ok(None)
             }
             ActionType::UpdateMetric { name, delta } => {
-                let current = self.metrics.get(name).copied().unwrap_or(0.0);
+                let current = self.metrics.get(name).unwrap_or(0.0);
                 self.metrics.insert(name.clone(), current + delta);
                 Ok(None)
             }
@@ -745,7 +745,7 @@ mod tests {
         assert!(!results.is_empty());
         assert!(results[0].activated);
 
-        assert!(engine.flags.get("triggered").copied().unwrap_or(false));
+        assert!(engine.flags.get("triggered").unwrap_or(false));
     }
 
     #[test]
