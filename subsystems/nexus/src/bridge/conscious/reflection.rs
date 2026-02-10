@@ -304,8 +304,9 @@ impl BridgeReflection {
             pattern.confidence = confidence;
             pattern.positive = positive;
 
+            let pattern_clone = pattern.clone();
             if self.patterns.len() <= MAX_PATTERNS {
-                new_patterns.push(pattern.clone());
+                new_patterns.push(pattern_clone);
             }
         }
 
