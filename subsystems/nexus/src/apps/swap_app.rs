@@ -35,7 +35,7 @@ pub struct AppSwapProfile {
     pub working_set_pages: u64,
     pub swap_in_count: u64,
     pub swap_out_count: u64,
-    pub swap_in_rate: f64, // per second
+    pub swap_in_rate: f64, // per second,
     pub swap_out_rate: f64,
     pub compression_ratio: f64,
     pub state: SwapState,
