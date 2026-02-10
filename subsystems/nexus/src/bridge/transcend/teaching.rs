@@ -108,7 +108,7 @@ pub struct Curriculum {
 pub struct StudentProgress {
     pub student_id: u64,
     pub name: String,
-    pub lessons_completed: LinearMap<f32, 64>, // lesson_id -> score
+    pub lessons_completed: LinearMap<f32, 64>, // lesson_id -> score,
     pub mastery_level: f32,
     pub total_assessments: u64,
     pub knowledge_ema: f32,
@@ -312,7 +312,10 @@ impl BridgeTeaching {
             student_mut.total_assessments += 1;
             student_mut.knowledge_ema =
                 EMA_ALPHA * score + (1.0 - EMA_ALPHA) * student_mut.knowledge_ema;
-            student_mut.mastery_level = self.compute_mastery(student_id);
+        }
+        let mastery = self.compute_mastery(student_id);
+        if let Some(student_mut) = self.students.get_mut(&student_id) {
+            student_mut.mastery_level = mastery;
         }
 
         // Update lesson effectiveness
@@ -464,7 +467,7 @@ impl BridgeTeaching {
         // Weight by difficulty of completed lessons
         let mut weighted_sum = 0.0_f32;
         let mut weight_total = 0.0_f32;
-        for (&lid, &score) in &student.lessons_completed {
+        for (lid, score) in student.lessons_completed.iter() {
             let diff = self.lessons.get(&lid).map_or(1.0, |l| l.difficulty_score);
             weighted_sum += score * diff;
             weight_total += diff;
