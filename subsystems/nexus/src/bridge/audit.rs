@@ -427,7 +427,7 @@ impl BridgeAuditManager {
             // Store
             self.log.push_back(event);
             if self.log.len() > self.max_log {
-                self.log.pop_front();
+                self.log.remove(0);
             }
         }
 
