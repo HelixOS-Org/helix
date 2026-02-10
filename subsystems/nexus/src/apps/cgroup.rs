@@ -9,11 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CGROUP CONTROLLER
@@ -287,9 +287,9 @@ pub struct CgroupNode {
     /// Created at
     pub created_at: u64,
 
-    pub max_pids: u32
-    pub parent_path: alloc::string::String
-    pub version: u32
+    pub max_pids: u32,
+    pub parent_path: alloc::string::String,
+    pub version: u32,
 }
 
 impl CgroupNode {
@@ -306,7 +306,9 @@ impl CgroupNode {
             pid_limit: None,
             controllers: Vec::new(),
             created_at: 0,
-            ..Default::default(),
+            max_pids: 0,
+            parent_path: alloc::string::String::new(),
+            version: 2,
         }
     }
 
@@ -548,9 +550,7 @@ impl AppCgroupAnalyzer {
     /// Get cgroup for PID
     #[inline]
     pub fn cgroup_for_pid(&self, pid: u64) -> Option<&CgroupNode> {
-        self.pid_cgroup
-            .get(pid)
-            .and_then(|id| self.nodes.get(&id))
+        self.pid_cgroup.get(pid).and_then(|id| self.nodes.get(&id))
     }
 
     /// Find pressured cgroups
@@ -732,8 +732,6 @@ impl CgroupIoStats {
 // CGROUP NODE
 // ============================================================================
 
-
-
 // ============================================================================
 // ENGINE
 // ============================================================================
@@ -783,11 +781,12 @@ impl AppCgroupV2Profiler {
 
     /// Register cgroup
     #[inline]
-    pub fn register(&mut self, path: String, version: CgroupVersion) -> u64 {
+    pub fn register(&mut self, path: String, _version: CgroupVersion) -> u64 {
         let key = Self::hash_path(&path);
-        self.nodes
-            .entry(key)
-            .or_insert_with(|| { let mut n = CgroupNode::new(key, path); n });
+        self.nodes.entry(key).or_insert_with(|| {
+            let n = CgroupNode::new(key, path);
+            n
+        });
         self.update_stats();
         key
     }
