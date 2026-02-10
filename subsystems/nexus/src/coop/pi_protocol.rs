@@ -53,7 +53,7 @@ pub struct PiResource {
     pub ceiling: i32,
     pub holder: Option<u64>,
     pub holder_original_prio: i32,
-    pub waiters: VecDeque<(u64, i32)>, // (task_id, priority)
+    pub waiters: VecDeque<(u64, i32)>, // (task_id, priority),
 }
 
 impl PiResource {
@@ -265,7 +265,7 @@ impl CoopPiProtocol {
                     .waiters
                     .make_contiguous()
                     .sort_by(|a, b| b.1.cmp(&a.1));
-                let (next_id, _next_prio) = resource.waiters.pop_front().unwrap();
+                let (next_id, _next_prio) = resource.waiters.remove(0).unwrap();
                 resource.holder = Some(next_id);
                 if let Some(next) = self.tasks.get_mut(&next_id) {
                     next.waiting_for = None;
