@@ -893,7 +893,7 @@ pub struct LandlockV4BridgeStats {
 #[repr(align(64))]
 pub struct BridgeLandlockV4 {
     pub rulesets: BTreeMap<u64, LandlockV4Ruleset>,
-    pub process_domains: BTreeMap<u64, Vec<u64>>, // pid → stacked ruleset ids
+    pub process_domains: BTreeMap<u64, Vec<u64>>, // pid → stacked ruleset ids,
     pub next_ruleset_id: u64,
     pub next_rule_id: u64,
     pub stats: LandlockV4BridgeStats,
