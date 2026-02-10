@@ -175,7 +175,7 @@ impl AppsPrctlMgr {
         let state = self.processes.entry(pid).or_insert_with(|| ProcessPrctlState::new(pid));
         if success { state.apply_op(op, arg, ts); }
         self.records.push_back(PrctlRecord { pid, op, arg, timestamp: ts, success });
-        if self.records.len() > self.max_records { self.records.pop_front(); }
+        if self.records.len() > self.max_records { self.records.remove(0); }
     }
 
     #[inline]
