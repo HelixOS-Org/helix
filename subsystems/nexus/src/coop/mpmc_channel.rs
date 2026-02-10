@@ -56,7 +56,7 @@ impl MpmcChannel {
     pub fn recv(&mut self) -> Option<MpmcMsg> {
         if self.buffer.is_empty() { self.total_empty_blocks += 1; return None; }
         self.total_received += 1;
-        self.buffer.pop_front()
+        self.buffer.remove(0)
     }
 
     #[inline(always)]
