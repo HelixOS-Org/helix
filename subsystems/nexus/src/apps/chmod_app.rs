@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Permission bits
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
