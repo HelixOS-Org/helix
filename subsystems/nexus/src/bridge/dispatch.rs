@@ -200,7 +200,7 @@ impl DispatchTable {
                 HandlerState::Disabled => DispatchDecision::Deny,
                 HandlerState::Overloaded => DispatchDecision::Defer,
                 _ => {
-                    if let Some(target) = h.redirect_to {
+                    if let Some(_target) = h.redirect_to {
                         DispatchDecision::Redirect
                     } else if h.handler_type == HandlerType::Batched {
                         DispatchDecision::QueueBatch
@@ -304,7 +304,7 @@ impl SyscallPredictor {
     /// Record transition
     #[inline]
     pub fn record(&mut self, pid: u64, syscall_nr: u32) {
-        if let Some(&last) = self.last_syscall.get(pid) {
+        if let Some(last) = self.last_syscall.get(pid) {
             let key = Self::transition_key(last, syscall_nr);
             self.transitions.add(key, 1);
         }
@@ -313,7 +313,7 @@ impl SyscallPredictor {
 
     /// Predict next syscall for process
     pub fn predict(&self, pid: u64, table: &DispatchTable) -> Option<DispatchPrediction> {
-        let &last = self.last_syscall.get(pid)?;
+        let last = self.last_syscall.get(pid)?;
         let mut best_nr = 0u32;
         let mut best_count = 0u64;
         let mut total = 0u64;
@@ -321,7 +321,7 @@ impl SyscallPredictor {
         // Check all registered handlers as candidates
         for (&nr, _) in &table.handlers {
             let key = Self::transition_key(last, nr);
-            let count = self.transitions.get(key).copied().unwrap_or(0);
+            let count = self.transitions.get(key).unwrap_or(0);
             total += count;
             if count > best_count {
                 best_count = count;
