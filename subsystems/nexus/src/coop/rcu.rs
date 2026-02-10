@@ -294,7 +294,7 @@ impl CoopRcuV2 {
     }
 
     #[inline]
-    pub fn enqueue_callback(&mut self, cpu_id: u32, size: usize) {
+    pub fn enqueue_callback(&mut self, cpu_id: u32, _size: usize) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.enqueue_callback();
             self.stats.total_callbacks += 1;
