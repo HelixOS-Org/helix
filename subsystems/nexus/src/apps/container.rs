@@ -442,7 +442,7 @@ impl AppContainerAnalyzer {
 
         self.cross_comms.push_back(comm);
         if self.cross_comms.len() > self.max_cross_comms {
-            self.cross_comms.pop_front();
+            self.cross_comms.remove(0);
         }
 
         self.stats.cross_comms += 1;
@@ -455,7 +455,7 @@ impl AppContainerAnalyzer {
         let dst_container = self.pid_to_container.get(target_pid)?;
 
         if src_container != dst_container {
-            Some((*src_container, *dst_container))
+            Some((src_container, dst_container))
         } else {
             None
         }
@@ -464,7 +464,7 @@ impl AppContainerAnalyzer {
     /// Get container for process
     #[inline(always)]
     pub fn container_for_pid(&self, pid: u64) -> Option<u64> {
-        self.pid_to_container.get(pid).copied()
+        self.pid_to_container.get(pid)
     }
 
     /// Set container state
