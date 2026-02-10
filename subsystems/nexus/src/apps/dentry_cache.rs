@@ -170,7 +170,7 @@ impl DcacheLru {
         if self.entries.is_empty() {
             None
         } else {
-            self.entries.pop_front()
+            self.entries.remove(0)
         }
     }
 
