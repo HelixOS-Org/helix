@@ -2,7 +2,6 @@
 //! Coop credential — cooperative credential sharing across namespaces
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Credential coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
