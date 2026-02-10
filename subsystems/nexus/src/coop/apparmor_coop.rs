@@ -2,7 +2,6 @@
 //! Coop AppArmor — cooperative AppArmor profile stacking
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// AppArmor coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
