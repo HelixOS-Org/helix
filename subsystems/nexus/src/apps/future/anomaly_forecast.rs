@@ -17,7 +17,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -332,7 +331,7 @@ impl AppAnomalyState {
         };
 
         if self.warnings.len() >= MAX_WARNINGS {
-            self.warnings.pop_front();
+            self.warnings.remove(0);
         }
         self.warnings.push_back(warning);
         self.total_warnings_issued += 1;
@@ -472,7 +471,7 @@ impl AppsAnomalyForecast {
         if cpu_z > ANOMALY_SIGMA_THRESHOLD {
             let conf = (cpu_z - ANOMALY_SIGMA_THRESHOLD) / (cpu_z + 1.0);
             state.issue_warning(AnomalyType::CpuRunaway, conf.min(0.95), self.tick, lead);
-            if let Some(w) = state.warnings.last() {
+            if let Some(w) = state.warnings.back() {
                 warnings.push(w.clone());
             }
         }
@@ -481,7 +480,7 @@ impl AppsAnomalyForecast {
         if mem_z > ANOMALY_SIGMA_THRESHOLD {
             let conf = (mem_z - ANOMALY_SIGMA_THRESHOLD) / (mem_z + 1.0);
             state.issue_warning(AnomalyType::MemoryThrash, conf.min(0.95), self.tick, lead);
-            if let Some(w) = state.warnings.last() {
+            if let Some(w) = state.warnings.back() {
                 warnings.push(w.clone());
             }
             self.stats.total_thrash_predictions += 1;
@@ -491,7 +490,7 @@ impl AppsAnomalyForecast {
         if io_z > ANOMALY_SIGMA_THRESHOLD {
             let conf = (io_z - ANOMALY_SIGMA_THRESHOLD) / (io_z + 1.0);
             state.issue_warning(AnomalyType::IoStall, conf.min(0.95), self.tick, lead);
-            if let Some(w) = state.warnings.last() {
+            if let Some(w) = state.warnings.back() {
                 warnings.push(w.clone());
             }
         }
@@ -500,7 +499,7 @@ impl AppsAnomalyForecast {
         if fault_z > ANOMALY_SIGMA_THRESHOLD * 1.2 {
             let conf = (fault_z - ANOMALY_SIGMA_THRESHOLD) / (fault_z + 1.0);
             state.issue_warning(AnomalyType::Crash, conf.min(0.95), self.tick, lead * 2);
-            if let Some(w) = state.warnings.last() {
+            if let Some(w) = state.warnings.back() {
                 warnings.push(w.clone());
             }
             self.stats.total_crash_precursors += 1;
@@ -583,7 +582,7 @@ impl AppsAnomalyForecast {
     #[inline(always)]
     pub fn early_warning(&self, app_id: u64) -> Option<&AnomalyWarning> {
         let state = self.app_states.get(&app_id)?;
-        state.warnings.last()
+        state.warnings.back()
     }
 
     /// Suggest a prevention action for a given anomaly type.
