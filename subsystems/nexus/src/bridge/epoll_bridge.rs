@@ -661,7 +661,7 @@ impl BridgeEpollV3 {
         }
     }
 
-    pub fn wait_events(&mut self, inst_id: u64, tick: u64) -> Vec<u64> {
+    pub fn wait_events(&mut self, inst_id: u64, _tick: u64) -> Vec<u64> {
         if let Some(inst) = self.instances.get_mut(&inst_id) {
             inst.total_waits += 1;
             self.stats.waits_performed += 1;
@@ -812,7 +812,7 @@ impl EpollV4Instance {
         self.interests.remove(&fd).is_some()
     }
 
-    pub fn wait(&mut self, ts_ns: u64) -> u32 {
+    pub fn wait(&mut self, _ts_ns: u64) -> u32 {
         self.total_waits += 1;
         let ready: Vec<i32> = self.interests.iter()
             .filter(|(_, i)| i.active && i.ready)
