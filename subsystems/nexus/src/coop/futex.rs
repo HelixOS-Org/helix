@@ -24,7 +24,7 @@ pub enum CoopFutexOp {
 }
 
 /// Futex waiter
-#[derive(Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct CoopFutexWaiter {
     pub tid: u64,
     pub addr: u64,
@@ -32,6 +32,8 @@ pub struct CoopFutexWaiter {
     pub bitset: u32,
     pub queued_at: u64,
     pub timeout_ns: u64,
+    pub enqueue_tick: u64,
+    pub woken: bool,
 }
 
 /// Futex hash bucket
@@ -127,24 +129,6 @@ impl CoopFutex {
 // Merged from futex_v2
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CoopFutexOp {
-    Wait,
-    Wake,
-    WakeAll,
-    Requeue,
-    CompareAndWait,
-}
-
-/// Futex coop waiter
-#[derive(Debug, Clone)]
-pub struct CoopFutexWaiter {
-    pub tid: u64,
-    pub expected_val: u32,
-    pub enqueue_tick: u64,
-    pub woken: bool,
-}
-
 /// A cooperative futex
 #[derive(Debug, Clone)]
 pub struct CoopFutexV2Instance {
@@ -172,6 +156,7 @@ impl CoopFutexV2Instance {
         self.waiters.push(CoopFutexWaiter {
             tid, expected_val: expected,
             enqueue_tick: tick, woken: false,
+            ..Default::default()
         });
         self.wait_ops += 1;
         self.contentions += 1;
@@ -378,7 +363,7 @@ impl FutexV3Instance {
     pub fn requeue_to(&mut self, target: &mut FutexV3Instance, count: usize) -> u64 {
         let mut moved = 0u64;
         while !self.waiters.is_empty() && moved < count as u64 {
-            let w = self.waiters.pop_front().unwrap();
+            let w = self.waiters.remove(0).unwrap();
             target.waiters.push_back(w);
             moved += 1;
         }
@@ -420,7 +405,7 @@ pub struct FutexV3Stats {
 /// Main coop futex V3 manager.
 pub struct CoopFutexV3 {
     pub futexes: BTreeMap<u64, FutexV3Instance>,
-    pub robust_lists: BTreeMap<u64, Vec<u64>>, // pid → [futex addresses]
+    pub robust_lists: BTreeMap<u64, Vec<u64>>, // pid → [futex addresses],
     pub next_waiter_id: u64,
     pub stats: FutexV3Stats,
 }
