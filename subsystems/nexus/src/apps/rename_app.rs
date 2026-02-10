@@ -3,11 +3,11 @@
 
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Rename flags
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenameFlag {
     NoReplace,
@@ -101,7 +101,7 @@ impl AppRename {
             flags, pid, result, is_directory: is_dir, tick,
         };
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(record);
         result
