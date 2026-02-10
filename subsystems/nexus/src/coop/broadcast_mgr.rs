@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Broadcast reliability
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,21 +57,43 @@ pub struct BcastMessage {
 }
 
 impl BcastMessage {
-    pub fn new(id: u64, sender: u64, hash: u64, size: u32, seq: u64, rel: BroadcastReliability, recipients: Vec<u64>, ts: u64) -> Self {
+    pub fn new(
+        id: u64,
+        sender: u64,
+        hash: u64,
+        size: u32,
+        seq: u64,
+        rel: BroadcastReliability,
+        recipients: Vec<u64>,
+        ts: u64,
+    ) -> Self {
         Self {
-            id, sender, payload_hash: hash, payload_size: size, seq,
-            state: BcastMsgState::Pending, reliability: rel,
-            recipients, acks: Vec::new(), send_ts: ts, deliver_ts: 0,
-            retries: 0, causal_clock: Vec::new(),
+            id,
+            sender,
+            payload_hash: hash,
+            payload_size: size,
+            seq,
+            state: BcastMsgState::Pending,
+            reliability: rel,
+            recipients,
+            acks: Vec::new(),
+            send_ts: ts,
+            deliver_ts: 0,
+            retries: 0,
+            causal_clock: Vec::new(),
         }
     }
 
     #[inline(always)]
-    pub fn mark_sent(&mut self) { self.state = BcastMsgState::Sent; }
+    pub fn mark_sent(&mut self) {
+        self.state = BcastMsgState::Sent;
+    }
 
     #[inline]
     pub fn ack(&mut self, from: u64) {
-        if !self.acks.contains(&from) { self.acks.push(from); }
+        if !self.acks.contains(&from) {
+            self.acks.push(from);
+        }
         if self.acks.len() >= self.recipients.len() {
             self.state = BcastMsgState::FullyAcked;
         } else {
@@ -79,17 +102,37 @@ impl BcastMessage {
     }
 
     #[inline(always)]
-    pub fn deliver(&mut self, ts: u64) { self.state = BcastMsgState::Delivered; self.deliver_ts = ts; }
+    pub fn deliver(&mut self, ts: u64) {
+        self.state = BcastMsgState::Delivered;
+        self.deliver_ts = ts;
+    }
     #[inline(always)]
-    pub fn fail(&mut self) { self.state = BcastMsgState::Failed; }
+    pub fn fail(&mut self) {
+        self.state = BcastMsgState::Failed;
+    }
     #[inline(always)]
-    pub fn expire(&mut self) { self.state = BcastMsgState::Expired; }
+    pub fn expire(&mut self) {
+        self.state = BcastMsgState::Expired;
+    }
     #[inline(always)]
-    pub fn ack_ratio(&self) -> f64 { if self.recipients.is_empty() { 0.0 } else { self.acks.len() as f64 / self.recipients.len() as f64 } }
+    pub fn ack_ratio(&self) -> f64 {
+        if self.recipients.is_empty() {
+            0.0
+        } else {
+            self.acks.len() as f64 / self.recipients.len() as f64
+        }
+    }
     #[inline(always)]
-    pub fn latency(&self) -> u64 { self.deliver_ts.saturating_sub(self.send_ts) }
+    pub fn latency(&self) -> u64 {
+        self.deliver_ts.saturating_sub(self.send_ts)
+    }
     #[inline(always)]
-    pub fn is_complete(&self) -> bool { matches!(self.state, BcastMsgState::Delivered | BcastMsgState::Failed | BcastMsgState::Expired) }
+    pub fn is_complete(&self) -> bool {
+        matches!(
+            self.state,
+            BcastMsgState::Delivered | BcastMsgState::Failed | BcastMsgState::Expired
+        )
+    }
 }
 
 /// Sequencer for total-order broadcast
@@ -101,11 +144,18 @@ pub struct BcastSequencer {
 }
 
 impl BcastSequencer {
-    pub fn new(id: u64) -> Self { Self { id, next_seq: 1, assigned: LinearMap::new() } }
+    pub fn new(id: u64) -> Self {
+        Self {
+            id,
+            next_seq: 1,
+            assigned: LinearMap::new(),
+        }
+    }
 
     #[inline]
     pub fn assign(&mut self, msg_id: u64) -> u64 {
-        let seq = self.next_seq; self.next_seq += 1;
+        let seq = self.next_seq;
+        self.next_seq += 1;
         self.assigned.insert(msg_id, seq);
         seq
     }
@@ -121,17 +171,25 @@ pub struct DeliveryQueue {
 }
 
 impl DeliveryQueue {
-    pub fn new() -> Self { Self { expected_seq: 1, buffer: LinearMap::new(), delivered: Vec::new() } }
+    pub fn new() -> Self {
+        Self {
+            expected_seq: 1,
+            buffer: LinearMap::new(),
+            delivered: Vec::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn enqueue(&mut self, msg_id: u64, seq: u64) { self.buffer.insert(seq, msg_id); }
+    pub fn enqueue(&mut self, msg_id: u64, seq: u64) {
+        self.buffer.insert(seq, msg_id);
+    }
 
     #[inline]
     pub fn try_deliver(&mut self) -> Vec<u64> {
         let mut out = Vec::new();
-        while let Some(&msg_id) = self.buffer.get(&self.expected_seq) {
+        while let Some(msg_id) = self.buffer.get(self.expected_seq) {
             out.push(msg_id);
-            self.buffer.remove(&self.expected_seq);
+            self.buffer.remove(self.expected_seq);
             self.delivered.push(msg_id);
             self.expected_seq += 1;
         }
@@ -140,9 +198,11 @@ impl DeliveryQueue {
 
     #[inline]
     pub fn gap(&self) -> u64 {
-        if let Some((&max_seq, _)) = self.buffer.iter().next_back() {
+        if let Some((max_seq, _)) = self.buffer.iter().last() {
             max_seq.saturating_sub(self.expected_seq)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 }
 
@@ -158,7 +218,13 @@ pub struct BcastGroup {
 
 impl BcastGroup {
     pub fn new(id: u64, members: Vec<u64>, rel: BroadcastReliability) -> Self {
-        Self { id, members, reliability: rel, msg_count: 0, delivered_count: 0 }
+        Self {
+            id,
+            members,
+            reliability: rel,
+            msg_count: 0,
+            delivered_count: 0,
+        }
     }
 }
 
@@ -190,10 +256,14 @@ pub struct CoopBroadcastMgr {
 impl CoopBroadcastMgr {
     pub fn new(max_retries: u32, timeout_ns: u64) -> Self {
         Self {
-            messages: BTreeMap::new(), groups: BTreeMap::new(),
-            sequencers: BTreeMap::new(), delivery_queues: BTreeMap::new(),
-            stats: BcastStats::default(), next_msg_id: 1,
-            max_retries, timeout_ns,
+            messages: BTreeMap::new(),
+            groups: BTreeMap::new(),
+            sequencers: BTreeMap::new(),
+            delivery_queues: BTreeMap::new(),
+            stats: BcastStats::default(),
+            next_msg_id: 1,
+            max_retries,
+            timeout_ns,
         }
     }
 
@@ -202,9 +272,17 @@ impl CoopBroadcastMgr {
         self.groups.insert(id, BcastGroup::new(id, members, rel));
     }
 
-    pub fn broadcast(&mut self, group_id: u64, sender: u64, hash: u64, size: u32, ts: u64) -> Option<u64> {
+    pub fn broadcast(
+        &mut self,
+        group_id: u64,
+        sender: u64,
+        hash: u64,
+        size: u32,
+        ts: u64,
+    ) -> Option<u64> {
         let group = self.groups.get_mut(&group_id)?;
-        let id = self.next_msg_id; self.next_msg_id += 1;
+        let id = self.next_msg_id;
+        self.next_msg_id += 1;
         group.msg_count += 1;
         let seq = group.msg_count;
         let recipients = group.members.clone();
@@ -213,7 +291,10 @@ impl CoopBroadcastMgr {
         msg.mark_sent();
 
         if rel == BroadcastReliability::TotalOrdered {
-            let seqr = self.sequencers.entry(group_id).or_insert_with(|| BcastSequencer::new(group_id));
+            let seqr = self
+                .sequencers
+                .entry(group_id)
+                .or_insert_with(|| BcastSequencer::new(group_id));
             let assigned = seqr.assign(id);
             msg.seq = assigned;
         }
@@ -226,7 +307,9 @@ impl CoopBroadcastMgr {
 
     #[inline(always)]
     pub fn ack(&mut self, msg_id: u64, from: u64) {
-        if let Some(msg) = self.messages.get_mut(&msg_id) { msg.ack(from); }
+        if let Some(msg) = self.messages.get_mut(&msg_id) {
+            msg.ack(from);
+        }
     }
 
     #[inline]
@@ -234,7 +317,9 @@ impl CoopBroadcastMgr {
         if let Some(msg) = self.messages.get_mut(&msg_id) {
             msg.deliver(ts);
             self.stats.delivered += 1;
-            if let Some(g) = self.groups.get_mut(&0) { g.delivered_count += 1; }
+            if let Some(g) = self.groups.get_mut(&0) {
+                g.delivered_count += 1;
+            }
         }
     }
 
@@ -242,10 +327,17 @@ impl CoopBroadcastMgr {
     pub fn check_timeouts(&mut self, now: u64) -> Vec<u64> {
         let mut expired = Vec::new();
         for msg in self.messages.values_mut() {
-            if msg.is_complete() { continue; }
+            if msg.is_complete() {
+                continue;
+            }
             if now.saturating_sub(msg.send_ts) > self.timeout_ns {
-                if msg.retries >= self.max_retries { msg.expire(); expired.push(msg.id); self.stats.failed += 1; }
-                else { msg.retries += 1; }
+                if msg.retries >= self.max_retries {
+                    msg.expire();
+                    expired.push(msg.id);
+                    self.stats.failed += 1;
+                } else {
+                    msg.retries += 1;
+                }
             }
         }
         expired
@@ -253,16 +345,25 @@ impl CoopBroadcastMgr {
 
     #[inline(always)]
     pub fn enqueue_ordered(&mut self, queue_id: u64, msg_id: u64, seq: u64) {
-        let q = self.delivery_queues.entry(queue_id).or_insert_with(DeliveryQueue::new);
+        let q = self
+            .delivery_queues
+            .entry(queue_id)
+            .or_insert_with(DeliveryQueue::new);
         q.enqueue(msg_id, seq);
     }
 
     #[inline]
     pub fn try_deliver_ordered(&mut self, queue_id: u64, ts: u64) -> Vec<u64> {
-        let q = self.delivery_queues.entry(queue_id).or_insert_with(DeliveryQueue::new);
+        let q = self
+            .delivery_queues
+            .entry(queue_id)
+            .or_insert_with(DeliveryQueue::new);
         let ready = q.try_deliver();
         for &mid in &ready {
-            if let Some(msg) = self.messages.get_mut(&mid) { msg.deliver(ts); self.stats.delivered += 1; }
+            if let Some(msg) = self.messages.get_mut(&mid) {
+                msg.deliver(ts);
+                self.stats.delivered += 1;
+            }
         }
         ready
     }
@@ -270,7 +371,11 @@ impl CoopBroadcastMgr {
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.pending = self.messages.values().filter(|m| !m.is_complete()).count() as u64;
-        let delivered: Vec<&BcastMessage> = self.messages.values().filter(|m| m.state == BcastMsgState::Delivered).collect();
+        let delivered: Vec<&BcastMessage> = self
+            .messages
+            .values()
+            .filter(|m| m.state == BcastMsgState::Delivered)
+            .collect();
         if !delivered.is_empty() {
             let total_lat: u64 = delivered.iter().map(|m| m.latency()).sum();
             self.stats.avg_latency_ns = total_lat / delivered.len() as u64;
@@ -280,9 +385,15 @@ impl CoopBroadcastMgr {
     }
 
     #[inline(always)]
-    pub fn message(&self, id: u64) -> Option<&BcastMessage> { self.messages.get(&id) }
+    pub fn message(&self, id: u64) -> Option<&BcastMessage> {
+        self.messages.get(&id)
+    }
     #[inline(always)]
-    pub fn group(&self, id: u64) -> Option<&BcastGroup> { self.groups.get(&id) }
+    pub fn group(&self, id: u64) -> Option<&BcastGroup> {
+        self.groups.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BcastStats { &self.stats }
+    pub fn stats(&self) -> &BcastStats {
+        &self.stats
+    }
 }
