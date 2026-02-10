@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Wait target type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,7 +73,7 @@ impl BridgeWaitManager {
         self.zombies.insert(status.pid, status);
     }
 
-    pub fn waitpid(&mut self, parent: u64, target: BridgeWaitTarget) -> Option<BridgeExitStatus> {
+    pub fn waitpid(&mut self, _parent: u64, target: BridgeWaitTarget) -> Option<BridgeExitStatus> {
         self.stats.total_waits += 1;
         match target {
             BridgeWaitTarget::SpecificPid(pid) => {
