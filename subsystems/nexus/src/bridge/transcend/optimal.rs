@@ -209,7 +209,7 @@ impl BridgeOptimal {
             .map(|v| v.current_value)
             .collect();
         let mut best_obj: f32 = self.evaluate_proxy(&best_values);
-        let mut dual_bound: f32 = f32::MAX;
+        let mut _dual_bound: f32 = f32::MAX;
         let mut iterations: u32 = 0;
 
         // Golden-section for each continuous dimension while holding others fixed
@@ -264,8 +264,8 @@ impl BridgeOptimal {
             }
         }
 
-        dual_bound = best_obj - CONVERGENCE_EPS * 10.0;
-        let gap = abs_f32(best_obj - dual_bound) / abs_f32(best_obj).max(1e-12);
+        _dual_bound = best_obj - CONVERGENCE_EPS * 10.0;
+        let gap = abs_f32(best_obj - _dual_bound) / abs_f32(best_obj).max(1e-12);
         let proven = gap < 0.001;
 
         if proven {
@@ -279,7 +279,7 @@ impl BridgeOptimal {
             problem_id,
             variables: variables.iter().take(dim).cloned().collect(),
             best_objective: best_obj,
-            dual_bound,
+            dual_bound: _dual_bound,
             iterations,
             proven,
             tick: self.tick,
@@ -289,7 +289,7 @@ impl BridgeOptimal {
         let proof = OptimalityProof {
             problem_id,
             optimal_objective: best_obj,
-            dual_bound,
+            dual_bound: _dual_bound,
             gap,
             iterations_used: iterations,
             is_proven_optimal: proven,
