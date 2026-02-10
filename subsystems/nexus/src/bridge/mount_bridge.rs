@@ -196,7 +196,7 @@ impl BridgeMountBridge {
             event_type: if flags.is_bind() { MountEventType::Bind } else { MountEventType::Mount },
             mount_id: id, path, pid, timestamp: ts, success: true,
         });
-        if self.events.len() > self.max_events { self.events.pop_front(); }
+        if self.events.len() > self.max_events { self.events.remove(0); }
         id
     }
 
