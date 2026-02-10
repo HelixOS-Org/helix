@@ -286,7 +286,7 @@ impl BridgeCuriosityEngine {
 
     /// Compute novelty score for a given dimension and region.
     #[inline]
-    pub fn novelty_score(&self, dim_name: &str, region_low: f32, region_high: f32) -> f32 {
+    pub fn novelty_score(&self, dim_name: &str, region_low: f32, _region_high: f32) -> f32 {
         let dim_id = fnv1a_hash(dim_name.as_bytes());
         let cell_key = self.cell_key(dim_id, region_low);
         match self.frontier.get(&cell_key) {
