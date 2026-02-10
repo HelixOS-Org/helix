@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONFLICT TYPES
@@ -160,8 +161,7 @@ impl Conflict {
     /// Duration to resolve
     #[inline(always)]
     pub fn resolution_time_ns(&self) -> Option<u64> {
-        self.resolved_at
-            .map(|r| r.saturating_sub(self.created_at))
+        self.resolved_at.map(|r| r.saturating_sub(self.created_at))
     }
 
     /// Average satisfaction
@@ -195,7 +195,10 @@ pub struct MediationPolicy {
 impl MediationPolicy {
     pub fn default_policy() -> Self {
         let mut strategies = BTreeMap::new();
-        strategies.insert(ConflictResource::CpuTime as u8, ResolutionStrategy::Proportional);
+        strategies.insert(
+            ConflictResource::CpuTime as u8,
+            ResolutionStrategy::Proportional,
+        );
         strategies.insert(
             ConflictResource::MemoryBandwidth as u8,
             ResolutionStrategy::Proportional,
@@ -356,12 +359,13 @@ impl CoopMediationManager {
 
     /// Mediate conflict
     pub fn mediate(&mut self, conflict_id: u64, total_resource: u64, now: u64) -> bool {
-        let (parties, resource, strategy) = if let Some(conflict) = self.conflicts.get(&conflict_id) {
-            let strategy = self.policy.strategy_for(conflict.resource);
-            (conflict.parties.clone(), conflict.resource, strategy)
-        } else {
-            return false;
-        };
+        let (parties, _resource, strategy) =
+            if let Some(conflict) = self.conflicts.get(&conflict_id) {
+                let strategy = self.policy.strategy_for(conflict.resource);
+                (conflict.parties.clone(), conflict.resource, strategy)
+            } else {
+                return false;
+            };
 
         if let Some(conflict) = self.conflicts.get_mut(&conflict_id) {
             conflict.begin_mediation(strategy);
@@ -375,12 +379,12 @@ impl CoopMediationManager {
                 } else {
                     total_resource / parties.len() as u64
                 };
-                let mut alloc = BTreeMap::new();
+                let mut alloc = LinearMap::new();
                 for &pid in &parties {
                     alloc.insert(pid, share);
                 }
                 alloc
-            }
+            },
             ResolutionStrategy::Proportional | ResolutionStrategy::HistoricalFairness => {
                 // Use fairness debt to adjust proportions
                 let mut weights: Vec<(u64, f64)> = Vec::new();
@@ -395,7 +399,7 @@ impl CoopMediationManager {
                     weights.push((pid, weight));
                 }
                 let total_weight: f64 = weights.iter().map(|(_, w)| w).sum();
-                let mut alloc = BTreeMap::new();
+                let mut alloc = LinearMap::new();
                 if total_weight > 0.0 {
                     for (pid, weight) in &weights {
                         let share = (total_resource as f64 * weight / total_weight) as u64;
@@ -403,7 +407,7 @@ impl CoopMediationManager {
                     }
                 }
                 alloc
-            }
+            },
             _ => {
                 // Default: equal split
                 let share = if parties.is_empty() {
@@ -411,16 +415,16 @@ impl CoopMediationManager {
                 } else {
                     total_resource / parties.len() as u64
                 };
-                let mut alloc = BTreeMap::new();
+                let mut alloc = LinearMap::new();
                 for &pid in &parties {
                     alloc.insert(pid, share);
                 }
                 alloc
-            }
+            },
         };
 
         // Apply allocations
-        for (&pid, &amount) in &allocations {
+        for (pid, amount) in allocations.iter() {
             let record = self
                 .fairness
                 .entry(pid)
