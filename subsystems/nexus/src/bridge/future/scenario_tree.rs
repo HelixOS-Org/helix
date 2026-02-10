@@ -12,8 +12,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -318,7 +316,7 @@ impl BridgeScenarioTree {
             if depth as usize >= self.max_depth {
                 // Assign leaf outcome
                 let sh = self.arena[node_idx].state_hash;
-                let outcome = self.outcome_cache.get(sh).copied().unwrap_or(0.5);
+                let outcome = self.outcome_cache.get(sh).unwrap_or(0.5);
                 self.arena[node_idx].outcome_estimate = outcome;
                 continue;
             }
@@ -346,7 +344,7 @@ impl BridgeScenarioTree {
             } else {
                 // No transitions known: generate synthetic children
                 let sh = state_hash;
-                let outcome = self.outcome_cache.get(sh).copied().unwrap_or(0.5);
+                let outcome = self.outcome_cache.get(sh).unwrap_or(0.5);
                 self.arena[node_idx].outcome_estimate = outcome;
             }
         }
@@ -506,7 +504,7 @@ impl BridgeScenarioTree {
             let hist = self.evaluation_history.entry(root_hash).or_insert_with(Vec::new);
             hist.push(ev);
             if hist.len() > 64 {
-                hist.pop_front();
+                hist.remove(0);
             }
             self.quality_ema = self.quality_ema * (1.0 - EMA_ALPHA) + ev * EMA_ALPHA;
             ev
