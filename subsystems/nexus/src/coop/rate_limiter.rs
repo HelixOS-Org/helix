@@ -36,7 +36,7 @@ pub enum RateDecision {
 pub struct TokenBucket {
     pub capacity: u64,
     pub tokens: u64,
-    pub refill_rate: u64, // tokens per second
+    pub refill_rate: u64, // tokens per second,
     pub last_refill_ns: u64,
     pub burst_allowance: u64,
 }
