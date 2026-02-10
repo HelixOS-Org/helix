@@ -309,10 +309,8 @@ impl AppsAbstraction {
                 let id_a = cat_ids[i];
                 let id_b = cat_ids[j];
                 let dist = self.category_distance(id_a, id_b);
-                if dist <= DISTANCE_MERGE_THRESHOLD {
-                    if self.merge_categories(id_a, id_b) {
-                        merges += 1;
-                    }
+                if dist <= DISTANCE_MERGE_THRESHOLD && self.merge_categories(id_a, id_b) {
+                    merges += 1;
                 }
                 j += 1;
             }
@@ -491,8 +489,14 @@ impl AppsAbstraction {
                     keeper.member_ids.push(mid);
                 }
             }
-            keeper.cohesion = self.measure_cohesion(&keeper.member_ids);
-            keeper.last_used_tick = self.tick;
+            let member_ids_clone = keeper.member_ids.clone();
+            let last_tick = self.tick;
+            drop(keeper);
+            let cohesion = self.measure_cohesion(&member_ids_clone);
+            if let Some(keeper) = self.categories.get_mut(&keep_id) {
+                keeper.cohesion = cohesion;
+                keeper.last_used_tick = last_tick;
+            }
 
             let event_id = fnv1a(&keep_id.to_le_bytes()) ^ fnv1a(&remove_id.to_le_bytes());
             self.compressions.push(CompressionEvent {
