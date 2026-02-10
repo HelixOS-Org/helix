@@ -520,7 +520,7 @@ impl AppCgroupAnalyzer {
                 mem.current_bytes = bytes;
             }
         }
-    } 
+    }
 
     /// Record OOM kill
     #[inline]
