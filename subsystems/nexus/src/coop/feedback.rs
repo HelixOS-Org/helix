@@ -4,7 +4,6 @@
 //! Tracks compliance, benefit metrics, and overall cooperation health.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -266,7 +265,7 @@ impl FeedbackCollector {
         // Store in history
         let hist = self.history.entry(session_id).or_insert_with(Vec::new);
         if hist.len() >= MAX_HISTORY_PER_SESSION {
-            hist.pop_front();
+            hist.remove(0);
         }
         hist.push(feedback);
     }
