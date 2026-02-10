@@ -92,7 +92,7 @@ impl LatencyHistogram {
 #[derive(Debug, Clone)]
 #[repr(align(64))]
 pub struct ErrnoTracker {
-    pub errors: BTreeMap<i32, u64>, // errno → count
+    pub errors: BTreeMap<i32, u64>, // errno → count,
     pub total_errors: u64,
     pub total_calls: u64,
 }
@@ -123,7 +123,7 @@ impl ErrnoTracker {
     #[inline]
     pub fn top_error(&self) -> Option<(i32, u64)> {
         self.errors.iter()
-            .max_by_key(|(_, &count)| count)
+            .max_by_key(|&(_, &count)| count)
             .map(|(&errno, &count)| (errno, count))
     }
 }
@@ -146,7 +146,7 @@ pub struct SyscallProfileV2 {
     pub latency: LatencyHistogram,
     pub errors: ErrnoTracker,
     pub last_call_ns: u64,
-    pub caller_sites: LinearMap<u64, 64>, // return_addr → count
+    pub caller_sites: LinearMap<u64, 64>, // return_addr → count,
 }
 
 impl SyscallProfileV2 {
@@ -178,8 +178,8 @@ impl SyscallProfileV2 {
     #[inline]
     pub fn top_caller(&self) -> Option<(u64, u64)> {
         self.caller_sites.iter()
-            .max_by_key(|(_, &count)| count)
-            .map(|(&addr, &count)| (addr, count))
+            .max_by_key(|(_, count)| *count)
+            .map(|(addr, count)| (addr, count))
     }
 }
 
