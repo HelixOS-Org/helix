@@ -9,10 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // SECCOMP TYPES
@@ -308,8 +308,11 @@ impl ProcessSeccompProfile {
     /// Top violated syscalls
     #[inline]
     pub fn top_violated(&self, n: usize) -> Vec<(u32, u64)> {
-        let mut sorted: Vec<(u32, u64)> =
-            self.violation_hist.iter().map(|(k, v)| (k as u32, v)).collect();
+        let mut sorted: Vec<(u32, u64)> = self
+            .violation_hist
+            .iter()
+            .map(|(k, v)| (k as u32, v))
+            .collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
         sorted.truncate(n);
         sorted
