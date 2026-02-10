@@ -7,7 +7,6 @@ use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::types::*;
