@@ -50,7 +50,7 @@ impl SymlinkCache {
     #[inline]
     pub fn insert(&mut self, path_hash: u64, target_hash: u64) {
         if self.entries.len() >= self.max_entries {
-            if let Some(first) = self.entries.keys().next() { self.entries.remove(first); self.evictions += 1; }
+            let first = self.entries.keys().next(); if let Some(first) = first { self.entries.remove(&first); self.evictions += 1;  }
         }
         self.entries.insert(path_hash, target_hash);
     }
