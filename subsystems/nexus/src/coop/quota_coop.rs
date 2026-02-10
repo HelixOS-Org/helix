@@ -587,7 +587,7 @@ impl CoopQuotaV2Manager {
 
     pub fn charge_blocks(&mut self, quota_type: CoopQuotaV2Type, owner_id: u32, blocks: u64) -> bool {
         let key = Self::owner_key(quota_type, owner_id);
-        if let Some(&qid) = self.owner_index.get(key) {
+        if let Some(qid) = self.owner_index.get(key) {
             if let Some(q) = self.quotas.get_mut(&qid) {
                 if q.blocks_used + blocks > q.block_hard_limit && q.block_hard_limit > 0 {
                     self.stats.allocations_denied += 1;
@@ -608,7 +608,7 @@ impl CoopQuotaV2Manager {
     #[inline]
     pub fn release_blocks(&mut self, quota_type: CoopQuotaV2Type, owner_id: u32, blocks: u64) {
         let key = Self::owner_key(quota_type, owner_id);
-        if let Some(&qid) = self.owner_index.get(key) {
+        if let Some(qid) = self.owner_index.get(key) {
             if let Some(q) = self.quotas.get_mut(&qid) {
                 q.blocks_used = q.blocks_used.saturating_sub(blocks);
             }
