@@ -40,6 +40,7 @@ pub enum RequestClass {
 pub enum ShedDecision {
     Accept,
     Delay,
+    Defer,
     Shed,
     Redirect,
 }
@@ -202,7 +203,7 @@ impl SubsystemShedState {
                         load_at_entry: load,
                     });
                     if self.history.len() > 64 {
-                        self.history.pop_front();
+                        self.history.remove(0);
                     }
                 }
                 self.current_level = new_level;
@@ -339,15 +340,6 @@ pub enum LoadLevel {
     High,
     Critical,
     Overload,
-}
-
-/// Shed decision
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ShedDecision {
-    Accept,
-    Defer,
-    Shed,
-    Redirect,
 }
 
 /// Request entry for shedding evaluation
