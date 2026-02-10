@@ -276,7 +276,7 @@ impl ProcessSeccompProfile {
         };
 
         // Deduplicate recent violations
-        if let Some(last) = self.violations.last_mut() {
+        if let Some(last) = self.violations.back_mut() {
             if last.syscall_nr == syscall_nr && last.action as u8 == action as u8 {
                 last.repeat_count += 1;
                 return;
@@ -284,7 +284,7 @@ impl ProcessSeccompProfile {
         }
 
         if self.violations.len() >= 256 {
-            self.violations.pop_front();
+            self.violations.remove(0);
         }
         self.violations.push_back(ViolationRecord {
             pid: self.pid,
@@ -309,7 +309,7 @@ impl ProcessSeccompProfile {
     #[inline]
     pub fn top_violated(&self, n: usize) -> Vec<(u32, u64)> {
         let mut sorted: Vec<(u32, u64)> =
-            self.violation_hist.iter().map(|(&k, &v)| (k, v)).collect();
+            self.violation_hist.iter().map(|(k, v)| (k as u32, v)).collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
         sorted.truncate(n);
         sorted
