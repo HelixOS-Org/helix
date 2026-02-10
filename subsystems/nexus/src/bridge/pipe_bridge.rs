@@ -213,7 +213,7 @@ impl BridgePipeBridge {
     #[inline(always)]
     pub fn splice(&mut self, src_fd: i32, dst_fd: i32, bytes: u64, flags: u32, ts: u64) {
         self.splice_history.push_back(SpliceRecord { src_fd, dst_fd, bytes, flags, timestamp: ts, zero_copy: flags & 0x4 != 0 });
-        if self.splice_history.len() > self.max_splice_history { self.splice_history.pop_front(); }
+        if self.splice_history.len() > self.max_splice_history { self.splice_history.remove(0); }
     }
 
     #[inline(always)]
