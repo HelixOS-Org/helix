@@ -2,8 +2,6 @@
 //! Bridge VFS — virtual filesystem switch bridge with path resolution
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Bridge VFS call type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
