@@ -144,10 +144,10 @@ impl ORSet {
 
     pub fn merge(&mut self, other: &ORSet) {
         for elem in &other.elements {
-            if !self.tombstones.contains(&elem.tag) {
-                if !self.elements.iter().any(|e| e.tag == elem.tag) {
-                    self.elements.push(elem.clone());
-                }
+            if !self.tombstones.contains(&elem.tag)
+                && !self.elements.iter().any(|e| e.tag == elem.tag)
+            {
+                self.elements.push(elem.clone());
             }
         }
         for &tomb in &other.tombstones {
