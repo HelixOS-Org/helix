@@ -16,7 +16,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -157,7 +156,7 @@ pub struct CounterfactualAlternative {
 #[derive(Debug, Clone)]
 struct AppCounterfactualState {
     app_id: u64,
-    decisions: VecDeque<AllocationDecision>,
+    decisions: Vec<AllocationDecision>,
     cumulative_regret: f64,
     ema_efficiency: f64,
     ema_waste: f64,
@@ -170,7 +169,7 @@ impl AppCounterfactualState {
     fn new(app_id: u64) -> Self {
         Self {
             app_id,
-            decisions: VecDeque::new(),
+            decisions: Vec::new(),
             cumulative_regret: 0.0,
             ema_efficiency: 0.5,
             ema_waste: 0.0,
@@ -195,9 +194,9 @@ impl AppCounterfactualState {
         *entry = ema_update(*entry, decision.observed_utility, EMA_ALPHA);
 
         if self.decisions.len() >= MAX_DECISIONS {
-            self.decisions.pop_front();
+            self.decisions.remove(0);
         }
-        self.decisions.push_back(decision);
+        self.decisions.push(decision);
     }
 
     fn estimate_utility(&self, alloc_type: AllocationType, amount: u64) -> f64 {
