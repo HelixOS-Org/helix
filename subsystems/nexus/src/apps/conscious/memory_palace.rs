@@ -292,17 +292,15 @@ impl MemoryRoom {
         let profile_weight = self.app_profiles.len().min(50) as f32 / 50.0;
         let pattern_weight = self.patterns.len().min(20) as f32 / 20.0;
 
-        self.depth = 0.5 * (profile_depth * profile_weight)
-            + 0.5 * (pattern_depth * pattern_weight);
+        self.depth =
+            0.5 * (profile_depth * profile_weight) + 0.5 * (pattern_depth * pattern_weight);
     }
 
     fn evict_stale_profiles(&mut self, tick: u64) -> usize {
         let stale_ids: Vec<u64> = self
             .app_profiles
             .iter()
-            .filter(|(_, p)| {
-                p.stale && p.confidence < 0.2
-            })
+            .filter(|(_, p)| p.stale && p.confidence < 0.2)
             .map(|(id, _)| *id)
             .collect();
         let count = stale_ids.len();
@@ -315,7 +313,8 @@ impl MemoryRoom {
 
     fn evict_stale_patterns(&mut self, tick: u64) -> usize {
         let before = self.patterns.len();
-        self.patterns.retain(|p| !p.is_stale(tick) || p.confidence > 0.3);
+        self.patterns
+            .retain(|p| !p.is_stale(tick) || p.confidence > 0.3);
         before - self.patterns.len()
     }
 }
@@ -364,7 +363,11 @@ impl AppsMemoryPalace {
             total_stores: 0,
             total_recalls: 0,
             total_validations: 0,
-            rng_state: if seed == 0 { 0xA1AC_CAFE_1234_5678 } else { seed },
+            rng_state: if seed == 0 {
+                0xA1AC_CAFE_1234_5678
+            } else {
+                seed
+            },
         }
     }
 
@@ -404,24 +407,26 @@ impl AppsMemoryPalace {
                     self.tick,
                 );
                 room.app_profiles.insert(app_id, profile);
-
-                // Evict if over capacity
-                if room.app_profiles.len() > MAX_PROFILES_PER_ROOM {
-                    self.evict_from_room(room_idx, app_id);
-                }
             }
+        }
+
+        // Evict if over capacity (done outside the mutable borrow)
+        let needs_evict = self
+            .rooms
+            .get(&room_idx)
+            .map(|r| r.app_profiles.len() > MAX_PROFILES_PER_ROOM)
+            .unwrap_or(false);
+        if needs_evict {
+            self.evict_from_room(room_idx, app_id);
+        }
+
+        if let Some(room) = self.rooms.get_mut(&room_idx) {
             room.recompute_depth();
         }
     }
 
     /// Recall knowledge about an app pattern
-    pub fn recall_app_pattern(
-        &mut self,
-        cpu: f32,
-        mem: f32,
-        io: f32,
-        net: f32,
-    ) -> Vec<(u64, f32)> {
+    pub fn recall_app_pattern(&mut self, cpu: f32, mem: f32, io: f32, net: f32) -> Vec<(u64, f32)> {
         self.total_recalls += 1;
         let category = RoomCategory::classify(cpu, mem, io, net);
         let room_idx = RoomCategory::all()
@@ -524,23 +529,14 @@ impl AppsMemoryPalace {
     }
 
     /// Store a pattern in a room
-    pub fn store_pattern(
-        &mut self,
-        category: RoomCategory,
-        description: &str,
-        app_ids: Vec<u64>,
-    ) {
+    pub fn store_pattern(&mut self, category: RoomCategory, description: &str, app_ids: Vec<u64>) {
         let room_idx = RoomCategory::all()
             .iter()
             .position(|c| *c == category)
             .unwrap_or(0) as u8;
 
         if let Some(room) = self.rooms.get_mut(&room_idx) {
-            let pattern = KnowledgePattern::new(
-                String::from(description),
-                app_ids,
-                self.tick,
-            );
+            let pattern = KnowledgePattern::new(String::from(description), app_ids, self.tick);
 
             if room.patterns.len() < MAX_PATTERNS_PER_ROOM {
                 room.patterns.push(pattern);
