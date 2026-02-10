@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // ACCOUNTING TYPES
@@ -139,7 +140,8 @@ impl CostModel {
             + cost.memory_bytes as f64 * self.memory_cost_per_byte
             + cost.io_bytes as f64 * self.io_cost_per_byte;
 
-        let multiplier = self.overrides.get(&cost.syscall_nr).copied().unwrap_or(1.0);
+        let raw = self.overrides.get(cost.syscall_nr);
+        let multiplier = if raw == 0.0 { 1.0 } else { raw };
         base * multiplier
     }
 }
@@ -163,7 +165,7 @@ pub struct ResourceCounter {
 impl ResourceCounter {
     /// Record usage
     #[inline(always)]
-    pub fn record(&mut self, amount: u64, now: u64) {
+    pub fn record(&mut self, amount: u64, _now: u64) {
         self.total += amount;
         self.window_usage += amount;
     }
@@ -237,19 +239,18 @@ impl ProcessAccount {
     /// Budget utilization
     #[inline]
     pub fn budget_utilization(&self) -> Option<f64> {
-        self.budget.map(|b| {
-            if b > 0.0 {
-                self.window_cost / b
-            } else {
-                0.0
-            }
-        })
+        self.budget
+            .map(|b| if b > 0.0 { self.window_cost / b } else { 0.0 })
     }
 
     /// Top syscalls by cost
     #[inline]
     pub fn top_syscalls(&self, count: usize) -> Vec<(u32, u64)> {
-        let mut entries: Vec<(u32, u64)> = self.syscall_counts.iter().map(|(&k, &v)| (k, v)).collect();
+        let mut entries: Vec<(u32, u64)> = self
+            .syscall_counts
+            .iter()
+            .map(|(k, v)| (k as u32, v))
+            .collect();
         entries.sort_by(|a, b| b.1.cmp(&a.1));
         entries.truncate(count);
         entries
@@ -331,7 +332,11 @@ impl BridgeAccountingEngine {
         account.record_cost(calculated, syscall_nr);
         account.record_resource(AccountingResource::CpuTime, cost.cpu_ns, cost.timestamp);
         if cost.memory_bytes > 0 {
-            account.record_resource(AccountingResource::Memory, cost.memory_bytes, cost.timestamp);
+            account.record_resource(
+                AccountingResource::Memory,
+                cost.memory_bytes,
+                cost.timestamp,
+            );
         }
         if cost.io_bytes > 0 {
             account.record_resource(AccountingResource::IoRead, cost.io_bytes, cost.timestamp);
