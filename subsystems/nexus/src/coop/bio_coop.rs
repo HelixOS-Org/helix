@@ -2,8 +2,6 @@
 //! Coop BIO — cooperative block I/O with request merging and sharing
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Coop BIO type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
