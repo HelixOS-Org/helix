@@ -43,14 +43,14 @@ impl SymlinkCache {
 
     #[inline(always)]
     pub fn lookup(&mut self, path_hash: u64) -> Option<u64> {
-        if let Some(&target) = self.entries.get(path_hash) { self.hits += 1; Some(target) }
+        if let Some(target) = self.entries.get(path_hash) { self.hits += 1; Some(target) }
         else { self.misses += 1; None }
     }
 
     #[inline]
     pub fn insert(&mut self, path_hash: u64, target_hash: u64) {
         if self.entries.len() >= self.max_entries {
-            if let Some(&first) = self.entries.keys().next() { self.entries.remove(first); self.evictions += 1; }
+            if let Some(first) = self.entries.keys().next() { self.entries.remove(first); self.evictions += 1; }
         }
         self.entries.insert(path_hash, target_hash);
     }
