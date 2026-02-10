@@ -194,17 +194,14 @@ impl BridgePeerReview {
             return;
         }
         let id = fnv1a_hash(subsystem.as_bytes());
-        self.reviewers.insert(
+        self.reviewers.insert(id, Reviewer {
             id,
-            Reviewer {
-                id,
-                subsystem: String::from(subsystem),
-                trust_score: REVIEWER_TRUST_INIT,
-                reviews_given: 0,
-                correct_reviews: 0,
-                last_review_tick: 0,
-            },
-        );
+            subsystem: String::from(subsystem),
+            trust_score: REVIEWER_TRUST_INIT,
+            reviews_given: 0,
+            correct_reviews: 0,
+            last_review_tick: 0,
+        });
         self.stats.active_reviewers = self.reviewers.len();
     }
 
@@ -232,20 +229,17 @@ impl BridgePeerReview {
             }
         }
 
-        self.findings.insert(
+        self.findings.insert(id, Finding {
             id,
-            Finding {
-                id,
-                description: String::from(description),
-                effect_magnitude,
-                submitter: String::from(submitter),
-                submit_tick: self.tick,
-                status: FindingStatus::Submitted,
-                reviews: Vec::new(),
-                replication_count: 0,
-                consensus_score: 0.0,
-            },
-        );
+            description: String::from(description),
+            effect_magnitude,
+            submitter: String::from(submitter),
+            submit_tick: self.tick,
+            status: FindingStatus::Submitted,
+            reviews: Vec::new(),
+            replication_count: 0,
+            consensus_score: 0.0,
+        });
         self.stats.pending_reviews += 1;
         id
     }
@@ -269,8 +263,8 @@ impl BridgePeerReview {
             .get(&reviewer_id)
             .map(|r| r.trust_score)
             .unwrap_or(0.3);
-        let quality = reviewer_trust * REVIEW_QUALITY_WEIGHT
-            + clamped_conf * (1.0 - REVIEW_QUALITY_WEIGHT);
+        let quality =
+            reviewer_trust * REVIEW_QUALITY_WEIGHT + clamped_conf * (1.0 - REVIEW_QUALITY_WEIGHT);
 
         let review = Review {
             reviewer_id,
@@ -288,7 +282,11 @@ impl BridgePeerReview {
                 finding.status = FindingStatus::UnderReview;
             }
             // Recompute consensus
-            finding.consensus_score = self.compute_consensus_score(&finding.reviews);
+            let reviews_clone = finding.reviews.clone();
+            let score = self.compute_consensus_score(&reviews_clone);
+            if let Some(finding) = self.findings.get_mut(&finding_id) {
+                finding.consensus_score = score;
+            }
         }
 
         // Update reviewer stats
@@ -335,7 +333,7 @@ impl BridgePeerReview {
                         String::from("under_review")
                     };
                     (cs, rc, wc, st)
-                }
+                },
                 None => (0.0, 0, 0.0, String::from("not_found")),
             };
 
@@ -400,7 +398,7 @@ impl BridgePeerReview {
                 };
                 let experience = (r.reviews_given as f32 / 50.0).min(1.0);
                 accuracy * 0.6 + r.trust_score * 0.25 + experience * 0.15
-            }
+            },
             None => 0.0,
         }
     }
@@ -482,12 +480,20 @@ impl BridgePeerReview {
             sum += r.confidence * w;
             weight_sum += w;
         }
-        if weight_sum > 1e-9 { sum / weight_sum } else { 0.0 }
+        if weight_sum > 1e-9 {
+            sum / weight_sum
+        } else {
+            0.0
+        }
     }
 
     fn update_reviewer_trust(&mut self, finding_id: u64, finding_accepted: bool) {
         let reviews: Vec<(u64, bool)> = match self.findings.get(&finding_id) {
-            Some(f) => f.reviews.iter().map(|r| (r.reviewer_id, r.confirmed)).collect(),
+            Some(f) => f
+                .reviews
+                .iter()
+                .map(|r| (r.reviewer_id, r.confirmed))
+                .collect(),
             None => return,
         };
         for (rid, confirmed) in reviews {
@@ -495,11 +501,9 @@ impl BridgePeerReview {
                 let was_correct = confirmed == finding_accepted;
                 if was_correct {
                     reviewer.correct_reviews += 1;
-                    reviewer.trust_score =
-                        (reviewer.trust_score + TRUST_GAIN).min(1.0);
+                    reviewer.trust_score = (reviewer.trust_score + TRUST_GAIN).min(1.0);
                 } else {
-                    reviewer.trust_score =
-                        (reviewer.trust_score - TRUST_DECAY).max(0.1);
+                    reviewer.trust_score = (reviewer.trust_score - TRUST_DECAY).max(0.1);
                 }
             }
         }
