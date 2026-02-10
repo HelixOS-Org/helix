@@ -55,7 +55,7 @@ pub struct VmaRssEntry {
     pub category: VmaCategory,
     pub rss_pages: u64,
     pub shared_pages: u64,
-    pub pss_pages_x1000: u64, // PSS * 1000 for precision
+    pub pss_pages_x1000: u64, // PSS * 1000 for precision,
     pub referenced: bool,
 }
 
@@ -189,7 +189,7 @@ impl ProcessRssProfile {
         if self.rss_history.len() < 16 {
             return false;
         }
-        let mut sorted: Vec<u64> = self.rss_history.iter()
+        let sorted: Vec<u64> = self.rss_history.iter()
             .map(|s| s.rss_pages)
             .collect();
         // Check last 16 samples
