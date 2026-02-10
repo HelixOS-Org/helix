@@ -2,8 +2,6 @@
 //! App rmdir — directory removal with empty-check and recursive support
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Rmdir result
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
