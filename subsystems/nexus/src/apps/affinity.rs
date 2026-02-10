@@ -276,8 +276,8 @@ impl ProcessAffinityProfile {
     pub fn most_used_core(&self) -> Option<u32> {
         self.core_usage
             .iter()
-            .max_by_key(|(_, &time)| time)
-            .map(|(&core, _)| core)
+            .max_by_key(|(_, time)| *time)
+            .map(|(core, _)| core as u32)
     }
 
     /// Migration rate (per second)
@@ -382,7 +382,7 @@ impl AppAffinityManager {
     pub fn set_exclusive(&mut self, pid: u64, cores: &[u32]) -> bool {
         // Check no conflicts
         for &core in cores {
-            if let Some(&existing) = self.exclusive.try_get(core as usize) {
+            if let Some(existing) = self.exclusive.try_get(core as usize) {
                 if existing != pid {
                     return false;
                 }
@@ -444,7 +444,7 @@ impl AppAffinityManager {
                     score += 25; // warm cache
                 }
                 // Avoid exclusive cores owned by others
-                if let Some(&owner) = self.exclusive.try_get(core_id as usize) {
+                if let Some(owner) = self.exclusive.try_get(core_id as usize) {
                     if owner != pid {
                         continue;
                     }
