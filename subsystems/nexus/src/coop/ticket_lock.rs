@@ -6,6 +6,9 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 
 /// Ticket lock
+use core::sync::atomic::AtomicU64;
+use alloc::vec::Vec;
+use core::sync::atomic::Ordering;
 #[derive(Debug)]
 pub struct TicketLock {
     pub id: u64,
@@ -404,7 +407,7 @@ impl TicketV4Instance {
         }
     }
 
-    pub fn acquire(&mut self, cpu: u32, numa_node: u32) -> u64 {
+    pub fn acquire(&mut self, cpu: u32, _numa_node: u32) -> u64 {
         let ticket = self.tail.fetch_add(1, Ordering::AcqRel);
         let head = self.head.load(Ordering::Acquire);
         let depth = ticket.saturating_sub(head);
