@@ -2,7 +2,6 @@
 //! App symlink — symbolic link creation and resolution with loop detection
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Symlink result
