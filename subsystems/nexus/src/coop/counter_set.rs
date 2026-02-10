@@ -118,7 +118,7 @@ impl PerCpuCounter {
     #[inline]
     pub fn max_cpu(&self) -> (u32, i64) {
         self.cpu_values.iter().enumerate()
-            .max_by_key(|(_, &v)| v)
+            .max_by_key(|&(_, &v)| v)
             .map(|(i, &v)| (i as u32, v))
             .unwrap_or((0, 0))
     }
