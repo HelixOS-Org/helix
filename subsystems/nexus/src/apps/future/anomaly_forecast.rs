@@ -451,7 +451,7 @@ impl AppsAnomalyForecast {
         cpu: f64,
         memory: f64,
         io: f64,
-        syscalls: f64,
+        _syscalls: f64,
         faults: f64,
     ) -> Vec<AnomalyWarning> {
         let state = match self.app_states.get_mut(&app_id) {
@@ -459,15 +459,20 @@ impl AppsAnomalyForecast {
             None => return Vec::new(),
         };
 
-        let bl = &state.baseline;
-        if bl.sample_count < 10 {
+        if state.baseline.sample_count < 10 {
             return Vec::new();
         }
+
+        // Compute all z-scores upfront to avoid holding an immutable borrow
+        // of state.baseline across mutable state.issue_warning() calls.
+        let cpu_z = state.baseline.cpu_z(cpu);
+        let mem_z = state.baseline.memory_z(memory);
+        let io_z = state.baseline.io_z(io);
+        let fault_z = state.baseline.fault_z(faults);
 
         let mut warnings = Vec::new();
         let lead = 50u64; // default lead time estimate
 
-        let cpu_z = bl.cpu_z(cpu);
         if cpu_z > ANOMALY_SIGMA_THRESHOLD {
             let conf = (cpu_z - ANOMALY_SIGMA_THRESHOLD) / (cpu_z + 1.0);
             state.issue_warning(AnomalyType::CpuRunaway, conf.min(0.95), self.tick, lead);
@@ -476,7 +481,6 @@ impl AppsAnomalyForecast {
             }
         }
 
-        let mem_z = bl.memory_z(memory);
         if mem_z > ANOMALY_SIGMA_THRESHOLD {
             let conf = (mem_z - ANOMALY_SIGMA_THRESHOLD) / (mem_z + 1.0);
             state.issue_warning(AnomalyType::MemoryThrash, conf.min(0.95), self.tick, lead);
@@ -486,7 +490,6 @@ impl AppsAnomalyForecast {
             self.stats.total_thrash_predictions += 1;
         }
 
-        let io_z = bl.io_z(io);
         if io_z > ANOMALY_SIGMA_THRESHOLD {
             let conf = (io_z - ANOMALY_SIGMA_THRESHOLD) / (io_z + 1.0);
             state.issue_warning(AnomalyType::IoStall, conf.min(0.95), self.tick, lead);
@@ -495,7 +498,6 @@ impl AppsAnomalyForecast {
             }
         }
 
-        let fault_z = bl.fault_z(faults);
         if fault_z > ANOMALY_SIGMA_THRESHOLD * 1.2 {
             let conf = (fault_z - ANOMALY_SIGMA_THRESHOLD) / (fault_z + 1.0);
             state.issue_warning(AnomalyType::Crash, conf.min(0.95), self.tick, lead * 2);
