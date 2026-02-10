@@ -173,11 +173,11 @@ impl CoopFlockV2Manager {
         if let Some(existing) = self.inode_locks.get(&inode) {
             for &lid in existing {
                 if let Some(lock) = self.locks.get(&lid) {
-                    if lock.owner != owner && matches!(lock.lock_type, CoopFlockV2Type::ExclusiveWrite | CoopFlockV2Type::Mandatory) {
-                        if self.ranges_overlap(lock.start, lock.length, start, length) {
-                            self.stats.contentions += 1;
-                            return None;
-                        }
+                    if lock.owner != owner && matches!(lock.lock_type, CoopFlockV2Type::ExclusiveWrite | CoopFlockV2Type::Mandatory)
+                        && self.ranges_overlap(lock.start, lock.length, start, length)
+                    {
+                        self.stats.contentions += 1;
+                        return None;
                     }
                 }
             }
