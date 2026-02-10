@@ -78,7 +78,7 @@ impl RetryPolicy {
             BackoffStrategy::DecorrelatedJitter => {
                 // delay = random_between(base, prev_delay * 3)
                 let prev = if attempt == 0 { self.base_delay_ms } else {
-                    let exp = if attempt - 1 >= 20 { 20 } else { attempt - 1 };
+                    let exp = if attempt > 20 { 20 } else { attempt - 1 };
                     self.base_delay_ms.saturating_mul(1u64 << exp)
                 };
                 let upper = prev.saturating_mul(3).min(self.max_delay_ms);
