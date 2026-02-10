@@ -42,12 +42,12 @@ impl VectorClock {
 
     #[inline(always)]
     pub fn get(&self, node_id: u64) -> u64 {
-        self.entries.get(node_id).copied().unwrap_or(0)
+        self.entries.get(node_id).unwrap_or(0)
     }
 
     #[inline]
     pub fn merge(&mut self, other: &VectorClock) {
-        for (&node, &counter) in &other.entries {
+        for (node, counter) in &other.entries {
             let entry = self.entries.entry(node).or_insert(0);
             if counter > *entry { *entry = counter; }
         }
@@ -55,7 +55,7 @@ impl VectorClock {
 
     pub fn compare(&self, other: &VectorClock) -> CausalOrder {
         let all_keys: Vec<u64> = {
-            let mut keys: Vec<u64> = self.entries.keys().chain(other.entries.keys()).copied().collect();
+            let mut keys: Vec<u64> = self.entries.keys().chain(other.entries.keys()).collect();
             keys.sort_unstable();
             keys.dedup();
             keys
@@ -94,7 +94,7 @@ impl VectorClock {
 
     #[inline(always)]
     pub fn max_component(&self) -> u64 {
-        self.entries.values().copied().max().unwrap_or(0)
+        self.entries.values().max().unwrap_or(0)
     }
 
     #[inline(always)]
@@ -109,7 +109,7 @@ impl VectorClock {
     /// Dominates if all components >= other
     #[inline]
     pub fn dominates(&self, other: &VectorClock) -> bool {
-        for (&node, &counter) in &other.entries {
+        for (node, counter) in &other.entries {
             if self.get(node) < counter { return false; }
         }
         true
@@ -169,7 +169,7 @@ impl CausalHistory {
     pub fn record(&mut self, event: CausalEvent) {
         self.events.push_back(event);
         if self.events.len() > self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
     }
 
@@ -200,8 +200,8 @@ impl CausalHistory {
     }
 
     #[inline]
-    pub fn latest_per_node(&self) -> BTreeMap<u64, u64> {
-        let mut latest: LinearMap<u64, 64> = BTreeMap::new();
+    pub fn latest_per_node(&self) -> LinearMap<u64, 64> {
+        let mut latest: LinearMap<u64, 64> = LinearMap::new();
         for event in &self.events {
             let entry = latest.entry(event.node_id).or_insert(0);
             if event.event_id > *entry { *entry = event.event_id; }
