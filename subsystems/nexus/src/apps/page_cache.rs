@@ -211,7 +211,7 @@ pub struct WorkingSetEstimator {
     /// Inactive pages
     inactive_pages: u64,
     /// Recent window sizes (for trend)
-    history: VecDeque<u64>,
+    history: Vec<u64>,
     /// Max history
     max_history: usize,
     /// Estimated working set in pages
@@ -225,7 +225,7 @@ impl WorkingSetEstimator {
         Self {
             active_pages: 0,
             inactive_pages: 0,
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 32,
             estimated_pages: 0,
             alpha: 0.3,
@@ -247,9 +247,9 @@ impl WorkingSetEstimator {
         }
 
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
-        self.history.push_back(self.estimated_pages);
+        self.history.push(self.estimated_pages);
     }
 
     /// Is working set growing?
@@ -313,7 +313,7 @@ impl ThrashingDetector {
     pub fn on_eviction(&mut self, pfn: u64, now: u64) {
         if self.evicted.len() >= self.max_evicted {
             // Remove oldest
-            if let Some(&oldest_key) = self.evicted.keys().next() {
+            if let Some(oldest_key) = self.evicted.keys().next() {
                 self.evicted.remove(oldest_key);
             }
         }
