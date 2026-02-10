@@ -5,6 +5,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::adversarial::types::DetectionResult;
+use crate::fast::math::{F64Ext};
 
 /// Feature Squeezing detector
 #[derive(Debug, Clone)]
