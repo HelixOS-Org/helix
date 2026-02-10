@@ -202,7 +202,7 @@ pub struct ProcessPerfProfile {
     /// Previous snapshot (for delta)
     pub previous: CounterSnapshot,
     /// History of IPC samples
-    ipc_history: VecDeque<f64>,
+    ipc_history: Vec<f64>,
     /// Detected bottleneck
     pub bottleneck: PerfBottleneck,
 }
@@ -213,7 +213,7 @@ impl ProcessPerfProfile {
             pid,
             current: CounterSnapshot::default(),
             previous: CounterSnapshot::default(),
-            ipc_history: VecDeque::new(),
+            ipc_history: Vec::new(),
             bottleneck: PerfBottleneck::Balanced,
         }
     }
@@ -225,9 +225,9 @@ impl ProcessPerfProfile {
         let delta = self.current.delta(&self.previous);
         let ipc = delta.ipc();
         if self.ipc_history.len() >= 128 {
-            self.ipc_history.pop_front();
+            self.ipc_history.remove(0);
         }
-        self.ipc_history.push_back(ipc);
+        self.ipc_history.push(ipc);
         self.detect_bottleneck(&delta);
     }
 
