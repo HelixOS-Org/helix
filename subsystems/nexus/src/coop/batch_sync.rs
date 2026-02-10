@@ -242,7 +242,7 @@ impl CoopBatchSync {
             .collect();
         for id in &resolved {
             if let Some(g) = self.groups.remove(id) {
-                if self.completed.len() >= self.max_completed { self.completed.pop_front(); }
+                if self.completed.len() >= self.max_completed { self.completed.remove(0); }
                 self.completed.push_back(g);
             }
         }
