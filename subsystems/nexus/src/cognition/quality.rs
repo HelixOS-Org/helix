@@ -512,7 +512,7 @@ impl QualityManager {
 
         // Limit issues
         while self.issues.len() > self.config.max_issues {
-            let removed = self.issues.pop_front().unwrap();
+            let removed = self.issues.remove(0).unwrap();
             if removed.severity == IssueSeverity::Critical {
                 self.stats.critical_issues = self.stats.critical_issues.saturating_sub(1);
             }
@@ -616,7 +616,7 @@ impl QualityManager {
 
         // Store assessment
         if self.assessments.len() >= self.config.max_assessments {
-            self.assessments.pop_front();
+            self.assessments.remove(0);
         }
         self.assessments.push_back(assessment.clone());
 
