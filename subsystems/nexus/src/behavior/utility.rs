@@ -184,7 +184,7 @@ pub struct Consideration {
     pub input_key: String,
     pub curve: UtilityCurve,
     pub weight: f64,
-    pub is_bonus: bool, // If true, adds to score; if false, multiplies
+    pub is_bonus: bool, // If true, adds to score; if false, multiplies,
 }
 
 impl Consideration {
