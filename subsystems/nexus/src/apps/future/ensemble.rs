@@ -15,7 +15,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -144,7 +143,7 @@ struct ModelTracker {
     weight: f64,
     prediction_count: u64,
     correct_direction_count: u64,
-    error_history: VecDeque<f64>,
+    error_history: Vec<f64>,
 }
 
 impl ModelTracker {
@@ -157,7 +156,7 @@ impl ModelTracker {
             weight: 1.0 / NUM_MODELS as f64,
             prediction_count: 0,
             correct_direction_count: 0,
-            error_history: VecDeque::new(),
+            error_history: Vec::new(),
         }
     }
 
@@ -182,9 +181,9 @@ impl ModelTracker {
         self.ema_accuracy = ema_update(self.ema_accuracy, dir_acc, EMA_ALPHA);
 
         if self.error_history.len() >= MAX_HISTORY {
-            self.error_history.pop_front();
+            self.error_history.remove(0);
         }
-        self.error_history.push_back(abs_error);
+        self.error_history.push(abs_error);
     }
 
     fn update_weight(&mut self, inv_error_sum: f64) {
