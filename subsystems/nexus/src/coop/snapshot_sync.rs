@@ -12,7 +12,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use alloc::string::String;
 
 /// Snapshot state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,9 +46,9 @@ pub struct ComponentSnapshot {
     pub version: u64,
     pub state_hash: u64,
     pub state_size: usize,
-    pub data_pages: Vec<u64>, // page frame numbers
+    pub data_pages: Vec<u64>, // page frame numbers,
     pub captured_ns: u64,
-    pub dirty_pages: Vec<u64>, // for incremental
+    pub dirty_pages: Vec<u64>, // for incremental,
 }
 
 impl ComponentSnapshot {
@@ -100,7 +99,7 @@ pub struct ConsistentSnapshot {
     pub component_snapshots: BTreeMap<u64, ComponentSnapshot>,
     pub channel_messages: Vec<RecordedMessage>,
     pub global_hash: u64,
-    pub base_snapshot_id: Option<u64>, // for incremental
+    pub base_snapshot_id: Option<u64>, // for incremental,
 }
 
 impl ConsistentSnapshot {
@@ -255,6 +254,7 @@ impl CoopSnapshotSync {
         for ch in &mut self.channels {
             if ch.from == from && ch.to == to && ch.recording == ChannelRecording::Recording {
                 ch.messages.push(msg);
+                return;
             }
         }
     }
