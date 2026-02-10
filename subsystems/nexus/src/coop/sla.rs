@@ -277,7 +277,7 @@ impl SlaContract {
         }
         let met_count = self.slos.iter()
             .filter(|slo| {
-                let value = self.current_values.get(&slo.slo_id).copied().unwrap_or(0.0);
+                let value = self.current_values.get(slo.slo_id).unwrap_or(0.0);
                 matches!(slo.check(value), SloStatus::Met)
             })
             .count();
@@ -388,7 +388,7 @@ impl CoopSlaEngine {
         self.stats.total_slos = self.contracts.values().map(|c| c.slos.len()).sum();
         self.stats.breached_slos = self.contracts.values()
             .flat_map(|c| c.slos.iter().map(move |slo| {
-                let val = c.current_values.get(&slo.slo_id).copied().unwrap_or(0.0);
+                let val = c.current_values.get(slo.slo_id).unwrap_or(0.0);
                 slo.check(val)
             }))
             .filter(|s| matches!(s, SloStatus::Breached))
