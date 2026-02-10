@@ -169,9 +169,9 @@ impl AppsOracle {
         model.ipc_ema = ema_update(model.ipc_ema, ipc);
 
         if model.history.len() >= HISTORY_CAP {
-            model.history.pop_front().unwrap();
+            model.history.remove(0).unwrap();
         }
-        model.history.push(Observation { tick: self.tick, cpu, mem, io, ipc });
+        model.history.push_back(Observation { tick: self.tick, cpu, mem, io, ipc });
     }
 
     /// Validate a previous prediction against actuals.
