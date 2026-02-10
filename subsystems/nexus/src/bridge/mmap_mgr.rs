@@ -270,13 +270,21 @@ impl BridgeMmapMgr {
 
     #[inline]
     pub fn mprotect(&mut self, pid: u64, addr: u64, new_perms: VmaPerms, now: u64) -> bool {
-        if let Some(space) = self.spaces.get_mut(&pid) {
+        let vma_size = if let Some(space) = self.spaces.get_mut(&pid) {
             if let Some(vma) = space.find_vma_mut(addr) {
                 vma.perms = new_perms;
+                let size = vma.size();
                 space.mprotect_count += 1;
-                self.emit_event(pid, MmapEventType::Mprotect, addr, vma.size(), now);
-                return true;
+                Some(size)
+            } else {
+                None
             }
+        } else {
+            None
+        };
+        if let Some(size) = vma_size {
+            self.emit_event(pid, MmapEventType::Mprotect, addr, size, now);
+            return true;
         }
         false
     }
@@ -300,7 +308,7 @@ impl BridgeMmapMgr {
             timestamp_ns: ts,
         });
         while self.events.len() > self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
     }
 
