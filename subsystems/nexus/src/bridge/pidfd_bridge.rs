@@ -253,7 +253,7 @@ impl BridgePidfd {
 
     #[inline(always)]
     pub fn record_event(&mut self, event: PidfdEvent) {
-        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        if self.events.len() >= self.max_events { self.events.remove(0); }
         self.events.push_back(event);
     }
 
@@ -351,7 +351,7 @@ impl BridgePidfdV2 {
     }
 
     #[inline]
-    pub fn send_signal(&mut self, fd: u64, signal: u32) -> bool {
+    pub fn send_signal(&mut self, fd: u64, _signal: u32) -> bool {
         if let Some(e) = self.entries.get_mut(&fd) {
             if e.state == PidfdV2State::Open { e.signals_sent += 1; e.state = PidfdV2State::Signaled; return true; }
         }
@@ -491,7 +491,7 @@ pub struct PidfdV3BridgeStats {
 #[repr(align(64))]
 pub struct BridgePidfdV3 {
     pub instances: BTreeMap<u64, PidfdV3Instance>,
-    pub pid_map: LinearMap<u64, 64>, // target_pid → pidfd_id
+    pub pid_map: LinearMap<u64, 64>, // target_pid → pidfd_id,
     pub next_id: u64,
     pub stats: PidfdV3BridgeStats,
 }
