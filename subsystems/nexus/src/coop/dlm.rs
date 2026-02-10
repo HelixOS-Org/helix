@@ -147,7 +147,8 @@ impl DlmResource {
         // Try granting waiters
         let mut newly_granted = Vec::new();
         let mut remaining = Vec::new();
-        for mut waiter in self.waiters.drain(..) {
+        let waiters: Vec<_> = self.waiters.drain(..).collect();
+        for mut waiter in waiters {
             if self.can_grant(&waiter) {
                 waiter.state = DlmLockState::Granted;
                 waiter.timestamp = now;
