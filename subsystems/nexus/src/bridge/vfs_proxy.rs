@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Filesystem operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -252,21 +251,23 @@ impl BridgeVfsProxy {
         self.total_lookups += 1;
         let hash = Self::hash_path(path);
 
-        if let Some(entry) = self.dentry_cache.get_mut(&hash) {
+        let result = if let Some(entry) = self.dentry_cache.get_mut(&hash) {
             if entry.is_valid(now_ns) {
                 entry.hits += 1;
                 self.cache_hits += 1;
-                self.update_stats();
                 if entry.negative {
-                    return CacheResult::NegativeHit;
+                    CacheResult::NegativeHit
+                } else {
+                    CacheResult::Hit
                 }
-                return CacheResult::Hit;
+            } else {
+                CacheResult::Stale
             }
-            self.update_stats();
-            return CacheResult::Stale;
-        }
+        } else {
+            CacheResult::Miss
+        };
         self.update_stats();
-        CacheResult::Miss
+        result
     }
 
     /// Insert dentry
