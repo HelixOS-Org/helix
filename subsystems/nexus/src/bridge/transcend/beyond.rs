@@ -392,7 +392,7 @@ impl BridgeBeyond {
         };
 
         if self.preemptive_queue.len() >= MAX_PREEMPTIVE_QUEUE {
-            self.preemptive_queue.pop_front();
+            self.preemptive_queue.remove(0);
         }
         self.preemptive_queue.push_back(preempt);
         self.stats.total_preemptive += 1;
