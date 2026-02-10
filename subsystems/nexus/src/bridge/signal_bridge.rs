@@ -2,7 +2,6 @@
 //! Bridge signal — kill/tgkill/tkill signal delivery bridge
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Signal number
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
