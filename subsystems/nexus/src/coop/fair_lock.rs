@@ -129,7 +129,7 @@ impl FairLock {
         }
     }
 
-    pub fn try_acquire(&mut self, thread_id: u64, hold_type: HoldType, priority: u32, now_ns: u64) -> bool {
+    pub fn try_acquire(&mut self, thread_id: u64, hold_type: HoldType, _priority: u32, now_ns: u64) -> bool {
         // Check if can be granted immediately
         match hold_type {
             HoldType::Exclusive => {
@@ -142,10 +142,10 @@ impl FairLock {
                     return false;
                 }
                 // Writer preference: block if writers waiting
-                if matches!(self.policy, FairnessPolicy::RwWriterPref) {
-                    if self.waiters.iter().any(|w| w.hold_type == HoldType::Exclusive) {
-                        return false;
-                    }
+                if matches!(self.policy, FairnessPolicy::RwWriterPref)
+                    && self.waiters.iter().any(|w| w.hold_type == HoldType::Exclusive)
+                {
+                    return false;
                 }
             }
         }
