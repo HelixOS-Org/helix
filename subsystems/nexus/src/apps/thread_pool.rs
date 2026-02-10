@@ -326,7 +326,7 @@ impl AppThreadPoolProfiler {
     /// Record worker state transition
     #[inline]
     pub fn worker_transition(&mut self, tid: u64, state: WorkerState, now_ns: u64) {
-        if let Some(&pool_id) = self.tid_to_pool.get(tid) {
+        if let Some(pool_id) = self.tid_to_pool.get(tid) {
             if let Some(pool) = self.pools.get_mut(&pool_id) {
                 if let Some(worker) = pool.get_worker(tid) {
                     worker.transition(state, now_ns);
@@ -479,13 +479,13 @@ impl PoolWorkerV2 {
         for i in 1..self.local_queue.len() {
             if self.local_queue[i].priority > self.local_queue[best_idx].priority { best_idx = i; }
         }
-        Some(self.local_queue.remove(best_idx))
+        self.local_queue.remove(best_idx)
     }
 
     #[inline(always)]
     pub fn steal_task(&mut self) -> Option<PoolTask> {
         if self.local_queue.is_empty() { return None; }
-        self.local_queue.pop_front()
+        self.local_queue.remove(0)
     }
 
     #[inline]
