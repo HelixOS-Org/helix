@@ -346,10 +346,8 @@ impl BridgeDedupManager {
                     .entry(key)
                     .or_insert_with(|| RedundancyPattern::new(syscall_nr, pid));
                 pattern.record_redundant(0);
-            } else {
-                if let Some(pattern) = self.redundancy.get_mut(&key) {
-                    pattern.reset_consecutive();
-                }
+            } else if let Some(pattern) = self.redundancy.get_mut(&key) {
+                pattern.reset_consecutive();
             }
         }
         self.last_call.insert(key, arg_hash);
