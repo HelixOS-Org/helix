@@ -214,7 +214,7 @@ impl RunQueue {
         if self.tasks.is_empty() {
             None
         } else {
-            self.tasks.pop_front()
+            self.tasks.remove(0)
         }
     }
 
