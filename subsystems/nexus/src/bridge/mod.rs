@@ -324,731 +324,1961 @@ pub mod research;
 pub mod transcend;
 
 pub use abi_translator::{
-    AbiArgType, AbiVersion as AbiTranslatorVersion, BridgeAbiTranslator, BridgeAbiTranslatorStats,
-    FieldDescriptor, RegisterMapping, StructTranslation, SyscallTranslation,
+    AbiArgType,
+    AbiVersion as AbiTranslatorVersion,
+    BridgeAbiTranslator,
+    BridgeAbiTranslatorStats,
+    FieldDescriptor,
+    RegisterMapping,
+    StructTranslation,
+    SyscallTranslation,
 };
 pub use accounting::{
-    AccountingResource, BridgeAccountingEngine, BridgeAccountingStats, CostModel, CostUnit,
-    ProcessAccount, ResourceCounter, SyscallCost,
+    AccountingResource,
+    BridgeAccountingEngine,
+    BridgeAccountingStats,
+    CostModel,
+    CostUnit,
+    ProcessAccount,
+    ResourceCounter,
+    SyscallCost,
 };
-pub use acct_bridge::{AcctBridgeStats, AcctEntry, AcctRecordType, BridgeAcct};
+pub use acct_bridge::{
+    AcctBridgeStats,
+    AcctEntry,
+    AcctRecordType,
+    BridgeAcct,
+};
 pub use acpi_bridge::{
-    AcpiBridgeStats, AcpiDevice, AcpiDeviceState, AcpiEvent, AcpiEventType, AcpiTable,
-    AcpiTableType, BridgeAcpi, GpeInfo, SleepState as AcpiSleepState,
+    AcpiBridgeStats,
+    AcpiDevice,
+    AcpiDeviceState,
+    AcpiEvent,
+    AcpiEventType,
+    AcpiTable,
+    AcpiTableType,
+    BridgeAcpi,
+    GpeInfo,
+    SleepState as AcpiSleepState,
 };
 pub use addr_space::{
-    AddrProt, AddrSpaceStats, AddrTranslation, AslrPolicy, BridgeAddrSpace, ProcessAddrSpace,
-    RegionType, VmaRegion,
+    AddrProt,
+    AddrSpaceStats,
+    AddrTranslation,
+    AslrPolicy,
+    BridgeAddrSpace,
+    ProcessAddrSpace,
+    RegionType,
+    VmaRegion,
 };
 pub use admission::{
-    AdmissionConfig, AdmissionDecision, AdmissionPriority, BridgeAdmissionController,
-    BridgeAdmissionStats, LoadLevel, ProcessCredit, QueuedRequest,
+    AdmissionConfig,
+    AdmissionDecision,
+    AdmissionPriority,
+    BridgeAdmissionController,
+    BridgeAdmissionStats,
+    LoadLevel,
+    ProcessCredit,
+    QueuedRequest,
 };
 pub use affinity::{
-    AffinityChangeReason, AffinityClass, BridgeAffinityStats, BridgeAffinityTracker,
-    ProcessAffinityProfile, SyscallCpuAffinity,
+    AffinityChangeReason,
+    AffinityClass,
+    BridgeAffinityStats,
+    BridgeAffinityTracker,
+    ProcessAffinityProfile,
+    SyscallCpuAffinity,
 };
 pub use aio_bridge::{
-    AioBridgeStats, AioContext, AioEvent, AioIocb, AioOp, AioState, BridgeAioBridge,
+    AioBridgeStats,
+    AioContext,
+    AioEvent,
+    AioIocb,
+    AioOp,
+    AioState,
+    BridgeAioBridge,
 };
-pub use async_io::{AsyncCompletion, AsyncIoEngine, AsyncIoRequest, AsyncPriority, AsyncStatus};
+pub use async_io::{
+    AsyncCompletion,
+    AsyncIoEngine,
+    AsyncIoRequest,
+    AsyncPriority,
+    AsyncStatus,
+};
 pub use async_syscall::{
-    AsyncContext, AsyncSyscallFlag, AsyncSyscallState, BridgeAsyncSyscall, BridgeAsyncSyscallStats,
-    CqEntry, InFlightSyscall, Ring as AsyncRing, SqEntry,
+    AsyncContext,
+    AsyncSyscallFlag,
+    AsyncSyscallState,
+    BridgeAsyncSyscall,
+    BridgeAsyncSyscallStats,
+    CqEntry,
+    InFlightSyscall,
+    Ring as AsyncRing,
+    SqEntry,
 };
 pub use audit::{
-    AlertCondition, AuditEvent, AuditEventType, AuditManagerStats, AuditRule, AuditSeverity,
+    AlertCondition,
+    AuditEvent,
+    AuditEventType,
+    AuditManagerStats,
+    AuditRule,
+    AuditSeverity,
     BridgeAuditManager,
 };
 pub use audit_bridge::{
-    AuditBridgeStats, AuditField, AuditMsgType, AuditRecord, AuditRule as AuditBridgeRule,
+    AuditBridgeStats,
+    AuditField,
+    AuditMsgType,
+    AuditRecord,
+    AuditRule as AuditBridgeRule,
     BridgeAudit,
 };
 pub use backoff::{
-    BackoffConfig, BackoffState, BackoffStrategy, BackoffTracker, BridgeBackoffManager,
-    BridgeBackoffStats, ErrorClass, ProcessBackoff,
+    BackoffConfig,
+    BackoffState,
+    BackoffStrategy,
+    BackoffTracker,
+    BridgeBackoffManager,
+    BridgeBackoffStats,
+    ErrorClass,
+    ProcessBackoff,
 };
-pub use batch::{BatchDecision, BatchEntry, BatchGroup, BatchOptimizer, BatchStats};
+pub use batch::{
+    BatchDecision,
+    BatchEntry,
+    BatchGroup,
+    BatchOptimizer,
+    BatchStats,
+};
 pub use binfmt_bridge::{
-    BinaryImage, BinfmtBridgeStats, BinfmtLoadState, BinfmtMiscRule, BinfmtType, BridgeBinfmt,
-    ElfInfo, ProgHeader,
+    BinaryImage,
+    BinfmtBridgeStats,
+    BinfmtLoadState,
+    BinfmtMiscRule,
+    BinfmtType,
+    BridgeBinfmt,
+    ElfInfo,
+    ProgHeader,
 };
-pub use bio_bridge::{BioBridgeOp, BioBridgeRecord, BioBridgeResult, BioBridgeStats, BridgeBio};
+pub use bio_bridge::{
+    BioBridgeOp,
+    BioBridgeRecord,
+    BioBridgeResult,
+    BioBridgeStats,
+    BridgeBio,
+};
 pub use blkdev_bridge::{
-    BlkdevBridgeOp, BlkdevBridgeRecord, BlkdevBridgeResult, BlkdevBridgeStats, BridgeBlkdev,
+    BlkdevBridgeOp,
+    BlkdevBridgeRecord,
+    BlkdevBridgeResult,
+    BlkdevBridgeStats,
+    BridgeBlkdev,
 };
 pub use block_bridge::{
-    BioOp, BioState, BlockBridgeStats, BlockDevice, BlockReq, BridgeBlockBridge,
-    IoSched as BridgeIoSched, Partition,
+    BioOp,
+    BioState,
+    BlockBridgeStats,
+    BlockDevice,
+    BlockReq,
+    BridgeBlockBridge,
+    IoSched as BridgeIoSched,
+    Partition,
 };
 pub use bpf_bridge::{
-    BpfBridgeStats, BpfInsn, BpfMap, BpfMapType, BpfProgType, BpfProgram, BridgeBpf, VerifyConfig,
+    BpfBridgeStats,
+    BpfInsn,
+    BpfMap,
+    BpfMapType,
+    BpfProgType,
+    BpfProgram,
+    BridgeBpf,
+    VerifyConfig,
     VerifyResult,
 };
 pub use bulkhead::{
-    BridgeBulkheadManager, BridgeBulkheadStats, Bulkhead, BulkheadClass, BulkheadState,
+    BridgeBulkheadManager,
+    BridgeBulkheadStats,
+    Bulkhead,
+    BulkheadClass,
+    BulkheadState,
     OverflowPolicy,
 };
-pub use cache::{CacheKey, Cacheability, CachedResult, SyscallCache, SyscallCacheConfig};
-pub use canary::{
-    BridgeCanaryManager, BridgeCanaryStats, CanaryDeployment, CanaryMetric, CanaryState,
-    ComparisonResult, MetricSamples as CanaryMetricSamples,
+pub use cache::{
+    CacheKey,
+    Cacheability,
+    CachedResult,
+    SyscallCache,
+    SyscallCacheConfig,
 };
-pub use cap_bridge::{BridgeCap, CapBitmask, CapBridgeStats, CapSetType, Capability, ProcessCaps};
+pub use canary::{
+    BridgeCanaryManager,
+    BridgeCanaryStats,
+    CanaryDeployment,
+    CanaryMetric,
+    CanaryState,
+    ComparisonResult,
+    MetricSamples as CanaryMetricSamples,
+};
+pub use cap_bridge::{
+    BridgeCap,
+    CapBitmask,
+    CapBridgeStats,
+    CapSetType,
+    Capability,
+    ProcessCaps,
+};
 pub use cap_mgr::{
-    BridgeCapMgr, BridgeCapType, CapAuditAction, CapAuditEntry, CapScope, CapSet, CapState,
+    BridgeCapMgr,
+    BridgeCapType,
+    CapAuditAction,
+    CapAuditEntry,
+    CapScope,
+    CapSet,
+    CapState,
     CapToken,
 };
 pub use capability::{
-    BridgeCapabilityManager, BridgeCapabilityStats, CapabilityState, CapabilityToken,
-    CapabilityType, ProcessCapabilityTable, ProtectedResource,
+    BridgeCapabilityManager,
+    BridgeCapabilityStats,
+    CapabilityState,
+    CapabilityToken,
+    CapabilityType,
+    ProcessCapabilityTable,
+    ProtectedResource,
 };
 pub use cgroup_bridge::{
-    BridgeCgroupBridge, CgroupBridgeStats, CgroupController, CgroupEvent, CgroupMigration,
-    CgroupNode, CgroupOp, CgroupVersion, ControllerLimit,
+    BridgeCgroupBridge,
+    CgroupBridgeStats,
+    CgroupController,
+    CgroupEvent,
+    CgroupMigration,
+    CgroupNode,
+    CgroupOp,
+    CgroupVersion,
+    ControllerLimit,
 };
 pub use checkpoint::{
-    BridgeCheckpointManager, BridgeCheckpointStats, Checkpoint, CheckpointState, CheckpointTrigger,
-    RestorePlan, StateComponent, StateFragment,
+    BridgeCheckpointManager,
+    BridgeCheckpointStats,
+    Checkpoint,
+    CheckpointState,
+    CheckpointTrigger,
+    RestorePlan,
+    StateComponent,
+    StateFragment,
 };
 pub use circuit::{
-    BridgeCircuitBreakerManager, BridgeFailureType, CircuitBreaker, CircuitBreakerConfig,
-    CircuitBreakerStats, CircuitState, FailureEvent, FailureWindow,
+    BridgeCircuitBreakerManager,
+    BridgeFailureType,
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CircuitBreakerStats,
+    CircuitState,
+    FailureEvent,
+    FailureWindow,
 };
 pub use clock_bridge::{
-    BridgeClockBridge, ClockBridgeStats, ClockEventDevice, ClockEventMode, ClockFlag, ClockRating,
-    ClockSource, TimekeepingState,
+    BridgeClockBridge,
+    ClockBridgeStats,
+    ClockEventDevice,
+    ClockEventMode,
+    ClockFlag,
+    ClockRating,
+    ClockSource,
+    TimekeepingState,
 };
-pub use clone_bridge::{BridgeClone, CloneBridgeStats, CloneFlag as CloneBridgeFlag, CloneRequest};
+pub use clone_bridge::{
+    BridgeClone,
+    CloneBridgeStats,
+    CloneFlag as CloneBridgeFlag,
+    CloneRequest,
+};
 // Re-exports from expanded modules (Round 2)
 pub use coalesce::{
-    CoalesceCategory, CoalesceEngine, CoalesceState, CoalesceStats, CoalescedBatch, PendingSyscall,
+    CoalesceCategory,
+    CoalesceEngine,
+    CoalesceState,
+    CoalesceStats,
+    CoalescedBatch,
+    PendingSyscall,
     WindowConfig,
 };
-pub use compat::{AbiVersion, ArgRewriter, CompatConfig, CompatLayer, CompatProfile, MappingTable};
+pub use compat::{
+    AbiVersion,
+    ArgRewriter,
+    CompatConfig,
+    CompatLayer,
+    CompatProfile,
+    MappingTable,
+};
 pub use compress::{
-    BridgeCompressionManager, CompressedBlock, CompressionLevel, CompressionMethod,
-    CompressionStats, DeltaCompressor, RleCompressor, ZeroPageDedup,
+    BridgeCompressionManager,
+    CompressedBlock,
+    CompressionLevel,
+    CompressionMethod,
+    CompressionStats,
+    DeltaCompressor,
+    RleCompressor,
+    ZeroPageDedup,
 };
 pub use compress_engine::{
-    BridgeCompressionEngine, BridgeCompressionStats, CompressionAlgorithm, CompressionDictionary,
-    CompressionLevel as CompressEngineLevel, CompressionResult, DeltaEncoder, DeltaStats,
-    DictionaryEntry, RleEncoder, RleStats, SyscallCompressionProfile,
+    BridgeCompressionEngine,
+    BridgeCompressionStats,
+    CompressionAlgorithm,
+    CompressionDictionary,
+    CompressionLevel as CompressEngineLevel,
+    CompressionResult,
+    DeltaEncoder,
+    DeltaStats,
+    DictionaryEntry,
+    RleEncoder,
+    RleStats,
+    SyscallCompressionProfile,
 };
 pub use context::{
-    Capability, CapabilitySet, ContextManager, LimitCheck, NamespaceContext, NamespaceType,
-    ProcessContext, RLimit, ResourceLimits, SchedClass, SecurityLabel, ThreadContext,
+    CapabilitySet,
+    ContextManager,
+    LimitCheck,
+    NamespaceContext,
+    NamespaceType,
+    ProcessContext,
+    RLimit,
+    ResourceLimits,
+    SchedClass,
+    SecurityLabel,
+    ThreadContext,
 };
 pub use copy_engine::{
-    BridgeCopyEngine, BridgeCopyEngineStats, CopyCompletion, CopyDirection, CopyMethod,
-    CopyRequest, IoVec, PinnedPages,
+    BridgeCopyEngine,
+    BridgeCopyEngineStats,
+    CopyCompletion,
+    CopyDirection,
+    CopyMethod,
+    CopyRequest,
+    IoVec,
+    PinnedPages,
 };
 pub use copy_file_range_bridge::{
-    BridgeCopyFileRange, CopyRangeBridgeStats, CopyRangeMode, CopyRangeOp, CopyRangeState,
+    BridgeCopyFileRange,
+    CopyRangeBridgeStats,
+    CopyRangeMode,
+    CopyRangeOp,
+    CopyRangeState,
 };
 pub use correlation::{
-    BridgeCorrelationEngine, BridgeCorrelationStats, CoOccurrenceMatrix, CorrelationLink,
-    CorrelationRule, CorrelationStrength, SyscallCorrelationType, SyscallEvent, TemporalWindow,
+    BridgeCorrelationEngine,
+    BridgeCorrelationStats,
+    CoOccurrenceMatrix,
+    CorrelationLink,
+    CorrelationRule,
+    CorrelationStrength,
+    SyscallCorrelationType,
+    SyscallEvent,
+    TemporalWindow,
 };
 pub use cpu_affinity_bridge::{
-    AffinityMask, AffinityMigrationType, AffinityScope, BridgeCpuAffinity, CpuAffinityBridgeStats,
-    CpuTopologyNode, ProcessAffinity,
+    AffinityMask,
+    AffinityMigrationType,
+    AffinityScope,
+    BridgeCpuAffinity,
+    CpuAffinityBridgeStats,
+    CpuTopologyNode,
+    ProcessAffinity,
 };
 pub use cpuset_bridge::{
-    BridgeCpuset, CpusetBridgeStats, CpusetDistribution, CpusetGroup, CpusetMask, CpusetMemPolicy,
+    BridgeCpuset,
+    CpusetBridgeStats,
+    CpusetDistribution,
+    CpusetGroup,
+    CpusetMask,
+    CpusetMemPolicy,
     CpusetPartition,
 };
 pub use cred_bridge::{
-    BridgeCred, CapSet as CredCapSet, CredBridgeStats, CredChangeEvent, CredType, ProcessCred,
+    BridgeCred,
+    CapSet as CredCapSet,
+    CredBridgeStats,
+    CredChangeEvent,
+    CredType,
+    ProcessCred,
 };
 pub use cred_mgr::{
-    BridgeCredMgr, BridgeCredMgrStats, CredChangeEvent, CredChangeType, CredentialSet, ProcessCreds,
+    BridgeCredMgr,
+    BridgeCredMgrStats,
+    CredChangeType,
+    CredentialSet,
+    ProcessCreds,
 };
 pub use credential::{
-    AuthzDecision, BridgeCredentialProxy, BridgeCredentialStats, CredCacheEntry, CredentialSet,
-    CredentialType, EscalationEvent, PrivilegeLevel,
+    AuthzDecision,
+    BridgeCredentialProxy,
+    BridgeCredentialStats,
+    CredCacheEntry,
+    CredentialType,
+    EscalationEvent,
+    PrivilegeLevel,
 };
 pub use crypto_bridge::{
-    AlgStats, BridgeCrypto, CryptoAlg, CryptoAlgType, CryptoBridgeStats, CryptoOp, CryptoPriority,
-    CryptoRequest, CryptoResult,
+    AlgStats,
+    BridgeCrypto,
+    CryptoAlg,
+    CryptoAlgType,
+    CryptoBridgeStats,
+    CryptoOp,
+    CryptoPriority,
+    CryptoRequest,
+    CryptoResult,
 };
 pub use debounce::{
-    BridgeDebounceManager, BridgeDebounceStats, DebounceEntry, DebounceResult, DebounceStrategy,
+    BridgeDebounceManager,
+    BridgeDebounceStats,
+    DebounceEntry,
+    DebounceResult,
+    DebounceStrategy,
     ProcessDebounce,
 };
 pub use debug_bridge::{
-    BpState, BreakpointType, BridgeDebug, DebugBreakpoint, DebugBridgeStats, DebugEvent,
-    DebugFacility, DynDbgEntry, FtraceFunction, KprobeEntry,
+    BpState,
+    BreakpointType,
+    BridgeDebug,
+    DebugBreakpoint,
+    DebugBridgeStats,
+    DebugEvent,
+    DebugFacility,
+    DynDbgEntry,
+    FtraceFunction,
+    KprobeEntry,
 };
 pub use dedup::{
-    BridgeDedupManager, CachedResult as DedupCachedResult, DedupSafety, DedupStats,
-    RedundancyPattern, SyscallDedupPolicy, SyscallSignature,
+    BridgeDedupManager,
+    CachedResult as DedupCachedResult,
+    DedupSafety,
+    DedupStats,
+    RedundancyPattern,
+    SyscallDedupPolicy,
+    SyscallSignature,
 };
 pub use deferred::{
-    BridgeDeferredEngine, BridgeDeferredStats, DeferralReason, DeferredCompletion, DeferredState,
+    BridgeDeferredEngine,
+    BridgeDeferredStats,
+    DeferralReason,
+    DeferredCompletion,
+    DeferredState,
     DeferredSyscall,
 };
 pub use dentry_bridge::{
-    BridgeDentry, DentryBridgeOp, DentryBridgeRecord, DentryBridgeResult, DentryBridgeStats,
+    BridgeDentry,
+    DentryBridgeOp,
+    DentryBridgeRecord,
+    DentryBridgeResult,
+    DentryBridgeStats,
 };
 pub use dependency::{
-    BridgeDependencyTracker, DependencyEdge, DependencyGraph, DependencyNode, DependencyStrength,
-    DependencyTrackerStats, DependencyType,
+    BridgeDependencyTracker,
+    DependencyEdge,
+    DependencyGraph,
+    DependencyNode,
+    DependencyStrength,
+    DependencyTrackerStats,
+    DependencyType,
 };
 pub use dev_proxy::{
-    BridgeDevProxy, DevClass, DevDescriptor, DevNumber, DevPermission, DevPowerState,
-    DevProxyStats, DevResource, HotplugAction, HotplugEvent, IoOp, IoRequest,
+    BridgeDevProxy,
+    DevClass,
+    DevDescriptor,
+    DevNumber,
+    DevPermission,
+    DevPowerState,
+    DevProxyStats,
+    DevResource,
+    HotplugAction,
+    HotplugEvent,
+    IoOp,
+    IoRequest,
 };
 pub use devmapper_bridge::{
-    BridgeDevMapper, DmBridgeOp, DmBridgeRecord, DmBridgeResult, DmBridgeStats,
+    BridgeDevMapper,
+    DmBridgeOp,
+    DmBridgeRecord,
+    DmBridgeResult,
+    DmBridgeStats,
 };
 pub use dispatch::{
-    BridgeDispatchOptimizer, BridgeDispatchStats, DispatchDecision, DispatchPrediction,
-    DispatchTable, HandlerEntry, HandlerState, HandlerType,
+    BridgeDispatchOptimizer,
+    BridgeDispatchStats,
+    DispatchDecision,
+    DispatchPrediction,
+    DispatchTable,
+    HandlerEntry,
+    HandlerState,
+    HandlerType,
     SyscallPredictor as DispatchSyscallPredictor,
 };
 pub use dma_fence::{
-    BridgeDmaFence, DmaFence as BridgeDmaFenceEntry, DmaFenceStats, FenceContext, FenceState,
-    FenceType, FenceWaitReq, SyncFile,
+    BridgeDmaFence,
+    DmaFence as BridgeDmaFenceEntry,
+    DmaFenceStats,
+    FenceContext,
+    FenceState,
+    FenceType,
+    FenceWaitReq,
+    SyncFile,
 };
 pub use dnotify_bridge::{
-    BridgeDnotify, DnotifyBridgeStats, DnotifyEvent, DnotifyMask, DnotifyWatch,
+    BridgeDnotify,
+    DnotifyBridgeStats,
+    DnotifyEvent,
+    DnotifyMask,
+    DnotifyWatch,
 };
 pub use emulate::{
-    BridgeEmulationManager, EmulationAccuracy, EmulationContext, EmulationStats, EmulationTarget,
-    ErrnoMapping, TranslationEntry, TranslationTable,
+    BridgeEmulationManager,
+    EmulationAccuracy,
+    EmulationContext,
+    EmulationStats,
+    EmulationTarget,
+    ErrnoMapping,
+    TranslationEntry,
+    TranslationTable,
 };
 pub use envelope::{
-    ArgDescriptor as EnvelopeArgDescriptor, ArgDirection, ArgType as EnvelopeArgType,
-    BridgeEnvelopeManager, BridgeEnvelopeStats, CallerContext, EnvelopeState, EnvelopeVersion,
+    ArgDescriptor as EnvelopeArgDescriptor,
+    ArgDirection,
+    ArgType as EnvelopeArgType,
+    BridgeEnvelopeManager,
+    BridgeEnvelopeStats,
+    CallerContext,
+    EnvelopeState,
+    EnvelopeVersion,
     SyscallEnvelope,
 };
 pub use epoll_bridge::{
-    BridgeEpollBridge, BridgeEpollStats, EpollEntry, EpollEvents, EpollInstance, EpollTrigger,
-    WakeupSource, WakeupSourceType,
+    BridgeEpollBridge,
+    BridgeEpollStats,
+    EpollEntry,
+    EpollEvents,
+    EpollInstance,
+    EpollTrigger,
+    WakeupSource,
+    WakeupSourceType,
 };
 pub use error_recovery::{
-    BridgeErrorRecovery, BridgeErrorRecoveryStats, ErrorPattern, RecoveryStrategy, SyscallError,
+    BridgeErrorRecovery,
+    BridgeErrorRecoveryStats,
+    ErrorPattern,
+    RecoveryStrategy,
+    SyscallError,
     SyscallErrorCategory,
 };
 pub use escalation::{
-    BasePriority, BridgeEscalationManager, EscalationPolicy, EscalationReason, EscalationState,
-    EscalationStats, TrackedSyscall,
+    BasePriority,
+    BridgeEscalationManager,
+    EscalationPolicy,
+    EscalationReason,
+    EscalationState,
+    EscalationStats,
+    TrackedSyscall,
 };
 pub use event_bridge::{
-    BridgeEventBridge, BridgeEventBridgeStats, EventInstance, EventInterest,
-    EventKind as BridgeEventKind, EventSourceType, ReadyEvent, TriggerMode,
+    BridgeEventBridge,
+    BridgeEventBridgeStats,
+    EventInstance,
+    EventInterest,
+    EventKind as BridgeEventKind,
+    EventSourceType,
+    ReadyEvent,
+    TriggerMode,
 };
 pub use eventfd_bridge::{
-    BridgeEventfd, EventfdBridgeStats, EventfdFlags, EventfdInstance, EventfdOp,
+    BridgeEventfd,
+    EventfdBridgeStats,
+    EventfdFlags,
+    EventfdInstance,
+    EventfdOp,
 };
 pub use fallback::{
-    EmulationEntry, EmulationRegistry, ErrorCategory, FallbackAlertType, FallbackEngine,
-    FallbackResult, FallbackStrategy, RetryConfig, SyscallFallbackChain,
+    EmulationEntry,
+    EmulationRegistry,
+    ErrorCategory,
+    FallbackAlertType,
+    FallbackEngine,
+    FallbackResult,
+    FallbackStrategy,
+    RetryConfig,
+    SyscallFallbackChain,
 };
 pub use fallocate_bridge::{
-    BridgeFallocate, FallocateBridgeStats, FallocateMode, FallocateOp, FallocateState,
+    BridgeFallocate,
+    FallocateBridgeStats,
+    FallocateMode,
+    FallocateOp,
+    FallocateState,
     FileSpaceTracker,
 };
 pub use fanotify_bridge::{
-    BridgeFanotify, FanEventMask, FanInitFlags, FanMark, FanMarkType, FanPermResponse,
-    FanotifyBridgeStats, FanotifyEvent, FanotifyGroup,
+    BridgeFanotify,
+    FanEventMask,
+    FanInitFlags,
+    FanMark,
+    FanMarkType,
+    FanPermResponse,
+    FanotifyBridgeStats,
+    FanotifyEvent,
+    FanotifyGroup,
 };
 pub use fd_table::{
-    BridgeFdTableProxy, BridgeFdTableStats, FdEntry, FdFlags, FdType, ProcessFdTable,
+    BridgeFdTableProxy,
+    BridgeFdTableStats,
+    FdEntry,
+    FdFlags,
+    FdType,
+    ProcessFdTable,
 };
 pub use fence::{
-    BridgeFenceManager, BridgeFenceStats, FenceChain, FencePoint, FencePool, FenceScope,
-    FenceState, FenceType,
+    BridgeFenceManager,
+    BridgeFenceStats,
+    FenceChain,
+    FencePoint,
+    FencePool,
+    FenceScope,
 };
 pub use flock_bridge::{
-    BridgeFlock, FileLock, FlockBridgeStats, FlockType, InodeLockState, LockMechanism,
-    LockOpResult, LockOpType, LockState,
+    BridgeFlock,
+    FileLock,
+    FlockBridgeStats,
+    FlockType,
+    InodeLockState,
+    LockMechanism,
+    LockOpResult,
+    LockOpType,
+    LockState,
 };
 pub use flow::{
-    AdmissionWindow, BridgeFlowController, BridgeFlowStats, CongestionSignal, CreditBucket,
-    FlowPriority, FlowState, ProcessFlow,
+    AdmissionWindow,
+    BridgeFlowController,
+    BridgeFlowStats,
+    CongestionSignal,
+    CreditBucket,
+    FlowPriority,
+    FlowState,
+    ProcessFlow,
 };
 pub use futex::{
-    BridgeFutexProxy, BridgeFutexStats, FutexContention, FutexDeadlockHint, FutexEntry, FutexOp,
+    BridgeFutexProxy,
+    BridgeFutexStats,
+    FutexContention,
+    FutexDeadlockHint,
+    FutexEntry,
+    FutexOp,
 };
 pub use gateway::{
-    ApiVersion as GatewayApiVersion, BridgeGatewayManager, BridgeGatewayStats, CallerProfile,
-    FeatureFlag, GatewayRateLimiter, GatewayState,
+    ApiVersion as GatewayApiVersion,
+    BridgeGatewayManager,
+    BridgeGatewayStats,
+    CallerProfile,
+    FeatureFlag,
+    GatewayRateLimiter,
+    GatewayState,
 };
 pub use health::{
-    BridgeComponent, BridgeHealthMonitor, BridgeHealthStats, ComponentHealth, ComponentStatus,
-    HealingAction, HealingTrigger, Heartbeat,
+    BridgeComponent,
+    BridgeHealthMonitor,
+    BridgeHealthStats,
+    ComponentHealth,
+    ComponentStatus,
+    HealingAction,
+    HealingTrigger,
+    Heartbeat,
 };
-pub use history::{HistoryManager, HistoryQuery, QueryResult, RecordRingBuffer, SyscallRecord};
+pub use history::{
+    HistoryManager,
+    HistoryQuery,
+    QueryResult,
+    RecordRingBuffer,
+    SyscallRecord,
+};
 pub use hugetlb_bridge::{
-    BridgeHugetlb, HugePagePool, HugePageSize, HugetlbCgroupLimit, HugetlbStats, NumaHugeBinding,
-    ProcessReservation, ReservationState,
+    BridgeHugetlb,
+    HugePagePool,
+    HugePageSize,
+    HugetlbCgroupLimit,
+    HugetlbStats,
+    NumaHugeBinding,
+    ProcessReservation,
+    ReservationState,
 };
 pub use inode_bridge::{
-    BridgeInode, InodeBridgeOp, InodeBridgeRecord, InodeBridgeResult, InodeBridgeStats,
+    BridgeInode,
+    InodeBridgeOp,
+    InodeBridgeRecord,
+    InodeBridgeResult,
+    InodeBridgeStats,
 };
 pub use inotify_bridge::{
-    BridgeInotify, CoalesceConfig as InotifyCoalesceConfig, InotifyBridgeStats, InotifyEvent,
-    InotifyInstance, InotifyMask, WatchDescriptor,
+    BridgeInotify,
+    CoalesceConfig as InotifyCoalesceConfig,
+    InotifyBridgeStats,
+    InotifyEvent,
+    InotifyInstance,
+    InotifyMask,
+    WatchDescriptor,
 };
 pub use instrument::{
-    BridgeInstrumentationEngine, EventFilter, FilterField, FilterOp, InstrumentationEvent,
-    InstrumentationProbe, InstrumentationStats, PerfCounter, PerfCounterType, ProbeState,
+    BridgeInstrumentationEngine,
+    EventFilter,
+    FilterField,
+    FilterOp,
+    InstrumentationEvent,
+    InstrumentationProbe,
+    InstrumentationStats,
+    PerfCounter,
+    PerfCounterType,
+    ProbeState,
     ProbeType,
 };
-pub use intent::{IntentAnalyzer, IntentConfidence, IntentPattern, IntentType};
+pub use intent::{
+    IntentAnalyzer,
+    IntentConfidence,
+    IntentPattern,
+    IntentType,
+};
 pub use intercept::{
-    FilterCondition, FilterProgram, InterceptAction, InterceptEngine, InterceptHook,
-    InterceptPoint, InterceptVerdict, SyscallArgs,
+    FilterCondition,
+    FilterProgram,
+    InterceptAction,
+    InterceptEngine,
+    InterceptHook,
+    InterceptPoint,
+    InterceptVerdict,
+    SyscallArgs,
 };
 pub use io_prio_bridge::{
-    BridgeIoPrio, IoPrioBridgeStats, IoPrioEvent, IoPriority, IoSchedClass, ProcessIoPrio,
+    BridgeIoPrio,
+    IoPrioBridgeStats,
+    IoPrioEvent,
+    IoPriority,
+    IoSchedClass,
+    ProcessIoPrio,
 };
 pub use io_uring_bridge::{
-    BridgeCqe, BridgeIoUringBridge, BridgeIoUringStats, BridgeSqe, FixedBuffer, IoUringInstance,
-    IoUringOp, OpStats as IoUringOpStats, RegisteredFdTable, SqeFlags,
+    BridgeCqe,
+    BridgeIoUringBridge,
+    BridgeIoUringStats,
+    BridgeSqe,
+    FixedBuffer,
+    IoUringInstance,
+    IoUringOp,
+    OpStats as IoUringOpStats,
+    RegisteredFdTable,
+    SqeFlags,
 };
-pub use ioprio_bridge::{BridgeIoprio, IoprioBridgeStats, IoprioClass, IoprioEntry, IoprioWho};
+pub use ioprio_bridge::{
+    BridgeIoprio,
+    IoprioBridgeStats,
+    IoprioClass,
+    IoprioEntry,
+    IoprioWho,
+};
 pub use iosched_bridge::{
-    BridgeIoSched as BridgeIoSchedV2, IoSchedBridgeOp, IoSchedBridgePrio, IoSchedBridgeRecord,
-    IoSchedBridgeResult, IoSchedBridgeStats,
+    BridgeIoSched as BridgeIoSchedV2,
+    IoSchedBridgeOp,
+    IoSchedBridgePrio,
+    IoSchedBridgeRecord,
+    IoSchedBridgeResult,
+    IoSchedBridgeStats,
 };
 pub use ipc_proxy::{
-    BridgeIpcProxy, BridgeIpcProxyStats, IpcBatch, IpcChannel, IpcChannelState, IpcChannelType,
-    IpcMessage, IpcRoute,
+    BridgeIpcProxy,
+    BridgeIpcProxyStats,
+    IpcBatch,
+    IpcChannel,
+    IpcChannelState,
+    IpcChannelType,
+    IpcMessage,
+    IpcRoute,
 };
 pub use irq_bridge::{
-    BridgeIrqBridge, CpuIrqStats, IrqBridgeStats, IrqDesc, IrqDomain, IrqReturn, IrqStateFlag,
-    IrqTrigger, IrqType,
+    BridgeIrqBridge,
+    CpuIrqStats,
+    IrqBridgeStats,
+    IrqDesc,
+    IrqDomain,
+    IrqReturn,
+    IrqStateFlag,
+    IrqTrigger,
+    IrqType,
 };
 pub use isolation::{
-    ArgComparison, ArgFilter, AuditEntry as IsolationAuditEntry, AuditLog as IsolationAuditLog,
-    BridgeIsolationManager, BridgeIsolationStats, FilterAction, FilterChain, FilterMatch,
+    ArgComparison,
+    ArgFilter,
+    AuditEntry as IsolationAuditEntry,
+    AuditLog as IsolationAuditLog,
+    BridgeIsolationManager,
+    BridgeIsolationStats,
+    FilterAction,
+    FilterChain,
+    FilterMatch,
     FilterRule,
 };
 pub use kcmp_bridge::{
-    BridgeKcmp, KcmpBridgeStats, KcmpRequest, KcmpResponse, KcmpResult, KcmpType, ProcessResources,
+    BridgeKcmp,
+    KcmpBridgeStats,
+    KcmpRequest,
+    KcmpResponse,
+    KcmpResult,
+    KcmpType,
+    ProcessResources,
     ResourceIdentity,
 };
 pub use kcov_bridge::{
-    BridgeKcovBridge, CmpRecord, CmpType, CovEntry, CoverageDatabase, KcovBridgeStats, KcovMode,
+    BridgeKcovBridge,
+    CmpRecord,
+    CmpType,
+    CovEntry,
+    CoverageDatabase,
+    KcovBridgeStats,
+    KcovMode,
     TaskCovBuffer,
 };
 pub use kexec_bridge::{
-    BridgeKexec, CrashReserveRegion, ImageState, KexecBridgeStats, KexecImage, KexecSegment,
-    KexecType, PurgatoryState, ShutdownNotifier,
+    BridgeKexec,
+    CrashReserveRegion,
+    ImageState,
+    KexecBridgeStats,
+    KexecImage,
+    KexecSegment,
+    KexecType,
+    PurgatoryState,
+    ShutdownNotifier,
 };
 pub use keyctl_bridge::{
-    BridgeKeyctl, KernelKey as KeyctlKernelKey, KeyPerm as KeyctlKeyPerm,
-    KeyState as KeyctlKeyState, KeyType as KeyctlKeyType, KeyctlBridgeStats,
+    BridgeKeyctl,
+    KernelKey as KeyctlKernelKey,
+    KeyPerm as KeyctlKeyPerm,
+    KeyState as KeyctlKeyState,
+    KeyType as KeyctlKeyType,
+    KeyctlBridgeStats,
 };
 pub use keyring_bridge::{
-    BridgeKeyring, KernelKey, KeyOp, KeyPerm, KeyState, KeyType, Keyring, KeyringBridgeStats,
+    BridgeKeyring,
+    KernelKey,
+    KeyOp,
+    KeyPerm,
+    KeyState,
+    KeyType,
+    Keyring,
+    KeyringBridgeStats,
 };
 pub use kqueue_bridge::{
-    BridgeKqueue, Kevent, KqueueBridgeStats, KqueueFilter, KqueueFlag, KqueueInstance, VnodeEvent,
+    BridgeKqueue,
+    Kevent,
+    KqueueBridgeStats,
+    KqueueFilter,
+    KqueueFlag,
+    KqueueInstance,
+    VnodeEvent,
 };
 pub use landlock_bridge::{
-    BridgeLandlock, FsAccessRights, FsPathRule, LandlockAbi, LandlockBridgeStats, LandlockDomain,
-    NetAccessRights, NetPortRule, Ruleset as LandlockRuleset,
+    BridgeLandlock,
+    FsAccessRights,
+    FsPathRule,
+    LandlockAbi,
+    LandlockBridgeStats,
+    LandlockDomain,
+    NetAccessRights,
+    NetPortRule,
+    Ruleset as LandlockRuleset,
 };
 pub use marshal::{
-    ArgDescriptor, ArgType as MarshalArgType, BridgeMarshalEngine, MarshalStats, MarshalledValue,
-    PointerValidator, SyscallSignature as MarshalSignature,
-    ValidationError as MarshalValidationError, ValidationResult as MarshalValidationResult,
+    ArgDescriptor,
+    ArgType as MarshalArgType,
+    BridgeMarshalEngine,
+    MarshalStats,
+    MarshalledValue,
+    PointerValidator,
+    SyscallSignature as MarshalSignature,
+    ValidationError as MarshalValidationError,
+    ValidationResult as MarshalValidationResult,
 };
 pub use mem_proxy::{
-    BridgeMemoryProxy, BridgeMemoryProxyStats, MadvHint, MemOp, MemOpRecord, ProcessMemProxy,
-    ThpRecommendation, VmaProxyEntry,
+    BridgeMemoryProxy,
+    BridgeMemoryProxyStats,
+    MadvHint,
+    MemOp,
+    MemOpRecord,
+    ProcessMemProxy,
+    ThpRecommendation,
+    VmaProxyEntry,
 };
 pub use membarrier_bridge::{
-    BridgeMembarrier, MembarrierBridgeStats, MembarrierCmd, MembarrierInvocation,
+    BridgeMembarrier,
+    MembarrierBridgeStats,
+    MembarrierCmd,
+    MembarrierInvocation,
     MembarrierRegistration,
 };
 pub use memfd_bridge::{
-    BridgeMemfd, MemfdBridgeStats, MemfdFlags, MemfdInstance, MemfdOp, SealFlags,
+    BridgeMemfd,
+    MemfdBridgeStats,
+    MemfdFlags,
+    MemfdInstance,
+    MemfdOp,
+    SealFlags,
 };
 pub use metrics::{
-    ErrorTracker, LatencyHistogram, MetricsRegistry, ProcessSyscallMetrics, SyscallTypeMetrics,
+    ErrorTracker,
+    LatencyHistogram,
+    MetricsRegistry,
+    ProcessSyscallMetrics,
+    SyscallTypeMetrics,
     ThroughputTracker,
 };
 pub use mmap_mgr::{
-    BridgeMmapMgr, BridgeMmapMgrStats, MmapEvent, MmapEventType, ProcessAddrSpace, Vma, VmaPerms,
+    BridgeMmapMgr,
+    BridgeMmapMgrStats,
+    MmapEvent,
+    MmapEventType,
+    Vma,
+    VmaPerms,
     VmaType,
 };
 pub use mnt_ns_bridge::{
-    BridgeMntNs, FsType as MntNsFsType, MntNsBridgeStats, MountEventType as MntNsEventType,
-    MountFlags as MntNsFlags, MountNamespace as MntNsNamespace, MountPoint as MntNsPoint,
+    BridgeMntNs,
+    FsType as MntNsFsType,
+    MntNsBridgeStats,
+    MountEventType as MntNsEventType,
+    MountFlags as MntNsFlags,
+    MountNamespace as MntNsNamespace,
+    MountPoint as MntNsPoint,
     MountPropagation as MntNsPropagation,
 };
 pub use module_bridge::{
-    BridgeModuleBridge, ModuleBridgeStats, ModuleDesc, ModuleEvent, ModuleEventKind, ModuleLoadReq,
-    ModuleParam, ModuleState, ModuleSymbol, ModuleTaint, ParamType,
+    BridgeModuleBridge,
+    ModuleBridgeStats,
+    ModuleDesc,
+    ModuleEvent,
+    ModuleEventKind,
+    ModuleLoadReq,
+    ModuleParam,
+    ModuleState,
+    ModuleSymbol,
+    ModuleTaint,
+    ParamType,
 };
 pub use mount_bridge::{
-    BridgeMountBridge, FsType, MountBridgeStats, MountEvent, MountEventType, MountFlags,
-    MountNamespace, MountPoint, MountPropagation,
+    BridgeMountBridge,
+    FsType,
+    MountBridgeStats,
+    MountEvent,
+    MountEventType,
+    MountFlags,
+    MountNamespace,
+    MountPoint,
+    MountPropagation,
 };
 pub use mq_bridge::{
-    BridgeMq, MqBridgeStats, MqDescriptor, MqMessage as MqBridgeMessage, MqPriority,
+    BridgeMq,
+    MqBridgeStats,
+    MqDescriptor,
+    MqMessage as MqBridgeMessage,
+    MqPriority,
 };
-pub use mqueue_bridge::{BridgeMqueue, MessageQueue, MqAttr, MqMessage, MqueueBridgeStats};
-pub use msg_bridge::{BridgeMsgBridge, MsgBridgeStats, MsgEntry, MsgPerm, MsgQueue, MsgQueueState};
+pub use mqueue_bridge::{
+    BridgeMqueue,
+    MessageQueue,
+    MqAttr,
+    MqMessage,
+    MqueueBridgeStats,
+};
+pub use msg_bridge::{
+    BridgeMsgBridge,
+    MsgBridgeStats,
+    MsgEntry,
+    MsgPerm,
+    MsgQueue,
+    MsgQueueState,
+};
 pub use namespace::{
-    BridgeNamespaceManager, BridgeNamespaceStats, Namespace,
-    NamespaceState as BridgeNamespaceState, NamespaceType as BridgeNamespaceType,
-    ProcessNamespaceSet, TranslationRule, TranslationType,
+    BridgeNamespaceManager,
+    BridgeNamespaceStats,
+    Namespace,
+    NamespaceState as BridgeNamespaceState,
+    NamespaceType as BridgeNamespaceType,
+    ProcessNamespaceSet,
+    TranslationRule,
+    TranslationType,
 };
 pub use namespace_bridge::{
-    BridgeNamespace as BridgeNsV2, Namespace as NsBridgeEntry, NamespaceBridgeStats,
-    NsType as NsBridgeType, ProcessNsSet as NsBridgeProcessNsSet,
+    BridgeNamespace as BridgeNsV2,
+    Namespace as NsBridgeEntry,
+    NamespaceBridgeStats,
+    NsType as NsBridgeType,
+    ProcessNsSet as NsBridgeProcessNsSet,
 };
 pub use net_proxy::{
-    BridgeNetProxy, BridgeNetProxyStats, BridgeSocketState, BridgeSocketType, CoalesceOpportunity,
-    NetSyscallType, SocketEntry,
+    BridgeNetProxy,
+    BridgeNetProxyStats,
+    BridgeSocketState,
+    BridgeSocketType,
+    CoalesceOpportunity,
+    NetSyscallType,
+    SocketEntry,
 };
 pub use netlink_bridge::{
-    BridgeNetlink, GenlFamily, NetlinkBridgeStats, NlMcastGroup, NlMsgFlags, NlMsgHeader,
-    NlMsgType as NlBridgeMsgType, NlProto, NlSocket as NlBridgeSocket,
+    BridgeNetlink,
+    GenlFamily,
+    NetlinkBridgeStats,
+    NlMcastGroup,
+    NlMsgFlags,
+    NlMsgHeader,
+    NlMsgType as NlBridgeMsgType,
+    NlProto,
+    NlSocket as NlBridgeSocket,
 };
 pub use netlink_proxy::{
-    BridgeNetlinkProxy, GenlFamily, GenlOp, NetlinkProxyStats, NlFamily, NlMessage, NlMsgFlags,
-    NlMsgType, NlSocket,
+    BridgeNetlinkProxy,
+    GenlOp,
+    NetlinkProxyStats,
+    NlFamily,
+    NlMessage,
+    NlMsgType,
+    NlSocket,
 };
 pub use ns_proxy::{
-    BridgeNsProxy, IdMapping, NamespaceDesc, NsRefType, NsReference, NsType, PidMapping,
+    BridgeNsProxy,
+    IdMapping,
+    NamespaceDesc,
+    NsRefType,
+    NsReference,
+    NsType,
+    PidMapping,
     ProcessNsSet,
 };
 pub use numa_bridge::{
-    BridgeNuma, NumaBridgeStats, NumaHintType, NumaMigrateMode, NumaNode, NumaPolicy,
+    BridgeNuma,
+    NumaBridgeStats,
+    NumaHintType,
+    NumaMigrateMode,
+    NumaNode,
+    NumaPolicy,
     NumaProcessState,
 };
 pub use optimizer::{
-    AdaptiveTuner, ContentionDetector, GlobalOptimizer, OptimizationBenefit,
-    OptimizationOpportunity, OptimizationType, TunableParam,
+    AdaptiveTuner,
+    ContentionDetector,
+    GlobalOptimizer,
+    OptimizationBenefit,
+    OptimizationOpportunity,
+    OptimizationType,
+    TunableParam,
 };
-pub use pattern::{NgramAnalyzer, PatternKind, PatternMatch, PatternMatcher, PatternTemplate};
+pub use pattern::{
+    NgramAnalyzer,
+    PatternKind,
+    PatternMatch,
+    PatternMatcher,
+    PatternTemplate,
+};
 pub use perf_bridge::{
-    BridgePerf, CpuPmuState, HwEvent, PerfBridgeStats, PerfEvent, PerfEventAttr, PerfEventType,
-    PerfSample, SampleType, SwEvent,
+    BridgePerf,
+    CpuPmuState,
+    HwEvent,
+    PerfBridgeStats,
+    PerfEvent,
+    PerfEventAttr,
+    PerfEventType,
+    PerfSample,
+    SampleType,
+    SwEvent,
 };
 pub use perf_hw_bridge::{
-    BridgePerfHw, CounterState as PmuCounterState, EventScope, PerfCounter as PmuPerfCounter,
-    PerfEventGroup, PerfHwBridgeStats, PerfSample, PmuEventType, SamplingMode,
+    BridgePerfHw,
+    CounterState as PmuCounterState,
+    EventScope,
+    PerfCounter as PmuPerfCounter,
+    PerfEventGroup,
+    PerfHwBridgeStats,
+    PmuEventType,
+    SamplingMode,
 };
 pub use pidfd_bridge::{
-    BridgePidfd, PidfdBridgeStats, PidfdFlags, PidfdInstance, PidfdOp, ProcessPidfdState,
+    BridgePidfd,
+    PidfdBridgeStats,
+    PidfdFlags,
+    PidfdInstance,
+    PidfdOp,
+    ProcessPidfdState,
 };
 pub use pipe_bridge::{
-    BridgePipeBridge, PipeBridgeStats, PipeBuffer, PipeInstance, PipeState, SpliceRecord,
+    BridgePipeBridge,
+    PipeBridgeStats,
+    PipeBuffer,
+    PipeInstance,
+    PipeState,
+    SpliceRecord,
 };
-pub use pipeline::{PipelineConfig, PipelineStage, StageDecision, SyscallPipeline};
-pub use pkey_bridge::{BridgePkey, Pkey, PkeyAccess, PkeyBridgeStats, PkruState, ProcessPkeys};
+pub use pipeline::{
+    PipelineConfig,
+    PipelineStage,
+    StageDecision,
+    SyscallPipeline,
+};
+pub use pkey_bridge::{
+    BridgePkey,
+    Pkey,
+    PkeyAccess,
+    PkeyBridgeStats,
+    PkruState,
+    ProcessPkeys,
+};
 pub use poll_bridge::{
-    BridgePollBridge, FdPollStats, PollBridgeStats, PollEvents, PollFdEntry, PollRequest,
+    BridgePollBridge,
+    FdPollStats,
+    PollBridgeStats,
+    PollEvents,
+    PollFdEntry,
+    PollRequest,
     PollVariant,
 };
 pub use posix_timer_bridge::{
-    BridgePosixTimer, PosixClockId, PosixTimer, PosixTimerBridgeStats, TimerNotify,
+    BridgePosixTimer,
+    PosixClockId,
+    PosixTimer,
+    PosixTimerBridgeStats,
+    TimerNotify,
 };
 pub use power_bridge::{
-    BridgePowerBridge, DevicePower, DomainState, PowerBridgeStats, PowerDomain, RuntimePmState,
-    SleepState, WakeupSource,
+    BridgePowerBridge,
+    DevicePower,
+    DomainState,
+    PowerBridgeStats,
+    PowerDomain,
+    RuntimePmState,
+    SleepState,
 };
-pub use prctl_bridge::{BridgePrctl, PrctlBridgeStats, PrctlOption, ProcessPrctlState};
+pub use prctl_bridge::{
+    BridgePrctl,
+    PrctlBridgeStats,
+    PrctlOption,
+    ProcessPrctlState,
+};
 pub use predict::{
-    PredictedSyscall, SyscallConfidence, SyscallPattern, SyscallPredictor, SyscallSequence,
+    PredictedSyscall,
+    SyscallConfidence,
+    SyscallPattern,
+    SyscallPredictor,
+    SyscallSequence,
 };
 pub use prefetch::{
-    FileReadAhead, PrefetchConfig, PrefetchManager, PrefetchPriority, PrefetchRequest, PrefetchType,
+    FileReadAhead,
+    PrefetchConfig,
+    PrefetchManager,
+    PrefetchPriority,
+    PrefetchRequest,
+    PrefetchType,
 };
 pub use priority::{
-    BoostReason, BridgePriorityEngine, BridgePriorityStats, PriorityQueue, PriorityRequest,
-    StarvationDetector, SyscallPriority,
+    BoostReason,
+    BridgePriorityEngine,
+    BridgePriorityStats,
+    PriorityQueue,
+    PriorityRequest,
+    StarvationDetector,
+    SyscallPriority,
 };
 pub use proc_lifecycle::{
-    BridgeProcLifecycle, CloneFlagBridge, ExitReason, ProcEntry, ProcLifecycleState, ProcTreeNode,
+    BridgeProcLifecycle,
+    CloneFlagBridge,
+    ExitReason,
+    ProcEntry,
+    ProcLifecycleState,
+    ProcTreeNode,
 };
 pub use procfs_bridge::{
-    BridgeProcfsBridge, ProcAccessResult, ProcEntry, ProcEntryType, ProcNamespace,
-    ProcessProcState, ProcfsBridgeStats,
+    BridgeProcfsBridge,
+    ProcAccessResult,
+    ProcEntryType,
+    ProcNamespace,
+    ProcessProcState,
+    ProcfsBridgeStats,
 };
-pub use profile::{AppBehavior, AppClass, AppProfile, AppProfiler, ResourceUsagePattern};
+pub use profile::{
+    AppBehavior,
+    AppClass,
+    AppProfile,
+    AppProfiler,
+    ResourceUsagePattern,
+};
 pub use ptrace_bridge::{
-    Breakpoint, BridgePtraceBridge, BridgePtraceStats, CompareOp, PtraceEvent, PtraceRequest,
-    RegisterSnapshot, Tracee, TraceeState, WatchType, Watchpoint,
+    Breakpoint,
+    BridgePtraceBridge,
+    BridgePtraceStats,
+    CompareOp,
+    PtraceEvent,
+    PtraceRequest,
+    RegisterSnapshot,
+    Tracee,
+    TraceeState,
+    WatchType,
+    Watchpoint,
 };
 pub use queue::{
-    BackpressureConfig, BackpressureState, DrainagePolicy, QueueEntry, QueueManager, QueuePriority,
+    BackpressureConfig,
+    BackpressureState,
+    DrainagePolicy,
+    QueueEntry,
+    QueueManager,
+    QueuePriority,
     SyscallQueue,
 };
 pub use quota::{
-    BridgeQuotaEnforcer, BridgeQuotaStats, GroupQuota, ProcessQuota, QuotaAction, QuotaDefinition,
-    QuotaResource, QuotaState, WindowedUsage,
+    BridgeQuotaEnforcer,
+    BridgeQuotaStats,
+    GroupQuota,
+    ProcessQuota,
+    QuotaAction,
+    QuotaDefinition,
+    QuotaResource,
+    QuotaState,
+    WindowedUsage,
 };
 pub use quota_bridge::{
-    BridgeQuota, DiskQuota, FsQuotaState, QuotaBridgeStats, QuotaEnforcement,
-    QuotaResource as DiskQuotaResource, QuotaState as DiskQuotaState, QuotaType, QuotaViolation,
+    BridgeQuota,
+    DiskQuota,
+    FsQuotaState,
+    QuotaBridgeStats,
+    QuotaEnforcement,
+    QuotaResource as DiskQuotaResource,
+    QuotaState as DiskQuotaState,
+    QuotaType,
+    QuotaViolation,
 };
 pub use raid_bridge::{
-    BridgeRaid, RaidBridgeOp, RaidBridgeRecord, RaidBridgeResult, RaidBridgeStats,
+    BridgeRaid,
+    RaidBridgeOp,
+    RaidBridgeRecord,
+    RaidBridgeResult,
+    RaidBridgeStats,
 };
 pub use ratelimit::{
-    BridgeRateLimiter, RateLimitDecision, RateLimitPolicy, RateLimitScope, RateLimiterStats,
-    SlidingWindowCounter as RateSlidingWindow, TokenBucket as RateTokenBucket,
+    BridgeRateLimiter,
+    RateLimitDecision,
+    RateLimitPolicy,
+    RateLimitScope,
+    RateLimiterStats,
+    SlidingWindowCounter as RateSlidingWindow,
+    TokenBucket as RateTokenBucket,
 };
 pub use readahead_bridge::{
-    BridgeReadahead, ReadaheadBridgeStats, ReadaheadContext, ReadaheadPattern, ReadaheadState,
+    BridgeReadahead,
+    ReadaheadBridgeStats,
+    ReadaheadContext,
+    ReadaheadPattern,
+    ReadaheadState,
 };
 pub use replay::{
-    BridgeReplayManager, RecordedSyscall, RecordingFilter, RecordingSession, ReplayDivergence,
-    ReplayManagerStats, ReplaySession, ReplayState, SyscallArg,
+    BridgeReplayManager,
+    RecordedSyscall,
+    RecordingFilter,
+    RecordingSession,
+    ReplayDivergence,
+    ReplayManagerStats,
+    ReplaySession,
+    ReplayState,
+    SyscallArg,
     SyscallResult as ReplaySyscallResult,
 };
 pub use retry::{
-    BridgeRetryEngine, BridgeRetryStats, RetryBudget, RetryOutcome, RetryPolicy, RetryState,
-    RetryStrategy, RetryableCategory,
+    BridgeRetryEngine,
+    BridgeRetryStats,
+    RetryBudget,
+    RetryOutcome,
+    RetryPolicy,
+    RetryState,
+    RetryStrategy,
+    RetryableCategory,
 };
 pub use rlimit_bridge::{
-    BridgeRlimitBridge, BridgeRlimitStats, LimitChangeAudit, LimitCheckResult, ProcessRlimits,
-    RLIM_INFINITY, ResourceType, Rlimit,
+    BridgeRlimitBridge,
+    BridgeRlimitStats,
+    LimitChangeAudit,
+    LimitCheckResult,
+    ProcessRlimits,
+    RLIM_INFINITY,
+    ResourceType,
+    Rlimit,
 };
 pub use routing::{
-    CachedRoute, FallbackChain, FallbackHandler, RouteCache, RouteConditions, RouteEntry,
-    RoutePath, RouteReason, RouteStats, RoutingEngine,
+    CachedRoute,
+    FallbackChain,
+    FallbackHandler,
+    RouteCache,
+    RouteConditions,
+    RouteEntry,
+    RoutePath,
+    RouteReason,
+    RouteStats,
+    RoutingEngine,
 };
 pub use rseq_bridge::{
-    BridgeRseq, CpuRseqState, CriticalSection as RseqCriticalSection, RseqAbort, RseqAbortReason,
-    RseqBridgeStats, RseqFlags, RseqRegistration,
+    BridgeRseq,
+    CpuRseqState,
+    CriticalSection as RseqCriticalSection,
+    RseqAbort,
+    RseqAbortReason,
+    RseqBridgeStats,
+    RseqFlags,
+    RseqRegistration,
 };
 pub use sandbox::{
-    ArgFilter, ArgOp, BridgeSandboxManager, FilterAction, SandboxInstance, SandboxManagerStats,
-    SandboxProfile, SandboxRule, SandboxStrictness, SandboxViolation,
+    ArgOp,
+    BridgeSandboxManager,
+    SandboxInstance,
+    SandboxManagerStats,
+    SandboxProfile,
+    SandboxRule,
+    SandboxStrictness,
+    SandboxViolation,
 };
 pub use sched_bridge::{
-    BlockedSyscall, BridgeSchedBridge, BridgeSchedStats, ClassLatencyTracker, PreemptionRegion,
-    PriorityInheritance, SchedHint, SyscallClassifier, SyscallSchedClass,
+    BlockedSyscall,
+    BridgeSchedBridge,
+    BridgeSchedStats,
+    ClassLatencyTracker,
+    PreemptionRegion,
+    PriorityInheritance,
+    SchedHint,
+    SyscallClassifier,
+    SyscallSchedClass,
 };
 pub use sched_ext::{
-    BridgeSchedExt, CpuScxState, DispatchFlags, DispatchQueue, SchedExtBridgeStats, SchedExtOp,
-    ScxSchedulerInfo, ScxTaskState,
+    BridgeSchedExt,
+    CpuScxState,
+    DispatchFlags,
+    DispatchQueue,
+    SchedExtBridgeStats,
+    SchedExtOp,
+    ScxSchedulerInfo,
+    ScxTaskState,
 };
 pub use seccomp::{
-    ArgCmp, ArgCondition, BridgeSeccompEngine, BridgeSeccompStats, SeccompAction,
-    SeccompAuditEntry, SeccompFilter, SeccompRule,
+    ArgCmp,
+    ArgCondition,
+    BridgeSeccompEngine,
+    BridgeSeccompStats,
+    SeccompAction,
+    SeccompAuditEntry,
+    SeccompFilter,
+    SeccompRule,
 };
 pub use seccomp_bridge::{
-    BridgeSeccomp, ProcessSeccomp, SeccompBridgeAction, SeccompBridgeFilter, SeccompBridgeStats,
+    BridgeSeccomp,
+    ProcessSeccomp,
+    SeccompBridgeAction,
+    SeccompBridgeFilter,
+    SeccompBridgeStats,
     SeccompInsn as SeccompBridgeInsn,
 };
 pub use security::{SecurityAction, SecurityEngine, SecurityRule};
-pub use select_bridge::{BridgeSelect, SelectBridgeStats, SelectCall, SelectFdSet, SelectMask};
+pub use select_bridge::{
+    BridgeSelect,
+    SelectBridgeStats,
+    SelectCall,
+    SelectFdSet,
+    SelectMask,
+};
 pub use sem_bridge::{
-    BridgeSemBridge, SemBridgeStats, SemOp, SemPerm, SemUndo, SemWaiter, Semaphore, SemaphoreSet,
+    BridgeSemBridge,
+    SemBridgeStats,
+    SemOp,
+    SemPerm,
+    SemUndo,
+    SemWaiter,
+    Semaphore,
+    SemaphoreSet,
 };
 pub use sendfile_bridge::{
-    BridgeSendfile, SendfileBridgeStats, SendfileMode, SendfilePipeBuf, SendfileSrcType,
-    SendfileState, SendfileTransfer,
+    BridgeSendfile,
+    SendfileBridgeStats,
+    SendfileMode,
+    SendfilePipeBuf,
+    SendfileSrcType,
+    SendfileState,
+    SendfileTransfer,
 };
 pub use shm_bridge::{
-    BridgeShmBridge, ShmAttach, ShmBridgeStats, ShmOp, ShmPerm, ShmSegment, ShmState,
+    BridgeShmBridge,
+    ShmAttach,
+    ShmBridgeStats,
+    ShmOp,
+    ShmPerm,
+    ShmSegment,
+    ShmState,
 };
 pub use signal_proxy::{
-    BridgeSignalProxy, BridgeSignalProxyStats, DeliveryState, ProcessSignalState, SignalCategory,
+    BridgeSignalProxy,
+    BridgeSignalProxyStats,
+    DeliveryState,
+    ProcessSignalState,
+    SignalCategory,
     SignalEntry,
 };
 pub use signalfd_bridge::{
-    BridgeSignalfd, PendingSignal, SignalSet, SignalfdBridgeStats, SignalfdEvent, SignalfdFlags,
-    SignalfdInstance, SignalfdOp,
+    BridgeSignalfd,
+    PendingSignal,
+    SignalSet,
+    SignalfdBridgeStats,
+    SignalfdEvent,
+    SignalfdFlags,
+    SignalfdInstance,
+    SignalfdOp,
 };
 pub use snapshot::{
-    BridgeSnapshot, BridgeSnapshotManager, BridgeSnapshotStats, FdSnapshot, MemoryRegionSnapshot,
-    ProcessSnapshot, RegisterState, SnapshotDiff, SnapshotScope, SnapshotState,
+    BridgeSnapshot,
+    BridgeSnapshotManager,
+    BridgeSnapshotStats,
+    FdSnapshot,
+    MemoryRegionSnapshot,
+    ProcessSnapshot,
+    RegisterState,
+    SnapshotDiff,
+    SnapshotScope,
+    SnapshotState,
 };
 pub use socket_bridge::{
-    BridgeSocket, BridgeSocketBridge, BridgeSocketStats, ConnInfo, SockAddr, SockBufStats,
-    SockOptions, SocketDomain, SocketState, SocketType,
+    BridgeSocket,
+    BridgeSocketBridge,
+    BridgeSocketStats,
+    ConnInfo,
+    SockAddr,
+    SockBufStats,
+    SockOptions,
+    SocketDomain,
+    SocketState,
+    SocketType,
 };
 pub use splice_bridge::{
-    BridgeSplice, EndpointType, PipeBuffer as SplicePipeBuffer, SpliceBridgeStats, SpliceFlags,
-    SpliceOp, SpliceTransfer,
+    BridgeSplice,
+    EndpointType,
+    PipeBuffer as SplicePipeBuffer,
+    SpliceBridgeStats,
+    SpliceFlags,
+    SpliceOp,
+    SpliceTransfer,
 };
 pub use superblock_bridge::{
-    BridgeSuperblock, SbBridgeOp, SbBridgeRecord, SbBridgeResult, SbBridgeStats,
+    BridgeSuperblock,
+    SbBridgeOp,
+    SbBridgeRecord,
+    SbBridgeResult,
+    SbBridgeStats,
 };
 pub use swap_bridge::{
-    BridgeSwapBridge, ProcessSwapInfo, SwapArea, SwapAreaState, SwapAreaType, SwapBridgeStats,
+    BridgeSwapBridge,
+    ProcessSwapInfo,
+    SwapArea,
+    SwapAreaState,
+    SwapAreaType,
+    SwapBridgeStats,
     SwapCluster,
 };
 pub use syscall::{
-    OptimizationHint, SyscallContext, SyscallId, SyscallInterceptor, SyscallMetrics, SyscallResult,
-    SyscallRouter, SyscallType,
+    OptimizationHint,
+    SyscallContext,
+    SyscallId,
+    SyscallInterceptor,
+    SyscallMetrics,
+    SyscallResult,
+    SyscallRouter,
+    SyscallType,
 };
 pub use syscall_profiler::{
-    BridgeSyscallProfilerV2, ErrnoTracker, LatencyBucketBridge, LatencyHistogram, SyscallPair,
+    BridgeSyscallProfilerV2,
+    ErrnoTracker,
+    LatencyBucketBridge,
+    SyscallPair,
     SyscallProfileV2,
 };
 pub use syscall_table::{
-    BridgeSyscallTable, BridgeSyscallTableStats, HotPatch, SyscallCategory,
-    SyscallEntry as SyscallTableEntry, SyscallRange, SyscallTableFlag,
+    BridgeSyscallTable,
+    BridgeSyscallTableStats,
+    HotPatch,
+    SyscallCategory,
+    SyscallEntry as SyscallTableEntry,
+    SyscallRange,
+    SyscallTableFlag,
 };
 pub use sysctl_bridge::{
-    BridgeSysctl, SysctlBridgeStats, SysctlChangeEvent, SysctlNs, SysctlParam, SysctlPerm,
-    SysctlTable, SysctlValueType,
+    BridgeSysctl,
+    SysctlBridgeStats,
+    SysctlChangeEvent,
+    SysctlNs,
+    SysctlParam,
+    SysctlPerm,
+    SysctlTable,
+    SysctlValueType,
 };
 pub use sysfs_proxy::{
-    AttrType, BridgeSysfsProxy, KObject, SysfsAttr, SysfsProxyStats, SysfsSubsystem, Uevent,
-    UeventAction, UeventFilter,
+    AttrType,
+    BridgeSysfsProxy,
+    KObject,
+    SysfsAttr,
+    SysfsProxyStats,
+    SysfsSubsystem,
+    Uevent,
+    UeventAction,
+    UeventFilter,
 };
 pub use syslog_bridge::{
-    BridgeSyslog, SyslogBridgeStats, SyslogFacility, SyslogMessage, SyslogRingBuffer,
+    BridgeSyslog,
+    SyslogBridgeStats,
+    SyslogFacility,
+    SyslogMessage,
+    SyslogRingBuffer,
     SyslogSeverity,
 };
 pub use taskstats_bridge::{
-    BridgeTaskstats, TaskstatsBridgeStats, TaskstatsCmd, TaskstatsCpuAccounting, TaskstatsEntry,
-    TaskstatsIoAccounting, TaskstatsMemAccounting, TaskstatsVersion,
+    BridgeTaskstats,
+    TaskstatsBridgeStats,
+    TaskstatsCmd,
+    TaskstatsCpuAccounting,
+    TaskstatsEntry,
+    TaskstatsIoAccounting,
+    TaskstatsMemAccounting,
+    TaskstatsVersion,
 };
 pub use telemetry::{
-    BridgeTelemetryManager, MetricType, MetricValue, SpanStatus, TelemetryCounter, TelemetryGauge,
-    TelemetryHistogram, TelemetrySpan, TelemetryStats,
+    BridgeTelemetryManager,
+    MetricType,
+    MetricValue,
+    SpanStatus,
+    TelemetryCounter,
+    TelemetryGauge,
+    TelemetryHistogram,
+    TelemetrySpan,
+    TelemetryStats,
 };
 pub use throttle::{
-    ProcessThrottleConfig, SlidingWindow, SyscallThrottleConfig, ThrottleDecision, ThrottleEngine,
-    ThrottleReason, ThrottleStats, TokenBucket,
+    ProcessThrottleConfig,
+    SlidingWindow,
+    SyscallThrottleConfig,
+    ThrottleDecision,
+    ThrottleEngine,
+    ThrottleReason,
+    ThrottleStats,
+    TokenBucket,
 };
 pub use timer_bridge::{
-    BridgeTimerBridge, BridgeTimerBridgeStats, ClockSource as BridgeClockSource, CoalesceGroup,
-    TimerEntry, TimerState as BridgeTimerState, TimerType, WheelLevel,
+    BridgeTimerBridge,
+    BridgeTimerBridgeStats,
+    ClockSource as BridgeClockSource,
+    CoalesceGroup,
+    TimerEntry,
+    TimerState as BridgeTimerState,
+    TimerType,
+    WheelLevel,
 };
 pub use timerfd_bridge::{
-    BridgeTimerfd, TimerClockType, TimerSpec, TimerState as TfdTimerState, TimerfdBridgeStats,
-    TimerfdEvent, TimerfdFlags, TimerfdInstance, TimerfdOp,
+    BridgeTimerfd,
+    TimerClockType,
+    TimerSpec,
+    TimerState as TfdTimerState,
+    TimerfdBridgeStats,
+    TimerfdEvent,
+    TimerfdFlags,
+    TimerfdInstance,
+    TimerfdOp,
 };
 pub use tls_bridge::{
-    BridgeTls, TlsBridgeStats, TlsCipher, TlsConnection, TlsDirection, TlsVersion,
+    BridgeTls,
+    TlsBridgeStats,
+    TlsCipher,
+    TlsConnection,
+    TlsDirection,
+    TlsVersion,
 };
 pub use trace::{
-    BridgeTraceManager, BridgeTraceSession, LatencyHistogram as TraceLatencyHistogram,
-    SessionState as TraceSessionState, SyscallTraceSummary, TraceEvent, TraceEventType,
-    TraceFilter, TraceRingBuffer,
+    BridgeTraceManager,
+    BridgeTraceSession,
+    LatencyHistogram as TraceLatencyHistogram,
+    SessionState as TraceSessionState,
+    SyscallTraceSummary,
+    TraceEvent,
+    TraceEventType,
+    TraceFilter,
+    TraceRingBuffer,
 };
-pub use transform::{TransformEngine, TransformRule, TransformType, TransformedSyscall};
+pub use transform::{
+    TransformEngine,
+    TransformRule,
+    TransformType,
+    TransformedSyscall,
+};
 pub use tty_bridge::{
-    BridgeTtyBridge, LineDiscipline, PtyPair, TermiosAttrs, TtyBridgeStats, TtyDevice, TtyType,
+    BridgeTtyBridge,
+    LineDiscipline,
+    PtyPair,
+    TermiosAttrs,
+    TtyBridgeStats,
+    TtyDevice,
+    TtyType,
     WinSize,
 };
 pub use user_context::{
-    BridgeUserContext, BridgeUserContextStats, FpuState, GpRegs, RegisterSet, ThreadUserContext,
-    TlsDescriptor, UserStack,
+    BridgeUserContext,
+    BridgeUserContextStats,
+    FpuState,
+    GpRegs,
+    RegisterSet,
+    ThreadUserContext,
+    TlsDescriptor,
+    UserStack,
 };
 pub use userfault_bridge::{
-    BridgeUserfault, FaultType, RegisterMode, RegisteredRange, ResolveOp, ResolveRequest,
-    UffdEventType, UffdFeatures, UffdInstance, UffdMsg, UserfaultBridgeStats,
+    BridgeUserfault,
+    FaultType,
+    RegisterMode,
+    RegisteredRange,
+    ResolveOp,
+    ResolveRequest,
+    UffdEventType,
+    UffdFeatures,
+    UffdInstance,
+    UffdMsg,
+    UserfaultBridgeStats,
 };
 pub use userfaultfd_bridge::{
-    BridgeUserfaultfd, UffdBridgeStats, UffdEvent, UffdFaultType, UffdFeatures, UffdInstance,
-    UffdRange, UffdRegMode,
+    BridgeUserfaultfd,
+    UffdBridgeStats,
+    UffdEvent,
+    UffdFaultType,
+    UffdRange,
+    UffdRegMode,
 };
 pub use validate::{
-    ArgRule, ArgType, SyscallValidationSpec, ValidationContext, ValidationEngine, ValidationError,
-    ValidationFinding, ValidationReport, ValidationResult, ValidationStats,
+    ArgRule,
+    ArgType,
+    SyscallValidationSpec,
+    ValidationContext,
+    ValidationEngine,
+    ValidationError,
+    ValidationFinding,
+    ValidationReport,
+    ValidationResult,
+    ValidationStats,
 };
 pub use version::{
-    ApiVersion, BridgeVersionManager, CompatShim, FeatureInfo, FeatureStatus, ShimType,
-    SyscallDefinition, SyscallFeature, VersioningStats,
+    ApiVersion,
+    BridgeVersionManager,
+    CompatShim,
+    FeatureInfo,
+    FeatureStatus,
+    ShimType,
+    SyscallDefinition,
+    SyscallFeature,
+    VersioningStats,
 };
-pub use vfs_bridge::{BridgeVfs, BridgeVfsCall, BridgeVfsResult, VfsBridgeRecord, VfsBridgeStats};
+pub use vfs_bridge::{
+    BridgeVfs,
+    BridgeVfsCall,
+    BridgeVfsResult,
+    VfsBridgeRecord,
+    VfsBridgeStats,
+};
 pub use vfs_proxy::{
-    BridgeVfsProxy, BridgeVfsProxyStats, CacheResult, DentryCacheEntry, ProcessVfsProfile,
-    StatCacheEntry, VfsOp,
+    BridgeVfsProxy,
+    BridgeVfsProxyStats,
+    CacheResult,
+    DentryCacheEntry,
+    ProcessVfsProfile,
+    StatCacheEntry,
+    VfsOp,
 };
 pub use wait_queue::{
-    BridgeWaitQueueMgr, BridgeWaitQueueStats, WaitEntry, WaitQueue, WaitQueueType, WaitState,
+    BridgeWaitQueueMgr,
+    BridgeWaitQueueStats,
+    WaitEntry,
+    WaitQueue,
+    WaitQueueType,
+    WaitState,
 };
 pub use wq_proxy::{
-    BridgeWqProxy, WorkItem, WorkPriority as WqWorkPriority, WorkState as WqWorkState, Workqueue,
-    WqFlag, WqProxyStats,
+    BridgeWqProxy,
+    WorkItem,
+    WorkPriority as WqWorkPriority,
+    WorkState as WqWorkState,
+    Workqueue,
+    WqFlag,
+    WqProxyStats,
 };
 pub use xattr_bridge::{
-    BridgeXattrBridge, InodeXattrs, XattrBridgeStats, XattrEntry, XattrNamespace, XattrOp,
-    XattrOpRecord, XattrSetFlag,
+    BridgeXattrBridge,
+    InodeXattrs,
+    XattrBridgeStats,
+    XattrEntry,
+    XattrNamespace,
+    XattrOp,
+    XattrOpRecord,
+    XattrSetFlag,
 };
 pub use apparmor_bridge::{
-    AppArmorBridgeStats, AppArmorMode, AppArmorOp, AppArmorRecord, AppArmorResult,
+    AppArmorBridgeStats,
+    AppArmorMode,
+    AppArmorOp,
+    AppArmorRecord,
+    AppArmorResult,
     BridgeAppArmor,
 };
 pub use capability_bridge::{
-    BridgeCap as BridgeCapPosix, BridgeCapability, CapBridgeStats as CapBridgeStatsV3, CapOp,
-    CapRecord, CapResult,
+    BridgeCap as BridgeCapPosix,
+    BridgeCapability,
+    CapBridgeStats as CapBridgeStatsV3,
+    CapOp,
+    CapRecord,
+    CapResult,
 };
 pub use integrity_bridge::{
-    BridgeIntegrity, IntegrityBridgeStats, IntegrityOp, IntegrityRecord, IntegrityResult,
+    BridgeIntegrity,
+    IntegrityBridgeStats,
+    IntegrityOp,
+    IntegrityRecord,
+    IntegrityResult,
 };
 pub use lsm_bridge::{
-    BridgeLsm, LsmBridgeStats, LsmDecision, LsmHookCategory, LsmHookRecord,
+    BridgeLsm,
+    LsmBridgeStats,
+    LsmDecision,
+    LsmHookCategory,
+    LsmHookRecord,
 };
 pub use random_bridge::{
-    BridgeRandom, RandomBridgeStats, RandomOp, RandomRecord, RandomResult, RandomSource,
+    BridgeRandom,
+    RandomBridgeStats,
+    RandomOp,
+    RandomRecord,
+    RandomResult,
+    RandomSource,
 };
 pub use selinux_bridge::{
-    AvcEntry, BridgeSelinux, SelinuxBridgeStats, SelinuxOp, SelinuxRecord, SelinuxResult,
+    AvcEntry,
+    BridgeSelinux,
+    SelinuxBridgeStats,
+    SelinuxOp,
+    SelinuxRecord,
+    SelinuxResult,
 };
 pub use msgqueue_bridge::{
-    BridgeMsgqueue, MsgctlCmd, MsgqueueBridgeStats, MsgqueueOp, MsgqueueRecord, MsgqueueResult,
+    BridgeMsgqueue,
+    MsgctlCmd,
+    MsgqueueBridgeStats,
+    MsgqueueOp,
+    MsgqueueRecord,
+    MsgqueueResult,
 };
 pub use semaphore_bridge::{
-    BridgeSemaphore, SemaphoreBridgeStats, SemaphoreOp, SemaphoreRecord, SemaphoreResult,
+    BridgeSemaphore,
+    SemaphoreBridgeStats,
+    SemaphoreOp,
+    SemaphoreRecord,
+    SemaphoreResult,
     SemctlCmd,
 };
 pub use sigaction_bridge::{
-    BridgeSigaction, SigactionBridgeStats, SigactionFlag, SigactionHandler, SigactionOp,
+    BridgeSigaction,
+    SigactionBridgeStats,
+    SigactionFlag,
+    SigactionHandler,
+    SigactionOp,
     SigactionRecord,
 };
 pub use signal_bridge::{
-    BridgeSignal, BridgeSignalMgr, SignalBridgeRecord, SignalBridgeStats, SignalMethod,
+    BridgeSignal,
+    BridgeSignalMgr,
+    SignalBridgeRecord,
+    SignalBridgeStats,
+    SignalMethod,
     SignalResult,
 };
 pub use sigprocmask_bridge::{
-    BridgeSigprocmask, SigprocmaskBridgeStats, SigprocmaskHow, SigprocmaskRecord,
+    BridgeSigprocmask,
+    SigprocmaskBridgeStats,
+    SigprocmaskHow,
+    SigprocmaskRecord,
 };
-pub use sigqueue_bridge::{BridgeSigqueue, SigqueueBridgeStats, SigqueueRecord, SigqueueResult};
+pub use sigqueue_bridge::{
+    BridgeSigqueue,
+    SigqueueBridgeStats,
+    SigqueueRecord,
+    SigqueueResult,
+};
 
 // Round 27 re-exports — Networking/socket bridge
-pub use accept_bridge::{AcceptBridgeEvent, AcceptBridgeRecord, AcceptBridgeStats, BridgeAccept};
-pub use bind_bridge::{BindBridgeRecord, BindBridgeStats, BindFamily, BridgeBind};
-pub use listen_bridge::{BridgeListen, ListenBridgeEvent, ListenBridgeRecord, ListenBridgeStats};
-pub use tcp_bridge::{BridgeTcp, TcpBridgeRecord, TcpBridgeState, TcpBridgeStats};
-pub use udp_bridge::{BridgeUdp, UdpBridgeEvent, UdpBridgeRecord, UdpBridgeStats};
-pub use unix_bridge::{BridgeUnix, UnixBridgeEvent, UnixBridgeRecord, UnixBridgeStats};
+pub use accept_bridge::{
+    AcceptBridgeEvent,
+    AcceptBridgeRecord,
+    AcceptBridgeStats,
+    BridgeAccept,
+};
+pub use bind_bridge::{
+    BindBridgeRecord,
+    BindBridgeStats,
+    BindFamily,
+    BridgeBind,
+};
+pub use listen_bridge::{
+    BridgeListen,
+    ListenBridgeEvent,
+    ListenBridgeRecord,
+    ListenBridgeStats,
+};
+pub use tcp_bridge::{
+    BridgeTcp,
+    TcpBridgeRecord,
+    TcpBridgeState,
+    TcpBridgeStats,
+};
+pub use udp_bridge::{
+    BridgeUdp,
+    UdpBridgeEvent,
+    UdpBridgeRecord,
+    UdpBridgeStats,
+};
+pub use unix_bridge::{
+    BridgeUnix,
+    UnixBridgeEvent,
+    UnixBridgeRecord,
+    UnixBridgeStats,
+};
 
 // Round 28 re-exports — Filesystem/VFS bridge
-pub use fsync_bridge::{BridgeFsync, FsyncBridgeEvent, FsyncBridgeRecord, FsyncBridgeStats};
-pub use readdir_bridge::{BridgeReaddir, ReaddirBridgeEvent, ReaddirBridgeRecord, ReaddirBridgeStats};
-pub use statfs_bridge::{BridgeStatfs, StatfsBridgeEvent, StatfsBridgeRecord, StatfsBridgeStats};
-pub use truncate_bridge::{BridgeTruncate, TruncateBridgeEvent, TruncateBridgeRecord, TruncateBridgeStats};
+pub use fsync_bridge::{
+    BridgeFsync,
+    FsyncBridgeEvent,
+    FsyncBridgeRecord,
+    FsyncBridgeStats,
+};
+pub use readdir_bridge::{
+    BridgeReaddir,
+    ReaddirBridgeEvent,
+    ReaddirBridgeRecord,
+    ReaddirBridgeStats,
+};
+pub use statfs_bridge::{
+    BridgeStatfs,
+    StatfsBridgeEvent,
+    StatfsBridgeRecord,
+    StatfsBridgeStats,
+};
+pub use truncate_bridge::{
+    BridgeTruncate,
+    TruncateBridgeEvent,
+    TruncateBridgeRecord,
+    TruncateBridgeStats,
+};
 
 // Round 29 re-exports
-pub use affinity_bridge::{BridgeAffinityEntry, BridgeAffinityManager, BridgeAffinityScope, BridgeAffinityStats};
-pub use exec_bridge::{BridgeExecFormat, BridgeExecManager, BridgeExecResult, BridgeExecStats};
-pub use exit_bridge::{BridgeExitManager, BridgeExitReason, BridgeExitRecord, BridgeExitStats};
-pub use fork_bridge::{BridgeForkEntry, BridgeForkManager, BridgeForkStats, BridgeForkType};
-pub use priority_bridge::{BridgePriorityEntry, BridgePriorityManager, BridgePriorityPolicy, BridgePriorityStats};
-pub use pthread_bridge::{BridgePthreadEntry, BridgePthreadManager, BridgePthreadState, BridgePthreadStats};
-pub use tid_bridge::{BridgeTidEntry, BridgeTidManager, BridgeTidPolicy, BridgeTidStats};
-pub use wait_bridge::{BridgeExitStatus, BridgeWaitManager, BridgeWaitStats, BridgeWaitTarget};
+pub use affinity_bridge::{BridgeAffinityEntry, BridgeAffinityManager, BridgeAffinityScope};
+pub use exec_bridge::{
+    BridgeExecFormat,
+    BridgeExecManager,
+    BridgeExecResult,
+    BridgeExecStats,
+};
+pub use exit_bridge::{
+    BridgeExitManager,
+    BridgeExitReason,
+    BridgeExitRecord,
+    BridgeExitStats,
+};
+pub use fork_bridge::{
+    BridgeForkEntry,
+    BridgeForkManager,
+    BridgeForkStats,
+    BridgeForkType,
+};
+pub use priority_bridge::{BridgePriorityEntry, BridgePriorityManager, BridgePriorityPolicy};
+pub use pthread_bridge::{
+    BridgePthreadEntry,
+    BridgePthreadManager,
+    BridgePthreadState,
+    BridgePthreadStats,
+};
+pub use tid_bridge::{
+    BridgeTidEntry,
+    BridgeTidManager,
+    BridgeTidPolicy,
+    BridgeTidStats,
+};
+pub use wait_bridge::{
+    BridgeExitStatus,
+    BridgeWaitManager,
+    BridgeWaitStats,
+    BridgeWaitTarget,
+};
 
-pub use brk_bridge::{BridgeBrkManager, BridgeBrkOp, BridgeBrkState, BridgeBrkStats};
-pub use hugepage_bridge::{BridgeHugepageAlloc, BridgeHugepageManager, BridgeHugepageSize, BridgeHugepageStats};
-pub use madvise_bridge::{BridgeMadviseAdvice, BridgeMadviseManager, BridgeMadviseRecord, BridgeMadviseStats};
-pub use mlock_bridge::{BridgeMlockManager, BridgeMlockOp, BridgeMlockRegion, BridgeMlockStats};
-pub use mmap_bridge::{BridgeMmapFlag, BridgeMmapManager, BridgeMmapProt, BridgeMmapRegion, BridgeMmapStats};
-pub use mprotect_bridge::{BridgeMprotectManager, BridgeMprotectPerm, BridgeMprotectRecord, BridgeMprotectStats};
-pub use mremap_bridge::{BridgeMremapFlag, BridgeMremapManager, BridgeMremapRecord, BridgeMremapStats};
-pub use msync_bridge::{BridgeMsyncFlag, BridgeMsyncManager, BridgeMsyncRecord, BridgeMsyncStats};
+pub use brk_bridge::{
+    BridgeBrkManager,
+    BridgeBrkOp,
+    BridgeBrkState,
+    BridgeBrkStats,
+};
+pub use hugepage_bridge::{
+    BridgeHugepageAlloc,
+    BridgeHugepageManager,
+    BridgeHugepageSize,
+    BridgeHugepageStats,
+};
+pub use madvise_bridge::{
+    BridgeMadviseAdvice,
+    BridgeMadviseManager,
+    BridgeMadviseRecord,
+    BridgeMadviseStats,
+};
+pub use mlock_bridge::{
+    BridgeMlockManager,
+    BridgeMlockOp,
+    BridgeMlockRegion,
+    BridgeMlockStats,
+};
+pub use mmap_bridge::{
+    BridgeMmapFlag,
+    BridgeMmapManager,
+    BridgeMmapProt,
+    BridgeMmapRegion,
+    BridgeMmapStats,
+};
+pub use mprotect_bridge::{
+    BridgeMprotectManager,
+    BridgeMprotectPerm,
+    BridgeMprotectRecord,
+    BridgeMprotectStats,
+};
+pub use mremap_bridge::{
+    BridgeMremapFlag,
+    BridgeMremapManager,
+    BridgeMremapRecord,
+    BridgeMremapStats,
+};
+pub use msync_bridge::{
+    BridgeMsyncFlag,
+    BridgeMsyncManager,
+    BridgeMsyncRecord,
+    BridgeMsyncStats,
+};
 pub use munmap_bridge::{BridgeMunmapManager, BridgeMunmapResult, BridgeMunmapStats};
-pub use shmem_bridge::{BridgeShmemManager, BridgeShmemRegion, BridgeShmemStats, BridgeShmemType};
-pub use vma_bridge::{BridgeVmaEntry, BridgeVmaFlags, BridgeVmaManager, BridgeVmaStats, BridgeVmaType};
+pub use shmem_bridge::{
+    BridgeShmemManager,
+    BridgeShmemRegion,
+    BridgeShmemStats,
+    BridgeShmemType,
+};
+pub use vma_bridge::{
+    BridgeVmaEntry,
+    BridgeVmaFlags,
+    BridgeVmaManager,
+    BridgeVmaStats,
+    BridgeVmaType,
+};
 
 // ============================================================================
 // TESTS
