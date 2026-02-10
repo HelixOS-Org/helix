@@ -2,8 +2,6 @@
 //! Bridge blkdev — block device ioctl and registration bridge
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Blkdev bridge operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
