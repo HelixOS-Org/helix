@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -114,7 +113,7 @@ impl MemoryBuffer {
             let idx = self.rng_state as usize % self.samples.len();
 
             // Decrease count for removed task
-            if let Some(count) = self.task_counts.get_mut(&self.samples[idx].task_id) {
+            if let Some(count) = self.task_counts.get_mut(self.samples[idx].task_id) {
                 *count = count.saturating_sub(1);
             }
 
@@ -235,6 +234,7 @@ pub struct BufferStats {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_memory_sample() {
