@@ -230,7 +230,7 @@ impl AppEnvMgr {
     }
 
     fn record_event(&mut self, event: EnvChangeEvent) {
-        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        if self.events.len() >= self.max_events { self.events.remove(0); }
         self.events.push_back(event);
     }
 
