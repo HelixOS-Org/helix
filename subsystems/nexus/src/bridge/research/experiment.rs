@@ -15,6 +15,7 @@ use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -385,12 +386,14 @@ impl BridgeExperiment {
 
         // Collect all categories
         let mut all_cats: Vec<u32> = Vec::new();
-        for &k in ctrl_cats.keys() {
+        for k in ctrl_cats.keys() {
+            let k = k as u32;
             if !all_cats.contains(&k) {
                 all_cats.push(k);
             }
         }
-        for &k in treat_cats.keys() {
+        for k in treat_cats.keys() {
+            let k = k as u32;
             if !all_cats.contains(&k) {
                 all_cats.push(k);
             }
@@ -413,8 +416,8 @@ impl BridgeExperiment {
         let mut expected: Vec<f32> = Vec::new();
 
         for &cat in &all_cats {
-            let o_ctrl = *ctrl_cats.get(&cat).unwrap_or(&0) as f32;
-            let o_treat = *treat_cats.get(&cat).unwrap_or(&0) as f32;
+            let o_ctrl = ctrl_cats.get(&cat) as f32;
+            let o_treat = treat_cats.get(&cat) as f32;
             let row_total = o_ctrl + o_treat;
 
             let e_ctrl = row_total * ctrl_total as f32 / grand_total as f32;
