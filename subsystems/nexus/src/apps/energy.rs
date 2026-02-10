@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -270,7 +269,7 @@ impl AppEnergyAnalyzer {
         let history = self.samples.entry(pid).or_insert_with(Vec::new);
         history.push(sample);
         if history.len() > self.max_samples {
-            history.pop_front();
+            history.remove(0);
         }
 
         if !self.profiles.contains_key(&pid) {
@@ -285,7 +284,7 @@ impl AppEnergyAnalyzer {
         let events = self.wakeups.entry(pid).or_insert_with(Vec::new);
         events.push(event);
         if events.len() > self.max_wakeups {
-            events.pop_front();
+            events.remove(0);
         }
     }
 
