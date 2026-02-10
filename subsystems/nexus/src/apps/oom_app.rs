@@ -83,8 +83,8 @@ impl WatermarkLevel {
 pub struct OomAppStats {
     pub total_kills: u64,
     pub total_reclaimed_pages: u64,
-    pub false_positives: u64,  // kills that didn't help
-    pub cascade_kills: u64,    // second-round kills
+    pub false_positives: u64,  // kills that didn't help,
+    pub cascade_kills: u64,    // second-round kills,
     pub current_watermark: u64,
 }
 
