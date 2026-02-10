@@ -73,7 +73,7 @@ impl SharedUdpPort {
         let avg = self.total_datagrams as f64 / self.members.len() as f64;
         if avg == 0.0 { return 1.0; }
         let variance: f64 = self.distribution.values()
-            .map(|&c| { let d = c as f64 - avg; d * d })
+            .map(|c| { let d = c as f64 - avg; d * d })
             .sum::<f64>() / self.members.len() as f64;
         1.0 / (1.0 + libm::sqrt(variance) / avg)
     }
