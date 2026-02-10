@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // SNAPSHOT TYPES
@@ -334,7 +335,7 @@ pub struct CoopSnapshotManager {
 impl CoopSnapshotManager {
     pub fn new() -> Self {
         Self {
-            snapshots: LinearMap::new(),
+            snapshots: BTreeMap::new(),
             coordinated: BTreeMap::new(),
             next_snap_id: 1,
             next_coord_id: 1,
@@ -415,7 +416,7 @@ impl CoopSnapshotManager {
     /// Get snapshot
     #[inline(always)]
     pub fn snapshot(&self, id: u64) -> Option<&CoopSnapshot> {
-        self.snapshots.get(id)
+        self.snapshots.get(&id)
     }
 
     fn update_stats(&mut self) {
