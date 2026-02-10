@@ -304,745 +304,2052 @@ pub mod wait_app;
 
 // Re-exports from Round 22 apps modules
 pub use accept_app::{
-    AcceptAppStats, AcceptFlag, AcceptResult, AcceptVariant, AcceptedConnection, AppAccept,
+    AcceptAppStats,
+    AcceptFlag,
+    AcceptResult,
+    AcceptVariant,
+    AcceptedConnection,
+    AppAccept,
     ListenerAcceptState,
 };
 // Re-exports from Round 21 apps modules
 pub use access_app::{
-    AccessAppStats, AccessFlag, AccessMode, AccessRecord, AccessResult, AppAccess,
+    AccessAppStats,
+    AccessFlag,
+    AccessMode,
+    AccessRecord,
+    AccessResult,
+    AppAccess,
     ProcessAccessState,
 };
-pub use adapt::{AdaptationAction, AdaptationEngine, ResourceAdjustment, ResourceTarget};
+pub use adapt::{
+    AdaptationAction,
+    AdaptationEngine,
+    ResourceAdjustment,
+    ResourceTarget,
+};
 // Round 3 re-exports
 pub use affinity::{
-    AffinityMask, AffinityPolicy, AppAffinityManager, AppAffinityStats, CoreDescriptor, CoreType,
-    MigrationEvent as AffinityMigrationEvent, ProcessAffinityProfile,
+    AffinityMask,
+    AffinityPolicy,
+    AppAffinityManager,
+    AppAffinityStats,
+    CoreDescriptor,
+    CoreType,
+    MigrationEvent as AffinityMigrationEvent,
+    ProcessAffinityProfile,
 };
 // Re-exports from Round 15 apps modules
 pub use affinity_mgr::{
-    AffinityMgrStats, AffinityPolicy as CpuAffinityPolicy, AppAffinityMgr, CpuSet, ThreadAffinity,
+    AffinityMgrStats,
+    AffinityPolicy as CpuAffinityPolicy,
+    AppAffinityMgr,
+    CpuSet,
+    ThreadAffinity,
 };
 // Round 7 re-exports
 pub use alloc_profile::{
-    AllocBehavior, AllocRecord as AllocProfileRecord, AllocType as AllocProfileType,
-    AppAllocProfiler, AppAllocProfilerStats, CallsiteAllocStats, ProcessAllocProfile,
+    AllocBehavior,
+    AllocRecord as AllocProfileRecord,
+    AllocType as AllocProfileType,
+    AppAllocProfiler,
+    AppAllocProfilerStats,
+    CallsiteAllocStats,
+    ProcessAllocProfile,
 };
-pub use anomaly::{Anomaly, AnomalyManager, AnomalySeverity, AnomalyType, ProcessAnomalyDetector};
+pub use anomaly::{
+    Anomaly,
+    AnomalyManager,
+    AnomalySeverity,
+    AnomalyType,
+    ProcessAnomalyDetector,
+};
 // Re-exports from Round 13 apps modules
 pub use audit_log::{
-    AppAuditLog, AuditAction, AuditBufferStatus, AuditCategory as AuditLogCategory, AuditEntry,
-    AuditField, AuditLogStats, AuditRule, AuditSeverity as AuditLogSeverity,
+    AppAuditLog,
+    AuditAction,
+    AuditBufferStatus,
+    AuditCategory as AuditLogCategory,
+    AuditEntry,
+    AuditField,
+    AuditLogStats,
+    AuditRule,
+    AuditSeverity as AuditLogSeverity,
 };
 // Round 12 re-exports
 pub use audit_trail::{
-    AppAuditTrail, AuditCategory, AuditFilter, AuditRecord, AuditSeverity, AuditTrailStats,
-    FilterAction, ProcessAuditState,
+    AppAuditTrail,
+    AuditCategory,
+    AuditFilter,
+    AuditRecord,
+    AuditSeverity,
+    AuditTrailStats,
+    FilterAction,
+    ProcessAuditState,
 };
 // Round 5 re-exports
 pub use binary::{
-    AppBinaryAnalyzer, AppBinaryStats, BinaryProfile, ExecFormat, SectionInfo, SectionPerms,
-    SectionType, SymbolBinding, SymbolInfo, SymbolType,
+    AppBinaryAnalyzer,
+    AppBinaryStats,
+    BinaryProfile,
+    ExecFormat,
+    SectionInfo,
+    SectionPerms,
+    SectionType,
+    SymbolBinding,
+    SymbolInfo,
+    SymbolType,
 };
 pub use bind_app::{
-    AppBind, BindAddress, BindAppStats, BindFamily, BindRecord, BindResult, PortAllocation,
+    AppBind,
+    BindAddress,
+    BindAppStats,
+    BindFamily,
+    BindRecord,
+    BindResult,
+    PortAllocation,
 };
 pub use binfmt_mgr::{
-    AppBinfmtMgr, BinaryFormat, BinaryHeader, BinfmtMgrStats, BinfmtMiscEntry, ElfMachine,
-    ExecValidation, InterpreterInfo, ProgramSegment, SegmentType,
+    AppBinfmtMgr,
+    BinaryFormat,
+    BinaryHeader,
+    BinfmtMgrStats,
+    BinfmtMiscEntry,
+    ElfMachine,
+    ExecValidation,
+    InterpreterInfo,
+    ProgramSegment,
+    SegmentType,
 };
 // Re-exports from Round 19 apps modules
-pub use bpf_app::{AppBpf, BpfAppStats, BpfMap, BpfMapType, BpfProgType, BpfProgram};
+pub use bpf_app::{
+    AppBpf,
+    BpfAppStats,
+    BpfMap,
+    BpfMapType,
+    BpfProgType,
+    BpfProgram,
+};
 // Re-exports from Round 16 apps modules
-pub use brk_app::{AppBrk, BrkAppStats, BrkState, ProcessHeap};
-pub use brk_mgr::{AppBrkMgr, BrkChange, BrkMgrStats, BrkOp, HeapGrowth, ProcessBrkState};
+pub use brk_app::{
+    AppBrk,
+    BrkAppStats,
+    BrkState,
+    ProcessHeap,
+};
+pub use brk_mgr::{
+    AppBrkMgr,
+    BrkChange,
+    BrkMgrStats,
+    BrkOp,
+    HeapGrowth,
+    ProcessBrkState,
+};
 pub use cache::{
-    AppCacheAnalyzer, AppCacheStats, CacheAccessType, CacheLevel, CacheLevelCounters,
-    CachePartition, CachePartitionMode, PollutionDetector, PollutionEvent,
-    WorkingSetEstimate as CacheWorkingSetEstimate, WorkingSetTracker, WorkingSetTrend,
+    AppCacheAnalyzer,
+    AppCacheStats,
+    CacheAccessType,
+    CacheLevel,
+    CacheLevelCounters,
+    CachePartition,
+    CachePartitionMode,
+    PollutionDetector,
+    PollutionEvent,
+    WorkingSetEstimate as CacheWorkingSetEstimate,
+    WorkingSetTracker,
+    WorkingSetTrend,
 };
 // Round 8 re-exports
 pub use cache_profile::{
-    AppCacheProfiler, AppCacheProfilerStats, CacheEventType, CacheLevelStats, CacheLineSharing,
-    CacheProfileLevel, FalseSharingSeverity, ProcessCacheProfile,
+    AppCacheProfiler,
+    AppCacheProfilerStats,
+    CacheEventType,
+    CacheLevelStats,
+    CacheLineSharing,
+    CacheProfileLevel,
+    FalseSharingSeverity,
+    ProcessCacheProfile,
     WorkingSetEstimate as CacheProfileWorkingSet,
 };
 // Round 4 re-exports
 pub use capability::{
-    AppCapability, AppCapabilityManager, AppCapabilitySet, AppCapabilityStats, CapUsageRecord,
-    CapabilityCategory, ProcessCapProfile,
+    AppCapability,
+    AppCapabilityManager,
+    AppCapabilitySet,
+    AppCapabilityStats,
+    CapUsageRecord,
+    CapabilityCategory,
+    ProcessCapProfile,
 };
 pub use cgroup::{
-    AppCgroupAnalyzer, AppCgroupStats, CgroupController, CgroupMigration, CgroupNode,
-    CgroupPressure, CgroupVersion, CpuLimit, IoLimit, MemoryLimit, PidLimit,
+    AppCgroupAnalyzer,
+    AppCgroupStats,
+    CgroupController,
+    CgroupMigration,
+    CgroupNode,
+    CgroupPressure,
+    CgroupVersion,
+    CpuLimit,
+    IoLimit,
+    MemoryLimit,
+    PidLimit,
 };
 pub use cgroup_app::{
-    AppCgroup, CgroupAppStats, CgroupFreezeState, CgroupLimits, CgroupNode, CgroupSubsystem,
+    AppCgroup,
+    CgroupAppStats,
+    CgroupFreezeState,
+    CgroupLimits,
+    CgroupSubsystem,
 };
 // Round 10 re-exports
 pub use cgroup_ctrl::{
-    AppCgroup, AppCgroupEvent, AppCgroupStats, AppsCgroupCtrl, CgroupResource as AppCgroupResource,
+    AppCgroupEvent,
+    AppsCgroupCtrl,
+    CgroupResource as AppCgroupResource,
     EnforcementState,
 };
 // Round 6 re-exports
 pub use chdir_app::{
-    AppChdir, ChdirAppStats, ChdirRecord, ChdirResult, ChdirVariant, ProcessCwdState,
+    AppChdir,
+    ChdirAppStats,
+    ChdirRecord,
+    ChdirResult,
+    ChdirVariant,
+    ProcessCwdState,
 };
 // Re-exports from Round 20 apps modules
-pub use chmod_app::{AppChmod, ChmodAppStats, ChmodBits, ChmodRecord, ChmodResult};
-pub use chown_app::{AppChown, ChownAppStats, ChownRecord, ChownResult, ChownVariant};
+pub use chmod_app::{
+    AppChmod,
+    ChmodAppStats,
+    ChmodBits,
+    ChmodRecord,
+    ChmodResult,
+};
+pub use chown_app::{
+    AppChown,
+    ChownAppStats,
+    ChownRecord,
+    ChownResult,
+    ChownVariant,
+};
 // Re-exports from Round 17 apps modules
-pub use chroot_app::{AppChroot, ChrootAppStats, ChrootEntry, ChrootState};
+pub use chroot_app::{
+    AppChroot,
+    ChrootAppStats,
+    ChrootEntry,
+    ChrootState,
+};
 pub use classify::{
-    AppFingerprint, BehaviorSignature, ClassificationResult, Classifier, WorkloadCategory,
+    AppFingerprint,
+    BehaviorSignature,
+    ClassificationResult,
+    Classifier,
+    WorkloadCategory,
 };
 pub use clone_app::{
-    AppClone, CloneAppFlag, CloneAppStats, CloneResult, ProcessTreeNode as CloneProcessTreeNode,
+    AppClone,
+    CloneAppFlag,
+    CloneAppStats,
+    CloneResult,
+    ProcessTreeNode as CloneProcessTreeNode,
 };
 // Round 11 re-exports
 pub use clone_tracker::{
-    AppsCloneTracker, CloneEvent, CloneFlags, ClonePattern, CloneTrackerStats, CloneVariant,
+    AppsCloneTracker,
+    CloneEvent,
+    CloneFlags,
+    ClonePattern,
+    CloneTrackerStats,
+    CloneVariant,
     ProcessTreeNode,
 };
 pub use clone3_app::{
-    AppClone3, Clone3AppStats, Clone3Args, Clone3Event, Clone3Flags, Clone3Result,
+    AppClone3,
+    Clone3AppStats,
+    Clone3Args,
+    Clone3Event,
+    Clone3Flags,
+    Clone3Result,
 };
 // Round 28 re-exports
 pub use close_app::{AppCloseManager, AppCloseResult, AppCloseStats};
 pub use connect_app::{
-    AppConnect, ConnectAppStats, ConnectAttempt, ConnectRetryPolicy, ConnectState,
+    AppConnect,
+    ConnectAppStats,
+    ConnectAttempt,
+    ConnectRetryPolicy,
+    ConnectState,
     ConnectTargetStats,
 };
 // Round 2 re-exports
 pub use container::{
-    AppContainerAnalyzer, CgroupLimit, CgroupResource, CgroupState, ContainerProfile,
-    ContainerState, ContainerStats, CrossContainerComm, CrossContainerCommType, IsolationLevel,
-    NamespaceId, NamespaceSet, NamespaceType,
+    AppContainerAnalyzer,
+    CgroupLimit,
+    CgroupResource,
+    CgroupState,
+    ContainerProfile,
+    ContainerState,
+    ContainerStats,
+    CrossContainerComm,
+    CrossContainerCommType,
+    IsolationLevel,
+    NamespaceId,
+    NamespaceSet,
+    NamespaceType,
 };
 pub use container_rt::{
-    AppsContainerRuntime, Container, ContainerResources, ContainerRuntimeStats,
-    ContainerState as AppContainerState, HealthCheck, NetEndpoint, RestartPolicy,
+    AppsContainerRuntime,
+    Container,
+    ContainerResources,
+    ContainerRuntimeStats,
+    ContainerState as AppContainerState,
+    HealthCheck,
+    NetEndpoint,
+    RestartPolicy,
 };
 pub use coredump::{
-    AppsCoredump, CoredumpConfig, CoredumpFilter, CoredumpFormat, CoredumpRecord, CoredumpStats,
-    CrashSignal, ExeCrashHistory,
+    AppsCoredump,
+    CoredumpConfig,
+    CoredumpFilter,
+    CoredumpFormat,
+    CoredumpRecord,
+    CoredumpStats,
+    CrashSignal,
+    ExeCrashHistory,
 };
 pub use coredump_mgr::{
-    AppCoredumpMgr, CoreDumpEntry, CoreDumpState, CoreFilter, CoreFormat, CoreMemRegion,
-    CorePipeHandler, CoreSignal, CoredumpMgrStats, RegisterSnapshot,
+    AppCoredumpMgr,
+    CoreDumpEntry,
+    CoreDumpState,
+    CoreFilter,
+    CoreFormat,
+    CoreMemRegion,
+    CorePipeHandler,
+    CoreSignal,
+    CoredumpMgrStats,
+    RegisterSnapshot,
 };
 // Re-exports from Round 14 apps modules
 pub use cpu_freq_mgr::{
-    AppCpuFreqMgr, AppFreqProfile, CpuFreqMgrStats, EnergyPoint, FreqDomain, FreqGovernor,
+    AppCpuFreqMgr,
+    AppFreqProfile,
+    CpuFreqMgrStats,
+    EnergyPoint,
+    FreqDomain,
+    FreqGovernor,
     FreqTransition,
 };
 pub use cpu_migration::{
-    AppCpuMigrationTracker, AppCpuMigrationTrackerStats, CpuMigrationEvent, CpuMigrationKind,
-    CpuMigrationReason, ProcessCpuMigrationProfile, ThreadCpuMigrationHistory,
+    AppCpuMigrationTracker,
+    AppCpuMigrationTrackerStats,
+    CpuMigrationEvent,
+    CpuMigrationKind,
+    CpuMigrationReason,
+    ProcessCpuMigrationProfile,
+    ThreadCpuMigrationHistory,
 };
 pub use cpu_profiler::{
-    AppsCpuProfiler, CallStackSample, CpuProfilerStats, Hotspot, ProcessCpuProfile,
-    SampleType as CpuSampleType, StackFrame as CpuStackFrame, ThreadCpuProfile,
+    AppsCpuProfiler,
+    CallStackSample,
+    CpuProfilerStats,
+    Hotspot,
+    ProcessCpuProfile,
+    SampleType as CpuSampleType,
+    StackFrame as CpuStackFrame,
+    ThreadCpuProfile,
 };
 // Round 9 re-exports
 pub use cred_tracker::{
-    AppCredChangeType, AppCredState, AppsCredTracker, AppsCredTrackerStats, CapBitmask,
-    EscalationAlert, EscalationType, Securebits, SecurityLabel, SecurityLabelType,
+    AppCredChangeType,
+    AppCredState,
+    AppsCredTracker,
+    AppsCredTrackerStats,
+    CapBitmask,
+    EscalationAlert,
+    EscalationType,
+    Securebits,
+    SecurityLabel,
+    SecurityLabelType,
 };
 pub use credential::{
-    AppCredentialManager, AppCredentialStats, CredentialChange, CredentialEvent, CredentialSet,
-    GroupId, ProcessCredProfile, SecuritySession, SessionType, UserId,
+    AppCredentialManager,
+    AppCredentialStats,
+    CredentialChange,
+    CredentialEvent,
+    CredentialSet,
+    GroupId,
+    ProcessCredProfile,
+    SecuritySession,
+    SessionType,
+    UserId,
 };
 pub use ctx_switch::{
-    AppCtxSwitchProfiler, AppCtxSwitchStats, ProcessSwitchProfile, SwitchRecord,
+    AppCtxSwitchProfiler,
+    AppCtxSwitchStats,
+    ProcessSwitchProfile,
+    SwitchRecord,
     SwitchType as CtxSwitchType,
 };
 pub use dentry_cache::{
-    AppDentryCache, DcacheLru, Dentry, DentryCacheStats, DentryState, PathLookup,
+    AppDentryCache,
+    DcacheLru,
+    Dentry,
+    DentryCacheStats,
+    DentryState,
+    PathLookup,
 };
 pub use dependency::{
-    AppDepType, AppDependencyAnalyzer, AppDependencyStats, DepState, DepStrength, DependencyEdge,
+    AppDepType,
+    AppDependencyAnalyzer,
+    AppDependencyStats,
+    DepState,
+    DepStrength,
+    DependencyEdge,
     DependencyGraph,
 };
 pub use dup_app::{
-    AppDup, DupAppStats, DupFlag, DupRecord, DupResult, DupVariant, ProcessDupState,
+    AppDup,
+    DupAppStats,
+    DupFlag,
+    DupRecord,
+    DupResult,
+    DupVariant,
+    ProcessDupState,
 };
 pub use energy::{
-    AppEnergyAnalyzer, EnergyBudget, EnergyComponent, EnergyRating, EnergyRecType,
-    EnergyRecommendation, EnergySample, ProcessEnergyProfile, WakeupEvent, WakeupReason,
+    AppEnergyAnalyzer,
+    EnergyBudget,
+    EnergyComponent,
+    EnergyRating,
+    EnergyRecType,
+    EnergyRecommendation,
+    EnergySample,
+    ProcessEnergyProfile,
+    WakeupEvent,
+    WakeupReason,
     WakeupStats,
 };
 pub use energy_profile::{
-    AppEnergyProfiler, AppEnergyProfilerStats, CState, CStateResidency, EnergySample, PowerPhase,
-    ProcessEnergyProfile, RaplDomain,
+    AppEnergyProfiler,
+    AppEnergyProfilerStats,
+    CState,
+    CStateResidency,
+    PowerPhase,
+    RaplDomain,
 };
-pub use env_mgr::{AppEnvMgr, EnvChangeEvent, EnvMgrStats, EnvSource, EnvVar, ProcessEnvBlock};
+pub use env_mgr::{
+    AppEnvMgr,
+    EnvChangeEvent,
+    EnvMgrStats,
+    EnvSource,
+    EnvVar,
+    ProcessEnvBlock,
+};
 pub use environment::{
-    AppEnvironmentStats, AppEnvironmentTracker, EnvCategory, EnvDiff, EnvEntry,
-    EnvironmentSnapshot, NamespaceInfo, NamespaceSet as AppNamespaceSet, ProcessEnvironment,
+    AppEnvironmentStats,
+    AppEnvironmentTracker,
+    EnvCategory,
+    EnvDiff,
+    EnvEntry,
+    EnvironmentSnapshot,
+    NamespaceInfo,
+    NamespaceSet as AppNamespaceSet,
+    ProcessEnvironment,
 };
 // Re-exports from Round 18 apps modules
 pub use epoll_app::{
-    AppEpoll, EpollAppStats, EpollEntry as EpollAppEntry, EpollEventType,
+    AppEpoll,
+    EpollAppStats,
+    EpollEntry as EpollAppEntry,
+    EpollEventType,
     EpollInstance as EpollAppInstance,
 };
 pub use epoll_mgr::{
-    AppsEpollMgr, EpollEventMask, EpollInstance, EpollMgrStats, EpollRegisteredFd,
-    EpollTriggerMode, ThunderingHerdDetector,
+    AppsEpollMgr,
+    EpollEventMask,
+    EpollInstance,
+    EpollMgrStats,
+    EpollRegisteredFd,
+    EpollTriggerMode,
+    ThunderingHerdDetector,
 };
-pub use eventfd_app::{AppEventfd, EventfdAppStats, EventfdFlags, EventfdInstance};
+pub use eventfd_app::{
+    AppEventfd,
+    EventfdAppStats,
+    EventfdFlags,
+    EventfdInstance,
+};
 pub use eventpoll_mgr::{
-    AppEventPollMgr, EpollEvents as EpollV2Events, EpollInstance as EpollV2Instance, EpollItem,
-    EpollOp, EpollWaitResult, EventPollMgrStats,
+    AppEventPollMgr,
+    EpollEvents as EpollV2Events,
+    EpollInstance as EpollV2Instance,
+    EpollItem,
+    EpollOp,
+    EpollWaitResult,
+    EventPollMgrStats,
 };
 pub use exe_profile::{
-    AppExeProfiler, AppExeProfilerStats, ExeArchitecture, ExecutableFormat, ExecutableProfile,
-    LibraryDep, SectionInfo as ExeSectionInfo, SectionType as ExeSectionType,
+    AppExeProfiler,
+    AppExeProfilerStats,
+    ExeArchitecture,
+    ExecutableFormat,
+    ExecutableProfile,
+    LibraryDep,
+    SectionInfo as ExeSectionInfo,
+    SectionType as ExeSectionType,
 };
-pub use exec_app::{AppExec, BinfmtHandler, ExecAppStats, ExecRequest, ExecType};
+pub use exec_app::{
+    AppExec,
+    BinfmtHandler,
+    ExecAppStats,
+    ExecRequest,
+    ExecType,
+};
 pub use exec_loader::{
-    AppsExecLoader, AppsExecLoaderStats, AslrLayout, ElfArch, ElfMetadata, ElfType, LibDependency,
-    ProcessExecState, SharedLib, SymbolBind, SymbolResolution,
+    AppsExecLoader,
+    AppsExecLoaderStats,
+    AslrLayout,
+    ElfArch,
+    ElfMetadata,
+    ElfType,
+    LibDependency,
+    ProcessExecState,
+    SharedLib,
+    SymbolBind,
+    SymbolResolution,
 };
 pub use exec_shield::{
-    AppExecShield, AslrLayout, CanaryCheck, ExecShieldStats, MitigationFlags, ProcessShieldState,
-    ViolationRecord, ViolationType,
+    AppExecShield,
+    CanaryCheck,
+    ExecShieldStats,
+    MitigationFlags,
+    ProcessShieldState,
+    ViolationRecord,
+    ViolationType,
 };
 pub use execve_app::{
-    AppExecve, ExecEntry, ExecResult, ExecType as ExecveExecType, ExecveAppStats,
+    AppExecve,
+    ExecEntry,
+    ExecResult,
+    ExecType as ExecveExecType,
+    ExecveAppStats,
     ProcessExecTracker,
 };
 // Re-exports from Round 29 — Process/thread
-pub use exit_app::{AppExitManager, AppExitReason, AppExitRecord, AppExitStats};
-pub use fadvise_app::{
-    AppFadvise, FadviseAdvice, FadviseAppStats, FadviseRegion, FileAccessTracker,
+pub use exit_app::{
+    AppExitManager,
+    AppExitReason,
+    AppExitRecord,
+    AppExitStats,
 };
-pub use fallocate_app::{AppFallocate, FallocateAppStats, FallocateMode, FallocateOp};
+pub use fadvise_app::{
+    AppFadvise,
+    FadviseAdvice,
+    FadviseAppStats,
+    FadviseRegion,
+    FileAccessTracker,
+};
+pub use fallocate_app::{
+    AppFallocate,
+    FallocateAppStats,
+    FallocateMode,
+    FallocateOp,
+};
 pub use fault::{
-    AppFaultAnalyzer, AppFaultStats, FaultEvent, FaultPattern, FaultSeverity, FaultType,
+    AppFaultAnalyzer,
+    AppFaultStats,
+    FaultEvent,
+    FaultPattern,
+    FaultSeverity,
+    FaultType,
     ProcessFaultProfile,
 };
-pub use fcntl_app::{AppFcntl, FcntlAppStats, FcntlCmd, FcntlOp, FdFlagsTracker, FileSeal};
+pub use fcntl_app::{
+    AppFcntl,
+    FcntlAppStats,
+    FcntlCmd,
+    FcntlOp,
+    FdFlagsTracker,
+    FileSeal,
+};
 pub use fd_mgr::{
-    AppsFdMgr, AppsFdMgrStats, FdEntry, FdFlags, FdLeakHeuristic, FdType, FileDescription,
+    AppsFdMgr,
+    AppsFdMgrStats,
+    FdEntry,
+    FdFlags,
+    FdLeakHeuristic,
+    FdType,
+    FileDescription,
     ProcessFdTable,
 };
 pub use fd_profile::{
-    AppFdProfiler, AppFdProfilerStats, FdIoPattern, FdStats, FdTypeApps, FdTypeDistribution,
+    AppFdProfiler,
+    AppFdProfilerStats,
+    FdIoPattern,
+    FdStats,
+    FdTypeApps,
+    FdTypeDistribution,
     ProcessFdProfile,
 };
 pub use fd_table::{
-    AppFdTable, FdEntry as FdTableEntry, FdFlags as FdTableFlags, FdTableStats,
-    FdType as FdTableType, ProcessFdTable,
+    AppFdTable,
+    FdEntry as FdTableEntry,
+    FdFlags as FdTableFlags,
+    FdTableStats,
+    FdType as FdTableType,
 };
-pub use fd_tracker::{AppFdStats, AppFdTracker, FdEntry, FdFlags, FdTable, FdType};
+pub use fd_tracker::{AppFdStats, AppFdTracker, FdTable};
 pub use flame::{
-    AppFlameProfiler, AppFlameProfilerStats, FlameNode, HotPath, StackFrame, StackSample,
+    AppFlameProfiler,
+    AppFlameProfilerStats,
+    FlameNode,
+    HotPath,
+    StackFrame,
+    StackSample,
 };
-pub use fork_app::{AppForkManager, AppForkMode, AppForkResult, AppForkStats};
-pub use fstat_app::{AppFstat, FstatAppStats, FstatCacheEntry, FstatRecord, FstatResult};
+pub use fork_app::{
+    AppForkManager,
+    AppForkMode,
+    AppForkResult,
+    AppForkStats,
+};
+pub use fstat_app::{
+    AppFstat,
+    FstatAppStats,
+    FstatCacheEntry,
+    FstatRecord,
+    FstatResult,
+};
 pub use fsync_app::{
-    AppFsyncManager, AppSyncCompletion, AppSyncRequest, AppSyncStats, AppSyncType,
+    AppFsyncManager,
+    AppSyncCompletion,
+    AppSyncRequest,
+    AppSyncStats,
+    AppSyncType,
 };
 pub use futex::{
-    AppFutexAnalyzer, AppFutexStats, LockDescriptor, LockState, PriorityInversion,
-    ProcessSyncProfile, SyncPrimitiveType, WaitChain, WaitChainEntry,
+    AppFutexAnalyzer,
+    AppFutexStats,
+    LockDescriptor,
+    LockState,
+    PriorityInversion,
+    ProcessSyncProfile,
+    SyncPrimitiveType,
+    WaitChain,
+    WaitChainEntry,
 };
 pub use futex_mgr::{
-    AppsFutexMgr, AppsFutexMgrStats, FutexOp, FutexQueue, FutexWaiter, FutexWaiterState,
+    AppsFutexMgr,
+    AppsFutexMgrStats,
+    FutexOp,
+    FutexQueue,
+    FutexWaiter,
+    FutexWaiterState,
     RobustEntry,
 };
 pub use futex_profile::{
-    AppFutexProfiler, AppFutexProfilerStats, FutexAddrStats, FutexContentionLevel, FutexOpType,
-    ProcessFutexProfile, WaiterChainLink,
+    AppFutexProfiler,
+    AppFutexProfilerStats,
+    FutexAddrStats,
+    FutexContentionLevel,
+    FutexOpType,
+    ProcessFutexProfile,
+    WaiterChainLink,
 };
-pub use getdents_app::{AppGetdents, DentEntry, DentType, DirReadSession, GetdentsAppStats};
+pub use getdents_app::{
+    AppGetdents,
+    DentEntry,
+    DentType,
+    DirReadSession,
+    GetdentsAppStats,
+};
 // Re-exports from Round 25 — Security/credentials apps
-pub use getgid_app::{AppGetgid, GetgidAppStats, GetgidRecord, GetgidResult, GetgidVariant};
-pub use getpid_app::{AppGetpidManager, AppGetpidStats, AppIdQuery, AppProcessIdentity};
-pub use getsockopt_app::{
-    AppGetsockopt, GetsockoptAppStats, SockoptLevel, SockoptName, SockoptQuery, SockoptValue,
+pub use getgid_app::{
+    AppGetgid,
+    GetgidAppStats,
+    GetgidRecord,
+    GetgidResult,
+    GetgidVariant,
 };
-pub use getuid_app::{AppGetuid, GetuidAppStats, GetuidRecord, GetuidResult, GetuidVariant};
+pub use getpid_app::{
+    AppGetpidManager,
+    AppGetpidStats,
+    AppIdQuery,
+    AppProcessIdentity,
+};
+pub use getsockopt_app::{
+    AppGetsockopt,
+    GetsockoptAppStats,
+    SockoptLevel,
+    SockoptName,
+    SockoptQuery,
+    SockoptValue,
+};
+pub use getuid_app::{
+    AppGetuid,
+    GetuidAppStats,
+    GetuidRecord,
+    GetuidResult,
+    GetuidVariant,
+};
 pub use gpu::{
-    AppGpuAnalyzer, AppGpuStats, GpuAllocType, GpuAllocation, GpuDevice, GpuDeviceType, GpuEngine,
+    AppGpuAnalyzer,
+    AppGpuStats,
+    GpuAllocType,
+    GpuAllocation,
+    GpuDevice,
+    GpuDeviceType,
+    GpuEngine,
     ProcessGpuProfile,
 };
-pub use groups_app::{AppGroups, GroupsAppStats, GroupsOp, GroupsRecord, GroupsResult};
+pub use groups_app::{
+    AppGroups,
+    GroupsAppStats,
+    GroupsOp,
+    GroupsRecord,
+    GroupsResult,
+};
 pub use heap::{
-    AllocEventType, AllocHistogram, AllocRecord, AllocSizeClass, AppHeapAnalyzer, AppHeapStats,
-    CallsiteProfile, FragmentationInfo, PotentialLeak, ProcessHeapProfile,
+    AllocEventType,
+    AllocHistogram,
+    AllocRecord,
+    AllocSizeClass,
+    AppHeapAnalyzer,
+    AppHeapStats,
+    CallsiteProfile,
+    FragmentationInfo,
+    PotentialLeak,
+    ProcessHeapProfile,
 };
 pub use history::{
-    BinaryHistory, TimeSeries, WorkloadFingerprint, WorkloadHistory, WorkloadHistoryManager,
+    BinaryHistory,
+    TimeSeries,
+    WorkloadFingerprint,
+    WorkloadHistory,
+    WorkloadHistoryManager,
 };
 pub use inotify_app::{
-    AppInotify, InotifyAppEvent, InotifyAppInstance, InotifyAppMask, InotifyAppStats,
+    AppInotify,
+    InotifyAppEvent,
+    InotifyAppInstance,
+    InotifyAppMask,
+    InotifyAppStats,
     InotifyWatch as InotifyAppWatch,
 };
 pub use inotify_mgr::{
-    AppInotifyMgr, InotifyEvent, InotifyInstance, InotifyMask, InotifyMgrStats, InotifyWatch,
+    AppInotifyMgr,
+    InotifyEvent,
+    InotifyInstance,
+    InotifyMask,
+    InotifyMgrStats,
+    InotifyWatch,
 };
 pub use interrupt::{
-    AppInterruptProfiler, AppInterruptStats, IrqCategory, IrqStats, ProcessIrqImpact, SoftirqStats,
-    SoftirqType, StormDetector, StormSeverity,
+    AppInterruptProfiler,
+    AppInterruptStats,
+    IrqCategory,
+    IrqStats,
+    ProcessIrqImpact,
+    SoftirqStats,
+    SoftirqType,
+    StormDetector,
+    StormSeverity,
 };
-pub use io::{BandwidthEstimator, IoAnalyzer, IoPattern, IoSchedulingHint, ProcessIoAnalyzer};
+pub use io::{
+    BandwidthEstimator,
+    IoAnalyzer,
+    IoPattern,
+    IoSchedulingHint,
+    ProcessIoAnalyzer,
+};
 pub use io_pattern::{
-    AppIoPatternAnalyzer, AppIoPatternStats, FileIoPattern, IoAccessRecord,
-    IoOpType as IoPatternOpType, IoPatternType, IoSizeBucket,
+    AppIoPatternAnalyzer,
+    AppIoPatternStats,
+    FileIoPattern,
+    IoAccessRecord,
+    IoOpType as IoPatternOpType,
+    IoPatternType,
+    IoSizeBucket,
 };
 pub use io_profiler::{
-    AppsIoProfiler, IoDirection as IoProfileDirection, IoPattern as IoProfilePattern, IoPrioClass,
-    IoProfilerStats, IoRecord, LatencyTracker, ProcessIoProfile, SizeBucket as IoSizeBucket,
+    AppsIoProfiler,
+    IoDirection as IoProfileDirection,
+    IoPattern as IoProfilePattern,
+    IoPrioClass,
+    IoProfilerStats,
+    IoRecord,
+    LatencyTracker,
+    ProcessIoProfile,
 };
 pub use io_sched::{
-    AppIoBandwidth, AppIoClass, AppIoRequest as AppsIoRequest, AppsIoSchedBridge, AppsIoSchedStats,
-    IoDirection, ReadAheadConfig,
+    AppIoBandwidth,
+    AppIoClass,
+    AppIoRequest as AppsIoRequest,
+    AppsIoSchedBridge,
+    AppsIoSchedStats,
+    IoDirection,
+    ReadAheadConfig,
 };
 pub use io_submit_app::{
-    AioContext, AppIoSubmit, IoCb, IoSubmitAppStats, IoSubmitOp, IoSubmitState,
+    AioContext,
+    AppIoSubmit,
+    IoCb,
+    IoSubmitAppStats,
+    IoSubmitOp,
+    IoSubmitState,
 };
 pub use io_uring_app::{
-    AppIoUring, Cqe, IoUringAppStats, IoUringInstance, IoUringOp, Sqe, SqeFlags,
+    AppIoUring,
+    Cqe,
+    IoUringAppStats,
+    IoUringInstance,
+    IoUringOp,
+    Sqe,
+    SqeFlags,
 };
-pub use ioctl_app::{AppIoctl, IoctlAppStats, IoctlCmd, IoctlDir, IoctlEvent, IoctlTracker};
-pub use iovec_mgr::{AppIoVecMgr, IoVec, IoVecArray, IoVecMgrStats, IoVecOp, IoVecOpType};
+pub use ioctl_app::{
+    AppIoctl,
+    IoctlAppStats,
+    IoctlCmd,
+    IoctlDir,
+    IoctlEvent,
+    IoctlTracker,
+};
+pub use iovec_mgr::{
+    AppIoVecMgr,
+    IoVec,
+    IoVecArray,
+    IoVecMgrStats,
+    IoVecOp,
+    IoVecOpType,
+};
 pub use ipc::{
-    AppIpcAnalyzer, AppIpcChannel, AppIpcMechanism, AppIpcStats, IpcChannelId, IpcDirection,
-    IpcEdge, IpcGraph,
+    AppIpcAnalyzer,
+    AppIpcChannel,
+    AppIpcMechanism,
+    AppIpcStats,
+    IpcChannelId,
+    IpcDirection,
+    IpcEdge,
+    IpcGraph,
 };
 pub use ipc_profile::{
-    AppIpcProfiler, AppIpcProfilerStats, IpcChannelProfile, IpcDirection, IpcGraphEdge,
-    IpcMechanismApps, ProcessIpcProfile,
+    AppIpcProfiler,
+    AppIpcProfilerStats,
+    IpcChannelProfile,
+    IpcGraphEdge,
+    IpcMechanismApps,
+    ProcessIpcProfile,
 };
 pub use ipc_tracker::{
-    AppsIpcTracker, IpcChannel, IpcEndpointState, IpcTrackerStats, IpcType as AppIpcType,
-    ProcessIpcSummary, ShmSegment,
+    AppsIpcTracker,
+    IpcChannel,
+    IpcEndpointState,
+    IpcTrackerStats,
+    IpcType as AppIpcType,
+    ProcessIpcSummary,
+    ShmSegment,
 };
 pub use kallsyms::{
-    AppKallsyms, KallsymsStats, KernelSymbol, SymbolBinding as KallsymBinding, SymbolLookup,
-    SymbolSection, SymbolType as KallsymType,
+    AppKallsyms,
+    KallsymsStats,
+    KernelSymbol,
+    SymbolBinding as KallsymBinding,
+    SymbolLookup,
+    SymbolSection,
+    SymbolType as KallsymType,
 };
 pub use kcmp_app::{
-    AppKcmp, KcmpAppStats, KcmpComparison, KcmpResult, KcmpType, ProcessKcmpTracker,
+    AppKcmp,
+    KcmpAppStats,
+    KcmpComparison,
+    KcmpResult,
+    KcmpType,
+    ProcessKcmpTracker,
 };
-pub use kcov_app::{AppKcov, CmpEntry, CoverageHit, KcovAppStats, KcovInstance, KcovMode};
+pub use kcov_app::{
+    AppKcov,
+    CmpEntry,
+    CoverageHit,
+    KcovAppStats,
+    KcovInstance,
+    KcovMode,
+};
 // Re-exports from Round 26 — IPC/signals apps
-pub use kill_app::{AppKill, KillAppStats, KillRecord, KillResult, KillVariant};
+pub use kill_app::{
+    AppKill,
+    KillAppStats,
+    KillRecord,
+    KillResult,
+    KillVariant,
+};
 pub use kmod_mgr::{
-    AppKmodMgr, AppKmodUsage, KmodDep, KmodInfo, KmodMgrStats, KmodRefcount, KmodState, KmodType,
+    AppKmodMgr,
+    AppKmodUsage,
+    KmodDep,
+    KmodInfo,
+    KmodMgrStats,
+    KmodRefcount,
+    KmodState,
+    KmodType,
 };
 pub use kthread_mgr::{
-    AppKthreadMgr, KthreadFlags, KthreadInfo, KthreadMgrStats, KthreadState, KthreadType,
+    AppKthreadMgr,
+    KthreadFlags,
+    KthreadInfo,
+    KthreadMgrStats,
+    KthreadState,
+    KthreadType,
 };
 pub use leak_detect::{
-    AllocPattern, AllocType, AllocationRecord, AppLeakDetector, AppLeakDetectorStats,
-    CallsiteStats as LeakCallsiteStats, LeakReport, LeakSeverity, ProcessLeakDetector,
+    AllocPattern,
+    AllocType,
+    AllocationRecord,
+    AppLeakDetector,
+    AppLeakDetectorStats,
+    CallsiteStats as LeakCallsiteStats,
+    LeakReport,
+    LeakSeverity,
+    ProcessLeakDetector,
 };
-pub use lifecycle::{LifecycleEvent, LifecycleManager, LifecyclePhase, ProcessLifecycle};
+pub use lifecycle::{
+    LifecycleEvent,
+    LifecycleManager,
+    LifecyclePhase,
+    ProcessLifecycle,
+};
 pub use link_app::{
-    AppLink, LinkAppStats, LinkRecord, LinkResult, LinkType, UnlinkRecord, UnlinkResult,
+    AppLink,
+    LinkAppStats,
+    LinkRecord,
+    LinkResult,
+    LinkType,
+    UnlinkRecord,
+    UnlinkResult,
 };
-pub use listen_app::{AppListen, ListenAppStats, ListenBacklog, ListenState, ListenSynState};
+pub use listen_app::{
+    AppListen,
+    ListenAppStats,
+    ListenBacklog,
+    ListenState,
+    ListenSynState,
+};
 pub use lock::{
-    AppLockAnalyzer, AppLockStats, DeadlockDetector, LockEventType, LockInstance, LockOrderPair,
-    LockOrderValidator, LockType, WaitForEdge,
+    AppLockAnalyzer,
+    AppLockStats,
+    DeadlockDetector,
+    LockEventType,
+    LockInstance,
+    LockOrderPair,
+    LockOrderValidator,
+    LockType,
+    WaitForEdge,
 };
 pub use lock_profile::{
-    AppLockProfiler, AppLockProfilerStats, ContentionSeverity, LockConvoy, LockOrderEdge,
-    LockProfile, LockType, PriorityInversion, ProcessLockProfile,
+    AppLockProfiler,
+    AppLockProfilerStats,
+    ContentionSeverity,
+    LockConvoy,
+    LockOrderEdge,
+    LockProfile,
+    ProcessLockProfile,
 };
-pub use lseek_app::{AppFilePosition, AppLseekManager, AppSeekStats, AppSeekWhence};
-pub use lstat_app::{AppLstat, LstatAppStats, LstatFileType, LstatRecord, LstatResult};
+pub use lseek_app::{
+    AppFilePosition,
+    AppLseekManager,
+    AppSeekStats,
+    AppSeekWhence,
+};
+pub use lstat_app::{
+    AppLstat,
+    LstatAppStats,
+    LstatFileType,
+    LstatRecord,
+    LstatResult,
+};
 pub use madvise_app::{
-    AppMadvise, MadviseAdvice as MadviseAppAdvice, MadviseAppStats,
-    MadviseRegion as MadviseAppRegion, ProcessMadvise as ProcessMadviseApp,
+    AppMadvise,
+    MadviseAdvice as MadviseAppAdvice,
+    MadviseAppStats,
+    MadviseRegion as MadviseAppRegion,
+    ProcessMadvise as ProcessMadviseApp,
 };
 pub use madvise_mgr::{
-    AppMadviseMgr, MadviseAdvice, MadviseEvent, MadviseMgrStats, MadviseRegion, MadviseResult,
-    ProcessMadviseRequest, ProcessMadviseState,
+    AppMadviseMgr,
+    MadviseAdvice,
+    MadviseEvent,
+    MadviseMgrStats,
+    MadviseRegion,
+    MadviseResult,
+    ProcessMadviseRequest,
+    ProcessMadviseState,
 };
 pub use mem_advisor::{
-    AppsMemAdvisor, MemAdvice, MemAdvisorStats, MemAdvisory, MemPattern, MemRegionStats, NumaPref,
+    AppsMemAdvisor,
+    MemAdvice,
+    MemAdvisorStats,
+    MemAdvisory,
+    MemPattern,
+    MemRegionStats,
+    NumaPref,
     ProcessMemProfile,
 };
 pub use membarrier_app::{
-    AppMembarrier, BarrierEvent, MembarrierAppStats, MembarrierCmd, MembarrierReg,
+    AppMembarrier,
+    BarrierEvent,
+    MembarrierAppStats,
+    MembarrierCmd,
+    MembarrierReg,
 };
-pub use memfd_app::{AppMemfd, MemfdAppStats, MemfdFlag, MemfdInstance, MemfdSeal};
-pub use memory::{AccessPattern, AllocationAnalyzer, MemoryAnalyzer, WorkingSetEstimator};
+pub use memfd_app::{
+    AppMemfd,
+    MemfdAppStats,
+    MemfdFlag,
+    MemfdInstance,
+    MemfdSeal,
+};
+pub use memory::{
+    AccessPattern,
+    AllocationAnalyzer,
+    MemoryAnalyzer,
+    WorkingSetEstimator,
+};
 pub use migration::{
-    AppMigrationAnalyzer, CacheAffinity, MigrationDecision, MigrationEvent, MigrationPolicy,
-    MigrationReason, MigrationStats, MigrationTarget, PlacementCandidate, PlacementDecision,
+    AppMigrationAnalyzer,
+    CacheAffinity,
+    MigrationDecision,
+    MigrationEvent,
+    MigrationPolicy,
+    MigrationReason,
+    MigrationStats,
+    MigrationTarget,
+    PlacementCandidate,
+    PlacementDecision,
     ProcessMigrationProfile,
 };
 pub use mincore_app::{
-    AppMincore, MincoreAppStats, MincoreQuery, PageResidency, ProcessResidencyInfo,
+    AppMincore,
+    MincoreAppStats,
+    MincoreQuery,
+    PageResidency,
+    ProcessResidencyInfo,
 };
-pub use mkdir_app::{AppMkdir, MkdirAppStats, MkdirRecord, MkdirResult};
+pub use mkdir_app::{
+    AppMkdir,
+    MkdirAppStats,
+    MkdirRecord,
+    MkdirResult,
+};
 pub use mlock_app::{
-    AppMlock, LockedRegion as MlockAppRegion, MlockAppStats, MlockFlags as MlockAppFlags,
+    AppMlock,
+    LockedRegion as MlockAppRegion,
+    MlockAppStats,
+    MlockFlags as MlockAppFlags,
     ProcessMlockState,
 };
 pub use mlock_mgr::{
-    AppsMlockMgr, LockedRegion, MlockFlags, MlockMgrStats, MlockType, ProcessMlockState,
+    AppsMlockMgr,
+    LockedRegion,
+    MlockFlags,
+    MlockMgrStats,
+    MlockType,
 };
 pub use mmap_tracker::{
-    AppMmapStats, AppMmapTracker, MmapFlags, MmapProtection, MmapRegion, MmapType,
-    ProcessAddressSpace, VasStats,
+    AppMmapStats,
+    AppMmapTracker,
+    MmapFlags,
+    MmapProtection,
+    MmapRegion,
+    MmapType,
+    ProcessAddressSpace,
+    VasStats,
 };
-pub use mount_app::{AppMount, MountAppFlag, MountAppStats, MountEntry as MountAppEntry};
+pub use mount_app::{
+    AppMount,
+    MountAppFlag,
+    MountAppStats,
+    MountEntry as MountAppEntry,
+};
 pub use mount_mgr::{
-    AppMountMgr, AppMountState, MountEntry, MountFlags, MountMgrStats, MountNamespace, MountType,
+    AppMountMgr,
+    AppMountState,
+    MountEntry,
+    MountFlags,
+    MountMgrStats,
+    MountNamespace,
+    MountType,
     PropagationType,
 };
-pub use mq_open_app::{AppMqOpen, MqOpenAppStats, MqOpenFlag, MqOpenRecord, MqOpenResult};
-pub use mremap_app::{AppMremap, MremapAppStats, MremapFlags, ProcessRemapInfo, RemapOp};
-pub use msgget_app::{AppMsgget, MsggetAppStats, MsggetRecord, MsggetResult};
-pub use msync_app::{AppMsync, MappingSyncTracker, MsyncAppStats, MsyncFlag, MsyncOp};
+pub use mq_open_app::{
+    AppMqOpen,
+    MqOpenAppStats,
+    MqOpenFlag,
+    MqOpenRecord,
+    MqOpenResult,
+};
+pub use mremap_app::{
+    AppMremap,
+    MremapAppStats,
+    MremapFlags,
+    ProcessRemapInfo,
+    RemapOp,
+};
+pub use msgget_app::{
+    AppMsgget,
+    MsggetAppStats,
+    MsggetRecord,
+    MsggetResult,
+};
+pub use msync_app::{
+    AppMsync,
+    MappingSyncTracker,
+    MsyncAppStats,
+    MsyncFlag,
+    MsyncOp,
+};
 pub use net_filter::{
-    AppsNetFilter, ConnState as NetFilterConnState, ConnTrackEntry, FilterAction, FilterDirection,
-    FilterRule as NetFilterRule, IpAddr as NetFilterIpAddr, NetFilterStats,
-    NetProtocol as AppNetProtocol, PortRange, RateLimiter,
+    AppsNetFilter,
+    ConnState as NetFilterConnState,
+    ConnTrackEntry,
+    FilterDirection,
+    FilterRule as NetFilterRule,
+    IpAddr as NetFilterIpAddr,
+    NetFilterStats,
+    NetProtocol as AppNetProtocol,
+    PortRange,
+    RateLimiter,
 };
 pub use net_mgr::{
-    AppNetState, AppsNetMgr, AppsNetMgrStats, ConnTuple, DnsCacheEntry, TcpConnInfo, TcpState,
+    AppNetState,
+    AppsNetMgr,
+    AppsNetMgrStats,
+    ConnTuple,
+    DnsCacheEntry,
+    TcpConnInfo,
+    TcpState,
     UdpFlowInfo,
 };
 pub use net_stack::{
-    AppNetProfilerStats, AppNetStackProfiler, ConnDirection, ConnectionProfile, NetProtocol,
-    ProcessNetProfile, SocketBufferStats, TcpState,
+    AppNetProfilerStats,
+    AppNetStackProfiler,
+    ConnDirection,
+    ConnectionProfile,
+    NetProtocol,
+    ProcessNetProfile,
+    SocketBufferStats,
 };
 pub use network::{
-    AppNetworkAnalyzer, AppNetworkPattern, ConnState, DetectedProtocol, NetworkQosClass,
-    PoolReason, PoolRecommendation, ProcessNetworkProfile, TrackedConnection,
+    AppNetworkAnalyzer,
+    AppNetworkPattern,
+    ConnState,
+    DetectedProtocol,
+    NetworkQosClass,
+    PoolReason,
+    PoolRecommendation,
+    ProcessNetworkProfile,
+    TrackedConnection,
 };
-pub use nice_app::{AppNiceEntry, AppNiceManager, AppNiceStats, AppSchedPolicy};
+pub use nice_app::{
+    AppNiceEntry,
+    AppNiceManager,
+    AppNiceStats,
+    AppSchedPolicy,
+};
 pub use ns_mgr::{
-    AppsNsMgr, IdMapping, NsDescriptor, NsEvent, NsMgrStats, NsState, NsType as AppNsType,
+    AppsNsMgr,
+    IdMapping,
+    NsDescriptor,
+    NsEvent,
+    NsMgrStats,
+    NsState,
+    NsType as AppNsType,
     ProcessNsSet,
 };
 pub use numa::{
-    AppNumaAnalyzer, AppNumaStats, NumaAccessCounters, NumaAccessType, NumaNode, NumaTopology,
-    PlacementReason, PlacementRecommendation, ProcessNumaProfile,
+    AppNumaAnalyzer,
+    AppNumaStats,
+    NumaAccessCounters,
+    NumaAccessType,
+    NumaNode,
+    NumaTopology,
+    PlacementReason,
+    PlacementRecommendation,
+    ProcessNumaProfile,
 };
 pub use numa_profile::{
-    AppNumaProfileStats, AppNumaProfiler, NodeMemInfo, NumaAccessType as NumaProfileAccessType,
-    NumaMigrationEvent, NumaMigrationReason, NumaPolicyType,
+    AppNumaProfileStats,
+    AppNumaProfiler,
+    NodeMemInfo,
+    NumaAccessType as NumaProfileAccessType,
+    NumaMigrationEvent,
+    NumaMigrationReason,
+    NumaPolicyType,
     ProcessNumaProfile as ProcessNumaProfileV2,
 };
 pub use oom_handler::{
-    AppMemPressure, AppOomKillRecord, AppOomStats, AppsOomHandler, OomEvent, OomFactor,
-    OomKillReason, ProcessOomState,
+    AppMemPressure,
+    AppOomKillRecord,
+    AppOomStats,
+    AppsOomHandler,
+    OomEvent,
+    OomFactor,
+    OomKillReason,
+    ProcessOomState,
 };
 pub use open_app::{
-    AppOpen, FdEntry as OpenFdEntry, OpenAppStats, OpenFlag, OpenResult, ProcessFdTracker,
+    AppOpen,
+    FdEntry as OpenFdEntry,
+    OpenAppStats,
+    OpenFlag,
+    OpenResult,
+    ProcessFdTracker,
 };
 pub use optimize::{
-    AppOptimization, OptimizationEngine, OptimizationStrategy, SchedulerHint, TuningKnob,
+    AppOptimization,
+    OptimizationEngine,
+    OptimizationStrategy,
+    SchedulerHint,
+    TuningKnob,
 };
 pub use page_cache::{
-    AccessPattern as AppAccessPattern, AppPageCacheProfiler, AppPageCacheStats, CachedPage,
-    FaultLatencyHistogram, PageFaultRecord, PageFaultType, PageState, ProcessPageCacheStats,
-    ThrashingDetector, WorkingSetEstimator as AppWorkingSetEstimator,
+    AccessPattern as AppAccessPattern,
+    AppPageCacheProfiler,
+    AppPageCacheStats,
+    CachedPage,
+    FaultLatencyHistogram,
+    PageFaultRecord,
+    PageFaultType,
+    PageState,
+    ProcessPageCacheStats,
+    ThrashingDetector,
+    WorkingSetEstimator as AppWorkingSetEstimator,
 };
 pub use pagefault_mgr::{
-    AppPagefaultMgr, FaultAction, FaultHotspot, PageFaultRecord as PfMgrRecord,
-    PageFaultType as PfMgrFaultType, PagefaultMgrStats, ProcessFaultStats,
+    AppPagefaultMgr,
+    FaultAction,
+    FaultHotspot,
+    PageFaultRecord as PfMgrRecord,
+    PageFaultType as PfMgrFaultType,
+    PagefaultMgrStats,
+    ProcessFaultStats,
 };
 pub use pagefault_profile::{
-    AppPageFaultProfiler, AppPageFaultProfilerStats, FaultAccess, FaultHotspot, FaultTypeCounter,
-    PageFaultEvent, PageFaultType, ProcessFaultProfile,
+    AppPageFaultProfiler,
+    AppPageFaultProfilerStats,
+    FaultAccess,
+    FaultTypeCounter,
+    PageFaultEvent,
 };
-pub use pause_app::{AppPause, PauseAppStats, PauseRecord, PauseResult};
+pub use pause_app::{
+    AppPause,
+    PauseAppStats,
+    PauseRecord,
+    PauseResult,
+};
 pub use perf_counter::{
-    AppPerfCounterProfiler, AppPerfCounterStats, CounterSnapshot, HwCounter, PerfBottleneck,
+    AppPerfCounterProfiler,
+    AppPerfCounterStats,
+    CounterSnapshot,
+    HwCounter,
+    PerfBottleneck,
     ProcessPerfProfile,
 };
 pub use pg_mgr::{
-    AppsPgMgr, AppsPgMgrStats, JobAction, ProcessGroup as AppsProcessGroup, ProcessPgState,
+    AppsPgMgr,
+    AppsPgMgrStats,
+    JobAction,
+    ProcessGroup as AppsProcessGroup,
+    ProcessPgState,
     SessionDesc,
 };
-pub use pidfd_app::{AppPidfd, PidfdAppStats, PidfdFlags, PidfdGetfdOp, PidfdInstance, PidfdState};
-pub use pipe_app::{AppPipe, PipeAppInstance, PipeAppState, PipeAppStats};
+pub use pidfd_app::{
+    AppPidfd,
+    PidfdAppStats,
+    PidfdFlags,
+    PidfdGetfdOp,
+    PidfdInstance,
+    PidfdState,
+};
+pub use pipe_app::{
+    AppPipe,
+    PipeAppInstance,
+    PipeAppState,
+    PipeAppStats,
+};
 pub use pipe_mgr::{
-    AppsPipeMgr, EndpointState as PipeEndpointState, PipeChain, PipeInstance as AppPipeInstance,
-    PipeKind, PipeMgrStats,
+    AppsPipeMgr,
+    EndpointState as PipeEndpointState,
+    PipeChain,
+    PipeInstance as AppPipeInstance,
+    PipeKind,
+    PipeMgrStats,
 };
-pub use pivot_root_app::{AppPivotRoot, PivotRootAppStats, PivotRootOp, PivotState};
+pub use pivot_root_app::{
+    AppPivotRoot,
+    PivotRootAppStats,
+    PivotRootOp,
+    PivotState,
+};
 pub use poll_mgr::{
-    AppPollMgr, AppPollProfile, EpollFdEntry, EpollInstance as PollEpollInstance, PollEvents,
-    PollMechanism, PollMgrStats,
+    AppPollMgr,
+    AppPollProfile,
+    EpollFdEntry,
+    EpollInstance as PollEpollInstance,
+    PollEvents,
+    PollMechanism,
+    PollMgrStats,
 };
-pub use prctl_app::{AppPrctl, PrctlAppStats, PrctlOption, PrctlRecord, PrctlResult};
-pub use prctl_mgr::{AppsPrctlMgr, PrctlMgrStats, PrctlOp, PrctlRecord, ProcessPrctlState};
+pub use prctl_app::{
+    AppPrctl,
+    PrctlAppStats,
+    PrctlOption,
+    PrctlRecord,
+    PrctlResult,
+};
+pub use prctl_mgr::{
+    AppsPrctlMgr,
+    PrctlMgrStats,
+    PrctlOp,
+    ProcessPrctlState,
+};
 pub use preadv_app::{
-    AppPreadv, FdVectoredTracker, IoVec as PreadvIoVec, PreadvAppStats, VectoredIoDir,
-    VectoredIoFlag, VectoredIoOp,
+    AppPreadv,
+    FdVectoredTracker,
+    IoVec as PreadvIoVec,
+    PreadvAppStats,
+    VectoredIoDir,
+    VectoredIoFlag,
+    VectoredIoOp,
 };
 pub use predict::{
-    BehaviorForecast, ForecastHorizon, PhasePrediction, ResourceForecast, WorkloadPredictor,
+    BehaviorForecast,
+    ForecastHorizon,
+    PhasePrediction,
+    ResourceForecast,
+    WorkloadPredictor,
 };
 pub use priority::{
-    AdjustmentReason, AppPriorityAnalyzer, DeadlineInfo, InheritanceState, InversionEvent,
-    PriorityAdjustment, PriorityClass, PriorityStats, ProcessPriorityState,
+    AdjustmentReason,
+    AppPriorityAnalyzer,
+    DeadlineInfo,
+    InheritanceState,
+    InversionEvent,
+    PriorityAdjustment,
+    PriorityClass,
+    PriorityStats,
+    ProcessPriorityState,
 };
 pub use prlimit_app::{
-    AppPrlimit, PrlimitAppStats, ProcessLimits as PrlimitProcessLimits, Rlimit as PrlimitValue,
+    AppPrlimit,
+    PrlimitAppStats,
+    ProcessLimits as PrlimitProcessLimits,
+    Rlimit as PrlimitValue,
     RlimitResource as PrlimitResource,
 };
 pub use profile::{
-    AppLifecyclePhase, CpuBehavior, IoBehavior, MemoryBehavior, NetworkBehavior, ProcessProfile,
+    AppLifecyclePhase,
+    CpuBehavior,
+    IoBehavior,
+    MemoryBehavior,
+    NetworkBehavior,
+    ProcessProfile,
 };
 pub use pty_mgr::{
-    AppsPtyMgr, JobControlState, PtyMgrStats, PtyPair as AppPtyPair, PtyState, PtyWinSize,
+    AppsPtyMgr,
+    JobControlState,
+    PtyMgrStats,
+    PtyPair as AppPtyPair,
+    PtyState,
+    PtyWinSize,
 };
 pub use quota::{
-    AppQuotaManager, EnforcementAction, QuotaGroup, QuotaManagerStats, QuotaResource, QuotaSet,
-    QuotaTransfer, QuotaViolation, ResourceQuota,
+    AppQuotaManager,
+    EnforcementAction,
+    QuotaGroup,
+    QuotaManagerStats,
+    QuotaResource,
+    QuotaSet,
+    QuotaTransfer,
+    QuotaViolation,
+    ResourceQuota,
 };
-pub use read_app::{AppReadCompletion, AppReadManager, AppReadRequest, AppReadStats, AppReadType};
-pub use readdir_app::{AppReaddir, DirentEntry, DirentType, ReaddirAppStats, ReaddirState};
+pub use read_app::{
+    AppReadCompletion,
+    AppReadManager,
+    AppReadRequest,
+    AppReadStats,
+    AppReadType,
+};
+pub use readdir_app::{
+    AppReaddir,
+    DirentEntry,
+    DirentType,
+    ReaddirAppStats,
+    ReaddirState,
+};
 // Re-exports from Round 23 apps modules
 pub use readlink_app::{
-    AppReadlink, ReadlinkAppStats, ReadlinkResult, SymlinkCache, SymlinkResolution,
+    AppReadlink,
+    ReadlinkAppStats,
+    ReadlinkResult,
+    SymlinkCache,
+    SymlinkResolution,
 };
 // Round 27 re-exports — Networking/socket app
-pub use recv_app::{AppRecv, RecvAppStats, RecvFlag, RecvRequest};
+pub use recv_app::{
+    AppRecv,
+    RecvAppStats,
+    RecvFlag,
+    RecvRequest,
+};
 pub use recvmsg_app::{
-    AppRecvmsg, RecvmsgAncillary, RecvmsgAppStats, RecvmsgFlag, RecvmsgRecord, RecvmsgResult,
+    AppRecvmsg,
+    RecvmsgAncillary,
+    RecvmsgAppStats,
+    RecvmsgFlag,
+    RecvmsgRecord,
+    RecvmsgResult,
     SocketRecvState,
 };
-pub use remap_pfn_app::{AppRemapPfn, PfnMapping, RemapPfnAppStats, RemapPfnType};
-pub use rename_app::{AppRename, RenameAppStats, RenameFlag, RenameRecord, RenameResult};
+pub use remap_pfn_app::{
+    AppRemapPfn,
+    PfnMapping,
+    RemapPfnAppStats,
+    RemapPfnType,
+};
+pub use rename_app::{
+    AppRename,
+    RenameAppStats,
+    RenameFlag,
+    RenameRecord,
+    RenameResult,
+};
 pub use resource::{
-    CpuAccounting, FdTracker, IoAccounting, MemoryAccounting, NetworkAccounting, ResourceManager,
+    CpuAccounting,
+    FdTracker,
+    IoAccounting,
+    MemoryAccounting,
+    NetworkAccounting,
+    ResourceManager,
     ResourceTracker,
 };
 pub use rlimit::{
-    AppRlimitManager, AppRlimitStats, LimitViolation, ProcessLimitProfile, Rlimit, RlimitResource,
-    ViolationType,
+    AppRlimitManager,
+    AppRlimitStats,
+    LimitViolation,
+    ProcessLimitProfile,
+    Rlimit,
+    RlimitResource,
 };
 pub use rlimit_mgr::{
-    AppRlimitMgr, LimitViolation as RlimitMgrViolation, ProcessLimits, Rlimit as RlimitPair,
-    RlimitMgrStats, RlimitResource as RlimitMgrResource,
+    AppRlimitMgr,
+    LimitViolation as RlimitMgrViolation,
+    ProcessLimits,
+    Rlimit as RlimitPair,
+    RlimitMgrStats,
+    RlimitResource as RlimitMgrResource,
 };
-pub use rmdir_app::{AppRmdir, RmdirAppStats, RmdirMode, RmdirRecord, RmdirResult};
+pub use rmdir_app::{
+    AppRmdir,
+    RmdirAppStats,
+    RmdirMode,
+    RmdirRecord,
+    RmdirResult,
+};
 pub use rss_tracker::{
-    AppRssTracker, AppRssTrackerStats, ProcessRssProfile, RssSample, VmaCategory, VmaRssEntry,
+    AppRssTracker,
+    AppRssTrackerStats,
+    ProcessRssProfile,
+    RssSample,
+    VmaCategory,
+    VmaRssEntry,
 };
 pub use sampling::{
-    AddressHistogram, AppSamplingEngine, AppSamplingStats, CallGraph, ProcessSamplingProfile,
-    Sample, SampleSource, SamplingConfig,
+    AddressHistogram,
+    AppSamplingEngine,
+    AppSamplingStats,
+    CallGraph,
+    ProcessSamplingProfile,
+    Sample,
+    SampleSource,
+    SamplingConfig,
 };
 pub use sched_attr_app::{
-    AppSchedAttr, ProcessSchedState as SchedAttrProcessState, SchedAttr, SchedAttrAppStats,
+    AppSchedAttr,
+    ProcessSchedState as SchedAttrProcessState,
+    SchedAttr,
+    SchedAttrAppStats,
     SchedPolicy,
 };
 pub use sched_latency::{
-    AppSchedLatencyProfiler, AppSchedLatencyStats, ProcessSchedProfile, SchedEventKind,
-    SchedLatencyHistogram, ThreadSchedState,
+    AppSchedLatencyProfiler,
+    AppSchedLatencyStats,
+    ProcessSchedProfile,
+    SchedEventKind,
+    SchedLatencyHistogram,
+    ThreadSchedState,
 };
 pub use sched_policy::{
-    AppsSchedPolicy, BandwidthThrottle, CpuAffinityMask, DeadlineParams,
-    ProcessSchedProfile as AppSchedProfile, SchedClass, SchedPolicyStats, SchedPolicyType,
+    AppsSchedPolicy,
+    BandwidthThrottle,
+    CpuAffinityMask,
+    DeadlineParams,
+    ProcessSchedProfile as AppSchedProfile,
+    SchedClass,
+    SchedPolicyStats,
+    SchedPolicyType,
     TaskSchedState,
 };
 pub use sched_profile::{
-    AppSchedProfileStats, AppSchedProfiler, ContextSwitchReason, CpuBurst, RunState,
-    ThreadSchedProfile, WakeupChainTracker, WakeupEvent as AppWakeupEvent,
+    AppSchedProfileStats,
+    AppSchedProfiler,
+    ContextSwitchReason,
+    CpuBurst,
+    RunState,
+    ThreadSchedProfile,
+    WakeupChainTracker,
+    WakeupEvent as AppWakeupEvent,
 };
 pub use scheduler::{SchedClassHint, SchedulingAnalyzer, SchedulingHint as AppSchedulingHint};
 pub use seccomp_app::{
-    AppSeccomp, SeccompAppAction, SeccompAppOp, SeccompAppRecord, SeccompAppResult, SeccompAppStats,
+    AppSeccomp,
+    SeccompAppAction,
+    SeccompAppOp,
+    SeccompAppRecord,
+    SeccompAppResult,
+    SeccompAppStats,
 };
 pub use seccomp_filter::{
-    AppSeccompFilter as SeccompFilterEngine, BpfInsn, FilterChain, ProcessSeccompState,
-    SeccompAction as SeccompFilterAction, SeccompFilter as SeccompFilterProgram,
-    SeccompFilterStats, SeccompMode, SeccompNotif,
+    AppSeccompFilter as SeccompFilterEngine,
+    BpfInsn,
+    FilterChain,
+    ProcessSeccompState,
+    SeccompAction as SeccompFilterAction,
+    SeccompFilter as SeccompFilterProgram,
+    SeccompFilterStats,
+    SeccompMode,
+    SeccompNotif,
 };
 pub use seccomp_mgr::{
-    AppsSeccompMgr, ArgCheck, BpfInsn, FilterMode, ProcessSeccomp,
-    SeccompAction as AppSeccompAction, SeccompFilter as AppSeccompFilter, SeccompStats,
-    SeccompViolation, SyscallRule,
+    AppsSeccompMgr,
+    ArgCheck,
+    FilterMode,
+    ProcessSeccomp,
+    SeccompAction as AppSeccompAction,
+    SeccompFilter as AppSeccompFilter,
+    SeccompStats,
+    SeccompViolation,
+    SyscallRule,
 };
 pub use seccomp_profile::{
-    AppSeccompProfiler, AppSeccompProfilerStats, FilterChain, FilterResult, FilterRule,
-    ProcessSeccompProfile, SeccompAction, ViolationRecord, ViolationSeverity,
+    AppSeccompProfiler,
+    AppSeccompProfilerStats,
+    FilterResult,
+    FilterRule,
+    ProcessSeccompProfile,
+    SeccompAction,
+    ViolationSeverity,
 };
-pub use select_app::{AppSelect, SelectAppStats, SelectCall, SelectFdEntry, SelectFdSet};
-pub use semget_app::{AppSemget, SemgetAppStats, SemgetRecord, SemgetResult};
-pub use send_app::{AppSend, SendAppStats, SendFlag, SendRequest};
-pub use sendfile_app::{AppSendfile, SendfileAppStats, SendfileState, SendfileTransfer};
+pub use select_app::{
+    AppSelect,
+    SelectAppStats,
+    SelectCall,
+    SelectFdEntry,
+    SelectFdSet,
+};
+pub use semget_app::{
+    AppSemget,
+    SemgetAppStats,
+    SemgetRecord,
+    SemgetResult,
+};
+pub use send_app::{
+    AppSend,
+    SendAppStats,
+    SendFlag,
+    SendRequest,
+};
+pub use sendfile_app::{
+    AppSendfile,
+    SendfileAppStats,
+    SendfileState,
+    SendfileTransfer,
+};
 pub use sendmsg_app::{
-    AppSendmsg, SendmsgAppStats, SendmsgCmsgType, SendmsgFlag, SendmsgRecord, SendmsgResult,
+    AppSendmsg,
+    SendmsgAppStats,
+    SendmsgCmsgType,
+    SendmsgFlag,
+    SendmsgRecord,
+    SendmsgResult,
     SocketSendState,
 };
-pub use seteuid_app::{AppSeteuid, EffIdType, SeteuidAppStats, SeteuidRecord, SeteuidResult};
-pub use setgid_app::{AppSetgid, SetgidAppStats, SetgidRecord, SetgidResult, SetgidVariant};
-pub use setpgid_app::{AppPgidEntry, AppPgidOp, AppPgidStats, AppSetpgidManager};
+pub use seteuid_app::{
+    AppSeteuid,
+    EffIdType,
+    SeteuidAppStats,
+    SeteuidRecord,
+    SeteuidResult,
+};
+pub use setgid_app::{
+    AppSetgid,
+    SetgidAppStats,
+    SetgidRecord,
+    SetgidResult,
+    SetgidVariant,
+};
+pub use setpgid_app::{
+    AppPgidEntry,
+    AppPgidOp,
+    AppPgidStats,
+    AppSetpgidManager,
+};
 pub use setreuid_app::{
-    AppSetreuid, SetreuidAppStats, SetreuidRecord, SetreuidResult, SetreuidType,
+    AppSetreuid,
+    SetreuidAppStats,
+    SetreuidRecord,
+    SetreuidResult,
+    SetreuidType,
 };
-pub use setsid_app::{AppSessionEntry, AppSetsidManager, AppSetsidResult, AppSetsidStats};
+pub use setsid_app::{
+    AppSessionEntry,
+    AppSetsidManager,
+    AppSetsidResult,
+    AppSetsidStats,
+};
 pub use setsockopt_app::{
-    AppSetsockopt, SetoptCategory, SetoptRecord, SetoptResult, SetsockoptAppStats,
-    SocketOptionHistory, TcpTuningProfile,
+    AppSetsockopt,
+    SetoptCategory,
+    SetoptRecord,
+    SetoptResult,
+    SetsockoptAppStats,
+    SocketOptionHistory,
+    TcpTuningProfile,
 };
-pub use setuid_app::{AppSetuid, SetuidAppStats, SetuidRecord, SetuidResult, SetuidVariant};
+pub use setuid_app::{
+    AppSetuid,
+    SetuidAppStats,
+    SetuidRecord,
+    SetuidResult,
+    SetuidVariant,
+};
 pub use shmem_mgr::{
-    AppShmemMgr, AppShmemProfile, ShmemAttachment, ShmemMgrStats, ShmemPerms, ShmemSegment,
+    AppShmemMgr,
+    AppShmemProfile,
+    ShmemAttachment,
+    ShmemMgrStats,
+    ShmemPerms,
+    ShmemSegment,
     ShmemType,
 };
-pub use shmget_app::{AppShmget, ShmgetAppStats, ShmgetRecord, ShmgetResult};
-pub use shutdown_app::{
-    AppShutdown, ShutdownAppStats, ShutdownHow, ShutdownLingerState, ShutdownRecord,
-    ShutdownResult, SocketShutdownState,
+pub use shmget_app::{
+    AppShmget,
+    ShmgetAppStats,
+    ShmgetRecord,
+    ShmgetResult,
 };
-pub use sigaction_app::{AppSigaction, SigactionAppHandler, SigactionAppRecord, SigactionAppStats};
+pub use shutdown_app::{
+    AppShutdown,
+    ShutdownAppStats,
+    ShutdownHow,
+    ShutdownLingerState,
+    ShutdownRecord,
+    ShutdownResult,
+    SocketShutdownState,
+};
+pub use sigaction_app::{
+    AppSigaction,
+    SigactionAppHandler,
+    SigactionAppRecord,
+    SigactionAppStats,
+};
 pub use signal::{
-    AppSignalAnalyzer, CoalescedSignal, CoalescingRule, DeliveryPreference, ProcessSignalProfile,
-    SignalArchPattern, SignalCategory, SignalCoalescer, SignalHandlerInfo, SignalHandlerMode,
+    AppSignalAnalyzer,
+    CoalescedSignal,
+    CoalescingRule,
+    DeliveryPreference,
+    ProcessSignalProfile,
+    SignalArchPattern,
+    SignalCategory,
+    SignalCoalescer,
+    SignalHandlerInfo,
+    SignalHandlerMode,
     SignalStats,
 };
 pub use signal_dispatch::{
-    AppsSignalDispatch, AppsSignalDispatchStats, ProcessSignalState, QueuedSignal,
-    SignalDisposition, SignalHandler, SignalMask, SignalNum, ThreadSignalState,
+    AppsSignalDispatch,
+    AppsSignalDispatchStats,
+    ProcessSignalState,
+    QueuedSignal,
+    SignalDisposition,
+    SignalHandler,
+    SignalMask,
+    SignalNum,
+    ThreadSignalState,
 };
 pub use signal_profile::{
-    AppSignalProfiler, AppSignalProfilerStats, ProcessSignalProfile, SignalCategoryApps,
-    SignalDeliveryState, SignalNumStats,
+    AppSignalProfiler,
+    AppSignalProfilerStats,
+    SignalCategoryApps,
+    SignalDeliveryState,
+    SignalNumStats,
 };
 pub use signalfd_app::{
-    AppSignalfd, SigMask, SignalNum as SigfdSignalNum, SignalfdAppStats, SignalfdInfo,
+    AppSignalfd,
+    SigMask,
+    SignalNum as SigfdSignalNum,
+    SignalfdAppStats,
+    SignalfdInfo,
     SignalfdInstance,
 };
-pub use sigsuspend_app::{AppSigsuspend, SigsuspendAppStats, SigsuspendRecord, SigsuspendResult};
-pub use sigwait_app::{AppSigwait, SigwaitAppStats, SigwaitRecord, SigwaitResult, SigwaitVariant};
+pub use sigsuspend_app::{
+    AppSigsuspend,
+    SigsuspendAppStats,
+    SigsuspendRecord,
+    SigsuspendResult,
+};
+pub use sigwait_app::{
+    AppSigwait,
+    SigwaitAppStats,
+    SigwaitRecord,
+    SigwaitResult,
+    SigwaitVariant,
+};
 pub use socket_app::{
-    AppSocket, AppSocketDomain, AppSocketEntry, AppSocketState, AppSocketType, SocketAppStats,
+    AppSocket,
+    AppSocketDomain,
+    AppSocketEntry,
+    AppSocketState,
+    AppSocketType,
+    SocketAppStats,
 };
 pub use socketpair_app::{
-    AppSocketpair, SocketpairAppStats, SocketpairDomain, SocketpairInstance, SocketpairState,
+    AppSocketpair,
+    SocketpairAppStats,
+    SocketpairDomain,
+    SocketpairInstance,
+    SocketpairState,
     SocketpairType,
 };
 pub use splice_app::{
-    AppSplice, PipeBufferState, SpliceAppStats, SpliceFlag, SpliceOpType, SpliceTransfer,
+    AppSplice,
+    PipeBufferState,
+    SpliceAppStats,
+    SpliceFlag,
+    SpliceOpType,
+    SpliceTransfer,
 };
-pub use stat_app::{AppStat, StatAppStats, StatCacheEntry, StatFileType, StatResult};
-pub use statfs_app::{AppStatfs, FsTypeId, StatfsAppStats, StatfsResult};
-pub use statvfs_app::{AppStatvfs, StatvfsAppStats, StatvfsCall, StatvfsRecord, StatvfsResult};
-pub use statx_app::{AppStatx, StatxAppStats, StatxAttr, StatxMask, StatxRecord, StatxResult};
+pub use stat_app::{
+    AppStat,
+    StatAppStats,
+    StatCacheEntry,
+    StatFileType,
+    StatResult,
+};
+pub use statfs_app::{
+    AppStatfs,
+    FsTypeId,
+    StatfsAppStats,
+    StatfsResult,
+};
+pub use statvfs_app::{
+    AppStatvfs,
+    StatvfsAppStats,
+    StatvfsCall,
+    StatvfsRecord,
+    StatvfsResult,
+};
+pub use statx_app::{
+    AppStatx,
+    StatxAppStats,
+    StatxAttr,
+    StatxMask,
+    StatxRecord,
+    StatxResult,
+};
 pub use symlink_app::{
-    AppSymlink, SymlinkAppStats, SymlinkKind, SymlinkRecord, SymlinkResolver, SymlinkResult,
+    AppSymlink,
+    SymlinkAppStats,
+    SymlinkKind,
+    SymlinkRecord,
+    SymlinkResolver,
+    SymlinkResult,
 };
 pub use syscall_profile::{
-    AppSyscallProfileStats, AppSyscallProfiler, BottleneckType, PatternDetector, PatternType,
-    ProcessSyscallProfile, SyscallBottleneck, SyscallCategory, SyscallCostClass, SyscallCounter,
-    SyscallDescriptor, SyscallPattern,
+    AppSyscallProfileStats,
+    AppSyscallProfiler,
+    BottleneckType,
+    PatternDetector,
+    PatternType,
+    ProcessSyscallProfile,
+    SyscallBottleneck,
+    SyscallCategory,
+    SyscallCostClass,
+    SyscallCounter,
+    SyscallDescriptor,
+    SyscallPattern,
 };
 pub use task_stats::{
-    AppsTaskStats, CpuAccounting, DelayAccounting, IoAccounting, MemAccounting, TaskStatEntry,
+    AppsTaskStats,
+    DelayAccounting,
+    MemAccounting,
+    TaskStatEntry,
     TaskStatsStats,
 };
 pub use thermal::{
-    AppThermalAnalyzer, AppThermalStats, CoreHeatMap, HeatContribution, ProcessThermalProfile,
-    ThermalBudget, ThermalImpact, ThermalReading, ThermalState as AppThermalState,
-    ThermalZone as AppThermalZone, ThrottleEvent as AppThrottleEvent,
+    AppThermalAnalyzer,
+    AppThermalStats,
+    CoreHeatMap,
+    HeatContribution,
+    ProcessThermalProfile,
+    ThermalBudget,
+    ThermalImpact,
+    ThermalReading,
+    ThermalState as AppThermalState,
+    ThermalZone as AppThermalZone,
+    ThrottleEvent as AppThrottleEvent,
 };
 pub use thread_app::{
-    AppThreadAttr, AppThreadEntry, AppThreadManager, AppThreadState, AppThreadStats,
+    AppThreadAttr,
+    AppThreadEntry,
+    AppThreadManager,
+    AppThreadState,
+    AppThreadStats,
 };
 pub use thread_pool::{
-    AppThreadPoolProfiler, AppThreadPoolStats, DetectedPool, PoolType, WorkerState, WorkerStats,
+    AppThreadPoolProfiler,
+    AppThreadPoolStats,
+    DetectedPool,
+    PoolType,
+    WorkerState,
+    WorkerStats,
 };
 pub use threading::{
-    AppThreadAnalyzer, AppThreadState, AppThreadStats, CommEdge, CommType, ThreadDescriptor,
-    ThreadPool, ThreadType,
+    AppThreadAnalyzer,
+    CommEdge,
+    CommType,
+    ThreadDescriptor,
+    ThreadPool,
+    ThreadType,
 };
 pub use timer_mgr::{
-    AppClockType, AppTimer, AppTimerState, AppTimerType, AppsTimerMgr, AppsTimerMgrStats,
-    IntervalTimer, ProcessTimerSet,
+    AppClockType,
+    AppTimer,
+    AppTimerState,
+    AppTimerType,
+    AppsTimerMgr,
+    AppsTimerMgrStats,
+    IntervalTimer,
+    ProcessTimerSet,
 };
 pub use timer_profile::{
-    AppTimerProfiler, AppTimerProfilerStats, CoalesceGroup, ProcessTimerProfile, TimerPrecision,
-    TimerRecord, TimerState, TimerType, WheelLevelStats,
+    AppTimerProfiler,
+    AppTimerProfilerStats,
+    CoalesceGroup,
+    ProcessTimerProfile,
+    TimerPrecision,
+    TimerRecord,
+    TimerState,
+    TimerType,
+    WheelLevelStats,
 };
 pub use timerfd_app::{
-    AppTimerfd, TimerClockId, TimerfdAppStats, TimerfdInstance, TimerfdSpec, TimerfdState,
+    AppTimerfd,
+    TimerClockId,
+    TimerfdAppStats,
+    TimerfdInstance,
+    TimerfdSpec,
+    TimerfdState,
 };
 pub use tlb_profile::{
-    AppTlbProfiler, AppTlbProfilerStats, ProcessTlbProfile, TlbEvent, TlbLevel, TlbPageSize,
+    AppTlbProfiler,
+    AppTlbProfilerStats,
+    ProcessTlbProfile,
+    TlbEvent,
+    TlbLevel,
+    TlbPageSize,
 };
-pub use tls_mgr::{AppsTlsMgr, ThreadTlsState, TlsImage, TlsMgrStats, TlsModule, TlsVariant};
+pub use tls_mgr::{
+    AppsTlsMgr,
+    ThreadTlsState,
+    TlsImage,
+    TlsMgrStats,
+    TlsModule,
+    TlsVariant,
+};
 pub use trace::{
-    AppCallGraph, AppTraceEvent, AppTraceEventType, AppTraceProfiler, AppTraceStats, CallNode,
-    FlameGraphCollector, FlameStack,
+    AppCallGraph,
+    AppTraceEvent,
+    AppTraceEventType,
+    AppTraceProfiler,
+    AppTraceStats,
+    CallNode,
+    FlameGraphCollector,
+    FlameStack,
 };
-pub use truncate_app::{AppTruncate, TruncateAppStats, TruncateOp, TruncateType};
+pub use truncate_app::{
+    AppTruncate,
+    TruncateAppStats,
+    TruncateOp,
+    TruncateType,
+};
 pub use umask_app::{
-    AppUmask, FileMode, ProcessUmask, UmaskAppStats, UmaskAuditEvent, UmaskValue as AppUmaskValue,
+    AppUmask,
+    FileMode,
+    ProcessUmask,
+    UmaskAppStats,
+    UmaskAuditEvent,
+    UmaskValue as AppUmaskValue,
 };
 pub use umask_mgr::{
-    AppUmaskMgr, ProcessUmaskState, UmaskChangeEvent, UmaskMgrStats, UmaskPolicy,
-    UmaskSecurityLevel, UmaskValue,
+    AppUmaskMgr,
+    ProcessUmaskState,
+    UmaskChangeEvent,
+    UmaskMgrStats,
+    UmaskPolicy,
+    UmaskSecurityLevel,
+    UmaskValue,
 };
 pub use uname_cache::{
-    AppsUnameCache, ArchCaps, ArchType, BootParam, KernelFeature, KernelVersion, UnameCacheStats,
+    AppsUnameCache,
+    ArchCaps,
+    ArchType,
+    BootParam,
+    KernelFeature,
+    KernelVersion,
+    UnameCacheStats,
     UnameInfo,
 };
 pub use unlink_app::{
-    AppUnlink, OrphanInodeTracker, UnlinkAppStats, UnlinkMode, UnlinkRecord as UnlinkV2Record,
+    AppUnlink,
+    OrphanInodeTracker,
+    UnlinkAppStats,
+    UnlinkMode,
+    UnlinkRecord as UnlinkV2Record,
     UnlinkResult as UnlinkV2Result,
 };
 pub use utime_app::{
-    AppUtime, FileTimestampState, UtimeAppStats, UtimeRecord, UtimeResult, UtimeSpecial,
+    AppUtime,
+    FileTimestampState,
+    UtimeAppStats,
+    UtimeRecord,
+    UtimeResult,
+    UtimeSpecial,
     UtimeVariant,
 };
 pub use utimes_app::{
-    AppUtimes, UtimesAppStats, UtimesCall, UtimesFlag, UtimesRecord, UtimesResult,
+    AppUtimes,
+    UtimesAppStats,
+    UtimesCall,
+    UtimesFlag,
+    UtimesRecord,
+    UtimesResult,
 };
 pub use vm_mgr::{
-    AppMemRegion, AppVmState, AppsVmMgr, AppsVmMgrStats, MadviseHint, PageFaultRecord,
-    PageFaultType as AppsPageFaultType, WorkingSetEstimate as AppsWssEstimate,
+    AppMemRegion,
+    AppVmState,
+    AppsVmMgr,
+    AppsVmMgrStats,
+    MadviseHint,
+    PageFaultType as AppsPageFaultType,
+    WorkingSetEstimate as AppsWssEstimate,
 };
 pub use vma_tracker::{
-    AppVmaTracker, AppVmaTrackerStats, FragReport, GrowthPattern, ProcessVmaTracker, VmaEntry,
-    VmaPerms, VmaType,
+    AppVmaTracker,
+    AppVmaTrackerStats,
+    FragReport,
+    GrowthPattern,
+    ProcessVmaTracker,
+    VmaEntry,
+    VmaPerms,
+    VmaType,
 };
-pub use wait_app::{AppChildStatus, AppWaitManager, AppWaitOption, AppWaitStats, AppWaitTarget};
+pub use wait_app::{
+    AppChildStatus,
+    AppWaitManager,
+    AppWaitOption,
+    AppWaitStats,
+    AppWaitTarget,
+};
 pub use wait_tracker::{
-    AppsWaitTracker, ChildStatus, WaitEvent, WaitOptions, WaitPattern, WaitTrackerStats,
-    WaitVariant, ZombieEntry,
+    AppsWaitTracker,
+    ChildStatus,
+    WaitEvent,
+    WaitOptions,
+    WaitPattern,
+    WaitTrackerStats,
+    WaitVariant,
+    ZombieEntry,
 };
 pub use waitid_app::{
-    AppWaitId, ChildStatus as WaitIdChildStatus, ProcessWaitState, WaitIdAppStats, WaitIdOptions,
-    WaitIdSiginfo, WaitIdType as WaitIdV2Type,
+    AppWaitId,
+    ChildStatus as WaitIdChildStatus,
+    ProcessWaitState,
+    WaitIdAppStats,
+    WaitIdOptions,
+    WaitIdSiginfo,
+    WaitIdType as WaitIdV2Type,
 };
 pub use waitid_mgr::{
-    AppWaitIdMgr, ExitStatus, WaitIdMgrStats, WaitIdType, WaitOptions as WaitIdOptions,
-    WaitSiginfo, WaiterEntry, ZombieEntry,
+    AppWaitIdMgr,
+    ExitStatus,
+    WaitIdMgrStats,
+    WaitIdType,
+    WaitSiginfo,
+    WaiterEntry,
 };
 pub use wakeup::{
-    AppWakeupProfiler, AppWakeupProfilerStats, ThreadWakeupStats, WakeupChain, WakeupEdge,
-    WakeupEvent as WakeupProfileEvent, WakeupSource,
+    AppWakeupProfiler,
+    AppWakeupProfilerStats,
+    ThreadWakeupStats,
+    WakeupChain,
+    WakeupEdge,
+    WakeupEvent as WakeupProfileEvent,
+    WakeupSource,
 };
 pub use watchdog::{
-    AppWatchdogManager, AppWatchdogStats, HealthCheckConfig, HealthCheckResult, HealthCheckType,
-    ProcessWatchdog, RecoveryAction, WatchdogStatus,
+    AppWatchdogManager,
+    AppWatchdogStats,
+    HealthCheckConfig,
+    HealthCheckResult,
+    HealthCheckType,
+    ProcessWatchdog,
+    RecoveryAction,
+    WatchdogStatus,
 };
 pub use workload_class::{
-    AppWorkloadClassStats, AppWorkloadClassifier, ClassificationResult as WorkloadClassResult,
-    ProcessClassification, WorkloadArchetype, WorkloadClass, WorkloadFeatures, WorkloadPhase,
+    AppWorkloadClassStats,
+    AppWorkloadClassifier,
+    ClassificationResult as WorkloadClassResult,
+    ProcessClassification,
+    WorkloadArchetype,
+    WorkloadClass,
+    WorkloadFeatures,
+    WorkloadPhase,
 };
 pub use write_app::{
-    AppWriteCompletion, AppWriteManager, AppWriteMode, AppWriteRequest, AppWriteStats,
+    AppWriteCompletion,
+    AppWriteManager,
+    AppWriteMode,
+    AppWriteRequest,
+    AppWriteStats,
 };
 pub use xattr_app::{
-    AppXattr, XattrAppStats, XattrNs, XattrOp as XattrSysOp, XattrRecord, XattrResult,
+    AppXattr,
+    XattrAppStats,
+    XattrNs,
+    XattrOp as XattrSysOp,
+    XattrRecord,
+    XattrResult,
 };
 pub use xattr_mgr::{
-    AppXattrMgr, AppXattrProfile, InodeXattrs, XattrEntry, XattrMgrStats, XattrNamespace, XattrOp,
+    AppXattrMgr,
+    AppXattrProfile,
+    InodeXattrs,
+    XattrEntry,
+    XattrMgrStats,
+    XattrNamespace,
+    XattrOp,
 };
 
 #[cfg(test)]
