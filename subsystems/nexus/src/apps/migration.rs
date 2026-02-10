@@ -448,7 +448,7 @@ impl AppMigrationAnalyzer {
 
         let mut candidates = Vec::new();
 
-        for (cpu, load) in self.cpu_loads {
+        for (cpu, load) in self.cpu_loads.iter() {
             if cpu == current_cpu {
                 continue;
             }
