@@ -92,7 +92,7 @@ impl FreqDomain {
     pub fn dominant_frequency(&self) -> u32 {
         self.time_in_freq
             .iter()
-            .max_by_key(|(_, time)| time)
+            .max_by_key(|(_, time)| *time)
             .map(|(freq, _)| freq as u32)
             .unwrap_or(self.current_freq_khz)
     }
@@ -155,7 +155,7 @@ impl AppFreqProfile {
     pub fn most_common_freq(&self) -> u32 {
         self.freq_histogram
             .iter()
-            .max_by_key(|(_, count)| count)
+            .max_by_key(|(_, count)| *count)
             .map(|(freq, _)| freq as u32)
             .unwrap_or(0)
     }
