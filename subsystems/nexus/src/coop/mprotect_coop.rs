@@ -55,7 +55,7 @@ pub struct SharedGuardRegion {
     pub base_addr: u64,
     pub size: u64,
     pub participants: Vec<u64>,
-    pub guard_density: f64, // guards per 4K page
+    pub guard_density: f64, // guards per 4K page,
 }
 
 #[derive(Debug, Clone)]
@@ -65,7 +65,7 @@ pub struct EscalationEvent {
     pub requested_domain: ProtDomain,
     pub timestamp: u64,
     pub granted: bool,
-    pub reason: u64, // encoded reason
+    pub reason: u64, // encoded reason,
 }
 
 #[derive(Debug, Clone, Default)]
