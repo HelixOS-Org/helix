@@ -223,7 +223,7 @@ impl CognitiveSemaphore {
                 // Wake waiters if possible
                 if new_count > 0 && !self.waiters.is_empty() {
                     // Signal first waiter
-                    self.waiters.pop_front();
+                    self.waiters.remove(0);
                 }
 
                 return true;
@@ -334,7 +334,7 @@ impl CognitiveRwLock {
         }
 
         if !self.read_waiters.contains(&domain) {
-            self.read_waiters.push(domain);
+            self.read_waiters.push_back(domain);
         }
 
         false
@@ -361,7 +361,7 @@ impl CognitiveRwLock {
 
             // Wake a writer if no more readers
             if self.readers.is_empty() && !self.write_waiters.is_empty() {
-                let waiter = self.write_waiters.pop_front().unwrap();
+                let waiter = self.write_waiters.remove(0).unwrap();
                 self.writer = Some(waiter);
             }
 
@@ -378,13 +378,13 @@ impl CognitiveRwLock {
 
             // Wake writers first (if prefer_writers) or readers
             if self.prefer_writers && !self.write_waiters.is_empty() {
-                let waiter = self.write_waiters.pop_front().unwrap();
+                let waiter = self.write_waiters.remove(0).unwrap();
                 self.writer = Some(waiter);
             } else if !self.read_waiters.is_empty() {
                 // Wake all readers
                 self.readers.append(&mut self.read_waiters);
             } else if !self.write_waiters.is_empty() {
-                let waiter = self.write_waiters.pop_front().unwrap();
+                let waiter = self.write_waiters.remove(0).unwrap();
                 self.writer = Some(waiter);
             }
 
@@ -459,7 +459,7 @@ impl CognitiveCondVar {
     pub fn signal(&mut self) -> Option<DomainId> {
         self.signals += 1;
         if !self.waiters.is_empty() {
-            self.waiters.pop_front()
+            self.waiters.remove(0)
         } else {
             None
         }
