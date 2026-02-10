@@ -483,7 +483,7 @@ impl AppsMethodology {
         };
 
         if self.advice_log.len() >= MAX_ADVICE_ENTRIES {
-            self.advice_log.pop_front();
+            self.advice_log.remove(0);
         }
         self.advice_log.push_back(advice.clone());
         Some(advice)
