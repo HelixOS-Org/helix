@@ -116,7 +116,7 @@ impl PeerClockState {
         self.last_sync_ts = sample.recv_ts;
         self.sample_count += 1;
         self.samples.push_back(sample);
-        if self.samples.len() > self.max_samples { self.samples.pop_front(); }
+        if self.samples.len() > self.max_samples { self.samples.remove(0); }
         self.recompute();
     }
 
