@@ -483,7 +483,7 @@ impl HealthMonitor {
             .iter()
             .rev()
             .take(self.config.trend_window)
-            .filter_map(|s| s.domain_scores.get(&domain_id).copied())
+            .filter_map(|s| s.domain_scores.get(&domain_id))
             .collect();
 
         if scores.len() < 3 {
@@ -554,7 +554,7 @@ impl HealthMonitor {
         };
 
         if self.history.len() >= self.config.history_size {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(snapshot);
     }
