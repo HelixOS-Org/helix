@@ -9,7 +9,6 @@
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
@@ -425,7 +424,7 @@ impl HistoryAggregation {
         self.total_records += 1;
         *self
             .type_counts
-            .entry(record.syscall_type as u8)
+            .entry(record.syscall_type.disc())
             .or_insert(0) += 1;
         *self.process_counts.entry(record.pid).or_insert(0) += 1;
         let lat = record.latency_ns();
