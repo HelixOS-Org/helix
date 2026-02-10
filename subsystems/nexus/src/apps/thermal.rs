@@ -12,7 +12,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -261,7 +260,7 @@ impl ThermalBudget {
         if mw > self.remaining() {
             return false;
         }
-        let existing = self.process_budgets.get(pid).copied().unwrap_or(0);
+        let existing = self.process_budgets.get(pid).unwrap_or(0);
         self.allocated_mw = self.allocated_mw.saturating_sub(existing);
         self.process_budgets.insert(pid, mw);
         self.allocated_mw += mw;
@@ -280,8 +279,8 @@ impl ThermalBudget {
     #[inline]
     pub fn is_over_budget(&self, pid: u64, current_mw: u32) -> bool {
         self.process_budgets
-            .get(&pid)
-            .map(|&budget| current_mw > budget)
+            .get(pid)
+            .map(|budget| current_mw > budget)
             .unwrap_or(false)
     }
 }
@@ -379,7 +378,7 @@ impl AppThermalAnalyzer {
         let samples = self.heat_samples.entry(pid).or_insert_with(Vec::new);
         samples.push(contrib);
         if samples.len() > self.max_samples {
-            samples.pop_front();
+            samples.remove(0);
         }
     }
 
@@ -455,8 +454,8 @@ impl AppThermalAnalyzer {
         let budget_remaining = self
             .budget
             .process_budgets
-            .get(&pid)
-            .copied()
+            .get(pid)
+            
             .unwrap_or(0)
             .saturating_sub(avg_heat);
 
