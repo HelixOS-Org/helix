@@ -7,6 +7,8 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Hazard pointer state
+use core::sync::atomic::AtomicU64;
+use core::sync::atomic::Ordering;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HazardState {
     /// Slot is free
@@ -17,8 +19,14 @@ pub enum HazardState {
     Reserved,
 }
 
+impl Default for HazardState {
+    fn default() -> Self {
+        Self::Free
+    }
+}
+
 /// A single hazard pointer slot
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct HazardSlot {
     pub slot_id: u64,
     pub thread_id: u64,
@@ -26,6 +34,10 @@ pub struct HazardSlot {
     pub protected_addr: u64,
     pub acquire_ns: u64,
     pub protect_count: u64,
+
+    pub guard_count: u64,
+    pub guarded_addr: u64,
+    pub owner: u64,
 }
 
 impl HazardSlot {
@@ -37,6 +49,7 @@ impl HazardSlot {
             protected_addr: 0,
             acquire_ns: 0,
             protect_count: 0,
+            ..Default::default()
         }
     }
 
@@ -63,6 +76,19 @@ impl HazardSlot {
     pub fn hold_duration(&self, now_ns: u64) -> u64 {
         if self.state != HazardState::Active { return 0; }
         now_ns.saturating_sub(self.acquire_ns)
+    }
+
+    /// Set guard on address (V3 API)
+    #[inline]
+    pub fn guard(&mut self, addr: u64) {
+        self.guarded_addr = addr;
+        self.guard_count += 1;
+    }
+
+    /// Clear guard (V3 API)
+    #[inline(always)]
+    pub fn clear(&mut self) {
+        self.guarded_addr = 0;
     }
 }
 
@@ -533,26 +559,13 @@ pub enum HazardSlotState {
     Released,
 }
 
-/// Hazard slot
-#[derive(Debug)]
-pub struct HazardSlot {
-    pub slot_id: u64,
-    pub owner: u64,
-    pub guarded_addr: u64,
-    pub state: HazardSlotState,
-    pub guard_count: u64,
-}
-
-impl HazardSlot {
-    pub fn new(slot_id: u64, owner: u64) -> Self {
-        Self { slot_id, owner, guarded_addr: 0, state: HazardSlotState::Empty, guard_count: 0 }
+impl Default for HazardSlotState {
+    fn default() -> Self {
+        Self::Empty
     }
-
-    #[inline(always)]
-    pub fn guard(&mut self, addr: u64) { self.guarded_addr = addr; self.state = HazardSlotState::Guarding; self.guard_count += 1; }
-    #[inline(always)]
-    pub fn clear(&mut self) { self.guarded_addr = 0; self.state = HazardSlotState::Empty; }
 }
+
+
 
 /// Retired object
 #[derive(Debug)]
@@ -605,7 +618,7 @@ impl HazardDomainV3 {
     #[inline]
     pub fn scan(&mut self) -> u64 {
         self.scans += 1;
-        let guarded: Vec<u64> = self.slots.iter().filter(|s| s.state == HazardSlotState::Guarding).map(|s| s.guarded_addr).collect();
+        let guarded: Vec<u64> = self.slots.iter().filter(|s| s.state == HazardState::Active).map(|s| s.guarded_addr).collect();
         let mut freed = 0u64;
         self.retired_list.retain(|r| {
             if !guarded.contains(&r.addr) { freed += r.size_bytes; self.total_reclaimed += 1; self.total_reclaimed_bytes += r.size_bytes; false }
@@ -644,7 +657,7 @@ impl CoopHazardPtrV3 {
 
     #[inline(always)]
     pub fn stats(&self) -> HazardPtrV3Stats {
-        let guarding = self.domain.slots.iter().filter(|s| s.state == HazardSlotState::Guarding).count() as u32;
+        let guarding = self.domain.slots.iter().filter(|s| s.state == HazardState::Active).count() as u32;
         HazardPtrV3Stats { total_slots: self.domain.slots.len() as u32, guarding_slots: guarding, pending_retired: self.domain.retired_list.len() as u32, total_reclaimed_bytes: self.domain.total_reclaimed_bytes, total_scans: self.domain.scans }
     }
 }
@@ -666,7 +679,7 @@ pub enum HazardV4Domain {
     Custom(u32),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct HazardV4Pointer {
     pub slot_id: u32,
     pub thread_id: u32,
@@ -674,6 +687,19 @@ pub struct HazardV4Pointer {
     pub state: HazardV4State,
     pub acquisitions: u64,
     pub releases: u64,
+}
+
+impl Clone for HazardV4Pointer {
+    fn clone(&self) -> Self {
+        Self {
+            slot_id: self.slot_id,
+            thread_id: self.thread_id,
+            protected_addr: AtomicU64::new(self.protected_addr.load(core::sync::atomic::Ordering::Relaxed)),
+            state: self.state,
+            acquisitions: self.acquisitions,
+            releases: self.releases,
+        }
+    }
 }
 
 impl HazardV4Pointer {
