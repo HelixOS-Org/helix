@@ -11,10 +11,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -308,11 +309,7 @@ impl AppsDiscoveryValidator {
 
     /// Perform k-fold cross-validation on the discovery
     #[inline]
-    pub fn cross_validation(
-        &mut self,
-        discovery_id: u64,
-        fold_accuracies: &[f32],
-    ) -> f32 {
+    pub fn cross_validation(&mut self, discovery_id: u64, fold_accuracies: &[f32]) -> f32 {
         let k = fold_accuracies.len().min(CROSS_VALIDATION_FOLDS);
         if k == 0 {
             return 0.0;
@@ -358,12 +355,21 @@ impl AppsDiscoveryValidator {
             None => return None,
         };
 
+        // Extract needed values from the immutable borrow upfront
+        let baseline_accuracy = discovery.baseline_accuracy;
+        let trial_count = discovery.trials.len();
+        let observed_improvement = if discovery.trials.is_empty() {
+            0.0
+        } else {
+            discovery.trials.iter().map(|t| t.improvement).sum::<f32>()
+                / discovery.trials.len() as f32
+        };
+
         // Gate 1: Regression
         let regression_passed = self
             .gate_checker
             .regression_results
             .get(discovery_id)
-            
             .unwrap_or(true);
 
         // Gate 2: Significance (via cross-val consistency)
@@ -371,7 +377,6 @@ impl AppsDiscoveryValidator {
             .gate_checker
             .significance_results
             .get(discovery_id)
-            
             .unwrap_or(false);
 
         // Gate 3: Cross-validation mean accuracy
@@ -379,26 +384,16 @@ impl AppsDiscoveryValidator {
             .gate_checker
             .cross_val_results
             .get(discovery_id)
-            
             .unwrap_or(0.0);
-        let cross_val_passed = cv_mean > discovery.baseline_accuracy;
+        let cross_val_passed = cv_mean > baseline_accuracy;
 
         // Gate 4: Holdout accuracy
         let holdout_acc = self
             .gate_checker
             .holdout_results
             .get(discovery_id)
-            
             .unwrap_or(0.0);
-        let holdout_passed = holdout_acc > discovery.baseline_accuracy * SAFETY_MARGIN;
-
-        // Compute observed improvement from trials
-        let observed_improvement = if discovery.trials.is_empty() {
-            0.0
-        } else {
-            discovery.trials.iter().map(|t| t.improvement).sum::<f32>()
-                / discovery.trials.len() as f32
-        };
+        let holdout_passed = holdout_acc > baseline_accuracy * SAFETY_MARGIN;
 
         // Determine verdict
         let verdict = if !regression_passed {
@@ -427,10 +422,14 @@ impl AppsDiscoveryValidator {
             ValidationVerdict::FailedSignificance => self.stats.total_failed_significance += 1,
             ValidationVerdict::FailedCrossValidation => self.stats.total_failed_cross_val += 1,
             ValidationVerdict::FailedHoldout => self.stats.total_failed_holdout += 1,
-            ValidationVerdict::Pending => {}
+            ValidationVerdict::Pending => {},
         }
 
-        let pass_val = if verdict == ValidationVerdict::Passed { 1.0 } else { 0.0 };
+        let pass_val = if verdict == ValidationVerdict::Passed {
+            1.0
+        } else {
+            0.0
+        };
         self.stats.pass_rate_ema =
             EMA_ALPHA * pass_val + (1.0 - EMA_ALPHA) * self.stats.pass_rate_ema;
         self.stats.avg_improvement_ema =
@@ -438,10 +437,18 @@ impl AppsDiscoveryValidator {
 
         let details = match verdict {
             ValidationVerdict::Passed => String::from("All validation gates passed"),
-            ValidationVerdict::FailedRegression => String::from("Regression detected on existing workloads"),
-            ValidationVerdict::FailedSignificance => String::from("Cross-validation variance too high"),
-            ValidationVerdict::FailedCrossValidation => String::from("Cross-validation accuracy below baseline"),
-            ValidationVerdict::FailedHoldout => String::from("Holdout accuracy below safety margin"),
+            ValidationVerdict::FailedRegression => {
+                String::from("Regression detected on existing workloads")
+            },
+            ValidationVerdict::FailedSignificance => {
+                String::from("Cross-validation variance too high")
+            },
+            ValidationVerdict::FailedCrossValidation => {
+                String::from("Cross-validation accuracy below baseline")
+            },
+            ValidationVerdict::FailedHoldout => {
+                String::from("Holdout accuracy below safety margin")
+            },
             ValidationVerdict::Pending => String::from("Validation incomplete"),
         };
 
@@ -455,7 +462,7 @@ impl AppsDiscoveryValidator {
             observed_improvement,
             cross_val_mean_accuracy: cv_mean,
             holdout_accuracy: holdout_acc,
-            trial_count: discovery.trials.len(),
+            trial_count,
             details,
         })
     }
