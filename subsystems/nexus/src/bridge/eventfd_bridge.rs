@@ -197,7 +197,7 @@ impl BridgeEventfd {
 
     #[inline(always)]
     pub fn record_event(&mut self, event: EventfdEvent) {
-        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        if self.events.len() >= self.max_events { self.events.remove(0); }
         self.events.push_back(event);
     }
 
