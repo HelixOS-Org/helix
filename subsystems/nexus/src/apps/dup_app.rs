@@ -68,7 +68,7 @@ impl DupRecord {
 #[repr(align(64))]
 pub struct ProcessDupState {
     pub pid: u64,
-    pub dup_chains: BTreeMap<i32, Vec<i32>>, // original fd → [dup'd fds]
+    pub dup_chains: BTreeMap<i32, Vec<i32>>, // original fd → [dup'd fds],
     pub total_dups: u64,
     pub total_closes: u64,
     pub suspected_leaks: u64,
