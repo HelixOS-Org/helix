@@ -257,7 +257,7 @@ impl ProcessCheckpoints {
     fn add(&mut self, cp: Checkpoint) {
         if self.checkpoints.len() >= self.max_checkpoints {
             // Remove oldest
-            self.checkpoints.pop_front();
+            self.checkpoints.remove(0);
         }
         self.checkpoints.push_back(cp);
     }
