@@ -171,7 +171,7 @@ impl CoopGossipProto {
         // Check suspicions
         let timeout = self.suspicion_timeout;
         let suspect_list: Vec<u64> = self.nodes.iter()
-            .filter(|(&id, n)| id != self.local_id && n.is_suspect_timeout(now, timeout))
+            .filter(|&(&id, n)| id != self.local_id && n.is_suspect_timeout(now, timeout))
             .map(|(&id, _)| id).collect();
         for id in suspect_list {
             if let Some(node) = self.nodes.get_mut(&id) { node.declare_dead(); }
