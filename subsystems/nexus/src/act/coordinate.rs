@@ -324,7 +324,7 @@ impl Coordinator {
         // Collect results
         let mut participant_results = BTreeMap::new();
         for &p_id in &action.participants {
-            let vote = action.votes.get(&p_id).copied().unwrap_or(Vote::Timeout);
+            let vote = action.votes.get(&p_id).unwrap_or(Vote::Timeout);
             participant_results.insert(p_id, ParticipantResult {
                 participant_id: p_id,
                 vote,
@@ -354,7 +354,7 @@ impl Coordinator {
 
         let mut participant_results = BTreeMap::new();
         for &p_id in &action.participants {
-            let vote = action.votes.get(&p_id).copied().unwrap_or(Vote::Timeout);
+            let vote = action.votes.get(&p_id).unwrap_or(Vote::Timeout);
             participant_results.insert(p_id, ParticipantResult {
                 participant_id: p_id,
                 vote,
