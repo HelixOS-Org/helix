@@ -452,14 +452,14 @@ impl AppCgroupAnalyzer {
     /// Assign process to cgroup
     pub fn assign_process(&mut self, pid: u64, cgroup_id: u64, now: u64) {
         // Remove from old cgroup
-        if let Some(&old_cgroup) = self.pid_cgroup.get(pid) {
+        if let Some(old_cgroup) = self.pid_cgroup.get(pid) {
             if old_cgroup != cgroup_id {
-                if let Some(old_node) = self.nodes.get_mut(old_cgroup) {
+                if let Some(old_node) = self.nodes.get_mut(&old_cgroup) {
                     old_node.remove_pid(pid);
                 }
                 self.migrations.push_back(CgroupMigration {
                     pid,
-                    from_cgroup: *old_cgroup,
+                    from_cgroup: old_cgroup,
                     to_cgroup: cgroup_id,
                     timestamp: now,
                     voluntary: true,
@@ -520,7 +520,7 @@ impl AppCgroupAnalyzer {
                 mem.current_bytes = bytes;
             }
         }
-    }
+    } 
 
     /// Record OOM kill
     #[inline]
@@ -550,7 +550,7 @@ impl AppCgroupAnalyzer {
     pub fn cgroup_for_pid(&self, pid: u64) -> Option<&CgroupNode> {
         self.pid_cgroup
             .get(pid)
-            .and_then(|&id| self.nodes.get(id))
+            .and_then(|id| self.nodes.get(&id))
     }
 
     /// Find pressured cgroups
@@ -787,7 +787,7 @@ impl AppCgroupV2Profiler {
         let key = Self::hash_path(&path);
         self.nodes
             .entry(key)
-            .or_insert_with(|| CgroupNode::new(path, version));
+            .or_insert_with(|| { let mut n = CgroupNode::new(key, path); n });
         self.update_stats();
         key
     }
@@ -808,10 +808,11 @@ impl AppCgroupV2Profiler {
     pub fn update_cpu(&mut self, path: &str, consumed_us: u64, throttled: bool) {
         let key = Self::hash_path(path);
         if let Some(node) = self.nodes.get_mut(&key) {
-            node.cpu.consumed_us += consumed_us;
-            node.cpu.total_periods += 1;
-            if throttled {
-                node.cpu.throttled_periods += 1;
+            if let Some(cpu) = &mut node.cpu {
+                cpu.quota_us += consumed_us;
+                if throttled {
+                    cpu.throttled_count += 1;
+                }
             }
         }
     }
@@ -821,10 +822,9 @@ impl AppCgroupV2Profiler {
     pub fn update_memory(&mut self, path: &str, usage: u64, limit: u64) {
         let key = Self::hash_path(path);
         if let Some(node) = self.nodes.get_mut(&key) {
-            node.memory.usage_bytes = usage;
-            node.memory.limit_bytes = limit;
-            if usage > node.memory.max_usage_bytes {
-                node.memory.max_usage_bytes = usage;
+            if let Some(mem) = &mut node.memory {
+                mem.current_bytes = usage;
+                mem.max_bytes = limit;
             }
         }
         self.update_stats();
@@ -835,7 +835,9 @@ impl AppCgroupV2Profiler {
     pub fn record_oom_kill(&mut self, path: &str) {
         let key = Self::hash_path(path);
         if let Some(node) = self.nodes.get_mut(&key) {
-            node.memory.oom_kills += 1;
+            if let Some(mem) = &mut node.memory {
+                mem.oom_kills += 1;
+            }
         }
     }
 
@@ -845,7 +847,7 @@ impl AppCgroupV2Profiler {
         let key = Self::hash_path(path);
         self.nodes
             .get(&key)
-            .map(|n| n.memory.pressure())
+            .and_then(|n| n.memory.as_ref().map(|m| m.pressure_level()))
             .unwrap_or(CgroupPressure::None)
     }
 
@@ -855,12 +857,12 @@ impl AppCgroupV2Profiler {
         self.stats.throttled_cgroups = self
             .nodes
             .values()
-            .filter(|n| n.cpu.throttle_rate() > 0.1)
+            .filter(|n| n.cpu.as_ref().map_or(false, |c| c.throttled_count > 10))
             .count();
         self.stats.oom_risk_cgroups = self
             .nodes
             .values()
-            .filter(|n| n.memory.usage_ratio() > 0.9)
+            .filter(|n| n.memory.as_ref().map_or(false, |m| m.utilization() > 0.9))
             .count();
     }
 
