@@ -279,7 +279,7 @@ impl StormDetector {
             self.window_start = now;
         }
         self.window_counts.add(irq as usize, 1);
-        let count = self.window_counts[&irq];
+        let count = self.window_counts[irq as usize];
         if count > self.threshold * 3 {
             self.storms_detected += 1;
             StormSeverity::Severe
