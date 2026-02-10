@@ -167,7 +167,7 @@ impl ProcessSchedState {
 
     fn push_bounded(deque: &mut VecDeque<f64>, value: f64, max: usize) {
         if deque.len() >= max {
-            deque.pop_front();
+            deque.remove(0);
         }
         deque.push_back(value);
     }
