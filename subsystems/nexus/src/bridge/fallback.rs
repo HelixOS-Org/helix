@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -174,20 +173,18 @@ impl SyscallFallbackChain {
     }
 
     /// Find best fallback for error
-    pub fn find_fallback(&self, error: ErrorCategory) -> &FallbackRule {
+    pub fn find_fallback(&self, error: ErrorCategory) -> FallbackRule {
         self.rules
             .iter()
             .find(|r| r.error_category == error)
-            .unwrap_or_else(|| {
-                // Return catch-all as a static rule
-                &FallbackRule {
-                    error_category: error,
-                    strategy: self.catch_all,
-                    retry_config: None,
-                    alt_handler: None,
-                    default_value: None,
-                    priority: 0,
-                }
+            .cloned()
+            .unwrap_or_else(|| FallbackRule {
+                error_category: error,
+                strategy: self.catch_all,
+                retry_config: None,
+                alt_handler: None,
+                default_value: None,
+                priority: 0,
             })
     }
 }
@@ -484,7 +481,7 @@ impl FallbackEngine {
     pub fn add_alert(&mut self, alert: FallbackAlert) {
         self.alerts.push_back(alert);
         if self.alerts.len() > self.max_alerts {
-            self.alerts.pop_front();
+            self.alerts.remove(0);
         }
     }
 
