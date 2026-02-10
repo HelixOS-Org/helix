@@ -35,7 +35,7 @@ pub struct LockedRegion {
     pub locked_at: u64,
     pub last_access: u64,
     pub access_count: u64,
-    pub fault_saved: u64, // page faults avoided by locking
+    pub fault_saved: u64, // page faults avoided by locking,
 }
 
 impl LockedRegion {
