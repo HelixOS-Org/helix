@@ -26,7 +26,7 @@ impl CacheKey {
     /// Create a cache key from syscall type + arguments using FNV-1a
     pub fn from_args(syscall_type: SyscallType, args: &[u64]) -> Self {
         let mut hash: u64 = 0xcbf29ce484222325; // FNV offset basis
-        hash ^= syscall_type as u64;
+        hash ^= syscall_type.disc() as u64;
         hash = hash.wrapping_mul(0x100000001b3); // FNV prime
 
         for &arg in args {
