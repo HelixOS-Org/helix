@@ -244,10 +244,21 @@ impl AppsPeerReview {
 
     /// Perform cross-validation of a finding by a specific reviewer.
     #[inline]
-    pub fn cross_validate(&mut self, finding_id: u64, reviewer_id: u64, score: f32, method_ok: bool, reproducible: bool) -> bool {
+    pub fn cross_validate(
+        &mut self,
+        finding_id: u64,
+        reviewer_id: u64,
+        score: f32,
+        method_ok: bool,
+        reproducible: bool,
+    ) -> bool {
         let weight = if let Some(member) = self.board.get_mut(&reviewer_id) {
             member.reviews_completed += 1;
-            if member.senior { REVIEW_WEIGHT_SENIOR } else { REVIEW_WEIGHT_JUNIOR }
+            if member.senior {
+                REVIEW_WEIGHT_SENIOR
+            } else {
+                REVIEW_WEIGHT_JUNIOR
+            }
         } else {
             REVIEW_WEIGHT_JUNIOR
         };
@@ -274,17 +285,24 @@ impl AppsPeerReview {
 
             // Recompute consensus if enough reviews
             if finding.reviews.len() >= MIN_REVIEWS_FOR_CONSENSUS {
-                let consensus = self.compute_consensus(&finding.reviews);
-                finding.consensus_score = consensus;
+                let reviews_clone = finding.reviews.clone();
+                drop(finding);
+                let consensus = self.compute_consensus(&reviews_clone);
+                if let Some(finding) = self.findings.get_mut(&finding_id) {
+                    finding.consensus_score = consensus;
 
-                if consensus >= HIGH_CONFIDENCE {
-                    finding.status = FindingStatus::Accepted;
-                    self.stats.findings_accepted += 1;
-                } else if consensus < REPLICATION_THRESHOLD && finding.reviews.len() >= MAX_REVIEWS_PER_FINDING {
-                    finding.status = FindingStatus::Rejected;
-                    self.stats.findings_rejected += 1;
-                } else if consensus >= REPLICATION_THRESHOLD && consensus < CONSENSUS_THRESHOLD {
-                    finding.status = FindingStatus::ReplicationRequested;
+                    if consensus >= HIGH_CONFIDENCE {
+                        finding.status = FindingStatus::Accepted;
+                        self.stats.findings_accepted += 1;
+                    } else if consensus < REPLICATION_THRESHOLD
+                        && finding.reviews.len() >= MAX_REVIEWS_PER_FINDING
+                    {
+                        finding.status = FindingStatus::Rejected;
+                        self.stats.findings_rejected += 1;
+                    } else if consensus >= REPLICATION_THRESHOLD && consensus < CONSENSUS_THRESHOLD
+                    {
+                        finding.status = FindingStatus::ReplicationRequested;
+                    }
                 }
 
                 let accept_rate = self.stats.findings_accepted as f32
@@ -378,7 +396,11 @@ impl AppsPeerReview {
         }
 
         let n = finding.reviews.len() as f32;
-        let weighted = if weight_sum > 0.0 { score_sum / weight_sum } else { 0.0 };
+        let weighted = if weight_sum > 0.0 {
+            score_sum / weight_sum
+        } else {
+            0.0
+        };
         let method_rate = method_yes as f32 / n;
         let repro_rate = repro_yes as f32 / n;
         let overall = weighted * 0.5 + method_rate * 0.25 + repro_rate * 0.25;
@@ -396,7 +418,11 @@ impl AppsPeerReview {
     /// Add a member to the review board.
     pub fn add_board_member(&mut self, label: &str, senior: bool) -> u64 {
         let id = fnv1a_hash(label.as_bytes()) ^ xorshift64(&mut self.rng_state);
-        let weight = if senior { REVIEW_WEIGHT_SENIOR } else { REVIEW_WEIGHT_JUNIOR };
+        let weight = if senior {
+            REVIEW_WEIGHT_SENIOR
+        } else {
+            REVIEW_WEIGHT_JUNIOR
+        };
 
         let member = BoardMember {
             member_id: id,
@@ -467,11 +493,17 @@ impl AppsPeerReview {
             let w = review.weight;
             let method_bonus = if review.methodology_ok { 0.1 } else { -0.1 };
             let repro_bonus = if review.reproducible { 0.1 } else { -0.1 };
-            let adjusted = (review.score + method_bonus + repro_bonus).min(1.0).max(0.0);
+            let adjusted = (review.score + method_bonus + repro_bonus)
+                .min(1.0)
+                .max(0.0);
             score_sum += adjusted * w;
             weight_sum += w;
         }
 
-        if weight_sum > 0.0 { score_sum / weight_sum } else { 0.0 }
+        if weight_sum > 0.0 {
+            score_sum / weight_sum
+        } else {
+            0.0
+        }
     }
 }
