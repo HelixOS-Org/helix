@@ -9,7 +9,6 @@
 //! - I/O dependency graph construction
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
