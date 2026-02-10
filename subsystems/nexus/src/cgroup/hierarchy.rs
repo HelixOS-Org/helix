@@ -183,7 +183,7 @@ impl HierarchyManager {
     /// Get cgroup for process
     #[inline(always)]
     pub fn get_process_cgroup(&self, pid: ProcessId) -> Option<CgroupId> {
-        self.process_cgroup.get(&pid).copied()
+        self.process_cgroup.get(&pid)
     }
 
     /// Get hierarchy depth
