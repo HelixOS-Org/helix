@@ -177,7 +177,7 @@ impl DispatchQueue {
             return None;
         }
         self.total_consumed += 1;
-        self.tasks.pop_front() // O(1) — was remove(0) O(4096)!
+        self.tasks.remove(0) // O(1) — was remove(0) O(4096)!
     }
 
     #[inline(always)]
