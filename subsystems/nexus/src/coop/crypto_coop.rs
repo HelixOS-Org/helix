@@ -2,7 +2,6 @@
 //! Coop crypto — cooperative crypto resource sharing
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Crypto coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
