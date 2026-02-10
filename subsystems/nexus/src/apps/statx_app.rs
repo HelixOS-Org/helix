@@ -2,8 +2,6 @@
 //! App statx — statx(2) extended attributes tracking
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Statx mask bits
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
