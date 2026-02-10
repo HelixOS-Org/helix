@@ -125,7 +125,7 @@ impl ProcessRlimits {
 
     #[inline(always)]
     pub fn get_limit(&self, res: ResourceType) -> Rlimit {
-        self.limits.get(&res).copied().unwrap_or(Rlimit::unlimited())
+        *self.limits.get(&res).unwrap_or(&Rlimit::unlimited())
     }
 
     #[inline]
@@ -143,7 +143,7 @@ impl ProcessRlimits {
 
     #[inline(always)]
     pub fn get_usage(&self, res: ResourceType) -> u64 {
-        self.usage.get(&res).copied().unwrap_or(0)
+        *self.usage.get(&res).unwrap_or(&0)
     }
 
     #[inline(always)]
@@ -257,7 +257,7 @@ impl BridgeRlimitBridge {
                 new_soft: rlim.soft, new_hard: rlim.hard,
                 timestamp_ns: ts, success,
             });
-            while self.audit_log.len() > self.max_audit { self.audit_log.pop_front(); }
+            while self.audit_log.len() > self.max_audit { self.audit_log.remove(0); }
             success
         } else { false }
     }
