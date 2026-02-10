@@ -4,7 +4,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -26,7 +25,7 @@ pub struct AnomalyDetector {
     /// Metric statistics
     metrics: BTreeMap<String, MetricStats>,
     /// Recent anomalies
-    anomalies: VecDeque<Anomaly>,
+    anomalies: Vec<Anomaly>,
     /// Maximum anomalies to keep
     max_anomalies: usize,
     /// Total anomalies detected
@@ -41,7 +40,7 @@ impl AnomalyDetector {
         Self {
             config,
             metrics: BTreeMap::new(),
-            anomalies: VecDeque::new(),
+            anomalies: Vec::new(),
             max_anomalies: 1000,
             total_detected: AtomicU64::new(0),
             enabled: true,
@@ -146,7 +145,7 @@ impl AnomalyDetector {
             if self.anomalies.len() >= self.max_anomalies {
                 self.anomalies.remove(0);
             }
-            self.anomalies.push_back(anom.clone());
+            self.anomalies.push(anom.clone());
 
             return Some(anom);
         }
