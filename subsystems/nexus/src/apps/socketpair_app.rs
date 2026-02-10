@@ -4,7 +4,6 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SocketpairDomain {
@@ -134,7 +133,7 @@ impl AppSocketpair {
 
     #[inline]
     pub fn close_fd(&mut self, fd: u64) {
-        if let Some(&pair_id) = self.fd_to_pair.get(fd) {
+        if let Some(pair_id) = self.fd_to_pair.get(fd) {
             if let Some(pair) = self.pairs.get_mut(&pair_id) {
                 pair.close_fd(fd);
                 if pair.state == SocketpairState::FullyClosed {
