@@ -227,7 +227,7 @@ impl AppPagefaultMgr {
             }
         }
 
-        if self.recent_faults.len() >= self.max_recent { self.recent_faults.pop_front(); }
+        if self.recent_faults.len() >= self.max_recent { self.recent_faults.remove(0); }
         self.recent_faults.push_back(record);
     }
 
