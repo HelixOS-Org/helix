@@ -13,8 +13,8 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -28,6 +28,7 @@ const FAST_EMA_ALPHA: f32 = 0.15;
 const SLOW_EMA_ALPHA: f32 = 0.03;
 const DRIFT_SENSITIVITY: f32 = 0.05;
 const SHIFT_DETECTION_THRESHOLD: f32 = 0.10;
+const EMA_ALPHA: f32 = 0.1;
 const FNV_OFFSET: u64 = 0xcbf29ce484222325;
 const FNV_PRIME: u64 = 0x100000001b3;
 
@@ -245,7 +246,7 @@ impl FeatureTracker {
         // Maintain recent values window
         self.recent_values.push_back(value);
         if self.recent_values.len() > MAX_HISTORY {
-            self.recent_values.pop_front();
+            self.recent_values.remove(0);
         }
 
         // Update fingerprints
