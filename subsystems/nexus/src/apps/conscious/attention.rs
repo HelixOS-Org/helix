@@ -293,15 +293,17 @@ impl AppsAttentionEngine {
 
         let old_tier = state.tier;
         if new_tier != old_tier {
+            let trigger_salience = state.salience;
             let shift = AttentionShift {
                 tick: self.tick,
                 app_id,
                 from_tier: old_tier,
                 to_tier: new_tier,
-                trigger_salience: state.salience,
+                trigger_salience,
                 was_beneficial: false, // evaluated retroactively
             };
             self.log_shift(shift);
+            let state = self.apps.get_mut(&app_id).unwrap();
             state.tier = new_tier;
             state.ticks_in_tier = 0;
             state.total_shifts += 1;
@@ -309,6 +311,7 @@ impl AppsAttentionEngine {
             state.ticks_in_tier += 1;
         }
 
+        let state = self.apps.get_mut(&app_id).unwrap();
         let units = new_tier.base_cost();
         state.attention_units = units;
         state.last_scan_tick = self.tick;
@@ -319,6 +322,8 @@ impl AppsAttentionEngine {
         } else {
             state.scan_interval = COLD_SCAN_INTERVAL_BASE;
         }
+
+        let salience = state.salience;
 
         let reason = match new_tier {
             AttentionTier::Spotlight => String::from("high salience — deep analysis"),
@@ -338,7 +343,7 @@ impl AppsAttentionEngine {
             attention_units: units,
             reason,
             tier: new_tier,
-            salience: state.salience,
+            salience,
         }
     }
 
@@ -349,15 +354,19 @@ impl AppsAttentionEngine {
             if old_tier == target_tier {
                 return false;
             }
+            let trigger_salience = state.salience;
             let shift = AttentionShift {
                 tick: self.tick,
                 app_id,
                 from_tier: old_tier,
                 to_tier: target_tier,
-                trigger_salience: state.salience,
+                trigger_salience,
                 was_beneficial: false,
             };
+            // Drop state borrow before calling self method
+            drop(state);
             self.log_shift(shift);
+            let state = self.apps.get_mut(&app_id).unwrap();
             state.tier = target_tier;
             state.ticks_in_tier = 0;
             state.attention_units = target_tier.base_cost();
