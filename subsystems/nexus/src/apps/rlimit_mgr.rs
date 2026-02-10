@@ -3,10 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Resource limit type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -40,13 +40,24 @@ pub struct Rlimit {
 }
 
 impl Rlimit {
-    pub fn new(soft: u64, hard: u64) -> Self { Self { soft, hard } }
+    pub fn new(soft: u64, hard: u64) -> Self {
+        Self { soft, hard }
+    }
     #[inline(always)]
-    pub fn unlimited() -> Self { Self { soft: RLIM_INFINITY, hard: RLIM_INFINITY } }
+    pub fn unlimited() -> Self {
+        Self {
+            soft: RLIM_INFINITY,
+            hard: RLIM_INFINITY,
+        }
+    }
     #[inline(always)]
-    pub fn is_unlimited_soft(&self) -> bool { self.soft == RLIM_INFINITY }
+    pub fn is_unlimited_soft(&self) -> bool {
+        self.soft == RLIM_INFINITY
+    }
     #[inline(always)]
-    pub fn is_unlimited_hard(&self) -> bool { self.hard == RLIM_INFINITY }
+    pub fn is_unlimited_hard(&self) -> bool {
+        self.hard == RLIM_INFINITY
+    }
 
     #[inline(always)]
     pub fn can_set_soft(&self, val: u64) -> bool {
@@ -55,19 +66,25 @@ impl Rlimit {
 
     #[inline(always)]
     pub fn can_set_hard(&self, val: u64, privileged: bool) -> bool {
-        if privileged { return true; }
+        if privileged {
+            return true;
+        }
         val <= self.hard
     }
 
     #[inline(always)]
     pub fn headroom(&self, current: u64) -> u64 {
-        if self.soft == RLIM_INFINITY { return RLIM_INFINITY; }
+        if self.soft == RLIM_INFINITY {
+            return RLIM_INFINITY;
+        }
         self.soft.saturating_sub(current)
     }
 
     #[inline(always)]
     pub fn utilization(&self, current: u64) -> f64 {
-        if self.soft == RLIM_INFINITY || self.soft == 0 { return 0.0; }
+        if self.soft == RLIM_INFINITY || self.soft == 0 {
+            return 0.0;
+        }
         current as f64 / self.soft as f64
     }
 }
@@ -96,29 +113,50 @@ pub struct ProcessLimits {
 impl ProcessLimits {
     pub fn new(pid: u32) -> Self {
         Self {
-            pid, limits: BTreeMap::new(), current_usage: ArrayMap::new(0),
-            violation_count: 0, last_violation: 0,
+            pid,
+            limits: BTreeMap::new(),
+            current_usage: ArrayMap::new(0),
+            violation_count: 0,
+            last_violation: 0,
         }
     }
 
     pub fn with_defaults(pid: u32) -> Self {
         let mut s = Self::new(pid);
-        s.limits.insert(RlimitResource::Nofile as u32, Rlimit::new(1024, 4096));
-        s.limits.insert(RlimitResource::Nproc as u32, Rlimit::new(4096, 4096));
-        s.limits.insert(RlimitResource::Stack as u32, Rlimit::new(8 * 1024 * 1024, RLIM_INFINITY));
-        s.limits.insert(RlimitResource::Core as u32, Rlimit::new(0, RLIM_INFINITY));
-        s.limits.insert(RlimitResource::Cpu as u32, Rlimit::unlimited());
-        s.limits.insert(RlimitResource::Fsize as u32, Rlimit::unlimited());
-        s.limits.insert(RlimitResource::Data as u32, Rlimit::unlimited());
-        s.limits.insert(RlimitResource::Rss as u32, Rlimit::unlimited());
-        s.limits.insert(RlimitResource::Memlock as u32, Rlimit::new(65536, 65536));
-        s.limits.insert(RlimitResource::As as u32, Rlimit::unlimited());
-        s.limits.insert(RlimitResource::Locks as u32, Rlimit::unlimited());
-        s.limits.insert(RlimitResource::Sigpending as u32, Rlimit::new(7680, 7680));
-        s.limits.insert(RlimitResource::Msgqueue as u32, Rlimit::new(819200, 819200));
-        s.limits.insert(RlimitResource::Nice as u32, Rlimit::new(0, 0));
-        s.limits.insert(RlimitResource::Rtprio as u32, Rlimit::new(0, 0));
-        s.limits.insert(RlimitResource::Rttime as u32, Rlimit::unlimited());
+        s.limits
+            .insert(RlimitResource::Nofile as u32, Rlimit::new(1024, 4096));
+        s.limits
+            .insert(RlimitResource::Nproc as u32, Rlimit::new(4096, 4096));
+        s.limits.insert(
+            RlimitResource::Stack as u32,
+            Rlimit::new(8 * 1024 * 1024, RLIM_INFINITY),
+        );
+        s.limits
+            .insert(RlimitResource::Core as u32, Rlimit::new(0, RLIM_INFINITY));
+        s.limits
+            .insert(RlimitResource::Cpu as u32, Rlimit::unlimited());
+        s.limits
+            .insert(RlimitResource::Fsize as u32, Rlimit::unlimited());
+        s.limits
+            .insert(RlimitResource::Data as u32, Rlimit::unlimited());
+        s.limits
+            .insert(RlimitResource::Rss as u32, Rlimit::unlimited());
+        s.limits
+            .insert(RlimitResource::Memlock as u32, Rlimit::new(65536, 65536));
+        s.limits
+            .insert(RlimitResource::As as u32, Rlimit::unlimited());
+        s.limits
+            .insert(RlimitResource::Locks as u32, Rlimit::unlimited());
+        s.limits
+            .insert(RlimitResource::Sigpending as u32, Rlimit::new(7680, 7680));
+        s.limits
+            .insert(RlimitResource::Msgqueue as u32, Rlimit::new(819200, 819200));
+        s.limits
+            .insert(RlimitResource::Nice as u32, Rlimit::new(0, 0));
+        s.limits
+            .insert(RlimitResource::Rtprio as u32, Rlimit::new(0, 0));
+        s.limits
+            .insert(RlimitResource::Rttime as u32, Rlimit::unlimited());
         s
     }
 
@@ -128,11 +166,21 @@ impl ProcessLimits {
     }
 
     #[inline]
-    pub fn set_limit(&mut self, res: RlimitResource, soft: u64, hard: u64, privileged: bool) -> bool {
+    pub fn set_limit(
+        &mut self,
+        res: RlimitResource,
+        soft: u64,
+        hard: u64,
+        privileged: bool,
+    ) -> bool {
         let key = res as u32;
         if let Some(current) = self.limits.get(&key) {
-            if soft > hard { return false; }
-            if !current.can_set_hard(hard, privileged) { return false; }
+            if soft > hard {
+                return false;
+            }
+            if !current.can_set_hard(hard, privileged) {
+                return false;
+            }
         }
         self.limits.insert(key, Rlimit::new(soft, hard));
         true
@@ -141,17 +189,25 @@ impl ProcessLimits {
     #[inline]
     pub fn check_soft(&self, res: RlimitResource, value: u64) -> bool {
         if let Some(lim) = self.limits.get(&(res as u32)) {
-            if lim.soft == RLIM_INFINITY { return true; }
+            if lim.soft == RLIM_INFINITY {
+                return true;
+            }
             value <= lim.soft
-        } else { true }
+        } else {
+            true
+        }
     }
 
     #[inline]
     pub fn check_hard(&self, res: RlimitResource, value: u64) -> bool {
         if let Some(lim) = self.limits.get(&(res as u32)) {
-            if lim.hard == RLIM_INFINITY { return true; }
+            if lim.hard == RLIM_INFINITY {
+                return true;
+            }
             value <= lim.hard
-        } else { true }
+        } else {
+            true
+        }
     }
 
     #[inline(always)]
@@ -162,10 +218,18 @@ impl ProcessLimits {
     pub fn near_limit_resources(&self, threshold: f64) -> Vec<(RlimitResource, f64)> {
         let mut result = Vec::new();
         let resources = [
-            RlimitResource::Cpu, RlimitResource::Fsize, RlimitResource::Data,
-            RlimitResource::Stack, RlimitResource::Core, RlimitResource::Rss,
-            RlimitResource::Nproc, RlimitResource::Nofile, RlimitResource::Memlock,
-            RlimitResource::As, RlimitResource::Locks, RlimitResource::Sigpending,
+            RlimitResource::Cpu,
+            RlimitResource::Fsize,
+            RlimitResource::Data,
+            RlimitResource::Stack,
+            RlimitResource::Core,
+            RlimitResource::Rss,
+            RlimitResource::Nproc,
+            RlimitResource::Nofile,
+            RlimitResource::Memlock,
+            RlimitResource::As,
+            RlimitResource::Locks,
+            RlimitResource::Sigpending,
             RlimitResource::Msgqueue,
         ];
         for &res in &resources {
@@ -173,7 +237,9 @@ impl ProcessLimits {
             let usage = self.current_usage.get(key as usize);
             if let Some(lim) = self.limits.get(&key) {
                 let util = lim.utilization(usage);
-                if util >= threshold { result.push((res, util)); }
+                if util >= threshold {
+                    result.push((res, util));
+                }
             }
         }
         result
@@ -203,15 +269,19 @@ pub struct AppRlimitMgr {
 impl AppRlimitMgr {
     pub fn new() -> Self {
         Self {
-            processes: BTreeMap::new(), violations: VecDeque::new(),
-            max_violations: 2048, total_violations: 0,
-            total_sets: 0, total_gets: 0,
+            processes: BTreeMap::new(),
+            violations: VecDeque::new(),
+            max_violations: 2048,
+            total_violations: 0,
+            total_sets: 0,
+            total_gets: 0,
         }
     }
 
     #[inline(always)]
     pub fn create_process(&mut self, pid: u32) {
-        self.processes.insert(pid, ProcessLimits::with_defaults(pid));
+        self.processes
+            .insert(pid, ProcessLimits::with_defaults(pid));
     }
 
     #[inline(always)]
@@ -226,14 +296,29 @@ impl AppRlimitMgr {
     }
 
     #[inline]
-    pub fn set_limit(&mut self, pid: u32, res: RlimitResource, soft: u64, hard: u64, privileged: bool) -> bool {
+    pub fn set_limit(
+        &mut self,
+        pid: u32,
+        res: RlimitResource,
+        soft: u64,
+        hard: u64,
+        privileged: bool,
+    ) -> bool {
         self.total_sets += 1;
         if let Some(proc_limits) = self.processes.get_mut(&pid) {
             proc_limits.set_limit(res, soft, hard, privileged)
-        } else { false }
+        } else {
+            false
+        }
     }
 
-    pub fn check_and_record(&mut self, pid: u32, res: RlimitResource, value: u64, now: u64) -> bool {
+    pub fn check_and_record(
+        &mut self,
+        pid: u32,
+        res: RlimitResource,
+        value: u64,
+        now: u64,
+    ) -> bool {
         if let Some(proc_limits) = self.processes.get_mut(&pid) {
             if !proc_limits.check_soft(res, value) {
                 self.total_violations += 1;
@@ -241,10 +326,16 @@ impl AppRlimitMgr {
                 proc_limits.last_violation = now;
                 let soft = proc_limits.get_limit(res).map(|l| l.soft).unwrap_or(0);
                 let violation = LimitViolation {
-                    pid, resource: res, current: value, limit: soft,
-                    timestamp: now, was_hard: !proc_limits.check_hard(res, value),
+                    pid,
+                    resource: res,
+                    current: value,
+                    limit: soft,
+                    timestamp: now,
+                    was_hard: !proc_limits.check_hard(res, value),
                 };
-                if self.violations.len() >= self.max_violations { self.violations.remove(0); }
+                if self.violations.len() >= self.max_violations {
+                    self.violations.remove(0);
+                }
                 self.violations.push_back(violation);
                 return false;
             }
@@ -259,7 +350,9 @@ impl AppRlimitMgr {
             child_limits.limits = parent_limits.limits.clone();
             self.processes.insert(child, child_limits);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
