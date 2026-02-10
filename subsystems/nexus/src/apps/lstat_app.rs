@@ -2,8 +2,6 @@
 //! App lstat — symlink-aware stat application tracking
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Lstat result
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
