@@ -198,7 +198,7 @@ impl BridgeCopyEngine {
         self.stats.avg_bandwidth_mbps = self.total_bandwidth_sum / self.total_bandwidth_count as f64;
 
         if self.completions.len() >= self.max_completions {
-            self.completions.pop_front();
+            self.completions.remove(0);
         }
         self.completions.push_back(completion);
     }
