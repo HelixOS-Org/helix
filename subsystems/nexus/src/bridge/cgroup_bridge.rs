@@ -15,6 +15,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 /// Cgroup controller type
+use core::sync::atomic::AtomicU64;
+use core::sync::atomic::Ordering;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CgroupController {
     Cpu,
@@ -847,7 +849,7 @@ impl BridgeCgroupV5Manager {
     }
 
     pub fn attach_pid(&mut self, cg_id: u64, pid: u64) -> bool {
-        if let Some(old_cg) = self.pid_cgroup.get(pid).cloned() {
+        if let Some(old_cg) = self.pid_cgroup.get(pid) {
             if let Some(cg) = self.cgroups.get_mut(&old_cg) {
                 cg.member_pids = cg.member_pids.saturating_sub(1);
             }
@@ -864,7 +866,7 @@ impl BridgeCgroupV5Manager {
 
     #[inline]
     pub fn destroy_cgroup(&mut self, cg_id: u64) -> bool {
-        if let Some(cg) = self.cgroups.remove(&cg_id) {
+        if let Some(_cg) = self.cgroups.remove(&cg_id) {
             self.stats.active_cgroups = self.stats.active_cgroups.saturating_sub(1);
             true
         } else {
