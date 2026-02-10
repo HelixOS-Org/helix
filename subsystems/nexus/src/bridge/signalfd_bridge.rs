@@ -113,7 +113,7 @@ impl SignalfdInstance {
         if self.pending.is_empty() { return None; }
         self.read_count += 1;
         self.last_read = now;
-        self.pending.pop_front()
+        self.pending.remove(0)
     }
 
     #[inline(always)]
@@ -244,7 +244,7 @@ impl BridgeSignalfd {
 
     #[inline(always)]
     pub fn record_event(&mut self, event: SignalfdEvent) {
-        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        if self.events.len() >= self.max_events { self.events.remove(0); }
         self.events.push_back(event);
     }
 
@@ -399,7 +399,7 @@ impl SignalfdV2Instance {
             return None;
         }
         self.read_count += 1;
-        self.pending.pop_front()
+        self.pending.remove(0)
     }
 
     #[inline(always)]
