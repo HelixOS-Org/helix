@@ -109,13 +109,7 @@ impl AppFairness {
     }
 
     #[inline]
-    fn update(
-        &mut self,
-        resource_share: f32,
-        expected_share: f32,
-        sla_met: bool,
-        tick: u64,
-    ) {
+    fn update(&mut self, resource_share: f32, expected_share: f32, sla_met: bool, tick: u64) {
         self.total_ticks += 1;
         self.last_tick = tick;
         self.resource_share = resource_share;
@@ -123,8 +117,7 @@ impl AppFairness {
 
         // SLA compliance EMA
         let sla_raw = if sla_met { 1.0_f32 } else { 0.0 };
-        self.sla_compliance =
-            EMA_ALPHA * sla_raw + (1.0 - EMA_ALPHA) * self.sla_compliance;
+        self.sla_compliance = EMA_ALPHA * sla_raw + (1.0 - EMA_ALPHA) * self.sla_compliance;
 
         if !sla_met {
             self.violations += 1;
@@ -163,10 +156,8 @@ impl AppFairness {
         }
         let len = self.compliance_history.len();
         let mid = len / 2;
-        let first: f32 =
-            self.compliance_history[..mid].iter().sum::<f32>() / mid as f32;
-        let second: f32 =
-            self.compliance_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
+        let first: f32 = self.compliance_history[..mid].iter().sum::<f32>() / mid as f32;
+        let second: f32 = self.compliance_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
         second - first
     }
 }
@@ -236,7 +227,11 @@ impl AppsConscience {
             total_evaluations: 0,
             total_violations: 0,
             conscience_score: 1.0,
-            rng_state: if seed == 0 { 0xC05C_CAFE_1234_5678 } else { seed },
+            rng_state: if seed == 0 {
+                0xC05C_CAFE_1234_5678
+            } else {
+                seed
+            },
         }
     }
 
@@ -255,9 +250,9 @@ impl AppsConscience {
         };
         let pclass = priority_class.min((PRIORITY_CLASSES - 1) as u8);
 
-        self.apps.entry(app_id).or_insert_with(|| {
-            AppFairness::new(app_id, String::from(app_name), pclass, sla)
-        });
+        self.apps
+            .entry(app_id)
+            .or_insert_with(|| AppFairness::new(app_id, String::from(app_name), pclass, sla));
 
         if self.apps.len() > MAX_APPS {
             self.evict_oldest(app_id);
@@ -275,33 +270,35 @@ impl AppsConscience {
         self.tick += 1;
         self.total_evaluations += 1;
 
-        if let Some(app) = self.apps.get_mut(&app_id) {
-            app.update(resource_share, expected_share, sla_met, self.tick);
+        let (sla_compliance, starved, fairness_index) =
+            if let Some(app) = self.apps.get_mut(&app_id) {
+                app.update(resource_share, expected_share, sla_met, self.tick);
+                (app.sla_compliance, app.starved, app.fairness_index)
+            } else {
+                return 0.0;
+            };
 
-            if !sla_met {
-                self.total_violations += 1;
-                self.log_violation(
-                    app_id,
-                    String::from("sla_breach"),
-                    1.0 - app.sla_compliance,
-                    String::from("SLA target not met"),
-                );
-            }
-
-            if app.starved {
-                self.log_violation(
-                    app_id,
-                    String::from("starvation"),
-                    1.0,
-                    String::from("App starved of resources"),
-                );
-            }
-
-            self.recompute_conscience();
-            app.fairness_index
-        } else {
-            0.0
+        if !sla_met {
+            self.total_violations += 1;
+            self.log_violation(
+                app_id,
+                String::from("sla_breach"),
+                1.0 - sla_compliance,
+                String::from("SLA target not met"),
+            );
         }
+
+        if starved {
+            self.log_violation(
+                app_id,
+                String::from("starvation"),
+                1.0,
+                String::from("App starved of resources"),
+            );
+        }
+
+        self.recompute_conscience();
+        fairness_index
     }
 
     /// Check SLA compliance for a specific app
@@ -328,7 +325,10 @@ impl AppsConscience {
     pub fn priority_respect(&self) -> Vec<PriorityClassFairness> {
         let mut by_class: BTreeMap<u8, Vec<&AppFairness>> = BTreeMap::new();
         for (_, app) in &self.apps {
-            by_class.entry(app.priority_class).or_insert_with(Vec::new).push(app);
+            by_class
+                .entry(app.priority_class)
+                .or_insert_with(Vec::new)
+                .push(app);
         }
 
         let mut result = Vec::new();
@@ -456,8 +456,7 @@ impl AppsConscience {
         let mean_sla = sla_sum / n;
         let raw = 0.4 * mean_fairness + 0.4 * mean_sla - starved_penalty;
         self.conscience_score =
-            EMA_ALPHA * raw.clamp(0.0, 1.0)
-                + (1.0 - EMA_ALPHA) * self.conscience_score;
+            EMA_ALPHA * raw.clamp(0.0, 1.0) + (1.0 - EMA_ALPHA) * self.conscience_score;
     }
 
     fn log_violation(
