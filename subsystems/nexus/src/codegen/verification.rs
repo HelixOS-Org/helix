@@ -496,7 +496,7 @@ impl VerificationEngine {
                     BinOp::Rem => SymBinOp::Rem,
                     BinOp::BitAnd | BinOp::And => SymBinOp::And,
                     BinOp::BitOr | BinOp::Or => SymBinOp::Or,
-                    BinOp::BitXor => SymBinOp::Xor,
+                    BinOp::BitXor | BinOp::Xor => SymBinOp::Xor,
                     BinOp::Shl => SymBinOp::Shl,
                     BinOp::Shr => SymBinOp::Shr,
                     BinOp::Eq => SymBinOp::Eq,
