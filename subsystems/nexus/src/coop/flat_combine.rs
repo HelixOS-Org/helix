@@ -3,8 +3,7 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::sync::atomic::AtomicU64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlatCombineOpType {
