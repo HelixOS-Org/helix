@@ -99,7 +99,7 @@ pub struct SyscallTranslation {
     pub from_abi: AbiVersion,
     pub to_abi: AbiVersion,
     pub arg_translations: Vec<(usize, AbiArgType, AbiArgType)>,
-    pub struct_translations: Vec<u64>, // struct hashes needing translation
+    pub struct_translations: Vec<u64>, // struct hashes needing translation,
     pub invocations: u64,
 }
 
