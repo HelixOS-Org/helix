@@ -10,6 +10,7 @@ use alloc::vec::Vec;
 
 /// Debug facility type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
 pub enum DebugFacility {
     Kgdb,
     Kdb,
@@ -246,7 +247,7 @@ impl BridgeDebug {
     pub fn record_event(&mut self, event: DebugEvent) {
         self.stats.total_events += 1;
         self.stats.total_hits += 1;
-        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        if self.events.len() >= self.max_events { self.events.remove(0); }
         self.events.push_back(event);
     }
 
