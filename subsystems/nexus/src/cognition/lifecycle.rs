@@ -336,9 +336,9 @@ impl LifecycleManager {
 
         // Update history
         if component.history.len() >= self.config.max_history {
-            component.history.pop_front().unwrap();
+            component.history.remove(0).unwrap();
         }
-        component.history.push(event);
+        component.history.push_back(event);
 
         // Update state
         component.state = to_state;
