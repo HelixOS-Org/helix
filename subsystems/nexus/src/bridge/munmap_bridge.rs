@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
 
 /// Munmap result
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,7 +31,7 @@ impl BridgeMunmapManager {
     #[inline]
     pub fn munmap(&mut self, addr: u64, length: u64) -> BridgeMunmapResult {
         self.stats.total_ops += 1;
-        if let Some(&mapped_len) = self.mapped_regions.get(addr) {
+        if let Some(mapped_len) = self.mapped_regions.get(addr) {
             if length >= mapped_len { self.mapped_regions.remove(addr); self.stats.successful += 1; }
             else { self.stats.partial += 1; }
             self.stats.total_unmapped_bytes += length;
