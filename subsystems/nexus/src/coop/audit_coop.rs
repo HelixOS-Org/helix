@@ -2,7 +2,6 @@
 //! Coop audit — cooperative audit trail coordination
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Audit coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
