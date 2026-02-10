@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// Performance event type
@@ -202,7 +201,7 @@ impl PerfEvent {
     pub fn record_sample(&mut self, sample: PerfSample) {
         if self.samples.len() >= self.max_samples {
             self.overflow_count += 1;
-            self.samples.pop_front();
+            self.samples.remove(0);
         }
         self.samples.push_back(sample);
     }
