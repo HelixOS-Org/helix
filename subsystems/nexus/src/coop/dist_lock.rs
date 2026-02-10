@@ -186,7 +186,7 @@ impl DistributedLock {
         let mut granted = Vec::new();
         while let Some(w) = self.waiters.front() {
             if self.can_grant(w.requested_mode) {
-                let w = self.waiters.pop_front().unwrap();
+                let w = self.waiters.remove(0).unwrap();
                 let fence = self.grant(w.node_id, w.owner_id, w.requested_mode, ts, lease_ns);
                 granted.push(fence);
             } else {
