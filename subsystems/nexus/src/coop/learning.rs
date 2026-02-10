@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::{BTreeMap, VecDeque};
-use alloc::vec::Vec;
 
 // ============================================================================
 // FEATURE TYPES
@@ -417,7 +416,7 @@ impl CoopLearningEngine {
         self.stats.total_reward += signal.reward;
         self.rewards.push_back(signal.reward);
         if self.rewards.len() > self.max_rewards {
-            self.rewards.pop_front();
+            self.rewards.remove(0);
         }
 
         if !self.rewards.is_empty() {
