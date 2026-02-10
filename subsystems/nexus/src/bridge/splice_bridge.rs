@@ -487,7 +487,7 @@ impl SpliceV4Pipe {
 
     #[inline]
     pub fn pop_page(&mut self) -> Option<SpliceV4PageRef> {
-        if let Some(page) = self.pages.pop() {
+        if let Some(page) = self.pages.pop_back() {
             self.used_pages = self.used_pages.saturating_sub(1);
             Some(page)
         } else {
@@ -733,7 +733,7 @@ impl SpliceV5Pipe {
 
     pub fn splice_in(&mut self, bytes: u32, page_id: u64, zero_copy: bool, dma: bool) -> u32 {
         self.total_ops += 1;
-        if let Some(last) = self.pages.last_mut() {
+        if let Some(last) = self.pages.back_mut() {
             if last.merge(bytes) {
                 self.merged_count += 1;
                 self.total_bytes += bytes as u64;
@@ -766,9 +766,9 @@ impl SpliceV5Pipe {
 
     #[inline]
     pub fn splice_out(&mut self) -> u32 {
-        if let Some(page) = self.pages.first() {
+        if let Some(page) = self.pages.front() {
             let len = page.len;
-            self.pages.pop_front();
+            self.pages.remove(0);
             self.update_state();
             len
         } else {
