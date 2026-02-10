@@ -216,7 +216,7 @@ impl ProcessMigrationProfile {
 
         self.history.push_back(event);
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
@@ -371,7 +371,7 @@ impl AppMigrationAnalyzer {
     /// Register process
     #[inline]
     pub fn register(&mut self, pid: u64, cpu: u32) {
-        let numa = self.cpu_to_numa.try_get(cpu as usize).copied().unwrap_or(0);
+        let numa = self.cpu_to_numa.try_get(cpu as usize).unwrap_or(0);
         self.profiles
             .insert(pid, ProcessMigrationProfile::new(pid, cpu, numa));
     }
@@ -401,7 +401,7 @@ impl AppMigrationAnalyzer {
 
         // Cache warmth check
         if profile.cache_affinity.warmth > self.policy.cache_warmth_threshold {
-            let target_numa = self.cpu_to_numa.try_get(target_cpu as usize).copied().unwrap_or(0);
+            let target_numa = self.cpu_to_numa.try_get(target_cpu as usize).unwrap_or(0);
             if target_numa != profile.preferred_numa {
                 return MigrationDecision::AllowWithPenalty;
             }
@@ -409,8 +409,8 @@ impl AppMigrationAnalyzer {
 
         // Check if target is less loaded
         let current_cpu = profile.cache_affinity.last_cpu;
-        let current_load = self.cpu_loads.try_get(current_cpu as usize).copied().unwrap_or(50);
-        let target_load = self.cpu_loads.try_get(target_cpu as usize).copied().unwrap_or(50);
+        let current_load = self.cpu_loads.try_get(current_cpu as usize).unwrap_or(50);
+        let target_load = self.cpu_loads.try_get(target_cpu as usize).unwrap_or(50);
 
         if target_load >= current_load {
             match reason {
@@ -448,12 +448,12 @@ impl AppMigrationAnalyzer {
 
         let mut candidates = Vec::new();
 
-        for (&cpu, &load) in &self.cpu_loads {
+        for (cpu, load) in self.cpu_loads {
             if cpu == current_cpu {
                 continue;
             }
 
-            let numa = self.cpu_to_numa.try_get(cpu as usize).copied().unwrap_or(0);
+            let numa = self.cpu_to_numa.try_get(cpu as usize).unwrap_or(0);
             let same_numa = numa == current_numa;
 
             let cache_benefit = if same_numa { 0.5 } else { 0.0 };
@@ -497,8 +497,8 @@ impl AppMigrationAnalyzer {
     pub fn update_rate(&mut self, pid: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             let window = self.rate_window_ms;
-            if let Some(first) = profile.history.first() {
-                if let Some(last) = profile.history.last() {
+            if let Some(first) = profile.history.front() {
+                if let Some(last) = profile.history.back() {
                     let span = last.timestamp.saturating_sub(first.timestamp);
                     if span > 0 && span >= window {
                         profile.migration_rate =
