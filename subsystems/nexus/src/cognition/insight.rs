@@ -606,7 +606,7 @@ impl AnomalyDetector {
 
         // Keep last 100 values
         if self.history.len() > 100 {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         // Update statistics
@@ -694,6 +694,7 @@ impl Default for InsightEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_insight_generation() {
