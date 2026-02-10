@@ -407,7 +407,7 @@ impl CycleManager {
 
         // Add to history
         if self.history.len() >= self.config.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(summary.clone());
 
