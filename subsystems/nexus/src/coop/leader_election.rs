@@ -133,7 +133,7 @@ pub struct Election {
     pub current_term: u64,
     pub leader_id: Option<u64>,
     pub lease: Option<LeaderLease>,
-    pub votes: LinearMap<u64, 64>, // voter_id -> candidate_id
+    pub votes: LinearMap<u64, 64>, // voter_id -> candidate_id,
     pub election_timeout_ns: u64,
     pub election_start_ts: u64,
     pub total_elections: u64,
@@ -172,11 +172,11 @@ impl Election {
 
     pub fn tally(&self, total_nodes: usize) -> Option<u64> {
         let majority = total_nodes / 2 + 1;
-        let mut vote_counts: LinearMap<usize, 64> = BTreeMap::new();
-        for &candidate in self.votes.values() {
+        let mut vote_counts: LinearMap<usize, 64> = LinearMap::new();
+        for candidate in self.votes.values() {
             *vote_counts.entry(candidate).or_insert(0) += 1;
         }
-        for (&candidate, &count) in &vote_counts {
+        for (candidate, count) in &vote_counts {
             if count >= majority {
                 return Some(candidate);
             }
