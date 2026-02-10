@@ -6,6 +6,9 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 
 /// Open flag
+use core::sync::atomic::AtomicU64;
+use alloc::string::String;
+use core::sync::atomic::Ordering;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpenFlag {
     ReadOnly,
