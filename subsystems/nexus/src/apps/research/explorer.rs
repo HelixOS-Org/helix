@@ -12,10 +12,11 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // CONSTANTS
@@ -162,12 +163,7 @@ impl FitnessCurve {
 
     #[inline]
     fn record(&mut self, generation: u32, best: f32, mean: f32) {
-        let prev_best = self
-            .best_per_generation
-            .values()
-            .last()
-            
-            .unwrap_or(0.0);
+        let prev_best = self.best_per_generation.values().last().unwrap_or(0.0);
         let improvement = if prev_best > 0.0 {
             (best - prev_best) / prev_best
         } else {
@@ -178,9 +174,10 @@ impl FitnessCurve {
         self.mean_per_generation.insert(generation, mean);
 
         while self.best_per_generation.len() > MAX_GENERATIONS {
-            if let Some(first) = self.best_per_generation.keys().next() {
-                self.best_per_generation.remove(first);
-                self.mean_per_generation.remove(first);
+            let first = self.best_per_generation.keys().next();
+            if let Some(first) = first {
+                self.best_per_generation.remove(&first);
+                self.mean_per_generation.remove(&first);
             }
         }
     }
@@ -283,8 +280,8 @@ impl AppsExplorer {
         let mut child_features = Vec::with_capacity(len);
         for i in 0..len {
             let alpha = xorshift_f32(&mut self.rng_state);
-            let blended = alpha * parent_a.features[i].weight
-                + (1.0 - alpha) * parent_b.features[i].weight;
+            let blended =
+                alpha * parent_a.features[i].weight + (1.0 - alpha) * parent_b.features[i].weight;
             let base = if xorshift_f32(&mut self.rng_state) < 0.5 {
                 &parent_a.features[i]
             } else {
@@ -394,8 +391,11 @@ impl AppsExplorer {
         }
 
         // Elitism + tournament selection
-        self.population
-            .sort_by(|a, b| b.fitness.partial_cmp(&a.fitness).unwrap_or(core::cmp::Ordering::Equal));
+        self.population.sort_by(|a, b| {
+            b.fitness
+                .partial_cmp(&a.fitness)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         let elite_count = ((self.population.len() as f32 * ELITISM_FRACTION) as usize).max(1);
         let prev_best = self.stats.current_best_fitness;
         self.stats.current_best_fitness = self.population.first().map_or(0.0, |i| i.fitness);
@@ -415,8 +415,7 @@ impl AppsExplorer {
         let mean = if self.population.is_empty() {
             0.0
         } else {
-            self.population.iter().map(|i| i.fitness).sum::<f32>()
-                / self.population.len() as f32
+            self.population.iter().map(|i| i.fitness).sum::<f32>() / self.population.len() as f32
         };
         self.fitness_curve
             .record(self.generation, self.stats.current_best_fitness, mean);
@@ -475,12 +474,11 @@ impl AppsExplorer {
                         || fp.efficiency > point.efficiency)
             });
             if !dominated {
-                self.frontier
-                    .retain(|fp| {
-                        !(point.accuracy >= fp.accuracy
-                            && point.coverage >= fp.coverage
-                            && point.efficiency >= fp.efficiency)
-                    });
+                self.frontier.retain(|fp| {
+                    !(point.accuracy >= fp.accuracy
+                        && point.coverage >= fp.coverage
+                        && point.efficiency >= fp.efficiency)
+                });
                 self.frontier.push(point);
                 if self.frontier.len() > FRONTIER_BUDGET {
                     self.frontier.remove(0);
