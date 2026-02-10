@@ -7,7 +7,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use core::sync::atomic::{AtomicU64, Ordering};
 
 /// Spinlock backoff strategy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
