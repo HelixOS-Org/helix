@@ -449,7 +449,7 @@ impl AppMigrationAnalyzer {
         let mut candidates = Vec::new();
 
         for (cpu, load) in self.cpu_loads.iter() {
-            if cpu == current_cpu {
+            if cpu == current_cpu as usize {
                 continue;
             }
 
@@ -465,7 +465,7 @@ impl AppMigrationAnalyzer {
                 load_score * 0.4 + cache_benefit * 0.3 + numa_benefit * 0.2 + power_benefit * 0.1;
 
             candidates.push(PlacementCandidate {
-                cpu,
+                cpu: cpu as u32,
                 numa,
                 load_pct: load,
                 cache_benefit,
