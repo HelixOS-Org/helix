@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -193,7 +192,7 @@ pub struct BinaryProfile {
     /// Symbol count
     pub symbol_count: u64,
     /// Dynamic libraries referenced
-    pub dynamic_libs: Vec<u64>, // name hashes
+    pub dynamic_libs: Vec<u64>, // name hashes,
     /// Total code size
     pub code_size: u64,
     /// Total data size
