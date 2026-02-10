@@ -140,7 +140,7 @@ impl ThreadSchedProfile {
 
         // Record burst
         if self.bursts.len() >= self.max_bursts {
-            self.bursts.pop_front();
+            self.bursts.remove(0);
         }
         self.bursts.push_back(CpuBurst {
             start: self.last_sched_in,
@@ -273,7 +273,7 @@ impl WakeupChainTracker {
         let key = Self::pair_key(event.waker, event.wakee);
         self.frequencies.add(key, 1);
         if self.wakeups.len() >= self.max_entries {
-            self.wakeups.pop_front();
+            self.wakeups.remove(0);
         }
         self.wakeups.push_back(event);
     }
