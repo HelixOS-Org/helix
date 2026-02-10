@@ -338,17 +338,7 @@ impl SchedPriority {
     }
 }
 
-impl DeadlineParams {
-    pub fn new(runtime: u64, deadline: u64, period: u64) -> Self {
-        Self { runtime_ns: runtime, deadline_ns: deadline, period_ns: period, flags: 0 }
-    }
 
-    #[inline(always)]
-    pub fn utilization(&self) -> f64 {
-        if self.period_ns == 0 { return 0.0; }
-        self.runtime_ns as f64 / self.period_ns as f64
-    }
-}
 
 /// Process scheduling state
 #[derive(Debug)]
