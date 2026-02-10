@@ -341,7 +341,7 @@ impl BridgeEmotionEngine {
 
         // Record in history
         if self.history.len() >= MAX_EMOTION_HISTORY {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(EmotionHistoryEntry {
             emotion,
@@ -351,7 +351,7 @@ impl BridgeEmotionEngine {
 
         // Update trajectory buffer
         if self.trajectory_buffer.len() >= TRAJECTORY_WINDOW {
-            self.trajectory_buffer.pop_front();
+            self.trajectory_buffer.remove(0);
         }
         self.trajectory_buffer.push_back((emotion, intensity));
 
