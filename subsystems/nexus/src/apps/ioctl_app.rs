@@ -236,7 +236,7 @@ pub struct IoctlV2AppStats {
 
 /// Main apps ioctl V2 manager.
 pub struct AppIoctlV2 {
-    pub routes: BTreeMap<u16, IoctlV2Route>, // (type << 8 | nr) → route
+    pub routes: BTreeMap<u16, IoctlV2Route>, // (type << 8 | nr) → route,
     pub recent_records: VecDeque<IoctlV2Record>,
     pub next_record_id: u64,
     pub max_history: usize,
