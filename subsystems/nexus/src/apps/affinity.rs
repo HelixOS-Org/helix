@@ -301,7 +301,7 @@ impl ProcessAffinityProfile {
         if self.total_runtime_ns == 0 {
             return 0.0;
         }
-        let max_time = self.core_usage.values().copied().max().unwrap_or(0);
+        let max_time = self.core_usage.values().max().unwrap_or(0);
         max_time as f64 / self.total_runtime_ns as f64
     }
 }
@@ -410,7 +410,7 @@ impl AppAffinityManager {
                     voluntary: false,
                 });
                 if self.migration_log.len() > self.max_log {
-                    self.migration_log.pop_front();
+                    self.migration_log.remove(0);
                 }
                 self.stats.total_migrations += 1;
             }
@@ -439,7 +439,7 @@ impl AppAffinityManager {
                     score += 50;
                 }
                 // Prefer less-used cores
-                let usage = profile.core_usage.get(&core_id).copied().unwrap_or(0);
+                let usage = profile.core_usage.get(core_id);
                 if usage > 0 {
                     score += 25; // warm cache
                 }
