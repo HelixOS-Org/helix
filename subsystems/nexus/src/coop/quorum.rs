@@ -294,6 +294,7 @@ impl QuorumGroup {
     ) -> Option<bool> {
         let weight = self.members.get(&voter_id).map(|m| m.weight).unwrap_or(1);
         let threshold = self.threshold_weight();
+        let total_weight = self.total_weight();
 
         if let Some(proposal) = self.proposals.get_mut(&proposal_id) {
             if proposal.decided || proposal.is_expired(now_ns) {
@@ -322,7 +323,7 @@ impl QuorumGroup {
                 self.total_accepted += 1;
                 return Some(true);
             }
-            if proposal.disagree_weight() > self.total_weight() - threshold {
+            if proposal.disagree_weight() > total_weight - threshold {
                 proposal.decided = true;
                 proposal.outcome = Some(false);
                 self.total_rejected += 1;
