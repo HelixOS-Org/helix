@@ -2,8 +2,6 @@
 //! Bridge integrity — IMA/EVM integrity measurement bridge
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Integrity operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
