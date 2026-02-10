@@ -6,7 +6,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// Lock type
@@ -276,7 +275,7 @@ impl BridgeFlock {
         if op.latency_ns > self.stats.peak_wait_time_ns {
             self.stats.peak_wait_time_ns = op.latency_ns;
         }
-        if self.ops.len() >= self.max_ops { self.ops.pop_front(); }
+        if self.ops.len() >= self.max_ops { self.ops.remove(0); }
         self.ops.push_back(op);
     }
 
@@ -485,7 +484,7 @@ impl DeadlockDetector {
         loop {
             if visited.contains(&current) { self.detected_cycles += 1; self.wait_graph.remove(waiter); return true; }
             visited.push(current);
-            if let Some(&next) = self.wait_graph.get(current) { current = next; }
+            if let Some(next) = self.wait_graph.get(current) { current = next; }
             else { break; }
         }
         false
