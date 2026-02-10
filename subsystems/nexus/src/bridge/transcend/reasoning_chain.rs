@@ -396,7 +396,7 @@ impl BridgeReasoningChain {
         self.quality_ema = EMA_ALPHA * overall + (1.0 - EMA_ALPHA) * self.quality_ema;
         self.quality_history.push_back(overall);
         if self.quality_history.len() > MAX_AUDIT_SAMPLE {
-            self.quality_history.pop_front();
+            self.quality_history.remove(0);
         }
 
         Some(QualityReport {
