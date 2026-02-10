@@ -119,7 +119,7 @@ impl<T: Clone> Ring<T> {
     pub fn pop(&mut self) -> Option<T> {
         if self.is_empty() { return None; }
         if self.entries.is_empty() { return None; }
-        let entry = self.entries.pop_front().unwrap();
+        let entry = self.entries.remove(0).unwrap();
         self.head = self.head.wrapping_add(1);
         Some(entry)
     }
