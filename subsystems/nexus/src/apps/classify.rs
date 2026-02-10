@@ -92,7 +92,7 @@ pub struct AppFingerprint {
     // Timing features
     pub syscall_rate: f64,
     pub avg_inter_syscall_ns: f64,
-    pub inter_syscall_cv: f64, // coefficient of variation
+    pub inter_syscall_cv: f64, // coefficient of variation,
     pub periodicity_score: f64,
 }
 
