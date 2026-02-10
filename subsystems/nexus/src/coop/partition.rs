@@ -108,7 +108,7 @@ impl Partition {
         };
 
         // Second pass: distribute proportionally
-        for (&pid, &weight) in &self.weights {
+        for (pid, weight) in self.weights.iter() {
             let proportional = if remaining > 0 {
                 (remaining as u128 * weight as u128 / total_weight as u128) as u64
             } else {
@@ -123,7 +123,7 @@ impl Partition {
     /// Get allocation for a member
     #[inline(always)]
     pub fn get_allocation(&self, pid: u64) -> u64 {
-        self.members.get(pid).copied().unwrap_or(0)
+        self.members.get(pid).unwrap_or(0)
     }
 
     /// Free capacity
