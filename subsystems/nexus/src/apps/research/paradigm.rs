@@ -227,7 +227,7 @@ impl AppsParadigm {
         let mut contra_sum = 0.0f32;
         let mut support_sum = 0.0f32;
         let mut contra_count = 0usize;
-        let mut support_count = 0usize;
+        let mut _support_count = 0usize;
 
         for ev in &self.evidence {
             match ev.direction {
@@ -237,7 +237,7 @@ impl AppsParadigm {
                 }
                 EvidenceDirection::SupportsModel => {
                     support_sum += ev.strength * ev.weight;
-                    support_count += 1;
+                    _support_count += 1;
                 }
                 EvidenceDirection::Neutral => {}
             }
