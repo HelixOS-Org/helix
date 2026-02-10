@@ -60,7 +60,7 @@ impl NumaNode {
         if other == self.id {
             return 10; // local
         }
-        *self.distances.try_get(other as usize).unwrap_or(&20)
+        self.distances.try_get(other as usize).unwrap_or(20)
     }
 
     /// Number of cores
@@ -99,7 +99,7 @@ impl NumaTopology {
     /// Get node for a core
     #[inline(always)]
     pub fn node_for_core(&self, core: u32) -> Option<u32> {
-        self.core_to_node.try_get(core as usize).copied()
+        self.core_to_node.try_get(core as usize)
     }
 
     /// Total nodes
@@ -189,8 +189,8 @@ impl NumaAccessCounters {
     pub fn most_accessed_remote_node(&self) -> Option<u32> {
         self.remote_by_node
             .iter()
-            .max_by_key(|(_, &count)| count)
-            .map(|(&node, _)| node)
+            .max_by_key(|(_, count)| *count)
+            .map(|(node, _)| node as u32)
     }
 }
 
@@ -261,7 +261,7 @@ impl ProcessNumaProfile {
         if total == 0 {
             return 1.0;
         }
-        let home = self.memory_per_node.get(&self.home_node).copied().unwrap_or(0);
+        let home = self.memory_per_node.get(self.home_node);
         home as f64 / total as f64
     }
 
@@ -425,8 +425,8 @@ impl AppNumaAnalyzer {
                 let migration_pages = profile
                     .memory_per_node
                     .iter()
-                    .filter(|(&n, _)| n != best_node)
-                    .map(|(_, &p)| p)
+                    .filter(|(n, _)| *n as u32 != best_node)
+                    .map(|(_, p)| p)
                     .sum();
 
                 self.recommendations.push(PlacementRecommendation {
