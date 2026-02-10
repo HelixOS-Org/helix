@@ -394,7 +394,7 @@ impl ActionValidator {
 
             ConditionType::ResourceAvailable => {
                 if let ParamValue::Float(required) = &precond.required {
-                    let available = self.resources.get(&precond.name).copied().unwrap_or(0.0);
+                    let available = self.resources.get(&precond.name).unwrap_or(0.0);
 
                     if available < *required {
                         return Some(ValidationError {
@@ -408,7 +408,7 @@ impl ActionValidator {
             }
 
             ConditionType::PermissionGranted => {
-                let granted = self.permissions.get(&precond.name).copied().unwrap_or(false);
+                let granted = self.permissions.get(&precond.name).unwrap_or(false);
 
                 if !granted {
                     return Some(ValidationError {
@@ -480,7 +480,7 @@ impl ActionValidator {
         self.history.push_back(result);
 
         while self.history.len() > self.config.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
