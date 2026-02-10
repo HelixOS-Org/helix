@@ -386,7 +386,7 @@ impl CognitiveExecutor {
         // Sort by priority
         self.pending.sort_by(|a, b| b.priority.cmp(&a.priority));
 
-        let task = self.pending.pop_front().unwrap();
+        let task = self.pending.remove(0).unwrap();
         let id = task.id;
 
         let state = ExecutionState {
