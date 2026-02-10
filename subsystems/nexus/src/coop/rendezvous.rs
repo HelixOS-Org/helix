@@ -231,7 +231,7 @@ impl RendezvousChannelV2 {
     }
 
     pub fn send(&mut self, id: u64, value_hash: u64, now: u64) -> Option<u64> {
-        if let Some(recv) = self.waiting_receivers.first_mut() {
+        if let Some(recv) = self.waiting_receivers.front_mut() {
             let wait = now.saturating_sub(recv.timestamp);
             recv.state = RendezvousStateV2::Matched;
             recv.matched_with = Some(id);
@@ -240,7 +240,7 @@ impl RendezvousChannelV2 {
             self.total_matches += 1;
             self.total_wait_ns += wait;
             let recv_id = recv.id;
-            self.waiting_receivers.pop_front();
+            self.waiting_receivers.remove(0);
             Some(recv_id)
         } else {
             self.waiting_senders.push_back(RendezvousEndpointV2::new_sender(id, value_hash, now));
@@ -249,7 +249,7 @@ impl RendezvousChannelV2 {
     }
 
     pub fn recv(&mut self, id: u64, now: u64) -> Option<u64> {
-        if let Some(sender) = self.waiting_senders.first_mut() {
+        if let Some(sender) = self.waiting_senders.front_mut() {
             let wait = now.saturating_sub(sender.timestamp);
             sender.state = RendezvousStateV2::Matched;
             sender.matched_with = Some(id);
@@ -257,7 +257,7 @@ impl RendezvousChannelV2 {
             self.total_matches += 1;
             self.total_wait_ns += wait;
             let val = sender.value_hash;
-            self.waiting_senders.pop_front();
+            self.waiting_senders.remove(0);
             Some(val)
         } else {
             self.waiting_receivers.push_back(RendezvousEndpointV2::new_receiver(id, now));
