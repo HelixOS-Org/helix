@@ -91,7 +91,7 @@ impl CapabilityToken {
             rights,
             owner_pid,
             created_ns: now_ns,
-            expiry_ns: now_ns + 3600_000_000_000, // 1h default
+            expiry_ns: now_ns + 3_600_000_000_000, // 1h default
             parent_cap: None,
             generation: 0,
             delegation_depth: 3,
