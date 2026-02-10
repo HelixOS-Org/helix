@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 
 /// Chroot state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
