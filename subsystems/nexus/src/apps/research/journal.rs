@@ -13,7 +13,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -207,7 +206,7 @@ impl TermIndex {
             return Vec::new();
         }
 
-        let mut scores: LinearMap<f32, 64> = BTreeMap::new();
+        let mut scores: LinearMap<f32, 64> = LinearMap::new();
         let term_count = term_hashes.len() as f32;
         for th in &term_hashes {
             if let Some(entries) = self.index.get(th) {
@@ -294,7 +293,7 @@ impl AppsJournal {
             let trend = self.topic_trends.entry(topic_hash).or_insert_with(Vec::new);
             trend.push(tick);
             if trend.len() > TREND_WINDOW {
-                trend.pop_front();
+                trend.remove(0);
             }
 
             self.entries.insert(id, entry);
