@@ -195,7 +195,7 @@ impl RequestQueue {
             }
 
             if self.completed.len() >= self.max_completed {
-                self.completed.pop_front();
+                self.completed.remove(0);
             }
             self.completed.push_back(request.clone());
 
