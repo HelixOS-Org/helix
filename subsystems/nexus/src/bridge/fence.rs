@@ -113,11 +113,11 @@ impl FencePoint {
     /// Check timeout
     #[inline]
     pub fn check_timeout(&mut self, now: u64) -> bool {
-        if self.state == FenceState::Pending {
-            if now.saturating_sub(self.created_at) >= self.timeout_ns {
-                self.state = FenceState::TimedOut;
-                return true;
-            }
+        if self.state == FenceState::Pending
+            && now.saturating_sub(self.created_at) >= self.timeout_ns
+        {
+            self.state = FenceState::TimedOut;
+            return true;
         }
         false
     }
@@ -306,12 +306,7 @@ impl BridgeFenceManager {
 
     /// Create fence
     #[inline]
-    pub fn create_fence(
-        &mut self,
-        fence_type: FenceType,
-        scope: FenceScope,
-        now: u64,
-    ) -> u64 {
+    pub fn create_fence(&mut self, fence_type: FenceType, scope: FenceScope, now: u64) -> u64 {
         let id = self.pool.allocate();
         let fence = FencePoint::new(id, fence_type, scope, now);
         self.fences.insert(id, fence);
@@ -351,7 +346,9 @@ impl BridgeFenceManager {
     /// Clean up completed fences
     #[inline]
     pub fn cleanup(&mut self) {
-        let complete_ids: Vec<u64> = self.fences.iter()
+        let complete_ids: Vec<u64> = self
+            .fences
+            .iter()
             .filter(|(_, f)| f.state != FenceState::Pending)
             .map(|(&id, _)| id)
             .collect();
