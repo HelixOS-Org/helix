@@ -196,7 +196,7 @@ impl AppUmaskMgr {
         let old = state.set_mask(new_mask, now);
 
         if self.events.len() >= self.max_events { self.events.remove(0); }
-        self.events.push_back(UmaskChangeEvent { pid, old_mask: old, new_mask: new_mask, timestamp: now });
+        self.events.push_back(UmaskChangeEvent { pid, old_mask: old, new_mask, timestamp: now });
         Some(old)
     }
 
