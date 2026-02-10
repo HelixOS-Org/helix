@@ -260,7 +260,7 @@ impl CoalesceEngine {
         let mut merged_offset = ops[0].offset;
         let mut merged_end = ops[0].offset + ops[0].size;
         let mut pids = Vec::new();
-        let mut mergeable = vec![true; ops.len()];
+        let mut mergeable = alloc::vec![true; ops.len()];
 
         for (i, op) in ops.iter().enumerate() {
             let op_end = op.offset + op.size;
@@ -291,7 +291,7 @@ impl CoalesceEngine {
         // Remove merged operations
         let mut i = 0;
         ops.retain(|_| {
-            let keep = !mergeable.get(i).copied().unwrap_or(false);
+            let keep = !mergeable.get(i).unwrap_or(&false);
             i += 1;
             keep
         });
@@ -431,7 +431,7 @@ impl TransformEngine {
             self.total_savings_ns += result.estimated_savings_ns;
         }
 
-        *self.per_type_counts.entry(syscall_type as u8).or_insert(0) += 1;
+        *self.per_type_counts.entry(syscall_type.disc()).or_insert(0) += 1;
 
         result
     }
@@ -460,7 +460,7 @@ impl TransformEngine {
     }
 
     fn default_rules() -> Vec<TransformRule> {
-        vec![
+        alloc::vec![
             TransformRule::new(
                 1,
                 "prefetch_seq_read",
