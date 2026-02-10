@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -140,8 +139,8 @@ impl SandboxRule {
             return false;
         }
         for filter in &self.arg_filters {
-            let arg_value = args.get(filter.arg_index as usize).copied().unwrap_or(0);
-            if !filter.matches(arg_value) {
+            let arg_value = args.get(filter.arg_index as usize).unwrap_or(&0);
+            if !filter.matches(*arg_value) {
                 return false;
             }
         }
@@ -337,7 +336,7 @@ pub struct BridgeSandboxManager {
     /// Profile templates
     profiles: BTreeMap<u64, SandboxProfile>,
     /// Violation log
-    violation_log: VecDeque<SandboxViolation>,
+    violation_log: Vec<SandboxViolation>,
     /// Max log size
     max_log: usize,
     /// Stats
@@ -349,7 +348,7 @@ impl BridgeSandboxManager {
         Self {
             instances: BTreeMap::new(),
             profiles: BTreeMap::new(),
-            violation_log: VecDeque::new(),
+            violation_log: Vec::new(),
             max_log: 1000,
             stats: SandboxManagerStats::default(),
         }
@@ -401,9 +400,9 @@ impl BridgeSandboxManager {
                     rule_id: 0,
                     timestamp: now,
                 };
-                self.violation_log.push_back(violation);
+                self.violation_log.push(violation);
                 if self.violation_log.len() > self.max_log {
-                    self.violation_log.pop_front();
+                    self.violation_log.remove(0);
                 }
             },
             _ => {},
