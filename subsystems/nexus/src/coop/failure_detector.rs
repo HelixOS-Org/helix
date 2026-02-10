@@ -53,7 +53,7 @@ impl HeartbeatWindow {
         if self.last_heartbeat_ts > 0 {
             let interval = ts.saturating_sub(self.last_heartbeat_ts);
             self.intervals.push_back(interval);
-            if self.intervals.len() > self.max_size { self.intervals.pop_front(); }
+            if self.intervals.len() > self.max_size { self.intervals.remove(0); }
         }
         self.last_heartbeat_ts = ts;
         self.heartbeat_count += 1;
@@ -201,20 +201,20 @@ impl PartitionDetector {
 
     pub fn detect(&mut self, reachability: &BTreeMap<u64, Vec<u64>>, now: u64) {
         // Simple connected components
-        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = LinearMap::new();
         self.groups.clear();
         for &node in reachability.keys() { visited.insert(node, false); }
 
         for &start in reachability.keys() {
-            if *visited.get(&start).unwrap_or(&true) { continue; }
+            if visited.get(start).unwrap_or(true) { continue; }
             let mut component = Vec::new();
             let mut stack = alloc::vec![start];
             while let Some(n) = stack.pop() {
-                if *visited.get(&n).unwrap_or(&true) { continue; }
+                if visited.get(n).unwrap_or(true) { continue; }
                 visited.insert(n, true);
                 component.push(n);
                 if let Some(neighbors) = reachability.get(&n) {
-                    for &nb in neighbors { if !*visited.get(&nb).unwrap_or(&true) { stack.push(nb); } }
+                    for &nb in neighbors { if !visited.get(nb).unwrap_or(true) { stack.push(nb); } }
                 }
             }
             self.groups.push(component);
