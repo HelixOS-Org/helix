@@ -571,7 +571,7 @@ impl DilatedAttention {
         value: &Matrix,
         head_idx: usize,
     ) -> Matrix {
-        let dilation = self.dilation_rates.get(head_idx).copied().unwrap_or(1);
+        let dilation = self.dilation_rates.get(head_idx).unwrap_or(1);
         let seq_len = query.rows;
         let value_dim = value.cols;
         let head_dim = query.cols;
