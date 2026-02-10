@@ -2,7 +2,6 @@
 //! Coop SELinux — cooperative SELinux context propagation
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// SELinux coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
