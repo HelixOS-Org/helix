@@ -62,7 +62,7 @@ impl MetricStats {
 
         // Add to window
         if self.values.len() >= self.window_size {
-            let removed = self.values.pop_front().unwrap();
+            let removed = self.values.remove(0).unwrap();
             self.sum -= removed;
             self.sum_sq -= removed * removed;
         }
@@ -115,7 +115,7 @@ impl MetricStats {
         }
 
         let mut sorted = self.values.clone();
-        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
+        sorted.make_contiguous().sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
 
         let n = sorted.len();
         let q1_idx = n / 4;
