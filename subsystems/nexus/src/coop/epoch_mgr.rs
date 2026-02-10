@@ -14,6 +14,8 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Epoch value
+use core::sync::atomic::AtomicU64;
+use core::sync::atomic::Ordering;
 pub type Epoch = u64;
 
 /// Participant state in epoch protocol
