@@ -12,9 +12,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -167,11 +166,11 @@ impl CalibrationRecord {
 struct PredictorHistory {
     predictor_id: u64,
     /// Recent prediction residuals (actual - predicted)
-    residuals: VecDeque<f32>,
+    residuals: Vec<f32>,
     /// Recent actual values
-    actuals: VecDeque<f32>,
+    actuals: Vec<f32>,
     /// Recent predicted values
-    predictions: VecDeque<f32>,
+    predictions: Vec<f32>,
     /// Total predictions made
     total: u64,
     /// Variance of residuals (EMA)
@@ -184,9 +183,9 @@ impl PredictorHistory {
     fn new(id: u64) -> Self {
         Self {
             predictor_id: id,
-            residuals: VecDeque::new(),
-            actuals: VecDeque::new(),
-            predictions: VecDeque::new(),
+            residuals: Vec::new(),
+            actuals: Vec::new(),
+            predictions: Vec::new(),
             total: 0,
             variance_ema: 0.01,
             bias_ema: 0.0,
@@ -196,15 +195,15 @@ impl PredictorHistory {
     #[inline]
     fn record(&mut self, predicted: f32, actual: f32) {
         let residual = actual - predicted;
-        self.residuals.push_back(residual);
-        self.actuals.push_back(actual);
-        self.predictions.push_back(predicted);
+        self.residuals.push(residual);
+        self.actuals.push(actual);
+        self.predictions.push(predicted);
         self.total += 1;
 
         if self.residuals.len() > MAX_HISTORY {
-            self.residuals.pop_front();
-            self.actuals.pop_front();
-            self.predictions.pop_front();
+            self.residuals.remove(0);
+            self.actuals.remove(0);
+            self.predictions.remove(0);
         }
 
         self.bias_ema = self.bias_ema * (1.0 - EMA_ALPHA) + residual * EMA_ALPHA;
@@ -322,9 +321,11 @@ impl BridgeConfidenceInterval {
         let hist = self.histories.get(&predictor_id);
         let intervals = if let Some(h) = hist {
             if h.residuals.len() >= 5 {
-                self.bootstrap_intervals(predictor_id, point_estimate, &h.residuals)
+                let residuals = h.residuals.clone();
+                self.bootstrap_intervals(predictor_id, point_estimate, &residuals)
             } else {
-                self.parametric_intervals(point_estimate, h.stddev())
+                let stddev = h.stddev();
+                self.parametric_intervals(point_estimate, stddev)
             }
         } else {
             // No history: use wide default intervals
