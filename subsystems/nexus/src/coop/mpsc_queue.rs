@@ -198,7 +198,7 @@ impl MpscInstance {
                     return None;
                 }
                 OverflowAction::DropOldest => {
-                    self.queue.pop_front();
+                    self.queue.remove(0);
                     self.total_drops += 1;
                 }
                 OverflowAction::Expand => {
@@ -239,7 +239,7 @@ impl MpscInstance {
             }
             return None;
         }
-        let msg = self.queue.pop_front().unwrap();
+        let msg = self.queue.remove(0).unwrap();
         let latency = now_ns.saturating_sub(msg.enqueue_ns);
         if let Some(ref mut c) = self.consumer {
             c.record_dequeue(msg.payload_size, latency);
