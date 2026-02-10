@@ -272,7 +272,7 @@ impl HintBus {
         self.total_advisories += 1;
         if self.advisories.len() >= MAX_PENDING_ADVISORIES {
             // Drop oldest advisory
-            self.advisories.pop_front();
+            self.advisories.remove(0);
             self.advisories_dropped += 1;
         }
         self.advisories.push_back(advisory);
