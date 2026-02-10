@@ -3,7 +3,6 @@
 //! Resource usage tracking and rate calculation.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::CgroupId;
@@ -49,7 +48,7 @@ impl ResourceAccountant {
     pub fn record_sample(&mut self, cgroup: CgroupId, sample: ResourceSample) {
         let samples = self.samples.entry(cgroup).or_default();
         if samples.len() >= self.max_samples {
-            samples.pop_front();
+            samples.remove(0);
         }
         samples.push(sample);
     }
