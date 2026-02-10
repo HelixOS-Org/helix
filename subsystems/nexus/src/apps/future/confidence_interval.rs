@@ -215,8 +215,8 @@ impl ErrorTracker {
         self.ema_abs_error = ema_update(self.ema_abs_error, abs_error, EMA_ALPHA);
 
         if self.errors.len() >= MAX_SAMPLES {
-            self.errors.pop_front();
-            self.absolute_errors.pop_front().unwrap();
+            self.errors.remove(0);
+            self.absolute_errors.remove(0).unwrap();
         }
         self.errors.push_back(error);
         self.absolute_errors.push_back(abs_error);
