@@ -255,7 +255,7 @@ impl CoopSlotAllocator {
         let mut idx = 0;
         let mut sorted_nodes: Vec<(&u64, &NodeAllocation)> = self.nodes.iter().collect();
         sorted_nodes.sort_by(|a, b| b.1.weight.cmp(&a.1.weight));
-        for (&nid, na) in &sorted_nodes {
+        for &(&nid, na) in &sorted_nodes {
             let share = na.fair_share(total_weight, total_free);
             for _ in 0..share {
                 if idx >= free.len() { break; }
