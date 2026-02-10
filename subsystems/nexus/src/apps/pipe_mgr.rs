@@ -102,7 +102,7 @@ impl PipeInstance {
     }
 
     #[inline]
-    pub fn close_writer(&mut self, ts: u64) {
+    pub fn close_writer(&mut self, _ts: u64) {
         self.writer_state = EndpointState::Closed;
         if self.reader_state == EndpointState::Open {
             // reader gets EOF, not broken
