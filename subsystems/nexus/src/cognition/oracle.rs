@@ -172,9 +172,9 @@ impl TimeSeriesPredictor {
     /// Add observation
     #[inline]
     pub fn observe(&mut self, timestamp: u64, value: f64) {
-        self.history.push_back((timestamp, value));
+        self.history.push((timestamp, value));
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.update_model();
     }
@@ -348,7 +348,7 @@ impl Classifier {
         let mut scores: Vec<(String, f64)> = Vec::new();
 
         for class in &self.classes {
-            let prior = self.priors.get(class).copied().unwrap_or(0.0);
+            let prior = self.priors.get(class).unwrap_or(0.0);
             let stats = self.class_stats.get(class);
 
             let likelihood = match stats {
@@ -510,9 +510,9 @@ impl OracleEngine {
 
         // Store in history
         if self.query_history.len() >= self.config.max_history {
-            self.query_history.pop_front();
+            self.query_history.remove(0);
         }
-        self.query_history.push_back((query, response.clone()));
+        self.query_history.push((query, response.clone()));
 
         response
     }
@@ -743,6 +743,7 @@ impl Default for OracleEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_time_series_prediction() {
