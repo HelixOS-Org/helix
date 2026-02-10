@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// Userfaultfd feature flags
@@ -228,7 +227,7 @@ impl UffdInstance {
         if self.msg_queue.is_empty() {
             return None;
         }
-        self.msg_queue.pop_front()
+        self.msg_queue.remove(0)
     }
 
     #[inline(always)]
@@ -566,7 +565,7 @@ impl UffdV2Instance {
     }
 
     #[inline(always)]
-    pub fn write_protect(&mut self, addr: u64, len: u64, protect: bool) {
+    pub fn write_protect(&mut self, _addr: u64, _len: u64, _protect: bool) {
         self.wp_ops += 1;
     }
 
