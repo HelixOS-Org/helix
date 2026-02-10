@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// MQ message priority
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -52,7 +51,7 @@ impl MqDescriptor {
         self.cur_msgs += 1;
         self.total_sent += 1;
         self.messages.push_back(msg);
-        self.messages.sort_by(|a, b| b.priority.cmp(&a.priority));
+        self.messages.make_contiguous().sort_by(|a, b| b.priority.cmp(&a.priority));
         true
     }
 
@@ -61,7 +60,7 @@ impl MqDescriptor {
         if self.messages.is_empty() { return None; }
         self.cur_msgs -= 1;
         self.total_received += 1;
-        self.messages.pop_front()
+        self.messages.remove(0)
     }
 }
 
