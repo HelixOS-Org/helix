@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSENSUS TYPES
@@ -147,7 +148,7 @@ impl Proposal {
             proposal_type,
             state: ProposalState::Draft,
             eligible_voters: voters,
-            votes: LinearMap::new(),
+            votes: BTreeMap::new(),
             algorithm,
             quorum,
             threshold,
@@ -173,15 +174,12 @@ impl Proposal {
         if !self.eligible_voters.contains(&voter) {
             return false;
         }
-        self.votes.insert(
+        self.votes.insert(voter, VoteRecord {
             voter,
-            VoteRecord {
-                voter,
-                vote,
-                weight,
-                timestamp: now,
-            },
-        );
+            vote,
+            weight,
+            timestamp: now,
+        });
         true
     }
 
@@ -216,11 +214,11 @@ impl Proposal {
                     match record.vote {
                         VoteType::Accept => accept += record.weight,
                         VoteType::Reject => reject += record.weight,
-                        VoteType::Abstain => {}
+                        VoteType::Abstain => {},
                     }
                 }
                 (accept, reject, total)
-            }
+            },
             _ => {
                 let mut accept = 0.0;
                 let mut reject = 0.0;
@@ -229,11 +227,11 @@ impl Proposal {
                     match record.vote {
                         VoteType::Accept => accept += 1.0,
                         VoteType::Reject => reject += 1.0,
-                        VoteType::Abstain => {}
+                        VoteType::Abstain => {},
                     }
                 }
                 (accept, reject, total)
-            }
+            },
         };
 
         if total_weight == 0.0 {
@@ -327,7 +325,15 @@ impl CoopConsensusManager {
     ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        let proposal = Proposal::new(id, proposer, proposal_type, algorithm, voters, duration_ns, now);
+        let proposal = Proposal::new(
+            id,
+            proposer,
+            proposal_type,
+            algorithm,
+            voters,
+            duration_ns,
+            now,
+        );
         self.proposals.insert(id, proposal);
         self.stats.total_proposals += 1;
         id
@@ -345,11 +351,12 @@ impl CoopConsensusManager {
     /// Vote on proposal
     #[inline]
     pub fn vote(&mut self, proposal_id: u64, voter: u64, vote: VoteType, now: u64) -> bool {
-        let weight = self.voter_weights.get(voter).copied().unwrap_or(1.0);
+        let weight: f64 = self.voter_weights.get(voter).unwrap_or(1.0);
         if let Some(proposal) = self.proposals.get_mut(&proposal_id) {
-            return proposal.cast_vote(voter, vote, weight, now);
+            proposal.cast_vote(voter, vote, weight, now)
+        } else {
+            false
         }
-        false
     }
 
     /// Finalize proposal
@@ -359,7 +366,7 @@ impl CoopConsensusManager {
         match state {
             ProposalState::Accepted => self.stats.accepted += 1,
             ProposalState::Rejected => self.stats.rejected += 1,
-            _ => {}
+            _ => {},
         }
         self.update_active();
         Some(state)
@@ -462,7 +469,7 @@ pub enum TwoPhaseState {
 // ============================================================================
 
 /// Consensus log entry
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct LogEntry {
     /// Term number
     pub term: u64,
@@ -476,6 +483,8 @@ pub struct LogEntry {
     pub committed: bool,
     /// Timestamp
     pub timestamp_ns: u64,
+
+    pub data_len: usize,
 }
 
 // ============================================================================
@@ -597,6 +606,7 @@ impl RaftNode {
             proposer,
             committed: false,
             timestamp_ns: now,
+            ..Default::default()
         });
         Some(index)
     }
@@ -626,8 +636,8 @@ impl RaftNode {
     /// Election timeout?
     #[inline(always)]
     pub fn election_timeout(&self, now: u64) -> bool {
-        self.state != RaftState::Leader &&
-        now.saturating_sub(self.last_heartbeat_ns) > self.heartbeat_timeout_ns
+        self.state != RaftState::Leader
+            && now.saturating_sub(self.last_heartbeat_ns) > self.heartbeat_timeout_ns
     }
 
     /// Heartbeat (from leader)
@@ -693,7 +703,7 @@ impl TwoPhaseTransaction {
     /// Can commit? (all voted yes)
     #[inline(always)]
     pub fn can_commit(&self) -> bool {
-        self.all_voted() && self.votes.values().all(|&v| v)
+        self.all_voted() && self.votes.values().all(|v| v)
     }
 
     /// Decide
@@ -761,7 +771,9 @@ impl CoopConsensusV2 {
     /// Register raft node
     #[inline(always)]
     pub fn register_node(&mut self, pid: u64) -> &mut RaftNode {
-        self.raft_nodes.entry(pid).or_insert_with(|| RaftNode::new(pid))
+        self.raft_nodes
+            .entry(pid)
+            .or_insert_with(|| RaftNode::new(pid))
     }
 
     /// Trigger election for node
@@ -778,7 +790,10 @@ impl CoopConsensusV2 {
     pub fn begin_2pc(&mut self, coordinator: u64, participants: Vec<u64>, now: u64) -> u64 {
         let txn_id = self.next_txn_id;
         self.next_txn_id += 1;
-        self.transactions.insert(txn_id, TwoPhaseTransaction::new(txn_id, coordinator, participants, now));
+        self.transactions.insert(
+            txn_id,
+            TwoPhaseTransaction::new(txn_id, coordinator, participants, now),
+        );
         self.update_stats();
         txn_id
     }
@@ -799,7 +814,7 @@ impl CoopConsensusV2 {
                 match decision {
                     TwoPhaseState::Commit => self.stats.committed_2pc += 1,
                     TwoPhaseState::Abort => self.stats.aborted_2pc += 1,
-                    _ => {}
+                    _ => {},
                 }
                 return Some(decision);
             }
@@ -816,10 +831,14 @@ impl CoopConsensusV2 {
 
     fn update_stats(&mut self) {
         self.stats.raft_nodes = self.raft_nodes.len();
-        self.stats.leaders = self.raft_nodes.values()
+        self.stats.leaders = self
+            .raft_nodes
+            .values()
             .filter(|n| n.state == RaftState::Leader)
             .count();
-        self.stats.active_2pc = self.transactions.values()
+        self.stats.active_2pc = self
+            .transactions
+            .values()
             .filter(|t| matches!(t.phase, TwoPhaseState::Prepare))
             .count();
     }
@@ -847,18 +866,6 @@ pub enum ConsensusRole {
     PreCandidate,
     /// Learner (non-voting)
     Learner,
-}
-
-/// Log entry
-#[derive(Debug, Clone)]
-pub struct LogEntry {
-    pub index: u64,
-    pub term: u64,
-    /// FNV-1a hash of command data
-    pub command_hash: u64,
-    pub data_len: u32,
-    pub timestamp_ns: u64,
-    pub committed: bool,
 }
 
 /// Vote request
@@ -1030,7 +1037,7 @@ impl ConsensusNode {
         self.role = ConsensusRole::Leader;
         self.leader_id = Some(self.node_id);
         // Initialize next_index for all followers
-        let last = self.last_log_index() + 1;
+        let _last = self.last_log_index() + 1;
         self.next_index.clear();
         self.match_index.clear();
         // Will be populated as followers are discovered
@@ -1046,9 +1053,10 @@ impl ConsensusNode {
             index,
             term: self.current_term,
             command_hash,
-            data_len,
+            data_len: data_len as usize,
             timestamp_ns: now_ns,
             committed: false,
+            ..Default::default()
         });
         Some(index)
     }
@@ -1155,8 +1163,9 @@ impl CoopConsensusV3 {
         self.nodes
             .insert(node_id, ConsensusNode::new(node_id, cluster_size));
         // Update cluster size for all nodes
+        let cluster_size = self.nodes.len() as u32;
         for node in self.nodes.values_mut() {
-            node.cluster_size = self.nodes.len() as u32;
+            node.cluster_size = cluster_size;
         }
     }
 
