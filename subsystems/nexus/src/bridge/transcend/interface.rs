@@ -12,8 +12,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -207,7 +206,7 @@ impl ClarityEvaluator {
         let mut pair_set: u64 = 0;
         let bytes = text.as_bytes();
         for w in bytes.windows(2) {
-            let pair_hash = (w[0] as u64) << 8 | w[1] as u64;
+            let pair_hash = ((w[0] as u64) << 8) | w[1] as u64;
             pair_set = pair_set.wrapping_add(pair_hash);
         }
         let diversity = ((pair_set % 256) as f32 / 256.0).min(1.0);
@@ -294,7 +293,7 @@ impl BridgeInterface {
     /// Build a structured narrative around an optimisation outcome.
     pub fn optimization_narrative(
         &mut self,
-        title: String,
+        _title: String,
         segments: Vec<(String, f32, f32)>,
     ) -> Vec<NarrativeSegment> {
         self.tick += 1;
@@ -438,7 +437,7 @@ impl BridgeInterface {
             {
                 self.recommendations.remove(pos);
             } else {
-                self.recommendations.pop_front();
+                self.recommendations.remove(0);
             }
         }
         self.recommendations.push_back(rec.clone());
