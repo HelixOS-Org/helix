@@ -93,7 +93,7 @@ impl CoopThreadManager {
 
     #[inline]
     pub fn remove_thread(&mut self, tid: u64) -> bool {
-        if let Some(&tgid) = self.tid_to_group.get(tid) {
+        if let Some(tgid) = self.tid_to_group.get(tid) {
             if let Some(group) = self.groups.get_mut(&tgid) {
                 group.members.retain(|&t| t != tid);
             }
@@ -105,7 +105,7 @@ impl CoopThreadManager {
     }
 
     pub fn migrate_thread(&mut self, tid: u64, new_tgid: u64) -> bool {
-        if let Some(&old_tgid) = self.tid_to_group.get(tid) {
+        if let Some(old_tgid) = self.tid_to_group.get(tid) {
             if let Some(old) = self.groups.get_mut(&old_tgid) {
                 old.members.retain(|&t| t != tid);
             }
