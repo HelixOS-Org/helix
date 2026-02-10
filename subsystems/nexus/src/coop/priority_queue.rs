@@ -132,7 +132,7 @@ impl PriorityBucket {
 
     #[inline(always)]
     pub fn dequeue(&mut self) -> Option<u64> {
-        if self.items.is_empty() { None } else { self.total_dequeued += 1; Some(self.items.pop_front().unwrap()) }
+        if self.items.is_empty() { None } else { self.total_dequeued += 1; Some(self.items.remove(0).unwrap()) }
     }
 
     #[inline(always)]
@@ -356,7 +356,7 @@ impl PriorityQueueV2 {
             if let Some(items) = self.bins.get_mut(&bin) {
                 if !items.is_empty() {
                     self.total_dequeued += 1;
-                    return Some(items.pop_front().unwrap());
+                    return Some(items.remove(0).unwrap());
                 }
             }
         }
