@@ -59,8 +59,8 @@ pub struct LockdepNode {
     pub lock_id: u64,
     pub class: LockdepClass,
     pub name: Option<String>,
-    pub forward_deps: Vec<u64>,  // locks acquired after this
-    pub backward_deps: Vec<u64>, // locks acquired before this
+    pub forward_deps: Vec<u64>,  // locks acquired after this,
+    pub backward_deps: Vec<u64>, // locks acquired before this,
     pub acquire_count: u64,
     pub contention_count: u64,
     pub irq_safe: bool,
