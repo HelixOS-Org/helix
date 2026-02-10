@@ -11,10 +11,10 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -104,7 +104,7 @@ impl EnsembleMember {
 
         self.recent_predictions.push_back(predicted);
         if self.recent_predictions.len() > MAX_HISTORY {
-            self.recent_predictions.pop_front();
+            self.recent_predictions.remove(0);
         }
     }
 }
@@ -119,7 +119,7 @@ pub struct EnsemblePrediction {
     /// Weighted ensemble prediction
     pub value: f32,
     /// Individual member predictions with weights
-    pub member_values: Vec<(u64, f32, f32)>, // (model_id, prediction, weight)
+    pub member_values: Vec<(u64, f32, f32)>, // (model_id, prediction, weight),
     /// Ensemble disagreement (variance among members)
     pub disagreement: f32,
     /// Confidence based on member agreement
@@ -219,9 +219,9 @@ impl BridgeEnsemble {
         if self.members.len() >= MAX_MEMBERS {
             return;
         }
-        self.members.entry(model_id).or_insert_with(|| {
-            EnsembleMember::new(model_id)
-        });
+        self.members
+            .entry(model_id)
+            .or_insert_with(|| EnsembleMember::new(model_id));
         self.normalize_weights();
         self.stats.member_count = self.members.len() as u32;
     }
@@ -306,12 +306,7 @@ impl BridgeEnsemble {
     }
 
     /// Update member weights based on observed actual value.
-    pub fn update_weights(
-        &mut self,
-        predictions: &[(u64, f32)],
-        actual: f32,
-        tick: u64,
-    ) {
+    pub fn update_weights(&mut self, predictions: &[(u64, f32)], actual: f32, tick: u64) {
         self.tick = tick;
         self.stats.total_weight_updates += 1;
 
@@ -350,8 +345,8 @@ impl BridgeEnsemble {
             for (id, new_w) in &weight_map {
                 let normalized = new_w / total_inv;
                 if let Some(member) = self.members.get_mut(id) {
-                    member.weight = member.weight * (1.0 - WEIGHT_EMA_ALPHA)
-                        + normalized * WEIGHT_EMA_ALPHA;
+                    member.weight =
+                        member.weight * (1.0 - WEIGHT_EMA_ALPHA) + normalized * WEIGHT_EMA_ALPHA;
                 }
             }
         }
@@ -370,15 +365,17 @@ impl BridgeEnsemble {
 
         self.prediction_history.push_back((ensemble_pred, actual));
         if self.prediction_history.len() > MAX_HISTORY {
-            self.prediction_history.pop_front();
+            self.prediction_history.remove(0);
         }
 
         // Snapshot weights periodically
         if tick % 100 == 0 {
-            let weights: Vec<(u64, f32)> = self.members.iter().map(|(id, m)| (*id, m.weight)).collect();
-            self.weight_history.push_back(WeightSnapshot { tick, weights });
+            let weights: Vec<(u64, f32)> =
+                self.members.iter().map(|(id, m)| (*id, m.weight)).collect();
+            self.weight_history
+                .push_back(WeightSnapshot { tick, weights });
             if self.weight_history.len() > 100 {
-                self.weight_history.pop_front();
+                self.weight_history.remove(0);
             }
         }
     }
@@ -414,8 +411,8 @@ impl BridgeEnsemble {
                 // Compute Pearson correlation of last `min_len` predictions
                 let start_a = a_preds.len() - min_len;
                 let start_b = b_preds.len() - min_len;
-                let a_slice = &a_preds[start_a..];
-                let b_slice = &b_preds[start_b..];
+                let a_slice: Vec<f32> = a_preds.iter().skip(start_a).copied().collect();
+                let b_slice: Vec<f32> = b_preds.iter().skip(start_b).copied().collect();
 
                 let mean_a: f32 = a_slice.iter().sum::<f32>() / min_len as f32;
                 let mean_b: f32 = b_slice.iter().sum::<f32>() / min_len as f32;
@@ -502,7 +499,11 @@ impl BridgeEnsemble {
             .values()
             .map(|m| m.mae_ema)
             .fold(f32::INFINITY, f32::min);
-        self.stats.best_member_mae = if best_mae.is_infinite() { 0.0 } else { best_mae };
+        self.stats.best_member_mae = if best_mae.is_infinite() {
+            0.0
+        } else {
+            best_mae
+        };
     }
 
     /// Get member count.
