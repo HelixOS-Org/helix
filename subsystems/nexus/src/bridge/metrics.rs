@@ -169,7 +169,7 @@ pub struct ThroughputTracker {
     /// Window size in milliseconds
     window_ms: u64,
     /// Samples per window
-    windows: VecDeque<WindowSample>,
+    windows: Vec<WindowSample>,
     /// Max windows to keep
     max_windows: usize,
     /// Current window start
@@ -197,7 +197,7 @@ impl ThroughputTracker {
     pub fn new(window_ms: u64) -> Self {
         Self {
             window_ms,
-            windows: VecDeque::new(),
+            windows: Vec::new(),
             max_windows: 60, // Keep 1 minute of history at 1s windows
             current_window_start: 0,
             current_count: 0,
@@ -229,9 +229,9 @@ impl ThroughputTracker {
             };
 
             if self.windows.len() >= self.max_windows {
-                self.windows.pop_front();
+                self.windows.remove(0);
             }
-            self.windows.push_back(sample);
+            self.windows.push(sample);
 
             self.current_window_start = current_time;
             self.current_count = 0;
@@ -328,7 +328,7 @@ impl ErrorTracker {
             self.total_errors += 1;
             *self.error_counts.entry(return_value as i32).or_insert(0) += 1;
             if self.recent_errors.len() >= self.max_recent {
-                self.recent_errors.pop_front();
+                self.recent_errors.remove(0);
             }
             self.recent_errors.push_back(timestamp);
         } else {
@@ -366,7 +366,7 @@ impl ErrorTracker {
     pub fn most_common_error(&self) -> Option<(i32, u64)> {
         self.error_counts
             .iter()
-            .max_by_key(|(_, &v)| v)
+            .max_by_key(|&(_, &v)| v)
             .map(|(&k, &v)| (k, v))
     }
 }
@@ -458,7 +458,7 @@ impl ProcessSyscallMetrics {
     ) {
         self.total_syscalls += 1;
         self.total_latency_ns += latency_ns;
-        *self.per_type.entry(syscall_type as u8).or_insert(0) += 1;
+        *self.per_type.entry(syscall_type.disc()).or_insert(0) += 1;
         if self.first_seen == 0 {
             self.first_seen = timestamp;
         }
@@ -551,7 +551,7 @@ impl MetricsRegistry {
 
         // Per-type
         self.type_metrics
-            .entry(syscall_type as u8)
+            .entry(syscall_type.disc())
             .or_insert_with(|| SyscallTypeMetrics::new(syscall_type))
             .record(latency_ns, return_value, bytes, timestamp);
 
@@ -569,7 +569,7 @@ impl MetricsRegistry {
     /// Get type metrics
     #[inline(always)]
     pub fn get_type_metrics(&self, syscall_type: SyscallType) -> Option<&SyscallTypeMetrics> {
-        self.type_metrics.get(&(syscall_type as u8))
+        self.type_metrics.get(&(syscall_type.disc()))
     }
 
     /// Get process metrics
