@@ -8,7 +8,6 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
@@ -245,7 +244,7 @@ pub struct MetricsCollector {
     /// Thresholds
     thresholds: BTreeMap<MetricKind, MetricValue>,
     /// Historical data
-    history: VecDeque<MetricReport>,
+    history: Vec<MetricReport>,
     /// Configuration
     config: MetricsConfig,
 }
@@ -281,7 +280,7 @@ impl MetricsCollector {
         let mut collector = Self {
             metrics: BTreeMap::new(),
             thresholds: BTreeMap::new(),
-            history: VecDeque::new(),
+            history: Vec::new(),
             config,
         };
 
@@ -336,9 +335,9 @@ impl MetricsCollector {
 
         // Store in history
         if self.config.store_history {
-            self.history.push_back(report.clone());
+            self.history.push(report.clone());
             if self.history.len() > self.config.history_limit {
-                self.history.pop_front();
+                self.history.remove(0);
             }
         }
 
@@ -435,16 +434,16 @@ impl MetricsCollector {
     }
 
     fn calculate_block_depth(&self, func: &IRFunction) -> u32 {
-        let mut depths: LinearMap<u32, 64> = BTreeMap::new();
+        let mut depths: LinearMap<u32, 64> = LinearMap::new();
         depths.insert(func.entry, 0);
 
         let mut changed = true;
         while changed {
             changed = false;
             for block in func.blocks.values() {
-                let block_depth = *depths.get(&block.id).unwrap_or(&0);
+                let block_depth = depths.get(block.id).unwrap_or(0);
                 for &succ in &block.successors {
-                    let current = *depths.get(&succ).unwrap_or(&0);
+                    let current = depths.get(succ).unwrap_or(0);
                     if block_depth + 1 > current {
                         depths.insert(succ, block_depth + 1);
                         changed = true;
@@ -453,7 +452,7 @@ impl MetricsCollector {
             }
         }
 
-        depths.values().copied().max().unwrap_or(0)
+        depths.values().max().unwrap_or(0)
     }
 
     fn calculate_halstead(&self, ir: &IRModule) -> HalsteadMetrics {
@@ -539,7 +538,7 @@ impl MetricsCollector {
                 *operands.entry(format!("{}", n)).or_insert(0) += 1;
             },
             IRValue::Param(n) => {
-                *operands.entry(crate::fast::fast_hash::FastHasher::new().write_str("param_").write_u64(n as u64).finish()).or_insert(0) += 1;
+                *operands.entry(format!("param_{}", n)).or_insert(0) += 1;
             },
             _ => {},
         }
@@ -761,6 +760,7 @@ impl Default for MetricsCollector {
 mod tests {
     use super::super::ir::IRBuilder;
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_halstead_metrics() {
