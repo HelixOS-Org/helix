@@ -190,7 +190,7 @@ impl VmaEntry {
     pub fn sample_size(&mut self) {
         let sz = self.size();
         if self.size_samples.len() >= 64 {
-            self.size_samples.pop_front();
+            self.size_samples.remove(0);
         }
         self.size_samples.push_back(sz);
     }
