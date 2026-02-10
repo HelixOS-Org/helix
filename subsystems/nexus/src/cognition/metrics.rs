@@ -116,7 +116,7 @@ impl HistogramValue {
         for (i, count) in self.counts.iter().enumerate() {
             cumulative += count;
             if cumulative >= target {
-                return self.buckets.get(i).copied();
+                return self.buckets.get(i);
             }
         }
         None
@@ -218,7 +218,7 @@ impl AggregatedMetric {
 
         // Update window
         if self.window.len() >= window_size {
-            self.window.pop_front();
+            self.window.remove(0);
         }
         self.window.push_back(value);
     }
@@ -569,6 +569,7 @@ pub struct DomainMetricSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_counter() {
