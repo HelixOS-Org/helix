@@ -4,7 +4,6 @@
 extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Link type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
