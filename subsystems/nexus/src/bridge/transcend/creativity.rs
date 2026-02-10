@@ -145,7 +145,7 @@ struct StrategyVault {
 
 impl StrategyVault {
     fn new() -> Self {
-        Self { strategies: BTreeMap::new(), param_hash_index: BTreeMap::new() }
+        Self { strategies: BTreeMap::new(), param_hash_index: LinearMap::new() }
     }
 
     fn add(&mut self, strategy: KnownStrategy) {
@@ -224,7 +224,7 @@ impl BridgeCreativity {
             novel_count: 0,
             accepted_count: 0,
             tick: 0,
-            rng_state: seed ^ 0xCREA_7E00_DEAD,
+            rng_state: seed ^ 0xC4EA_7E00_DEAD,
             novelty_ema: 0.0,
             risk_ema: 0.0,
             reward_ema: 0.0,
@@ -376,8 +376,8 @@ impl BridgeCreativity {
         let max_len = strat_a.parameters.len().max(strat_b.parameters.len());
         let mut combined = Vec::with_capacity(max_len.min(MAX_COMBINATION_DEPTH * 8));
         for i in 0..max_len {
-            let a = strat_a.parameters.get(i).copied().unwrap_or(0.0);
-            let b = strat_b.parameters.get(i).copied().unwrap_or(0.0);
+            let a = strat_a.parameters.get(i).unwrap_or(&0.0);
+            let b = strat_b.parameters.get(i).unwrap_or(&0.0);
             let weight = (xorshift64(&mut self.rng_state) % 100) as f32 / 100.0;
             combined.push(a * weight + b * (1.0 - weight));
         }
@@ -468,7 +468,7 @@ impl BridgeCreativity {
 
     /// Aggregate statistics.
     pub fn stats(&self) -> CreativityStats {
-        let n = self.solutions.len().max(1) as f32;
+        let _n = self.solutions.len().max(1) as f32;
         let acceptance_rate = if self.solutions.is_empty() {
             0.0
         } else {
@@ -534,8 +534,8 @@ fn param_distance(a: &[f32], b: &[f32]) -> f32 {
     let max_len = a.len().max(b.len());
     let mut sum_sq = 0.0_f32;
     for i in 0..max_len {
-        let va = a.get(i).copied().unwrap_or(0.0);
-        let vb = b.get(i).copied().unwrap_or(0.0);
+        let va = a.get(i).unwrap_or(&0.0);
+        let vb = b.get(i).unwrap_or(&0.0);
         let diff = va - vb;
         sum_sq += diff * diff;
     }
