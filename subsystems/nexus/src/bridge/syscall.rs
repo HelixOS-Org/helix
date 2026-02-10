@@ -4,7 +4,6 @@
 //! and routes them through the optimization pipeline.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -61,11 +60,57 @@ pub enum SyscallType {
     ClockGettime,
     Nanosleep,
 
+    // Polling syscalls
+    Poll,
+
+    // Process creation
+    Clone,
+
     // Other
     Unknown(u64),
 }
 
 impl SyscallType {
+    /// Get numeric discriminant for this syscall type.
+    #[inline(always)]
+    pub fn disc(&self) -> u8 {
+        match self {
+            Self::Read => 0,
+            Self::Write => 1,
+            Self::Open => 2,
+            Self::Close => 3,
+            Self::Seek => 4,
+            Self::Stat => 5,
+            Self::Readdir => 6,
+            Self::Fsync => 7,
+            Self::Ioctl => 8,
+            Self::Mmap => 9,
+            Self::Munmap => 10,
+            Self::Mprotect => 11,
+            Self::Brk => 12,
+            Self::Fork => 13,
+            Self::Exec => 14,
+            Self::Exit => 15,
+            Self::Wait => 16,
+            Self::Kill => 17,
+            Self::Socket => 18,
+            Self::Bind => 19,
+            Self::Listen => 20,
+            Self::Accept => 21,
+            Self::Connect => 22,
+            Self::Send => 23,
+            Self::Recv => 24,
+            Self::Futex => 25,
+            Self::SemWait => 26,
+            Self::SemPost => 27,
+            Self::ClockGettime => 28,
+            Self::Nanosleep => 29,
+            Self::Poll => 30,
+            Self::Clone => 31,
+            Self::Unknown(_) => 255,
+        }
+    }
+
     /// Whether this is an I/O syscall
     pub fn is_io(&self) -> bool {
         matches!(
@@ -93,7 +138,7 @@ impl SyscallType {
     pub fn is_process(&self) -> bool {
         matches!(
             self,
-            Self::Fork | Self::Exec | Self::Exit | Self::Wait | Self::Kill
+            Self::Fork | Self::Exec | Self::Exit | Self::Wait | Self::Kill | Self::Clone
         )
     }
 
@@ -478,6 +523,8 @@ impl SyscallType {
             Self::Readdir => 78,
             Self::SemWait => 230,
             Self::SemPost => 231,
+            Self::Poll => 7,
+            Self::Clone => 57,
             Self::Unknown(n) => *n,
         }
     }
@@ -549,7 +596,7 @@ impl SyscallInterceptor {
             .entry(pid)
             .or_insert_with(|| Vec::with_capacity(self.history_window));
         if hist.len() >= self.history_window {
-            hist.pop_front();
+            hist.remove(0);
         }
         hist.push(syscall_type);
 
