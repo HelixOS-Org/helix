@@ -256,7 +256,7 @@ impl CoopBandwidthAllocator {
         // Find a lender with spare capacity
         let lender_pid = {
             let mut candidates: Vec<(u64, u64)> = self.processes.iter()
-                .filter(|(&pid, proc)| pid != borrower_pid && proc.can_lend(resource, amount))
+                .filter(|&(&pid, proc)| pid != borrower_pid && proc.can_lend(resource, amount))
                 .map(|(&pid, proc)| {
                     let available = proc.buckets.get(&(resource as u8))
                         .map(|b| b.tokens)
