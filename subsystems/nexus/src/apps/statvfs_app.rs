@@ -2,8 +2,6 @@
 //! App statvfs — filesystem statistics tracking
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Statvfs variant
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
