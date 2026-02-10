@@ -6,6 +6,7 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 
 /// Clone flag type
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CloneAppFlag {
     CloneVm,
