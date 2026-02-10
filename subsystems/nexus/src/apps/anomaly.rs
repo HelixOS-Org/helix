@@ -230,7 +230,7 @@ pub struct ProcessAnomalyDetector {
     /// Z-score threshold for anomaly
     z_threshold: f64,
     /// Detected anomalies
-    anomalies: VecDeque<Anomaly>,
+    anomalies: Vec<Anomaly>,
     /// Max anomalies to keep
     max_anomalies: usize,
     /// Total anomalies detected
@@ -247,7 +247,7 @@ impl ProcessAnomalyDetector {
             fd_count_stats: RunningStats::new(60),
             ctx_switch_stats: RunningStats::new(60),
             z_threshold,
-            anomalies: VecDeque::new(),
+            anomalies: Vec::new(),
             max_anomalies: 100,
             total_detected: 0,
         }
@@ -399,7 +399,7 @@ impl ProcessAnomalyDetector {
         if self.anomalies.len() >= self.max_anomalies {
             self.anomalies.remove(0);
         }
-        self.anomalies.push_back(anomaly);
+        self.anomalies.push(anomaly);
     }
 
     /// Get recent anomalies
@@ -431,7 +431,7 @@ pub struct AnomalyManager {
     /// Max processes
     max_processes: usize,
     /// Global anomaly log
-    global_log: VecDeque<Anomaly>,
+    global_log: Vec<Anomaly>,
     /// Max global log size
     max_log: usize,
     /// Total system anomalies
@@ -446,7 +446,7 @@ impl AnomalyManager {
             detectors: BTreeMap::new(),
             z_threshold,
             max_processes,
-            global_log: VecDeque::new(),
+            global_log: Vec::new(),
             max_log: 10000,
             total_anomalies: 0,
             critical_count: 0,
@@ -476,7 +476,7 @@ impl AnomalyManager {
         if self.global_log.len() >= self.max_log {
             self.global_log.remove(0);
         }
-        self.global_log.push_back(anomaly);
+        self.global_log.push(anomaly);
     }
 
     /// Remove process
