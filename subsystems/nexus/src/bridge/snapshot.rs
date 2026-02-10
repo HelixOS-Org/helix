@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // SNAPSHOT TYPES
@@ -360,10 +361,10 @@ impl BridgeSnapshotManager {
         }
 
         let mut counter_changes = Vec::new();
-        for (&key, &target_val) in &target.counters {
-            let base_val = base.counters.get(&key).copied().unwrap_or(0);
+        for (key, target_val) in target.counters.iter() {
+            let base_val = base.counters.get(key);
             if target_val != base_val {
-                counter_changes.push((key, target_val as i64 - base_val as i64));
+                counter_changes.push((key as u32, target_val as i64 - base_val as i64));
             }
         }
 
