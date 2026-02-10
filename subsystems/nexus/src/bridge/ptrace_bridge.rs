@@ -15,8 +15,9 @@ use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Ptrace request types
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PtraceRequest {
+    #[default]
     Attach,
     Detach,
     PeekText,
@@ -39,8 +40,9 @@ pub enum PtraceRequest {
 }
 
 /// Tracee state machine
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TraceeState {
+    #[default]
     Running,
     SyscallEnter,
     SyscallExit,
@@ -48,7 +50,7 @@ pub enum TraceeState {
     GroupStop,
     EventStop,
     SingleStepping,
-    Exiting,
+    Exited,
     Detached,
 }
 
@@ -144,7 +146,7 @@ pub struct Watchpoint {
 }
 
 /// Tracee (traced process/thread)
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct Tracee {
     pub pid: u64,
     pub tid: u64,
@@ -160,6 +162,12 @@ pub struct Tracee {
     pub total_stops: u64,
     pub next_bp_id: u32,
     pub next_wp_id: u32,
+
+    pub attached_at: u64,
+    pub options: u32,
+    pub stop_reason: u32,
+    pub syscall_nr: u64,
+    pub total_syscalls: u64,
 }
 
 impl Tracee {
@@ -177,6 +185,11 @@ impl Tracee {
             total_stops: 0,
             next_bp_id: 1,
             next_wp_id: 1,
+            attached_at: ts,
+            options: 0,
+            stop_reason: 0,
+            syscall_nr: 0,
+            total_syscalls: 0,
         }
     }
 
@@ -222,15 +235,23 @@ impl Tracee {
         self.state = TraceeState::Running;
         self.stop_signal = None;
     }
+
+    /// Detach from this tracee (V2 API)
+    #[inline(always)]
+    pub fn detach(&mut self) {
+        self.state = TraceeState::Detached;
+    }
 }
 
 /// Ptrace event record
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct PtraceEvent {
     pub tracer_pid: u64,
     pub tracee_pid: u64,
     pub request: PtraceRequest,
     pub timestamp_ns: u64,
+
+    pub result: i64,
 }
 
 /// Bridge ptrace stats
@@ -326,8 +347,9 @@ impl BridgePtraceBridge {
             tracee_pid: tracee,
             request: req,
             timestamp_ns: ts,
+            ..Default::default()
         });
-        while self.events.len() > self.max_events { self.events.pop_front(); }
+        while self.events.len() > self.max_events { self.events.remove(0); }
     }
 
     #[inline]
@@ -349,29 +371,6 @@ impl BridgePtraceBridge {
 // Merged from ptrace_v2_bridge
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PtraceRequest {
-    Attach,
-    Detach,
-    PeekText,
-    PeekData,
-    PokeText,
-    PokeData,
-    GetRegs,
-    SetRegs,
-    GetFpRegs,
-    SetFpRegs,
-    SingleStep,
-    Continue,
-    Syscall,
-    Seize,
-    Interrupt,
-    Listen,
-    GetSigInfo,
-    SetSigInfo,
-    Seccomp,
-}
-
 /// Ptrace stop reason
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PtraceStop {
@@ -384,17 +383,6 @@ pub enum PtraceStop {
     SeccompStop,
     GroupStop,
     Interrupt,
-}
-
-/// Tracee state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TraceeState {
-    Running,
-    Stopped,
-    Stepping,
-    SyscallTracing,
-    Detached,
-    Exited,
 }
 
 /// Register set snapshot
@@ -435,59 +423,7 @@ impl RegisterSet {
     }
 }
 
-/// Tracee (traced process)
-#[derive(Debug)]
-pub struct Tracee {
-    pub pid: u64,
-    pub tracer_pid: u64,
-    pub state: TraceeState,
-    pub stop_reason: Option<PtraceStop>,
-    pub regs: RegisterSet,
-    pub syscall_nr: Option<u64>,
-    pub options: u32,
-    pub total_stops: u64,
-    pub total_syscalls: u64,
-    pub attached_at: u64,
-}
 
-impl Tracee {
-    pub fn new(pid: u64, tracer: u64, now: u64) -> Self {
-        Self {
-            pid, tracer_pid: tracer, state: TraceeState::Stopped,
-            stop_reason: None, regs: RegisterSet::zeroed(),
-            syscall_nr: None, options: 0, total_stops: 0,
-            total_syscalls: 0, attached_at: now,
-        }
-    }
-
-    #[inline]
-    pub fn stop(&mut self, reason: PtraceStop) {
-        self.state = TraceeState::Stopped;
-        self.stop_reason = Some(reason);
-        self.total_stops += 1;
-        if matches!(reason, PtraceStop::SyscallEntry | PtraceStop::SyscallExit) {
-            self.total_syscalls += 1;
-        }
-    }
-
-    #[inline(always)]
-    pub fn resume(&mut self, stepping: bool) {
-        self.state = if stepping { TraceeState::Stepping } else { TraceeState::Running };
-        self.stop_reason = None;
-    }
-
-    #[inline(always)]
-    pub fn detach(&mut self) { self.state = TraceeState::Detached; }
-}
-
-/// Ptrace event record
-#[derive(Debug, Clone)]
-pub struct PtraceEvent {
-    pub tracee_pid: u64,
-    pub request: PtraceRequest,
-    pub result: i64,
-    pub timestamp: u64,
-}
 
 /// Bridge stats
 #[derive(Debug, Clone)]
@@ -516,7 +452,7 @@ impl BridgePtraceV2 {
     #[inline]
     pub fn attach(&mut self, pid: u64, tracer: u64, now: u64) -> bool {
         if self.tracees.contains_key(&pid) { return false; }
-        self.tracees.insert(pid, Tracee::new(pid, tracer, now));
+        self.tracees.insert(pid, Tracee::new(pid, pid, tracer, now));
         self.record_event(pid, PtraceRequest::Attach, 0, now);
         true
     }
@@ -532,26 +468,36 @@ impl BridgePtraceV2 {
 
     #[inline(always)]
     pub fn stop_tracee(&mut self, pid: u64, reason: PtraceStop) {
-        if let Some(t) = self.tracees.get_mut(&pid) { t.stop(reason); }
+        if let Some(t) = self.tracees.get_mut(&pid) {
+            let state = match reason {
+                PtraceStop::SyscallEntry => TraceeState::SyscallEnter,
+                PtraceStop::SyscallExit => TraceeState::SyscallExit,
+                PtraceStop::Signal(_s) => TraceeState::SignalStop,
+                PtraceStop::GroupStop => TraceeState::GroupStop,
+                _ => TraceeState::EventStop,
+            };
+            let sig = match reason { PtraceStop::Signal(s) => Some(s), _ => None };
+            t.stop(state, sig);
+        }
     }
 
     #[inline]
     pub fn continue_tracee(&mut self, pid: u64, stepping: bool, now: u64) {
         if let Some(t) = self.tracees.get_mut(&pid) {
-            t.resume(stepping);
+            t.resume();
             let req = if stepping { PtraceRequest::SingleStep } else { PtraceRequest::Continue };
             self.record_event(pid, req, 0, now);
         }
     }
 
     #[inline(always)]
-    pub fn get_regs(&self, pid: u64) -> Option<&RegisterSet> {
+    pub fn get_regs(&self, pid: u64) -> Option<&RegisterSnapshot> {
         self.tracees.get(&pid).map(|t| &t.regs)
     }
 
     fn record_event(&mut self, pid: u64, req: PtraceRequest, result: i64, now: u64) {
         if self.events.len() >= self.max_events { self.events.drain(..self.max_events / 4); }
-        self.events.push_back(PtraceEvent { tracee_pid: pid, request: req, result, timestamp: now });
+        self.events.push_back(PtraceEvent { tracer_pid: 0, tracee_pid: pid, request: req, result, timestamp_ns: now });
     }
 
     #[inline]
