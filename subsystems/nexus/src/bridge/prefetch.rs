@@ -212,8 +212,8 @@ impl FileAccessTracker {
         }
 
         if self.offsets.len() >= 32 {
-            self.offsets.pop_front();
-            self.sizes.pop_front();
+            self.offsets.remove(0);
+            self.sizes.remove(0);
         }
         self.offsets.push_back(offset);
         self.sizes.push_back(size);
