@@ -133,7 +133,7 @@ pub struct DivineOptimisation {
 #[derive(Debug, Clone, Copy, Default)]
 #[repr(align(64))]
 pub struct AscensionStats {
-    pub current_level: u8, // 0-4 for Mortal-Divine
+    pub current_level: u8, // 0-4 for Mortal-Divine,
     pub progress: f32,
     pub total_improvements: u64,
     pub autonomous_improvements: u64,
@@ -155,7 +155,7 @@ pub struct BridgeAscension {
     level: AscensionLevel,
     progress: f32,
     metrics: BTreeMap<u64, AscensionMetric>,
-    improvement_log: VecDeque<ImprovementCycle>,
+    improvement_log: Vec<ImprovementCycle>,
     ceremonies: Vec<AscensionCeremony>,
     divine_log: Vec<DivineOptimisation>,
     total_improvements: u64,
@@ -173,13 +173,13 @@ impl BridgeAscension {
             level: AscensionLevel::Mortal,
             progress: 0.0,
             metrics: BTreeMap::new(),
-            improvement_log: VecDeque::new(),
+            improvement_log: Vec::new(),
             ceremonies: Vec::new(),
             divine_log: Vec::new(),
             total_improvements: 0,
             autonomous_improvements: 0,
             tick: 0,
-            rng_state: seed ^ 0xA5CE_ND00_BEEF,
+            rng_state: seed ^ 0xA5CE_0D00_BEEF,
             progress_ema: 0.0,
             improvement_ema: 0.0,
         }
@@ -210,9 +210,9 @@ impl BridgeAscension {
         if let Some(m) = self.metrics.get_mut(&metric_id) {
             m.current_value = value;
             m.ema = EMA_ALPHA * value + (1.0 - EMA_ALPHA) * m.ema;
-            m.history.push(value);
+            m.history.push_back(value);
             if m.history.len() > IMPROVEMENT_WINDOW * 5 {
-                m.history.pop_front().unwrap();
+                m.history.remove(0).unwrap();
             }
         }
     }
@@ -309,9 +309,9 @@ impl BridgeAscension {
         };
 
         if self.improvement_log.len() >= MAX_IMPROVEMENT_LOG {
-            self.improvement_log.pop_front();
+            self.improvement_log.remove(0);
         }
-        self.improvement_log.push_back(cycle);
+        self.improvement_log.push(cycle);
 
         self.improvement_ema =
             EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
@@ -347,9 +347,9 @@ impl BridgeAscension {
         };
 
         if self.improvement_log.len() >= MAX_IMPROVEMENT_LOG {
-            self.improvement_log.pop_front();
+            self.improvement_log.remove(0);
         }
-        self.improvement_log.push_back(cycle);
+        self.improvement_log.push(cycle);
 
         self.improvement_ema =
             EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
