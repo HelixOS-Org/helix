@@ -2,7 +2,6 @@
 //! Coop keyring — cooperative key sharing across processes
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Keyring coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
