@@ -144,7 +144,7 @@ impl AnomalyDetector {
 
             // Store anomaly
             if self.anomalies.len() >= self.max_anomalies {
-                self.anomalies.pop_front();
+                self.anomalies.remove(0);
             }
             self.anomalies.push_back(anom.clone());
 
