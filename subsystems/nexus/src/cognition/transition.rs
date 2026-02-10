@@ -320,7 +320,7 @@ impl<S: Clone + Eq + Ord + core::fmt::Debug> StateMachine<S> {
     /// Get flag
     #[inline(always)]
     pub fn get_flag(&self, name: &str) -> bool {
-        self.flags.get(name).copied().unwrap_or(false)
+        self.flags.get(name).unwrap_or(false)
     }
 
     /// Set metric
@@ -332,7 +332,7 @@ impl<S: Clone + Eq + Ord + core::fmt::Debug> StateMachine<S> {
     /// Get metric
     #[inline(always)]
     pub fn get_metric(&self, name: &str) -> f64 {
-        self.metrics.get(name).copied().unwrap_or(0.0)
+        self.metrics.get(name).unwrap_or(0.0)
     }
 
     /// Check condition
@@ -459,7 +459,7 @@ impl<S: Clone + Eq + Ord + core::fmt::Debug> StateMachine<S> {
 
                 // Record history
                 if self.history.len() >= self.config.max_history {
-                    self.history.pop_front();
+                    self.history.remove(0);
                 }
                 self.history.push_back(StateChange {
                     from,
