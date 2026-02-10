@@ -116,7 +116,7 @@ impl SymbolLookup {
             // Format as "symbol+0xoffset"
             s.push_str("+0x");
             // Simple hex formatting
-            let mut hex = alloc::format!("{:x}", self.offset);
+            let hex = alloc::format!("{:x}", self.offset);
             s.push_str(&hex);
         }
         if let Some(ref module) = self.module {
