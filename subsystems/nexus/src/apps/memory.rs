@@ -400,7 +400,7 @@ impl AllocationAnalyzer {
     pub fn dominant_class(&self) -> AllocSizeClass {
         self.alloc_counts
             .iter()
-            .max_by_key(|(_, &v)| v)
+            .max_by_key(|&(_, &v)| v)
             .map(|(&k, _)| match k {
                 0 => AllocSizeClass::Tiny,
                 1 => AllocSizeClass::Small,
