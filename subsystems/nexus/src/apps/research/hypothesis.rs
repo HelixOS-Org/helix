@@ -179,7 +179,7 @@ impl AnomalyTracker {
         *freq += 1;
         self.anomalies.push_back((tick, anomaly_type, severity, ctx_hash));
         if self.anomalies.len() > MAX_ANOMALIES {
-            self.anomalies.pop_front();
+            self.anomalies.remove(0);
         }
     }
 
@@ -187,8 +187,8 @@ impl AnomalyTracker {
         let mut patterns: Vec<(u64, u32)> = self
             .pattern_hashes
             .iter()
-            .filter(|(_, &count)| count > 2)
-            .map(|(&hash, &count)| (hash, count))
+            .filter(|(_, count)| *count > 2)
+            .map(|(hash, count)| (hash, count))
             .collect();
         patterns.sort_by(|a, b| b.1.cmp(&a.1));
         patterns
@@ -326,10 +326,10 @@ impl AppsHypothesisEngine {
             None => return false,
         };
         if hypothesis.evidence.len() >= MAX_EVIDENCE_PER_HYPOTHESIS {
-            hypothesis.evidence.pop_front().unwrap();
+            hypothesis.evidence.remove(0).unwrap();
         }
         let ev_id = fnv1a_hash(evidence_desc.as_bytes()) ^ xorshift64(&mut self.rng_state);
-        hypothesis.evidence.push(Evidence {
+        hypothesis.evidence.push_back(Evidence {
             evidence_id: ev_id,
             anomaly_type,
             strength: strength.clamp(0.0, 1.0),
