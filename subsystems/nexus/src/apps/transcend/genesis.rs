@@ -182,15 +182,21 @@ impl AppsGenesis {
         obs.sample_count += 1;
         obs.fingerprint = ema_update(obs.fingerprint, fp);
 
+        // Extract values before calling self methods
+        let obs_fingerprint = obs.fingerprint;
+        let obs_cpu_ema = obs.cpu_ema;
+        let obs_mem_ema = obs.mem_ema;
+        let obs_io_ema = obs.io_ema;
+
         // Novelty detection.
         let novelty = self.compute_novelty(workload_id);
         if novelty > NOVELTY_THRESHOLD && !self.novel_workloads.contains_key(&workload_id) {
             self.novel_workloads.insert(workload_id, NovelWorkload {
                 workload_id,
-                fingerprint: obs.fingerprint,
-                cpu_profile: obs.cpu_ema,
-                mem_profile: obs.mem_ema,
-                io_profile: obs.io_ema,
+                fingerprint: obs_fingerprint,
+                cpu_profile: obs_cpu_ema,
+                mem_profile: obs_mem_ema,
+                io_profile: obs_io_ema,
                 novelty_score: novelty,
                 adapted: false,
             });
@@ -210,8 +216,10 @@ impl AppsGenesis {
         let obs = self.observations.get(&workload_id)?;
 
         let trigger_hash = fnv1a(&obs.fingerprint.to_le_bytes());
+        let _obs_fingerprint = obs.fingerprint;
+        let obs_clone = obs.clone();
         let action_hash = fnv1a(label.as_bytes()) ^ xorshift64(&mut self.rng);
-        let estimated_gain = self.estimate_strategy_gain(obs);
+        let estimated_gain = self.estimate_strategy_gain(&obs_clone);
 
         let strategy_id = trigger_hash ^ action_hash;
         let strategy = GenesisStrategy {
@@ -242,8 +250,10 @@ impl AppsGenesis {
         self.generation += 1;
 
         let classifier_id = fnv1a(&obs.fingerprint.to_le_bytes()) ^ xorshift64(&mut self.rng);
-        let feature_hashes = self.extract_feature_hashes(obs);
-        let threshold = self.compute_classification_threshold(obs);
+        let _obs_fingerprint = obs.fingerprint;
+        let obs_clone = obs.clone();
+        let feature_hashes = self.extract_feature_hashes(&obs_clone);
+        let threshold = self.compute_classification_threshold(&obs_clone);
 
         let label = alloc::format!("classifier_{:x}", classifier_id & 0xFFFF);
         let classifier = DynamicClassifier {
@@ -272,9 +282,10 @@ impl AppsGenesis {
         mem: u64,
         io: u64,
     ) -> Option<bool> {
-        let classifier = self.classifiers.get_mut(&classifier_id)?;
+        let feature_hashes = self.classifiers.get(&classifier_id)?.feature_hashes.clone();
         let fp = self.compute_fingerprint(cpu, mem, io, 0);
-        let score = self.evaluate_classifier_score(&classifier.feature_hashes, fp);
+        let score = self.evaluate_classifier_score(&feature_hashes, fp);
+        let classifier = self.classifiers.get_mut(&classifier_id)?;
         classifier.classifications_made += 1;
         let result = score >= classifier.threshold;
         Some(result)
