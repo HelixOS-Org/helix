@@ -210,7 +210,7 @@ impl AppsWaitTracker {
             timestamp: ts, wait_latency_ns: latency_ns, was_nohang: options.is_nohang(),
             got_result,
         });
-        if self.events.len() > self.max_events { self.events.pop_front(); }
+        if self.events.len() > self.max_events { self.events.remove(0); }
     }
 
     #[inline(always)]
@@ -412,7 +412,7 @@ impl AppWaitV2Tracker {
                     rusage_maxrss: 0, waited_ticks: 0, tick,
                 };
                 if self.history.len() >= self.max_history {
-                    self.history.pop_front();
+                    self.history.remove(0);
                 }
                 self.history.push_back(record);
                 return Some(child);
