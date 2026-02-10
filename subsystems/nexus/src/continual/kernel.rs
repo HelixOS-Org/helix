@@ -34,7 +34,7 @@ pub struct KernelContinualLearner {
     /// Performance baselines per task type
     pub baselines: BTreeMap<KernelLearningTask, f64>,
     /// Transfer learning gains
-    pub transfer_gains: Vec<(u64, u64, f64)>, // (from_task, to_task, gain)
+    pub transfer_gains: Vec<(u64, u64, f64)>, // (from_task, to_task, gain),
 }
 
 impl KernelContinualLearner {
