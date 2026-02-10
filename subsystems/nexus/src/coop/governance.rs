@@ -11,7 +11,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -173,8 +172,8 @@ impl PolicyRule {
             return None;
         }
         for cond in &self.conditions {
-            let value = values.get(&cond.field_hash).copied().unwrap_or(0.0);
-            if !cond.evaluate(value) {
+            let value = values.get(&cond.field_hash).unwrap_or(&0.0);
+            if !cond.evaluate(*value) {
                 return None;
             }
         }
@@ -289,8 +288,8 @@ impl TenantBoundary {
     /// Check within limits
     #[inline]
     pub fn within_limits(&self) -> bool {
-        for (&resource, &limit) in &self.resource_limits {
-            let usage = self.resource_usage.get(resource).copied().unwrap_or(0.0);
+        for (resource, limit) in &self.resource_limits {
+            let usage = self.resource_usage.get(resource).unwrap_or(0.0);
             if usage > limit {
                 return false;
             }
@@ -301,8 +300,8 @@ impl TenantBoundary {
     /// Utilization per resource
     #[inline]
     pub fn utilization(&self, resource_hash: u64) -> f64 {
-        let usage = self.resource_usage.get(resource_hash).copied().unwrap_or(0.0);
-        let limit = self.resource_limits.get(resource_hash).copied().unwrap_or(1.0);
+        let usage = self.resource_usage.get(resource_hash).unwrap_or(0.0);
+        let limit = self.resource_limits.get(resource_hash).unwrap_or(1.0);
         if limit > 0.0 { usage / limit } else { 0.0 }
     }
 }
@@ -392,7 +391,7 @@ impl CoopGovernanceEngine {
         self.stats.total_evaluations += 1;
 
         // Find tenant-specific policy
-        if let Some(&tenant_id) = self.process_tenant.get(pid) {
+        if let Some(tenant_id) = self.process_tenant.get(pid) {
             if let Some(tenant) = self.tenants.get(&tenant_id) {
                 let set_id = tenant.policy_set_id;
                 if let Some(policy_set) = self.policies.get_mut(&set_id) {
