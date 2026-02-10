@@ -161,9 +161,9 @@ impl AppsSynthesisEngine {
             sample_count: 0,
         });
         if buf.samples.len() >= 256 {
-            buf.samples.pop_front().unwrap();
+            buf.samples.remove(0).unwrap();
         }
-        buf.samples.push([cpu, mem, io, ipc]);
+        buf.samples.push_back([cpu, mem, io, ipc]);
         buf.sample_count += 1;
     }
 
