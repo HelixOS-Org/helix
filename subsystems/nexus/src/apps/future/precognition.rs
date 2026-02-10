@@ -330,7 +330,7 @@ impl AppPrecogState {
 
         self.phase_hash = new_hash;
         if self.phase_transitions.len() >= MAX_PHASE_HISTORY {
-            self.phase_transitions.pop_front();
+            self.phase_transitions.remove(0);
         }
         self.phase_transitions.push_back(event.clone());
         self.total_shifts_detected += 1;
@@ -363,7 +363,7 @@ impl AppPrecogState {
         };
 
         if self.workload_changes.len() >= MAX_DRIFT_HISTORY {
-            self.workload_changes.pop_front();
+            self.workload_changes.remove(0);
         }
         self.workload_changes.push_back(change.clone());
 
