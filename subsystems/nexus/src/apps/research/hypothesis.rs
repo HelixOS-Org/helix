@@ -13,11 +13,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -170,14 +170,21 @@ impl AnomalyTracker {
         }
     }
 
-    fn record(&mut self, anomaly_type: ClassificationAnomaly, severity: f32, tick: u64, ctx_hash: u64) {
+    fn record(
+        &mut self,
+        anomaly_type: ClassificationAnomaly,
+        severity: f32,
+        tick: u64,
+        ctx_hash: u64,
+    ) {
         let type_key = anomaly_type as u64;
         let count = self.type_counts.entry(type_key).or_insert(0);
         *count += 1;
         let pattern = fnv1a_hash(&ctx_hash.to_le_bytes()) ^ type_key;
         let freq = self.pattern_hashes.entry(pattern).or_insert(0);
         *freq += 1;
-        self.anomalies.push_back((tick, anomaly_type, severity, ctx_hash));
+        self.anomalies
+            .push_back((tick, anomaly_type, severity, ctx_hash));
         if self.anomalies.len() > MAX_ANOMALIES {
             self.anomalies.remove(0);
         }
@@ -294,7 +301,8 @@ impl AppsHypothesisEngine {
         let mut opposing_weight: f32 = 0.0;
         let mut ema_strength: f32 = 0.0;
         for ev in &hypothesis.evidence {
-            ema_strength = EVIDENCE_WEIGHT_EMA * ev.strength + (1.0 - EVIDENCE_WEIGHT_EMA) * ema_strength;
+            ema_strength =
+                EVIDENCE_WEIGHT_EMA * ev.strength + (1.0 - EVIDENCE_WEIGHT_EMA) * ema_strength;
             if ev.supports {
                 supporting_weight += ev.strength;
             } else {
@@ -442,7 +450,11 @@ impl AppsHypothesisEngine {
                 expected_impact: h.expected_impact,
             });
         }
-        ranked.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(core::cmp::Ordering::Equal));
+        ranked.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         for (i, r) in ranked.iter_mut().enumerate() {
             r.rank = i as u32 + 1;
         }
