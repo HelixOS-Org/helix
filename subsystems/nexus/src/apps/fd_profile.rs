@@ -218,7 +218,7 @@ impl ProcessFdProfile {
 
         self.fd_growth_samples.push_back((ts, self.current_open));
         if self.fd_growth_samples.len() > 128 {
-            self.fd_growth_samples.pop_front();
+            self.fd_growth_samples.remove(0);
         }
     }
 
