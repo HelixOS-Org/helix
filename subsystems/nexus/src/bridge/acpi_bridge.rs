@@ -232,7 +232,7 @@ impl BridgeAcpi {
     pub fn record_event(&mut self, event: AcpiEvent) {
         self.stats.event_count += 1;
         if self.events.len() >= self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
         self.events.push_back(event);
     }
