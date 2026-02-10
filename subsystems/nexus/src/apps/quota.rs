@@ -474,7 +474,7 @@ impl AppQuotaManager {
 
         // Check group quota
         if let Some(group_id) = self.pid_to_group.get(pid) {
-            if let Some(group) = self.groups.get(group_id) {
+            if let Some(group) = self.groups.get(&group_id) {
                 let action = group.shared_quota.check_resource(resource, amount);
                 if matches!(action, EnforcementAction::Deny | EnforcementAction::Kill) {
                     return action;
@@ -504,7 +504,7 @@ impl AppQuotaManager {
         }
 
         // Consume from group quota
-        let group_id = self.pid_to_group.get(pid).copied();
+        let group_id = self.pid_to_group.get(pid);
         if let Some(gid) = group_id {
             if let Some(group) = self.groups.get_mut(&gid) {
                 let action = group.shared_quota.consume(resource, amount);
@@ -536,7 +536,7 @@ impl AppQuotaManager {
             });
 
             if self.violations.len() > self.max_violations {
-                self.violations.pop_front();
+                self.violations.remove(0);
             }
 
             self.stats.violations += 1;
