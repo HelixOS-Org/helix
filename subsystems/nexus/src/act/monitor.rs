@@ -402,7 +402,7 @@ impl ExecutionMonitor {
 
             // Trim history
             while self.history.len() > self.config.history_size {
-                self.history.pop_front();
+                self.history.remove(0);
             }
         }
     }
