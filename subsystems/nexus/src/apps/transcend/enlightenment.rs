@@ -16,7 +16,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -94,8 +93,8 @@ pub struct AppEnlightenmentProfile {
     pub understanding_score: u64,
     pub observation_count: u64,
     pub prediction_accuracy: u64,
-    pub predictions: VecDeque<u64>,
-    pub actuals: VecDeque<u64>,
+    pub predictions: Vec<u64>,
+    pub actuals: Vec<u64>,
     pub essence_fingerprint: Vec<u64>,
     pub purpose_hash: u64,
     pub purpose_label: String,
@@ -211,8 +210,8 @@ impl AppsEnlightenment {
                     understanding_score: 0,
                     observation_count: 0,
                     prediction_accuracy: 0,
-                    predictions: VecDeque::new(),
-                    actuals: VecDeque::new(),
+                    predictions: Vec::new(),
+                    actuals: Vec::new(),
                     essence_fingerprint: Vec::new(),
                     purpose_hash: 0,
                     purpose_label: String::new(),
@@ -225,8 +224,8 @@ impl AppsEnlightenment {
 
         // Track prediction accuracy
         if profile.predictions.len() >= PREDICTION_HISTORY {
-            profile.predictions.pop_front().unwrap();
-            profile.actuals.pop_front().unwrap();
+            profile.predictions.remove(0);
+            profile.actuals.remove(0);
         }
         profile.predictions.push(predicted_cpu);
         profile.actuals.push(cpu);
