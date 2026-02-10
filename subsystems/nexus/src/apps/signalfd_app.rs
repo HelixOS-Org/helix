@@ -67,7 +67,7 @@ impl SignalfdInstance {
     #[inline]
     pub fn deliver(&mut self, info: SignalfdInfo) {
         if !self.mask.contains(info.signo) { return; }
-        if self.pending.len() >= self.max_pending { self.pending.pop_front(); }
+        if self.pending.len() >= self.max_pending { self.pending.remove(0); }
         self.pending.push_back(info);
     }
 
@@ -75,7 +75,7 @@ impl SignalfdInstance {
     pub fn read(&mut self) -> Option<SignalfdInfo> {
         if self.pending.is_empty() { return None; }
         self.read_count += 1;
-        self.pending.pop_front()
+        self.pending.remove(0)
     }
 }
 
