@@ -351,7 +351,7 @@ impl AppTraceProfiler {
 
     /// Remove process
     #[inline]
-    pub fn remove_process(&mut self, pid: u64) {
+    pub fn remove_process(&mut self, _pid: u64) {
         // Remove all graphs that belong to this process
         // Since keys are hashed, we'd need to track pid->keys mapping
         // For simplicity, this is a placeholder
