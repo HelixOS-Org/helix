@@ -140,7 +140,7 @@ impl SwapCoopManager {
     /// Request swap slots for a process
     pub fn request_slots(&mut self, pid: u64, count: u64) -> u64 {
         let group_id = match self.pid_groups.get(pid) {
-            Some(g) => *g,
+            Some(g) => g,
             None => return 0,
         };
         let budget = match self.budgets.get_mut(&group_id) {
@@ -161,7 +161,7 @@ impl SwapCoopManager {
     #[inline]
     pub fn release_slots(&mut self, pid: u64, count: u64) {
         let group_id = match self.pid_groups.get(pid) {
-            Some(g) => *g,
+            Some(g) => g,
             None => return,
         };
         if let Some(budget) = self.budgets.get_mut(&group_id) {
