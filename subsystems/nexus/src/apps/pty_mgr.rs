@@ -162,8 +162,10 @@ impl JobControlState {
         let all_pids: Vec<u64> = self.process_groups.values().flat_map(|g| g.iter().copied()).collect();
         let mut orphaned = Vec::new();
         for (&pgrp, members) in &self.process_groups {
-            if members.iter().all(|&p| p == pgrp || !all_pids.contains(&p)) {
-                if !orphaned.contains(&pgrp) { orphaned.push(pgrp); }
+            if members.iter().all(|&p| p == pgrp || !all_pids.contains(&p))
+                && !orphaned.contains(&pgrp)
+            {
+                orphaned.push(pgrp);
             }
         }
         self.orphaned_groups = orphaned.clone();
