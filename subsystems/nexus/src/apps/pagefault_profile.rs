@@ -162,13 +162,11 @@ impl ProcessFaultProfile {
             hs.fault_count += 1;
             hs.last_fault_ts = event.timestamp;
             hs.total_resolution_ns += event.resolution_ns;
-        } else {
-            if self.hotspots.len() < self.max_hotspots {
-                let mut hs = FaultHotspot::new(page, event.fault_type, event.access);
-                hs.last_fault_ts = event.timestamp;
-                hs.total_resolution_ns = event.resolution_ns;
-                self.hotspots.insert(page, hs);
-            }
+        } else if self.hotspots.len() < self.max_hotspots {
+            let mut hs = FaultHotspot::new(page, event.fault_type, event.access);
+            hs.last_fault_ts = event.timestamp;
+            hs.total_resolution_ns = event.resolution_ns;
+            self.hotspots.insert(page, hs);
         }
 
         self.last_window_faults += 1;
