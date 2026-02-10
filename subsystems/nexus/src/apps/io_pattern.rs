@@ -12,6 +12,7 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use libm::sqrt;
+use crate::fast::math::{F64Ext};
 
 /// IO access pattern
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
