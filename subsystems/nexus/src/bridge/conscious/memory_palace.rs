@@ -19,6 +19,7 @@ use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -362,7 +363,7 @@ impl BridgeMemoryPalace {
 
         let found = result.is_some();
         if self.recall_history.len() >= MAX_RECALL_HISTORY {
-            self.recall_history.pop_front();
+            self.recall_history.remove(0);
         }
         self.recall_history.push_back((room_hash, self.current_tick, found));
 
@@ -383,7 +384,7 @@ impl BridgeMemoryPalace {
                 // Count co-accesses in recall history
                 let co_access = self
                     .recall_history
-                    .windows(2)
+                    .make_contiguous().windows(2)
                     .filter(|w| {
                         (w[0].0 == hash_a && w[1].0 == hash_b)
                             || (w[0].0 == hash_b && w[1].0 == hash_a)
