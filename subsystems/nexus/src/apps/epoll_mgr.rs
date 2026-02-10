@@ -160,7 +160,7 @@ impl EpollInstance {
 /// Thundering herd detection
 #[derive(Debug, Clone)]
 pub struct ThunderingHerdDetector {
-    pub recent_concurrent_wakes: VecDeque<(u64, u32)>,
+    pub recent_concurrent_wakes: Vec<(u64, u32)>,
     pub max_history: usize,
     pub threshold: u32,
     pub detected_count: u64,
@@ -168,13 +168,13 @@ pub struct ThunderingHerdDetector {
 
 impl ThunderingHerdDetector {
     pub fn new(threshold: u32) -> Self {
-        Self { recent_concurrent_wakes: VecDeque::new(), max_history: 64, threshold, detected_count: 0 }
+        Self { recent_concurrent_wakes: Vec::new(), max_history: 64, threshold, detected_count: 0 }
     }
 
     #[inline]
     pub fn record_wake(&mut self, ts: u64, woken_count: u32) {
-        self.recent_concurrent_wakes.push_back((ts, woken_count));
-        if self.recent_concurrent_wakes.len() > self.max_history { self.recent_concurrent_wakes.pop_front(); }
+        self.recent_concurrent_wakes.push((ts, woken_count));
+        if self.recent_concurrent_wakes.len() > self.max_history { self.recent_concurrent_wakes.remove(0); }
         if woken_count >= self.threshold { self.detected_count += 1; }
     }
 
