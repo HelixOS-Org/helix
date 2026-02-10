@@ -202,7 +202,7 @@ impl MetricTracker {
     fn update(&mut self, value: f64) {
         self.sample_count += 1;
 
-        let old_fast = self.ema_fast;
+        let _old_fast = self.ema_fast;
         self.ema_fast = ema_update(self.ema_fast, value, EMA_FAST);
         self.ema_slow = ema_update(self.ema_slow, value, EMA_SLOW);
 
