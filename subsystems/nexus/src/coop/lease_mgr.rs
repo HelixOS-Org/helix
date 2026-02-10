@@ -7,8 +7,10 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Lease type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use alloc::string::String;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LeaseType {
+    #[default]
     Exclusive,
     Shared,
     ReadOnly,
@@ -27,7 +29,7 @@ pub enum LeaseState {
 }
 
 /// Lease holder identity
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct LeaseHolder {
     pub pid: u32,
     pub tid: u32,
@@ -105,7 +107,7 @@ impl ResourceLease {
 }
 
 /// Lease request (pending)
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct LeaseRequest {
     pub requester: LeaseHolder,
     pub resource_id: u64,
@@ -113,6 +115,12 @@ pub struct LeaseRequest {
     pub duration_ns: u64,
     pub requested_at: u64,
     pub priority: u32,
+
+    pub requested_ttl_ns: u64,
+    pub requester_id: u64,
+    pub requester_node: u64,
+    pub resource_name: alloc::string::String,
+    pub timestamp: u64,
 }
 
 /// Resource lease state
@@ -182,6 +190,7 @@ impl ResourceLeaseState {
 /// Lease manager stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
+#[derive(Default)]
 pub struct LeaseMgrStats {
     pub tracked_resources: u32,
     pub active_leases: u64,
@@ -190,6 +199,15 @@ pub struct LeaseMgrStats {
     pub total_denied: u64,
     pub total_expired: u64,
     pub total_revoked: u64,
+
+    pub expired_leases: u64,
+    pub revoked_leases: u64,
+    pub total_expirations: u64,
+    pub total_grants: u64,
+    pub total_leases: u64,
+    pub total_renewals: u64,
+    pub total_revocations: u64,
+    pub total_transfers: u64,
 }
 
 /// Main lease manager
@@ -237,6 +255,7 @@ impl CoopLeaseMgr {
             res.pending_requests.push(LeaseRequest {
                 requester: holder, resource_id, lease_type: ltype,
                 duration_ns: duration, requested_at: now, priority: holder.priority,
+                ..Default::default()
             });
             None
         }
@@ -283,6 +302,7 @@ impl CoopLeaseMgr {
             total_granted: self.total_granted,
             total_denied: self.total_denied,
             total_expired, total_revoked: self.total_revoked,
+            ..Default::default()
         }
     }
 }
@@ -290,26 +310,6 @@ impl CoopLeaseMgr {
 // ============================================================================
 // Merged from lease_mgr_v2
 // ============================================================================
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LeaseState {
-    Active,
-    Renewing,
-    Expiring,
-    Expired,
-    Revoked,
-    Transferring,
-}
-
-/// Lease type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LeaseType {
-    Exclusive,
-    Shared,
-    ReadOnly,
-    TimeBounded,
-    Delegated,
-}
 
 /// Lease record
 #[derive(Debug, Clone)]
@@ -384,19 +384,6 @@ impl LeaseRecord {
     }
 }
 
-/// Lease request
-#[derive(Debug, Clone)]
-pub struct LeaseRequest {
-    pub id: u64,
-    pub resource_name: String,
-    pub lease_type: LeaseType,
-    pub requester_node: u64,
-    pub requester_id: u64,
-    pub requested_ttl_ns: u64,
-    pub priority: u32,
-    pub timestamp: u64,
-}
-
 /// Lease event
 #[derive(Debug, Clone)]
 pub struct LeaseEvent {
@@ -417,22 +404,6 @@ pub enum LeaseEventType {
     Transferred,
     Delegated,
     Fenced,
-}
-
-/// Lease manager stats
-#[derive(Debug, Clone, Default)]
-#[repr(align(64))]
-pub struct LeaseMgrStats {
-    pub total_leases: usize,
-    pub active_leases: usize,
-    pub expired_leases: usize,
-    pub revoked_leases: usize,
-    pub total_grants: u64,
-    pub total_renewals: u64,
-    pub total_revocations: u64,
-    pub total_expirations: u64,
-    pub total_transfers: u64,
-    pub pending_requests: usize,
 }
 
 /// Coop lease manager
@@ -520,18 +491,18 @@ impl CoopLeaseMgrV2 {
     }
 
     #[inline(always)]
-    pub fn request(&mut self, resource: String, ltype: LeaseType, node: u64, requester: u64, ttl: u64, priority: u32, ts: u64) {
-        let id = self.next_id; self.next_id += 1;
-        self.pending.push(LeaseRequest { id, resource_name: resource, lease_type: ltype, requester_node: node, requester_id: requester, requested_ttl_ns: ttl, priority, timestamp: ts });
+    pub fn request(&mut self, _resource: String, ltype: LeaseType, _node: u64, _requester: u64, ttl: u64, priority: u32, ts: u64) {
+        let _id = self.next_id; self.next_id += 1;
+        self.pending.push(LeaseRequest { resource_id: 0, lease_type: ltype, duration_ns: ttl, requested_at: ts, priority, ..Default::default() });
     }
 
     #[inline]
     pub fn recompute(&mut self) {
-        self.stats.total_leases = self.leases.len();
-        self.stats.active_leases = self.leases.values().filter(|l| l.state == LeaseState::Active).count();
-        self.stats.expired_leases = self.leases.values().filter(|l| l.state == LeaseState::Expired).count();
-        self.stats.revoked_leases = self.leases.values().filter(|l| l.state == LeaseState::Revoked).count();
-        self.stats.pending_requests = self.pending.len();
+        self.stats.total_leases = self.leases.len() as u64;
+        self.stats.active_leases = self.leases.values().filter(|l| l.state == LeaseState::Active).count() as u64;
+        self.stats.expired_leases = self.leases.values().filter(|l| l.state == LeaseState::Expired).count() as u64;
+        self.stats.revoked_leases = self.leases.values().filter(|l| l.state == LeaseState::Revoked).count() as u64;
+        self.stats.pending_requests = self.pending.len() as u64;
     }
 
     #[inline(always)]
