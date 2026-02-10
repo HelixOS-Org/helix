@@ -244,7 +244,7 @@ impl AppCoredumpMgr {
             self.stats.completed += 1;
             self.stats.total_bytes_written += bytes_written;
             if self.completed.len() >= self.max_completed_history {
-                self.completed.pop_front();
+                self.completed.remove(0);
             }
             self.completed.push_back(entry);
         }
@@ -257,7 +257,7 @@ impl AppCoredumpMgr {
             entry.end_time = now;
             self.stats.failed += 1;
             if self.completed.len() >= self.max_completed_history {
-                self.completed.pop_front();
+                self.completed.remove(0);
             }
             self.completed.push_back(entry);
         }
