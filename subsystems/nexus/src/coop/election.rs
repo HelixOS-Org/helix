@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // ELECTION TYPES
@@ -213,7 +214,7 @@ impl Election {
     /// Check if we have a winner (majority)
     pub fn check_winner(&mut self, now: u64) -> Option<u64> {
         let majority = self.total_voters / 2 + 1;
-        for (&candidate, &count) in &self.votes {
+        for (candidate, count) in self.votes.iter() {
             if count >= majority {
                 self.winner = Some(candidate);
                 self.state = ElectionState::Decided;
@@ -328,14 +329,7 @@ impl CoopElectionManager {
         self.next_id += 1;
 
         let total = self.nodes.values().filter(|n| n.alive).count() as u32;
-        let election = Election::new(
-            id,
-            self.current_term,
-            self.algorithm,
-            initiator,
-            total,
-            now,
-        );
+        let election = Election::new(id, self.current_term, self.algorithm, initiator, total, now);
         self.elections.insert(id, election);
 
         // Initiator becomes candidate
@@ -367,7 +361,9 @@ impl CoopElectionManager {
     pub fn resolve(&mut self, election_id: u64, now: u64) -> Option<u64> {
         match self.algorithm {
             ElectionAlgorithm::Bully => {
-                let alive: Vec<u64> = self.nodes.values()
+                let alive: Vec<u64> = self
+                    .nodes
+                    .values()
                     .filter(|n| n.alive)
                     .map(|n| n.id)
                     .collect();
@@ -377,9 +373,11 @@ impl CoopElectionManager {
                         return Some(winner);
                     }
                 }
-            }
+            },
             ElectionAlgorithm::Priority => {
-                let winner = self.nodes.values()
+                let winner = self
+                    .nodes
+                    .values()
                     .filter(|n| n.alive)
                     .max_by_key(|n| n.priority)
                     .map(|n| n.id);
@@ -392,7 +390,7 @@ impl CoopElectionManager {
                     self.install_leader(w, now);
                     return Some(w);
                 }
-            }
+            },
             _ => {
                 if let Some(election) = self.elections.get_mut(&election_id) {
                     if let Some(winner) = election.check_winner(now) {
@@ -400,7 +398,7 @@ impl CoopElectionManager {
                         return Some(winner);
                     }
                 }
-            }
+            },
         }
         None
     }
@@ -446,7 +444,8 @@ impl CoopElectionManager {
             return true;
         }
         // Check if any follower has timed out
-        self.nodes.values()
+        self.nodes
+            .values()
             .any(|n| n.role == NodeRole::Follower && n.alive && n.heartbeat_timeout(now))
     }
 
