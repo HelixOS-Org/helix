@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Coop IO priority
@@ -107,7 +106,7 @@ impl CoopIoSched {
     pub fn dispatch(&mut self) -> Option<CoopIoRequest> {
         for (_prio, queue) in self.queues.iter_mut() {
             if !queue.is_empty() {
-                let req = queue.pop_front().unwrap();
+                let req = queue.remove(0);
                 self.stats.dispatched += 1;
                 self.stats.total_wait_ns += req.wait_ns();
                 return Some(req);
