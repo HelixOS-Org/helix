@@ -283,7 +283,7 @@ impl CausalGraph {
 
     /// Topological sort
     pub fn topological_sort(&self) -> Vec<u32> {
-        let mut in_degree: ArrayMap<usize, 32> = BTreeMap::new();
+        let mut in_degree: ArrayMap<usize, 32> = ArrayMap::new(0);
 
         for &id in self.nodes.keys() {
             in_degree.insert(id, 0);
@@ -297,8 +297,8 @@ impl CausalGraph {
 
         let mut queue: Vec<u32> = in_degree
             .iter()
-            .filter(|&(_, &d)| d == 0)
-            .map(|(&id, _)| id)
+            .filter(|&(_, d)| d == 0)
+            .map(|(id, _)| id as u32)
             .collect();
 
         let mut sorted = Vec::new();
@@ -307,7 +307,7 @@ impl CausalGraph {
             sorted.push(node);
 
             for child in self.children(node) {
-                if let Some(d) = in_degree.get_mut(&child) {
+                if let Some(d) = in_degree.get_mut(child) {
                     *d = d.saturating_sub(1);
                     if *d == 0 {
                         queue.push(child);
@@ -436,21 +436,22 @@ impl StructuralCausalModel {
         self.values.clear();
 
         for node in order {
-            if let Some(&intervention_value) = self.interventions.try_get(node as usize) {
+            if let Some(intervention_value) = self.interventions.try_get(node as usize) {
                 // Intervention: ignore parents
                 self.values.insert(node, intervention_value);
             } else if let Some(equation) = self.equations.get(&node) {
-                let noise = exogenous_noise.get(&node).copied().unwrap_or(0.0);
-                let value = equation.evaluate(&self.values, noise);
+                let noise = *exogenous_noise.get(&node).unwrap_or(&0.0);
+                let parent_vals: BTreeMap<u32, f64> = self.values.iter().map(|(k, v)| (k as u32, v)).collect();
+                let value = equation.evaluate(&parent_vals, noise);
                 self.values.insert(node, value);
             } else {
                 // Exogenous: use noise directly
-                let value = exogenous_noise.get(&node).copied().unwrap_or(0.0);
-                self.values.insert(node, value);
+                let value = exogenous_noise.get(&node).unwrap_or(&0.0);
+                self.values.insert(node, *value);
             }
         }
 
-        self.values.clone()
+        self.values.iter().map(|(k, v)| (k as u32, v)).collect()
     }
 
     /// Compute interventional distribution E[Y | do(X=x)]
@@ -477,7 +478,7 @@ impl StructuralCausalModel {
             }
 
             let values = self.sample(&noise);
-            sum += values.get(&target).copied().unwrap_or(0.0);
+            sum += values.get(&target).unwrap_or(&0.0);
         }
 
         self.clear_interventions();
@@ -623,15 +624,17 @@ impl CounterfactualEngine {
     /// Step 2 & 3: Action and Prediction
     pub fn predict_counterfactual(&mut self, query: &CounterfactualQuery) -> BTreeMap<u32, f64> {
         // Step 1: Abduce noise from evidence
-        self.abduce(&query.evidence);
+        let evidence_map: BTreeMap<u32, f64> = query.evidence.iter().map(|(k, v)| (k as u32, v)).collect();
+        self.abduce(&evidence_map);
 
         // Step 2: Apply interventions
-        for (&node, &value) in &query.intervention {
-            self.scm.do_intervention(node, value);
+        for (node, value) in query.intervention.iter() {
+            self.scm.do_intervention(node as u32, value);
         }
 
         // Step 3: Predict under interventions with abduced noise
-        let result = self.scm.sample(&self.abduced_noise);
+        let noise_map: BTreeMap<u32, f64> = self.abduced_noise.iter().map(|(k, v)| (k as u32, v)).collect();
+        let result = self.scm.sample(&noise_map);
 
         self.scm.clear_interventions();
 
@@ -672,8 +675,8 @@ impl CounterfactualEngine {
             self.scm.clear_interventions();
             let obs_values = self.scm.sample(&noise);
 
-            let x = obs_values.get(&treatment).copied().unwrap_or(0.0);
-            let y = obs_values.get(&outcome).copied().unwrap_or(0.0);
+            let x = obs_values.get(&treatment).unwrap_or(&0.0);
+            let y = obs_values.get(&outcome).unwrap_or(&0.0);
 
             // Check if matches filter (approximately)
             if (x - treatment_observed).abs() < 0.5 && (y - outcome_observed).abs() < 0.5 {
@@ -683,7 +686,7 @@ impl CounterfactualEngine {
                 self.scm
                     .do_intervention(treatment, treatment_counterfactual);
                 let cf_values = self.scm.sample(&noise);
-                let y_cf = cf_values.get(&outcome).copied().unwrap_or(0.0);
+                let y_cf = cf_values.get(&outcome).unwrap_or(&0.0);
 
                 // Check if outcome would have been different
                 if (y_cf - outcome_observed).abs() >= 0.5 {
@@ -1229,9 +1232,9 @@ pub enum KernelCausalEvent {
 #[derive(Debug, Clone)]
 pub struct CausalChain {
     /// Events in causal order
-    pub events: Vec<(u64, KernelCausalEvent, f64)>, // (timestamp, event, value)
+    pub events: Vec<(u64, KernelCausalEvent, f64)>, // (timestamp, event, value),
     /// Causal relationships
-    pub links: Vec<(usize, usize, f64)>, // (from_idx, to_idx, strength)
+    pub links: Vec<(usize, usize, f64)>, // (from_idx, to_idx, strength),
     /// Root cause index
     pub root_cause: Option<usize>,
     /// Final effect index
@@ -1313,7 +1316,7 @@ pub struct KernelCausalManager {
     /// Causal graph of kernel events
     pub graph: CausalGraph,
     /// Event history
-    pub event_history: Vec<(u64, u32, f64)>, // (timestamp, node_id, value)
+    pub event_history: Vec<(u64, u32, f64)>, // (timestamp, node_id, value),
     /// SCM for kernel
     pub scm: Option<StructuralCausalModel>,
     /// Discovered chains
@@ -1416,7 +1419,7 @@ impl KernelCausalManager {
         let mut chain = CausalChain::new();
 
         // Add events to chain
-        let mut node_to_idx: ArrayMap<usize, 32> = BTreeMap::new();
+        let mut node_to_idx: ArrayMap<usize, 32> = ArrayMap::new(0);
 
         for (ts, node_id, value) in &recent {
             let event_type = self
@@ -1433,8 +1436,8 @@ impl KernelCausalManager {
         // Add causal links based on graph
         for edge in &self.graph.edges {
             if edge.edge_type == CausalEdgeType::Direct {
-                if let (Some(&from_idx), Some(&to_idx)) =
-                    (node_to_idx.get(&edge.from), node_to_idx.get(&edge.to))
+                if let (Some(from_idx), Some(to_idx)) =
+                    (node_to_idx.try_get(edge.from as usize), node_to_idx.try_get(edge.to as usize))
                 {
                     let strength = edge.effect.unwrap_or(1.0);
                     chain.add_link(from_idx, to_idx, strength);
@@ -1444,7 +1447,7 @@ impl KernelCausalManager {
 
         // Find root cause
         chain.find_root_cause();
-        chain.effect = node_to_idx.get(&effect_node).copied();
+        chain.effect = node_to_idx.try_get(effect_node as usize);
 
         self.chains.push(chain.clone());
 
@@ -1551,6 +1554,7 @@ fn combinations(set: &[u32], k: usize) -> Vec<Vec<u32>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_causal_node() {
@@ -1640,8 +1644,8 @@ mod tests {
 
         let values = scm.sample(&noise);
 
-        assert!((values.get(&x).copied().unwrap_or(0.0) - 1.0).abs() < 1e-10);
-        assert!((values.get(&y).copied().unwrap_or(0.0) - 2.0).abs() < 1e-10);
+        assert!((values.get(x).unwrap_or(0.0) - 1.0).abs() < 1e-10);
+        assert!((values.get(y).unwrap_or(0.0) - 2.0).abs() < 1e-10);
     }
 
     #[test]
@@ -1665,8 +1669,8 @@ mod tests {
 
         let values = scm.sample(&noise);
 
-        assert!((values.get(&x).copied().unwrap_or(0.0) - 5.0).abs() < 1e-10);
-        assert!((values.get(&y).copied().unwrap_or(0.0) - 10.0).abs() < 1e-10);
+        assert!((values.get(x).unwrap_or(0.0) - 5.0).abs() < 1e-10);
+        assert!((values.get(y).unwrap_or(0.0) - 10.0).abs() < 1e-10);
     }
 
     #[test]
@@ -1706,7 +1710,7 @@ mod tests {
         let result = engine.predict_counterfactual(&query);
 
         // Y would have been 0 if X had been 0
-        assert!((result.get(&y).copied().unwrap_or(999.0) - 0.0).abs() < 0.5);
+        assert!((result.get(&y).unwrap_or(999.0) - 0.0).abs() < 0.5);
     }
 
     #[test]
