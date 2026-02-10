@@ -1,7 +1,6 @@
 //! Cache access pattern tracking and prediction.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::CacheKey;
@@ -13,7 +12,7 @@ use super::types::CacheKey;
 /// Tracks cache access patterns
 pub struct AccessPatternTracker {
     /// Recent accesses
-    history: VecDeque<CacheKey>,
+    history: Vec<CacheKey>,
     /// Max history size
     max_history: usize,
     /// Access frequency map
@@ -54,7 +53,7 @@ impl AccessPatternTracker {
     /// Record access
     pub fn record(&mut self, key: CacheKey) {
         // Update sequence tracking
-        if let Some(&prev) = self.history.back() {
+        if let Some(&prev) = self.history.last() {
             *self.sequences.entry((prev, key)).or_insert(0) += 1;
         }
 
@@ -62,9 +61,9 @@ impl AccessPatternTracker {
         *self.frequencies.entry(key).or_insert(0) += 1;
 
         // Add to history
-        self.history.push_back(key);
+        self.history.push(key);
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         // Update pattern detection
@@ -134,7 +133,7 @@ impl AccessPatternTracker {
             return None;
         }
 
-        let last = *self.history.back()?;
+        let last = *self.history.last()?;
 
         match self.detected_pattern? {
             AccessPattern::Sequential => Some(last + 1),
