@@ -12,10 +12,11 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // CONSTANTS
@@ -425,7 +426,7 @@ impl BridgeOracle {
         }
 
         // Tally votes per predicted value, weighted by predictor accuracy.
-        let mut vote_map: ArrayMap<f32, 32> = BTreeMap::new();
+        let mut vote_map: ArrayMap<f32, 32> = ArrayMap::new(0.0);
         let mut contributions: Vec<(u64, f32)> = Vec::new();
         let total_w = self.registry.total_weight().max(1e-12);
 
@@ -440,8 +441,8 @@ impl BridgeOracle {
         // Best value is the one with highest weighted vote.
         let (best_value, best_weight) = vote_map
             .iter()
-            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(core::cmp::Ordering::Equal))
-            .map(|(&v, &w)| (v, w))
+            .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(core::cmp::Ordering::Equal))
+            .map(|(v, w)| (v, w))
             .unwrap_or((0, 0.0));
 
         // Bayesian posterior update: P(correct | evidence) ∝ prior × likelihood
@@ -460,7 +461,7 @@ impl BridgeOracle {
 
         BayesianResult {
             posterior: posterior.max(0.0).min(1.0),
-            best_value,
+            best_value: best_value as u32,
             contributions,
             disagreement,
         }
