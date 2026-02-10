@@ -136,8 +136,8 @@ impl AppSocketpair {
         if let Some(pair_id) = self.fd_to_pair.get(fd) {
             if let Some(pair) = self.pairs.get_mut(&pair_id) {
                 pair.close_fd(fd);
-                if pair.state == SocketpairState::FullyClosed {
-                    if self.stats.active_pairs > 0 { self.stats.active_pairs -= 1; }
+                if pair.state == SocketpairState::FullyClosed && self.stats.active_pairs > 0 {
+                    self.stats.active_pairs -= 1;
                 }
             }
         }
