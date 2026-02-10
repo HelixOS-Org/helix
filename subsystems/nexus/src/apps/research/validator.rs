@@ -362,24 +362,24 @@ impl AppsDiscoveryValidator {
         let regression_passed = self
             .gate_checker
             .regression_results
-            .get(&discovery_id)
-            .copied()
+            .get(discovery_id)
+            
             .unwrap_or(true);
 
         // Gate 2: Significance (via cross-val consistency)
         let significance_passed = self
             .gate_checker
             .significance_results
-            .get(&discovery_id)
-            .copied()
+            .get(discovery_id)
+            
             .unwrap_or(false);
 
         // Gate 3: Cross-validation mean accuracy
         let cv_mean = self
             .gate_checker
             .cross_val_results
-            .get(&discovery_id)
-            .copied()
+            .get(discovery_id)
+            
             .unwrap_or(0.0);
         let cross_val_passed = cv_mean > discovery.baseline_accuracy;
 
@@ -387,8 +387,8 @@ impl AppsDiscoveryValidator {
         let holdout_acc = self
             .gate_checker
             .holdout_results
-            .get(&discovery_id)
-            .copied()
+            .get(discovery_id)
+            
             .unwrap_or(0.0);
         let holdout_passed = holdout_acc > discovery.baseline_accuracy * SAFETY_MARGIN;
 
