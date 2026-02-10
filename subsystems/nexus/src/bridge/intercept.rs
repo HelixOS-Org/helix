@@ -10,8 +10,6 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -302,7 +300,7 @@ pub struct InterceptEngine {
     /// Post-syscall hooks
     post_hooks: Vec<InterceptHook>,
     /// Intercept log
-    log: VecDeque<InterceptLogEntry>,
+    log: Vec<InterceptLogEntry>,
     /// Max log entries
     max_log: usize,
     /// Next hook ID
@@ -322,7 +320,7 @@ impl InterceptEngine {
         Self {
             pre_hooks: Vec::new(),
             post_hooks: Vec::new(),
-            log: VecDeque::new(),
+            log: Vec::new(),
             max_log: 1000,
             next_hook_id: 1,
             total_interceptions: 0,
@@ -414,15 +412,9 @@ impl InterceptEngine {
                 };
 
                 // Log
-                self.log_intercept(
-                    timestamp,
-                    pid,
-                    syscall_nr,
-                    hook.id,
-                    hook.filter.action,
-                    args,
-                    None,
-                );
+                let hook_id = hook.id;
+                let hook_action = hook.filter.action;
+                self.log_intercept(timestamp, pid, syscall_nr, hook_id, hook_action, args, None);
 
                 return verdict;
             }
@@ -445,6 +437,8 @@ impl InterceptEngine {
             return InterceptVerdict::allow();
         }
 
+        let mut log_entries = Vec::new();
+
         for hook in &mut self.post_hooks {
             if hook.expires_at > 0 && timestamp > hook.expires_at {
                 continue;
@@ -456,16 +450,20 @@ impl InterceptEngine {
                 hook.stats.matches += 1;
                 hook.stats.executions += 1;
 
-                self.log_intercept(
-                    timestamp,
-                    pid,
-                    syscall_nr,
-                    hook.id,
-                    hook.filter.action,
-                    args,
-                    Some(return_value),
-                );
+                log_entries.push((hook.id, hook.filter.action));
             }
+        }
+
+        for (hook_id, action) in log_entries {
+            self.log_intercept(
+                timestamp,
+                pid,
+                syscall_nr,
+                hook_id,
+                action,
+                args,
+                Some(return_value),
+            );
         }
 
         InterceptVerdict::allow()
@@ -482,7 +480,7 @@ impl InterceptEngine {
         args: &SyscallArgs,
         return_value: Option<i64>,
     ) {
-        self.log.push_back(InterceptLogEntry {
+        self.log.push(InterceptLogEntry {
             timestamp,
             pid,
             syscall_nr,
@@ -492,7 +490,7 @@ impl InterceptEngine {
             return_value,
         });
         if self.log.len() > self.max_log {
-            self.log.pop_front();
+            self.log.remove(0);
         }
     }
 
