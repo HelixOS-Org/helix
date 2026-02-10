@@ -138,7 +138,7 @@ impl ProcessSwitchProfile {
     #[inline]
     pub fn top_corun_partners(&self, n: usize) -> Vec<(u64, u64)> {
         let mut partners: Vec<(u64, u64)> = self.corun_partners.iter()
-            .map(|(&pid, &count)| (pid, count))
+            .map(|(pid, count)| (pid, count))
             .collect();
         partners.sort_by(|a, b| b.1.cmp(&a.1));
         partners.truncate(n);
