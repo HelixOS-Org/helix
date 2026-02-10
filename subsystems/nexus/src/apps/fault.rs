@@ -203,7 +203,7 @@ impl ProcessFaultProfile {
 
         self.recent.push_back(event.clone());
         if self.recent.len() > self.max_recent {
-            self.recent.pop_front();
+            self.recent.remove(0);
         }
     }
 
