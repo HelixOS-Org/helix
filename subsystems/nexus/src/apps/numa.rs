@@ -10,10 +10,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // NUMA TOPOLOGY
@@ -174,13 +175,13 @@ impl NumaAccessCounters {
         match access_type {
             NumaAccessType::Local => {
                 self.local_accesses += 1;
-            }
+            },
             NumaAccessType::Remote1Hop | NumaAccessType::RemoteMultiHop => {
                 self.remote_accesses += 1;
                 if let Some(node) = remote_node {
                     self.remote_by_node.add(node as usize, 1);
                 }
-            }
+            },
         }
     }
 
@@ -372,12 +373,7 @@ impl AppNumaAnalyzer {
     }
 
     /// Record access
-    pub fn record_access(
-        &mut self,
-        pid: u64,
-        from_node: u32,
-        target_node: u32,
-    ) {
+    pub fn record_access(&mut self, pid: u64, from_node: u32, target_node: u32) {
         let access_type = if from_node == target_node {
             NumaAccessType::Local
         } else {
