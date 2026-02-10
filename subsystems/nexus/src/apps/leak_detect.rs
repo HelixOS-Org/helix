@@ -102,7 +102,7 @@ pub struct CallsiteStats {
     /// Peak live bytes
     pub peak_bytes: u64,
     /// Growth history (sampled live_bytes)
-    growth_samples: VecDeque<u64>,
+    growth_samples: Vec<u64>,
     /// Max samples
     max_samples: usize,
 }
@@ -117,7 +117,7 @@ impl CallsiteStats {
             total_bytes: 0,
             live_bytes: 0,
             peak_bytes: 0,
-            growth_samples: VecDeque::new(),
+            growth_samples: Vec::new(),
             max_samples: 100,
         }
     }
@@ -148,9 +148,9 @@ impl CallsiteStats {
     #[inline]
     pub fn sample(&mut self) {
         if self.growth_samples.len() >= self.max_samples {
-            self.growth_samples.pop_front();
+            self.growth_samples.remove(0);
         }
-        self.growth_samples.push_back(self.live_bytes);
+        self.growth_samples.push(self.live_bytes);
     }
 
     /// Detect leak severity
@@ -458,7 +458,7 @@ pub struct CallsiteLeakProfile {
     pub live_bytes: u64,
     pub peak_live_count: u64,
     pub peak_live_bytes: u64,
-    pub growth_samples: VecDeque<(u64, u64)>,
+    pub growth_samples: Vec<(u64, u64)>,
 }
 
 impl CallsiteLeakProfile {
@@ -469,7 +469,7 @@ impl CallsiteLeakProfile {
             total_bytes_allocated: 0, total_bytes_freed: 0,
             live_count: 0, live_bytes: 0,
             peak_live_count: 0, peak_live_bytes: 0,
-            growth_samples: VecDeque::new(),
+            growth_samples: Vec::new(),
         }
     }
 
@@ -481,7 +481,7 @@ impl CallsiteLeakProfile {
         if self.live_count > self.peak_live_count { self.peak_live_count = self.live_count; }
         if self.live_bytes > self.peak_live_bytes { self.peak_live_bytes = self.live_bytes; }
 
-        self.growth_samples.push_back((ts, self.live_bytes));
+        self.growth_samples.push((ts, self.live_bytes));
         if self.growth_samples.len() > 128 {
             let mut new_s = Vec::new();
             for (i, s) in self.growth_samples.iter().enumerate() {
