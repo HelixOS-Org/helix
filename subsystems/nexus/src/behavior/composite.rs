@@ -9,7 +9,6 @@
 #![allow(clippy::let_and_return)]
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -775,7 +774,7 @@ impl BehaviorComposite {
 pub struct CompositeExecutor {
     composites: BTreeMap<CompositeId, BehaviorComposite>,
     active_composite: Option<CompositeId>,
-    execution_history: VecDeque<ExecutionRecord>,
+    execution_history: Vec<ExecutionRecord>,
     max_history: usize,
 }
 
@@ -793,7 +792,7 @@ impl CompositeExecutor {
         Self {
             composites: BTreeMap::new(),
             active_composite: None,
-            execution_history: VecDeque::new(),
+            execution_history: Vec::new(),
             max_history: 100,
         }
     }
@@ -835,7 +834,7 @@ impl CompositeExecutor {
         let result = composite.update(time, delta_time);
 
         // Record execution
-        self.execution_history.push_back(ExecutionRecord {
+        self.execution_history.push(ExecutionRecord {
             timestamp: time,
             composite_id: id,
             status: result.status,
@@ -843,7 +842,7 @@ impl CompositeExecutor {
         });
 
         if self.execution_history.len() > self.max_history {
-            self.execution_history.pop_front();
+            self.execution_history.remove(0);
         }
 
         Some(result)
