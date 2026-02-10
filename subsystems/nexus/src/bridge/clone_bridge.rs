@@ -6,6 +6,7 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 
 /// Clone flags
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CloneFlag {
     Vm,
@@ -184,7 +185,7 @@ impl BridgeCloneV2Manager {
         }
     }
 
-    pub fn clone_process(&mut self, parent_pid: u64, flags: Vec<BridgeCloneV2Flag>, stack_size: usize) -> u64 {
+    pub fn clone_process(&mut self, _parent_pid: u64, flags: Vec<BridgeCloneV2Flag>, _stack_size: usize) -> u64 {
         let is_thread = flags.contains(&BridgeCloneV2Flag::NewThread);
         let ns_count = flags.iter().filter(|f| matches!(f,
             BridgeCloneV2Flag::NewPidNs | BridgeCloneV2Flag::NewNetNs |
