@@ -12,7 +12,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -222,7 +221,7 @@ impl AppsKnowledgeBase {
             let list = self.tag_index.entry(tag.clone()).or_insert_with(Vec::new);
             list.push(id);
             if list.len() > MAX_ENTRIES {
-                list.pop_front();
+                list.remove(0);
             }
         }
 
@@ -231,7 +230,7 @@ impl AppsKnowledgeBase {
         let cat_list = self.category_index.entry(cat_key).or_insert_with(Vec::new);
         cat_list.push(id);
         if cat_list.len() > MAX_ENTRIES {
-            cat_list.pop_front();
+            cat_list.remove(0);
         }
 
         self.stats.ema_confidence =
@@ -257,7 +256,7 @@ impl AppsKnowledgeBase {
         self.stats.queries_served += 1;
 
         let limit = max_results.min(MAX_QUERY_RESULTS);
-        let mut candidate_scores: LinearMap<f32, 64> = BTreeMap::new();
+        let mut candidate_scores: LinearMap<f32, 64> = LinearMap::new();
 
         // Score entries by tag overlap
         for tag in tags {
