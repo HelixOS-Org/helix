@@ -9,10 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // PAGE CACHE TYPES
@@ -313,8 +313,9 @@ impl ThrashingDetector {
     pub fn on_eviction(&mut self, pfn: u64, now: u64) {
         if self.evicted.len() >= self.max_evicted {
             // Remove oldest
-            if let Some(oldest_key) = self.evicted.keys().next() {
-                self.evicted.remove(oldest_key);
+            let oldest_key = self.evicted.keys().next();
+            if let Some(oldest_key) = oldest_key {
+                self.evicted.remove(&oldest_key);
             }
         }
         self.evicted.insert(pfn, now);
