@@ -278,7 +278,7 @@ impl BridgeParadigm {
         let clamped_weight = weight.max(0.0).min(2.0);
 
         if self.evidence.len() >= MAX_EVIDENCE {
-            self.evidence.pop_front();
+            self.evidence.remove(0);
         }
 
         let eid = fnv1a_hash(observation.as_bytes()) ^ self.tick;
@@ -576,7 +576,7 @@ impl BridgeParadigm {
         }
     }
 
-    fn build_transition_steps(&self, old: &str, new: &str) -> Vec<String> {
+    fn build_transition_steps(&self, _old: &str, _new: &str) -> Vec<String> {
         let mut steps = Vec::new();
         steps.push(String::from("1. Snapshot current model state"));
         steps.push(String::from("2. Enable shadow-mode for new model"));
@@ -589,7 +589,7 @@ impl BridgeParadigm {
         steps
     }
 
-    fn build_transition_plan_detailed(&self, old: &str, new: &str) -> Vec<TransitionStep> {
+    fn build_transition_plan_detailed(&self, _old: &str, _new: &str) -> Vec<TransitionStep> {
         let mut steps = Vec::new();
         let actions = [
             ("Snapshot current state and create rollback point", 0.05, true),
