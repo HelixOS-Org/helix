@@ -212,7 +212,7 @@ impl AppsCloneTracker {
         let mut event = CloneEvent::new(parent, child, variant, flags, ts);
         event.latency_ns = latency_ns;
         self.events.push_back(event);
-        if self.events.len() > self.max_events { self.events.pop_front(); }
+        if self.events.len() > self.max_events { self.events.remove(0); }
     }
 
     #[inline]
