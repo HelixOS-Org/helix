@@ -12,7 +12,6 @@ extern crate alloc;
 
 use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Seccomp action
@@ -108,7 +107,7 @@ pub struct SeccompFilter {
     pub rules: Vec<SeccompRule>,
     pub default_action: SeccompAction,
     /// Bitmap fast-path: bit set = syscall explicitly allowed
-    pub allow_bitmap: [u64; 8], // 512 syscalls
+    pub allow_bitmap: [u64; 8], // 512 syscalls,
     pub strict_mode: bool,
     pub inherit_on_fork: bool,
     pub total_checks: u64,
@@ -208,7 +207,7 @@ pub struct BridgeSeccompStats {
 #[repr(align(64))]
 pub struct BridgeSeccompEngine {
     filters: BTreeMap<u64, SeccompFilter>,
-    audit_log: VecDeque<SeccompAuditEntry>,
+    audit_log: Vec<SeccompAuditEntry>,
     max_audit: usize,
     stats: BridgeSeccompStats,
 }
@@ -217,7 +216,7 @@ impl BridgeSeccompEngine {
     pub fn new() -> Self {
         Self {
             filters: BTreeMap::new(),
-            audit_log: VecDeque::new(),
+            audit_log: Vec::new(),
             max_audit: 1024,
             stats: BridgeSeccompStats::default(),
         }
@@ -267,9 +266,9 @@ impl BridgeSeccompEngine {
                 args: *args,
             };
             if self.audit_log.len() >= self.max_audit {
-                self.audit_log.pop_front();
+                self.audit_log.remove(0);
             }
-            self.audit_log.push_back(entry);
+            self.audit_log.push(entry);
         }
 
         self.recompute();
@@ -279,11 +278,11 @@ impl BridgeSeccompEngine {
     /// Get hot denied syscalls (most frequently denied)
     #[inline]
     pub fn hot_denials(&self) -> Vec<(u32, u64)> {
-        let mut counts: ArrayMap<u64, 32> = BTreeMap::new();
+        let mut counts: ArrayMap<u64, 32> = ArrayMap::new(0);
         for entry in &self.audit_log {
             *counts.entry(entry.syscall_nr).or_insert(0) += 1;
         }
-        let mut sorted: Vec<(u32, u64)> = counts.into_iter().collect();
+        let mut sorted: Vec<(u32, u64)> = counts.into_iter().map(|(k, v)| (k as u32, v)).collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
         sorted.truncate(10);
         sorted
