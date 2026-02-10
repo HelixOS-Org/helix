@@ -149,14 +149,14 @@ impl ProcessSignalState {
         }
 
         // Standard signals: coalesce if same signal already pending
-        if !entry.is_realtime() {
-            if self.pending.iter().any(|e| e.signum == signum && e.state == DeliveryState::Pending) {
-                self.total_coalesced += 1;
-                return DeliveryState::Coalesced;
-            }
+        if !entry.is_realtime()
+            && self.pending.iter().any(|e| e.signum == signum && e.state == DeliveryState::Pending)
+        {
+            self.total_coalesced += 1;
+            return DeliveryState::Coalesced;
         }
 
-        self.signal_counts.add(signum as usize, 1);
+        self.signal_counts.add(signum as usize, 1u64);
         self.total_received += 1;
         self.pending.push(entry);
         DeliveryState::Pending
@@ -178,7 +178,7 @@ impl ProcessSignalState {
     /// Record handler completion
     #[inline(always)]
     pub fn record_handler_done(&mut self, signum: u32, latency_ns: u64) {
-        let entry = self.handler_latency.entry(signum).or_insert(0.0);
+        let entry = self.handler_latency.entry(signum as usize).or_insert(0.0);
         *entry = 0.8 * *entry + 0.2 * latency_ns as f64;
     }
 
@@ -192,8 +192,8 @@ impl ProcessSignalState {
     #[inline]
     pub fn most_frequent(&self) -> Option<(u32, u64)> {
         self.signal_counts.iter()
-            .max_by_key(|&(_, &count)| count)
-            .map(|(&sig, &count)| (sig, count))
+            .max_by_key(|(_, count)| *count)
+            .map(|(sig, count)| (sig as u32, count))
     }
 }
 
