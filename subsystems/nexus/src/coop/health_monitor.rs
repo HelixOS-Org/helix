@@ -50,7 +50,7 @@ pub enum RecoveryActionCoop {
 pub struct HealthCheck {
     pub component_id: u64,
     pub status: HealthStatus,
-    pub score: f64, // 0.0 = dead, 1.0 = perfect
+    pub score: f64, // 0.0 = dead, 1.0 = perfect,
     pub timestamp: u64,
     pub message_hash: u64,
     pub latency_ns: u64,
@@ -138,7 +138,7 @@ impl MonitoredComponent {
         self.health_score = 0.7 * self.health_score + 0.3 * check.score;
         self.checks.push_back(check);
         if self.checks.len() > 32 {
-            self.checks.pop_front();
+            self.checks.remove(0);
         }
         self.update_status();
     }
@@ -174,7 +174,7 @@ impl MonitoredComponent {
 pub struct CascadeDetector {
     pub failure_window_ns: u64,
     pub failure_threshold: u32,
-    pub recent_failures: Vec<(u64, u64)>, // (component_id, timestamp)
+    pub recent_failures: Vec<(u64, u64)>, // (component_id, timestamp),
 }
 
 impl CascadeDetector {
