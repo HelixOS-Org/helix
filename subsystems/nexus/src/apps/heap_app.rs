@@ -12,8 +12,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -407,7 +405,7 @@ impl HeapAppManager {
             let epochs = self.epochs.entry(app_id).or_insert_with(Vec::new);
             epochs.push(epoch);
             if epochs.len() > self.max_epochs {
-                epochs.pop_front();
+                epochs.remove(0);
             }
 
             *epoch_id += 1;
