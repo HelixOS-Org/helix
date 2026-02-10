@@ -275,7 +275,7 @@ impl RateLimiter {
 
         // Trim history if too large
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
