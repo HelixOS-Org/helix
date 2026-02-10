@@ -7,8 +7,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
-use alloc::vec::Vec;
 
 /// Sendfile transfer mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
