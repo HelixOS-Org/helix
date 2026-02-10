@@ -257,8 +257,8 @@ impl BridgeTimerfd {
     #[inline]
     pub fn disarm(&mut self, fd: i32) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
-            if inst.state == TimerState::Armed {
-                if self.stats.armed_count > 0 { self.stats.armed_count -= 1; }
+            if inst.state == TimerState::Armed && self.stats.armed_count > 0 {
+                self.stats.armed_count -= 1;
             }
             inst.disarm();
             true
@@ -288,8 +288,8 @@ impl BridgeTimerfd {
     #[inline]
     pub fn close(&mut self, fd: i32) -> bool {
         if let Some(inst) = self.instances.remove(&fd) {
-            if inst.state == TimerState::Armed {
-                if self.stats.armed_count > 0 { self.stats.armed_count -= 1; }
+            if inst.state == TimerState::Armed && self.stats.armed_count > 0 {
+                self.stats.armed_count -= 1;
             }
             if self.stats.active_timerfds > 0 { self.stats.active_timerfds -= 1; }
             true
@@ -298,7 +298,7 @@ impl BridgeTimerfd {
 
     #[inline(always)]
     pub fn record_event(&mut self, event: TimerfdEvent) {
-        if self.events.len() >= self.max_events { self.events.pop_front(); }
+        if self.events.len() >= self.max_events { self.events.remove(0); }
         self.events.push_back(event);
     }
 
