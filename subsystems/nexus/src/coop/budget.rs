@@ -517,7 +517,7 @@ impl CoopBudgetManager {
                 let res_hist = pid_history.entry(*res_key).or_insert_with(VecDeque::new);
                 res_hist.push_back(entry.usage);
                 if res_hist.len() > self.max_history {
-                    res_hist.pop_front();
+                    res_hist.remove(0);
                 }
             }
         }
