@@ -338,7 +338,7 @@ impl SessionManager {
     /// Get mutable session for a PID
     #[inline(always)]
     pub fn get_by_pid_mut(&mut self, pid: u64) -> Option<&mut Session> {
-        let id = self.pid_sessions.get(&pid).copied()?;
+        let id = self.pid_sessions.get(&pid)?;
         self.sessions.get_mut(&id.0)
     }
 
