@@ -105,7 +105,7 @@ impl PageFaultCoopManager {
         let addr = record.addr;
 
         // Add to group
-        if let Some(&group_id) = self.pid_groups.get(pid) {
+        if let Some(group_id) = self.pid_groups.get(pid) {
             let faults = self.group_faults.entry(group_id).or_insert_with(Vec::new);
             faults.push(record);
             if faults.len() > self.max_faults_per_group {
@@ -146,17 +146,18 @@ impl PageFaultCoopManager {
 
     fn generate_prefetch_hints(&mut self, pid: u64) {
         let group_id = match self.pid_groups.get(pid) {
-            Some(g) => *g,
+            Some(g) => g,
             None => return,
         };
+        let group_id = group_id; // owned u64
 
         // Get siblings
         let siblings: Vec<u64> = self
             .pid_groups
             .iter()
-            .filter(|(_, &g)| g == group_id)
-            .filter(|(&p, _)| p != pid)
-            .map(|(&p, _)| p)
+            .filter(|(_, g)| *g == group_id)
+            .filter(|(p, _)| *p != pid)
+            .map(|(p, _)| p)
             .collect();
 
         // If this pid has a predictable pattern, share with siblings
