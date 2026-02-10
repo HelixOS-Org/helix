@@ -10,11 +10,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Pool type classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -162,7 +162,9 @@ impl DetectedPool {
 
     #[inline(always)]
     pub fn add_worker(&mut self, tid: u64) {
-        self.workers.entry(tid).or_insert_with(|| WorkerStats::new(tid));
+        self.workers
+            .entry(tid)
+            .or_insert_with(|| WorkerStats::new(tid));
     }
 
     #[inline(always)]
@@ -172,12 +174,16 @@ impl DetectedPool {
 
     #[inline(always)]
     pub fn active_workers(&self) -> usize {
-        self.workers.values().filter(|w| w.state == WorkerState::Active).count()
+        self.workers
+            .values()
+            .filter(|w| w.state == WorkerState::Active)
+            .count()
     }
 
     #[inline]
     pub fn idle_workers(&self) -> usize {
-        self.workers.values()
+        self.workers
+            .values()
             .filter(|w| matches!(w.state, WorkerState::Idle | WorkerState::Parked))
             .count()
     }
@@ -188,8 +194,7 @@ impl DetectedPool {
         if self.workers.is_empty() {
             return 0.0;
         }
-        self.workers.values().map(|w| w.utilization()).sum::<f64>()
-            / self.workers.len() as f64
+        self.workers.values().map(|w| w.utilization()).sum::<f64>() / self.workers.len() as f64
     }
 
     /// Task distribution fairness (Jain's fairness index)
@@ -198,7 +203,9 @@ impl DetectedPool {
             return 1.0;
         }
         let n = self.workers.len() as f64;
-        let tasks: Vec<f64> = self.workers.values()
+        let tasks: Vec<f64> = self
+            .workers
+            .values()
             .map(|w| w.tasks_completed as f64)
             .collect();
         let sum: f64 = tasks.iter().sum();
@@ -348,18 +355,33 @@ impl AppThreadPoolProfiler {
         self.stats.detected_pools = self.pools.len();
         self.stats.total_workers = self.pools.values().map(|p| p.worker_count()).sum();
         if !self.pools.is_empty() {
-            self.stats.avg_utilization = self.pools.values()
+            self.stats.avg_utilization = self
+                .pools
+                .values()
                 .map(|p| p.avg_utilization())
-                .sum::<f64>() / self.pools.len() as f64;
+                .sum::<f64>()
+                / self.pools.len() as f64;
         }
-        self.stats.over_provisioned = self.pools.values()
-            .filter(|p| p.is_over_provisioned()).count();
-        self.stats.under_provisioned = self.pools.values()
-            .filter(|p| p.is_under_provisioned()).count();
-        self.stats.cpu_bound_pools = self.pools.values()
-            .filter(|p| p.pool_type == PoolType::CpuBound).count();
-        self.stats.io_bound_pools = self.pools.values()
-            .filter(|p| p.pool_type == PoolType::IoBound).count();
+        self.stats.over_provisioned = self
+            .pools
+            .values()
+            .filter(|p| p.is_over_provisioned())
+            .count();
+        self.stats.under_provisioned = self
+            .pools
+            .values()
+            .filter(|p| p.is_under_provisioned())
+            .count();
+        self.stats.cpu_bound_pools = self
+            .pools
+            .values()
+            .filter(|p| p.pool_type == PoolType::CpuBound)
+            .count();
+        self.stats.io_bound_pools = self
+            .pools
+            .values()
+            .filter(|p| p.pool_type == PoolType::IoBound)
+            .count();
     }
 
     #[inline(always)]
@@ -418,26 +440,48 @@ pub struct PoolTask {
 impl PoolTask {
     pub fn new(id: u64, priority: PoolTaskPriority, ts: u64) -> Self {
         Self {
-            id, priority, status: PoolTaskStatus::Queued,
-            submit_ns: ts, start_ns: 0, complete_ns: 0,
-            affinity_hint: None, estimated_cost_us: 0,
+            id,
+            priority,
+            status: PoolTaskStatus::Queued,
+            submit_ns: ts,
+            start_ns: 0,
+            complete_ns: 0,
+            affinity_hint: None,
+            estimated_cost_us: 0,
         }
     }
 
     #[inline(always)]
-    pub fn start(&mut self, ts: u64) { self.status = PoolTaskStatus::Running; self.start_ns = ts; }
+    pub fn start(&mut self, ts: u64) {
+        self.status = PoolTaskStatus::Running;
+        self.start_ns = ts;
+    }
     #[inline(always)]
-    pub fn complete(&mut self, ts: u64) { self.status = PoolTaskStatus::Completed; self.complete_ns = ts; }
+    pub fn complete(&mut self, ts: u64) {
+        self.status = PoolTaskStatus::Completed;
+        self.complete_ns = ts;
+    }
     #[inline(always)]
-    pub fn fail(&mut self, ts: u64) { self.status = PoolTaskStatus::Failed; self.complete_ns = ts; }
+    pub fn fail(&mut self, ts: u64) {
+        self.status = PoolTaskStatus::Failed;
+        self.complete_ns = ts;
+    }
 
     #[inline(always)]
     pub fn queue_latency(&self) -> u64 {
-        if self.start_ns > self.submit_ns { self.start_ns - self.submit_ns } else { 0 }
+        if self.start_ns > self.submit_ns {
+            self.start_ns - self.submit_ns
+        } else {
+            0
+        }
     }
     #[inline(always)]
     pub fn execution_time(&self) -> u64 {
-        if self.complete_ns > self.start_ns { self.complete_ns - self.start_ns } else { 0 }
+        if self.complete_ns > self.start_ns {
+            self.complete_ns - self.start_ns
+        } else {
+            0
+        }
     }
 }
 
@@ -461,30 +505,44 @@ pub struct PoolWorkerV2 {
 impl PoolWorkerV2 {
     pub fn new(id: u32, tid: u64, ts: u64) -> Self {
         Self {
-            id, thread_id: tid, state: WorkerStateV2::Idle,
-            cpu_affinity: None, local_queue: VecDeque::new(),
-            tasks_completed: 0, tasks_stolen: 0,
-            total_busy_ns: 0, total_idle_ns: 0,
-            last_state_change_ns: ts, current_task: None,
+            id,
+            thread_id: tid,
+            state: WorkerStateV2::Idle,
+            cpu_affinity: None,
+            local_queue: VecDeque::new(),
+            tasks_completed: 0,
+            tasks_stolen: 0,
+            total_busy_ns: 0,
+            total_idle_ns: 0,
+            last_state_change_ns: ts,
+            current_task: None,
         }
     }
 
     #[inline(always)]
-    pub fn push_task(&mut self, task: PoolTask) { self.local_queue.push_back(task); }
+    pub fn push_task(&mut self, task: PoolTask) {
+        self.local_queue.push_back(task);
+    }
 
     #[inline]
     pub fn pop_task(&mut self) -> Option<PoolTask> {
-        if self.local_queue.is_empty() { return None; }
+        if self.local_queue.is_empty() {
+            return None;
+        }
         let mut best_idx = 0;
         for i in 1..self.local_queue.len() {
-            if self.local_queue[i].priority > self.local_queue[best_idx].priority { best_idx = i; }
+            if self.local_queue[i].priority > self.local_queue[best_idx].priority {
+                best_idx = i;
+            }
         }
         self.local_queue.remove(best_idx)
     }
 
     #[inline(always)]
     pub fn steal_task(&mut self) -> Option<PoolTask> {
-        if self.local_queue.is_empty() { return None; }
+        if self.local_queue.is_empty() {
+            return None;
+        }
         self.local_queue.remove(0)
     }
 
@@ -494,7 +552,7 @@ impl PoolWorkerV2 {
         match self.state {
             WorkerStateV2::Running | WorkerStateV2::Stealing => self.total_busy_ns += elapsed,
             WorkerStateV2::Idle | WorkerStateV2::Parked => self.total_idle_ns += elapsed,
-            _ => {}
+            _ => {},
         }
         self.state = new_state;
         self.last_state_change_ns = ts;
@@ -503,12 +561,16 @@ impl PoolWorkerV2 {
     #[inline]
     pub fn utilization(&self) -> f64 {
         let total = self.total_busy_ns + self.total_idle_ns;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.total_busy_ns as f64 / total as f64
     }
 
     #[inline(always)]
-    pub fn queue_depth(&self) -> usize { self.local_queue.len() }
+    pub fn queue_depth(&self) -> usize {
+        self.local_queue.len()
+    }
 }
 
 /// Pool sizing strategy
@@ -579,7 +641,11 @@ impl AppsThreadPoolV2 {
         let task = PoolTask::new(id, priority, ts);
         self.total_submitted += 1;
 
-        let idle_worker = self.workers.values().find(|w| w.state == WorkerStateV2::Idle).map(|w| w.id);
+        let idle_worker = self
+            .workers
+            .values()
+            .find(|w| w.state == WorkerStateV2::Idle)
+            .map(|w| w.id);
         if let Some(wid) = idle_worker {
             if let Some(worker) = self.workers.get_mut(&wid) {
                 worker.push_task(task);
@@ -605,7 +671,9 @@ impl AppsThreadPoolV2 {
         if !self.global_queue.is_empty() {
             let mut best = 0;
             for i in 1..self.global_queue.len() {
-                if self.global_queue[i].priority > self.global_queue[best].priority { best = i; }
+                if self.global_queue[i].priority > self.global_queue[best].priority {
+                    best = i;
+                }
             }
             let mut task = self.global_queue.remove(best);
             task.start(ts);
@@ -616,7 +684,12 @@ impl AppsThreadPoolV2 {
             }
             return Some(id);
         }
-        let other_ids: Vec<u32> = self.workers.keys().filter(|&&wid| wid != worker_id).copied().collect();
+        let other_ids: Vec<u32> = self
+            .workers
+            .keys()
+            .filter(|&&wid| wid != worker_id)
+            .copied()
+            .collect();
         for oid in other_ids {
             let stolen = self.workers.get_mut(&oid).and_then(|w| w.steal_task());
             if let Some(mut task) = stolen {
@@ -644,30 +717,48 @@ impl AppsThreadPoolV2 {
 
     #[inline(always)]
     pub fn park_worker(&mut self, worker_id: u32, ts: u64) {
-        if let Some(w) = self.workers.get_mut(&worker_id) { w.update_state(WorkerStateV2::Parked, ts); }
+        if let Some(w) = self.workers.get_mut(&worker_id) {
+            w.update_state(WorkerStateV2::Parked, ts);
+        }
     }
 
     #[inline(always)]
     pub fn unpark_worker(&mut self, worker_id: u32, ts: u64) {
-        if let Some(w) = self.workers.get_mut(&worker_id) { w.update_state(WorkerStateV2::Idle, ts); }
+        if let Some(w) = self.workers.get_mut(&worker_id) {
+            w.update_state(WorkerStateV2::Idle, ts);
+        }
     }
 
     pub fn recompute(&mut self) {
         self.stats.worker_count = self.workers.len();
-        self.stats.active_workers = self.workers.values()
-            .filter(|w| w.state == WorkerStateV2::Running || w.state == WorkerStateV2::Stealing).count();
-        self.stats.parked_workers = self.workers.values().filter(|w| w.state == WorkerStateV2::Parked).count();
+        self.stats.active_workers = self
+            .workers
+            .values()
+            .filter(|w| w.state == WorkerStateV2::Running || w.state == WorkerStateV2::Stealing)
+            .count();
+        self.stats.parked_workers = self
+            .workers
+            .values()
+            .filter(|w| w.state == WorkerStateV2::Parked)
+            .count();
         self.stats.global_queue_depth = self.global_queue.len();
         self.stats.total_tasks_submitted = self.total_submitted;
         self.stats.total_tasks_completed = self.workers.values().map(|w| w.tasks_completed).sum();
         self.stats.total_tasks_stolen = self.workers.values().map(|w| w.tasks_stolen).sum();
         let utils: Vec<f64> = self.workers.values().map(|w| w.utilization()).collect();
-        self.stats.avg_utilization = if utils.is_empty() { 0.0 }
-            else { utils.iter().sum::<f64>() / utils.len() as f64 };
+        self.stats.avg_utilization = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
     }
 
     #[inline(always)]
-    pub fn worker(&self, id: u32) -> Option<&PoolWorkerV2> { self.workers.get(&id) }
+    pub fn worker(&self, id: u32) -> Option<&PoolWorkerV2> {
+        self.workers.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsThreadPoolV2Stats { &self.stats }
+    pub fn stats(&self) -> &AppsThreadPoolV2Stats {
+        &self.stats
+    }
 }
