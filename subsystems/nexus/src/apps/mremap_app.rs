@@ -61,8 +61,8 @@ impl ProcessRemapInfo {
     pub fn record(&mut self, op: &RemapOp) {
         self.remap_count += 1;
         if op.moved { self.move_count += 1; }
-        if op.grew() { self.grow_count += 1; self.total_grown_bytes += (op.new_size - op.old_size); }
-        if op.shrank() { self.shrink_count += 1; self.total_shrunk_bytes += (op.old_size - op.new_size); }
+        if op.grew() { self.grow_count += 1; self.total_grown_bytes += op.new_size - op.old_size; }
+        if op.shrank() { self.shrink_count += 1; self.total_shrunk_bytes += op.old_size - op.new_size; }
     }
 }
 
