@@ -4,13 +4,11 @@
 //! resource usage, and I/O characteristics. Builds rich profiles
 //! that drive optimization decisions.
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // APPLICATION CLASSIFICATION
@@ -119,7 +117,7 @@ impl ResourceUsagePattern {
         let cpu_score = self.avg_cpu;
         let io_score = (self.io_read_bps + self.io_write_bps) as f64 / 1_000_000_000.0;
         let net_score = self.net_bps as f64 / 1_000_000_000.0;
-        let mem_score = self.avg_memory as f64 / (4 * 1024 * 1024 * 1024) as f64;
+        let mem_score = self.avg_memory as f64 / (4_u64 * 1024 * 1024 * 1024) as f64;
 
         let max = cpu_score.max(io_score).max(net_score).max(mem_score);
 
@@ -187,14 +185,14 @@ impl AppBehavior {
     /// Top N most frequent syscall types
     pub fn top_syscalls(&self, n: usize) -> Vec<(SyscallType, f64)> {
         let mut entries: Vec<_> = self.syscall_freq.iter().collect();
-        entries.sort_by(|a, b| b.1.cmp(a.1));
+        entries.sort_by(|a, b| b.1.cmp(&a.1));
 
         entries
             .into_iter()
             .take(n)
             .map(|(key, count)| {
-                let pct = *count as f64 / self.total_syscalls.max(1) as f64;
-                (SyscallType::from_number(*key), pct)
+                let pct = count as f64 / self.total_syscalls.max(1) as f64;
+                (SyscallType::from_number(key), pct)
             })
             .collect()
     }
@@ -287,7 +285,7 @@ pub struct AppProfiler {
     /// I/O syscall count (for average size)
     io_syscall_count: u64,
     /// Recent syscall types (for sequence detection)
-    recent_types: VecDeque<SyscallType>,
+    recent_types: Vec<SyscallType>,
     /// Max recent history
     max_recent: usize,
     /// Last syscall timestamp
@@ -324,9 +322,9 @@ impl AppProfiler {
 
         // Track recent types
         if self.recent_types.len() >= self.max_recent {
-            self.recent_types.pop_front();
+            self.recent_types.remove(0);
         }
-        self.recent_types.push_back(syscall_type);
+        self.recent_types.push(syscall_type);
     }
 
     /// Record a timestamp for inter-syscall timing
@@ -389,7 +387,7 @@ impl AppProfiler {
         }
 
         // Detect mmap usage
-        behavior.uses_mmap = self.syscall_counts.get(9).copied().unwrap_or(0) > 0;
+        behavior.uses_mmap = self.syscall_counts.get(9).unwrap_or(0) > 0;
 
         // Inter-syscall timing
         if !self.inter_times.is_empty() {
