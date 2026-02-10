@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -183,7 +182,7 @@ impl AppAuditLog {
                 self.lost_count += 1;
                 return;
             }
-            self.entries.pop_front();
+            self.entries.remove(0);
         }
 
         self.sequence += 1;
