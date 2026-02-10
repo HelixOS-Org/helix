@@ -242,7 +242,7 @@ impl RollbackManager {
 
         // Cleanup old history
         while self.history.len() > self.config.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         // Auto checkpoint
