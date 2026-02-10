@@ -402,7 +402,7 @@ impl BridgeTelemetryManager {
             span.finish(end_ns);
             self.completed_spans.push_back(span);
             if self.completed_spans.len() > self.max_completed {
-                self.completed_spans.pop_front();
+                self.completed_spans.remove(0);
             }
         }
         self.stats.active_spans = self.active_spans.len();
