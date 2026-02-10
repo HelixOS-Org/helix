@@ -7,6 +7,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Exec type
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExecType {
     Execve,
