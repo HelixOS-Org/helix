@@ -235,10 +235,8 @@ impl BridgeNsProxy {
                     if let Some(outer) = mapping.translate_to_outer(uid) {
                         return Some(outer);
                     }
-                } else {
-                    if let Some(inner) = mapping.translate_to_inner(uid) {
-                        return Some(inner);
-                    }
+                } else if let Some(inner) = mapping.translate_to_inner(uid) {
+                    return Some(inner);
                 }
             }
         }
