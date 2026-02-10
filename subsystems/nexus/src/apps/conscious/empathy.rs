@@ -23,6 +23,7 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
