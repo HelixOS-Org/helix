@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -95,13 +94,7 @@ pub struct PriorityRequest {
 }
 
 impl PriorityRequest {
-    pub fn new(
-        id: u64,
-        pid: u64,
-        syscall_nr: u32,
-        priority: SyscallPriority,
-        now: u64,
-    ) -> Self {
+    pub fn new(id: u64, pid: u64, syscall_nr: u32, priority: SyscallPriority, now: u64) -> Self {
         Self {
             id,
             pid,
@@ -197,7 +190,7 @@ impl PriorityQueue {
         if let Some(key) = highest_key {
             if let Some(queue) = self.levels.get_mut(&key) {
                 if !queue.is_empty() {
-                    let req = queue.pop_front().unwrap();
+                    let req = queue.remove(0);
                     self.total_items -= 1;
                     if queue.is_empty() {
                         self.levels.remove(&key);
@@ -223,7 +216,10 @@ impl PriorityQueue {
     /// Items at priority
     #[inline(always)]
     pub fn count_at(&self, priority: SyscallPriority) -> usize {
-        self.levels.get(&priority.value()).map(|q| q.len()).unwrap_or(0)
+        self.levels
+            .get(&priority.value())
+            .map(|q| q.len())
+            .unwrap_or(0)
     }
 
     /// Is empty?
@@ -323,13 +319,11 @@ impl BridgePriorityEngine {
     }
 
     /// Submit syscall request
-    pub fn submit(
-        &mut self,
-        pid: u64,
-        syscall_nr: u32,
-        now: u64,
-    ) -> Option<u64> {
-        let priority = self.process_priorities.get(&pid).copied()
+    pub fn submit(&mut self, pid: u64, syscall_nr: u32, now: u64) -> Option<u64> {
+        let priority = self
+            .process_priorities
+            .get(&pid)
+            .copied()
             .unwrap_or(SyscallPriority::Normal);
         let id = self.next_id;
         self.next_id += 1;
