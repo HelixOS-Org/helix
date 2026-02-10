@@ -421,7 +421,7 @@ impl AppCredentialManager {
             };
             self.events.push_back(event);
             if self.events.len() > self.max_events {
-                self.events.pop_front();
+                self.events.remove(0);
             }
 
             if escalation {
