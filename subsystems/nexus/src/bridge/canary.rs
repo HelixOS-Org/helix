@@ -241,7 +241,7 @@ impl CanaryDeployment {
             _ => return ComparisonResult::InsufficientData,
         };
 
-        let threshold = self.thresholds.get(&key).copied().unwrap_or(5.0);
+        let threshold = self.thresholds.get(&key).unwrap_or(&5.0);
         let baseline_mean = baseline.mean();
         if baseline_mean == 0.0 {
             return ComparisonResult::NoChange;
@@ -255,14 +255,14 @@ impl CanaryDeployment {
             CanaryMetric::Throughput => {
                 if diff_pct < -threshold {
                     ComparisonResult::Worse
-                } else if diff_pct > threshold {
+                } else if diff_pct > *threshold {
                     ComparisonResult::Better
                 } else {
                     ComparisonResult::NoChange
                 }
             }
             _ => {
-                if diff_pct > threshold {
+                if diff_pct > *threshold {
                     ComparisonResult::Worse
                 } else if diff_pct < -threshold {
                     ComparisonResult::Better
