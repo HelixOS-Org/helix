@@ -6,6 +6,7 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 
 /// Seqlock instance
+use alloc::vec::Vec;
 #[derive(Debug)]
 pub struct SeqLock {
     pub id: u64,
