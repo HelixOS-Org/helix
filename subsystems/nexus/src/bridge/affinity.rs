@@ -80,13 +80,13 @@ impl SyscallCpuAffinity {
     fn update_preferred(&mut self) {
         let mut best_cpu = None;
         let mut best_avg = f64::MAX;
-        for (&cpu, &count) in &self.cpu_counts {
+        for (cpu, count) in &self.cpu_counts {
             if count > 2 {
-                let total_lat = self.cpu_latency_sum.try_get(cpu as usize).copied().unwrap_or(0);
+                let total_lat = self.cpu_latency_sum.try_get(cpu).unwrap_or(0);
                 let avg = total_lat as f64 / count as f64;
                 if avg < best_avg {
                     best_avg = avg;
-                    best_cpu = Some(cpu);
+                    best_cpu = Some(cpu as u32);
                 }
             }
         }
@@ -99,18 +99,18 @@ impl SyscallCpuAffinity {
         if self.total_calls == 0 {
             return 0.0;
         }
-        let max_count = self.cpu_counts.values().copied().max().unwrap_or(0);
+        let max_count = self.cpu_counts.values().max().unwrap_or(0);
         max_count as f64 / self.total_calls as f64
     }
 
     /// Average latency on a given CPU
     #[inline]
     pub fn avg_latency_on(&self, cpu: u32) -> f64 {
-        let count = self.cpu_counts.try_get(cpu as usize).copied().unwrap_or(0);
+        let count = self.cpu_counts.try_get(cpu as usize).unwrap_or(0);
         if count == 0 {
             return f64::MAX;
         }
-        let total = self.cpu_latency_sum.try_get(cpu as usize).copied().unwrap_or(0);
+        let total = self.cpu_latency_sum.try_get(cpu as usize).unwrap_or(0);
         total as f64 / count as f64
     }
 }
@@ -162,8 +162,8 @@ impl ProcessAffinityProfile {
     #[inline]
     pub fn home_cpu(&self) -> Option<u32> {
         self.residence.iter()
-            .max_by_key(|&(_, &v)| v)
-            .map(|(&k, _)| k)
+            .max_by_key(|(_, v)| *v)
+            .map(|(k, _)| k as u32)
     }
 
     /// CPU spread (number of distinct CPUs used)
