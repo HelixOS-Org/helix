@@ -334,7 +334,7 @@ impl AppCacheProfiler {
             .map(|p| p.false_sharing_hotspots.iter().filter(|h| h.severity() != FalseSharingSeverity::None).count())
             .sum();
 
-        let (sum_miss, count, mut worst_pid, mut worst_rate) = self.profiles.values().fold(
+        let (sum_miss, count, worst_pid, worst_rate) = self.profiles.values().fold(
             (0.0_f64, 0u32, 0u64, 0.0_f64),
             |(sum, cnt, wp, wr), p| {
                 let mr = p.overall_miss_rate();
