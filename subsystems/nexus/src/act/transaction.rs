@@ -309,7 +309,7 @@ impl TransactionManager {
     fn add_completed(&mut self, tx_id: TransactionId) {
         self.completed.push_back(tx_id);
         if self.completed.len() > self.max_completed {
-            self.completed.pop_front();
+            self.completed.remove(0);
         }
     }
 
