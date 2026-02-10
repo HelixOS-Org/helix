@@ -3,7 +3,6 @@
 #![allow(clippy::excessive_nesting)]
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -19,7 +18,7 @@ pub struct CanaryMonitor {
     /// Canaries
     canaries: BTreeMap<String, Canary>,
     /// Violation history
-    violations: VecDeque<InvariantCheck>,
+    violations: Vec<InvariantCheck>,
     /// Maximum violations to keep
     max_violations: usize,
     /// Total checks
@@ -36,7 +35,7 @@ impl CanaryMonitor {
         Self {
             invariants: BTreeMap::new(),
             canaries: BTreeMap::new(),
-            violations: VecDeque::new(),
+            violations: Vec::new(),
             max_violations: 1000,
             total_checks: AtomicU64::new(0),
             total_violations: AtomicU64::new(0),
@@ -99,9 +98,9 @@ impl CanaryMonitor {
                         self.total_violations.fetch_add(1, Ordering::Relaxed);
 
                         if self.violations.len() >= self.max_violations {
-                            self.violations.pop_front();
+                            self.violations.remove(0);
                         }
-                        self.violations.push_back(check.clone());
+                        self.violations.push(check.clone());
                     }
 
                     results.push(check);
@@ -120,7 +119,7 @@ impl CanaryMonitor {
 
             if check.violated() {
                 self.total_violations.fetch_add(1, Ordering::Relaxed);
-                self.violations.push_back(check.clone());
+                self.violations.push(check.clone());
             }
 
             Some(check)
