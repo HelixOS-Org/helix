@@ -381,7 +381,7 @@ impl CoopCapExchange {
 
             // Record transfer
             if self.transfers.len() >= 4096 {
-                self.transfers.pop_front();
+                self.transfers.remove(0);
             }
             self.transfers.push_back(CapTransfer {
                 transfer_id: self.stats.total_transfers,
