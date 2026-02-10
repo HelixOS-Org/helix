@@ -122,7 +122,7 @@ impl CallNode {
     /// Children sorted by call count
     #[inline]
     pub fn top_callees(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut callees: Vec<(u64, u64)> = self.children.iter().map(|(&a, &c)| (a, c)).collect();
+        let mut callees: Vec<(u64, u64)> = self.children.iter().map(|(a, c)| (a, c)).collect();
         callees.sort_by(|a, b| b.1.cmp(&a.1));
         callees.truncate(n);
         callees
