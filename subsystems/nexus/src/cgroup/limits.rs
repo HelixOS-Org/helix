@@ -3,7 +3,6 @@
 //! CPU, memory, I/O, and PIDs limits for cgroups.
 
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
 
 /// CPU limits
 #[derive(Debug, Clone, Copy, Default)]
