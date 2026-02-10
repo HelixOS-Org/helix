@@ -11,7 +11,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Credential type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -281,7 +280,7 @@ impl BridgeCredentialProxy {
             self.stats.escalations_blocked += 1;
         }
         if self.escalations.len() >= self.max_log {
-            self.escalations.pop_front();
+            self.escalations.remove(0);
         }
         self.escalations.push_back(EscalationEvent {
             pid, from, to, syscall_nr, timestamp_ns: now_ns, allowed,
