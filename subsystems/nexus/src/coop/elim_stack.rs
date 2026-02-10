@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, Ordering};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElimSlotState {
@@ -136,7 +135,7 @@ impl CoopElimStack {
         self.stats.stack_ops += 1;
     }
 
-    pub fn pop(&mut self, thread_id: u32) -> Option<u64> {
+    pub fn pop(&mut self, _thread_id: u32) -> Option<u64> {
         self.stats.total_pops += 1;
         let slot_idx = self.random_slot();
         if let Some(slot) = self.slots.get_mut(slot_idx) {
