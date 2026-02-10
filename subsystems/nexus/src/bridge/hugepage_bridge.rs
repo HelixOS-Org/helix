@@ -50,7 +50,7 @@ impl BridgeHugepageManager {
     }
 
     #[inline(always)]
-    pub fn promote_transparent(&mut self, addr: u64) { self.stats.transparent_promotions += 1; }
+    pub fn promote_transparent(&mut self, _addr: u64) { self.stats.transparent_promotions += 1; }
     #[inline(always)]
     pub fn stats(&self) -> &BridgeHugepageStats { &self.stats }
 }
