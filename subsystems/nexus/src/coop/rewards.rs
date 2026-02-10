@@ -336,7 +336,7 @@ impl ProcessScore {
 
     fn push_event(&mut self, event: ScoreEvent) {
         if self.recent_events.len() >= self.max_recent {
-            self.recent_events.pop_front();
+            self.recent_events.remove(0);
         }
         self.recent_events.push_back(event);
     }
