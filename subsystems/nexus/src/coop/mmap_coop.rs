@@ -97,7 +97,7 @@ impl MmapCoopManager {
     #[inline(always)]
     pub fn find_shared(&self, file_hash: u64) -> Option<&SharedMapping> {
         let id = self.file_dedup.get(file_hash)?;
-        self.mappings.get(id)
+        self.mappings.get(&id)
     }
 
     /// Register a new shared mapping
