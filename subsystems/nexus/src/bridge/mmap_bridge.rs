@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Mmap protection flags
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
