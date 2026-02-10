@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Fair mutex state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,7 +62,7 @@ impl FairMutex {
             self.owner = 0;
             None
         } else {
-            let next = self.waiters.pop_front().unwrap();
+            let next = self.waiters.remove(0).unwrap();
             let wait = if now > next.enqueue_time { now - next.enqueue_time } else { 0 };
             self.total_wait_ns += wait;
             if wait > self.max_wait_ns { self.max_wait_ns = wait; }
