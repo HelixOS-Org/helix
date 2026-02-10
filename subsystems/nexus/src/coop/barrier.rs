@@ -19,9 +19,10 @@ use alloc::vec::Vec;
 // ============================================================================
 
 /// Barrier type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BarrierType {
     /// All must arrive before any proceeds
+    #[default]
     Full,
     /// N of M must arrive
     Quorum,
@@ -34,9 +35,10 @@ pub enum BarrierType {
 }
 
 /// Barrier state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BarrierState {
     /// Open for arrivals
+    #[default]
     Open,
     /// All arrived, releasing
     Releasing,
@@ -53,7 +55,7 @@ pub enum BarrierState {
 // ============================================================================
 
 /// Barrier configuration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct BarrierConfig {
     /// Barrier type
     pub barrier_type: BarrierType,
@@ -112,7 +114,7 @@ impl BarrierConfig {
 // ============================================================================
 
 /// Participant in a barrier
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct BarrierParticipant {
     /// Process ID
     pub pid: u64,
@@ -122,6 +124,12 @@ pub struct BarrierParticipant {
     pub released: bool,
     /// Wait time (ms)
     pub wait_time_ms: u64,
+
+    pub arrival_ns: u64,
+    pub phase: u64,
+    pub sense: bool,
+    pub state: ArrivalState,
+    pub wait_ns: u64,
 }
 
 // ============================================================================
@@ -129,7 +137,7 @@ pub struct BarrierParticipant {
 // ============================================================================
 
 /// Active barrier
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct BarrierInstance {
     /// Barrier ID
     pub id: u64,
@@ -149,6 +157,16 @@ pub struct BarrierInstance {
     pub created_at: u64,
     /// Released timestamp
     pub released_at: u64,
+
+    pub barrier_type: u32,
+    pub completions: u64,
+    pub current_phase: u64,
+    pub expected: u32,
+    pub max_wait_ns: u64,
+    pub threshold: u32,
+    pub timeout_ns: u64,
+    pub timeouts: u64,
+    pub total_wait_ns: u64,
 }
 
 impl BarrierInstance {
@@ -163,6 +181,7 @@ impl BarrierInstance {
             phase: 0,
             created_at: now,
             released_at: 0,
+            ..Default::default()
         }
     }
 
@@ -174,6 +193,7 @@ impl BarrierInstance {
             arrived_at: 0,
             released: false,
             wait_time_ms: 0,
+            ..Default::default()
         });
     }
 
@@ -293,6 +313,39 @@ impl BarrierInstance {
             .map(|p| p.wait_time_ms)
             .max()
             .unwrap_or(0)
+    }
+
+    /// Add participant by PID (V2 API)
+    #[inline]
+    pub fn add_participant(&mut self, pid: u64) {
+        self.participants.insert(pid, BarrierParticipant::new(pid));
+    }
+
+    /// Expire timed-out participants and return count (V2 API)
+    pub fn expire_timeouts(&mut self, now_ns: u64) -> u32 {
+        if self.timeout_ns == 0 {
+            return 0;
+        }
+        let mut expired = 0u32;
+        for p in self.participants.values_mut() {
+            if p.state == ArrivalState::Waiting
+                && now_ns.saturating_sub(self.created_at) >= self.timeout_ns
+            {
+                p.timeout();
+                expired += 1;
+            }
+        }
+        self.timeouts += expired as u64;
+        expired
+    }
+
+    /// Average wait time in nanoseconds (V2 API)
+    #[inline]
+    pub fn avg_wait_ns(&self) -> f64 {
+        if self.completions == 0 {
+            return 0.0;
+        }
+        self.total_wait_ns as f64 / self.completions as f64
     }
 }
 
@@ -425,7 +478,7 @@ impl CoopBarrierManager {
             if let Some(barrier) = self.barriers.remove(&id) {
                 self.summaries.push_back(BarrierSummary {
                     id: barrier.id,
-                    name: barrier.name,
+                    name: barrier.name.clone(),
                     phases_completed: barrier.phase,
                     avg_wait_ms: barrier.avg_wait_ms(),
                     max_wait_ms: barrier.max_wait_ms(),
@@ -438,7 +491,7 @@ impl CoopBarrierManager {
                 });
 
                 if self.summaries.len() > self.max_summaries {
-                    self.summaries.pop_front();
+                    self.summaries.remove(0);
                 }
 
                 self.stats.completed += 1;
@@ -473,41 +526,15 @@ impl CoopBarrierManager {
 // Merged from barrier_v2
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BarrierType {
-    /// All-or-nothing: all participants must arrive
-    FullSync,
-    /// Quorum-based: majority must arrive
-    Quorum,
-    /// Threshold: specific count must arrive
-    Threshold,
-    /// Phased: multiple sequential barrier rounds
-    Phased,
-    /// Tree-based: hierarchical barrier reduction
-    Tree,
-    /// Fuzzy: eventual arrival with timeout
-    Fuzzy,
-}
-
 /// Participant arrival state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ArrivalState {
+    #[default]
     Waiting,
     Arrived,
     TimedOut,
     Failed,
     Released,
-}
-
-/// A barrier participant
-#[derive(Debug, Clone)]
-pub struct BarrierParticipant {
-    pub pid: u64,
-    pub state: ArrivalState,
-    pub arrival_ns: u64,
-    pub wait_ns: u64,
-    pub phase: u32,
-    pub sense: bool,
 }
 
 impl BarrierParticipant {
@@ -519,6 +546,7 @@ impl BarrierParticipant {
             wait_ns: 0,
             phase: 0,
             sense: false,
+            ..Default::default()
         }
     }
 
@@ -546,158 +574,6 @@ impl BarrierParticipant {
         self.state = ArrivalState::Waiting;
         self.arrival_ns = 0;
         self.wait_ns = 0;
-    }
-}
-
-/// A barrier instance
-#[derive(Debug)]
-pub struct BarrierInstance {
-    pub id: u64,
-    pub name: String,
-    pub barrier_type: BarrierType,
-    pub expected: u32,
-    pub threshold: u32,
-    pub current_phase: u32,
-    pub timeout_ns: u64,
-    participants: BTreeMap<u64, BarrierParticipant>,
-    pub completions: u64,
-    pub timeouts: u64,
-    pub total_wait_ns: u64,
-    pub max_wait_ns: u64,
-}
-
-impl BarrierInstance {
-    pub fn new(id: u64, name: String, barrier_type: BarrierType, expected: u32) -> Self {
-        let threshold = match barrier_type {
-            BarrierType::FullSync => expected,
-            BarrierType::Quorum => (expected / 2) + 1,
-            BarrierType::Threshold => expected, // overridden via set_threshold
-            BarrierType::Phased | BarrierType::Tree | BarrierType::Fuzzy => expected,
-        };
-        Self {
-            id,
-            name,
-            barrier_type,
-            expected,
-            threshold,
-            current_phase: 0,
-            timeout_ns: 10_000_000_000, // 10s default
-            participants: BTreeMap::new(),
-            completions: 0,
-            timeouts: 0,
-            total_wait_ns: 0,
-            max_wait_ns: 0,
-        }
-    }
-
-    #[inline(always)]
-    pub fn set_threshold(&mut self, threshold: u32) {
-        self.threshold = threshold;
-    }
-
-    #[inline(always)]
-    pub fn add_participant(&mut self, pid: u64) {
-        self.participants.insert(pid, BarrierParticipant::new(pid));
-    }
-
-    #[inline(always)]
-    pub fn remove_participant(&mut self, pid: u64) {
-        self.participants.remove(&pid);
-    }
-
-    #[inline]
-    pub fn arrive(&mut self, pid: u64, now_ns: u64) -> bool {
-        if let Some(p) = self.participants.get_mut(&pid) {
-            p.arrive(now_ns);
-            self.check_release(now_ns)
-        } else {
-            false
-        }
-    }
-
-    fn arrived_count(&self) -> u32 {
-        self.participants
-            .values()
-            .filter(|p| p.state == ArrivalState::Arrived)
-            .count() as u32
-    }
-
-    fn check_release(&mut self, now_ns: u64) -> bool {
-        if self.arrived_count() >= self.threshold {
-            self.release_all(now_ns);
-            true
-        } else {
-            false
-        }
-    }
-
-    fn release_all(&mut self, now_ns: u64) {
-        for p in self.participants.values_mut() {
-            if p.state == ArrivalState::Arrived {
-                p.release(now_ns);
-                self.total_wait_ns += p.wait_ns;
-                if p.wait_ns > self.max_wait_ns {
-                    self.max_wait_ns = p.wait_ns;
-                }
-            }
-        }
-        self.completions += 1;
-        self.current_phase += 1;
-        // Reset waiting states for next phase
-        for p in self.participants.values_mut() {
-            if p.state == ArrivalState::Released {
-                p.reset();
-            }
-        }
-    }
-
-    pub fn expire_timeouts(&mut self, now_ns: u64) -> u32 {
-        let mut expired = 0u32;
-        for p in self.participants.values_mut() {
-            if p.state == ArrivalState::Waiting && p.arrival_ns > 0 {
-                if now_ns.saturating_sub(p.arrival_ns) > self.timeout_ns {
-                    p.timeout();
-                    expired += 1;
-                }
-            }
-        }
-        self.timeouts += expired as u64;
-        expired
-    }
-
-    #[inline(always)]
-    pub fn participant_count(&self) -> usize {
-        self.participants.len()
-    }
-
-    #[inline]
-    pub fn avg_wait_ns(&self) -> f64 {
-        if self.completions == 0 {
-            return 0.0;
-        }
-        let total_participants = self.completions as f64 * self.threshold as f64;
-        if total_participants == 0.0 {
-            return 0.0;
-        }
-        self.total_wait_ns as f64 / total_participants
-    }
-
-    #[inline]
-    pub fn completion_rate(&self) -> f64 {
-        let total = self.completions + self.timeouts;
-        if total == 0 {
-            return 0.0;
-        }
-        self.completions as f64 / total as f64
-    }
-
-    #[inline]
-    pub fn stragglers(&self) -> Vec<u64> {
-        self.participants
-            .iter()
-            .filter(|(_, p)| p.state == ArrivalState::Waiting)
-            .map(|(&pid, _)| pid)
-            .collect()
     }
 }
 
@@ -745,8 +621,13 @@ impl CoopBarrierV2 {
     ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
+        let config = BarrierConfig {
+            barrier_type,
+            expected,
+            ..Default::default()
+        };
         self.barriers
-            .insert(id, BarrierInstance::new(id, name, barrier_type, expected));
+            .insert(id, BarrierInstance::new(id, name, config, 0));
         self.stats.total_barriers += 1;
         id
     }
