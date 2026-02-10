@@ -95,7 +95,7 @@ impl CStateResidency {
 #[derive(Debug, Clone)]
 pub struct ProcessEnergyProfile {
     pub pid: u64,
-    pub domain_energy: BTreeMap<u8, u64>, // domain_id -> energy_uj
+    pub domain_energy: BTreeMap<u8, u64>, // domain_id -> energy_uj,
     pub instructions_retired: u64,
     pub cycles: u64,
     pub active_time_ns: u64,
