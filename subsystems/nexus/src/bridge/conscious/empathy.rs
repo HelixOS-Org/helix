@@ -123,7 +123,7 @@ pub struct EmpathyModel {
     pub confidence: f32,
     pub last_update: u64,
     pub stress_ema: f32,
-    pub signal_history: VecDeque<SubsystemSignal>,
+    pub signal_history: Vec<SubsystemSignal>,
     pub predictions_made: u64,
     pub predictions_correct: u64,
     pub consecutive_correct: u32,
@@ -139,7 +139,7 @@ impl EmpathyModel {
             confidence: CONFIDENCE_INITIAL,
             last_update: tick,
             stress_ema: 0.0,
-            signal_history: VecDeque::new(),
+            signal_history: Vec::new(),
             predictions_made: 0,
             predictions_correct: 0,
             consecutive_correct: 0,
@@ -154,9 +154,9 @@ impl EmpathyModel {
         self.last_update = signal.tick;
 
         if self.signal_history.len() >= MAX_SIGNALS_PER_SUBSYSTEM {
-            self.signal_history.pop_front();
+            self.signal_history.remove(0);
         }
-        self.signal_history.push_back(signal);
+        self.signal_history.push(signal);
 
         self.inferred_state = SubsystemState::from_stress(self.stress_ema);
     }
@@ -299,7 +299,7 @@ impl BridgeEmpathyEngine {
 
             // Record history
             if self.history.len() >= MAX_EMPATHY_HISTORY {
-                self.history.pop_front();
+                self.history.remove(0);
             }
             self.history.push_back(EmpathyHistoryEntry {
                 subsystem_hash: hash,
