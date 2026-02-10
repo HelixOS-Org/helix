@@ -298,8 +298,14 @@ impl BridgeSynthesisEngine {
         }
 
         // Evaluate fitness for each individual.
-        for ind in self.population.individuals.iter_mut() {
-            ind.fitness = self.evaluate_fitness(&ind.genome);
+        let genomes: Vec<Vec<f32>> = self
+            .population
+            .individuals
+            .iter()
+            .map(|ind| ind.genome.clone())
+            .collect();
+        for (i, genome) in genomes.iter().enumerate() {
+            self.population.individuals[i].fitness = self.evaluate_fitness(genome);
         }
         self.population.update_stats();
         self.population.generation += 1;
@@ -402,7 +408,7 @@ impl BridgeSynthesisEngine {
 
     /// Validate an evolved strategy through repeated trials.
     pub fn validate_evolution(&mut self, strategy_id: u64, trials: u32) -> ValidationResult {
-        let (genome, fitness) = if let Some(s) = self.strategies.get(&strategy_id) {
+        let (genome, _fitness) = if let Some(s) = self.strategies.get(&strategy_id) {
             (s.genome.clone(), s.fitness)
         } else {
             return ValidationResult {
