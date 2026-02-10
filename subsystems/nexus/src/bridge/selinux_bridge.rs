@@ -2,8 +2,6 @@
 //! Bridge SELinux — SELinux access vector cache bridge
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// SELinux operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
