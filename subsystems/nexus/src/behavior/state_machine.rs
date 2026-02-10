@@ -8,7 +8,6 @@
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -438,7 +437,7 @@ pub struct StateMachine {
     transitions: Vec<Transition>,
     initial_state: StateId,
     current_state: StateId,
-    history: VecDeque<StateId>,
+    history: Vec<StateId>,
 }
 
 impl StateMachine {
@@ -449,7 +448,7 @@ impl StateMachine {
             transitions: Vec::new(),
             initial_state,
             current_state: initial_state,
-            history: VecDeque::new(),
+            history: Vec::new(),
         }
     }
 
@@ -553,9 +552,9 @@ impl StateMachine {
             }
 
             // Update history
-            self.history.push_back(self.current_state);
+            self.history.push(self.current_state);
             if self.history.len() > 100 {
-                self.history.pop_front();
+                self.history.remove(0);
             }
 
             // Enter new state
