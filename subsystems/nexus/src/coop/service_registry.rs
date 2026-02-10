@@ -53,11 +53,11 @@ pub struct ServiceEndpoint {
     pub registered_ns: u64,
     pub last_heartbeat_ns: u64,
     pub heartbeat_interval_ns: u64,
-    pub load_score: u32, // 0-1000
+    pub load_score: u32, // 0-1000,
     pub max_concurrent: u32,
     pub active_requests: u32,
     pub total_served: u64,
-    pub dependencies: Vec<u64>, // service IDs this depends on
+    pub dependencies: Vec<u64>, // service IDs this depends on,
     pub metadata: LinearMap<u64, 64>,
 }
 
@@ -243,7 +243,7 @@ impl CoopServiceRegistry {
         let hash = Self::hash_name(name);
         self.name_index
             .get(hash)
-            .and_then(|id| self.services.get(id))
+            .and_then(|id| self.services.get(&id))
     }
 
     /// Lookup by capability — returns available services sorted by load
@@ -319,7 +319,7 @@ impl CoopServiceRegistry {
             timestamp_ns: ts,
         });
         while self.events.len() > self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
     }
 
