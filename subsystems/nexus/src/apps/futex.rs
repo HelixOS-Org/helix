@@ -354,7 +354,7 @@ impl ProcessSyncProfile {
                     lock_address: current_lock,
                     owner,
                     wait_ns: 0,
-                    ..Default::default(),
+                    ..Default::default()
                 });
 
                 match owner {
@@ -846,7 +846,7 @@ impl AppFutexV2Profiler {
             blocked_on: addr,
             owner_pid: 0,
             wait_start_ns: now,
-            ..Default::default(),
+            ..Default::default()
         });
         self.update_stats();
     }
@@ -1021,7 +1021,7 @@ impl Futex2Bucket {
 /// WaitV descriptor (multiple futex wait)
 #[derive(Debug, Clone)]
 pub struct Futex2WaitV {
-    pub entries: Vec<(u64, u64, Futex2Size, u32)>, // uaddr, val, size, flags
+    pub entries: Vec<(u64, u64, Futex2Size, u32)>, // uaddr, val, size, flags,
 }
 
 impl Futex2WaitV {
