@@ -198,7 +198,7 @@ impl CoopRaftEngine {
     }
 
     #[inline]
-    pub fn vote(&mut self, node: u64, voter: u64, term: u64, granted: bool) {
+    pub fn vote(&mut self, node: u64, _voter: u64, term: u64, granted: bool) {
         if let Some(n) = self.nodes.get_mut(&node) {
             if n.role != RaftRole::Candidate { return; }
             if term > n.term { n.step_down(term, None); return; }
