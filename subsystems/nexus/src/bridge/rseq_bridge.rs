@@ -231,7 +231,7 @@ impl BridgeRseq {
             }
         }
 
-        if self.aborts.len() >= self.max_aborts { self.aborts.pop_front(); }
+        if self.aborts.len() >= self.max_aborts { self.aborts.remove(0); }
         self.aborts.push_back(abort);
     }
 
