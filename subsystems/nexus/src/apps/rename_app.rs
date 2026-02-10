@@ -4,7 +4,6 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Rename flags
 use alloc::string::String;
