@@ -137,7 +137,7 @@ impl TrackedConnection {
     pub fn record_rtt(&mut self, rtt_us: u32) {
         self.rtt_samples.push_back(rtt_us);
         if self.rtt_samples.len() > 100 {
-            self.rtt_samples.pop_front();
+            self.rtt_samples.remove(0);
         }
     }
 
