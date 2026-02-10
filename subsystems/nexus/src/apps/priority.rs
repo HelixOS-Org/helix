@@ -290,7 +290,7 @@ impl ProcessPriorityState {
 
         self.adjustment_history.push_back(adj);
         if self.adjustment_history.len() > self.max_history {
-            self.adjustment_history.pop_front();
+            self.adjustment_history.remove(0);
         }
 
         self.cpu_since_adjust = 0;
