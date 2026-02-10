@@ -11,7 +11,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// Stack frame
@@ -199,7 +198,7 @@ impl AppFlameProfiler {
     /// Get hot paths
     pub fn hot_paths(&self, top_n: usize) -> Vec<HotPath> {
         let mut paths: Vec<HotPath> = self.unique_stacks.iter()
-            .map(|(&hash, &count)| HotPath {
+            .map(|(hash, count)| HotPath {
                 path: alloc::vec![hash],
                 count,
                 percentage: if self.total_samples > 0 {
