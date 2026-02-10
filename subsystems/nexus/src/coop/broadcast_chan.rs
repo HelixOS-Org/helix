@@ -67,7 +67,7 @@ impl BroadcastChannel {
     pub fn send(&mut self, data_hash: u64, sender_id: u64, now: u64) -> u64 {
         self.send_seq += 1;
         let msg = BroadcastMsg { seq: self.send_seq, data_hash, sender_id, timestamp: now };
-        if self.buffer.len() >= self.capacity { self.buffer.pop_front(); self.overflow_count += 1; }
+        if self.buffer.len() >= self.capacity { self.buffer.remove(0); self.overflow_count += 1; }
         self.buffer.push_back(msg);
         self.send_count += 1;
         self.send_seq
