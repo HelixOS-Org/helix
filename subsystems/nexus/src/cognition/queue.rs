@@ -173,7 +173,7 @@ impl<T: Clone> CognitiveQueue<T> {
                     return Err("Queue full, item dropped");
                 },
                 OverflowPolicy::DropOld => {
-                    self.items.pop_front();
+                    self.items.remove(0);
                     self.stats.total_dropped += 1;
                 },
                 OverflowPolicy::DropLowest => {
@@ -239,7 +239,7 @@ impl<T: Clone> CognitiveQueue<T> {
     /// Dequeue an item
     pub fn dequeue(&mut self) -> Option<QueueItem<T>> {
         let item = match self.config.policy {
-            QueuePolicy::Fifo | QueuePolicy::Lifo | QueuePolicy::Priority => self.items.pop_front(),
+            QueuePolicy::Fifo | QueuePolicy::Lifo | QueuePolicy::Priority => self.items.remove(0),
             QueuePolicy::Fair => {
                 // Fair: round-robin by source
                 self.dequeue_fair()
@@ -288,7 +288,7 @@ impl<T: Clone> CognitiveQueue<T> {
             }
         }
 
-        self.items.pop_front()
+        self.items.remove(0)
     }
 
     /// Peek at front item
