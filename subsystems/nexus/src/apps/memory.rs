@@ -10,8 +10,8 @@
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
+use crate::fast::math::{F64Ext};
 
 // ============================================================================
 // WORKING SET ESTIMATION
@@ -23,7 +23,7 @@ pub struct WorkingSetEstimator {
     /// Page access counts (page_number → access_count)
     page_accesses: LinearMap<u32, 64>,
     /// Window samples (timestamp → working_set_pages)
-    samples: VecDeque<(u64, u64)>,
+    samples: Vec<(u64, u64)>,
     /// Max samples
     max_samples: usize,
     /// Current working set estimate (pages)
@@ -42,7 +42,7 @@ impl WorkingSetEstimator {
     pub fn new(page_size: u64) -> Self {
         Self {
             page_accesses: LinearMap::new(),
-            samples: VecDeque::new(),
+            samples: Vec::new(),
             max_samples: 300,
             current_wss: 0,
             peak_wss: 0,
@@ -67,10 +67,15 @@ impl WorkingSetEstimator {
     /// Decay old access counts
     fn decay(&mut self) {
         let mut to_remove = Vec::new();
-        for (page, count) in self.page_accesses.iter_mut() {
-            *count /= 2;
-            if *count == 0 {
-                to_remove.push(*page);
+        let keys: Vec<u64> = self.page_accesses.keys().collect();
+        for page in keys {
+            if let Some(count) = self.page_accesses.get(page) {
+                let new_count = count / 2;
+                if new_count == 0 {
+                    to_remove.push(page);
+                } else {
+                    self.page_accesses.insert(page, new_count);
+                }
             }
         }
         for page in to_remove {
@@ -87,9 +92,9 @@ impl WorkingSetEstimator {
         }
 
         if self.samples.len() >= self.max_samples {
-            self.samples.pop_front();
+            self.samples.remove(0);
         }
-        self.samples.push_back((timestamp, self.current_wss));
+        self.samples.push((timestamp, self.current_wss));
 
         self.current_wss
     }
@@ -126,7 +131,7 @@ impl WorkingSetEstimator {
     /// Hot pages (most accessed)
     #[inline]
     pub fn hot_pages(&self, n: usize) -> Vec<(u64, u32)> {
-        let mut pages: Vec<(u64, u32)> = self.page_accesses.iter().map(|(&p, &c)| (p, c)).collect();
+        let mut pages: Vec<(u64, u32)> = self.page_accesses.iter().map(|(p, c)| (p, c)).collect();
         pages.sort_by(|a, b| b.1.cmp(&a.1));
         pages.truncate(n);
         pages
@@ -160,7 +165,7 @@ pub enum AccessPattern {
 #[derive(Debug)]
 pub struct AccessPatternDetector {
     /// Recent access addresses
-    recent_addresses: VecDeque<u64>,
+    recent_addresses: Vec<u64>,
     /// Max addresses to track
     max_addresses: usize,
     /// Detected pattern
@@ -174,7 +179,7 @@ pub struct AccessPatternDetector {
 impl AccessPatternDetector {
     pub fn new(window_size: usize) -> Self {
         Self {
-            recent_addresses: VecDeque::new(),
+            recent_addresses: Vec::new(),
             max_addresses: window_size,
             pattern: AccessPattern::Unknown,
             confidence: 0.0,
@@ -186,9 +191,9 @@ impl AccessPatternDetector {
     #[inline]
     pub fn record(&mut self, address: u64) {
         if self.recent_addresses.len() >= self.max_addresses {
-            self.recent_addresses.pop_front();
+            self.recent_addresses.remove(0);
         }
-        self.recent_addresses.push_back(address);
+        self.recent_addresses.push(address);
 
         if self.recent_addresses.len() >= 10 {
             self.classify();
@@ -264,14 +269,14 @@ impl AccessPatternDetector {
 
     fn is_clustered(&self, addrs: &[u64]) -> bool {
         // Check if accesses cluster in a few page ranges
-        let mut page_set: LinearMap<u32, 64> = BTreeMap::new();
+        let mut page_set: LinearMap<u32, 64> = LinearMap::new();
         for &addr in addrs {
             *page_set.entry(addr / 4096).or_insert(0) += 1;
         }
 
         // If less than 20% of pages account for 80% of accesses → clustered
         let total_accesses = addrs.len() as u32;
-        let mut counts: Vec<u32> = page_set.values().copied().collect();
+        let mut counts: Vec<u32> = page_set.values().collect();
         counts.sort_by(|a, b| b.cmp(a));
 
         let top_20_pct = (page_set.len() as f64 * 0.2).ceil() as usize;
@@ -333,7 +338,7 @@ pub struct AllocationAnalyzer {
     /// Total bytes allocated
     pub total_bytes: u64,
     /// Allocation rate (per second)
-    alloc_rate_samples: VecDeque<f64>,
+    alloc_rate_samples: Vec<f64>,
 }
 
 impl AllocationAnalyzer {
@@ -347,7 +352,7 @@ impl AllocationAnalyzer {
             total_allocs: 0,
             total_frees: 0,
             total_bytes: 0,
-            alloc_rate_samples: VecDeque::new(),
+            alloc_rate_samples: Vec::new(),
         }
     }
 
