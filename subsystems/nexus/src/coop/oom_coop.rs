@@ -163,10 +163,10 @@ impl OomCoopManager {
         // Find volunteer (process with most shed capacity willing to die)
         let mut best_volunteer: Option<(u64, u64)> = None;
         for &(pid, max_shed) in members {
-            if max_shed >= needed_pages {
-                if best_volunteer.is_none() || max_shed > best_volunteer.unwrap().1 {
-                    best_volunteer = Some((pid, max_shed));
-                }
+            if max_shed >= needed_pages
+                && (best_volunteer.is_none() || max_shed > best_volunteer.unwrap().1)
+            {
+                best_volunteer = Some((pid, max_shed));
             }
         }
 
