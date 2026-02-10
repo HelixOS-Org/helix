@@ -17,7 +17,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -205,7 +204,7 @@ impl HorizonTracker {
         self.ema_accuracy = ema_update(self.ema_accuracy, acc, EMA_ALPHA);
 
         if self.error_history.len() >= MAX_HISTORY {
-            self.error_history.pop_front();
+            self.error_history.remove(0);
         }
         self.error_history.push_back(abs_err);
     }
@@ -377,9 +376,9 @@ impl AppsTemporalFusion {
         let (consistency, inconsistencies) = self.check_consistency_internal(predictions);
         state.ema_consistency = ema_update(state.ema_consistency, consistency, EMA_ALPHA);
         if state.consistency_history.len() >= MAX_HISTORY {
-            state.consistency_history.pop_front().unwrap();
+            state.consistency_history.remove(0).unwrap();
         }
-        state.consistency_history.push(consistency);
+        state.consistency_history.push_back(consistency);
         state.last_fused_value = fused;
 
         self.ema_consistency_global = ema_update(self.ema_consistency_global, consistency, EMA_ALPHA);
