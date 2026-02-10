@@ -148,7 +148,7 @@ impl MlockCoopManager {
         if let Some(a) = self.allocations.get_mut(&pid) {
             let freed = pages.min(a.locked_pages);
             a.locked_pages -= freed;
-            if let Some(g) = self.group_usage.get_mut(&a.group_id) {
+            if let Some(g) = self.group_usage.get_mut(a.group_id) {
                 *g = g.saturating_sub(freed);
             }
             self.stats.total_locked_pages = self.stats.total_locked_pages.saturating_sub(freed);
@@ -183,7 +183,7 @@ impl MlockCoopManager {
                     let released = a.locked_pages;
                     a.locked_pages = 0;
                     a.preempted_count += 1;
-                    if let Some(g) = self.group_usage.get_mut(&a.group_id) {
+                    if let Some(g) = self.group_usage.get_mut(a.group_id) {
                         *g = g.saturating_sub(released);
                     }
                     self.stats.total_locked_pages =
