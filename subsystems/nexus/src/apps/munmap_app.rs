@@ -9,8 +9,8 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
+use crate::fast::math::{F64Ext};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnmapPattern { Bulk, Gradual, Random, ExitCleanup }
@@ -71,7 +71,7 @@ impl MunmapAppManager {
         let event = UnmapEvent { start, size, timestamp: now, latency_ns };
         let events = self.app_events.entry(app_id).or_insert_with(Vec::new);
         events.push(event);
-        if events.len() > self.max_events { events.pop_front().unwrap(); }
+        if events.len() > self.max_events { events.remove(0); }
 
         // Add to free ranges for potential recycling
         let ranges = self.free_ranges.entry(app_id).or_insert_with(Vec::new);
