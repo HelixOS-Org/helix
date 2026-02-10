@@ -14,7 +14,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -178,7 +177,7 @@ pub struct EarlyWarning {
 #[derive(Debug, Clone)]
 struct EventStream {
     /// Recent event hashes
-    events: VecDeque<u64>,
+    events: Vec<u64>,
     /// Recent event ticks
     ticks: VecDeque<u64>,
     /// Rate estimation per event type (EMA)
@@ -190,7 +189,7 @@ struct EventStream {
 impl EventStream {
     fn new() -> Self {
         Self {
-            events: VecDeque::new(),
+            events: Vec::new(),
             ticks: VecDeque::new(),
             rates: LinearMap::new(),
             burstiness_ema: 0.0,
@@ -199,12 +198,12 @@ impl EventStream {
 
     #[inline]
     fn push(&mut self, event_hash: u64, tick: u64) {
-        self.events.push_back(event_hash);
+        self.events.push(event_hash);
         self.ticks.push_back(tick);
 
         if self.events.len() > MAX_HISTORY {
-            self.events.pop_front();
-            self.ticks.pop_front();
+            self.events.remove(0);
+            self.ticks.remove(0);
         }
 
         // Update rate estimate
@@ -218,7 +217,7 @@ impl EventStream {
             let gap = last.saturating_sub(prev) as f32;
             let mean_gap = if self.ticks.len() > 1 {
                 let total_span = self.ticks.back().unwrap_or(&0)
-                    .saturating_sub(*self.ticks.first().unwrap_or(&0));
+                    .saturating_sub(*self.ticks.front().unwrap_or(&0));
                 total_span as f32 / self.ticks.len() as f32
             } else {
                 gap
@@ -234,7 +233,7 @@ impl EventStream {
     }
 
     fn recent_rate(&self, event_hash: u64) -> f32 {
-        self.rates.get(event_hash).copied().unwrap_or(0.0)
+        self.rates.get(event_hash).unwrap_or(0.0)
     }
 }
 
