@@ -181,7 +181,7 @@ impl Frontier for FIFOFrontier {
         if self.queue.is_empty() {
             None
         } else {
-            self.queue.pop_front()
+            self.queue.remove(0)
         }
     }
 
@@ -1027,6 +1027,7 @@ impl Default for SearchEngine {
 mod tests {
     use super::super::PerformanceSpec;
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn test_spec() -> Specification {
         Specification {
