@@ -374,6 +374,7 @@ impl AppsTemporalFusion {
 
         // Consistency check among pairs
         let (consistency, inconsistencies) = self.check_consistency_internal(predictions);
+        let state = self.app_states.get_mut(&app_id).unwrap();
         state.ema_consistency = ema_update(state.ema_consistency, consistency, EMA_ALPHA);
         if state.consistency_history.len() >= MAX_HISTORY {
             state.consistency_history.remove(0).unwrap();
