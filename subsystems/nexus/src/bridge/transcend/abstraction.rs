@@ -15,6 +15,7 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -209,7 +210,7 @@ impl BridgeAbstraction {
             patterns_promoted: 0,
             abstractions_evolved: 0,
             tick: 0,
-            rng_state: seed ^ 0xAB57_RACT_0001,
+            rng_state: seed ^ 0xAB57_DAC7_0001,
             utility_ema: 0.0,
             compression_ema: 1.0,
         }
