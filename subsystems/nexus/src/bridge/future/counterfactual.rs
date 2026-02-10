@@ -14,7 +14,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -363,7 +362,7 @@ impl BridgeCounterfactual {
 
             self.completed.push_back(record);
             if self.completed.len() > MAX_HISTORY {
-                self.completed.pop_front();
+                self.completed.remove(0);
             }
         }
     }
