@@ -2,7 +2,6 @@
 //! Coop integrity — cooperative integrity verification
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Integrity coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
