@@ -10,7 +10,6 @@
 //! - Fork-exec patterns
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
@@ -230,26 +229,26 @@ pub struct PatternMatcher {
 #[derive(Debug, Clone)]
 struct SyscallHistory {
     /// Recent syscall types
-    types: VecDeque<SyscallType>,
+    types: Vec<SyscallType>,
     /// Timestamps
-    timestamps: VecDeque<u64>,
+    timestamps: Vec<u64>,
 }
 
 impl SyscallHistory {
     fn new() -> Self {
         Self {
-            types: VecDeque::new(),
-            timestamps: VecDeque::new(),
+            types: Vec::new(),
+            timestamps: Vec::new(),
         }
     }
 
     fn push(&mut self, syscall_type: SyscallType, timestamp: u64, max: usize) {
         if self.types.len() >= max {
-            self.types.pop_front();
-            self.timestamps.pop_front();
+            self.types.remove(0);
+            self.timestamps.remove(0);
         }
-        self.types.push_back(syscall_type);
-        self.timestamps.push_back(timestamp);
+        self.types.push(syscall_type);
+        self.timestamps.push(timestamp);
     }
 }
 
@@ -283,11 +282,13 @@ impl PatternMatcher {
             .entry(pid)
             .or_insert_with(SyscallHistory::new);
         history.push(syscall_type, timestamp, max);
+        let types = history.types.clone();
+        let timestamps = history.timestamps.clone();
 
         // Try to match all templates against recent history
         let mut matches = Vec::new();
         for template in &self.templates {
-            if let Some(m) = self.try_match(template, &history.types, &history.timestamps) {
+            if let Some(m) = self.try_match(template, &types, &timestamps) {
                 matches.push(m);
             }
         }
@@ -505,23 +506,23 @@ impl NgramAnalyzer {
         for window in types.windows(2) {
             *self
                 .bigrams
-                .entry((window[0] as u8, window[1] as u8))
+                .entry((window[0].disc(), window[1].disc()))
                 .or_insert(0) += 1;
         }
         for window in types.windows(3) {
             *self
                 .trigrams
-                .entry((window[0] as u8, window[1] as u8, window[2] as u8))
+                .entry((window[0].disc(), window[1].disc(), window[2].disc()))
                 .or_insert(0) += 1;
         }
         for window in types.windows(4) {
             *self
                 .quadgrams
                 .entry((
-                    window[0] as u8,
-                    window[1] as u8,
-                    window[2] as u8,
-                    window[3] as u8,
+                    window[0].disc(),
+                    window[1].disc(),
+                    window[2].disc(),
+                    window[3].disc(),
                 ))
                 .or_insert(0) += 1;
         }
@@ -556,11 +557,15 @@ impl NgramAnalyzer {
 
     /// Bigram probability P(b | a)
     pub fn bigram_probability(&self, a: SyscallType, b: SyscallType) -> f64 {
-        let count = self.bigrams.get(&(a as u8, b as u8)).copied().unwrap_or(0);
+        let count = self
+            .bigrams
+            .get(&(a.disc(), b.disc()))
+            .copied()
+            .unwrap_or(0);
         let total_a: u64 = self
             .bigrams
             .iter()
-            .filter(|(&(first, _), _)| first == a as u8)
+            .filter(|&(&(first, _), _)| first == a.disc())
             .map(|(_, &v)| v)
             .sum();
         if total_a == 0 {
