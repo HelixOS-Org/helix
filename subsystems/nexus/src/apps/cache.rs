@@ -221,7 +221,7 @@ impl WorkingSetTracker {
         if elapsed >= self.window_ns {
             self.history.push_back(pages);
             if self.history.len() > self.max_history {
-                self.history.pop_front();
+                self.history.remove(0);
             }
             self.prev_size = pages;
             self.page_counts.clear();
@@ -353,7 +353,7 @@ impl PollutionDetector {
         let history = self.eviction_rates.entry(key).or_insert_with(Vec::new);
         history.push(evictions);
         if history.len() > self.max_history {
-            history.pop_front();
+            history.remove(0);
         }
     }
 
