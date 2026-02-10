@@ -117,11 +117,11 @@ impl ExeCrashHistory {
         self.crash_count += 1;
         self.last_crash_ts = ts;
         self.recent_crashes.push_back(ts);
-        if self.recent_crashes.len() > 32 { self.recent_crashes.pop_front(); }
+        if self.recent_crashes.len() > 32 { self.recent_crashes.remove(0); }
         self.dominant_signal = signal;
         if fault_addr != 0 && !self.unique_fault_addrs.contains(&fault_addr) {
             self.unique_fault_addrs.push_back(fault_addr);
-            if self.unique_fault_addrs.len() > 64 { self.unique_fault_addrs.pop_front(); }
+            if self.unique_fault_addrs.len() > 64 { self.unique_fault_addrs.remove(0); }
         }
     }
 
@@ -204,7 +204,7 @@ impl AppsCoredump {
         let mut record = CoredumpRecord::new(pid, exe.clone(), signal, ts);
         record.fault_addr = fault_addr;
         self.records.push_back(record);
-        if self.records.len() > self.max_records { self.records.pop_front(); }
+        if self.records.len() > self.max_records { self.records.remove(0); }
 
         let history = self.exe_history.entry(exe).or_insert_with_key(|k| ExeCrashHistory::new(k.clone()));
         history.record_crash(ts, signal, fault_addr);
