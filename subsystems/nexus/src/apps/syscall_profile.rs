@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::{BTreeMap, VecDeque};
+use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use crate::fast::linear_map::LinearMap;
