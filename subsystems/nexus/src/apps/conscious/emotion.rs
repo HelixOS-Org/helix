@@ -327,7 +327,7 @@ impl AppsEmotionEngine {
         self.tick += 1;
         self.total_evaluations += 1;
 
-        let profile = self
+        let _profile = self
             .profiles
             .entry(app_id)
             .or_insert_with(|| AppEmotionalProfile::new(app_id, String::from(app_name)));
