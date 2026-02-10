@@ -111,7 +111,8 @@ impl FileIoPattern {
         }
 
         // Track offset
-        self.recent_offsets[self.recent_pos % self.recent_offsets.len()] = record.offset;
+        let len = self.recent_offsets.len();
+        self.recent_offsets[self.recent_pos % len] = record.offset;
         self.recent_pos += 1;
 
         // Size bucket
