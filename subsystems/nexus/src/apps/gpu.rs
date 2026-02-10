@@ -12,7 +12,6 @@ extern crate alloc;
 
 use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 // ============================================================================
 // GPU RESOURCE
@@ -217,7 +216,7 @@ impl ProcessGpuProfile {
     /// Record free
     #[inline]
     pub fn record_free(&mut self, device: u32, size: u64) {
-        if let Some(usage) = self.vram_usage.get_mut(&device) {
+        if let Some(usage) = self.vram_usage.get_mut(device) {
             *usage = usage.saturating_sub(size);
         }
     }
