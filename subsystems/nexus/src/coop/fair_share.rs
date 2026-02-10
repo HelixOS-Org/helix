@@ -137,7 +137,7 @@ impl CoopFairShare {
     }
 
     pub fn allocate(&mut self, dim: u8) -> Vec<AllocationResult> {
-        let total = self.total_resources.get(&dim).copied().unwrap_or(0);
+        let total = self.total_resources.get(&dim).unwrap_or(&0);
         let total_weight: u32 = self.entities.values().filter(|e| e.state == ShareEntityState::Active).map(|e| e.weight).sum();
         let mut results = Vec::new();
 
@@ -146,8 +146,8 @@ impl CoopFairShare {
             let fair = if total_weight == 0 { 0 } else {
                 (total * entity.weight as u64) / total_weight as u64
             };
-            let demand = entity.demand.get(&dim).copied().unwrap_or(0);
-            let alloc = fair.min(demand);
+            let demand = entity.demand.get(&dim).unwrap_or(&0);
+            let alloc = fair.min(*demand);
             entity.allocated.insert(dim, alloc);
             results.push(AllocationResult {
                 entity_id: entity.id,
@@ -156,7 +156,7 @@ impl CoopFairShare {
                     m.insert(dim, alloc);
                     m
                 },
-                satisfied: alloc >= demand,
+                satisfied: alloc >= *demand,
             });
         }
         results
