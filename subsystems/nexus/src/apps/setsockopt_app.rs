@@ -187,7 +187,7 @@ pub struct AppSetsockoptV2 { pub stats: SetsockoptV2AppStats }
 impl AppSetsockoptV2 {
     pub fn new() -> Self { Self { stats: SetsockoptV2AppStats { total_sets: 0, successes: 0, failures: 0, buf_changes: 0 } } }
     #[inline]
-    pub fn set_opt(&mut self, req: &SetsockoptV2Request) -> SetOptV2Result {
+    pub fn set_opt(&mut self, _req: &SetsockoptV2Request) -> SetOptV2Result {
         self.stats.total_sets += 1;
         self.stats.successes += 1;
         SetOptV2Result::Success
