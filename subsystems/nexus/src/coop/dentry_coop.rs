@@ -4,9 +4,9 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Coop dentry state
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoopDentryState {
     Positive,
@@ -189,7 +189,7 @@ impl CoopDentryV2Manager {
     pub fn lookup(&mut self, name: &str, parent_inode: u64) -> Option<&CoopDentryV2Entry> {
         self.stats.total_lookups += 1;
         let hash = Self::hash_name(name, parent_inode);
-        if let Some(&inode) = self.name_index.get(hash) {
+        if let Some(inode) = self.name_index.get(hash) {
             self.stats.cache_hits += 1;
             self.cache.get(&inode)
         } else {
