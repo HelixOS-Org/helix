@@ -14,8 +14,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -71,7 +69,7 @@ pub struct AlgorithmGenome {
     pub genes: Vec<u64>,
     pub fitness: u64,
     pub generation: u64,
-    pub lineage: VecDeque<u64>,
+    pub lineage: Vec<u64>,
     pub evaluations: u64,
     pub fitness_history: Vec<u64>,
 }
@@ -130,7 +128,7 @@ pub struct EvolutionStats {
 pub struct AppsEvolution {
     population: BTreeMap<u64, AlgorithmGenome>,
     fitness_cases: BTreeMap<u64, FitnessCase>,
-    pressure_history: VecDeque<PressureRecord>,
+    pressure_history: Vec<PressureRecord>,
     crossover_log: Vec<CrossoverResult>,
     stats: EvolutionStats,
     generation: u64,
@@ -143,7 +141,7 @@ impl AppsEvolution {
         Self {
             population: BTreeMap::new(),
             fitness_cases: BTreeMap::new(),
-            pressure_history: VecDeque::new(),
+            pressure_history: Vec::new(),
             crossover_log: Vec::new(),
             stats: EvolutionStats::default(),
             generation: 0,
@@ -166,7 +164,7 @@ impl AppsEvolution {
                 genes,
                 fitness: 0,
                 generation: self.generation,
-                lineage: VecDeque::new(),
+                lineage: Vec::new(),
                 evaluations: 0,
                 fitness_history: Vec::new(),
             });
@@ -279,7 +277,7 @@ impl AppsEvolution {
         let mut lineage = parent.lineage.clone();
         lineage.push(genome_id);
         if lineage.len() > 16 {
-            lineage.pop_front();
+            lineage.remove(0);
         }
 
         self.population.insert(new_id, AlgorithmGenome {
@@ -398,8 +396,8 @@ impl AppsEvolution {
         // Simple weighted-sum model: genome genes act as weights.
         let mut result: u64 = 0;
         for (i, &inp) in inputs.iter().enumerate() {
-            let weight = genes.get(i).copied().unwrap_or(50);
-            result = result.wrapping_add(inp.wrapping_mul(weight) / 100);
+            let weight = genes.get(i).unwrap_or(&50);
+            result = result.wrapping_add(inp.wrapping_mul(*weight) / 100);
         }
         result % 101
     }
@@ -421,8 +419,8 @@ impl AppsEvolution {
         let mut child_genes = Vec::with_capacity(max_len);
 
         for i in 0..max_len {
-            let va = ga.genes.get(i).copied().unwrap_or(50);
-            let vb = gb.genes.get(i).copied().unwrap_or(50);
+            let va = *ga.genes.get(i).unwrap_or(&50);
+            let vb = *gb.genes.get(i).unwrap_or(&50);
             if i < crossover_point {
                 child_genes.push(va);
             } else {
@@ -504,14 +502,14 @@ impl AppsEvolution {
             survival_rate: survival,
         };
 
-        self.pressure_history.push_back(pressure);
+        self.pressure_history.push(pressure);
         if self.pressure_history.len() > PRESSURE_WINDOW {
-            self.pressure_history.pop_front();
+            self.pressure_history.remove(0);
         }
 
         // Pressure = how hard it is to improve: inverse of recent fitness gains.
         let pressure_val = if self.pressure_history.len() >= 2 {
-            let recent = self.pressure_history.back().unwrap().best_fitness;
+            let recent = self.pressure_history.last().unwrap().best_fitness;
             let older = self.pressure_history.first().unwrap().best_fitness;
             let improvement = recent.saturating_sub(older);
             100u64.saturating_sub(improvement.min(100))
@@ -547,8 +545,8 @@ impl AppsEvolution {
         }
         let mut total: u64 = 0;
         for i in 0..max_len {
-            let va = a.get(i).copied().unwrap_or(50);
-            let vb = b.get(i).copied().unwrap_or(50);
+            let va = a.get(i).unwrap_or(&50);
+            let vb = b.get(i).unwrap_or(&50);
             total += if va > vb { va - vb } else { vb - va };
         }
         total / max_len as u64
