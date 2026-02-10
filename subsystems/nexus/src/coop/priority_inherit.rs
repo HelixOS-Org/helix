@@ -38,15 +38,15 @@ impl PiMutex {
     pub fn lock(&mut self, tid: u64, prio: ThreadPriority) -> bool {
         if self.owner.is_none() { self.owner = Some(tid); self.acquisitions += 1; return true; }
         self.waiters.push_back((tid, prio));
-        self.waiters.sort_by(|a, b| b.1.cmp(&a.1));
+        self.waiters.make_contiguous().sort_by(|a, b| b.1.cmp(&a.1));
         false
     }
 
     #[inline]
     pub fn unlock(&mut self) -> Option<u64> {
         self.owner = None;
-        if let Some((tid, _prio)) = self.waiters.first().cloned() {
-            self.waiters.pop_front();
+        if let Some((tid, _prio)) = self.waiters.front().cloned() {
+            self.waiters.remove(0);
             self.owner = Some(tid);
             self.acquisitions += 1;
             Some(tid)
@@ -55,7 +55,7 @@ impl PiMutex {
 
     #[inline(always)]
     pub fn highest_waiter_prio(&self) -> Option<ThreadPriority> {
-        self.waiters.first().map(|(_tid, prio)| *prio)
+        self.waiters.front().map(|(_tid, prio)| *prio)
     }
 }
 
