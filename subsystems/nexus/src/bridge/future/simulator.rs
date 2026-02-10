@@ -83,10 +83,10 @@ impl ProcessBehaviorModel {
         self.avg_latency = EMA_ALPHA * latency + (1.0 - EMA_ALPHA) * self.avg_latency;
 
         // Decay other rates
-        let keys: Vec<u32> = self.syscall_rates.keys().copied().collect();
+        let keys: Vec<u32> = self.syscall_rates.keys().map(|k| k as u32).collect();
         for k in keys {
             if k != syscall_nr {
-                if let Some(r) = self.syscall_rates.get_mut(&k) {
+                if let Some(r) = self.syscall_rates.get_mut(k) {
                     *r *= 1.0 - EMA_ALPHA;
                 }
             }
