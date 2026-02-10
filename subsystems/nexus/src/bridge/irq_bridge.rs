@@ -135,7 +135,7 @@ impl IrqDomain {
     #[inline(always)]
     pub fn unmap(&mut self, hwirq: u64) { self.mapped.remove(hwirq); self.revmap_size = self.mapped.len() as u32; }
     #[inline(always)]
-    pub fn resolve(&self, hwirq: u64) -> Option<u32> { self.mapped.get(hwirq).copied() }
+    pub fn resolve(&self, hwirq: u64) -> Option<u32> { self.mapped.get(hwirq) }
 }
 
 /// Per-CPU IRQ stats
