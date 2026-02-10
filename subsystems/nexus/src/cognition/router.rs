@@ -419,7 +419,7 @@ impl MessageRouter {
                 let min_loaded = rule
                     .destinations
                     .iter()
-                    .min_by_key(|d| self.domain_load.get(d).copied().unwrap_or(0))
+                    .min_by_key(|d| self.domain_load.get(d).unwrap_or(0))
                     .copied();
                 min_loaded.map(|d| vec![d]).unwrap_or_default()
             },
