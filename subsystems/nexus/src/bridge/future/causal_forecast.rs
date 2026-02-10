@@ -12,7 +12,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -290,7 +289,7 @@ impl BridgeCausalForecast {
         // Add to recent window
         self.recent_events.push_back((event_hash, tick));
         if self.recent_events.len() > MAX_OBSERVATIONS {
-            self.recent_events.pop_front();
+            self.recent_events.remove(0);
         }
 
         // Decay stale links
