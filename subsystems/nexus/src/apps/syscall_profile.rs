@@ -199,7 +199,7 @@ pub enum PatternType {
 #[derive(Debug, Clone)]
 pub struct PatternDetector {
     /// Recent syscalls
-    recent: VecDeque<u32>,
+    recent: Vec<u32>,
     /// Max window
     max_window: usize,
     /// N-gram counts (hash -> count)
@@ -213,7 +213,7 @@ pub struct PatternDetector {
 impl PatternDetector {
     pub fn new(ngram_size: usize) -> Self {
         Self {
-            recent: VecDeque::new(),
+            recent: Vec::new(),
             max_window: 256,
             ngram_counts: LinearMap::new(),
             ngram_sequences: BTreeMap::new(),
@@ -223,9 +223,9 @@ impl PatternDetector {
 
     /// Record syscall
     pub fn record(&mut self, syscall: u32) {
-        self.recent.push_back(syscall);
+        self.recent.push(syscall);
         if self.recent.len() > self.max_window {
-            self.recent.pop_front();
+            self.recent.remove(0);
         }
 
         if self.recent.len() >= self.ngram_size {
@@ -251,16 +251,16 @@ impl PatternDetector {
     /// Get top patterns
     pub fn top_patterns(&self, limit: usize) -> Vec<SyscallPattern> {
         let mut entries: Vec<_> = self.ngram_counts.iter().collect();
-        entries.sort_by(|a, b| b.1.cmp(a.1));
+        entries.sort_by(|a, b| b.1.cmp(&a.1));
 
         entries
             .iter()
             .take(limit)
-            .filter_map(|(&hash, &count)| {
+            .filter_map(|(hash, count)| {
                 let seq = self.ngram_sequences.get(&hash)?;
                 Some(SyscallPattern {
                     sequence: seq.clone(),
-                    occurrences: count,
+                    occurrences: *count,
                     avg_latency_ns: 0.0,
                     pattern_type: PatternType::Generic,
                 })
