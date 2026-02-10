@@ -343,7 +343,7 @@ impl CoopContractManager {
 
     /// Submit negotiation offer
     #[inline]
-    pub fn negotiate(&mut self, pid: u64, offer: NegotiationOffer) -> u64 {
+    pub fn negotiate(&mut self, _pid: u64, offer: NegotiationOffer) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         self.negotiations.insert(id, offer);
@@ -448,7 +448,7 @@ impl CoopContractManager {
 
                 self.breach_history.push_back(breach);
                 if self.breach_history.len() > self.max_breaches {
-                    self.breach_history.pop_front();
+                    self.breach_history.remove(0);
                 }
 
                 self.stats.total_breaches += 1;
