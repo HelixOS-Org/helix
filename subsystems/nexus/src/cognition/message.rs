@@ -381,7 +381,7 @@ impl MessageBus {
 
         // Limit pending
         while self.pending.len() > self.config.max_pending {
-            self.pending.pop_front();
+            self.pending.remove(0);
             self.stats.total_expired += 1;
         }
 
@@ -566,7 +566,7 @@ impl MessageBus {
 
             // Add to history
             if self.history.len() >= self.config.max_history {
-                self.history.pop_front();
+                self.history.remove(0);
             }
             self.history.push_back(msg.clone());
         }
