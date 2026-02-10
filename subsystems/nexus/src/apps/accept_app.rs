@@ -204,7 +204,7 @@ impl AppAcceptV2 {
         }
     }
     #[inline]
-    pub fn accept(&mut self, req: &AcceptV2Request) -> i32 {
+    pub fn accept(&mut self, _req: &AcceptV2Request) -> i32 {
         self.stats.total_accepts += 1;
         self.stats.successful += 1;
         self.stats.total_accepts as i32
