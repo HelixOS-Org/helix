@@ -14,7 +14,6 @@ extern crate alloc;
 
 use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -167,7 +166,7 @@ impl FitnessCurve {
             .best_per_generation
             .values()
             .last()
-            .copied()
+            
             .unwrap_or(0.0);
         let improvement = if prev_best > 0.0 {
             (best - prev_best) / prev_best
@@ -179,9 +178,9 @@ impl FitnessCurve {
         self.mean_per_generation.insert(generation, mean);
 
         while self.best_per_generation.len() > MAX_GENERATIONS {
-            if let Some(&first) = self.best_per_generation.keys().next() {
-                self.best_per_generation.remove(&first);
-                self.mean_per_generation.remove(&first);
+            if let Some(first) = self.best_per_generation.keys().next() {
+                self.best_per_generation.remove(first);
+                self.mean_per_generation.remove(first);
             }
         }
     }
@@ -196,7 +195,7 @@ impl FitnessCurve {
 pub struct AppsExplorer {
     population: Vec<FeatureIndividual>,
     fitness_curve: FitnessCurve,
-    frontier: VecDeque<FrontierPoint>,
+    frontier: Vec<FrontierPoint>,
     dimension_best: BTreeMap<u64, FeatureIndividual>,
     generation: u32,
     rng_state: u64,
@@ -211,7 +210,7 @@ impl AppsExplorer {
         Self {
             population: Vec::new(),
             fitness_curve: FitnessCurve::new(),
-            frontier: VecDeque::new(),
+            frontier: Vec::new(),
             dimension_best: BTreeMap::new(),
             generation: 0,
             rng_state: seed | 1,
@@ -482,9 +481,9 @@ impl AppsExplorer {
                             && point.coverage >= fp.coverage
                             && point.efficiency >= fp.efficiency)
                     });
-                self.frontier.push_back(point);
+                self.frontier.push(point);
                 if self.frontier.len() > FRONTIER_BUDGET {
-                    self.frontier.pop_front();
+                    self.frontier.remove(0);
                 }
             }
         }
