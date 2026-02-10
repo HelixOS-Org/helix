@@ -324,9 +324,9 @@ impl AppLockProfiler {
     #[inline]
     pub fn record_inversion(&mut self, pid: u64, inversion: PriorityInversion) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
-            profile.inversions.push(inversion);
+            profile.inversions.push_back(inversion);
             if profile.inversions.len() > 128 {
-                profile.inversions.pop_front().unwrap();
+                profile.inversions.remove(0).unwrap();
             }
         }
         self.recompute();
