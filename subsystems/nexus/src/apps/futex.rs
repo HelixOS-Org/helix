@@ -169,7 +169,7 @@ impl LockDescriptor {
 // ============================================================================
 
 /// Wait chain entry
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct WaitChainEntry {
     /// Waiting thread
     pub thread: u64,
@@ -179,6 +179,12 @@ pub struct WaitChainEntry {
     pub owner: Option<u64>,
     /// Wait time so far (ns)
     pub wait_ns: u64,
+
+    pub blocked_on: u64,
+    pub owner_pid: u64,
+    pub wait_start_ns: u64,
+    pub waiter_pid: u64,
+    pub waiter_tid: u64,
 }
 
 /// Wait chain (potentially circular = deadlock)
@@ -328,7 +334,7 @@ impl ProcessSyncProfile {
     pub fn build_wait_chains(&self) -> Vec<WaitChain> {
         let mut chains = Vec::new();
 
-        for (&thread, &lock_addr) in &self.thread_waiting {
+        for (thread, lock_addr) in &self.thread_waiting {
             let mut chain = WaitChain::new();
             let mut visited = Vec::new();
             let mut current_thread = thread;
@@ -348,11 +354,12 @@ impl ProcessSyncProfile {
                     lock_address: current_lock,
                     owner,
                     wait_ns: 0,
+                    ..Default::default(),
                 });
 
                 match owner {
                     Some(o) => {
-                        if let Some(&next_lock) = self.thread_waiting.get(o) {
+                        if let Some(next_lock) = self.thread_waiting.get(o) {
                             current_thread = o;
                             current_lock = next_lock;
                         } else {
@@ -839,6 +846,7 @@ impl AppFutexV2Profiler {
             blocked_on: addr,
             owner_pid: 0,
             wait_start_ns: now,
+            ..Default::default(),
         });
         self.update_stats();
     }
