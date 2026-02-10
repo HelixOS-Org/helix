@@ -92,6 +92,22 @@ pub struct Parameter {
 /// Type specification
 #[derive(Debug, Clone)]
 pub enum TypeSpec {
+    Bool,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    Usize,
+    Isize,
+    F32,
+    F64,
+    Unit,
     Ptr(Box<TypeSpec>),
     MutPtr(Box<TypeSpec>),
     Ref(Box<TypeSpec>),
@@ -169,7 +185,7 @@ pub enum Expr {
     /// Old value (for postconditions)
     Old(Box<Expr>),
     /// Result value (for postconditions)
-    ResultValue,
+    Result,
     /// Conditional
     If(Box<Expr>, Box<Expr>, Box<Expr>),
 }
@@ -177,12 +193,30 @@ pub enum Expr {
 /// Binary operators
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    Shl,
+    Shr,
+    And,
+    Or,
+    Xor,
+    BitAnd,
+    BitOr,
+    BitXor,
+    Eq,
+    Ne,
+    Lt,
+    Gt,
+    Le,
+    Ge,
 }
 
 /// Unary operators
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum UnaryOp {
-}
+pub enum UnaryOp {}
 
 /// Performance specification
 #[derive(Debug, Clone)]
@@ -237,6 +271,12 @@ impl Default for GenOptions {
 /// Verification level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VerificationLevel {
+    /// No verification
+    None,
+    /// Basic verification
+    Basic,
+    /// Full verification
+    Full,
 }
 
 /// Target architecture
@@ -248,6 +288,12 @@ pub enum TargetArch {
 /// Priority level
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Priority {
+    /// Low priority
+    Low,
+    /// Normal priority
+    Normal,
+    /// High priority
+    High,
 }
 
 /// Generated code result
@@ -294,6 +340,10 @@ pub struct ProvedProperty {
 /// Proof method
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProofMethod {
+    SymbolicExecution,
+    ModelChecking,
+    AbstractInterpretation,
+    Hybrid,
 }
 
 /// Code metrics
@@ -369,8 +419,7 @@ pub struct CodeTemplate {
 
 /// Template category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TemplateCategory {
-}
+pub enum TemplateCategory {}
 
 /// Template condition
 #[derive(Debug, Clone)]
