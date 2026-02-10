@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Queue state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,7 +61,7 @@ impl BoundedQueue {
     #[inline]
     pub fn dequeue(&mut self) -> Option<QueueItem> {
         if self.items.is_empty() { return None; }
-        let item = self.items.pop_front().unwrap();
+        let item = self.items.remove(0).unwrap();
         self.total_dequeued += 1;
         self.update_state();
         Some(item)
