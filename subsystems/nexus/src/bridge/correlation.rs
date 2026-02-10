@@ -11,7 +11,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
@@ -117,7 +116,7 @@ impl TemporalWindow {
         let cutoff = event.timestamp.saturating_sub(self.window_ns);
         self.events.retain(|e| e.timestamp >= cutoff);
         if self.events.len() >= self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
         self.events.push_back(event);
     }
@@ -245,15 +244,15 @@ impl CoOccurrenceMatrix {
     #[inline(always)]
     pub fn count(&self, a: u32, b: u32) -> u64 {
         let key = Self::pair_key(a, b);
-        self.counts.get(key).copied().unwrap_or(0)
+        self.counts.get(key).unwrap_or(0)
     }
 
     /// Correlation coefficient (Jaccard index)
     #[inline]
     pub fn correlation(&self, a: u32, b: u32) -> f64 {
         let co = self.count(a, b) as f64;
-        let ta = self.totals.try_get(a as usize).copied().unwrap_or(0) as f64;
-        let tb = self.totals.try_get(b as usize).copied().unwrap_or(0) as f64;
+        let ta = self.totals.try_get(a as usize).unwrap_or(0) as f64;
+        let tb = self.totals.try_get(b as usize).unwrap_or(0) as f64;
         let union = ta + tb - co;
         if union <= 0.0 {
             return 0.0;
@@ -288,7 +287,7 @@ pub struct BridgeCorrelationEngine {
     /// Co-occurrence matrix
     cooccurrence: CoOccurrenceMatrix,
     /// Found correlations (recent)
-    correlations: VecDeque<CorrelationLink>,
+    correlations: Vec<CorrelationLink>,
     /// Max stored correlations
     max_correlations: usize,
     /// Stats
@@ -301,7 +300,7 @@ impl BridgeCorrelationEngine {
             window: TemporalWindow::new(window_ns, 10000),
             rules: Vec::new(),
             cooccurrence: CoOccurrenceMatrix::new(),
-            correlations: VecDeque::new(),
+            correlations: Vec::new(),
             max_correlations: 10000,
             stats: BridgeCorrelationStats::default(),
         }
@@ -331,9 +330,9 @@ impl BridgeCorrelationEngine {
                         confidence: 0.8,
                     };
                     if self.correlations.len() >= self.max_correlations {
-                        self.correlations.pop_front();
+                        self.correlations.remove(0);
                     }
-                    self.correlations.push_back(link);
+                    self.correlations.push(link);
                     self.stats.correlations_found += 1;
                 }
             }
