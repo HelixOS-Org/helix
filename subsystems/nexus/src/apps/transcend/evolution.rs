@@ -428,18 +428,17 @@ impl AppsEvolution {
             }
         }
 
-        // Apply light mutation to offspring.
-        if xorshift64(&mut self.rng) % 100 < 30 {
-            if !child_genes.is_empty() {
-                let idx = (xorshift64(&mut self.rng) as usize) % child_genes.len();
-                let delta = xorshift64(&mut self.rng) % (MUTATION_SIGMA + 1);
-                child_genes[idx] = child_genes[idx].wrapping_add(delta).min(100);
-            }
+        let ga_fitness = ga.fitness;
+        let gb_fitness = gb.fitness;
+        let mut lineage = ga.lineage.clone();
+        if xorshift64(&mut self.rng) % 100 < 30 && !child_genes.is_empty() {
+            let idx = (xorshift64(&mut self.rng) as usize) % child_genes.len();
+            let delta = xorshift64(&mut self.rng) % (MUTATION_SIGMA + 1);
+            child_genes[idx] = child_genes[idx].wrapping_add(delta).min(100);
         }
 
         let child_id = self.hash_genes(&child_genes);
-        let predicted_fitness = (ga.fitness + gb.fitness) / 2;
-        let mut lineage = ga.lineage.clone();
+        let predicted_fitness = (ga_fitness + gb_fitness) / 2;
         lineage.push(genome_a);
         lineage.push(genome_b);
         if lineage.len() > 16 {
