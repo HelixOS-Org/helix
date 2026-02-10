@@ -222,7 +222,7 @@ impl AsyncIoEngine {
         let priority_idx = request.priority as usize;
         self.tickets
             .insert(ticket.0, (request.id, AsyncStatus::Queued));
-        self.queues[priority_idx].push(request);
+        self.queues[priority_idx].push_back(request);
         self.total_submitted += 1;
 
         ticket
@@ -267,7 +267,7 @@ impl AsyncIoEngine {
         // Dispatch from highest priority first
         for priority in (0..5).rev() {
             while dispatched.len() < available_slots && !self.queues[priority].is_empty() {
-                let request = self.queues[priority].pop_front().unwrap();
+                let request = self.queues[priority].remove(0).unwrap();
                 let id_key = request.id.0;
 
                 // Update ticket status
@@ -346,9 +346,9 @@ impl AsyncIoEngine {
 
             // Escalate by moving to higher priority queue (reverse order to maintain indices)
             for idx in to_escalate.into_iter().rev() {
-                let req = self.queues[priority].remove(idx);
+                let req = self.queues[priority].remove(idx).unwrap();
                 escalated.push(req.id);
-                self.queues[priority + 1].push(req);
+                self.queues[priority + 1].push_back(req);
             }
         }
 
