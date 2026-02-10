@@ -277,9 +277,9 @@ pub enum IoPriority {
 #[derive(Debug)]
 pub struct BandwidthEstimator {
     /// Recent read bandwidth samples (bytes/sec)
-    read_samples: VecDeque<f64>,
+    read_samples: Vec<f64>,
     /// Recent write bandwidth samples (bytes/sec)
-    write_samples: VecDeque<f64>,
+    write_samples: Vec<f64>,
     /// Max samples
     max_samples: usize,
     /// Window start
@@ -295,8 +295,8 @@ pub struct BandwidthEstimator {
 impl BandwidthEstimator {
     pub fn new(window_ms: u64) -> Self {
         Self {
-            read_samples: VecDeque::new(),
-            write_samples: VecDeque::new(),
+            read_samples: Vec::new(),
+            write_samples: Vec::new(),
             max_samples: 60,
             window_start: 0,
             window_read_bytes: 0,
@@ -324,14 +324,14 @@ impl BandwidthEstimator {
             let write_bw = self.window_write_bytes as f64 / duration_sec;
 
             if self.read_samples.len() >= self.max_samples {
-                self.read_samples.pop_front();
+                self.read_samples.remove(0);
             }
-            self.read_samples.push_back(read_bw);
+            self.read_samples.push(read_bw);
 
             if self.write_samples.len() >= self.max_samples {
-                self.write_samples.pop_front();
+                self.write_samples.remove(0);
             }
-            self.write_samples.push_back(write_bw);
+            self.write_samples.push(write_bw);
 
             self.window_start = timestamp;
             self.window_read_bytes = 0;
