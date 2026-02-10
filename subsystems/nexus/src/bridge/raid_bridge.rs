@@ -2,8 +2,6 @@
 //! Bridge RAID — md RAID management bridge
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// RAID bridge operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
