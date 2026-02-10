@@ -382,7 +382,7 @@ impl AppMigrationAnalyzer {
         pid: u64,
         target_cpu: u32,
         reason: MigrationReason,
-        now: u64,
+        _now: u64,
     ) -> MigrationDecision {
         let profile = match self.profiles.get(&pid) {
             Some(p) => p,
