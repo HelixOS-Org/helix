@@ -179,7 +179,7 @@ pub struct ProcessWatchdog {
     /// Health score (0.0-1.0)
     pub health_score: f64,
     /// Recent results
-    pub recent_results: VecDeque<HealthCheckResult>,
+    pub recent_results: Vec<HealthCheckResult>,
     /// Max results
     max_results: usize,
     /// Created at
@@ -197,7 +197,7 @@ impl ProcessWatchdog {
             failed_checks: 0,
             recovery_attempts: 0,
             health_score: 1.0,
-            recent_results: VecDeque::new(),
+            recent_results: Vec::new(),
             max_results: 32,
             created_at: now,
         }
@@ -234,9 +234,9 @@ impl ProcessWatchdog {
         if !result.passed {
             self.failed_checks += 1;
         }
-        self.recent_results.push_back(result);
+        self.recent_results.push(result);
         if self.recent_results.len() > self.max_results {
-            self.recent_results.pop_front();
+            self.recent_results.remove(0);
         }
         self.recalculate_health();
     }
