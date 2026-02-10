@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Message priority (0-31)
 pub type MqPriority = u32;
@@ -58,7 +57,7 @@ impl MessageQueue {
     pub fn send(&mut self, msg: MqMessage) -> bool {
         if self.messages.len() as u32 >= self.attr.max_msg { return false; }
         self.messages.push_back(msg);
-        self.messages.sort_by(|a, b| b.priority.cmp(&a.priority));
+        self.messages.make_contiguous().sort_by(|a, b| b.priority.cmp(&a.priority));
         self.attr.cur_msgs += 1;
         self.send_count += 1;
         true
@@ -69,7 +68,7 @@ impl MessageQueue {
         if self.messages.is_empty() { return None; }
         self.attr.cur_msgs -= 1;
         self.recv_count += 1;
-        self.messages.pop_front()
+        self.messages.remove(0)
     }
 
     #[inline(always)]
