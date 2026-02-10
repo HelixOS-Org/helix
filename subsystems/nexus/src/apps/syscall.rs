@@ -267,7 +267,7 @@ impl ProcessSyscallV2Profile {
         let last = self.last_syscall?;
         self.bigrams.iter()
             .filter(|(bg, _)| bg.first == last)
-            .max_by_key(|(_, &count)| count)
+            .max_by_key(|&(_, &count)| count)
             .map(|(bg, _)| bg.second)
     }
 
