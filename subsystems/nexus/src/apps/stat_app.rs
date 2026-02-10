@@ -4,7 +4,6 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 
 /// File type from stat
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -333,7 +332,7 @@ impl AppStatV3Manager {
     pub fn stat_path(&mut self, path: &str) -> Option<&AppStatInfo> {
         self.stats.total_stats += 1;
         let hash = Self::hash_path(path);
-        if let Some(&inode) = self.path_to_inode.get(hash) {
+        if let Some(inode) = self.path_to_inode.get(hash) {
             self.stats.cache_hits += 1;
             self.stat_cache.get(&inode)
         } else {
