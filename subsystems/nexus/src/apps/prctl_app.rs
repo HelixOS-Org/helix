@@ -2,9 +2,10 @@
 //! App prctl — process control syscall interface
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Prctl option
+use alloc::collections::BTreeMap;
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrctlOption {
     SetName,
