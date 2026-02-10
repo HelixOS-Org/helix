@@ -8,7 +8,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -545,7 +544,7 @@ impl PriorityScheduler {
     /// Get weight for level
     #[inline(always)]
     pub fn get_weight(&self, level: PriorityLevel) -> u32 {
-        self.weights.get(&level).copied().unwrap_or(0)
+        self.weights.get(&level).unwrap_or(0)
     }
 }
 
