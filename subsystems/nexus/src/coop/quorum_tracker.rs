@@ -91,9 +91,9 @@ impl Ballot {
 
     pub fn cast(&mut self, vote: QuorumVote) -> bool {
         if self.decided { return false; }
-        if !self.voters.contains_key(&vote.voter_id) { return false; }
+        if !self.voters.contains_key(vote.voter_id) { return false; }
         if self.votes.iter().any(|v| v.voter_id == vote.voter_id) { return false; }
-        let w = *self.voters.get(&vote.voter_id).unwrap_or(&0);
+        let w = self.voters.get(vote.voter_id).unwrap_or(0);
         match vote.value {
             VoteValue::Yes => self.yes_weight += w,
             VoteValue::No => self.no_weight += w,
