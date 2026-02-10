@@ -342,7 +342,7 @@ impl CoopExchangeManager {
     /// Get balance
     #[inline(always)]
     pub fn balance(&self, pid: u64) -> u64 {
-        self.balances.get(pid).copied().unwrap_or(0)
+        self.balances.get(pid).unwrap_or(0)
     }
 
     /// Place order
@@ -431,7 +431,7 @@ impl CoopExchangeManager {
 
                     // Update balances
                     let cost = match_qty * trade_price as u64;
-                    if let Some(bal) = self.balances.get_mut(&request.pid) {
+                    if let Some(bal) = self.balances.get_mut(request.pid) {
                         *bal = bal.saturating_sub(cost);
                     }
                     *self.balances.entry(offer.pid).or_insert(0) += cost;
