@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -349,7 +348,7 @@ pub struct BridgeInstrumentationEngine {
     /// Perf counters
     counters: BTreeMap<u8, PerfCounter>,
     /// Event ring buffer
-    events: VecDeque<InstrumentationEvent>,
+    events: Vec<InstrumentationEvent>,
     /// Max events
     max_events: usize,
     /// Next probe id
@@ -363,7 +362,7 @@ impl BridgeInstrumentationEngine {
         Self {
             probes: BTreeMap::new(),
             counters: BTreeMap::new(),
-            events: VecDeque::new(),
+            events: Vec::new(),
             max_events: 4096,
             next_id: 1,
             stats: InstrumentationStats::default(),
@@ -416,21 +415,19 @@ impl BridgeInstrumentationEngine {
     }
 
     /// Fire probes for syscall entry
-    pub fn fire_entry(
-        &mut self,
-        syscall_nr: u32,
-        pid: u64,
-        args: [u64; 6],
-        now: u64,
-    ) {
+    pub fn fire_entry(&mut self, syscall_nr: u32, pid: u64, args: [u64; 6], now: u64) {
         let matching: Vec<u64> = self
             .probes
             .iter_mut()
-            .filter(|(_, p)| matches!(p.probe_type, ProbeType::Entry | ProbeType::Argument))
-            .filter(|(_, p)| p.should_fire(syscall_nr, pid))
-            .map(|(&id, p)| {
+            .filter_map(|(id, p)| {
+                if !matches!(p.probe_type, ProbeType::Entry | ProbeType::Argument) {
+                    return None;
+                }
+                if !p.should_fire(syscall_nr, pid) {
+                    return None;
+                }
                 p.record_hit(now);
-                id
+                Some(*id)
             })
             .collect();
 
@@ -460,16 +457,18 @@ impl BridgeInstrumentationEngine {
         let matching: Vec<u64> = self
             .probes
             .iter_mut()
-            .filter(|(_, p)| {
-                matches!(
+            .filter_map(|(id, p)| {
+                if !matches!(
                     p.probe_type,
                     ProbeType::Exit | ProbeType::Latency | ProbeType::ReturnValue
-                )
-            })
-            .filter(|(_, p)| p.should_fire(syscall_nr, pid))
-            .map(|(&id, p)| {
+                ) {
+                    return None;
+                }
+                if !p.should_fire(syscall_nr, pid) {
+                    return None;
+                }
                 p.record_hit(now);
-                id
+                Some(*id)
             })
             .collect();
 
@@ -488,9 +487,9 @@ impl BridgeInstrumentationEngine {
     }
 
     fn push_event(&mut self, event: InstrumentationEvent) {
-        self.events.push_back(event);
+        self.events.push(event);
         if self.events.len() > self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
         self.stats.total_events += 1;
     }
