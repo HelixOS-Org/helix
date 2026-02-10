@@ -219,7 +219,7 @@ impl AppsBreakthroughDetector {
         // Track baseline for relative comparisons
         self.baseline_scores.push_back(composite);
         if self.baseline_scores.len() > MAX_CANDIDATES {
-            self.baseline_scores.pop_front();
+            self.baseline_scores.remove(0);
         }
 
         let candidate = BreakthroughCandidate {
@@ -444,7 +444,7 @@ impl AppsBreakthroughDetector {
 
         self.frequency_ticks.push_back(self.tick);
         if self.frequency_ticks.len() > MAX_FREQUENCY_HISTORY {
-            self.frequency_ticks.pop_front();
+            self.frequency_ticks.remove(0);
         }
 
         if self.catalog.len() >= MAX_CATALOG {
