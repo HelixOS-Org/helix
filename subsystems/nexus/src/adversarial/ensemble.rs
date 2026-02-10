@@ -4,6 +4,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::adversarial::types::ENSEMBLE_SIZE;
+use crate::fast::math::{F64Ext};
 
 /// Diverse ensemble for robustness
 #[derive(Debug, Clone)]
