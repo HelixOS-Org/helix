@@ -9,7 +9,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key derivation.
@@ -408,7 +407,7 @@ impl CoopProactive {
             .saturating_add(total_savings / 100);
 
         if self.savings_history.len() >= 64 {
-            self.savings_history.pop_front();
+            self.savings_history.remove(0);
         }
         self.savings_history.push_back(total_savings);
         self.stats.avg_savings = ema_update(self.stats.avg_savings, total_savings, 3, 10);
