@@ -510,6 +510,7 @@ mod tests {
     use super::super::Lineage;
     use super::super::genome::CodeGenome;
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn create_individual(id: u64, fitness: f64) -> Individual {
         let counter = AtomicU64::new(1);
