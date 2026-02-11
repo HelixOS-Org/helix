@@ -14,6 +14,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Writeback reason
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WritebackReason {
     Background,
