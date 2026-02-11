@@ -10,46 +10,46 @@
 
 ## 🎯 Executive Summary
 
-Ce document définit l'architecture complète du cœur x86_64 pour Helix OS Framework.
-Cette implémentation vise à supporter des **millions de lignes** de code kernel tout en
-restant modulaire, maintenable et performante.
+This document defines the complete x86_64 core architecture for Helix OS Framework.
+This implementation aims to support **millions of lines** of kernel code while
+remaining modular, maintainable, and performant.
 
-### Objectifs Clés
+### Key Objectives
 
-| Objectif | Description | Métrique |
-|----------|-------------|----------|
-| **Scalabilité** | Support kernel massif | 100k+ lignes HAL x86_64 |
-| **Modularité** | Composants indépendants | 30+ modules |
-| **Performance** | Latence minimale | < 1µs context switch |
-| **SMP-Ready** | Multi-cœur dès le design | 256+ CPUs |
-| **Extensibilité** | Ajout de features facile | Plugin architecture |
+| Objective | Description | Metric |
+|-----------|-------------|--------|
+| **Scalability** | Massive kernel support | 100k+ lines HAL x86_64 |
+| **Modularity** | Independent components | 30+ modules |
+| **Performance** | Minimal latency | < 1µs context switch |
+| **SMP-Ready** | Multi-core from the design | 256+ CPUs |
+| **Extensibility** | Easy feature addition | Plugin architecture |
 
 ---
 
-## 📁 Structure des Dossiers
+## 📁 Directory Structure
 
 ```
 hal/src/arch/x86_64/
-├── mod.rs                          # Point d'entrée principal
-├── README.md                       # Documentation du module
+├── mod.rs                          # Main entry point
+├── README.md                       # Module documentation
 │
-├── core/                           # Fondamentaux CPU (5,000+ lignes)
+├── core/                           # CPU fundamentals (5,000+ lines)
 │   ├── mod.rs
 │   ├── cpuid.rs                    # CPUID enumeration & features
-│   ├── msr.rs                      # MSR framework complet
+│   ├── msr.rs                      # Complete MSR framework
 │   ├── control_regs.rs             # CR0-CR4, XCR0
 │   ├── features.rs                 # CPU feature detection
 │   ├── cache.rs                    # Cache management
 │   └── fpu.rs                      # FPU/SSE/AVX state
 │
-├── segmentation/                   # GDT/TSS/LDT (3,000+ lignes)
+├── segmentation/                   # GDT/TSS/LDT (3,000+ lines)
 │   ├── mod.rs
 │   ├── gdt.rs                      # GDT management
 │   ├── tss.rs                      # TSS per-CPU
 │   ├── selectors.rs                # Segment selectors
 │   └── descriptors.rs              # Descriptor types
 │
-├── interrupts/                     # IDT/Exceptions/IRQ (8,000+ lignes)
+├── interrupts/                     # IDT/Exceptions/IRQ (8,000+ lines)
 │   ├── mod.rs
 │   ├── idt.rs                      # IDT management
 │   ├── exceptions.rs               # Exception handlers
@@ -59,7 +59,7 @@ hal/src/arch/x86_64/
 │   ├── irq_routing.rs              # IRQ routing table
 │   └── nmi.rs                      # NMI handling
 │
-├── apic/                           # APIC/IOAPIC (6,000+ lignes)
+├── apic/                           # APIC/IOAPIC (6,000+ lines)
 │   ├── mod.rs
 │   ├── local_apic.rs               # Local APIC (xAPIC)
 │   ├── x2apic.rs                   # x2APIC mode
@@ -68,7 +68,7 @@ hal/src/arch/x86_64/
 │   ├── ipi.rs                      # Inter-Processor Interrupts
 │   └── vectors.rs                  # Vector allocation
 │
-├── paging/                         # MMU/Paging (10,000+ lignes)
+├── paging/                         # MMU/Paging (10,000+ lines)
 │   ├── mod.rs
 │   ├── level4.rs                   # 4-level paging
 │   ├── level5.rs                   # 5-level (LA57)
@@ -82,7 +82,7 @@ hal/src/arch/x86_64/
 │   ├── frame_allocator.rs          # Frame allocation interface
 │   └── kaslr.rs                    # KASLR integration
 │
-├── timers/                         # Timing subsystem (4,000+ lignes)
+├── timers/                         # Timing subsystem (4,000+ lines)
 │   ├── mod.rs
 │   ├── tsc.rs                      # TSC (invariant)
 │   ├── hpet.rs                     # High Precision Event Timer
@@ -91,7 +91,7 @@ hal/src/arch/x86_64/
 │   ├── calibration.rs              # Timer calibration
 │   └── time_api.rs                 # Unified time API
 │
-├── smp/                            # Multi-processor (5,000+ lignes)
+├── smp/                            # Multi-processor (5,000+ lines)
 │   ├── mod.rs
 │   ├── ap_boot.rs                  # AP startup sequence
 │   ├── trampoline.rs               # Real-mode trampoline
@@ -100,33 +100,33 @@ hal/src/arch/x86_64/
 │   ├── spinlock.rs                 # Spinlocks
 │   └── topology.rs                 # CPU topology
 │
-├── syscall/                        # System calls (2,000+ lignes)
+├── syscall/                        # System calls (2,000+ lines)
 │   ├── mod.rs
 │   ├── entry.rs                    # SYSCALL/SYSRET
 │   ├── compat.rs                   # 32-bit compatibility
 │   └── table.rs                    # Syscall table
 │
-├── context/                        # Context switching (3,000+ lignes)
+├── context/                        # Context switching (3,000+ lines)
 │   ├── mod.rs
 │   ├── switch.rs                   # Context switch
 │   ├── state.rs                    # CPU state
 │   ├── fpu_context.rs              # FPU/SIMD state
 │   └── extended.rs                 # Extended state (XSAVE)
 │
-├── debug/                          # Debug facilities (2,000+ lignes)
+├── debug/                          # Debug facilities (2,000+ lines)
 │   ├── mod.rs
 │   ├── breakpoints.rs              # Hardware breakpoints (DR0-DR7)
 │   ├── trace.rs                    # Tracing support
 │   └── dump.rs                     # State dumping
 │
-├── asm/                            # Assembly code (2,000+ lignes)
+├── asm/                            # Assembly code (2,000+ lines)
 │   ├── boot.S                      # Boot code
 │   ├── entry.S                     # Entry points
 │   ├── switch.S                    # Context switch
 │   ├── trampoline.S                # SMP trampoline
 │   └── handlers.S                  # Interrupt stubs
 │
-└── tests/                          # Tests unitaires
+└── tests/                          # Unit tests
     ├── mod.rs
     ├── cpuid_tests.rs
     ├── msr_tests.rs
@@ -134,11 +134,11 @@ hal/src/arch/x86_64/
     └── apic_tests.rs
 ```
 
-**Estimation totale: 50,000+ lignes de Rust pur pour le HAL x86_64**
+**Total estimate: 50,000+ lines of pure Rust for the x86_64 HAL**
 
 ---
 
-## 🏗️ Architecture Détaillée
+## 🏗️ Detailed Architecture
 
 ### 1. Core CPU Framework
 
@@ -424,14 +424,14 @@ pub mod msr {
 │                            TIMER FRAMEWORK                               │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
-│  Timer Sources (par ordre de priorité):                                 │
+│  Timer Sources (by priority order):                                 │
 │  ┌─────────────────────────────────────────────────────────────────────┐│
 │  │                                                                      ││
 │  │  1. TSC (Time Stamp Counter)                                        ││
-│  │     ├── Invariant TSC (préféré)                                     ││
+│  │     ├── Invariant TSC (preferred)                                     ││
 │  │     ├── Nonstop TSC (C-states)                                      ││
 │  │     ├── RDTSCP (processor ID)                                       ││
-│  │     └── Calibration via CPUID.15H ou PIT/HPET                       ││
+│  │     └── Calibration via CPUID.15H or PIT/HPET                       ││
 │  │                                                                      ││
 │  │  2. HPET (High Precision Event Timer)                               ││
 │  │     ├── 10 MHz+ (100ns resolution)                                  ││
@@ -548,7 +548,7 @@ pub mod msr {
 
 ---
 
-## 🔧 Interfaces Clés
+## 🔧 Key Interfaces
 
 ### CPU Abstraction
 
@@ -733,54 +733,54 @@ pub trait IoApic: Send + Sync {
 
 ---
 
-## 📊 Metrics & Objectifs
+## 📊 Metrics & Objectives
 
-| Composant | Lignes Estimées | Complexité | Priorité |
+| Component | Estimated Lines | Complexity | Priority |
 |-----------|-----------------|------------|----------|
-| Core CPU | 5,000 | Haute | P0 |
-| Segmentation | 3,000 | Moyenne | P0 |
-| Interrupts | 8,000 | Très haute | P0 |
-| APIC | 6,000 | Haute | P1 |
-| Paging | 10,000 | Très haute | P0 |
-| Timers | 4,000 | Haute | P1 |
-| SMP | 5,000 | Très haute | P1 |
-| Syscall | 2,000 | Moyenne | P1 |
-| Context | 3,000 | Haute | P0 |
-| Debug | 2,000 | Moyenne | P2 |
-| ASM | 2,000 | Haute | P0 |
+| Core CPU | 5,000 | High | P0 |
+| Segmentation | 3,000 | Medium | P0 |
+| Interrupts | 8,000 | Very high | P0 |
+| APIC | 6,000 | High | P1 |
+| Paging | 10,000 | Very high | P0 |
+| Timers | 4,000 | High | P1 |
+| SMP | 5,000 | Very high | P1 |
+| Syscall | 2,000 | Medium | P1 |
+| Context | 3,000 | High | P0 |
+| Debug | 2,000 | Medium | P2 |
+| ASM | 2,000 | High | P0 |
 | **Total** | **50,000+** | - | - |
 
 ---
 
-## 🛣️ Roadmap d'Implémentation
+## 🛣️ Implementation Roadmap
 
-### Phase 1: Core Foundation (Semaine 1-2)
-- [ ] Réorganiser la structure des dossiers
-- [ ] Implémenter le MSR framework complet
-- [ ] CPUID enumeration avancée
+### Phase 1: Core Foundation (Week 1-2)
+- [ ] Reorganize the directory structure
+- [ ] Implement the complete MSR framework
+- [ ] Advanced CPUID enumeration
 - [ ] Control registers abstraction
 
-### Phase 2: Segmentation & Interrupts (Semaine 3-4)
-- [ ] GDT per-CPU avec multi-TSS
-- [ ] IDT framework avec génération automatique
-- [ ] IST complet
+### Phase 2: Segmentation & Interrupts (Week 3-4)
+- [ ] Per-CPU GDT with multi-TSS
+- [ ] IDT framework with automatic generation
+- [ ] Complete IST
 - [ ] Exception handlers
 
-### Phase 3: Paging (Semaine 5-6)
-- [ ] 4-level paging complet
+### Phase 3: Paging (Week 5-6)
+- [ ] Complete 4-level paging
 - [ ] 5-level paging (LA57)
 - [ ] Page mapper/walker
 - [ ] TLB management
 - [ ] Huge pages
 
-### Phase 4: APIC & Timers (Semaine 7-8)
+### Phase 4: APIC & Timers (Week 7-8)
 - [ ] Local APIC (xAPIC + x2APIC)
 - [ ] IOAPIC
 - [ ] TSC calibration
 - [ ] HPET driver
 - [ ] APIC timer
 
-### Phase 5: SMP (Semaine 9-10)
+### Phase 5: SMP (Week 9-10)
 - [ ] AP boot sequence
 - [ ] Real-mode trampoline
 - [ ] Per-CPU data
@@ -788,7 +788,7 @@ pub trait IoApic: Send + Sync {
 
 ---
 
-## 🔒 Considérations de Sécurité
+## 🔒 Security Considerations
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -802,7 +802,7 @@ pub trait IoApic: Send + Sync {
 
 ---
 
-## 📚 Références
+## 📚 References
 
 - Intel® 64 and IA-32 Architectures Software Developer's Manual
 - AMD64 Architecture Programmer's Manual
@@ -812,4 +812,4 @@ pub trait IoApic: Send + Sync {
 
 ---
 
-*Document généré par l'équipe Architecture Helix OS*
+*Document generated by the Helix OS Architecture Team*
