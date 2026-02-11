@@ -2,9 +2,9 @@
 
 ### A Self-Healing, Self-Evolving, AI-Native Operating System Kernel — Running Bare Metal
 
-> **Date:** February 11, 2026  
-> **Build:** `helix-kernel` v0.1.0 · x86_64 · 406 KB · release  
-> **Test Environment:** QEMU q35, 256 MB RAM, 1 vCPU  
+> **Date:** February 11, 2026
+> **Build:** `helix-kernel` v0.1.0 · x86_64 · 406 KB · release
+> **Test Environment:** QEMU q35, 256 MB RAM, 1 vCPU
 > **Result:** **20/20 subsystems operational · 116 assertions passed · 0 crashes**
 
 ---
@@ -313,5 +313,5 @@ correctly on bare metal hardware. The cognitive kernel is alive.
 
 ---
 
-*Generated from QEMU serial log: `build/logs/nexus_serial2.log` (885 lines)*  
+*Generated from QEMU serial log: `build/logs/nexus_serial2.log` (885 lines)*
 *Helix OS Framework · February 2026*
