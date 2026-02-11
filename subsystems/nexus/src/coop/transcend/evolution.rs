@@ -12,7 +12,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -404,8 +403,8 @@ impl CoopEvolution {
         let best = self
             .fitness_index
             .iter()
-            .max_by_key(|(_, &f)| f)
-            .map(|(&k, &f)| (k, f));
+            .max_by_key(|(_, f)| *f)
+            .map(|(k, f)| (k, f));
 
         if let Some((gid, fitness)) = best {
             let gene_count = self
@@ -450,13 +449,13 @@ impl CoopEvolution {
             return 0;
         }
 
-        let gens: Vec<(&u64, &u64)> = self.generation_best.iter().collect();
+        let gens: Vec<(u64, u64)> = self.generation_best.iter().collect();
         let mut improvements: u64 = 0;
         let mut comparisons: u64 = 0;
 
         for w in gens.windows(2) {
-            let fit_a = self.fitness_index.get(w[0].1).copied().unwrap_or(0);
-            let fit_b = self.fitness_index.get(w[1].1).copied().unwrap_or(0);
+            let fit_a = self.fitness_index.get(w[0].1).unwrap_or(0);
+            let fit_b = self.fitness_index.get(w[1].1).unwrap_or(0);
             if fit_b > fit_a {
                 improvements += fit_b - fit_a;
             }
@@ -487,7 +486,7 @@ impl CoopEvolution {
         let mut sorted_fitness: Vec<(u64, u64)> = self
             .fitness_index
             .iter()
-            .map(|(&k, &f)| (k, f))
+            .map(|(k, f)| (k, f))
             .collect();
         sorted_fitness.sort_by(|a, b| b.1.cmp(&a.1));
 
@@ -518,11 +517,11 @@ impl CoopEvolution {
             let worst = self
                 .fitness_index
                 .iter()
-                .min_by_key(|(_, &f)| f)
-                .map(|(&k, _)| k);
+                .min_by_key(|(_, f)| *f)
+                .map(|(k, _)| k);
             if let Some(k) = worst {
                 self.population.remove(&k);
-                self.fitness_index.remove(k);
+                self.fitness_index.remove(&k);
             }
         }
         self.population.insert(gid, genome);
@@ -539,7 +538,7 @@ impl CoopEvolution {
             tick: self.current_tick,
         };
         if self.events.len() >= MAX_GENERATIONS {
-            self.events.pop_front();
+            self.events.remove(0);
         }
         self.events.push_back(event);
     }
@@ -548,11 +547,11 @@ impl CoopEvolution {
         self.current_tick += 1;
 
         // Stochastic fitness perturbation
-        let keys: Vec<u64> = self.fitness_index.keys().copied().collect();
+        let keys: Vec<u64> = self.fitness_index.keys().collect();
         for k in keys {
             let r = xorshift64(&mut self.rng_state) % 100;
             if r < 3 {
-                if let Some(f) = self.fitness_index.get_mut(&k) {
+                if let Some(f) = self.fitness_index.get_mut(k) {
                     let noise = xorshift64(&mut self.rng_state) % 5;
                     *f = if xorshift64(&mut self.rng_state) % 2 == 0 {
                         f.saturating_add(noise)
