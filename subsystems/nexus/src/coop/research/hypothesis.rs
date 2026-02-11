@@ -13,11 +13,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -185,7 +185,7 @@ impl AnomalyTracker {
             hash,
         });
         while self.records.len() > MAX_ANOMALIES {
-            self.records.pop_front();
+            self.records.remove(0);
         }
         hash
     }
@@ -303,14 +303,14 @@ impl CoopHypothesisEngine {
             None => return false,
         };
         if hyp.evidence.len() >= MAX_EVIDENCE_PER_HYPOTHESIS {
-            hyp.evidence.pop_front().unwrap();
+            hyp.evidence.remove(0).unwrap();
         }
         let supports = (observed - expected).abs() < expected * 0.15;
         let weight_raw = 1.0 - (observed - expected).abs() / (expected.abs() + 1.0);
         let weight = weight_raw.clamp(0.0, 1.0);
 
         let eid = fnv1a_hash(&hypothesis_id.to_le_bytes()) ^ fnv1a_hash(&self.tick.to_le_bytes());
-        hyp.evidence.push(Evidence {
+        hyp.evidence.push_back(Evidence {
             id: eid,
             hypothesis_id,
             tick: self.tick,
@@ -400,6 +400,8 @@ impl CoopHypothesisEngine {
             }
         }
 
+        let phase = hyp.phase;
+
         self.stats.active_count = self
             .hypotheses
             .values()
@@ -410,7 +412,7 @@ impl CoopHypothesisEngine {
             })
             .count() as u64;
 
-        Some(hyp.phase)
+        Some(phase)
     }
 
     /// Get current hypothesis engine statistics
