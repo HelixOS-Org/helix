@@ -7,7 +7,6 @@
 
 extern crate alloc;
 
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::Trend;
@@ -46,7 +45,7 @@ pub struct Feature {
     /// Current value
     pub value: f64,
     /// Historical values (sliding window)
-    pub history: VecDeque<f64>,
+    pub history: Vec<f64>,
     /// Window size
     pub window_size: usize,
 }
@@ -70,9 +69,9 @@ impl Feature {
         self.value = value;
 
         if self.history.len() >= self.window_size {
-            self.history.pop_front();
+            self.history.remove(0);
         }
-        self.history.push_back(value);
+        self.history.push(value);
     }
 
     /// Get mean of history
