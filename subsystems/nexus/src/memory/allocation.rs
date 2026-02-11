@@ -91,7 +91,7 @@ impl AllocationIntelligence {
 
         // Evict old history
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
@@ -178,9 +178,7 @@ impl AllocationIntelligence {
         // Check frequency of this size class
         let count = self
             .size_distribution
-            .get(&size_class)
-            .copied()
-            .unwrap_or(0);
+            .get(&size_class);
         if count < 10 {
             return false;
         }
