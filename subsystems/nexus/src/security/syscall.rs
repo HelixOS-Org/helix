@@ -112,9 +112,9 @@ impl SyscallMonitor {
 
         // Record in sequence
         self.recent_sequence
-            .push((process_id, syscall_num, timestamp));
+            .push_back((process_id, syscall_num, timestamp));
         if self.recent_sequence.len() > self.max_sequence {
-            self.recent_sequence.pop_front();
+            self.recent_sequence.remove(0);
         }
 
         self.total_syscalls.fetch_add(1, Ordering::Relaxed);
