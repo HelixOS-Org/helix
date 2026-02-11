@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // ISOLATION TYPES
@@ -135,7 +136,12 @@ pub struct IsolationDomain {
 }
 
 impl IsolationDomain {
-    pub fn new(id: u64, domain_type: IsolationDomainType, strength: IsolationStrength, now: u64) -> Self {
+    pub fn new(
+        id: u64,
+        domain_type: IsolationDomainType,
+        strength: IsolationStrength,
+        now: u64,
+    ) -> Self {
         Self {
             id,
             domain_type,
@@ -165,7 +171,8 @@ impl IsolationDomain {
     /// Set partition
     #[inline(always)]
     pub fn set_partition(&mut self, resource: u8, min: u64, max: u64) {
-        self.partitions.insert(resource, ResourcePartition::new(min, max));
+        self.partitions
+            .insert(resource, ResourcePartition::new(min, max));
     }
 
     /// Update usage
@@ -239,8 +246,8 @@ impl InterferenceDetector {
     /// Detect interference
     pub fn detect(&self, now: u64) -> Vec<InterferenceEvent> {
         let mut events = Vec::new();
-        for (&domain, &current) in &self.current {
-            if let Some(&baseline) = self.baselines.get(domain) {
+        for (domain, current) in self.current.iter() {
+            if let Some(baseline) = self.baselines.get(domain) {
                 if baseline > 0.0 {
                     let degradation = (baseline - current) / baseline * 100.0;
                     if degradation > self.threshold_pct {
