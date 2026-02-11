@@ -49,7 +49,7 @@ pub struct XfsLogItem {
     pub lsn: u64,
     pub size_bytes: u32,
     pub transaction_id: u64,
-    pub intent_done: Option<u64>, // paired intent/done
+    pub intent_done: Option<u64>, // paired intent/done,
 }
 
 impl XfsLogItem {
