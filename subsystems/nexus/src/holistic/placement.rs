@@ -9,10 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // PLACEMENT TYPES
@@ -190,7 +190,8 @@ impl InterferenceModel {
     /// Predict interference level
     #[inline]
     pub fn predict_level(&self, a: u64, b: u64) -> InterferenceLevel {
-        self.pairs.get(&Self::pair_key(a, b))
+        self.pairs
+            .get(&Self::pair_key(a, b))
             .map(|p| p.level)
             .unwrap_or(InterferenceLevel::None)
     }
@@ -322,9 +323,11 @@ impl HolisticPlacementEngine {
             candidate.set_dimension(PlacementDimension::CacheAvailability, (1.0 - load) * 80.0);
 
             // Check interference with co-located tasks
-            let tasks_on_cpu: Vec<u64> = self.placements.iter()
-                .filter(|(_, &c)| c == cpu_id)
-                .map(|(&t, _)| t)
+            let tasks_on_cpu: Vec<u64> = self
+                .placements
+                .iter()
+                .filter(|(_, c)| *c == cpu_id)
+                .map(|(t, _)| t)
                 .collect();
 
             let mut max_interference = InterferenceLevel::None;
@@ -341,7 +344,11 @@ impl HolisticPlacementEngine {
         }
 
         // Sort by score descending
-        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(core::cmp::Ordering::Equal));
+        candidates.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
 
         let evaluated = candidates.len();
         if let Some(best) = candidates.first() {
@@ -352,7 +359,7 @@ impl HolisticPlacementEngine {
             self.placements.insert(request.task_id, cpu_id);
 
             if self.score_history.len() >= self.max_history {
-                self.score_history.pop_front();
+                self.score_history.remove(0);
             }
             self.score_history.push_back(score);
 
