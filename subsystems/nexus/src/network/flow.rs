@@ -3,7 +3,6 @@
 //! Network flow identification and statistics.
 
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 use super::{ConnectionState, QosClass};
 use crate::core::NexusTimestamp;
@@ -128,7 +127,7 @@ impl FlowStats {
     pub fn record_rtt(&mut self, rtt_ns: u64) {
         self.rtt_samples.push_back(rtt_ns);
         if self.rtt_samples.len() > 100 {
-            self.rtt_samples.pop_front();
+            self.rtt_samples.remove(0);
         }
     }
 
