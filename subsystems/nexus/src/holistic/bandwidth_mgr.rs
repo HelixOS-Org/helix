@@ -37,7 +37,7 @@ pub enum CongestionLevel {
 /// Token bucket rate limiter
 #[derive(Debug, Clone)]
 pub struct TokenBucket {
-    pub rate_bps: u64,       // bytes per second
+    pub rate_bps: u64,       // bytes per second,
     pub burst_bytes: u64,
     pub tokens: u64,
     pub last_fill_ns: u64,
