@@ -8,7 +8,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
@@ -27,7 +26,7 @@ pub struct ThermalManager {
     /// Fans
     pub(crate) fans: BTreeMap<CoolingDeviceId, FanInfo>,
     /// Event history
-    events: VecDeque<ThermalEvent>,
+    events: Vec<ThermalEvent>,
     /// Max events
     max_events: usize,
     /// Zone count
@@ -43,7 +42,7 @@ impl ThermalManager {
             zones: BTreeMap::new(),
             cooling_devices: BTreeMap::new(),
             fans: BTreeMap::new(),
-            events: VecDeque::new(),
+            events: Vec::new(),
             max_events: 1000,
             zone_count: AtomicU32::new(0),
             enabled: AtomicBool::new(true),
@@ -97,9 +96,9 @@ impl ThermalManager {
     #[inline]
     pub fn record_event(&mut self, event: ThermalEvent) {
         if self.events.len() >= self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
-        self.events.push_back(event);
+        self.events.push(event);
     }
 
     /// Get hottest zone
@@ -171,13 +170,13 @@ impl ThermalManager {
                     event.zone = Some(zone_id);
                     event.temperature = Some(temp);
                     event.trip_index = Some(trip.index);
-                    self.events.push_back(event);
+                    self.events.push(event);
                 } else if was_triggered && trip.is_cleared(temp) {
                     let mut event = ThermalEvent::new(ThermalEventType::TripCleared, timestamp);
                     event.zone = Some(zone_id);
                     event.temperature = Some(temp);
                     event.trip_index = Some(trip.index);
-                    self.events.push_back(event);
+                    self.events.push(event);
                 }
             }
         }
