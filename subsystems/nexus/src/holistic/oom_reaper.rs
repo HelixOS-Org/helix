@@ -267,7 +267,7 @@ impl HolisticOomReaper {
         }
 
         if self.kill_history.len() >= self.max_history {
-            self.kill_history.pop_front();
+            self.kill_history.remove(0);
         }
         self.kill_history.push_back(record);
     }
@@ -387,7 +387,7 @@ impl HolisticOomReaperV2 {
     }
 
     #[inline]
-    pub fn select_victim(&self, reason: OomV2Reason) -> Option<u64> {
+    pub fn select_victim(&self, _reason: OomV2Reason) -> Option<u64> {
         self.procs.values()
             .filter(|p| !p.is_unkillable && p.oom_score_adj > -1000)
             .max_by_key(|p| p.effective_score())
