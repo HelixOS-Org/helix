@@ -3,8 +3,6 @@
 
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// Exec pattern classification
