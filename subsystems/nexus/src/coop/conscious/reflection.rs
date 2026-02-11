@@ -12,7 +12,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -281,7 +280,7 @@ impl CoopReflection {
             .or_insert_with(Vec::new);
         outcomes.push(clamped_quality);
         if outcomes.len() > MAX_PATTERNS {
-            outcomes.pop_front();
+            outcomes.remove(0);
         }
 
         // Auto-detect patterns
