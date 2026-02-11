@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// IO scheduler type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
