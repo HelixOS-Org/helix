@@ -20,10 +20,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -113,14 +114,14 @@ impl SystemStateVector {
 
     fn get(&self, dim: ResourceDimension) -> f32 {
         let key = fnv1a_hash(&[dim as u8]);
-        self.values.get(key).copied().unwrap_or(0.0)
+        self.values.get(key).unwrap_or(0.0)
     }
 
     fn distance(&self, other: &Self) -> f32 {
         let mut sum_sq = 0.0_f32;
         for (k, v) in &self.values {
-            let ov = other.values.get(k).copied().unwrap_or(0.0);
-            let d = *v - ov;
+            let ov = other.values.get(k).unwrap_or(0.0);
+            let d = v - ov;
             sum_sq += d * d;
         }
         sum_sq
@@ -279,7 +280,11 @@ impl HolisticScenarioTree {
         self.nodes.clear();
         self.transitions.clear();
 
-        let depth = if max_depth > MAX_TREE_DEPTH { MAX_TREE_DEPTH } else { max_depth };
+        let depth = if max_depth > MAX_TREE_DEPTH {
+            MAX_TREE_DEPTH
+        } else {
+            max_depth
+        };
         let root_id = self.allocate_node(root_state, 0, 1.0, None, String::from("root"));
         self.root_id = Some(root_id);
 
@@ -351,7 +356,7 @@ impl HolisticScenarioTree {
     /// Compute the probability-weighted expected system state at the leaves
     pub fn expected_system_state(&mut self, horizon_us: u64) -> ExpectedSystemState {
         let mut weighted = SystemStateVector::new(horizon_us, self.generation);
-        let mut variance_acc: LinearMap<f32, 64> = BTreeMap::new();
+        let mut variance_acc: LinearMap<f32, 64> = LinearMap::new();
         let mut total_prob = 0.0_f32;
         let mut leaf_count = 0_usize;
 
@@ -359,7 +364,7 @@ impl HolisticScenarioTree {
             .nodes
             .values()
             .filter(|n| n.children.is_empty() && !n.pruned)
-            .map(|n| (n.probability, n.state.values.clone()))
+            .map(|n| (n.probability, n.state.values.iter().collect()))
             .collect();
 
         for (prob, values) in &leaf_snapshots {
@@ -377,7 +382,7 @@ impl HolisticScenarioTree {
             }
             for (_prob, values) in &leaf_snapshots {
                 for (k, v) in values {
-                    let mean = weighted.values.get(k).copied().unwrap_or(0.0);
+                    let mean = weighted.values.get(k).unwrap_or(0.0);
                     let diff = v - mean;
                     let entry = variance_acc.entry(*k).or_insert(0.0);
                     *entry += diff * diff;
@@ -411,13 +416,19 @@ impl HolisticScenarioTree {
                 .nodes
                 .iter()
                 .filter(|(_, n)| !n.pruned && n.probability < PRUNING_THRESHOLD)
-                .map(|(id, n)| { removed_mass += n.probability; *id })
+                .map(|(id, n)| {
+                    removed_mass += n.probability;
+                    *id
+                })
                 .collect(),
             PruningStrategy::DepthLimit => self
                 .nodes
                 .iter()
                 .filter(|(_, n)| !n.pruned && n.depth >= self.depth_limit)
-                .map(|(id, n)| { removed_mass += n.probability; *id })
+                .map(|(id, n)| {
+                    removed_mass += n.probability;
+                    *id
+                })
                 .collect(),
             PruningStrategy::WidthLimit => {
                 let mut prune_list = Vec::new();
@@ -438,12 +449,15 @@ impl HolisticScenarioTree {
                     }
                 }
                 prune_list
-            }
+            },
             PruningStrategy::ScoreBased => self
                 .nodes
                 .iter()
                 .filter(|(_, n)| !n.pruned && n.cumulative_score < 0.0)
-                .map(|(id, n)| { removed_mass += n.probability; *id })
+                .map(|(id, n)| {
+                    removed_mass += n.probability;
+                    *id
+                })
                 .collect(),
             PruningStrategy::Hybrid => {
                 let mut prune_list: Vec<u64> = self
@@ -451,14 +465,16 @@ impl HolisticScenarioTree {
                     .iter()
                     .filter(|(_, n)| {
                         !n.pruned
-                            && (n.probability < PRUNING_THRESHOLD
-                                || n.depth >= self.depth_limit)
+                            && (n.probability < PRUNING_THRESHOLD || n.depth >= self.depth_limit)
                     })
-                    .map(|(id, n)| { removed_mass += n.probability; *id })
+                    .map(|(id, n)| {
+                        removed_mass += n.probability;
+                        *id
+                    })
                     .collect();
                 prune_list.truncate(MAX_NODES / 2);
                 prune_list
-            }
+            },
         };
 
         for id in &to_prune {
@@ -557,7 +573,11 @@ impl HolisticScenarioTree {
         let base = if depth < 2 { 4 } else { 2 };
         let r = xorshift64(&mut self.rng_state) % 3;
         let count = base + r as usize;
-        if count > self.width_limit { self.width_limit } else { count }
+        if count > self.width_limit {
+            self.width_limit
+        } else {
+            count
+        }
     }
 
     fn project_state(&mut self, parent_id: u64, step_us: u64, variant: usize) -> SystemStateVector {
@@ -577,12 +597,12 @@ impl HolisticScenarioTree {
             let noise = (xorshift64(&mut self.rng_state) % 200) as f32 / 1000.0 - 0.1;
             let drift = (variant as f32 - 1.5) * 0.02;
             let new_val = (v + noise + drift).clamp(0.0, 1.0);
-            new_state.values.insert(*k, new_val);
+            new_state.values.insert(k, new_val);
         }
         new_state
     }
 
-    fn compute_transition_prob(&mut self, _parent_id: u64, child_idx: usize, total: usize) -> f32 {
+    fn compute_transition_prob(&mut self, _parent_id: u64, _child_idx: usize, total: usize) -> f32 {
         if total == 0 {
             return 0.0;
         }
@@ -658,7 +678,7 @@ impl HolisticScenarioTree {
                         .unwrap_or(1.0);
                     total_prob *= tp;
                     current = next_id;
-                }
+                },
                 None => break,
             }
         }
@@ -684,8 +704,12 @@ impl HolisticScenarioTree {
         let hash = fnv1a_hash(&d_bytes.to_le_bytes()) ^ c_bytes;
         let _ = buf.push('0');
         let remainder = hash % 1000;
-        if remainder < 100 { buf.push('0'); }
-        if remainder < 10 { buf.push('0'); }
+        if remainder < 100 {
+            buf.push('0');
+        }
+        if remainder < 10 {
+            buf.push('0');
+        }
         buf
     }
 }
