@@ -230,7 +230,7 @@ impl InductionEngine {
                 if confidence >= self.config.min_confidence {
                     let id = self.next_id.fetch_add(1, Ordering::Relaxed);
 
-                    let gen = Generalization {
+                    let gen_val = Generalization {
                         id,
                         name: format!("Pattern: {} = {:?}", feature, value),
                         pattern: Pattern {
@@ -247,7 +247,7 @@ impl InductionEngine {
                         created: Timestamp::now(),
                     };
 
-                    self.generalizations.insert(id, gen);
+                    self.generalizations.insert(id, gen_val);
                     self.stats.generalizations += 1;
                     new_generalizations.push(id);
                 }
@@ -261,7 +261,7 @@ impl InductionEngine {
             if conf >= self.config.min_confidence {
                 let id = self.next_id.fetch_add(1, Ordering::Relaxed);
 
-                let gen = Generalization {
+                let gen_val = Generalization {
                     id,
                     name: format!("{} -> {}", from_feat, to_feat),
                     pattern: Pattern {
@@ -278,7 +278,7 @@ impl InductionEngine {
                     created: Timestamp::now(),
                 };
 
-                self.generalizations.insert(id, gen);
+                self.generalizations.insert(id, gen_val);
                 self.stats.generalizations += 1;
                 new_generalizations.push(id);
             }
