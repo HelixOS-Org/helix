@@ -11,7 +11,6 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,7 +84,7 @@ pub struct FaultHolisticStats {
 
 pub struct PageFaultHolisticManager {
     /// Fault rate history: rolling window
-    fault_history: VecDeque<SystemFaultSnapshot>,
+    fault_history: Vec<SystemFaultSnapshot>,
     /// Subsystem cost attribution
     subsystem_costs: BTreeMap<u64, SubsystemFaultCost>,
     /// Prefetch tracking
@@ -119,9 +118,9 @@ impl PageFaultHolisticManager {
         self.stats.system_working_set_mb = snapshot.working_set_pages * 4 / 1024;
 
         if self.fault_history.len() >= self.history_capacity {
-            self.fault_history.pop_front();
+            self.fault_history.remove(0);
         }
-        self.fault_history.push_back(snapshot);
+        self.fault_history.push(snapshot);
     }
 
     /// Detect anomalies in fault patterns
