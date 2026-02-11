@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -76,7 +75,7 @@ pub struct MetricSample {
 }
 
 /// Metric time series
-struct MetricTimeSeries {
+pub struct MetricTimeSeries {
     /// Samples (ring buffer)
     samples: Vec<MetricSample>,
     /// Capacity
@@ -325,7 +324,11 @@ impl CorrelationAnalyzer {
     #[inline]
     pub fn top_positive(&self, count: usize) -> Vec<&MetricCorrelation> {
         let mut sorted: Vec<&MetricCorrelation> = self.correlations.iter().collect();
-        sorted.sort_by(|a, b| b.coefficient.partial_cmp(&a.coefficient).unwrap_or(core::cmp::Ordering::Equal));
+        sorted.sort_by(|a, b| {
+            b.coefficient
+                .partial_cmp(&a.coefficient)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         sorted.truncate(count);
         sorted
     }
@@ -334,7 +337,11 @@ impl CorrelationAnalyzer {
     #[inline]
     pub fn top_negative(&self, count: usize) -> Vec<&MetricCorrelation> {
         let mut sorted: Vec<&MetricCorrelation> = self.correlations.iter().collect();
-        sorted.sort_by(|a, b| a.coefficient.partial_cmp(&b.coefficient).unwrap_or(core::cmp::Ordering::Equal));
+        sorted.sort_by(|a, b| {
+            a.coefficient
+                .partial_cmp(&b.coefficient)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         sorted.truncate(count);
         sorted
     }
@@ -393,13 +400,13 @@ pub struct SystemHealth {
 /// Thresholds for bottleneck detection
 #[derive(Debug, Clone)]
 pub struct AnalyzerThresholds {
-    pub cpu_high: u64,       // percent * 100
+    pub cpu_high: u64, // percent * 100,
     pub cpu_critical: u64,
     pub memory_high: u64,
     pub memory_critical: u64,
-    pub io_high: u64,        // IOPS
+    pub io_high: u64, // IOPS,
     pub io_critical: u64,
-    pub network_high: u64,   // bytes/sec
+    pub network_high: u64, // bytes/sec,
     pub network_critical: u64,
     pub ctx_switch_high: u64,
     pub irq_high: u64,
@@ -408,13 +415,13 @@ pub struct AnalyzerThresholds {
 impl Default for AnalyzerThresholds {
     fn default() -> Self {
         Self {
-            cpu_high: 8000,           // 80%
-            cpu_critical: 9500,       // 95%
+            cpu_high: 8000,     // 80%
+            cpu_critical: 9500, // 95%
             memory_high: 8000,
             memory_critical: 9500,
             io_high: 10000,
             io_critical: 50000,
-            network_high: 1_000_000_000,  // 1 Gbps
+            network_high: 1_000_000_000, // 1 Gbps
             network_critical: 10_000_000_000,
             ctx_switch_high: 50000,
             irq_high: 100000,
@@ -494,9 +501,7 @@ impl SystemAnalyzer {
     /// Get trend for metric
     #[inline]
     pub fn trend(&self, metric: SystemMetricType) -> f64 {
-        self.series
-            .get(&(metric as u8))
-            .map_or(0.0, |s| s.trend())
+        self.series.get(&(metric as u8)).map_or(0.0, |s| s.trend())
     }
 
     /// Detect bottlenecks
@@ -635,17 +640,21 @@ impl SystemAnalyzer {
             });
 
         // Weight: CPU 30%, Memory 30%, I/O 25%, Network 15%
-        let overall = cpu_health * 0.30
-            + memory_health * 0.30
-            + io_health * 0.25
-            + network_health * 0.15;
+        let overall =
+            cpu_health * 0.30 + memory_health * 0.30 + io_health * 0.25 + network_health * 0.15;
 
-        let overall = if overall < 0.0 { 0.0 } else if overall > 1.0 { 1.0 } else { overall };
+        let overall = if overall < 0.0 {
+            0.0
+        } else if overall > 1.0 {
+            1.0
+        } else {
+            overall
+        };
 
         // Track health trend
         self.health_history.push_back(overall);
         if self.health_history.len() > self.max_health_history {
-            self.health_history.pop_front();
+            self.health_history.remove(0);
         }
 
         let trend = if self.health_history.len() >= 3 {
