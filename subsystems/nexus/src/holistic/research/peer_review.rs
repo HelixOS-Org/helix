@@ -22,7 +22,6 @@ extern crate alloc;
 
 use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -197,7 +196,7 @@ pub struct PeerReviewStats {
 pub struct HolisticPeerReview {
     findings: BTreeMap<u64, ReviewableFinding>,
     reviews: Vec<PeerReviewRecord>,
-    escalations: VecDeque<ReviewEscalation>,
+    escalations: Vec<ReviewEscalation>,
     consensus_records: BTreeMap<u64, ConsensusRecord>,
     reviewer_profiles: BTreeMap<u64, ReviewerProfile>,
     rng_state: u64,
@@ -211,7 +210,7 @@ impl HolisticPeerReview {
         Self {
             findings: BTreeMap::new(),
             reviews: Vec::new(),
-            escalations: VecDeque::new(),
+            escalations: Vec::new(),
             consensus_records: BTreeMap::new(),
             reviewer_profiles: BTreeMap::new(),
             rng_state: seed | 1,
@@ -315,14 +314,14 @@ impl HolisticPeerReview {
         };
         if status == ReviewStatus::Escalated {
             let esc_id = self.stats.escalations_total;
-            self.escalations.push_back(ReviewEscalation {
+            self.escalations.push(ReviewEscalation {
                 id: esc_id, finding_id, disagreement_level: disagreement,
                 escalation_tier: 1, resolved: false,
                 resolution_verdict: ReviewVerdict::Neutral, tick: self.tick,
             });
             self.stats.escalations_total += 1;
             if self.escalations.len() > MAX_ESCALATIONS {
-                self.escalations.pop_front();
+                self.escalations.remove(0);
             }
         }
         if let Some(f) = self.findings.get_mut(&finding_id) {
@@ -383,11 +382,11 @@ impl HolisticPeerReview {
     /// Get review hierarchy — escalation tiers
     #[inline]
     pub fn review_hierarchy(&self) -> Vec<(u32, u64)> {
-        let mut tiers: ArrayMap<u64, 32> = BTreeMap::new();
+        let mut tiers: ArrayMap<u64, 32> = ArrayMap::new(0);
         for esc in &self.escalations {
             *tiers.entry(esc.escalation_tier).or_insert(0) += 1;
         }
-        tiers.into_iter().collect()
+        tiers.into_iter().map(|(k, v)| (k as u32, v)).collect()
     }
 
     /// Aggregate confidence scores for a finding
