@@ -244,7 +244,7 @@ impl HolisticBeyond {
         }
         let plan_hash = fnv1a(&total_reward.to_le_bytes()) ^ fnv1a(&self.tick.to_le_bytes());
         if self.plans.len() >= MAX_PLANS {
-            self.plans.pop_front();
+            self.plans.remove(0);
         }
         let plan = InfiniteHorizonPlan {
             plan_hash,
@@ -262,8 +262,8 @@ impl HolisticBeyond {
     /// Evolve the architecture — create a new generation with mutations.
     pub fn architecture_evolution(&mut self) -> EvolutionEvent {
         self.advance_tick();
-        let gen = self.stats.evolution_generation.wrapping_add(1).min(EVOLUTION_GENERATION_CAP);
-        self.stats.evolution_generation = gen;
+        let gen_val = self.stats.evolution_generation.wrapping_add(1).min(EVOLUTION_GENERATION_CAP);
+        self.stats.evolution_generation = gen_val;
         let parent = self.evolutions.last().map(|e| e.event_hash).unwrap_or(0);
         let fitness = self.rng.next() % 10_000;
         self.stats.ema_fitness = ema_update(self.stats.ema_fitness, fitness);
@@ -282,9 +282,9 @@ impl HolisticBeyond {
         } else {
             0
         };
-        let eh = fnv1a(&gen.to_le_bytes()) ^ fnv1a(mtype.as_bytes());
+        let eh = fnv1a(&gen_val.to_le_bytes()) ^ fnv1a(mtype.as_bytes());
         let evt = EvolutionEvent {
-            generation: gen,
+            generation: gen_val,
             event_hash: eh,
             parent_hash: parent,
             fitness,
