@@ -8,6 +8,7 @@ use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
 use super::{CpuProfile, ProcessId, ProcessProfile, ProcessType};
+use crate::fast::math::{F64Ext};
 
 /// Resource prediction
 #[derive(Debug, Clone)]
@@ -52,9 +53,9 @@ impl ResourcePredictor {
         };
 
         let history = self.history.entry(profile.pid).or_default();
-        history.push(prediction.clone());
+        history.push_back(prediction.clone());
         if history.len() > self.max_history {
-            history.pop_front();
+            history.remove(0);
         }
 
         prediction
@@ -180,7 +181,7 @@ impl PriorityOptimizer {
         if suggested != current_priority {
             self.history.push_back((profile.pid, current_priority, suggested));
             if self.history.len() > self.max_history {
-                self.history.pop_front();
+                self.history.remove(0);
             }
         }
 
