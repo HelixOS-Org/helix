@@ -303,7 +303,7 @@ impl ProbabilisticEngine {
 
         for value in &values {
             let prob = if let Some(node) = self.network.get(&variable_id) {
-                node.cpt.get(value).copied().unwrap_or(uniform_prob)
+                node.cpt.get(value).unwrap_or(uniform_prob)
             } else {
                 uniform_prob
             };
@@ -364,7 +364,7 @@ impl ProbabilisticEngine {
         let parent_config = self.build_parent_config(&node.parents);
 
         // Look up in CPT
-        node.cpt.get(&parent_config).copied().unwrap_or(0.5)
+        node.cpt.get(&parent_config).unwrap_or(0.5)
     }
 
     fn build_parent_config(&self, parents: &[u64]) -> String {
@@ -423,10 +423,10 @@ impl ProbabilisticEngine {
             if let Some(node) = self.network.get(var_id) {
                 // Get conditional probability
                 let key = self.build_assignment_key(&node.parents, assignments);
-                prob *= node.cpt.get(&key).copied().unwrap_or(0.5);
+                prob *= node.cpt.get(&key).unwrap_or(0.5);
             } else {
                 // Use prior
-                prob *= self.priors.get(var_id).copied().unwrap_or(0.5);
+                prob *= self.priors.get(var_id).unwrap_or(0.5);
             }
         }
 
