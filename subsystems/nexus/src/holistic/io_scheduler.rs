@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -129,10 +128,10 @@ impl IoRequest {
         }
         self.merged += 1;
         // Take earlier deadline
-        if other.deadline_ns > 0 {
-            if self.deadline_ns == 0 || other.deadline_ns < self.deadline_ns {
-                self.deadline_ns = other.deadline_ns;
-            }
+        if other.deadline_ns > 0
+            && (self.deadline_ns == 0 || other.deadline_ns < self.deadline_ns)
+        {
+            self.deadline_ns = other.deadline_ns;
         }
         true
     }
@@ -159,9 +158,9 @@ pub struct DeviceQueue {
     /// Scheduling algorithm
     pub algorithm: IoSchedAlgo,
     /// Read queue
-    read_queue: VecDeque<IoRequest>,
+    read_queue: Vec<IoRequest>,
     /// Write queue
-    write_queue: VecDeque<IoRequest>,
+    write_queue: Vec<IoRequest>,
     /// Max queue depth
     pub max_depth: usize,
     /// Bandwidth limit (bytes/sec, 0 = unlimited)
@@ -201,8 +200,8 @@ impl DeviceQueue {
             device_hash: hash,
             device_type,
             algorithm,
-            read_queue: VecDeque::new(),
-            write_queue: VecDeque::new(),
+            read_queue: Vec::new(),
+            write_queue: Vec::new(),
             max_depth,
             bandwidth_limit: 0,
             throughput_ema: 0.0,
@@ -265,12 +264,12 @@ impl DeviceQueue {
             if other.is_empty() {
                 return None;
             }
-            let req = other.pop_front().unwrap();
+            let req = other.remove(0);
             self.dispatched += 1;
             return Some(req);
         }
 
-        let req = queue.pop_front().unwrap();
+        let req = queue.remove(0);
         self.dispatched += 1;
         Some(req)
     }
