@@ -9,8 +9,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -121,7 +119,7 @@ pub struct SingularityStats {
 pub struct CoopSingularity {
     domains: BTreeMap<u64, CoopDomain>,
     unified: UnifiedState,
-    convergence_history: VecDeque<u64>,
+    convergence_history: Vec<u64>,
     rng_state: u64,
     tick: u64,
     convergence_events: u64,
@@ -140,7 +138,7 @@ impl CoopSingularity {
                 intelligence_score: 0,
                 convergence_velocity: 0,
             },
-            convergence_history: VecDeque::new(),
+            convergence_history: Vec::new(),
             rng_state: seed | 1,
             tick: 0,
             convergence_events: 0,
@@ -201,7 +199,9 @@ impl CoopSingularity {
             d.ema_fairness = ema_update(d.ema_fairness, f);
             d.ema_contention = ema_update(d.ema_contention, c);
             d.ema_efficiency = ema_update(d.ema_efficiency, e);
-            d.convergence_score = self.domain_convergence(d);
+            let convergence =
+                (d.ema_fairness + 100u64.saturating_sub(d.ema_contention) + d.ema_efficiency) / 3;
+            d.convergence_score = convergence;
         }
     }
 
@@ -292,9 +292,9 @@ impl CoopSingularity {
             convergence_velocity: velocity,
         };
 
-        self.convergence_history.push_back(combined);
+        self.convergence_history.push(combined);
         if self.convergence_history.len() > MAX_CONVERGENCE_HISTORY {
-            self.convergence_history.pop_front();
+            self.convergence_history.remove(0);
         }
     }
 
