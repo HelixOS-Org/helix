@@ -87,7 +87,7 @@ impl FreqDomain {
     pub fn avg_freq_khz(&self) -> u64 {
         let total_time: u64 = self.time_in_state.values().sum();
         if total_time == 0 { return self.current_freq_khz; }
-        let weighted: u64 = self.time_in_state.iter().map(|(&f, &t)| f * t / 1000).sum();
+        let weighted: u64 = self.time_in_state.iter().map(|(f, t)| f * t / 1000).sum();
         weighted * 1000 / total_time
     }
 }
