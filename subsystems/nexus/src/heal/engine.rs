@@ -8,8 +8,6 @@
 extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -28,7 +26,7 @@ pub struct HealingEngine {
     /// Quarantine manager
     quarantine: QuarantineManager,
     /// Healing history
-    history: VecDeque<HealingResult>,
+    history: Vec<HealingResult>,
     /// Maximum history entries
     max_history: usize,
     /// Healing attempts per component
@@ -51,7 +49,7 @@ impl HealingEngine {
         Self {
             checkpoints: CheckpointStore::new(10, 1000, 64 * 1024 * 1024), // 64MB max
             quarantine: QuarantineManager::new(60 * 1_000_000_000),        // 1 minute default
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 1000,
             attempts: LinearMap::new(),
             max_attempts: 5,
@@ -114,14 +112,14 @@ impl HealingEngine {
         // Record result
         if result.success {
             self.successful.fetch_add(1, Ordering::Relaxed);
-            self.attempts.remove(&component.raw());
+            self.attempts.remove(component.raw());
         }
 
         // Add to history
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
-        self.history.push_back(result.clone());
+        self.history.push(result.clone());
 
         Ok(result)
     }
