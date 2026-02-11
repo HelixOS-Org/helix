@@ -11,7 +11,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
@@ -164,7 +163,7 @@ struct EnsembleOutcome {
 /// Multi-model ensemble engine for cooperation prediction.
 pub struct CoopEnsemble {
     models: BTreeMap<ModelType, ModelTracker>,
-    outcomes: VecDeque<EnsembleOutcome>,
+    outcomes: Vec<EnsembleOutcome>,
     domain_best: BTreeMap<u64, ModelType>,
     stats: EnsembleStats,
     rng_state: u64,
@@ -196,10 +195,10 @@ impl CoopEnsemble {
 
         Self {
             models,
-            outcomes: VecDeque::new(),
+            outcomes: Vec::new(),
             domain_best: BTreeMap::new(),
             stats: EnsembleStats::new(),
-            rng_state: seed ^ 0xE75E_B1E0_C00P_0001,
+            rng_state: seed ^ 0xE75E_B1E0_C00F_0001,
             current_tick: 0,
             max_outcomes: 512,
             min_weight: 50,
@@ -213,7 +212,7 @@ impl CoopEnsemble {
         model_type: ModelType,
         target_id: u64,
         predicted: u64,
-        confidence: u64,
+        _confidence: u64,
     ) {
         if let Some(tracker) = self.models.get_mut(&model_type) {
             tracker.last_predictions.insert(target_id, predicted);
@@ -228,7 +227,7 @@ impl CoopEnsemble {
         let mut total_weight: u64 = 0;
 
         for (mt, tracker) in &self.models {
-            if let Some(&predicted) = tracker.last_predictions.get(&target_id) {
+            if let Some(predicted) = tracker.last_predictions.get(target_id) {
                 let error = if predicted > actual_value {
                     predicted - actual_value
                 } else {
@@ -249,16 +248,16 @@ impl CoopEnsemble {
             if let Some(tracker) = self.models.get_mut(mt) {
                 let accuracy = 1000u64.saturating_sub(error.min(1000));
                 tracker.ema_accuracy = ema_update(tracker.ema_accuracy, accuracy, 200, 1000);
-                tracker.error_history.push(error);
+                tracker.error_history.push_back(error);
                 if tracker.error_history.len() > 128 {
-                    tracker.error_history.pop_front().unwrap();
+                    tracker.error_history.remove(0).unwrap();
                 }
             }
         }
 
         self.rebalance_weights();
 
-        self.outcomes.push_back(EnsembleOutcome {
+        self.outcomes.push(EnsembleOutcome {
             target_id,
             ensemble_pred,
             actual_value,
@@ -266,7 +265,7 @@ impl CoopEnsemble {
             model_errors,
         });
         if self.outcomes.len() > self.max_outcomes {
-            self.outcomes.pop_front();
+            self.outcomes.remove(0);
         }
     }
 
@@ -278,7 +277,7 @@ impl CoopEnsemble {
         let mut predictions: Vec<u64> = Vec::new();
 
         for (mt, tracker) in &self.models {
-            if let Some(&pred) = tracker.last_predictions.get(&target_id) {
+            if let Some(pred) = tracker.last_predictions.get(target_id) {
                 weighted_sum = weighted_sum
                     .saturating_add(pred.saturating_mul(tracker.weight));
                 total_weight = total_weight.saturating_add(tracker.weight);
@@ -356,8 +355,8 @@ impl CoopEnsemble {
                 pair_hash.to_le_bytes().as_slice(),
             ].concat());
 
-            let pred = tracker.last_predictions.get(&fairness_key)
-                .copied()
+            let pred = tracker.last_predictions.get(fairness_key)
+                
                 .unwrap_or(500);
             weighted_sum = weighted_sum
                 .saturating_add(pred.saturating_mul(tracker.weight));
@@ -393,7 +392,7 @@ impl CoopEnsemble {
     /// Measure the diversity bonus of the ensemble.
     pub fn diversity_bonus(&mut self, domain_hash: u64) -> DiversityBonus {
         let predictions: Vec<u64> = self.models.values()
-            .filter_map(|t| t.last_predictions.get(&domain_hash).copied())
+            .filter_map(|t| t.last_predictions.get(domain_hash))
             .collect();
 
         let diversity = self.compute_diversity(&predictions);
