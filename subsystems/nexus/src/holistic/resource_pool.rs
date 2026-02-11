@@ -534,7 +534,7 @@ impl HolisticResourcePoolManager {
                 self.transfer_history
                     .push_back((from_partition, to_partition, amount));
                 if self.transfer_history.len() > 1000 {
-                    self.transfer_history.pop_front();
+                    self.transfer_history.remove(0);
                 }
             }
             self.update_stats();
