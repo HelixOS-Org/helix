@@ -232,17 +232,17 @@ impl HolisticIpRouting {
 
     pub fn lookup(&mut self, dest_ip: u32, seed: u64) -> Option<u32> {
         self.stats.total_lookups += 1;
-        if let Some(&cached_gw) = self.route_cache.try_get(dest_ip as usize) {
+        if let Some(cached_gw) = self.route_cache.try_get(dest_ip as usize) {
             self.stats.cache_hits += 1;
             return Some(cached_gw as u32);
         }
         if let Some(table) = self.tables.get_mut(&254) {
             let mut best: Option<(u8, usize)> = None;
             for (i, entry) in table.iter().enumerate() {
-                if entry.matches(dest_ip) {
-                    if best.is_none() || entry.prefix_len > best.unwrap().0 {
-                        best = Some((entry.prefix_len, i));
-                    }
+                if entry.matches(dest_ip)
+                    && (best.is_none() || entry.prefix_len > best.unwrap().0)
+                {
+                    best = Some((entry.prefix_len, i));
                 }
             }
             if let Some((_, idx)) = best {
