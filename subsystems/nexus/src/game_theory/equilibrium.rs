@@ -321,7 +321,7 @@ impl NashSolver {
             let mut probability = 1.0;
             for (p, &s) in profile.iter().enumerate() {
                 if p != player {
-                    probability *= populations[p].get(s as usize).copied().unwrap_or(0.0);
+                    probability *= populations[p].get(s as usize).unwrap_or(&0.0);
                 }
             }
 
@@ -517,7 +517,7 @@ impl MechanismDesign {
             // Others' welfare with this player
             let others_welfare_with = welfare
                 - (bid.valuation / bid.requested_amount.max(1.0))
-                    * allocations.get(&bid.player).copied().unwrap_or(0.0);
+                    * allocations.get(&bid.player).unwrap_or(&0.0);
 
             let payment = welfare_without - others_welfare_with;
             payments.insert(bid.player, payment.max(0.0));
@@ -608,7 +608,7 @@ impl MechanismDesign {
         let welfare = bids
             .iter()
             .map(|b| {
-                let alloc = allocations.get(&b.player).copied().unwrap_or(0.0);
+                let alloc = allocations.get(&b.player).unwrap_or(&0.0);
                 (b.valuation / b.requested_amount.max(1.0)) * alloc
             })
             .sum();
