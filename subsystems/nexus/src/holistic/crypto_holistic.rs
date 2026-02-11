@@ -2,7 +2,6 @@
 //! Holistic crypto — cross-layer cryptographic usage analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Crypto holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
