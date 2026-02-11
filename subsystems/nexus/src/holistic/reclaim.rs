@@ -20,10 +20,14 @@ use alloc::vec::Vec;
 /// Reclamation urgency
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ReclaimUrgency {
+    /// No reclamation needed
+    None,
     /// Background (proactive)
     Background,
     /// Low pressure
     Low,
+    /// Moderate pressure
+    Moderate,
     /// Medium pressure
     Medium,
     /// High pressure
@@ -443,16 +447,6 @@ impl HolisticReclaimEngine {
 // Merged from reclaim_v2
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ReclaimUrgency {
-    None,
-    Background,
-    Moderate,
-    High,
-    Critical,
-    Oom,
-}
-
 /// Page generation (multi-gen LRU)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PageGeneration {
@@ -461,17 +455,6 @@ pub enum PageGeneration {
     Inactive,
     Old,
     Stale,
-}
-
-/// Reclamation source
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ReclaimSource {
-    Anon,
-    FileCache,
-    Slab,
-    SwapCache,
-    PageTablePages,
-    KernelStacks,
 }
 
 /// Page age histogram bucket
@@ -605,7 +588,7 @@ impl WorkingSetEstimatorV2 {
 
         self.samples.push_back((ts, accessed));
         if self.samples.len() > 64 {
-            self.samples.pop_front();
+            self.samples.remove(0);
         }
 
         // Compute growth rate
@@ -715,7 +698,7 @@ impl HolisticReclaimV2 {
 
         self.events.push_back(event);
         while self.events.len() > self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
     }
 
