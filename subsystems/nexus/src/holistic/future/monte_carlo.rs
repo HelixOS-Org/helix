@@ -16,6 +16,7 @@ use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -227,7 +228,7 @@ impl HolisticMonteCarlo {
         let trials = (num_trials as usize).min(MAX_TRIALS);
         let mut results = Vec::new();
 
-        for t in 0..trials {
+        for _t in 0..trials {
             let mut cpu = initial_cpu;
             let mut mem = initial_mem;
             let mut io = 50.0_f32;
@@ -299,7 +300,7 @@ impl HolisticMonteCarlo {
             self.trial_results.push_back(r.clone());
         }
         while self.trial_results.len() > MAX_TRIALS {
-            self.trial_results.pop_front();
+            self.trial_results.remove(0);
         }
 
         results
