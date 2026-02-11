@@ -444,7 +444,7 @@ impl UncertaintyEngine {
         let mut info = Vec::new();
 
         for (&input_id, &sens) in &result.sensitivity {
-            let var_contrib = result.contribution.get(&input_id).copied().unwrap_or(0.0);
+            let var_contrib = result.contribution.get(input_id).unwrap_or(0.0);
 
             info.push(SensitivityInfo {
                 input_id,
@@ -501,6 +501,7 @@ impl Default for UncertaintyEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_create_normal() {
