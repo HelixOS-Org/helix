@@ -22,11 +22,12 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -307,7 +308,7 @@ impl HolisticPrecognition {
             accuracy_log: Vec::new(),
             source_ema_fast: LinearMap::new(),
             source_ema_slow: LinearMap::new(),
-            rng_state: seed ^ 0xC0FFEE_DEAD_BEEF_42,
+            rng_state: seed ^ 0xC0FF_EEDE_ADBE_EF42,
             next_signal_id: 1,
             stats: PrecognitionStats::new(),
             generation: 0,
@@ -315,18 +316,13 @@ impl HolisticPrecognition {
     }
 
     /// Ingest a raw signal for precognitive processing
-    pub fn ingest_signal(
-        &mut self,
-        source: PrecogSource,
-        value: f32,
-        timestamp_us: u64,
-    ) -> u64 {
+    pub fn ingest_signal(&mut self, source: PrecogSource, value: f32, timestamp_us: u64) -> u64 {
         let id = self.next_signal_id;
         self.next_signal_id += 1;
         let sk = fnv1a_hash(&[source as u8]);
 
-        let prev_fast = self.source_ema_fast.get(sk).copied().unwrap_or(value);
-        let prev_slow = self.source_ema_slow.get(sk).copied().unwrap_or(value);
+        let prev_fast = self.source_ema_fast.get(sk).unwrap_or(value);
+        let prev_slow = self.source_ema_slow.get(sk).unwrap_or(value);
         let new_fast = ema_update(prev_fast, value);
         let new_slow = ema_slow_update(prev_slow, value);
         let derivative = new_fast - prev_fast;
@@ -347,7 +343,7 @@ impl HolisticPrecognition {
         let window = self.signal_window.entry(sk).or_insert_with(Vec::new);
         window.push(signal);
         if window.len() > MAX_SIGNAL_WINDOW {
-            window.pop_front();
+            window.remove(0);
         }
         id
     }
@@ -355,7 +351,10 @@ impl HolisticPrecognition {
     /// Main precognitive sensing cycle: detect regime changes, phase
     /// transitions, and paradigm shifts
     #[inline]
-    pub fn system_precognition(&mut self, timestamp_us: u64) -> (
+    pub fn system_precognition(
+        &mut self,
+        timestamp_us: u64,
+    ) -> (
         Option<RegimeChangeDetection>,
         Option<PhaseTransitionSense>,
         Option<ParadigmShiftAlert>,
@@ -393,10 +392,18 @@ impl HolisticPrecognition {
         self.stats.accuracy_evaluations += 1;
         let total = self.accuracy_log.len();
         let correct = self.accuracy_log.iter().filter(|r| r.was_correct).count();
-        let accuracy = if total > 0 { correct as f32 / total as f32 } else { 0.0 };
+        let accuracy = if total > 0 {
+            correct as f32 / total as f32
+        } else {
+            0.0
+        };
 
         let avg_lead = if total > 0 {
-            self.accuracy_log.iter().map(|r| r.lead_time_us).sum::<u64>() / total as u64
+            self.accuracy_log
+                .iter()
+                .map(|r| r.lead_time_us)
+                .sum::<u64>()
+                / total as u64
         } else {
             0
         };
@@ -506,13 +513,21 @@ impl HolisticPrecognition {
         let trend = self.compute_accuracy_trend();
 
         let all_sources = [
-            PrecogSource::Scheduler, PrecogSource::Memory, PrecogSource::Io,
-            PrecogSource::Network, PrecogSource::Thermal, PrecogSource::Power,
-            PrecogSource::FileSystem, PrecogSource::Ipc, PrecogSource::Security,
-            PrecogSource::Driver, PrecogSource::Userspace, PrecogSource::SystemWide,
+            PrecogSource::Scheduler,
+            PrecogSource::Memory,
+            PrecogSource::Io,
+            PrecogSource::Network,
+            PrecogSource::Thermal,
+            PrecogSource::Power,
+            PrecogSource::FileSystem,
+            PrecogSource::Ipc,
+            PrecogSource::Security,
+            PrecogSource::Driver,
+            PrecogSource::Userspace,
+            PrecogSource::SystemWide,
         ];
 
-        let mut source_quality: LinearMap<f32, 64> = BTreeMap::new();
+        let mut source_quality: LinearMap<f32, 64> = LinearMap::new();
         let mut blind_spots: Vec<PrecogSource> = Vec::new();
         let mut strongest: Vec<(PrecogSource, f32)> = Vec::new();
 
@@ -539,8 +554,8 @@ impl HolisticPrecognition {
         strongest.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
         let top_sources: Vec<PrecogSource> = strongest.iter().take(3).map(|(s, _)| *s).collect();
 
-        let signal_quality = source_quality.values().sum::<f32>()
-            / source_quality.len().max(1) as f32;
+        let signal_quality =
+            source_quality.values().sum::<f32>() / source_quality.len().max(1) as f32;
         let model_coherence = self.compute_model_coherence();
         let overall = accuracy * 0.4 + signal_quality * 0.3 + model_coherence * 0.3;
 
@@ -589,14 +604,18 @@ impl HolisticPrecognition {
         let mut contributing: Vec<PrecogSource> = Vec::new();
 
         let all_sources = [
-            PrecogSource::Scheduler, PrecogSource::Memory, PrecogSource::Io,
-            PrecogSource::Network, PrecogSource::Thermal, PrecogSource::Power,
+            PrecogSource::Scheduler,
+            PrecogSource::Memory,
+            PrecogSource::Io,
+            PrecogSource::Network,
+            PrecogSource::Thermal,
+            PrecogSource::Power,
         ];
 
         for &src in &all_sources {
             let sk = fnv1a_hash(&[src as u8]);
-            let fast = self.source_ema_fast.get(sk).copied().unwrap_or(0.0);
-            let slow = self.source_ema_slow.get(sk).copied().unwrap_or(0.0);
+            let fast = self.source_ema_fast.get(sk).unwrap_or(0.0);
+            let slow = self.source_ema_slow.get(sk).unwrap_or(0.0);
             fast_sum += fast;
             slow_sum += slow;
             source_count += 1;
@@ -651,8 +670,12 @@ impl HolisticPrecognition {
         let mut involved: Vec<PrecogSource> = Vec::new();
 
         let all_sources = [
-            PrecogSource::Scheduler, PrecogSource::Memory, PrecogSource::Io,
-            PrecogSource::Network, PrecogSource::Thermal, PrecogSource::Power,
+            PrecogSource::Scheduler,
+            PrecogSource::Memory,
+            PrecogSource::Io,
+            PrecogSource::Network,
+            PrecogSource::Thermal,
+            PrecogSource::Power,
         ];
 
         for &src in &all_sources {
@@ -709,8 +732,8 @@ impl HolisticPrecognition {
         let mut source_count = 0_usize;
 
         for (sk, _window) in &self.signal_window {
-            let fast = self.source_ema_fast.get(sk).copied().unwrap_or(0.0);
-            let slow = self.source_ema_slow.get(sk).copied().unwrap_or(0.0);
+            let fast = self.source_ema_fast.get(sk).unwrap_or(0.0);
+            let slow = self.source_ema_slow.get(sk).unwrap_or(0.0);
             let div = (fast - slow).abs();
             divergence_sum += div;
             source_count += 1;
@@ -776,7 +799,11 @@ impl HolisticPrecognition {
         };
         let n = window.len() as f32;
         let mean = window.iter().map(|s| s.value).sum::<f32>() / n;
-        let variance = window.iter().map(|s| (s.value - mean) * (s.value - mean)).sum::<f32>() / n;
+        let variance = window
+            .iter()
+            .map(|s| (s.value - mean) * (s.value - mean))
+            .sum::<f32>()
+            / n;
         variance
     }
 
@@ -799,7 +826,7 @@ impl HolisticPrecognition {
     }
 
     fn compute_model_coherence(&self) -> f32 {
-        let fast_values: Vec<f32> = self.source_ema_fast.values().copied().collect();
+        let fast_values: Vec<f32> = self.source_ema_fast.values().collect();
         if fast_values.len() < 2 {
             return 1.0;
         }
