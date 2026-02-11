@@ -324,7 +324,7 @@ impl PerceptionFilter {
         // Add to buffer
         self.output_buffer.push_back(output.clone());
         if self.output_buffer.len() > self.config.buffer_size {
-            self.output_buffer.pop_front();
+            self.output_buffer.remove(0);
         }
 
         self.stats.inputs_accepted += 1;
