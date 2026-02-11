@@ -2,8 +2,6 @@
 //! Holistic chown — ownership change tracking with privilege escalation detection
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Ownership change type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
