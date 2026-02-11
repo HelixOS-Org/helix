@@ -8,7 +8,6 @@
 extern crate alloc;
 
 use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
 use alloc::string::String;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
