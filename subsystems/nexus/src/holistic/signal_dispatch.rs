@@ -34,6 +34,7 @@ pub enum SigAction {
     Default,
     Ignore,
     Handler,
+    Kill,
     CoreDump,
     Stop,
     Continue,
