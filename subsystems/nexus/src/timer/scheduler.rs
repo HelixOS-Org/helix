@@ -126,7 +126,7 @@ impl PowerAwareScheduler {
             .map(|(&cpu, _)| cpu)
             .unwrap_or(0);
 
-        let decision = if self.cpu_idle.get(&best_cpu).copied().unwrap_or(true) {
+        let decision = if self.cpu_idle.get(&best_cpu).unwrap_or(true) {
             DecisionType::PlaceOnIdle
         } else {
             DecisionType::Coalesce
