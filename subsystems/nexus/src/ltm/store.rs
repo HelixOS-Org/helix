@@ -451,6 +451,7 @@ impl Default for LtmStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F32Ext, F64Ext};
 
     #[test]
     fn test_store_memory() {
