@@ -65,7 +65,7 @@ impl KernelMultimodalManager {
 
         // Store in history
         if self.fusion_history.len() >= self.max_history {
-            self.fusion_history.pop_front();
+            self.fusion_history.remove(0);
         }
         self.fusion_history.push_back(fused.clone());
 
