@@ -263,7 +263,7 @@ impl RankingEngine {
             let mut criterion_scores = BTreeMap::new();
 
             for criterion in self.criteria.values() {
-                if let Some(&raw_score) = alt.scores.get(&criterion.id) {
+                if let Some(&raw_score) = alt.scores.get(criterion.id) {
                     let normalized = self.normalize_score(raw_score, criterion);
                     let weight = criterion.weight / total_weight.max(0.001);
 
@@ -311,13 +311,13 @@ impl RankingEngine {
         for criterion in self.criteria.values() {
             // Calculate sqrt of sum of squares
             let sum_sq: f64 = self.alternatives.values()
-                .filter_map(|a| a.scores.get(&criterion.id))
+                .filter_map(|a| a.scores.get(criterion.id))
                 .map(|s| s * s)
                 .sum();
             let norm_factor = sum_sq.sqrt().max(0.001);
 
             for alt in self.alternatives.values() {
-                if let Some(&score) = alt.scores.get(&criterion.id) {
+                if let Some(&score) = alt.scores.get(criterion.id) {
                     normalized_matrix.entry(alt.id)
                         .or_insert_with(BTreeMap::new)
                         .insert(criterion.id, score / norm_factor);
@@ -326,8 +326,8 @@ impl RankingEngine {
         }
 
         // Find ideal and anti-ideal solutions
-        let mut ideal: LinearMap<f64, 64> = BTreeMap::new();
-        let mut anti_ideal: LinearMap<f64, 64> = BTreeMap::new();
+        let mut ideal: LinearMap<f64, 64> = LinearMap::new();
+        let mut anti_ideal: LinearMap<f64, 64> = LinearMap::new();
 
         for criterion in self.criteria.values() {
             let values: Vec<f64> = normalized_matrix.values()
@@ -362,8 +362,8 @@ impl RankingEngine {
             for criterion in self.criteria.values() {
                 if let Some(values) = alt_values {
                     if let Some(&v) = values.get(&criterion.id) {
-                        let i = ideal.get(&criterion.id).copied().unwrap_or(0.0);
-                        let ai = anti_ideal.get(&criterion.id).copied().unwrap_or(0.0);
+                        let i = ideal.get(criterion.id).unwrap_or(0.0);
+                        let ai = anti_ideal.get(criterion.id).unwrap_or(0.0);
 
                         dist_ideal += criterion.weight * (v - i) * (v - i);
                         dist_anti_ideal += criterion.weight * (v - ai) * (v - ai);
@@ -502,6 +502,7 @@ impl Default for RankingEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_add_criterion() {
