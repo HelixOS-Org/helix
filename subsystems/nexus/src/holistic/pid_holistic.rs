@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// PID namespace health
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
