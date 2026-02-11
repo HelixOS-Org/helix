@@ -8,6 +8,7 @@ use crate::neuroevo::innovation::InnovationTracker;
 use crate::neuroevo::network::NeatNetwork;
 use crate::neuroevo::species::Species;
 use crate::neuroevo::utils::lcg_next;
+use crate::fast::math::{F64Ext};
 
 /// Configuration for NEAT
 #[derive(Debug, Clone)]
