@@ -91,7 +91,7 @@ Each subsystem exposes traits; implementations are provided by modules under
 |:------|:---------------|
 | `execution/` | `ThreadId`/`ProcessId` types, scheduler trait + run-queue abstraction, context switching, execution domains (kernel/user) |
 | `memory/` | Physical frame allocator trait, virtual memory mapper, memory region tracking, protection flags |
-| `nexus/` | Kernel-level observability and intelligence — failure prediction, self-healing hooks, anomaly detection, tracing/causal graphs. Split into four sub-crates: `nexus-types`, `nexus-core`, `nexus-cognitive`, `nexus-evolution` |
+| `nexus/` | Kernel-level observability and intelligence — failure prediction, self-healing hooks, anomaly detection, tracing/causal graphs, cognitive pipeline, evolution sandbox. Unified 800K+ line crate |
 | `dis/` | Distributed intent scheduler — policy engine, isolation, IPC queues, optimizer, statistics collection |
 | `relocation/` | Two-stage ELF relocation engine (pre-MMU and post-MMU), multi-protocol support (UEFI, Limine, Multiboot2) |
 | `userspace/` | User-space process support |
