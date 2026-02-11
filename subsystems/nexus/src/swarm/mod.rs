@@ -169,11 +169,10 @@ pub struct Agent {
 /// Agent states
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AgentState {
+    /// Exploring
     Exploring,
-    Exploiting,
-    Resting,
-    Communicating,
-    Returning,
+    /// Idle
+    Idle,
 }
 
 impl Agent {
@@ -1153,8 +1152,8 @@ impl StigmergicEnvironment {
             .grids
             .keys()
             .map(|&ptype| {
-                let decay = self.decay_rates.get(&ptype).copied().unwrap_or(0.01);
-                let diffusion = self.diffusion_rates.get(&ptype).copied().unwrap_or(0.1);
+                let decay = self.decay_rates.get(&ptype).unwrap_or(&0.01);
+                let diffusion = self.diffusion_rates.get(&ptype).unwrap_or(&0.1);
                 (ptype, decay, diffusion)
             })
             .collect();
