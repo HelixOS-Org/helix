@@ -123,11 +123,10 @@ production state. The kernel has a *purpose* between interrupts.
 
 ### Era 4 — Conscious (in progress)
 
-The `nexus-cognitive` crate declares the architecture: perception, comprehension,
-reasoning, memory, decision, action, meta-cognition, semantic, neural. The modules
-are scaffolded but empty — the actual implementation pipeline lives inside the
-monolithic `subsystems/nexus/src/cognition/` directory. The `nexus-evolution` crate
-gates high-risk modules behind feature flags: `code_gen`, `nas`, `self_modify`,
+The cognitive architecture — perception, comprehension, reasoning, memory,
+decision, action, meta-cognition, semantic, neural — is implemented in
+`subsystems/nexus/src/cognition/` (30K+ lines, 44 files). The evolution modules
+gate high-risk capabilities behind feature flags: `code_gen`, `nas`, `self_modify`,
 `structural_adapt` require `#[cfg(feature = "dangerous")]`.
 
 **Metacognition** is the engineering target. Not "the kernel is alive" — rather,
@@ -196,7 +195,7 @@ and resumes on the next tick. The kernel never blocks on intelligence.
 
 ## Operational Levels
 
-NEXUS defines 7 operational levels (`nexus-core/src/level.rs`):
+NEXUS defines 7 operational levels (`nexus/src/core/level.rs`):
 
 | Level | Name | Behavior |
 |:------|:-----|:---------|
@@ -231,26 +230,20 @@ Verified against source. Line counts from `find | wc -l`.
 | Formal verification | `nexus/src/` | ~650 | Implemented (safety, liveness, fairness proofs) |
 | Policy engine | `nexus/src/` | ~700 | Implemented (declarative DSL, audit trail) |
 | Adaptive learning | `nexus/src/` | ~750 | Implemented (rule generation, feedback loop) |
-| Shared types | `nexus-types/` | 3,477 | Implemented |
-| Core types | `nexus-core/` | 437 | Implemented |
-| Cognitive crate | `nexus-cognitive/` | 178 | Scaffolded (empty modules) |
-| Evolution crate | `nexus-evolution/` | 215 | Scaffolded (sandbox only) |
+| Shared types | `nexus/src/types/` | ~3,500 | Implemented (merged) |
+| Core types | `nexus/src/core/` | ~850 | Implemented (merged) |
 
 ### What is not yet implemented
 
-- **`nexus-cognitive/`** — The standalone cognitive crate has module declarations
-  but no implementation. The actual cognitive code lives in `nexus/src/cognition/`.
-  The extraction from the monolith into a standalone crate is pending.
+- **Evolution modules** — The genetic algorithms, swarm intelligence, neural
+  architecture search, code generation, and self-modification modules in
+  `nexus/src/evolution/` are largely scaffolded. Only the sandbox has real code.
+  These represent the research frontier.
 
-- **`nexus-evolution/`** — Declares modules for genetic algorithms, swarm
-  intelligence, neural architecture search, code generation, and self-modification.
-  Only the sandbox module (~30 lines) has real code. The rest are empty modules
-  behind feature gates. These represent the research frontier.
-
-- **Self-modification** — The `self_modify` and `structural_adapt` modules in
-  `nexus-evolution` are declared with `#[cfg(feature = "dangerous")]`. They are
-  intentionally empty. Self-modifying kernel code requires formal verification
-  infrastructure that does not yet exist at the required level of confidence.
+- **Self-modification** — The `self_modify` and `structural_adapt` modules are
+  gated behind `#[cfg(feature = "dangerous")]` and intentionally empty.
+  Self-modifying kernel code requires formal verification infrastructure that
+  does not yet exist at the required level of confidence.
 
 ---
 
