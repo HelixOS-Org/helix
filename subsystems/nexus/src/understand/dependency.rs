@@ -397,7 +397,7 @@ impl DependencyGraph {
 
     /// Topological sort
     pub fn topological_sort(&self) -> Option<Vec<u64>> {
-        let mut in_degree: LinearMap<usize, 64> = BTreeMap::new();
+        let mut in_degree: LinearMap<usize, 64> = LinearMap::new();
         let mut result = Vec::new();
         let mut queue = Vec::new();
 
@@ -425,7 +425,7 @@ impl DependencyGraph {
 
             if let Some(node) = self.nodes.get(&id) {
                 for edge in &node.dependencies {
-                    if let Some(degree) = in_degree.get_mut(&edge.target) {
+                    if let Some(degree) = in_degree.get_mut(edge.target) {
                         *degree = degree.saturating_sub(1);
                         if *degree == 0 {
                             queue.push(edge.target);
