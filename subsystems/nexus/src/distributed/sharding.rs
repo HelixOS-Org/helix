@@ -8,7 +8,6 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -56,7 +55,7 @@ pub struct Shard {
     /// Primary node
     pub primary: NodeId,
     /// Replicas
-    pub replicas: VecDeque<NodeId>,
+    pub replicas: Vec<NodeId>,
     /// Status
     pub status: ShardStatus,
     /// Items count
@@ -620,7 +619,7 @@ impl ShardManager {
                 // Promote first replica
                 if let Some(new_primary) = shard.replicas.first().copied() {
                     shard.primary = new_primary;
-                    shard.replicas.pop_front().unwrap();
+                    shard.replicas.remove(0);
                 }
             }
         }
