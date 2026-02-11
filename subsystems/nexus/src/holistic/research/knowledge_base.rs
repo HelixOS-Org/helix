@@ -272,7 +272,7 @@ impl HolisticKnowledgeBase {
             content_hash, tick: self.tick,
         });
         if self.versions.len() > MAX_VERSIONS {
-            self.versions.pop_front();
+            self.versions.remove(0);
         }
         for &tag in &tags {
             self.tag_index.entry(tag).or_insert_with(Vec::new).push(id);
