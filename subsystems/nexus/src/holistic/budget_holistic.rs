@@ -9,8 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -239,7 +238,7 @@ impl TenantBudget {
         }
         if !period_usage.is_empty() {
             if self.usage_history.len() >= self.max_history {
-                self.usage_history.pop_front();
+                self.usage_history.remove(0);
             }
             self.usage_history.push_back(period_usage);
         }
@@ -248,7 +247,8 @@ impl TenantBudget {
     /// Worst state across all resources
     #[inline]
     pub fn worst_state(&self) -> BudgetState {
-        self.budgets.values()
+        self.budgets
+            .values()
             .map(|b| b.state())
             .max_by_key(|s| *s as u8)
             .unwrap_or(BudgetState::WithinBudget)
@@ -258,7 +258,9 @@ impl TenantBudget {
     #[inline]
     pub fn forecast(&self, resource: BudgetedResource) -> Option<f64> {
         let key = resource as u8;
-        let values: Vec<u64> = self.usage_history.iter()
+        let values: Vec<u64> = self
+            .usage_history
+            .iter()
             .filter_map(|h| h.get(&key).copied())
             .collect();
         if values.is_empty() {
@@ -357,12 +359,21 @@ impl HolisticBudgetEngine {
 
     fn update_stats(&mut self) {
         self.stats.total_tenants = self.tenants.len();
-        self.stats.over_budget = self.tenants.values()
-            .filter(|t| t.worst_state() == BudgetState::OverBudget).count();
-        self.stats.warning = self.tenants.values()
-            .filter(|t| t.worst_state() == BudgetState::Warning).count();
-        self.stats.exhausted = self.tenants.values()
-            .filter(|t| t.worst_state() == BudgetState::Exhausted).count();
+        self.stats.over_budget = self
+            .tenants
+            .values()
+            .filter(|t| t.worst_state() == BudgetState::OverBudget)
+            .count();
+        self.stats.warning = self
+            .tenants
+            .values()
+            .filter(|t| t.worst_state() == BudgetState::Warning)
+            .count();
+        self.stats.exhausted = self
+            .tenants
+            .values()
+            .filter(|t| t.worst_state() == BudgetState::Exhausted)
+            .count();
     }
 
     /// Stats
