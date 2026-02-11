@@ -291,7 +291,7 @@ impl RegressionDetector {
             // Compare against baseline or target
             let baseline = baseline_values
                 .get(&metric.id)
-                .copied()
+                
                 .unwrap_or(metric.target);
 
             let change = current - baseline;
@@ -547,6 +547,7 @@ pub enum TrendDirection {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_metric_registration() {
@@ -619,6 +620,6 @@ mod tests {
         detector.record(id, 0.9, None);
 
         let baseline_id = detector.create_baseline("v1");
-        assert!(detector.baselines.get(&baseline_id).is_some());
+        assert!(detector.baselines.get(baseline_id).is_some());
     }
 }
