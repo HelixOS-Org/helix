@@ -27,6 +27,5 @@ neural = []       # Neural reasoning hybrid
 verification = [] # Formal verification integration
 
 [dependencies]
-# nexus-core = { path = "../core", default-features = false }
 
 [dev-dependencies]
