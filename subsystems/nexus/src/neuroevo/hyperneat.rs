@@ -6,13 +6,14 @@ use alloc::vec::Vec;
 use crate::neuroevo::activation::ActivationFunction;
 use crate::neuroevo::network::NeatNetwork;
 use crate::neuroevo::population::{NeatConfig, NeatPopulation};
+use crate::fast::math::{F64Ext};
 
 /// A point in the substrate space
 #[derive(Debug, Clone, Copy)]
 pub struct SubstratePoint {
     pub x: f64,
     pub y: f64,
-    pub z: f64, // For 3D substrates
+    pub z: f64, // For 3D substrates,
 }
 
 impl SubstratePoint {
@@ -212,7 +213,7 @@ impl HyperNeat {
                 let output = cppn.activate(&[input_pos.x, input_pos.y, hidden_pos.x, hidden_pos.y]);
 
                 let weight = output[0] * self.substrate.max_weight;
-                let expression = output.get(1).copied().unwrap_or(1.0);
+                let expression = output.get(1).unwrap_or(1.0);
 
                 if libm::fabs(weight) > self.substrate.weight_threshold && expression > 0.0 {
                     network.add_connection(0, i, self.substrate.inputs.len() + h, weight);
@@ -227,7 +228,7 @@ impl HyperNeat {
                     cppn.activate(&[hidden_pos.x, hidden_pos.y, output_pos.x, output_pos.y]);
 
                 let weight = output[0] * self.substrate.max_weight;
-                let expression = output.get(1).copied().unwrap_or(1.0);
+                let expression = output.get(1).unwrap_or(1.0);
 
                 if libm::fabs(weight) > self.substrate.weight_threshold && expression > 0.0 {
                     let from = self.substrate.inputs.len() + h;
