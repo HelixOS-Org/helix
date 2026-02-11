@@ -2,7 +2,6 @@
 //! Holistic capability — cross-layer capability privilege analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Capability holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
