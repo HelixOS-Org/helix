@@ -562,6 +562,7 @@ impl Default for PipelineBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn create_numeric_input(data: Vec<f64>) -> RawInput {
         RawInput {
