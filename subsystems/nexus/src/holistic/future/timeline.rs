@@ -267,7 +267,7 @@ impl HolisticTimeline {
             self.main_timeline.push_back(p.clone());
         }
         while self.main_timeline.len() > MAX_TIMELINE_POINTS {
-            self.main_timeline.pop_front();
+            self.main_timeline.remove(0);
         }
 
         points
@@ -444,7 +444,7 @@ impl HolisticTimeline {
             dimension: String::from("composite"),
         });
         while self.accuracy_samples.len() > MAX_ACCURACY_SAMPLES {
-            self.accuracy_samples.pop_front();
+            self.accuracy_samples.remove(0);
         }
 
         let comparison = PredictedVsActual {
@@ -460,7 +460,7 @@ impl HolisticTimeline {
 
         self.comparison_log.push_back(comparison.clone());
         while self.comparison_log.len() > MAX_ACCURACY_SAMPLES {
-            self.comparison_log.pop_front();
+            self.comparison_log.remove(0);
         }
 
         comparison
