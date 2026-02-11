@@ -11,7 +11,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -180,7 +179,7 @@ impl CoopAscension {
             fairness_records: BTreeMap::new(),
             progress_index: LinearMap::new(),
             stats: AscensionStats::default(),
-            rng_state: 0xA5CE_ND00_CAFE_BABEu64,
+            rng_state: 0xA5CE_0D00_CAFE_BABEu64,
             current_tick: 0,
         }
     }
@@ -555,9 +554,9 @@ impl CoopAscension {
         self.current_tick += 1;
 
         // Decay progress scores
-        let keys: Vec<u64> = self.progress_index.keys().copied().collect();
+        let keys: Vec<u64> = self.progress_index.keys().collect();
         for k in keys {
-            if let Some(v) = self.progress_index.get_mut(&k) {
+            if let Some(v) = self.progress_index.get_mut(k) {
                 *v = (*v * PROGRESS_DECAY_NUM) / PROGRESS_DECAY_DEN;
             }
         }
