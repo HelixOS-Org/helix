@@ -8,7 +8,6 @@
 
 extern crate alloc;
 
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -24,7 +23,7 @@ pub struct PredictionEngine {
     /// Decision trees for different prediction kinds
     trees: Vec<(PredictionKind, DecisionNode)>,
     /// Recent predictions
-    predictions: VecDeque<CrashPrediction>,
+    predictions: Vec<CrashPrediction>,
     /// Maximum predictions to keep
     max_predictions: usize,
     /// Minimum confidence threshold
@@ -45,7 +44,7 @@ impl PredictionEngine {
         Self {
             features: Vec::new(),
             trees: Vec::new(),
-            predictions: VecDeque::new(),
+            predictions: Vec::new(),
             max_predictions: 1000,
             min_confidence: 0.7,
             horizon_ms: 30_000,
@@ -218,9 +217,9 @@ impl PredictionEngine {
 
                     // Store prediction
                     if self.predictions.len() >= self.max_predictions {
-                        self.predictions.pop_front();
+                        self.predictions.remove(0);
                     }
-                    self.predictions.push_back(prediction);
+                    self.predictions.push(prediction);
                 }
             }
         }
