@@ -9,7 +9,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key generation.
@@ -482,7 +481,7 @@ impl CoopTimeline {
             .min(1000);
 
         if self.risk_history.len() >= 64 {
-            self.risk_history.pop_front();
+            self.risk_history.remove(0);
         }
         self.risk_history.push_back(overall_risk);
         self.stats.avg_risk_score = ema_update(self.stats.avg_risk_score, overall_risk, 3, 10);
