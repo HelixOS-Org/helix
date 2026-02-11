@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -91,7 +90,7 @@ pub struct VitalSign {
     /// Current score (0.0-1.0)
     pub score: f64,
     /// Historical scores
-    history: VecDeque<f64>,
+    history: Vec<f64>,
     /// Max history
     max_history: usize,
     /// EMA smoothed score
@@ -107,7 +106,7 @@ impl VitalSign {
         Self {
             dimension,
             score: 1.0,
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 256,
             ema_score: 1.0,
             alpha: 0.2,
@@ -131,9 +130,9 @@ impl VitalSign {
         self.trend = self.ema_score - prev_ema;
         self.score = self.ema_score;
 
-        self.history.push_back(clamped);
+        self.history.push(clamped);
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
@@ -354,7 +353,7 @@ impl HolisticHealthEngine {
         let mut degrading = 0;
 
         for (key, vital) in &self.vitals {
-            let w = self.weights.get(key).copied().unwrap_or(1.0);
+            let w = self.weights.get(key).unwrap_or(&1.0);
             weighted_sum += vital.score * w;
             total_weight += w;
             if vital.is_degrading() {
