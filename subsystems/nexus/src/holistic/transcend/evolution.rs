@@ -323,7 +323,7 @@ impl HolisticEvolution {
     fn log_event(&mut self, kind: &str, detail: &str) {
         let h = self.gen_hash(kind);
         if self.log.len() >= MAX_LOG_ENTRIES {
-            self.log.pop_front();
+            self.log.remove(0);
         }
         self.log.push_back(LogEntry {
             hash: h,
@@ -516,9 +516,9 @@ impl HolisticEvolution {
         ) {
             for i in 0..child.genome.len() {
                 child.genome[i] = if (i as u64) < crossover_point {
-                    a.genome.get(i).copied().unwrap_or(0)
+                    *a.genome.get(i).unwrap_or(&0)
                 } else {
-                    b.genome.get(i).copied().unwrap_or(0)
+                    *b.genome.get(i).unwrap_or(&0)
                 };
             }
             child.throughput_score = (a.throughput_score + b.throughput_score) / 2;
