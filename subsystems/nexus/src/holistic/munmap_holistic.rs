@@ -102,7 +102,7 @@ impl MunmapHolisticManager {
 
         self.recent_unmaps.push_back((now, pid, bytes));
         if self.recent_unmaps.len() > self.window_size {
-            self.recent_unmaps.pop_front();
+            self.recent_unmaps.remove(0);
         }
 
         self.detect_storm(now);
