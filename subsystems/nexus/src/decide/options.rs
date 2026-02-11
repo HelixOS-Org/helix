@@ -306,7 +306,7 @@ impl ActionParameters {
     /// Get integer parameter
     #[inline(always)]
     pub fn get_int(&self, key: &str) -> Option<i64> {
-        self.integers.get(key).copied()
+        self.integers.get(key)
     }
 
     /// Get string parameter
@@ -318,13 +318,13 @@ impl ActionParameters {
     /// Get boolean parameter
     #[inline(always)]
     pub fn get_bool(&self, key: &str) -> Option<bool> {
-        self.booleans.get(key).copied()
+        self.booleans.get(key)
     }
 
     /// Get float parameter
     #[inline(always)]
     pub fn get_float(&self, key: &str) -> Option<f64> {
-        self.floats.get(key).copied()
+        self.floats.get(key)
     }
 
     /// Is empty?
