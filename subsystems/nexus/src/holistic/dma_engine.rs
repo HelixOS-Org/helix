@@ -174,7 +174,7 @@ impl DmaChannel {
     }
 
     #[inline]
-    pub fn complete_active(&mut self, bytes: u64, now: u64) {
+    pub fn complete_active(&mut self, bytes: u64, _now: u64) {
         self.active_transfer = None;
         self.state = DmaChannelState::Idle;
         self.total_transfers += 1;
