@@ -31,6 +31,15 @@
 use core::mem::MaybeUninit;
 use core::ops::{Index, IndexMut};
 
+/// Maximum number of u64 words in the bitmap. Supports up to MAX_BITMAP_WORDS * 64 slots.
+const MAX_BITMAP_WORDS: usize = 16;
+
+/// Helper to compute the number of bitmap words needed for N bits at runtime.
+#[inline(always)]
+const fn bitmap_words(n: usize) -> usize {
+    (n + 63) / 64
+}
+
 /// Free-list based slab allocator.
 ///
 /// - `T`: object type (doesn't need Copy or Clone)
@@ -40,7 +49,7 @@ pub struct SlabPool<T, const N: usize> {
     /// Storage for objects.
     slots: [MaybeUninit<T>; N],
     /// Bit indicating which slots are occupied (1 = occupied).
-    occupied: [u64; (N + 63) / 64],
+    occupied: [u64; MAX_BITMAP_WORDS],
     /// Free-list: each entry points to next free slot (linked list in array).
     free_list: [u32; N],
     /// Head of free-list (index into free_list), or u32::MAX if full.
@@ -64,7 +73,7 @@ impl<T, const N: usize> SlabPool<T, N> {
         Self {
             // SAFETY: MaybeUninit doesn't require initialization
             slots: unsafe { MaybeUninit::uninit().assume_init() },
-            occupied: [0u64; (N + 63) / 64],
+            occupied: [0u64; MAX_BITMAP_WORDS],
             free_list,
             free_head: if N > 0 { 0 } else { u32::MAX },
             len: 0,
@@ -190,7 +199,7 @@ impl<T, const N: usize> SlabPool<T, N> {
                 }
             }
         }
-        self.occupied = [0u64; (N + 63) / 64];
+        self.occupied = [0u64; MAX_BITMAP_WORDS];
         let mut i = 0;
         while i < N {
             self.free_list[i] = if i + 1 < N { (i + 1) as u32 } else { u32::MAX };
@@ -263,7 +272,7 @@ impl<'a, T, const N: usize> Iterator for SlabIterMut<'a, T, N> {
             self.pos += 1;
             if self.pool.is_occupied(idx) {
                 // SAFETY: Each index is yielded exactly once, and we have &mut self
-                let ptr = unsafe { self.pool.slots[idx].as_mut_ptr() };
+                let ptr = self.pool.slots[idx].as_mut_ptr();
                 return Some((idx, unsafe { &mut *ptr }));
             }
         }
