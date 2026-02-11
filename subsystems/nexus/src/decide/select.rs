@@ -306,8 +306,8 @@ impl DecisionSelector {
         options
             .iter()
             .max_by(|a, b| {
-                let min_a = a.attributes.values().copied().fold(a.score, f64::min);
-                let min_b = b.attributes.values().copied().fold(b.score, f64::min);
+                let min_a = a.attributes.values().fold(a.score, f64::min);
+                let min_b = b.attributes.values().fold(b.score, f64::min);
                 min_a.partial_cmp(&min_b).unwrap()
             })
             .copied()
@@ -430,7 +430,7 @@ impl DecisionSelector {
         self.history.push_back(result.clone());
 
         if self.history.len() > self.config.history_size {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         self.stats.selections_made += 1;
