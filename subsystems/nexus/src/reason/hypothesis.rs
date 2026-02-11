@@ -555,56 +555,56 @@ mod tests {
 
     #[test]
     fn test_generate_hypothesis() {
-        let mut gen = HypothesisGenerator::default();
+        let mut gen_val = HypothesisGenerator::default();
 
-        let antecedent = gen.create_proposition("rain", "causes", Some("wet_ground"));
-        let consequent = gen.create_proposition("ground", "is", Some("wet"));
+        let antecedent = gen_val.create_proposition("rain", "causes", Some("wet_ground"));
+        let consequent = gen_val.create_proposition("ground", "is", Some("wet"));
 
-        let id = gen.generate(
+        let id = gen_val.generate(
             HypothesisType::Causal,
             "Rain causes wet ground",
             vec![antecedent],
             consequent,
         );
 
-        let h = gen.get(id).unwrap();
+        let h = gen_val.get(id).unwrap();
         assert_eq!(h.hypothesis_type, HypothesisType::Causal);
         assert_eq!(h.status, HypothesisStatus::Proposed);
     }
 
     #[test]
     fn test_add_evidence() {
-        let mut gen = HypothesisGenerator::default();
+        let mut gen_val = HypothesisGenerator::default();
 
-        let consequent = gen.create_proposition("x", "is", Some("y"));
-        let id = gen.generate(HypothesisType::Predictive, "test", vec![], consequent);
+        let consequent = gen_val.create_proposition("x", "is", Some("y"));
+        let id = gen_val.generate(HypothesisType::Predictive, "test", vec![], consequent);
 
-        gen.add_evidence(id, "observation 1", EvidenceType::Observation, 0.8, "experiment");
+        gen_val.add_evidence(id, "observation 1", EvidenceType::Observation, 0.8, "experiment");
 
-        let h = gen.get(id).unwrap();
+        let h = gen_val.get(id).unwrap();
         assert!(!h.evidence.is_empty());
     }
 
     #[test]
     fn test_evaluate() {
-        let mut gen = HypothesisGenerator::default();
+        let mut gen_val = HypothesisGenerator::default();
 
-        let consequent = gen.create_proposition("x", "is", Some("y"));
-        let id = gen.generate(HypothesisType::Predictive, "test", vec![], consequent);
+        let consequent = gen_val.create_proposition("x", "is", Some("y"));
+        let id = gen_val.generate(HypothesisType::Predictive, "test", vec![], consequent);
 
         // Add strong evidence
-        gen.add_evidence(id, "e1", EvidenceType::Observation, 0.9, "s1");
-        gen.add_evidence(id, "e2", EvidenceType::Experiment, 0.8, "s2");
+        gen_val.add_evidence(id, "e1", EvidenceType::Observation, 0.9, "s1");
+        gen_val.add_evidence(id, "e2", EvidenceType::Experiment, 0.8, "s2");
 
-        let status = gen.evaluate(id).unwrap();
+        let status = gen_val.evaluate(id).unwrap();
         assert_eq!(status, HypothesisStatus::Supported);
     }
 
     #[test]
     fn test_builder() {
-        let mut gen = HypothesisGenerator::default();
+        let mut gen_val = HypothesisGenerator::default();
 
-        let id = HypothesisBuilder::new(&mut gen, HypothesisType::Causal)
+        let id = HypothesisBuilder::new(&mut gen_val, HypothesisType::Causal)
             .description("Smoking causes cancer")
             .given("smoking", "exposure", None)
             .then("cancer", "develops", None)
@@ -615,17 +615,17 @@ mod tests {
 
     #[test]
     fn test_prune() {
-        let mut gen = HypothesisGenerator::new(GeneratorConfig {
+        let mut gen_val = HypothesisGenerator::new(GeneratorConfig {
             prune_weak: true,
             weak_threshold: 0.5,
             ..Default::default()
         });
 
         // Create weak hypothesis
-        let consequent = gen.create_proposition("x", "is", Some("y"));
-        gen.generate(HypothesisType::Predictive, "weak", vec![], consequent);
+        let consequent = gen_val.create_proposition("x", "is", Some("y"));
+        gen_val.generate(HypothesisType::Predictive, "weak", vec![], consequent);
 
-        let pruned = gen.prune();
+        let pruned = gen_val.prune();
         assert!(pruned > 0);
     }
 }
