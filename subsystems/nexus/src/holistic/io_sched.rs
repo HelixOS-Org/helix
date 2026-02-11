@@ -68,9 +68,9 @@ impl SchedQueue {
         if self.requests.is_empty() { return None; }
         self.dispatched += 1;
         match self.policy {
-            IoSchedPolicy::Deadline => { self.requests.sort_by_key(|r| r.deadline_ns); self.requests.pop_front() }
-            IoSchedPolicy::Noop => self.requests.pop_front(),
-            _ => { self.requests.sort_by_key(|r| r.sector); self.requests.pop_front() }
+            IoSchedPolicy::Deadline => { self.requests.make_contiguous().sort_by_key(|r| r.deadline_ns); self.requests.remove(0) }
+            IoSchedPolicy::Noop => self.requests.remove(0),
+            _ => { self.requests.make_contiguous().sort_by_key(|r| r.sector); self.requests.remove(0) }
         }
     }
 }
