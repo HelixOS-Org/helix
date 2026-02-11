@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -144,7 +143,7 @@ pub struct FeedbackLoop {
     /// Settling time estimate
     pub settled: bool,
     /// Error history (recent)
-    error_history: VecDeque<f64>,
+    error_history: Vec<f64>,
     /// Max history
     max_history: usize,
 }
@@ -170,7 +169,7 @@ impl FeedbackLoop {
             schedules: Vec::new(),
             update_count: 0,
             settled: false,
-            error_history: VecDeque::new(),
+            error_history: Vec::new(),
             max_history: 100,
         }
     }
@@ -232,9 +231,9 @@ impl FeedbackLoop {
 
         // Track error
         if self.error_history.len() >= self.max_history {
-            self.error_history.pop_front();
+            self.error_history.remove(0);
         }
-        self.error_history.push_back(self.state.error);
+        self.error_history.push(self.state.error);
 
         // Check settling
         self.check_settled();
