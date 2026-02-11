@@ -29,7 +29,7 @@ pub enum GroupSchedPolicy {
 /// Bandwidth parameters (quota/period)
 #[derive(Debug, Clone)]
 pub struct BandwidthParams {
-    pub quota_us: i64,   // -1 = unlimited
+    pub quota_us: i64,   // -1 = unlimited,
     pub period_us: u64,
     pub burst_us: u64,
 }
@@ -139,7 +139,7 @@ pub struct SchedGroup {
     pub runtime: BandwidthRuntime,
     pub nr_tasks: u32,
     pub nr_running: u32,
-    pub cpu_set: u64, // bitmask
+    pub cpu_set: u64, // bitmask,
     pub depth: u32,
 }
 
