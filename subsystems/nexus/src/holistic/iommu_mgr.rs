@@ -236,7 +236,7 @@ pub struct HolisticIommuMgr {
 impl HolisticIommuMgr {
     pub fn new(iotlb_size: usize) -> Self {
         Self {
-            domains: BTreeMap::new(), device_to_domain: BTreeMap::new(),
+            domains: BTreeMap::new(), device_to_domain: ArrayMap::new(0),
             iotlb: IotlbCache::new(iotlb_size), fault_log: VecDeque::new(),
             next_domain_id: 1, next_fault_id: 1, max_fault_log: 1000,
             stats: IommuMgrStats::default(),
@@ -260,9 +260,9 @@ impl HolisticIommuMgr {
 
     #[inline]
     pub fn detach(&mut self, dev_id: u32) {
-        if let Some(&dom_id) = self.device_to_domain.try_get(dev_id as usize) {
+        if let Some(dom_id) = self.device_to_domain.try_get(dev_id as usize) {
             if let Some(dom) = self.domains.get_mut(&dom_id) { dom.detach_device(dev_id); }
-            self.device_to_domain.remove(&dev_id);
+            self.device_to_domain.remove(dev_id);
         }
     }
 
@@ -282,7 +282,7 @@ impl HolisticIommuMgr {
     pub fn translate(&mut self, dev_id: u32, iova: u64, is_write: bool, ts: u64) -> Option<u64> {
         // Try IOTLB first
         if let Some(phys) = self.iotlb.lookup(iova, ts) { return Some(phys); }
-        let &dom_id = self.device_to_domain.try_get(dev_id as usize)?;
+        let dom_id = self.device_to_domain.try_get(dev_id as usize)?;
         let dom = self.domains.get_mut(&dom_id)?;
         match dom.translate(iova) {
             Some(phys) => { self.iotlb.insert(iova, phys, dom_id, ts); Some(phys) }
@@ -292,7 +292,7 @@ impl HolisticIommuMgr {
                     fault_id: fid, domain_id: dom_id, device_id: dev_id,
                     iova, is_write, timestamp_ns: ts,
                 });
-                if self.fault_log.len() > self.max_fault_log { self.fault_log.pop_front(); }
+                if self.fault_log.len() > self.max_fault_log { self.fault_log.remove(0); }
                 None
             }
         }
