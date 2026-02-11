@@ -93,7 +93,7 @@ impl HotplugHandler {
         // Store in history
         for event in &events {
             if self.event_history.len() >= self.max_history {
-                self.event_history.pop_front();
+                self.event_history.remove(0);
             }
             self.event_history.push_back(event.clone());
         }
@@ -110,7 +110,7 @@ impl HotplugHandler {
     /// Get event count by type
     #[inline(always)]
     pub fn event_count(&self, event: HotplugEvent) -> u64 {
-        self.event_counts.get(&event).copied().unwrap_or(0)
+        self.event_counts.get(&event).unwrap_or(0)
     }
 
     /// Calculate event rate
