@@ -144,8 +144,8 @@ impl MemoryPressureHandler {
             .collect();
 
         cache_list.sort_by(|(id_a, info_a), (id_b, info_b)| {
-            let prio_a = self.shrinker_priority.get(id_a).copied().unwrap_or(5);
-            let prio_b = self.shrinker_priority.get(id_b).copied().unwrap_or(5);
+            let prio_a = self.shrinker_priority.get(id_a).unwrap_or(5);
+            let prio_b = self.shrinker_priority.get(id_b).unwrap_or(5);
 
             // Sort by priority (ascending), then by utilization (ascending)
             prio_a.cmp(&prio_b)
@@ -177,7 +177,7 @@ impl MemoryPressureHandler {
                 slabs_to_free: slabs,
                 objects_to_reclaim: objects,
                 memory_freed: to_free,
-                priority: self.shrinker_priority.get(cache_id).copied().unwrap_or(5),
+                priority: self.shrinker_priority.get(cache_id).unwrap_or(5),
             });
 
             freed_so_far += to_free;
