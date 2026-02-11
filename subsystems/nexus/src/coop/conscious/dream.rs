@@ -332,7 +332,7 @@ pub struct CoopDreamEngine {
 
 impl CoopDreamEngine {
     pub fn new(seed: u64) -> Self {
-        let mut event_buffer = Vec::with_capacity(MAX_DREAM_EPISODES);
+        let event_buffer = Vec::with_capacity(MAX_DREAM_EPISODES);
         Self {
             event_buffer,
             event_write_idx: 0,
@@ -477,7 +477,7 @@ impl CoopDreamEngine {
     fn discover_optimal_strategy_internal(&mut self) -> Vec<u64> {
         let mut discovered_ids = Vec::new();
 
-        for iter in 0..DISCOVERY_ITERATIONS {
+        for _iter in 0..DISCOVERY_ITERATIONS {
             let noise = xorshift64(&mut self.rng_state);
             let name_seed = noise % 10000;
             let mut name_buf = Vec::new();
