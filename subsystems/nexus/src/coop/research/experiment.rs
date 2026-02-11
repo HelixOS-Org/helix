@@ -294,7 +294,7 @@ impl CoopExperiment {
         } else {
             0.0
         };
-        let pooled_std = ((ctrl_var + treat_var) / 2.0).max(0.0001);
+        let _pooled_std = ((ctrl_var + treat_var) / 2.0).max(0.0001);
         Some((diff, exp.control.mean, exp.treatment.mean))
     }
 
