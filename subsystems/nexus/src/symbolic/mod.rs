@@ -298,12 +298,6 @@ pub enum Formula {
 /// Comparison operators
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompareOp {
-    Equal,
-    NotEqual,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
 }
 
 impl Formula {
@@ -1206,6 +1200,7 @@ impl KernelSymbolicReasoner {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_unification() {
