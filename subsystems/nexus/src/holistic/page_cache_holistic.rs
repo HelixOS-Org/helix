@@ -2,7 +2,6 @@
 //! NEXUS Holistic — Page Cache (holistic page cache analysis)
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Page cache holistic metric
