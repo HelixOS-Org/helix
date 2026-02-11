@@ -41,10 +41,8 @@ pub type NexusResult<T> = Result<T, NexusError>;
 pub enum NexusError {
     /// NEXUS is already initialized
     AlreadyInitialized,
-
     /// NEXUS is not initialized
     NotInitialized,
-
     /// NEXUS is not in the correct state
     InvalidState {
         expected: &'static str,
