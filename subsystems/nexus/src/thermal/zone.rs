@@ -265,7 +265,7 @@ impl ThermalZone {
 
         // Add to history
         if self.temp_history.len() >= self.max_history {
-            self.temp_history.pop_front();
+            self.temp_history.remove(0);
         }
         self.temp_history.push_back(temp);
     }
