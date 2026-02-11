@@ -168,15 +168,15 @@ fn demo_core_lifecycle() {
 
     match nexus.pause() {
         Ok(()) => ok("nexus.pause() — Running → Paused"),
-        Err(_) => {}
+        Err(_) => {},
     }
     match nexus.resume() {
         Ok(()) => ok("nexus.resume() — Paused → Running"),
-        Err(_) => {}
+        Err(_) => {},
     }
     match nexus.shutdown() {
         Ok(()) => ok("nexus.shutdown() — Running → Stopped"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     ok("Core lifecycle complete");
@@ -199,10 +199,7 @@ fn demo_config() {
         "  minimal.memory_budget (bytes)",
         minimal.memory_budget as u64,
     );
-    stat(
-        "  full.memory_budget    (bytes)",
-        full.memory_budget as u64,
-    );
+    stat("  full.memory_budget    (bytes)", full.memory_budget as u64);
     stat(
         "  default.cpu_budget    (%)",
         default.cpu_budget_percent as u64,
@@ -381,7 +378,9 @@ fn demo_telemetry() {
     ok("Tracer::new(default config) — ultra-low overhead tracing ready");
 
     // Causal graph
-    use helix_nexus::causal::{CausalEdge, CausalEdgeType, CausalGraph, CausalNode, CausalNodeType};
+    use helix_nexus::causal::{
+        CausalEdge, CausalEdgeType, CausalGraph, CausalNode, CausalNodeType,
+    };
     let mut graph = CausalGraph::new();
     let n1 = graph.add_node(CausalNode::new(CausalNodeType::Event, "alloc_failure"));
     let n2 = graph.add_node(CausalNode::new(CausalNodeType::Event, "oom_kill"));
@@ -672,8 +671,8 @@ fn demo_symbiosis() {
     let _hb = HintBus::new();
     ok("HintBus::new() — bidirectional kernel↔app hints");
 
-    use helix_nexus::coop::NegotiationEngine;
     use helix_nexus::coop::negotiate::SystemCapacity;
+    use helix_nexus::coop::NegotiationEngine;
     let cap = SystemCapacity {
         total_cpu_cores: 4,
         available_cpu: 3.5,
