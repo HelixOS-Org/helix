@@ -542,7 +542,7 @@ pub struct PageCacheV3Stats {
 #[repr(align(64))]
 pub struct HolisticPageCacheV3 {
     pub folios: BTreeMap<u64, PageCacheV3Folio>,
-    pub inode_index: BTreeMap<u64, Vec<u64>>, // inode → [folio_ids]
+    pub inode_index: BTreeMap<u64, Vec<u64>>, // inode → [folio_ids],
     pub next_folio_id: u64,
     pub max_pages: u64,
     pub current_pages: u64,
