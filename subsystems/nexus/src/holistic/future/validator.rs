@@ -15,9 +15,9 @@ extern crate alloc;
 use crate::fast::fast_hash::FastHasher;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -250,7 +250,7 @@ impl HolisticPredictionValidator {
         let scale = actual.abs().max(1.0);
         let accuracy = (1.0 - abs_error / scale).clamp(0.0, 1.0);
 
-        let id = FastHasher::new().feed_u64(subsystem as u64).feed_str("-").feed_u64(dimension as u64).feed_str("-").feed_u64(self.tick as u64).finish()
+        let id = FastHasher::new().feed_u64(subsystem as u64).feed_str("-").feed_u64(dimension.len() as u64).feed_str("-").feed_u64(self.tick as u64).finish()
             ^ xorshift64(&mut self.rng_state);
 
         self.accuracy_ema = EMA_ALPHA * accuracy + (1.0 - EMA_ALPHA) * self.accuracy_ema;
@@ -279,7 +279,7 @@ impl HolisticPredictionValidator {
         let sub_entries = self.subsystem_stats.entry(sub_key).or_insert_with(Vec::new);
         sub_entries.push(entry.clone());
         if sub_entries.len() > MAX_VALIDATION_ENTRIES / MAX_SUBSYSTEM_ENTRIES {
-            sub_entries.pop_front();
+            sub_entries.remove(0);
         }
 
         entry
@@ -565,7 +565,7 @@ impl HolisticPredictionValidator {
             .copied()
             .unwrap_or((SubsystemId::Holistic, 0.0));
 
-        let id = FastHasher::new().feed_str("model-sel-").feed_u64(dimension as u64).finish()
+        let id = FastHasher::new().feed_str("model-sel-").feed_str(dimension).finish()
             ^ xorshift64(&mut self.rng_state);
 
         let signal = ModelSelectionSignal {
