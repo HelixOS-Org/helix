@@ -6,6 +6,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 /// DMA buffer state
+use alloc::collections::BTreeMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DmaBufferState {
     Free,
