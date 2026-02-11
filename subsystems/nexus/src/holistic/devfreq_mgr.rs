@@ -7,6 +7,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 
 /// Device frequency governor
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DevFreqGovernor {
     SimpleonDemand,
