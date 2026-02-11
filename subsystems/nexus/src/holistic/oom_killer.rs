@@ -35,7 +35,7 @@ pub enum KillStage {
 }
 
 /// OOM victim candidate
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct OomCandidate {
     pub pid: u64,
     pub rss_pages: u64,
@@ -47,6 +47,9 @@ pub struct OomCandidate {
     pub oom_score: u64,
     pub protected: bool,
     pub essential: bool,
+
+    pub is_unkillable: bool,
+    pub oom_score_adj: i32,
 }
 
 impl OomCandidate {
@@ -57,7 +60,7 @@ impl OomCandidate {
         else if adj < 0 { score = score.saturating_mul(1000u64.saturating_sub((-adj) as u64)) / 1000; }
         // Older processes slightly less likely to be killed
         if age > 600_000_000_000 { score = score.saturating_mul(95) / 100; }
-        Self { pid, rss_pages: rss, swap_pages: swap, oom_adj: adj, nice, age_ns: age, cgroup_id: cgroup, oom_score: score, protected: adj <= -998, essential: false }
+        Self { pid, rss_pages: rss, swap_pages: swap, oom_adj: adj, nice, age_ns: age, cgroup_id: cgroup, oom_score: score, protected: adj <= -998, essential: false, ..Default::default() }
     }
 }
 
@@ -105,6 +108,9 @@ pub enum OomPolicy {
     KillLowestPriority,
     KillByCgroup,
     ReclaimFirst,
+    Global,
+    CgroupLocal,
+    Memcg,
 }
 
 /// OOM stats
@@ -160,12 +166,13 @@ impl HolisticOomKiller {
             OomPolicy::KillLargest | OomPolicy::ReclaimFirst => victims.iter().max_by_key(|c| c.oom_score).map(|c| c.pid),
             OomPolicy::KillNewest => victims.iter().min_by_key(|c| c.age_ns).map(|c| c.pid),
             OomPolicy::KillLowestPriority => victims.iter().max_by_key(|c| c.nice as i64 + 128).map(|c| c.pid),
-            OomPolicy::KillByCgroup => {
+            OomPolicy::KillByCgroup | OomPolicy::CgroupLocal | OomPolicy::Memcg => {
                 if let OomTrigger::CgroupLimit = trigger {
                     let over: Vec<u64> = self.cgroups.values().filter(|c| c.is_over_limit()).map(|c| c.cgroup_id).collect();
                     victims.iter().filter(|c| over.contains(&c.cgroup_id)).max_by_key(|c| c.oom_score).map(|c| c.pid)
                 } else { victims.iter().max_by_key(|c| c.oom_score).map(|c| c.pid) }
             }
+            OomPolicy::Global => victims.iter().max_by_key(|c| c.oom_score).map(|c| c.pid),
         }
     }
 
@@ -231,29 +238,6 @@ impl HolisticOomKiller {
 // ============================================================================
 // Merged from oom_killer_v2
 // ============================================================================
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OomPolicy {
-    Global,
-    CgroupLocal,
-    Memcg,
-    Priority,
-    Custom,
-}
-
-/// OOM victim selection
-#[derive(Debug, Clone)]
-pub struct OomCandidate {
-    pub pid: u64,
-    pub uid: u32,
-    pub oom_score: i32,
-    pub oom_score_adj: i16,
-    pub rss_pages: u64,
-    pub swap_pages: u64,
-    pub total_vm: u64,
-    pub is_unkillable: bool,
-    pub cgroup_id: u64,
-}
 
 impl OomCandidate {
     #[inline]
