@@ -257,18 +257,21 @@ impl HolisticExperiment {
             .total_combinations
             .saturating_sub(exp.design.completed_trials);
         let batch = remaining.min(32);
+        let factors_clone = exp.design.factors.clone();
         let mut trials_run = 0;
         for _ in 0..batch {
+            let exp = self.experiments.get_mut(&exp_id).unwrap();
             if exp.trials.len() >= MAX_TRIALS_PER_EXP {
                 break;
             }
             let mut assignments = Vec::new();
-            for f in &exp.design.factors {
+            for f in &factors_clone {
                 let lvl = (xorshift64(&mut self.rng_state) % f.levels.len() as u64) as usize;
                 assignments.push(lvl);
             }
-            let response = self.simulate_response(&exp.design.factors, &assignments);
+            let response = self.simulate_response(&factors_clone, &assignments);
             let trial_id = fnv1a_hash(&self.stats.total_trials.to_le_bytes());
+            let exp = self.experiments.get_mut(&exp_id).unwrap();
             exp.trials.push(Trial {
                 id: trial_id,
                 level_assignments: assignments,
@@ -282,9 +285,11 @@ impl HolisticExperiment {
             self.stats.total_trials += 1;
             trials_run += 1;
         }
-        if exp.design.completed_trials >= exp.design.total_combinations {
-            exp.status = ExperimentStatus::Completed;
-            exp.completed_tick = tick;
+        if let Some(exp) = self.experiments.get_mut(&exp_id) {
+            if exp.design.completed_trials >= exp.design.total_combinations {
+                exp.status = ExperimentStatus::Completed;
+                exp.completed_tick = tick;
+            }
         }
         self.refresh_counts();
         trials_run
