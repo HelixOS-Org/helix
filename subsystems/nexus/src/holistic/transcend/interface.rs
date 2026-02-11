@@ -238,7 +238,7 @@ impl HolisticInterface {
             chain_hash: chain_h,
         };
         if self.explanations.len() >= MAX_EXPLANATIONS {
-            self.explanations.pop_front();
+            self.explanations.remove(0);
         }
         self.explanations.push_back(expl.clone());
         self.stats.explanations_given = self.stats.explanations_given.wrapping_add(1);
@@ -316,7 +316,7 @@ impl HolisticInterface {
             confidence_bps: confidence.min(10_000),
         };
         if self.recommendations.len() >= MAX_RECOMMENDATIONS {
-            self.recommendations.pop_front();
+            self.recommendations.remove(0);
         }
         self.recommendations.push_back(rec.clone());
         self.stats.recommendations_issued = self.stats.recommendations_issued.wrapping_add(1);
@@ -360,7 +360,7 @@ impl HolisticInterface {
         };
         let ch = fnv1a(question.as_bytes()) ^ fnv1a(&(steps.len() as u64).to_le_bytes());
         self.stats.reasoning_chains_built = self.stats.reasoning_chains_built.wrapping_add(1);
-        let total_steps = self.stats.reasoning_chains_built.max(1);
+        let _total_steps = self.stats.reasoning_chains_built.max(1);
         self.stats.avg_chain_length = ema_update(self.stats.avg_chain_length, steps.len() as u64);
         ReasoningChain {
             chain_hash: ch,
