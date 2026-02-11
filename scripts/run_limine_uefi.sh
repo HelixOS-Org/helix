@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Helix OS - UEFI Boot via Limine ISO
-# Lance l'ISO Limine existant avec OVMF
+# Launch the existing Limine ISO with OVMF
 
 set -euo pipefail
 
