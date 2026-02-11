@@ -154,7 +154,7 @@ impl PlacementOptimizer {
     /// Get placement score
     #[inline(always)]
     pub fn get_score(&self, task_id: u64) -> Option<f64> {
-        self.scores.get(task_id).copied()
+        self.scores.get(task_id)
     }
 
     /// Set preferred node
