@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -97,7 +96,7 @@ pub struct ThermalManager {
     /// Thermal zones
     zones: BTreeMap<u32, ThermalZone>,
     /// Temperature history
-    history: VecDeque<(NexusTimestamp, i32)>, // (time, avg_temp)
+    history: Vec<(NexusTimestamp, i32)>, // (time, avg_temp)
     /// Max history entries
     max_history: usize,
     /// Current throttle level
@@ -111,7 +110,7 @@ impl ThermalManager {
     pub fn new() -> Self {
         Self {
             zones: BTreeMap::new(),
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 1000,
             current_throttle: 0,
             emergency_temp: 105_000, // 105°C
@@ -135,9 +134,9 @@ impl ThermalManager {
 
         // Record history
         let avg_temp = self.average_temperature();
-        self.history.push_back((NexusTimestamp::now(), avg_temp));
+        self.history.push((NexusTimestamp::now(), avg_temp));
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
