@@ -144,7 +144,7 @@ impl TelemetryHistogram {
                     return *self.boundaries.last().unwrap_or(&0.0) * 2.0;
                 } else {
                     // Interpolate
-                    let lower = self.boundaries.get(i - 1).copied().unwrap_or(0.0);
+                    let lower = self.boundaries.get(i - 1).unwrap_or(&0.0);
                     let upper = self.boundaries[i];
                     return (lower + upper) / 2.0;
                 }
