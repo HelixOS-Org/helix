@@ -50,7 +50,7 @@ impl CoopVma {
 #[derive(Debug, Clone)]
 pub struct LayoutTemplate {
     pub name_hash: u64,
-    pub regions: Vec<(u64, u64, VmaInheritance)>, // (offset, size, inheritance)
+    pub regions: Vec<(u64, u64, VmaInheritance)>, // (offset, size, inheritance),
     pub total_size: u64,
     pub usage_count: u64,
 }
@@ -130,7 +130,7 @@ impl VmaCoopManager {
         child_pid: u64,
     ) -> Vec<(u64, u64, VmaInheritance)> {
         let group_id = match self.pid_groups.get(parent_pid) {
-            Some(g) => *g,
+            Some(g) => g,
             None => return Vec::new(),
         };
         self.pid_groups.insert(child_pid, group_id);
