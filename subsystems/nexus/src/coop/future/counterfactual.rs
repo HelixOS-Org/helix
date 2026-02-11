@@ -9,7 +9,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
@@ -373,7 +372,7 @@ impl CoopCounterfactual {
             );
 
             let combined = utility.saturating_add(fairness as i64);
-            let actual_combined = record.decision.actual_utility
+            let _actual_combined = record.decision.actual_utility
                 .saturating_add(record.decision.actual_fairness as i64);
 
             if combined > best_utility.saturating_add(best_fairness as i64) {
@@ -408,7 +407,7 @@ impl CoopCounterfactual {
     pub fn counterfactual_trust(&mut self, partner_id: u64) -> CounterfactualTrust {
         let history = self.process_history.get(&partner_id);
         let actual_trust = history
-            .and_then(|h| h.fairness_history.last())
+            .and_then(|h| h.fairness_history.back())
             .copied()
             .unwrap_or(500);
 
@@ -654,9 +653,9 @@ impl CoopCounterfactual {
         record.total_received = record.total_received.saturating_add(received);
         record.ema_utility = (record.ema_utility.saturating_mul(800)
             + utility.saturating_mul(200)) / 1000;
-        record.fairness_history.push(fairness);
+        record.fairness_history.push_back(fairness);
         if record.fairness_history.len() > 128 {
-            record.fairness_history.pop_front().unwrap();
+            record.fairness_history.remove(0).unwrap();
         }
     }
 
