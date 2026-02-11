@@ -121,7 +121,7 @@ impl WorkloadClassifier {
         self.history.push_back((features, actual));
 
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         if self.history.len() % 100 == 0 {
