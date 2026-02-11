@@ -103,7 +103,7 @@ impl FragmentationAnalyzer {
 
         // Store sample
         if self.samples.len() >= self.max_samples {
-            self.samples.pop_front();
+            self.samples.remove(0);
         }
         self.samples.push_back(sample);
     }
