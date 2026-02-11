@@ -29,8 +29,8 @@ impl LockEfficiency {
 pub struct ProcessLockProfile {
     pub pid: u64,
     pub locked_pages: u64,
-    pub access_rate: f64,       // fraction of locked pages accessed recently
-    pub lock_hold_time: u64,    // average ns held
+    pub access_rate: f64,       // fraction of locked pages accessed recently,
+    pub lock_hold_time: u64,    // average ns held,
     pub efficiency: LockEfficiency,
     pub denied_requests: u64,
 }
