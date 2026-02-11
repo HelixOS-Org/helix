@@ -558,6 +558,7 @@ impl Default for ConsolidationEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn create_test_state(id: u64, strength: f64, tags: Vec<&str>) -> MemoryState {
         MemoryState {
