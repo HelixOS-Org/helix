@@ -135,7 +135,7 @@ impl SpinlockAnalyzer {
 
         self.events.push_back(event);
         if self.events.len() > 10000 {
-            self.events.pop_front();
+            self.events.remove(0);
         }
 
         // Track long spins
