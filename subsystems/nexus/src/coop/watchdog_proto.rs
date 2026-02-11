@@ -99,7 +99,7 @@ impl PhiDetector {
         if self.last_heartbeat_ns > 0 {
             let interval = now.saturating_sub(self.last_heartbeat_ns);
             if self.intervals.len() >= self.max_samples {
-                self.intervals.pop_front();
+                self.intervals.remove(0);
             }
             self.intervals.push_back(interval);
         }
