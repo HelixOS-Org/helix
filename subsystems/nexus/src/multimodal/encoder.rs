@@ -6,6 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::multimodal::utils::lcg_next;
+use crate::fast::math::{F64Ext};
 
 /// Linear encoder for a modality
 #[derive(Debug, Clone)]
