@@ -177,7 +177,7 @@ impl LatencyPercentiles {
         let pos = self.values.partition_point(|&v| v < ns);
         self.values.insert(pos, ns);
         if self.values.len() > self.max_values {
-            self.values.pop_front();
+            self.values.remove(0);
         }
     }
 
@@ -214,7 +214,7 @@ impl LatencyPercentiles {
 
     #[inline(always)]
     pub fn min(&self) -> u64 {
-        self.values.first().copied().unwrap_or(0)
+        self.values.front().copied().unwrap_or(0)
     }
     #[inline(always)]
     pub fn max(&self) -> u64 {
@@ -397,7 +397,7 @@ impl HolisticLatencyAnalyzer {
 
         self.completed.push_back(trace);
         if self.completed.len() > self.max_completed {
-            self.completed.pop_front();
+            self.completed.remove(0);
         }
 
         self.stats.total_traces += 1;
@@ -406,7 +406,7 @@ impl HolisticLatencyAnalyzer {
         self.stats.p99_latency_ns = self.percentiles.p99();
 
         // Update primary bottleneck
-        if let Some((&comp, _)) = self.bottleneck_totals.iter().max_by_key(|(_, &t)| t) {
+        if let Some((&comp, _)) = self.bottleneck_totals.iter().max_by_key(|&(_, &t)| t) {
             self.stats.primary_bottleneck = comp;
         }
 
