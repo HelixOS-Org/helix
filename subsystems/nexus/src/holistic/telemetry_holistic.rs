@@ -339,7 +339,7 @@ impl HolisticTelemetryEngine {
         metric_type: TelemetryMetricType,
     ) -> u64 {
         let name_hash = Self::hash_name(&name, source);
-        if let Some(&key) = self.name_map.get(name_hash) {
+        if let Some(key) = self.name_map.get(name_hash) {
             return key;
         }
 
