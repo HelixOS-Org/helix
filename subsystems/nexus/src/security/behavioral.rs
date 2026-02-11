@@ -1,7 +1,6 @@
 //! Behavioral profiling and anomaly detection.
 
 use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -50,7 +49,7 @@ pub struct MemoryBaseline {
 #[derive(Debug, Clone, Default)]
 pub struct FileBaseline {
     /// Common file paths accessed
-    pub common_paths: Vec<u64>, // Path hashes
+    pub common_paths: Vec<u64>, // Path hashes,
     /// Average read rate
     pub read_rate: f64,
     /// Average write rate
@@ -100,7 +99,7 @@ impl BehavioralProfile {
     /// Check if syscall pattern is anomalous
     #[inline]
     pub fn is_syscall_anomalous(&self, syscall_num: u32, current_freq: f64) -> bool {
-        if let Some(&baseline_freq) = self.syscall_baseline.try_get(syscall_num as usize) {
+        if let Some(baseline_freq) = self.syscall_baseline.try_get(syscall_num as usize) {
             // Anomalous if more than 3x baseline
             current_freq > baseline_freq * 3.0
         } else {
@@ -130,14 +129,13 @@ impl BehavioralProfile {
         let mut factors = 0;
 
         // Check syscall pattern
-        for (syscall, &current_freq) in &current.syscall_freq {
-            if let Some(&baseline) = self.syscall_baseline.get(syscall) {
-                if baseline > 0.0 {
-                    let ratio = current_freq / baseline;
-                    if ratio > 3.0 {
-                        score += ((ratio - 3.0) / 10.0).min(1.0) * 0.2;
-                        factors += 1;
-                    }
+        for (syscall, current_freq) in current.syscall_freq.iter() {
+            let baseline = self.syscall_baseline.get(syscall);
+            if baseline > 0.0 {
+                let ratio = current_freq / baseline;
+                if ratio > 3.0 {
+                    score += ((ratio - 3.0) / 10.0).min(1.0) * 0.2;
+                    factors += 1;
                 }
             }
         }
