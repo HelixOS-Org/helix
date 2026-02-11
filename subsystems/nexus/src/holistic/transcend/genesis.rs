@@ -12,8 +12,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -87,13 +86,13 @@ pub struct Capability {
 }
 
 impl Capability {
-    fn new(name: String, parent: u64, gen: u64, tick: u64) -> Self {
+    fn new(name: String, parent: u64, generation: u64, tick: u64) -> Self {
         let h = fnv1a(name.as_bytes()) ^ fnv1a(&tick.to_le_bytes());
         Self {
             cap_hash: h,
             name,
             parent_hash: parent,
-            generation: gen,
+            generation,
             fitness: 0,
             ema_fitness: 0,
             maturity_bps: 0,
@@ -213,7 +212,7 @@ impl HolisticGenesis {
     fn log_event(&mut self, kind: &str, cap_hash: u64, delta: u64, desc: &str) {
         let eh = self.gen_hash(kind);
         if self.events.len() >= MAX_EVENTS {
-            self.events.pop_front();
+            self.events.remove(0);
         }
         self.events.push_back(GenesisEvent {
             event_hash: eh,
@@ -251,8 +250,7 @@ impl HolisticGenesis {
         let avg = if count > 0 { sum_fit / count } else { 0 };
         self.stats.ema_fitness = ema_update(self.stats.ema_fitness, avg);
         if self.tick > 0 {
-            self.stats.genesis_rate_per_1k_ticks =
-                count.saturating_mul(1_000) / self.tick;
+            self.stats.genesis_rate_per_1k_ticks = count.saturating_mul(1_000) / self.tick;
         }
     }
 
@@ -452,8 +450,9 @@ impl HolisticGenesis {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::string::ToString;
+
+    use super::*;
 
     #[test]
     fn test_create_capability() {
