@@ -333,7 +333,7 @@ impl HolisticReasoningChain {
     fn log_event(&mut self, kind: &str, detail: &str) {
         let h = self.gen_hash(kind);
         if self.log.len() >= MAX_LOG_ENTRIES {
-            self.log.pop_front();
+            self.log.remove(0);
         }
         self.log.push_back(LogEntry {
             hash: h,
@@ -571,7 +571,7 @@ impl HolisticReasoningChain {
 
         // BFS forward from referencing nodes through child edges
         let mut frontier = referencing.clone();
-        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = LinearMap::new();
         for &f in &frontier {
             visited.insert(f, true);
             path.push(f);
@@ -585,7 +585,7 @@ impl HolisticReasoningChain {
                         reached = true;
                     }
                     for &ch in &node.child_nodes {
-                        if !visited.contains_key(&ch) {
+                        if !visited.contains_key(ch) {
                             visited.insert(ch, true);
                             path.push(ch);
                             next_frontier.push(ch);
@@ -663,16 +663,16 @@ impl HolisticReasoningChain {
         let quality = self.stats.ema_confidence_bps;
 
         // Detect potential biases by checking if one subsystem dominates evidence
-        let mut source_counts: LinearMap<u64, 64> = BTreeMap::new();
+        let mut source_counts: LinearMap<u64, 64> = LinearMap::new();
         for ev in self.evidence.values() {
             let sh = fnv1a(ev.source_subsystem.as_bytes());
             *source_counts.entry(sh).or_insert(0) += 1;
         }
-        let max_source = source_counts.values().max().copied().unwrap_or(0);
+        let max_source = source_counts.values().max().unwrap_or(0);
         let total_ev = self.evidence.len() as u64;
         let bias_detected = total_ev > 0 && max_source > (total_ev * 7 / 10);
         let bias_count = if bias_detected {
-            source_counts.values().filter(|&&c| c > total_ev / 3).count() as u64
+            source_counts.values().filter(|&c| c > total_ev / 3).count() as u64
         } else {
             0
         };
