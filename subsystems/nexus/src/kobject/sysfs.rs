@@ -176,7 +176,7 @@ impl SysfsManager {
     /// Get kobject for path
     #[inline(always)]
     pub fn get_kobject(&self, path: &str) -> Option<KobjectId> {
-        self.path_to_kobject.get(path).copied()
+        self.path_to_kobject.get(path)
     }
 
     /// List directory contents
