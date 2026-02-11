@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
 
@@ -118,7 +117,7 @@ impl FsWorkloadClassifier {
         });
 
         if self.recent_ops.len() > self.max_ops {
-            self.recent_ops.pop_front();
+            self.recent_ops.remove(0);
         }
 
         if self.recent_ops.len() >= 1000 && self.recent_ops.len() % 100 == 0 {
