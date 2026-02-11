@@ -318,7 +318,7 @@ impl HolisticPsiMonitor {
         self.stats.total_alerts += fired.len() as u64;
         for alert in &fired {
             if self.alerts.len() >= self.max_alerts {
-                self.alerts.pop_front();
+                self.alerts.remove(0);
             }
             self.alerts.push_back(alert.clone());
         }
