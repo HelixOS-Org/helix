@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // QOS CLASSES
@@ -287,9 +288,9 @@ impl AdmissionState {
         // Check if resources available
         for guarantee in &policy.guarantees {
             let key = guarantee.resource as u8;
-            let available = self.available.get(&key).copied().unwrap_or(0);
-            let reserved = self.reserved.get(&key).copied().unwrap_or(0);
-            let free = available.saturating_sub(reserved);
+            let available = self.available.get(&key).unwrap_or(&0);
+            let reserved = self.reserved.get(&key).unwrap_or(&0);
+            let free = available.saturating_sub(*reserved);
 
             if free < guarantee.minimum {
                 self.rejections += 1;
@@ -388,8 +389,8 @@ impl HolisticQosManager {
             QosAdmissionResult::Admitted | QosAdmissionResult::Degraded => {
                 self.process_policies.insert(pid, policy);
                 self.update_stats();
-            }
-            _ => {}
+            },
+            _ => {},
         }
         result
     }
@@ -416,7 +417,7 @@ impl HolisticQosManager {
             // Check violations
             let viols = policy.violations();
             if !viols.is_empty() {
-                self.violations.add(pid, viols);
+                self.violations.add(pid, viols.len() as u64);
                 self.stats.total_violations += viols.len() as u64;
             }
         }
@@ -475,8 +476,7 @@ impl HolisticQosManager {
                 .values()
                 .filter(|p| p.check_compliance())
                 .count();
-            self.stats.avg_compliance =
-                compliant as f64 / self.process_policies.len() as f64;
+            self.stats.avg_compliance = compliant as f64 / self.process_policies.len() as f64;
         }
     }
 
@@ -632,7 +632,8 @@ impl QosSloV2 {
     #[inline]
     pub fn record(&mut self, value: f64) {
         self.current = value;
-        self.history[self.pos % self.history.len()] = value;
+        let idx = self.pos % self.history.len();
+        self.history[idx] = value;
         self.pos += 1;
         self.samples += 1;
 
@@ -657,11 +658,19 @@ impl QosSloV2 {
         }
         let ratio = match self.slo_type {
             QosSloType::MaxLatency | QosSloType::MaxJitter => {
-                if self.target > 0.0 { self.current / self.target } else { 1.0 }
-            }
+                if self.target > 0.0 {
+                    self.current / self.target
+                } else {
+                    1.0
+                }
+            },
             QosSloType::MinThroughput | QosSloType::MinBandwidth => {
-                if self.current > 0.0 { self.target / self.current } else { 10.0 }
-            }
+                if self.current > 0.0 {
+                    self.target / self.current
+                } else {
+                    10.0
+                }
+            },
         };
         if ratio > 5.0 {
             SloViolation::Critical
@@ -750,7 +759,8 @@ impl QosGroupV2 {
     /// Worst SLO violation
     #[inline]
     pub fn worst_violation(&self) -> SloViolation {
-        self.slos.iter()
+        self.slos
+            .iter()
             .map(|s| s.severity())
             .max_by_key(|v| *v as u8)
             .unwrap_or(SloViolation::None)
@@ -762,15 +772,14 @@ impl QosGroupV2 {
         if self.slos.is_empty() {
             return 1.0;
         }
-        self.slos.iter()
-            .map(|s| s.compliance_rate())
-            .sum::<f64>() / self.slos.len() as f64
+        self.slos.iter().map(|s| s.compliance_rate()).sum::<f64>() / self.slos.len() as f64
     }
 
     /// Resource headroom for a specific resource
     #[inline]
     pub fn resource_headroom(&self, resource: QosResourceV2) -> f64 {
-        self.allocations.get(&(resource as u8))
+        self.allocations
+            .get(&(resource as u8))
             .map(|a| a.headroom())
             .unwrap_or(0.0)
     }
@@ -844,10 +853,15 @@ impl HolisticQosV2 {
     /// Get groups with violations
     #[inline]
     pub fn violated_groups(&self) -> Vec<(u64, SloViolation)> {
-        self.groups.iter()
+        self.groups
+            .iter()
             .filter_map(|(&id, g)| {
                 let v = g.worst_violation();
-                if v != SloViolation::None { Some((id, v)) } else { None }
+                if v != SloViolation::None {
+                    Some((id, v))
+                } else {
+                    None
+                }
             })
             .collect()
     }
@@ -855,11 +869,15 @@ impl HolisticQosV2 {
     fn update_stats(&mut self) {
         self.stats.active_groups = self.groups.values().filter(|g| g.active).count();
         self.stats.total_members = self.groups.values().map(|g| g.members.len()).sum();
-        self.stats.slo_violations = self.groups.values()
+        self.stats.slo_violations = self
+            .groups
+            .values()
             .filter(|g| g.worst_violation() != SloViolation::None)
             .count();
 
-        let compliances: Vec<f64> = self.groups.values()
+        let compliances: Vec<f64> = self
+            .groups
+            .values()
             .filter(|g| g.active)
             .map(|g| g.overall_compliance())
             .collect();
