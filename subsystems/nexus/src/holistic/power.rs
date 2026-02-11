@@ -359,8 +359,8 @@ impl PowerManager {
             profile: PowerProfile::Balanced,
             battery: BatteryInfo::ac_powered(),
             budgets: BTreeMap::new(),
-            core_pstates: vec![PState::P2; num_cores],
-            core_cstates: vec![CState::C0; num_cores],
+            core_pstates: alloc::vec![PState::P2; num_cores],
+            core_cstates: alloc::vec![CState::C0; num_cores],
             power_history: VecDeque::new(),
             max_history: 60,
             profile_changes: 0,
@@ -474,7 +474,7 @@ impl PowerManager {
     pub fn record_power(&mut self, total_mw: u64, duration_ms: u64) {
         self.power_history.push_back(total_mw);
         if self.power_history.len() > self.max_history {
-            self.power_history.pop_front();
+            self.power_history.remove(0);
         }
         // Accumulate energy
         self.total_energy_mj += total_mw * duration_ms / 1000;
