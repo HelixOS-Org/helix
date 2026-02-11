@@ -440,6 +440,7 @@ mod tests {
     use core::sync::atomic::AtomicU64;
 
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_species_creation() {
