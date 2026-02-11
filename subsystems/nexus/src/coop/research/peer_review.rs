@@ -236,7 +236,7 @@ impl CoopPeerReview {
             consensus_score: 0.0,
         };
         if self.findings.len() >= MAX_FINDINGS {
-            self.findings.pop_front();
+            self.findings.remove(0);
         }
         self.findings.push_back(finding);
         self.stats.total_submissions += 1;
@@ -283,7 +283,7 @@ impl CoopPeerReview {
             finding.status = ReviewStatus::UnderReview;
         }
         if self.review_history.len() >= MAX_REVIEW_HISTORY {
-            self.review_history.pop_front();
+            self.review_history.remove(0);
         }
         self.review_history.push_back(review);
         self.stats.total_reviews += 1;
@@ -324,7 +324,7 @@ impl CoopPeerReview {
             let expertise = self
                 .reviewers
                 .get(&review.reviewer_id)
-                .and_then(|r| r.expertise.get(&domain_key).copied())
+                .and_then(|r| r.expertise.get(domain_key))
                 .unwrap_or(0.0);
             let weight = REVIEW_QUALITY_WEIGHT * reviewer_quality + EXPERTISE_WEIGHT * expertise;
             let weight = weight * review.confidence;
@@ -449,6 +449,7 @@ impl CoopPeerReview {
             None => return,
         };
         finding.consensus_score = consensus.consensus_level;
+        let mut needs_update_quality: Option<bool> = None;
         if consensus.consensus_level >= CONSENSUS_THRESHOLD {
             finding.status = ReviewStatus::Accepted;
             finding.resolved_tick = self.tick;
@@ -456,7 +457,7 @@ impl CoopPeerReview {
             if self.stats.pending_reviews > 0 {
                 self.stats.pending_reviews -= 1;
             }
-            self.update_reviewer_quality(finding_id, true);
+            needs_update_quality = Some(true);
         } else if (1.0 - consensus.consensus_level) >= CONSENSUS_THRESHOLD {
             finding.status = ReviewStatus::Rejected;
             finding.resolved_tick = self.tick;
@@ -464,13 +465,17 @@ impl CoopPeerReview {
             if self.stats.pending_reviews > 0 {
                 self.stats.pending_reviews -= 1;
             }
-            self.update_reviewer_quality(finding_id, false);
+            needs_update_quality = Some(false);
         } else if finding.reviews.len() >= MAX_REVIEWS_PER_FINDING / 2 {
             finding.status = ReviewStatus::RevisionRequired;
             self.stats.revision_requests += 1;
         }
         let domain_key = finding.domain as u64;
-        let prev = self.domain_consensus.get(domain_key).copied().unwrap_or(0.5);
+
+        if let Some(accepted) = needs_update_quality {
+            self.update_reviewer_quality(finding_id, accepted);
+        }
+        let prev = self.domain_consensus.get(domain_key).unwrap_or(0.5);
         let new_ema = EMA_ALPHA * consensus.consensus_level + (1.0 - EMA_ALPHA) * prev;
         self.domain_consensus.insert(domain_key, new_ema);
         self.stats.avg_consensus_ema =
