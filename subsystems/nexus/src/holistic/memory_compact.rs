@@ -271,7 +271,7 @@ impl HolisticMemoryCompact {
         }
 
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(event);
     }
