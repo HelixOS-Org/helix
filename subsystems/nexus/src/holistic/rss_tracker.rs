@@ -48,7 +48,7 @@ pub struct ProcessRss {
     pub last_sample_ts: u64,
     pub prev_total: u64,
     pub oom_score: u32,
-    pub samples: VecDeque<(u64, u64)>, // (timestamp, total_rss)
+    pub samples: VecDeque<(u64, u64)>, // (timestamp, total_rss),
 }
 
 impl ProcessRss {
@@ -98,7 +98,7 @@ impl ProcessRss {
         self.prev_total = total;
         self.last_sample_ts = ts;
         self.samples.push_back((ts, total));
-        if self.samples.len() > 100 { self.samples.pop_front(); }
+        if self.samples.len() > 100 { self.samples.remove(0); }
     }
 
     #[inline(always)]
