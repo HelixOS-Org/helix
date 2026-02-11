@@ -365,7 +365,7 @@ impl ImitationLearner {
         for (i, w) in weights.iter().enumerate() {
             let dot: f64 = state.iter().zip(w.iter()).map(|(s, w)| s * w).sum();
 
-            let b = bias.get(i).copied().unwrap_or(0.0);
+            let b = bias.get(i).unwrap_or(&0.0);
             output.push(dot + b);
         }
 
@@ -463,6 +463,7 @@ impl Default for ImitationLearner {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn create_trajectory() -> Vec<StateAction> {
         vec![
