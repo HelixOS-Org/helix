@@ -9,8 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -102,7 +101,7 @@ impl MetricWindow {
     #[inline]
     pub fn record(&mut self, sample: MetricSample) {
         if self.samples.len() >= self.max_samples {
-            let old = self.samples.pop_front().unwrap();
+            let old = self.samples.remove(0).unwrap();
             self.running_sum -= old.value;
             self.running_sq_sum -= old.value * old.value;
         }
@@ -176,7 +175,7 @@ impl MetricWindow {
 
     /// Exponential smoothing forecast
     #[inline]
-    pub fn exp_smooth_forecast(&self, alpha: f64, steps_ahead: usize) -> f64 {
+    pub fn exp_smooth_forecast(&self, alpha: f64, _steps_ahead: usize) -> f64 {
         if self.samples.is_empty() {
             return 0.0;
         }
@@ -307,7 +306,13 @@ impl CorrelationTracker {
     }
 
     /// Update correlation between two windows
-    pub fn update(&mut self, source_key: u64, target_key: u64, source: &MetricWindow, target: &MetricWindow) {
+    pub fn update(
+        &mut self,
+        source_key: u64,
+        target_key: u64,
+        source: &MetricWindow,
+        target: &MetricWindow,
+    ) {
         let n = source.len().min(target.len());
         if n < 3 {
             return;
@@ -326,7 +331,8 @@ impl CorrelationTracker {
         let s_offset = s_samples.len().saturating_sub(n);
         let t_offset = t_samples.len().saturating_sub(n);
         for i in 0..n {
-            cov += (s_samples[s_offset + i].value - mean_s) * (t_samples[t_offset + i].value - mean_t);
+            cov +=
+                (s_samples[s_offset + i].value - mean_s) * (t_samples[t_offset + i].value - mean_t);
         }
         cov /= n as f64;
         let coeff = cov / (std_s * std_t);
@@ -353,7 +359,8 @@ impl CorrelationTracker {
     /// Strong correlations (|r| > threshold)
     #[inline]
     pub fn strong_correlations(&self, threshold: f64) -> Vec<&MetricCorrelation> {
-        self.correlations.iter()
+        self.correlations
+            .iter()
             .filter(|c| libm::fabs(c.coefficient) > threshold)
             .collect()
     }
@@ -414,15 +421,33 @@ impl HolisticPredictorEngine {
 
     /// Record metric
     #[inline]
-    pub fn record_metric(&mut self, target: PredictionTarget, subsystem_id: u32, value: f64, now: u64) {
+    pub fn record_metric(
+        &mut self,
+        target: PredictionTarget,
+        subsystem_id: u32,
+        value: f64,
+        now: u64,
+    ) {
         let key = Self::metric_key(target, subsystem_id);
-        let window = self.metrics.entry(key).or_insert_with(|| MetricWindow::new(720));
-        window.record(MetricSample { timestamp: now, value });
+        let window = self
+            .metrics
+            .entry(key)
+            .or_insert_with(|| MetricWindow::new(720));
+        window.record(MetricSample {
+            timestamp: now,
+            value,
+        });
         self.stats.tracked_metrics = self.metrics.len();
     }
 
     /// Predict
-    pub fn predict(&mut self, target: PredictionTarget, subsystem_id: u32, horizon_ns: u64, method: PredictionMethod) -> Option<Prediction> {
+    pub fn predict(
+        &mut self,
+        target: PredictionTarget,
+        subsystem_id: u32,
+        horizon_ns: u64,
+        method: PredictionMethod,
+    ) -> Option<Prediction> {
         let key = Self::metric_key(target, subsystem_id);
         let window = self.metrics.get(&key)?;
         if window.len() < 3 {
@@ -445,7 +470,7 @@ impl HolisticPredictorEngine {
                     horizon_ns,
                     method,
                 })
-            }
+            },
             PredictionMethod::ExponentialSmoothing => {
                 let predicted = window.exp_smooth_forecast(0.3, 1);
                 let stderr = window.stddev() * 0.8;
@@ -457,7 +482,7 @@ impl HolisticPredictorEngine {
                     horizon_ns,
                     method,
                 })
-            }
+            },
             PredictionMethod::MovingAverage => {
                 let predicted = window.mean();
                 let stderr = window.stddev();
@@ -469,10 +494,11 @@ impl HolisticPredictorEngine {
                     horizon_ns,
                     method,
                 })
-            }
+            },
             PredictionMethod::Ensemble => {
                 // Weighted average of all methods
-                let linear = window.linear_slope() * (window.len() as f64 + 1.0) + window.linear_intercept();
+                let linear =
+                    window.linear_slope() * (window.len() as f64 + 1.0) + window.linear_intercept();
                 let exp = window.exp_smooth_forecast(0.3, 1);
                 let ma = window.mean();
                 let predicted = 0.4 * linear + 0.35 * exp + 0.25 * ma;
@@ -485,7 +511,7 @@ impl HolisticPredictorEngine {
                     horizon_ns,
                     method,
                 })
-            }
+            },
         }
     }
 
@@ -497,24 +523,37 @@ impl HolisticPredictorEngine {
     }
 
     /// Check SLO with prediction
-    pub fn check_slo(&mut self, slo_index: usize, target: PredictionTarget, subsystem_id: u32) -> Option<SloPrediction> {
+    pub fn check_slo(
+        &mut self,
+        slo_index: usize,
+        target: PredictionTarget,
+        subsystem_id: u32,
+    ) -> Option<SloPrediction> {
         let slo = self.slos.get(slo_index)?;
+        let slo_window_ns = slo.window_ns;
         let key = Self::metric_key(target, subsystem_id);
         let window = self.metrics.get(&key)?;
         self.stats.slo_checks += 1;
 
         let current = window.latest();
+        let linear_slope = window.linear_slope();
+        let slo = self.slos.get(slo_index)?;
         let current_state = slo.check(current);
 
-        let pred = self.predict(target, subsystem_id, slo.window_ns, PredictionMethod::Ensemble)?;
+        let pred = self.predict(
+            target,
+            subsystem_id,
+            slo_window_ns,
+            PredictionMethod::Ensemble,
+        )?;
+        let slo = self.slos.get(slo_index)?;
         let predicted_state = slo.check(pred.value);
 
         // Estimate time to breach
         let time_to_breach = if let Some(upper) = slo.upper_threshold {
             if current < upper {
-                let slope = window.linear_slope();
-                if slope > 0.0 {
-                    Some(((upper - current) / slope) as u64 * 1_000_000_000)
+                if linear_slope > 0.0 {
+                    Some(((upper - current) / linear_slope) as u64 * 1_000_000_000)
                 } else {
                     None
                 }
