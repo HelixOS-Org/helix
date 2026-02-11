@@ -4,7 +4,6 @@
 
 use alloc::format;
 use alloc::string::String;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::AtomicU64;
 
@@ -62,7 +61,7 @@ pub struct NetworkAnomalyDetector {
     /// Anomaly threshold (sigma)
     threshold: f64,
     /// Detection history
-    detections: VecDeque<NetworkAnomaly>,
+    detections: Vec<NetworkAnomaly>,
     /// Maximum detections to keep
     max_detections: usize,
     /// Total packets analyzed
@@ -77,7 +76,7 @@ impl NetworkAnomalyDetector {
             baseline_connections: 0.0,
             baseline_rtt: 0.0,
             threshold: 3.0,
-            detections: VecDeque::new(),
+            detections: Vec::new(),
             max_detections: 1000,
             packets_analyzed: AtomicU64::new(0),
         }
@@ -203,9 +202,9 @@ impl NetworkAnomalyDetector {
             flow_id,
         };
 
-        self.detections.push_back(anomaly.clone());
+        self.detections.push(anomaly.clone());
         if self.detections.len() > self.max_detections {
-            self.detections.pop_front();
+            self.detections.remove(0);
         }
 
         anomaly
