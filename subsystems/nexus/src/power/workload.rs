@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
 use crate::math;
@@ -52,7 +51,7 @@ impl WorkloadPredictor {
 
         // Evict old entries
         if self.cpu_history.len() > self.max_history {
-            self.cpu_history.pop_front();
+            self.cpu_history.remove(0);
         }
     }
 
