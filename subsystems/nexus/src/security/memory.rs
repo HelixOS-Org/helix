@@ -1,8 +1,6 @@
 //! Memory security monitoring and protection.
 
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -22,7 +20,7 @@ pub struct MemorySecurityMonitor {
     /// Heap metadata checksums
     heap_checksums: LinearMap<u32, 64>, // block_addr -> checksum
     /// Violations detected
-    violations: VecDeque<MemoryViolation>,
+    violations: Vec<MemoryViolation>,
     /// Max violations to retain
     max_violations: usize,
 }
@@ -96,7 +94,7 @@ impl MemorySecurityMonitor {
             protected_regions: Vec::new(),
             stack_canaries: LinearMap::new(),
             heap_checksums: LinearMap::new(),
-            violations: VecDeque::new(),
+            violations: Vec::new(),
             max_violations: 1000,
         }
     }
@@ -117,8 +115,8 @@ impl MemorySecurityMonitor {
     #[inline]
     pub fn check_stack_canary(&self, thread_id: u64, current: u64) -> bool {
         self.stack_canaries
-            .get(&thread_id)
-            .map(|&expected| expected == current)
+            .get(thread_id)
+            .map(|expected| expected == current)
             .unwrap_or(true) // No canary set = pass
     }
 
@@ -132,8 +130,8 @@ impl MemorySecurityMonitor {
     #[inline]
     pub fn verify_heap(&self, block_addr: u64, current_checksum: u32) -> bool {
         self.heap_checksums
-            .get(&block_addr)
-            .map(|&expected| expected == current_checksum)
+            .get(block_addr)
+            .map(|expected| expected == current_checksum)
             .unwrap_or(true)
     }
 
@@ -187,9 +185,9 @@ impl MemorySecurityMonitor {
     /// Record violation
     #[inline]
     pub fn record_violation(&mut self, violation: MemoryViolation) {
-        self.violations.push_back(violation);
+        self.violations.push(violation);
         if self.violations.len() > self.max_violations {
-            self.violations.pop_front();
+            self.violations.remove(0);
         }
     }
 
