@@ -18,6 +18,7 @@ use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -236,10 +237,10 @@ impl CoopAnalysisEngine {
         let hist = self.domain_history.entry(domain_key).or_insert_with(Vec::new);
         hist.push(effect.cohens_d);
         if hist.len() > MAX_DATA_POINTS {
-            hist.pop_front();
+            hist.remove(0);
         }
 
-        let prev_ema = self.effect_ema.get(domain_key).copied().unwrap_or(0.0);
+        let prev_ema = self.effect_ema.get(domain_key).unwrap_or(0.0);
         let new_ema = EMA_ALPHA * effect.cohens_d.abs() + (1.0 - EMA_ALPHA) * prev_ema;
         self.effect_ema.insert(domain_key, new_ema);
 
@@ -274,7 +275,7 @@ impl CoopAnalysisEngine {
         }
 
         if self.analyses.len() >= MAX_ANALYSES {
-            self.analyses.pop_front();
+            self.analyses.remove(0);
         }
         self.analyses.push_back(record.clone());
         Some(record)
@@ -391,7 +392,7 @@ impl CoopAnalysisEngine {
                 .iter()
                 .copied()
                 .fold(0.0f32, |a, b| if b > a { b } else { a });
-            let trend = self.effect_ema.get(&(domain as u64)).copied().unwrap_or(0.0);
+            let trend = self.effect_ema.get(domain as u64).unwrap_or(0.0);
             report.push(ReportEntry {
                 domain,
                 total_analyses: total,
