@@ -21,7 +21,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -197,7 +196,7 @@ pub struct ReplicationStats {
 /// System-wide replication engine for ensuring reproducibility
 pub struct HolisticReplication {
     findings: BTreeMap<u64, ReplicableFinding>,
-    attempts: VecDeque<ReplicationAttempt>,
+    attempts: Vec<ReplicationAttempt>,
     unreliable: Vec<UnreliableFinding>,
     mandates: BTreeMap<u64, ReplicationMandate>,
     subsystem_rates: BTreeMap<u64, SubsystemReplicationRate>,
@@ -211,7 +210,7 @@ impl HolisticReplication {
     pub fn new(seed: u64) -> Self {
         Self {
             findings: BTreeMap::new(),
-            attempts: VecDeque::new(),
+            attempts: Vec::new(),
             unreliable: Vec::new(),
             mandates: BTreeMap::new(),
             subsystem_rates: BTreeMap::new(),
@@ -289,8 +288,8 @@ impl HolisticReplication {
             effect_difference: effect_diff, status,
             replicating_subsystem, confidence, tick: self.tick,
         };
-        if self.attempts.len() >= MAX_ATTEMPTS { self.attempts.pop_front(); }
-        self.attempts.push_back(attempt.clone());
+        if self.attempts.len() >= MAX_ATTEMPTS { self.attempts.remove(0); }
+        self.attempts.push(attempt.clone());
         self.stats.total_attempts += 1;
         let is_success = status == ReplicationStatus::Replicated
             || status == ReplicationStatus::PartialReplication;
