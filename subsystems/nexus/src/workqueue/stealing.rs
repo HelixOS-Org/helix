@@ -171,7 +171,7 @@ impl WorkStealingOptimizer {
 
         // Update affinity matrix
         let key = (from_cpu, to_cpu);
-        let current = self.affinity_matrix.get(&key).copied().unwrap_or(0.5);
+        let current = self.affinity_matrix.get(&key).unwrap_or(0.5);
         let new_value = if success {
             current * 0.9 + 0.1 * 1.0
         } else {
