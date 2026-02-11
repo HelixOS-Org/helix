@@ -283,7 +283,7 @@ impl MetaLearner {
         // Find least used strategy
         self.strategies
             .values()
-            .filter(|s| !task.strategy_performance.contains_key(&s.id))
+            .filter(|s| !task.strategy_performance.contains_key(s.id))
             .min_by_key(|s| s.use_count)
             .map(|s| s.id)
             .or(task.best_strategy)
@@ -356,8 +356,8 @@ impl MetaLearner {
             let best = task
                 .strategy_performance
                 .iter()
-                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(core::cmp::Ordering::Equal))
-                .map(|(&id, _)| id);
+                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(core::cmp::Ordering::Equal))
+                .map(|(id, _)| id);
 
             if best != task.best_strategy {
                 task.best_strategy = best;
@@ -482,6 +482,7 @@ impl Default for MetaLearner {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_register_strategy() {
