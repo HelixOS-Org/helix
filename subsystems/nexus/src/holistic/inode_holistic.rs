@@ -257,7 +257,7 @@ impl HolisticInodeV2Manager {
             self.health.overall = avg.min(100);
         }
         for sample in &self.samples {
-            if let Some(&threshold) = self.thresholds.get(&(sample.metric as u64)) {
+            if let Some(threshold) = self.thresholds.get(sample.metric as u64) {
                 if sample.value > threshold {
                     self.stats.threshold_alerts += 1;
                 }
