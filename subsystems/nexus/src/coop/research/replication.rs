@@ -348,7 +348,7 @@ impl CoopReplication {
     pub fn domain_replication_rate(&self, domain: ReplicationDomain) -> f32 {
         self.domain_replication_rates
             .get(&(domain as u64))
-            .copied()
+            
             .unwrap_or(0.0)
     }
 
@@ -408,7 +408,7 @@ impl CoopReplication {
         self.stats.avg_effect_ratio_ema =
             EMA_ALPHA * effect_ratio.abs() + (1.0 - EMA_ALPHA) * self.stats.avg_effect_ratio_ema;
         if self.all_attempts.len() >= MAX_REPLICATIONS {
-            self.all_attempts.pop_front();
+            self.all_attempts.remove(0);
         }
         self.all_attempts.push_back(attempt.clone());
         attempt
@@ -451,8 +451,8 @@ impl CoopReplication {
             let domain_key = finding.domain as u64;
             let prev_rate = self
                 .domain_replication_rates
-                .get(&domain_key)
-                .copied()
+                .get(domain_key)
+                
                 .unwrap_or(0.5);
             let new_rate =
                 EMA_ALPHA * finding.replication_rate + (1.0 - EMA_ALPHA) * prev_rate;
