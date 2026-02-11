@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::{BTreeMap, VecDeque};
+use alloc::collections::{BTreeMap};
 use alloc::vec::Vec;
 
 /// Hotplug resource type
@@ -164,7 +164,7 @@ pub struct HolisticHotplugStats {
 pub struct HolisticHotplugMgr {
     cpus: BTreeMap<u32, CpuHotplugState>,
     memory_sections: BTreeMap<u32, MemorySection>,
-    events: VecDeque<HotplugEvent>,
+    events: Vec<HotplugEvent>,
     policy: HotplugPolicy,
     idle_threshold_ms: u64,
     max_events: usize,
@@ -176,7 +176,7 @@ impl HolisticHotplugMgr {
         Self {
             cpus: BTreeMap::new(),
             memory_sections: BTreeMap::new(),
-            events: VecDeque::new(),
+            events: Vec::new(),
             policy,
             idle_threshold_ms: 5000,
             max_events: 256,
@@ -353,9 +353,9 @@ impl HolisticHotplugMgr {
 
     fn record_event(&mut self, event: HotplugEvent) {
         if self.events.len() >= self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
-        self.events.push_back(event);
+        self.events.push(event);
     }
 
     fn recompute(&mut self) {
