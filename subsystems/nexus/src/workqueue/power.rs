@@ -153,7 +153,7 @@ impl PowerAwareWorkScheduler {
                 continue;
             }
 
-            let pending = self.pending_work.get(&cpu_id).copied().unwrap_or(0);
+            let pending = self.pending_work.get(&cpu_id).unwrap_or(0);
             let wakeup_cost = state.wakeup_latency_ns();
 
             // Calculate score (higher is better)
