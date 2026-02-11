@@ -10,7 +10,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
@@ -168,7 +167,7 @@ impl CoopScenarioTree {
             strategy_history: BTreeMap::new(),
             process_strategies: BTreeMap::new(),
             stats: ScenarioTreeStats::new(),
-            rng_state: seed ^ 0xABCD_COOP_5CE7_0001,
+            rng_state: seed ^ 0xABCD_C00B_5CE7_0001,
             current_tick: 0,
             max_depth: 8,
             max_branching: 4,
@@ -243,8 +242,8 @@ impl CoopScenarioTree {
                 };
 
                 let decider_idx = (depth as usize) % participants.len().max(1);
-                let decider = participants.get(decider_idx).copied().unwrap_or(0);
-                let strategies = self.get_strategies(decider);
+                let decider = participants.get(decider_idx).unwrap_or(&0);
+                let strategies = self.get_strategies(*decider);
 
                 let branch_count = (strategies.len() as u32).min(self.max_branching);
                 let mut child_ids: Vec<u64> = Vec::new();
@@ -275,7 +274,7 @@ impl CoopScenarioTree {
                         node_id: child_id,
                         depth,
                         parent_id: parent_nid,
-                        decision_process: decider,
+                        decision_process: *decider,
                         strategies: alloc::vec![strat.clone()],
                         payoff_self,
                         payoff_social,
@@ -439,7 +438,7 @@ impl CoopScenarioTree {
             0
         };
 
-        let mut strat_set: LinearMap<bool, 64> = BTreeMap::new();
+        let mut strat_set: LinearMap<bool, 64> = LinearMap::new();
         for node in tree.nodes.values() {
             for s in &node.strategies {
                 strat_set.insert(s.strategy_id, true);
