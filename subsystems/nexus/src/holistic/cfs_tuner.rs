@@ -266,7 +266,7 @@ impl HolisticCfsTuner {
 
         // Latency analysis
         let avg_lat = self.latency_hist.avg_ns();
-        let p95_idx = self.latency_hist.p95_bucket_idx();
+        let _p95_idx = self.latency_hist.p95_bucket_idx();
 
         // Generate recommendations
         if avg_lat > 10_000_000.0 {
@@ -293,7 +293,7 @@ impl HolisticCfsTuner {
             });
         }
 
-        if avg_spread > 50_000_000 {
+        if avg_spread > 50_000_000.0 {
             // High vruntime spread → increase granularity
             self.recommendations.push(TuningRecommendation {
                 tunable: CfsTunable::MinGranularity,
