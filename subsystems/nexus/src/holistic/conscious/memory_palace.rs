@@ -264,7 +264,7 @@ pub struct RecallResult {
 pub struct PalaceTour {
     pub total_items: u32,
     pub total_rooms: u32,
-    pub wing_summaries: Vec<(KnowledgeWing, u32, f32)>, // (wing, item_count, avg_importance)
+    pub wing_summaries: Vec<(KnowledgeWing, u32, f32)>, // (wing, item_count, avg_importance),
     pub completeness: f32,
     pub oldest_item_tick: u64,
     pub newest_item_tick: u64,
