@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::{BTreeMap, VecDeque};
-use alloc::vec::Vec;
 
 // ============================================================================
 // CONTROL TYPES
@@ -225,7 +224,7 @@ impl ControlLoop {
         let output = self.controller.compute(measured, now);
         self.output_history.push_back(output);
         if self.output_history.len() > self.max_history {
-            self.output_history.pop_front();
+            self.output_history.remove(0);
         }
 
         // Track stability
