@@ -168,16 +168,14 @@ impl ResourceBalancer {
                 };
 
                 // Over-consuming: using >150% of allocation
-                if ratio > 1.5 {
-                    if over_cpu.map_or(true, |(_, r)| ratio > r) {
-                        over_cpu = Some((pid, ratio));
-                    }
+                if ratio > 1.5 && over_cpu.map_or(true, |(_, r)| ratio > r) {
+                    over_cpu = Some((pid, ratio));
                 }
                 // Under-consuming: using <30% of allocation
-                if ratio < 0.3 && alloc.cpu_share > 0.1 {
-                    if under_cpu.map_or(true, |(_, r)| ratio < r) {
-                        under_cpu = Some((pid, ratio));
-                    }
+                if ratio < 0.3 && alloc.cpu_share > 0.1
+                    && under_cpu.map_or(true, |(_, r)| ratio < r)
+                {
+                    under_cpu = Some((pid, ratio));
                 }
             }
         }
