@@ -199,7 +199,7 @@ impl HolisticNumaPolicy {
             NumaPolicy::Bind => {
                 // Select least-loaded allowed node
                 self.nodes.iter()
-                    .filter(|(&id, _)| binding.is_node_allowed(id))
+                    .filter(|&(&id, _)| binding.is_node_allowed(id))
                     .min_by(|(_, a), (_, b)| a.pressure().partial_cmp(&b.pressure()).unwrap_or(core::cmp::Ordering::Equal))
                     .map(|(&id, _)| id)
             }
@@ -228,7 +228,7 @@ impl HolisticNumaPolicy {
         let remote: u64 = self.bindings.values().map(|b| b.pages_remote).sum();
         let localities: Vec<f64> = self.bindings.values().map(|b| b.locality_ratio()).collect();
         let avg_loc = if localities.is_empty() { 1.0 } else { localities.iter().sum::<f64>() / localities.len() as f64 };
-        let mut node_pressure = BTreeMap::new();
+        let mut node_pressure = ArrayMap::new(0.0);
         for (&id, info) in &self.nodes { node_pressure.insert(id, info.pressure()); }
         NumaPolicyStats {
             total_nodes: self.nodes.len() as u32, online_nodes: online,
