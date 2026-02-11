@@ -115,7 +115,7 @@ impl HrtimerManager {
                 break;
             }
 
-            self.deadline_queue.pop_front();
+            self.deadline_queue.remove(0);
             expired.push(id);
 
             // Handle periodic timers
