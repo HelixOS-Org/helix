@@ -467,10 +467,10 @@ impl StrategyEngine {
             for option in &feasible {
                 let matches = match &rule.condition {
                     RuleCondition::AttributeGreater(attr, val) => {
-                        option.attributes.get(attr).copied().unwrap_or(0.0) > *val
+                        option.attributes.get(attr).unwrap_or(0.0) > *val
                     },
                     RuleCondition::AttributeLess(attr, val) => {
-                        option.attributes.get(attr).copied().unwrap_or(0.0) < *val
+                        option.attributes.get(attr).unwrap_or(0.0) < *val
                     },
                     RuleCondition::HasAttribute(attr) => option.attributes.contains_key(attr),
                     RuleCondition::ConstraintMet(_) => true,
@@ -516,8 +516,8 @@ impl StrategyEngine {
         // Take the best heuristic
         if let Some(obj) = context.objectives.first() {
             let best = feasible.iter().max_by(|a, b| {
-                let va = a.attributes.get(&obj.name).copied().unwrap_or(0.0);
-                let vb = b.attributes.get(&obj.name).copied().unwrap_or(0.0);
+                let va = a.attributes.get(&obj.name).unwrap_or(0.0);
+                let vb = b.attributes.get(&obj.name).unwrap_or(0.0);
 
                 match obj.direction {
                     Direction::Maximize => {
@@ -567,7 +567,7 @@ impl StrategyEngine {
                     .objectives
                     .iter()
                     .map(|obj| {
-                        let val = opt.attributes.get(&obj.name).copied().unwrap_or(0.0);
+                        let val = opt.attributes.get(&obj.name).unwrap_or(0.0);
                         let normalized = match obj.direction {
                             Direction::Maximize => val,
                             Direction::Minimize => -val,
@@ -600,7 +600,7 @@ impl StrategyEngine {
 
         for opt in &feasible {
             let meets_all = context.objectives.iter().all(|obj| {
-                let val = opt.attributes.get(&obj.name).copied().unwrap_or(0.0);
+                let val = opt.attributes.get(&obj.name).unwrap_or(0.0);
                 match obj.direction {
                     Direction::Maximize => val >= 0.5,
                     Direction::Minimize => val <= 0.5,
@@ -647,7 +647,7 @@ impl StrategyEngine {
                     .objectives
                     .iter()
                     .filter(|obj| matches!(obj.direction, Direction::Minimize))
-                    .map(|obj| opt.attributes.get(&obj.name).copied().unwrap_or(0.0))
+                    .map(|obj| opt.attributes.get(&obj.name).unwrap_or(0.0))
                     .fold(0.0_f64, f64::max);
                 (opt, max_loss)
             })
