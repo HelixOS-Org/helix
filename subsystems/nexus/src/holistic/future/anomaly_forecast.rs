@@ -22,6 +22,7 @@ use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -578,8 +579,8 @@ impl HolisticAnomalyForecast {
     /// Assess overall systemic risk
     pub fn systemic_risk(&mut self) -> SystemicRisk {
         self.stats.risk_assessments += 1;
-        let mut risk_by_cat: LinearMap<f32, 64> = BTreeMap::new();
-        let mut risk_by_src: LinearMap<f32, 64> = BTreeMap::new();
+        let mut risk_by_cat: LinearMap<f32, 64> = LinearMap::new();
+        let mut risk_by_src: LinearMap<f32, 64> = LinearMap::new();
         let mut total_risk = 0.0_f32;
         let mut factors: Vec<RiskFactor> = Vec::new();
 
