@@ -242,7 +242,7 @@ impl CoopIntrospector {
 
         // Per-participant tracking
         for (i, &pid) in participants.iter().enumerate() {
-            let sat = satisfaction.get(i).copied().unwrap_or(0.5);
+            let sat = satisfaction.get(i).unwrap_or(&0.5);
             self.global_satisfaction_ema =
                 EMA_ALPHA * sat + (1.0 - EMA_ALPHA) * self.global_satisfaction_ema;
 
@@ -250,7 +250,7 @@ impl CoopIntrospector {
                 .participant_trackers
                 .entry(pid)
                 .or_insert_with(|| ParticipantTracker::new(pid));
-            tracker.record(sat, clamped_fairness, agreed, resources_at_stake);
+            tracker.record(*sat, clamped_fairness, agreed, resources_at_stake);
         }
 
         let id = self.total_negotiations;
