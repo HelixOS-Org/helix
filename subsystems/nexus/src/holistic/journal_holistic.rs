@@ -2,9 +2,7 @@
 //! Holistic journal — filesystem journal/log analysis
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Journal operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -175,7 +173,7 @@ impl HolisticJournalV2Manager {
         self.samples.push_back(sample);
         self.stats.samples += 1;
         if self.samples.len() > self.window {
-            self.samples.pop_front();
+            self.samples.remove(0);
         }
     }
 
