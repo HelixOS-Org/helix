@@ -380,7 +380,7 @@ impl CfgAnalyzer {
 
                 // New dominator is intersection of all predecessors' dominators
                 if let Some(new_dom) = self.intersect_dominators(cfg, &block.predecessors) {
-                    if Some(&new_dom) != self.dominators.get(&block.id) {
+                    if Some(&new_dom) != self.dominators.get(block.id) {
                         self.dominators.insert(block.id, new_dom);
                         changed = true;
                     }
@@ -505,7 +505,7 @@ impl CfgAnalyzer {
     /// Get immediate dominator
     #[inline(always)]
     pub fn get_dominator(&self, block: u64) -> Option<u64> {
-        self.dominators.get(block).copied()
+        self.dominators.get(block)
     }
 
     /// Get loop headers
