@@ -22,7 +22,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -210,7 +209,7 @@ impl CoopEmotionSignal {
     /// Standard deviation estimate from variance accumulator
     pub fn std_dev(&self) -> f32 {
         let v = if self.variance_accum < 0.0 { 0.0 } else { self.variance_accum };
-        let mut x = v;
+        let x = v;
         if x < 0.0001 {
             return 0.0;
         }
