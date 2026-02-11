@@ -29,20 +29,18 @@ helix-relocation = { path = "../../subsystems/relocation", features = [
     "stats",
 ] }
 
-# NEXUS — experimental sandbox (lightweight prediction + healing only)
-helix-nexus = { path = "../../subsystems/nexus", default-features = false, features = [
-    "experimental-lite",
-] }
+# NEXUS — full integration (all GENESIS + COGNITION + EVOLUTION + SYMBIOSIS)
+helix-nexus = { path = "../../subsystems/nexus" }
 
 # Note: helix-scheduler-round-robin is temporarily commented out
 # helix-scheduler-round-robin = { path = "../../modules_impl/schedulers/round_robin" }
 
 [features]
-default = ["serial_console"]
+default = ["serial_console", "nexus-full"]
 serial_console = []
 
-# Enable NEXUS lite sandbox in the minimal profile
-nexus-lite = []
+# Enable full NEXUS integration in the minimal profile
+nexus-full = []
 
 # NOTE: Profile configurations moved to workspace root Cargo.toml
 # Profiles defined here are ignored when building as part of the workspace
