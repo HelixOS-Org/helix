@@ -14,10 +14,10 @@
 extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -292,7 +292,7 @@ impl CoopMethodology {
             validation: Some(result.clone()),
         };
         if self.experiments.len() >= MAX_EXPERIMENTS {
-            self.experiments.pop_front();
+            self.experiments.remove(0);
         }
         self.experiments.push_back(exp);
         self.design_history.insert(exp_id, design_score);
