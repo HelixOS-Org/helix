@@ -39,3 +39,4 @@ pub mod linear_map;
 pub mod inline_str;
 pub mod slab_pool;
 pub mod bitset;
+pub mod math;
