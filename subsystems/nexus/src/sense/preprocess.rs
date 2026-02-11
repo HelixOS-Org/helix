@@ -638,6 +638,7 @@ impl Default for Preprocessor {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn make_input(text: &str) -> RawInput {
         RawInput {
