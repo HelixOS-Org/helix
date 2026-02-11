@@ -1,6 +1,7 @@
 //! Novelty Search - exploration-based search without explicit objectives.
 
 use alloc::vec::Vec;
+use crate::fast::math::{F64Ext};
 
 /// Behavior characterization for novelty search
 #[derive(Debug, Clone)]
