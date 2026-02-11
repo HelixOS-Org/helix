@@ -59,7 +59,7 @@ impl DeviceLatencyModel {
     fn record(&mut self, latency: u64) {
         self.recent_latencies.push_back(latency);
         if self.recent_latencies.len() > 100 {
-            self.recent_latencies.pop_front();
+            self.recent_latencies.remove(0);
         }
 
         // Update average
@@ -128,7 +128,7 @@ impl LatencyPredictor {
 
         self.global_history.push_back((size as u64, latency_ns));
         if self.global_history.len() > self.max_history {
-            self.global_history.pop_front();
+            self.global_history.remove(0);
         }
     }
 
