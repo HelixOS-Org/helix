@@ -129,7 +129,7 @@ impl LateFusion {
         {
             if is_present {
                 let encoded = encoder.encode(input);
-                let weight = self.fusion_weights.get(i).copied().unwrap_or(1.0);
+                let weight = self.fusion_weights.get(i).unwrap_or(1.0);
 
                 for (f, &e) in fused.iter_mut().zip(encoded.iter()) {
                     *f += weight * e;
